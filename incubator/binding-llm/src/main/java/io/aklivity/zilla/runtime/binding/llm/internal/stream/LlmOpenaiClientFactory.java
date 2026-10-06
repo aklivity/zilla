@@ -101,6 +101,26 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private static final int STATUS_BAD_REQUEST = 400;
     private static final int NO_ERROR = -1;
     private static final int STATUS_BAD_GATEWAY = 502;
+    private static final int NONE = -1;
+    private static final int REPLACEMENT_CHARACTER = 0xFFFD;
+    private static final String FINISH_REASON = "finish_reason";
+    private static final String COMPLETION = "chat.completion";
+    private static final String USAGE = "usage";
+    private static final String MEMBER_ID = "id";
+    private static final String MEMBER_OBJECT = "object";
+    private static final String MEMBER_CHOICES = "choices";
+    private static final String MEMBER_ERROR = "error";
+    private static final String MEMBER_INDEX = "index";
+    private static final String MEMBER_DELTA = "delta";
+    private static final String MEMBER_MESSAGE = "message";
+    private static final String MEMBER_CONTENT = "content";
+    private static final String MEMBER_REFUSAL = "refusal";
+    private static final String MEMBER_TOOL_CALLS = "tool_calls";
+    private static final String MEMBER_ROLE = "role";
+    private static final String MEMBER_FUNCTION = "function";
+    private static final String MEMBER_NAME = "name";
+    private static final String MEMBER_ARGUMENTS = "arguments";
+    private static final String MEMBER_TYPE = "type";
     private static final int FRAMING_CAPABILITIES_MASK = 1 << Capability.FRAMING.ordinal();
     private static final int EVENT_HEADER_SIZE = Integer.BYTES + Byte.BYTES;
 
@@ -160,6 +180,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private static final byte[] TOOL_CALLS_START = ",\"tool_calls\":[".getBytes(UTF_8);
     private static final byte[] TOOLS_START = "\"tools\":[".getBytes(UTF_8);
 
+    private static final DirectBufferEx NULL_VALUE = new UnsafeBufferEx("null".getBytes(UTF_8));
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
 
     private final BeginFW beginRO = new BeginFW();
@@ -289,6 +310,15 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         return newStream;
     }
 
+    @FunctionalInterface
+    private interface LlmOpenaiResponseDecoder
+    {
+        int decode(
+            DirectBufferEx buffer,
+            int offset,
+            int limit);
+    }
+
     private static String header(
         HttpBeginExFW httpBeginEx,
         String name)
@@ -382,6 +412,66 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             kind == KIND_UNKNOWN;
     }
 
+    private static boolean canonicalMember(
+        CharSequence member)
+    {
+        return MEMBER_ID.contentEquals(member) ||
+            MEMBER_OBJECT.contentEquals(member) ||
+            MODEL.contentEquals(member) ||
+            MEMBER_CHOICES.contentEquals(member) ||
+            USAGE.contentEquals(member) ||
+            MEMBER_ERROR.contentEquals(member);
+    }
+
+    private static boolean carriedMember(
+        CharSequence member)
+    {
+        return MODEL.contentEquals(member) || USAGE.contentEquals(member);
+    }
+
+    private static boolean canonicalMessageMember(
+        CharSequence member)
+    {
+        return MEMBER_ROLE.contentEquals(member) ||
+            MEMBER_CONTENT.contentEquals(member) ||
+            MEMBER_REFUSAL.contentEquals(member) ||
+            MEMBER_TOOL_CALLS.contentEquals(member);
+    }
+
+    private static int nesting(
+        JsonEvent event)
+    {
+        return switch (event)
+        {
+        case START_OBJECT, START_ARRAY -> 1;
+        case END_OBJECT, END_ARRAY -> -1;
+        default -> 0;
+        };
+    }
+
+    private static boolean isSeparator(
+        byte value)
+    {
+        return value == ':' || isWhitespace(value);
+    }
+
+    private static boolean isWhitespace(
+        byte value)
+    {
+        return value == ' ' || value == '\t' || value == '\r' || value == '\n';
+    }
+
+    private static void addIfPresent(
+        JsonObjectBuilder builder,
+        String name,
+        int value)
+    {
+        if (value != NONE)
+        {
+            builder.add(name, value);
+        }
+    }
+
     private final class LlmOpenaiStream
     {
         private final MessageConsumer app;
@@ -396,7 +486,47 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private final String model;
         private final String dialect;
         private final LlmOpenaiHttpStream http;
-        private final LlmOpenaiResponseDecoder responseDecoder;
+        private final JsonParserEx parser;
+        private final StringBuilder captureValue;
+        private final StringBuilder usagePath;
+        private final int[] usageMark;
+        private final LlmOpenaiResponseDecoder decodeStart = this::decodeStart;
+        private final LlmOpenaiResponseDecoder decodeRootStart = this::decodeRootStart;
+        private final LlmOpenaiResponseDecoder decodeRoot = this::decodeRoot;
+        private final LlmOpenaiResponseDecoder decodeId = this::decodeId;
+        private final LlmOpenaiResponseDecoder decodeObject = this::decodeObject;
+        private final LlmOpenaiResponseDecoder decodeModel = this::decodeModel;
+        private final LlmOpenaiResponseDecoder decodeChoicesStart = this::decodeChoicesStart;
+        private final LlmOpenaiResponseDecoder decodeChoices = this::decodeChoices;
+        private final LlmOpenaiResponseDecoder decodeChoice = this::decodeChoice;
+        private final LlmOpenaiResponseDecoder decodeChoiceIndex = this::decodeChoiceIndex;
+        private final LlmOpenaiResponseDecoder decodeFinishReason = this::decodeFinishReason;
+        private final LlmOpenaiResponseDecoder decodeDeltaStart = this::decodeDeltaStart;
+        private final LlmOpenaiResponseDecoder decodeMessageStart = this::decodeMessageStart;
+        private final LlmOpenaiResponseDecoder decodeDelta = this::decodeDelta;
+        private final LlmOpenaiResponseDecoder decodeMessage = this::decodeMessage;
+        private final LlmOpenaiResponseDecoder decodeText = this::decodeText;
+        private final LlmOpenaiResponseDecoder decodeToolCallsStart = this::decodeToolCallsStart;
+        private final LlmOpenaiResponseDecoder decodeToolCalls = this::decodeToolCalls;
+        private final LlmOpenaiResponseDecoder decodeToolCall = this::decodeToolCall;
+        private final LlmOpenaiResponseDecoder decodeToolIndex = this::decodeToolIndex;
+        private final LlmOpenaiResponseDecoder decodeToolId = this::decodeToolId;
+        private final LlmOpenaiResponseDecoder decodeFunctionStart = this::decodeFunctionStart;
+        private final LlmOpenaiResponseDecoder decodeFunction = this::decodeFunction;
+        private final LlmOpenaiResponseDecoder decodeToolName = this::decodeToolName;
+        private final LlmOpenaiResponseDecoder decodeArguments = this::decodeArguments;
+        private final LlmOpenaiResponseDecoder decodeUsage = this::decodeUsage;
+        private final LlmOpenaiResponseDecoder decodeCapture = this::decodeCapture;
+        private final LlmOpenaiResponseDecoder decodeSkip = this::decodeSkip;
+        private final LlmOpenaiResponseDecoder decodeEnd = this::decodeEnd;
+        private final LlmOpenaiResponseDecoder decodeIgnore = this::decodeIgnore;
+        private final LlmOpenaiResponseDecoder decodeErrorStart = this::decodeErrorStart;
+        private final LlmOpenaiResponseDecoder decodeErrorRootStart = this::decodeErrorRootStart;
+        private final LlmOpenaiResponseDecoder decodeErrorRoot = this::decodeErrorRoot;
+        private final LlmOpenaiResponseDecoder decodeErrorObjectStart = this::decodeErrorObjectStart;
+        private final LlmOpenaiResponseDecoder decodeErrorObject = this::decodeErrorObject;
+        private final LlmOpenaiResponseDecoder decodeErrorType = this::decodeErrorType;
+        private final LlmOpenaiResponseDecoder decodeErrorMessage = this::decodeErrorMessage;
 
         private long initialSeq;
         private long initialAck;
@@ -412,6 +542,80 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private int appKind;
         private boolean logprobsBlock;
 
+        private LlmOpenaiResponseDecoder decoder;
+        private LlmOpenaiResponseDecoder skipThen;
+        private LlmOpenaiResponseDecoder captureThen;
+        private LlmOpenaiResponseDecoder errorThen;
+        private int decodeLimit;
+        private int skipDepth;
+
+        private boolean scanned;
+        private boolean scanError;
+        private boolean parseRejected;
+        private boolean logprobsRequested;
+        private boolean messageScope;
+        private boolean completion;
+        private boolean choiceMessage;
+
+        private int documentInputTokens = NONE;
+        private int documentOutputTokens = NONE;
+        private int documentTotalTokens = NONE;
+        private int documentCacheReadTokens = NONE;
+        private int documentReasoningTokens = NONE;
+        private String documentErrorType;
+        private String documentErrorMessage;
+        private String documentId;
+        private String documentServedModel;
+        private String documentFinishReason;
+
+        private int inputTokens = NONE;
+        private int outputTokens = NONE;
+        private int totalTokens = NONE;
+        private int cacheReadTokens = NONE;
+        private int reasoningTokens = NONE;
+        private String errorType;
+        private String errorMessage;
+        private String id;
+        private String servedModel;
+        private String finishReason;
+
+        private int choiceIndex;
+        private int toolIndex;
+        private String toolId;
+        private String toolName;
+        private boolean toolArguments;
+        private LlmSectionType textType;
+        private String textMember;
+
+        private boolean sectionOpen;
+        private boolean sectionStarted;
+        private boolean sectionWritten;
+        private boolean sectionAtomic;
+        private boolean sectionFollow;
+        private boolean followPending;
+        private LlmSectionType sectionType;
+        private int sectionMessage;
+        private int sectionTool;
+        private String sectionToolId;
+        private String sectionToolName;
+
+        private char highSurrogate;
+        private byte[] textBytes;
+        private UnsafeBufferEx textBuffer;
+        private byte[] heldBytes;
+        private UnsafeBufferEx heldBuffer;
+        private int heldLength;
+
+        private boolean captureAfter;
+        private boolean captureStarted;
+        private boolean captureTrim;
+        private boolean captureContainer;
+        private boolean captureUsage;
+        private int captureDepth;
+        private int captureFrom;
+        private String captureName;
+        private String usageKey;
+        private int usageDepth;
 
         private LlmOpenaiStream(
             MessageConsumer app,
@@ -436,20 +640,28 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             this.binding = binding;
             this.model = model;
             this.dialect = dialect;
-            this.responseDecoder = new LlmOpenaiResponseDecoder(false, decodeMax);
             this.http = new LlmOpenaiHttpStream(this);
+            this.parser = JsonEx.createParser();
+            this.captureValue = new StringBuilder();
+            this.usagePath = new StringBuilder();
+            this.usageMark = new int[8];
+            this.textBytes = new byte[1024];
+            this.textBuffer = new UnsafeBufferEx(textBytes);
+            this.heldBytes = new byte[1024];
+            this.heldBuffer = new UnsafeBufferEx(heldBytes);
+            this.heldLength = NONE;
+            this.sectionTool = NONE;
+            this.decoder = decodeStart;
         }
 
         private int replyCredit()
         {
-            return responseDecoder.muted
-                ? Integer.MAX_VALUE
-                : Math.max(0, replyMax - (int) (replySeq - replyAck)) / (1 + replyPad);
+            return Math.max(0, replyMax - (int) (replySeq - replyAck)) / (1 + replyPad);
         }
 
         private boolean replyAvailable()
         {
-            return !responseDecoder.begun() || replyCredit() > 0;
+            return !begun() || replyCredit() > 0;
         }
 
         private void onAppMessage(
@@ -585,7 +797,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 {
                     if (logprobsBlock)
                     {
-                        responseDecoder.logprobs(payload.buffer().getByte(payload.offset()) == 't');
+                        logprobsRequested = payload.buffer().getByte(payload.offset()) == 't';
                         logprobsBlock = false;
                     }
 
@@ -699,7 +911,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             if (!LlmState.replyOpening(state))
             {
-                doAppBegin(traceId, responseDecoder.model(), responseDecoder.id());
+                doAppBegin(traceId, servedModel(), id());
             }
         }
 
@@ -822,831 +1034,351 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             replySeq += data.reserved();
         }
 
-        private final class LlmOpenaiResponseDecoder
+        private boolean failed()
         {
-            private static final int NONE = -1;
-            private static final int REPLACEMENT_CHARACTER = 0xFFFD;
-            private static final String LOGPROBS = "logprobs";
-            private static final String FINISH_REASON = "finish_reason";
-            private static final String COMPLETION = "chat.completion";
-            private static final String MODEL = "model";
-            private static final String USAGE = "usage";
+            return errorType != null || errorMessage != null;
+        }
 
-            private boolean muted;
-            private final JsonParserEx parser;
-            private final StringBuilder path;
-            private final int[] pathLengthAt;
-            private final int holdMax;
+        private boolean begun()
+        {
+            return scanned;
+        }
 
-            private DirectBufferEx input;
-            private int inputLimit;
+        private boolean parseRejected()
+        {
+            return parseRejected;
+        }
 
-            private boolean scanned;
-            private boolean scanError;
-            private boolean completed;
-            private boolean rejected;
+        private boolean completed()
+        {
+            return decoder == decodeEnd;
+        }
 
-            private int depth;
-            private String pendingKey;
+        private String servedModel()
+        {
+            return documentServedModel != null ? documentServedModel : servedModel;
+        }
 
-            private int documentInputTokens = NONE;
-            private int documentOutputTokens = NONE;
-            private int documentTotalTokens = NONE;
-            private int documentCacheReadTokens = NONE;
-            private int documentReasoningTokens = NONE;
-            private String documentErrorType;
-            private String documentErrorMessage;
-            private String documentId;
-            private String documentModel;
-            private String documentFinishReason;
+        private String id()
+        {
+            return documentId != null ? documentId : id;
+        }
 
-            private int inputTokens = NONE;
-            private int outputTokens = NONE;
-            private int totalTokens = NONE;
-            private int cacheReadTokens = NONE;
-            private int reasoningTokens = NONE;
-            private String errorType;
-            private String errorMessage;
-            private String id;
-            private String model;
-            private String finishReason;
+        private String finishReason()
+        {
+            final String reported = documentFinishReason != null ? documentFinishReason : finishReason;
 
-            private int choiceIndex;
-            private int toolIndex;
-            private String toolId;
-            private String toolName;
-            private boolean toolArguments;
+            String neutral = reported;
 
-            private boolean sectionOpen;
-            private boolean sectionStarted;
-            private boolean sectionWritten;
-            private boolean sectionAtomic;
-            private boolean sectionFollow;
-            private boolean followPending;
-            private boolean logprobs;
-            private LlmSectionType sectionType;
-            private int sectionMessage;
-            private int sectionTool;
-            private String sectionToolId;
-            private String sectionToolName;
-
-            private char highSurrogate;
-            private byte[] textBytes;
-            private UnsafeBufferEx textBuffer;
-            private byte[] heldBytes;
-            private UnsafeBufferEx heldBuffer;
-            private int heldLength;
-
-            private boolean capturing;
-            private boolean captureAfter;
-            private boolean captureStarted;
-            private boolean captureTrim;
-            private int captureDepth;
-            private int captureFrom;
-            private String captureName;
-            private boolean choiceMessage;
-            private boolean completion;
-            private boolean captureContainer;
-            private boolean captureUsage;
-            private String usageKey;
-            private int usageDepth;
-            private final StringBuilder captureValue;
-            private final StringBuilder usagePath;
-            private final int[] usageMark;
-            private final UnsafeBufferEx nullBuffer;
-
-            LlmOpenaiResponseDecoder(
-                boolean muted,
-                int holdMax)
+            if (reported != null)
             {
-                this.muted = muted;
-                this.captureValue = new StringBuilder();
-                this.usagePath = new StringBuilder();
-                this.usageMark = new int[8];
-                this.nullBuffer = new UnsafeBufferEx("null".getBytes(UTF_8));
-                this.holdMax = holdMax;
-                this.parser = JsonEx.createParser();
-                this.path = new StringBuilder();
-                this.pathLengthAt = new int[16];
-                this.textBytes = new byte[1024];
-                this.textBuffer = new UnsafeBufferEx(textBytes);
-                this.heldBytes = new byte[1024];
-                this.heldBuffer = new UnsafeBufferEx(heldBytes);
-                this.heldLength = NONE;
-                this.sectionTool = NONE;
-            }
-
-            void logprobs(
-                boolean requested)
-            {
-                this.logprobs = requested;
-            }
-
-            boolean failed()
-            {
-                return errorType != null || errorMessage != null;
-            }
-
-            boolean begun()
-            {
-                return scanned;
-            }
-
-            boolean rejected()
-            {
-                return rejected;
-            }
-
-            boolean completed()
-            {
-                return completed;
-            }
-
-            String errorType()
-            {
-                return errorType;
-            }
-
-            String errorMessage()
-            {
-                return errorMessage;
-            }
-
-            String id()
-            {
-                return documentId != null ? documentId : id;
-            }
-
-            String model()
-            {
-                return documentModel != null ? documentModel : model;
-            }
-
-            String finishReason()
-            {
-                final String reported = documentFinishReason != null ? documentFinishReason : finishReason;
-
-                String neutral = reported;
-
-                if (reported != null)
+                neutral = switch (reported)
                 {
-                    neutral = switch (reported)
+                case "tool_calls", "function_call" -> "tool-call";
+                case "content_filter" -> "content-filter";
+                default -> reported;
+                };
+            }
+
+            return neutral;
+        }
+
+        private void populateUsage(
+            LlmUsageFW.Builder usage)
+        {
+            usage.inputTokens(inputTokens)
+                .cacheWriteTokens(NONE)
+                .cacheReadTokens(cacheReadTokens)
+                .outputTokens(outputTokens)
+                .reasoningTokens(reasoningTokens)
+                .totalTokens(totalTokens);
+
+            final JsonObjectBuilder builder = Json.createObjectBuilder();
+            addIfPresent(builder, "input_tokens", inputTokens);
+            addIfPresent(builder, "cache_read_tokens", cacheReadTokens);
+            addIfPresent(builder, "output_tokens", outputTokens);
+            addIfPresent(builder, "reasoning_tokens", reasoningTokens);
+            addIfPresent(builder, "total_tokens", totalTokens);
+
+            final JsonObject nativeUsage = builder.build();
+            if (!nativeUsage.isEmpty())
+            {
+                usage.nativeUsage(nativeUsage.toString());
+            }
+        }
+
+        private void populateError(
+            LlmErrorFW.Builder error)
+        {
+            error.status(NONE)
+                .type(errorType)
+                .message(errorMessage);
+        }
+
+        private void finish()
+        {
+            closeSection();
+        }
+
+        private void resetDocument()
+        {
+            commitDocument();
+            parser.reset();
+            decoder = decodeStart;
+        }
+
+        private void resetErrorDocument()
+        {
+            commitDocument();
+            parser.reset();
+            decoder = decodeErrorStart;
+        }
+
+        private void resetResponse()
+        {
+            resetDocument();
+            scanned = false;
+            parseRejected = false;
+            sectionOpen = false;
+            sectionStarted = false;
+            sectionFollow = false;
+            followPending = false;
+            sectionTool = NONE;
+            highSurrogate = 0;
+            heldLength = NONE;
+        }
+
+        private int decodeResponse(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            int progress = offset;
+
+            try
+            {
+                if (decoder == decodeEnd || decoder == decodeIgnore)
+                {
+                    progress = decoder.decode(buffer, offset, limit);
+                }
+                else
+                {
+                    boolean ready = scanned;
+
+                    if (!scanned)
                     {
-                    case "tool_calls", "function_call" -> "tool-call";
-                    case "content_filter" -> "content-filter";
-                    default -> reported;
-                    };
-                }
+                        final boolean found = scanResponse(buffer, offset, limit, last);
 
-                return neutral;
-            }
+                        if (found || last || limit - offset >= decodeMax)
+                        {
+                            scanned = true;
+                            ready = true;
 
-            void populateUsage(
-                LlmUsageFW.Builder usage)
-            {
-                usage.inputTokens(inputTokens)
-                    .cacheWriteTokens(NONE)
-                    .cacheReadTokens(cacheReadTokens)
-                    .outputTokens(outputTokens)
-                    .reasoningTokens(reasoningTokens)
-                    .totalTokens(totalTokens);
+                            if (!scanError && !parseRejected)
+                            {
+                                doAppBeginSections(http.decodeTraceId);
+                            }
+                        }
+                    }
 
-                final JsonObjectBuilder builder = Json.createObjectBuilder();
-                addIfPresent(builder, "input_tokens", inputTokens);
-                addIfPresent(builder, "cache_read_tokens", cacheReadTokens);
-                addIfPresent(builder, "output_tokens", outputTokens);
-                addIfPresent(builder, "reasoning_tokens", reasoningTokens);
-                addIfPresent(builder, "total_tokens", totalTokens);
-
-                final JsonObject nativeUsage = builder.build();
-                if (!nativeUsage.isEmpty())
-                {
-                    usage.nativeUsage(nativeUsage.toString());
-                }
-            }
-
-            void populateError(
-                LlmErrorFW.Builder error)
-            {
-                error.status(NONE)
-                    .type(errorType)
-                    .message(errorMessage);
-            }
-
-            void finish()
-            {
-                closeSection();
-            }
-
-            void nextDocument()
-            {
-                onDocumentEnd();
-                parser.reset();
-                completed = false;
-                depth = 0;
-                path.setLength(0);
-                pendingKey = null;
-                capturing = false;
-            }
-
-            void reset()
-            {
-                nextDocument();
-                scanned = false;
-                rejected = false;
-                sectionOpen = false;
-                sectionStarted = false;
-                sectionFollow = false;
-                followPending = false;
-                sectionTool = NONE;
-                highSurrogate = 0;
-                heldLength = NONE;
-            }
-
-            int decode(
-                DirectBufferEx buffer,
-                int offset,
-                int limit,
-                boolean last)
-            {
-                int progress = offset;
-
-                try
-                {
-                    if (completed)
+                    if (parseRejected)
                     {
                         progress = limit;
-
-                        for (int index = offset; index < limit; index++)
-                        {
-                            if (!isWhitespace(buffer.getByte(index)))
-                            {
-                                rejected = true;
-                            }
-                        }
                     }
-                    else
+                    else if (ready)
                     {
-                        boolean ready = scanned;
-
-                        if (!scanned)
-                        {
-                            final boolean found = scan(buffer, offset, limit, last);
-
-                            if (found || last || limit - offset >= holdMax)
-                            {
-                                scanned = true;
-                                ready = true;
-
-                                if (!scanError && !rejected && !muted)
-                                {
-                                    doAppBeginSections(http.decodeTraceId);
-                                }
-                            }
-                        }
-
-                        if (rejected)
-                        {
-                            progress = limit;
-                        }
-                        else if (ready)
-                        {
-                            progress = decodeAvailable(buffer, offset, limit, last);
-                        }
-                    }
-                }
-                catch (JsonException ex)
-                {
-                    rejected = true;
-                    progress = limit;
-                }
-
-                return progress;
-            }
-
-            private int decodeAvailable(
-                DirectBufferEx buffer,
-                int offset,
-                int limit,
-                boolean last)
-            {
-                int progress = offset;
-                boolean advanced = true;
-
-                while (advanced && !completed && !rejected)
-                {
-                    int window = Math.min(limit - progress, Math.max(0, credit() - Math.max(heldLength, 0)));
-
-                    if (window == 0 && limit > progress && heldLength > 0 && credit() > 0)
-                    {
-                        flushHeld();
-                        window = Math.min(limit - progress, Math.max(0, credit() - Math.max(heldLength, 0)));
-                    }
-
-                    if (window > 0)
-                    {
-                        final int next = decodeWindow(buffer, progress, progress + window, last && progress + window == limit);
-
-                        advanced = next > progress && next < limit;
-                        progress = next;
-                    }
-                    else
-                    {
-                        if (limit == progress)
-                        {
-                            progress = decodeWindow(buffer, progress, progress, last);
-                        }
-
-                        advanced = false;
-                    }
-                }
-
-                return progress;
-            }
-
-            private void flushHeld()
-            {
-                if (heldLength != NONE)
-                {
-                    write(heldBuffer, heldLength, false);
-                    heldLength = NONE;
-                }
-            }
-
-            private boolean scan(
-                DirectBufferEx buffer,
-                int offset,
-                int limit,
-                boolean last)
-            {
-                parser.reset();
-                parser.wrap(buffer, offset, limit, last);
-
-                int scanDepth = 0;
-                String scanKey = null;
-                boolean scanChoices = false;
-                boolean found = false;
-
-                scanError = false;
-
-                while (!found && parser.hasNextEvent())
-                {
-                    final JsonEvent event = parser.nextEvent();
-
-                    if (scanChoices)
-                    {
-                        rejected = event != JsonEvent.START_ARRAY;
-                        found = true;
-                    }
-                    else
-                    {
-                        switch (event)
-                        {
-                        case START_OBJECT:
-                        case START_ARRAY:
-                            scanDepth++;
-                            scanKey = null;
-                            break;
-                        case END_OBJECT:
-                        case END_ARRAY:
-                            scanDepth--;
-                            found = scanDepth == 0;
-                            break;
-                        case KEY_NAME:
-                            if (parser.deferredBytes())
-                            {
-                                parser.consumed(0);
-                            }
-                            else if (scanDepth == 1)
-                            {
-                                scanKey = parser.getString();
-                                scanError = "error".equals(scanKey);
-                                scanChoices = "choices".equals(scanKey);
-                                found = scanError;
-                            }
-                            break;
-                        case VALUE_STRING:
-                            if (parser.deferredBytes())
-                            {
-                                parser.consumed(parser.getStringView().length());
-                            }
-                            else if (scanDepth == 1 && scanKey != null)
-                            {
-                                switch (scanKey)
-                                {
-                                case "id":
-                                    documentId = parser.getString();
-                                    break;
-                                case "model":
-                                    documentModel = parser.getString();
-                                    break;
-                                default:
-                                    break;
-                                }
-                                found = documentId != null && documentModel != null;
-                            }
-                            break;
-                        default:
-                            break;
-                        }
-                    }
-                }
-
-                parser.reset();
-
-                return found;
-            }
-
-            private int decodeWindow(
-                DirectBufferEx buffer,
-                int offset,
-                int windowLimit,
-                boolean windowLast)
-            {
-                input = buffer;
-                inputLimit = windowLimit;
-                captureFrom = offset;
-
-                parser.wrap(buffer, offset, windowLimit, windowLast);
-
-                while (!completed && !rejected && parser.hasNextEvent())
-                {
-                    final JsonEvent event = parser.nextEvent();
-
-                    if (capturing)
-                    {
-                        onCapture(event);
-                    }
-                    else
-                    {
-                        onEvent(event);
-                    }
-                }
-
-                if (capturing)
-                {
-                    flushCapture(false);
-                }
-
-                int progress = position();
-
-                if (completed)
-                {
-                    while (progress < windowLimit && isWhitespace(buffer.getByte(progress)))
-                    {
-                        progress++;
-                    }
-                }
-
-                return rejected ? windowLimit : progress;
-            }
-
-            private int position()
-            {
-                return inputLimit - parser.remaining();
-            }
-
-            private void onEvent(
-                JsonEvent event)
-            {
-                switch (event)
-                {
-                case START_OBJECT:
-                case START_ARRAY:
-                    onContainerStart(event);
-                    break;
-                case END_OBJECT:
-                case END_ARRAY:
-                    onContainerEnd(event);
-                    break;
-                case KEY_NAME:
-                    onKeyName();
-                    break;
-                case VALUE_STRING:
-                case VALUE_NUMBER:
-                case VALUE_TRUE:
-                case VALUE_FALSE:
-                case VALUE_NULL:
-                    onLeafValue(event);
-                    break;
-                default:
-                    break;
-                }
-            }
-
-            private void onContainerStart(
-                JsonEvent event)
-            {
-                if (depth == 0 && event != JsonEvent.START_OBJECT)
-                {
-                    rejected = true;
-                }
-
-                pathLengthAt[depth++] = path.length();
-
-                if (pendingKey != null)
-                {
-                    if (path.length() > 0)
-                    {
-                        path.append('.');
-                    }
-                    path.append(pendingKey);
-                    pendingKey = null;
-                }
-                else if (event == JsonEvent.START_OBJECT)
-                {
-                    if (pathIs("choices"))
-                    {
-                        choiceIndex = 0;
-                    }
-                    else if (toolCalls())
-                    {
-                        toolIndex = NONE;
-                        toolId = null;
-                        toolName = null;
-                        toolArguments = false;
+                        progress = decodeAvailable(buffer, offset, limit, last);
                     }
                 }
             }
-
-            private void onContainerEnd(
-                JsonEvent event)
+            catch (JsonException ex)
             {
-                if (event == JsonEvent.END_OBJECT && toolCalls() && !toolArguments && (toolId != null || toolName != null))
-                {
-                    openTool();
-                    emit(0, !delta());
-                }
-                else if (event == JsonEvent.END_OBJECT && followPending && pathIs("choices"))
-                {
-                    emitAfterEmpty();
-                }
-
-                path.setLength(pathLengthAt[--depth]);
-
-                if (depth == 0)
-                {
-                    completed = true;
-                    onDocumentEnd();
-                }
+                parseRejected = true;
+                progress = limit;
             }
 
-            private void onKeyName()
+            return progress;
+        }
+
+        private void decodeErrorResponse(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            try
             {
-                if (parser.deferredBytes())
+                decodeWindow(buffer, offset, limit, last);
+            }
+            catch (JsonException ex)
+            {
+                decoder = decodeIgnore;
+            }
+        }
+
+        private int decodeAvailable(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            int progress = offset;
+            boolean advanced = true;
+
+            while (advanced && decoder != decodeEnd && !parseRejected)
+            {
+                int window = Math.min(limit - progress, Math.max(0, replyCredit() - Math.max(heldLength, 0)));
+
+                if (window == 0 && limit > progress && heldLength > 0 && replyCredit() > 0)
                 {
-                    parser.consumed(0);
+                    flushHeld();
+                    window = Math.min(limit - progress, Math.max(0, replyCredit() - Math.max(heldLength, 0)));
+                }
+
+                if (window > 0)
+                {
+                    final int next = decodeWindow(buffer, progress, progress + window, last && progress + window == limit);
+
+                    advanced = next > progress && next < limit;
+                    progress = next;
                 }
                 else
                 {
-                    pendingKey = parser.getString();
+                    if (limit == progress)
+                    {
+                        progress = decodeWindow(buffer, progress, progress, last);
+                    }
 
-                    if (depth == 1 && (!canonical(pendingKey) || completion && carried(pendingKey)))
-                    {
-                        beginCapture(pendingKey, false, false);
-                    }
-                    else if (depth == 3 && pathIs("choices"))
-                    {
-                        onChoiceKey();
-                    }
-                    else if (depth == 4 && pathIs("choices.message") && completion && !messageCanonical(pendingKey))
-                    {
-                        beginCapture(pendingKey, true, true);
-                    }
+                    advanced = false;
                 }
             }
 
-            private void onChoiceKey()
+            return progress;
+        }
+
+        private int decodeWindow(
+            DirectBufferEx buffer,
+            int offset,
+            int windowLimit,
+            boolean windowLast)
+        {
+            decodeLimit = windowLimit;
+            captureFrom = offset;
+
+            parser.wrap(buffer, offset, windowLimit, windowLast);
+
+            LlmOpenaiResponseDecoder previous = null;
+            while (previous != decoder && decoder != decodeEnd && !parseRejected)
             {
-                if (LOGPROBS.equals(pendingKey))
-                {
-                    beginCapture(LOGPROBS, true, false);
-                }
-                else if ("message".equals(pendingKey))
-                {
-                    choiceMessage = true;
-                }
-                else if (choiceMessage && (FINISH_REASON.equals(pendingKey) || completion && !"index".equals(pendingKey)))
-                {
-                    beginCapture(pendingKey, true, false);
-                }
+                previous = decoder;
+                decoder.decode(buffer, offset, windowLimit);
             }
 
-            private static boolean carried(
-                String member)
+            if (decoder == decodeCapture)
             {
-                return MODEL.equals(member) || USAGE.equals(member);
+                flushCapture(buffer, false);
             }
 
-            private static boolean messageCanonical(
-                String member)
+            int progress = position();
+
+            if (decoder == decodeEnd)
             {
-                return switch (member)
+                while (progress < windowLimit && isWhitespace(buffer.getByte(progress)))
                 {
-                case "role", "content", "refusal", "tool_calls" -> true;
-                default -> false;
-                };
-            }
-
-            private static boolean canonical(
-                String member)
-            {
-                return switch (member)
-                {
-                case "id", "object", "model", "choices", "usage", "error" -> true;
-                default -> false;
-                };
-            }
-
-            private void onLeafValue(
-                JsonEvent event)
-            {
-                if (pendingKey != null)
-                {
-                    if (event == JsonEvent.VALUE_NULL && completion && pathIs("choices.message") &&
-                        messageCanonical(pendingKey) && !"role".equals(pendingKey))
-                    {
-                        closeSection();
-                        if (!muted)
-                        {
-                            doAppFrame(http.decodeTraceId, Flags.COMPLETE, pendingKey, LlmBlockOwner.CONTAINER, null, NO_MESSAGE,
-                                null, null, false, nullBuffer, 0, nullBuffer.capacity());
-                        }
-                    }
-
-                    final boolean deferred = parser.deferredBytes();
-                    final int fieldAt = path.length();
-
-                    if (fieldAt > 0)
-                    {
-                        path.append('.');
-                    }
-                    path.append(pendingKey);
-
-                    final String field = path.toString();
-
-                    path.setLength(fieldAt);
-
-                    if (event == JsonEvent.VALUE_STRING)
-                    {
-                        onString(field, deferred);
-                    }
-                    else if (event == JsonEvent.VALUE_NUMBER)
-                    {
-                        onNumber(field, deferred);
-                    }
-
-                    if ("choices".equals(field))
-                    {
-                        rejected = true;
-                    }
-
-                    if (!deferred)
-                    {
-                        pendingKey = null;
-                    }
+                    progress++;
                 }
             }
 
-            private void onString(
-                String field,
-                boolean deferred)
-            {
-                switch (field)
-                {
-                case "choices.delta.content":
-                case "choices.message.content":
-                    onText(LlmSectionType.ASSISTANT_TEXT, deferred, field.startsWith("choices.message"));
-                    break;
-                case "choices.delta.refusal":
-                case "choices.message.refusal":
-                    onText(LlmSectionType.ASSISTANT_REFUSAL, deferred, field.startsWith("choices.message"));
-                    break;
-                case "choices.delta.tool_calls.id":
-                case "choices.message.tool_calls.id":
-                    if (deferred)
-                    {
-                        parser.consumed(0);
-                    }
-                    else
-                    {
-                        toolId = parser.getString();
-                    }
-                    break;
-                case "choices.delta.tool_calls.function.name":
-                case "choices.message.tool_calls.function.name":
-                    if (deferred)
-                    {
-                        parser.consumed(0);
-                    }
-                    else
-                    {
-                        toolName = parser.getString();
-                    }
-                    break;
-                case "choices.delta.tool_calls.function.arguments":
-                case "choices.message.tool_calls.function.arguments":
-                    onArguments(deferred, field.startsWith("choices.message"));
-                    break;
-                case "error.type":
-                    if (deferred)
-                    {
-                        parser.consumed(0);
-                    }
-                    else
-                    {
-                        documentErrorType = parser.getString();
-                    }
-                    break;
-                case "error.message":
-                    if (deferred)
-                    {
-                        parser.consumed(0);
-                    }
-                    else
-                    {
-                        documentErrorMessage = parser.getString();
-                    }
-                    break;
-                case "object":
-                    if (deferred)
-                    {
-                        parser.consumed(0);
-                    }
-                    else
-                    {
-                        completion = COMPLETION.equals(parser.getString());
-                    }
-                    break;
-                case "id":
-                    if (deferred)
-                    {
-                        parser.consumed(0);
-                    }
-                    else
-                    {
-                        documentId = parser.getString();
-                    }
-                    break;
-                case "model":
-                    if (deferred)
-                    {
-                        parser.consumed(0);
-                    }
-                    else
-                    {
-                        documentModel = parser.getString();
-                    }
-                    break;
-                case "choices.finish_reason":
-                    if (deferred)
-                    {
-                        parser.consumed(0);
-                    }
-                    else
-                    {
-                        documentFinishReason = parser.getString();
-                    }
-                    break;
-                default:
-                    parser.consumed(parser.getStringView().length());
-                    break;
-                }
-            }
+            return parseRejected ? windowLimit : progress;
+        }
 
-            private void onNumber(
-                String field,
-                boolean deferred)
+        private int position()
+        {
+            return decodeLimit - parser.remaining();
+        }
+
+        private void flushHeld()
+        {
+            if (heldLength != NONE)
             {
-                if (deferred)
+                writeSection(heldBuffer, heldLength, false);
+                heldLength = NONE;
+            }
+        }
+
+        private boolean scanResponse(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            parser.reset();
+            parser.wrap(buffer, offset, limit, last);
+
+            int scanDepth = 0;
+            String scanKey = null;
+            boolean scanChoices = false;
+            boolean found = false;
+
+            scanError = false;
+
+            while (!found && parser.hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (scanChoices)
                 {
-                    parser.consumed(0);
+                    parseRejected = event != JsonEvent.START_ARRAY;
+                    found = true;
                 }
                 else
                 {
-                    switch (field)
+                    switch (event)
                     {
-                    case "choices.index":
-                        choiceIndex = parser.getInt();
+                    case START_OBJECT:
+                    case START_ARRAY:
+                        scanDepth++;
+                        scanKey = null;
                         break;
-                    case "choices.delta.tool_calls.index":
-                    case "choices.message.tool_calls.index":
-                        toolIndex = parser.getInt();
+                    case END_OBJECT:
+                    case END_ARRAY:
+                        scanDepth--;
+                        found = scanDepth == 0;
                         break;
-                    case "usage.prompt_tokens":
-                        documentInputTokens = parser.getInt();
+                    case KEY_NAME:
+                        if (parser.deferredBytes())
+                        {
+                            parser.consumed(0);
+                        }
+                        else if (scanDepth == 1)
+                        {
+                            scanKey = parser.getString();
+                            scanError = MEMBER_ERROR.equals(scanKey);
+                            scanChoices = MEMBER_CHOICES.equals(scanKey);
+                            found = scanError;
+                        }
                         break;
-                    case "usage.completion_tokens":
-                        documentOutputTokens = parser.getInt();
-                        break;
-                    case "usage.total_tokens":
-                        documentTotalTokens = parser.getInt();
-                        break;
-                    case "usage.prompt_tokens_details.cached_tokens":
-                        documentCacheReadTokens = parser.getInt();
-                        break;
-                    case "usage.completion_tokens_details.reasoning_tokens":
-                        documentReasoningTokens = parser.getInt();
+                    case VALUE_STRING:
+                        if (parser.deferredBytes())
+                        {
+                            parser.consumed(deferredLength(event));
+                        }
+                        else if (scanDepth == 1 && scanKey != null)
+                        {
+                            switch (scanKey)
+                            {
+                            case MEMBER_ID:
+                                documentId = parser.getString();
+                                break;
+                            case MODEL:
+                                documentServedModel = parser.getString();
+                                break;
+                            default:
+                                break;
+                            }
+                            found = documentId != null && documentServedModel != null;
+                        }
                         break;
                     default:
                         break;
@@ -1654,575 +1386,1581 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 }
             }
 
-            private void onText(
-                LlmSectionType type,
-                boolean deferred,
-                boolean atomic)
+            parser.reset();
+
+            return found;
+        }
+
+        private int decodeStart(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            if (parser.hasNextEvent())
             {
-                final CharSequence chars = parser.getStringView();
-                final int length = chars.length();
-
-                if (length > 0 || highSurrogate != 0 || !deferred && atomic && sectionOpen)
-                {
-                    if (!sectionOpen || type != sectionType || sectionMessage != choiceIndex)
-                    {
-                        closeSection();
-                        openSection(type, choiceIndex, null, null, NONE);
-                        sectionFollow = logprobs && !atomic;
-                    }
-
-                    emit(encode(chars, !deferred), !deferred && (atomic || sectionFollow));
-                }
-
-                if (deferred)
-                {
-                    parser.consumed(length);
-                }
+                parser.nextEvent();
+                decoder = decodeRootStart;
             }
 
-            private void onArguments(
-                boolean deferred,
-                boolean atomic)
+            return position();
+        }
+
+        private int decodeRootStart(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            if (parser.hasNextEvent())
             {
-                final CharSequence chars = parser.getStringView();
-                final int length = chars.length();
+                final JsonEvent event = parser.nextEvent();
 
-                toolArguments = true;
-
-                if (!sectionOpen || !continuesTool())
+                if (event == JsonEvent.START_OBJECT)
                 {
-                    openTool();
-
-                    if (length == 0 && (deferred || !atomic))
-                    {
-                        emit(0, false);
-                    }
-                }
-
-                if (length > 0 || highSurrogate != 0 || !deferred && atomic && sectionOpen)
-                {
-                    emit(encode(chars, !deferred), !deferred && atomic);
-                }
-
-                if (deferred)
-                {
-                    parser.consumed(length);
-                }
-            }
-
-            private boolean continuesTool()
-            {
-                return sectionType == LlmSectionType.TOOL_CALL &&
-                    sectionMessage == choiceIndex &&
-                    toolIndex != NONE &&
-                    sectionTool == toolIndex &&
-                    (toolId == null || toolId.equals(sectionToolId));
-            }
-
-            private void openTool()
-            {
-                if (!sectionOpen || !continuesTool())
-                {
-                    closeSection();
-                    openSection(LlmSectionType.TOOL_CALL, choiceIndex, toolId, toolName, toolIndex);
-                }
-            }
-
-            private void openSection(
-                LlmSectionType type,
-                int message,
-                String toolCallId,
-                String toolName,
-                int tool)
-            {
-                sectionOpen = true;
-                sectionStarted = false;
-                sectionWritten = false;
-                sectionAtomic = !delta();
-                sectionFollow = false;
-                sectionType = type;
-                sectionMessage = message;
-                sectionTool = tool;
-                sectionToolId = toolCallId;
-                sectionToolName = toolName;
-            }
-
-            private void closeSection()
-            {
-                if (sectionOpen && sectionStarted)
-                {
-                    emit(0, true);
-                }
-
-                sectionOpen = false;
-            }
-
-            private void emit(
-                int length,
-                boolean fin)
-            {
-                if (sectionOpen)
-                {
-                    sectionStarted = true;
-                    sectionOpen = !fin;
-
-                    if (sectionAtomic)
-                    {
-                        emitAtomic(length, fin);
-                    }
-                    else
-                    {
-                        write(textBuffer, length, fin);
-                    }
-                }
-            }
-
-            private void emitAtomic(
-                int length,
-                boolean fin)
-            {
-                if (heldLength != NONE && fin && length == 0)
-                {
-                    write(heldBuffer, heldLength, true);
-                    heldLength = NONE;
+                    decoder = decodeRoot;
                 }
                 else
                 {
-                    if (heldLength != NONE)
-                    {
-                        write(heldBuffer, heldLength, false);
-                        heldLength = NONE;
-                    }
+                    parseRejected = true;
+                }
+            }
 
-                    if (fin)
+            return position();
+        }
+
+        private int decodeRoot(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeRoot && parser.hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.END_OBJECT)
+                {
+                    commitDocument();
+                    decoder = decodeEnd;
+                }
+                else if (parser.deferredBytes())
+                {
+                    parser.consumed(0);
+                }
+                else
+                {
+                    final CharSequence member = parser.getStringView();
+
+                    if (!canonicalMember(member) || completion && carriedMember(member))
                     {
-                        write(textBuffer, length, true);
+                        beginCapture(member.toString(), false, false, decodeRoot);
+                    }
+                    else if (MEMBER_ID.contentEquals(member))
+                    {
+                        decoder = decodeId;
+                    }
+                    else if (MEMBER_OBJECT.contentEquals(member))
+                    {
+                        decoder = decodeObject;
+                    }
+                    else if (MODEL.contentEquals(member))
+                    {
+                        decoder = decodeModel;
+                    }
+                    else if (MEMBER_CHOICES.contentEquals(member))
+                    {
+                        decoder = decodeChoicesStart;
+                    }
+                    else if (USAGE.contentEquals(member))
+                    {
+                        beginUsage();
+                        decoder = decodeUsage;
                     }
                     else
                     {
-                        if (heldBytes.length < length)
-                        {
-                            heldBytes = new byte[length];
-                            heldBuffer = new UnsafeBufferEx(heldBytes);
-                        }
-
-                        textBuffer.getBytes(0, heldBytes, 0, length);
-                        heldLength = length;
+                        errorThen = decodeRoot;
+                        decoder = decodeErrorObjectStart;
                     }
                 }
             }
 
-            private void write(
-                DirectBufferEx buffer,
-                int length,
-                boolean fin)
+            return position();
+        }
+
+        private int decodeId(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeId && parser.hasNextEvent())
             {
-                final int flags = sectionWritten ? Flags.NONE : Flags.INIT;
+                final String value = stringValue(parser.nextEvent(), decodeRoot);
 
-                sectionWritten = true;
-
-                if (!muted)
+                if (value != null)
                 {
-                    doAppFrame(http.decodeTraceId, fin ? Flags.fin(flags) : flags, null, null, sectionType, sectionMessage,
-                        sectionToolId, sectionToolName, sectionFollow, buffer, 0, length);
-                }
-
-                followPending = fin && sectionFollow;
-            }
-
-            private void emitAfterEmpty()
-            {
-                followPending = false;
-                if (!muted)
-                {
-                    doAppFrame(http.decodeTraceId, Flags.COMPLETE, LOGPROBS, LlmBlockOwner.SECTION, null, NO_MESSAGE, null, null,
-                        false, textBuffer, 0, 0);
+                    documentId = value;
                 }
             }
 
-            private void beginCapture(
-                String name,
-                boolean after,
-                boolean container)
-            {
-                capturing = true;
-                captureAfter = after;
-                captureContainer = container;
-                captureUsage = !after && USAGE.equals(name);
-                usagePath.setLength(0);
-                usagePath.append(USAGE);
-                usageKey = null;
-                usageDepth = 0;
-                captureName = name;
-                captureValue.setLength(0);
-                captureStarted = false;
-                captureTrim = true;
-                captureDepth = 0;
-                captureFrom = position();
-                pendingKey = null;
+            return position();
+        }
 
-                closeSection();
+        private int decodeObject(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeObject && parser.hasNextEvent())
+            {
+                final String value = stringValue(parser.nextEvent(), decodeRoot);
+
+                if (value != null)
+                {
+                    completion = COMPLETION.equals(value);
+                }
             }
 
-            private void onCapture(
-                JsonEvent event)
+            return position();
+        }
+
+        private int decodeModel(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeModel && parser.hasNextEvent())
             {
-                final boolean deferred = event == JsonEvent.VALUE_STRING && parser.deferredBytes();
+                final String value = stringValue(parser.nextEvent(), decodeRoot);
+
+                if (value != null)
+                {
+                    documentServedModel = value;
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeChoicesStart(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            if (parser.hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.START_ARRAY)
+                {
+                    decoder = decodeChoices;
+                }
+                else
+                {
+                    parseRejected = true;
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeChoices(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            if (parser.hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.START_OBJECT)
+                {
+                    choiceIndex = 0;
+                    decoder = decodeChoice;
+                }
+                else
+                {
+                    decoder = decodeRoot;
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeChoice(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeChoice && parser.hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.END_OBJECT)
+                {
+                    if (followPending)
+                    {
+                        emitAfterEmpty();
+                    }
+
+                    decoder = decodeChoices;
+                }
+                else if (parser.deferredBytes())
+                {
+                    parser.consumed(0);
+                }
+                else
+                {
+                    final CharSequence member = parser.getStringView();
+
+                    if (BLOCK_LOGPROBS.contentEquals(member))
+                    {
+                        beginCapture(BLOCK_LOGPROBS, true, false, decodeChoice);
+                    }
+                    else if (MEMBER_MESSAGE.contentEquals(member))
+                    {
+                        choiceMessage = true;
+                        decoder = decodeMessageStart;
+                    }
+                    else if (choiceMessage &&
+                        (FINISH_REASON.contentEquals(member) || completion && !MEMBER_INDEX.contentEquals(member)))
+                    {
+                        beginCapture(member.toString(), true, false, decodeChoice);
+                    }
+                    else if (MEMBER_INDEX.contentEquals(member))
+                    {
+                        decoder = decodeChoiceIndex;
+                    }
+                    else if (MEMBER_DELTA.contentEquals(member))
+                    {
+                        decoder = decodeDeltaStart;
+                    }
+                    else if (FINISH_REASON.contentEquals(member))
+                    {
+                        decoder = decodeFinishReason;
+                    }
+                    else
+                    {
+                        skipMember(decodeChoice);
+                    }
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeChoiceIndex(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeChoiceIndex && parser.hasNextEvent())
+            {
+                final int value = intValue(parser.nextEvent(), decodeChoice);
+
+                if (value != NONE)
+                {
+                    choiceIndex = value;
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeFinishReason(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeFinishReason && parser.hasNextEvent())
+            {
+                final String value = stringValue(parser.nextEvent(), decodeChoice);
+
+                if (value != null)
+                {
+                    documentFinishReason = value;
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeDeltaStart(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            if (parser.hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                messageScope = false;
+
+                if (event == JsonEvent.START_OBJECT)
+                {
+                    decoder = decodeDelta;
+                }
+                else
+                {
+                    skipAfter(event, decodeChoice);
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeMessageStart(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            if (parser.hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                messageScope = true;
+
+                if (event == JsonEvent.START_OBJECT)
+                {
+                    decoder = decodeMessage;
+                }
+                else
+                {
+                    skipAfter(event, decodeChoice);
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeDelta(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeDelta && parser.hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.END_OBJECT)
+                {
+                    decoder = decodeChoice;
+                }
+                else if (parser.deferredBytes())
+                {
+                    parser.consumed(0);
+                }
+                else
+                {
+                    decodeScopeMember(parser.getStringView(), decodeDelta);
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeMessage(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeMessage && parser.hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.END_OBJECT)
+                {
+                    decoder = decodeChoice;
+                }
+                else if (parser.deferredBytes())
+                {
+                    parser.consumed(0);
+                }
+                else
+                {
+                    final CharSequence member = parser.getStringView();
+
+                    if (completion && !canonicalMessageMember(member))
+                    {
+                        beginCapture(member.toString(), true, true, decodeMessage);
+                    }
+                    else
+                    {
+                        decodeScopeMember(member, decodeMessage);
+                    }
+                }
+            }
+
+            return position();
+        }
+
+        private void decodeScopeMember(
+            CharSequence member,
+            LlmOpenaiResponseDecoder scope)
+        {
+            if (MEMBER_CONTENT.contentEquals(member))
+            {
+                textType = LlmSectionType.ASSISTANT_TEXT;
+                textMember = MEMBER_CONTENT;
+                decoder = decodeText;
+            }
+            else if (MEMBER_REFUSAL.contentEquals(member))
+            {
+                textType = LlmSectionType.ASSISTANT_REFUSAL;
+                textMember = MEMBER_REFUSAL;
+                decoder = decodeText;
+            }
+            else if (MEMBER_TOOL_CALLS.contentEquals(member))
+            {
+                decoder = decodeToolCallsStart;
+            }
+            else
+            {
+                skipMember(scope);
+            }
+        }
+
+        private int decodeText(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeText && parser.hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.VALUE_STRING)
+                {
+                    final boolean deferred = parser.deferredBytes();
+
+                    emitText(deferred);
+
+                    if (!deferred)
+                    {
+                        decoder = memberScope();
+                    }
+                }
+                else
+                {
+                    if (event == JsonEvent.VALUE_NULL && completion && messageScope)
+                    {
+                        emitNullMember(textMember);
+                    }
+
+                    skipAfter(event, memberScope());
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeToolCallsStart(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            if (parser.hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.START_ARRAY)
+                {
+                    decoder = decodeToolCalls;
+                }
+                else
+                {
+                    if (event == JsonEvent.VALUE_NULL && completion && messageScope)
+                    {
+                        emitNullMember(MEMBER_TOOL_CALLS);
+                    }
+
+                    skipAfter(event, memberScope());
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeToolCalls(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            if (parser.hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.START_OBJECT)
+                {
+                    toolIndex = NONE;
+                    toolId = null;
+                    toolName = null;
+                    toolArguments = false;
+                    decoder = decodeToolCall;
+                }
+                else
+                {
+                    decoder = memberScope();
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeToolCall(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeToolCall && parser.hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.END_OBJECT)
+                {
+                    if (!toolArguments && (toolId != null || toolName != null))
+                    {
+                        openTool();
+                        emitSection(0, messageScope);
+                    }
+
+                    decoder = decodeToolCalls;
+                }
+                else if (parser.deferredBytes())
+                {
+                    parser.consumed(0);
+                }
+                else
+                {
+                    final CharSequence member = parser.getStringView();
+
+                    if (MEMBER_INDEX.contentEquals(member))
+                    {
+                        decoder = decodeToolIndex;
+                    }
+                    else if (MEMBER_ID.contentEquals(member))
+                    {
+                        decoder = decodeToolId;
+                    }
+                    else if (MEMBER_FUNCTION.contentEquals(member))
+                    {
+                        decoder = decodeFunctionStart;
+                    }
+                    else
+                    {
+                        skipMember(decodeToolCall);
+                    }
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeToolIndex(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeToolIndex && parser.hasNextEvent())
+            {
+                final int value = intValue(parser.nextEvent(), decodeToolCall);
+
+                if (value != NONE)
+                {
+                    toolIndex = value;
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeToolId(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeToolId && parser.hasNextEvent())
+            {
+                final String value = stringValue(parser.nextEvent(), decodeToolCall);
+
+                if (value != null)
+                {
+                    toolId = value;
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeFunctionStart(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            if (parser.hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.START_OBJECT)
+                {
+                    decoder = decodeFunction;
+                }
+                else
+                {
+                    skipAfter(event, decodeToolCall);
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeFunction(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeFunction && parser.hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.END_OBJECT)
+                {
+                    decoder = decodeToolCall;
+                }
+                else if (parser.deferredBytes())
+                {
+                    parser.consumed(0);
+                }
+                else
+                {
+                    final CharSequence member = parser.getStringView();
+
+                    if (MEMBER_NAME.contentEquals(member))
+                    {
+                        decoder = decodeToolName;
+                    }
+                    else if (MEMBER_ARGUMENTS.contentEquals(member))
+                    {
+                        decoder = decodeArguments;
+                    }
+                    else
+                    {
+                        skipMember(decodeFunction);
+                    }
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeToolName(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeToolName && parser.hasNextEvent())
+            {
+                final String value = stringValue(parser.nextEvent(), decodeFunction);
+
+                if (value != null)
+                {
+                    toolName = value;
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeArguments(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeArguments && parser.hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.VALUE_STRING)
+                {
+                    final boolean deferred = parser.deferredBytes();
+
+                    emitArguments(deferred);
+
+                    if (!deferred)
+                    {
+                        decoder = decodeFunction;
+                    }
+                }
+                else
+                {
+                    skipAfter(event, decodeFunction);
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeUsage(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeUsage && parser.hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+                final boolean deferred = deferredScalar(event);
+
+                trackUsage(event);
+
+                captureDepth += nesting(event);
+
+                if (deferred)
+                {
+                    parser.consumed(deferredLength(event));
+                }
+                else if (captureDepth == 0)
+                {
+                    decoder = decodeRoot;
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeCapture(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeCapture && parser.hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+                final boolean deferred = deferredScalar(event);
 
                 if (captureUsage)
                 {
-                    onUsage(event);
+                    trackUsage(event);
                 }
 
-                switch (event)
+                captureDepth += nesting(event);
+
+                if (deferred)
                 {
-                case START_OBJECT:
-                case START_ARRAY:
-                    captureDepth++;
-                    break;
-                case END_OBJECT:
-                case END_ARRAY:
-                    captureDepth--;
-                    break;
-                case VALUE_STRING:
-                    if (deferred)
+                    parser.consumed(deferredLength(event));
+                }
+                else if (captureDepth == 0)
+                {
+                    endCapture(buffer, event);
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeSkip(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeSkip && parser.hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                skipDepth += nesting(event);
+
+                if (deferredScalar(event))
+                {
+                    parser.consumed(deferredLength(event));
+                }
+                else if (event == JsonEvent.KEY_NAME && parser.deferredBytes())
+                {
+                    parser.consumed(0);
+                }
+                else if (event != JsonEvent.KEY_NAME && skipDepth == 0)
+                {
+                    decoder = skipThen;
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeEnd(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            for (int index = offset; index < limit; index++)
+            {
+                if (!isWhitespace(buffer.getByte(index)))
+                {
+                    parseRejected = true;
+                }
+            }
+
+            return limit;
+        }
+
+        private int decodeIgnore(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            http.cleanupDecodeSlot();
+
+            return limit;
+        }
+
+        private int decodeErrorStart(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            if (parser.hasNextEvent())
+            {
+                parser.nextEvent();
+                decoder = decodeErrorRootStart;
+            }
+
+            return position();
+        }
+
+        private int decodeErrorRootStart(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            if (parser.hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                decoder = event == JsonEvent.START_OBJECT ? decodeErrorRoot : decodeIgnore;
+            }
+
+            return position();
+        }
+
+        private int decodeErrorRoot(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeErrorRoot && parser.hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.END_OBJECT)
+                {
+                    decoder = decodeEnd;
+                }
+                else if (parser.deferredBytes())
+                {
+                    parser.consumed(0);
+                }
+                else if (MEMBER_ERROR.contentEquals(parser.getStringView()))
+                {
+                    errorThen = decodeErrorRoot;
+                    decoder = decodeErrorObjectStart;
+                }
+                else
+                {
+                    skipMember(decodeErrorRoot);
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeErrorObjectStart(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            if (parser.hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.START_OBJECT)
+                {
+                    decoder = decodeErrorObject;
+                }
+                else
+                {
+                    skipAfter(event, errorThen);
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeErrorObject(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeErrorObject && parser.hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.END_OBJECT)
+                {
+                    decoder = errorThen;
+                }
+                else if (parser.deferredBytes())
+                {
+                    parser.consumed(0);
+                }
+                else
+                {
+                    final CharSequence member = parser.getStringView();
+
+                    if (MEMBER_TYPE.contentEquals(member))
                     {
-                        parser.consumed(parser.getStringView().length());
+                        decoder = decodeErrorType;
                     }
-                    break;
-                default:
-                    break;
-                }
-
-                if (captureDepth == 0 && !deferred)
-                {
-                    if (captureAfter && !completion && !captureStarted && event == JsonEvent.VALUE_NULL)
+                    else if (MEMBER_MESSAGE.contentEquals(member))
                     {
-                        capturing = false;
-
-                        if (followPending)
-                        {
-                            emitAfterEmpty();
-                        }
+                        decoder = decodeErrorMessage;
                     }
                     else
                     {
-                        flushCapture(true);
-                        capturing = false;
-                        followPending = followPending && !captureAfter;
+                        skipMember(decodeErrorObject);
                     }
                 }
             }
 
-            private void flushCapture(
-                boolean fin)
+            return position();
+        }
+
+        private int decodeErrorType(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeErrorType && parser.hasNextEvent())
             {
-                final int end = position();
-                int from = captureFrom;
+                final String value = stringValue(parser.nextEvent(), decodeErrorObject);
 
-                if (captureTrim)
+                if (value != null)
                 {
-                    while (from < end && isSeparator(input.getByte(from)))
-                    {
-                        from++;
-                    }
-
-                    captureTrim = from == end;
+                    documentErrorType = value;
                 }
-
-                if (end > from || fin)
-                {
-                    final int flags = captureStarted
-                        ? fin ? Flags.FIN : Flags.NONE
-                        : fin ? Flags.COMPLETE : Flags.INIT;
-
-                    captureStarted = !fin;
-
-                    if (captureAfter)
-                    {
-                        if (FINISH_REASON.equals(captureName))
-                        {
-                            captureFinishReason(from, end, fin);
-                        }
-
-                        if (!muted)
-                        {
-                            doAppFrame(http.decodeTraceId, flags, captureName,
-                                captureContainer ? LlmBlockOwner.CONTAINER : LlmBlockOwner.SECTION, null, NO_MESSAGE, null, null,
-                                false, input, from, end - from);
-                        }
-                    }
-                    else
-                    {
-                        if (!muted)
-                        {
-                            doAppFrame(http.decodeTraceId, flags, captureName, null, null, NO_MESSAGE, null, null, false,
-                                input, from, end - from);
-                        }
-                    }
-                }
-
-                captureFrom = end;
             }
 
-            private void onUsage(
-                JsonEvent event)
+            return position();
+        }
+
+        private int decodeErrorMessage(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeErrorMessage && parser.hasNextEvent())
             {
-                switch (event)
+                final String value = stringValue(parser.nextEvent(), decodeErrorObject);
+
+                if (value != null)
                 {
-                case START_OBJECT:
-                    usageMark[usageDepth++] = usagePath.length();
+                    documentErrorMessage = value;
+                }
+            }
 
-                    if (usageKey != null)
-                    {
-                        usagePath.append('.').append(usageKey);
-                        usageKey = null;
-                    }
-                    break;
-                case END_OBJECT:
-                    usagePath.setLength(usageMark[--usageDepth]);
-                    break;
-                case KEY_NAME:
-                    if (parser.deferredBytes())
-                    {
-                        parser.consumed(0);
-                    }
-                    else
-                    {
-                        usageKey = parser.getString();
-                    }
-                    break;
-                case VALUE_NUMBER:
-                    if (usageKey != null)
-                    {
-                        final int length = usagePath.length();
+            return position();
+        }
 
-                        usagePath.append('.').append(usageKey);
-                        onNumber(usagePath.toString(), parser.deferredBytes());
-                        usagePath.setLength(length);
-                        usageKey = null;
-                    }
-                    break;
-                case VALUE_STRING:
-                case VALUE_TRUE:
-                case VALUE_FALSE:
-                case VALUE_NULL:
+        private LlmOpenaiResponseDecoder memberScope()
+        {
+            return messageScope ? decodeMessage : decodeDelta;
+        }
+
+        private String stringValue(
+            JsonEvent event,
+            LlmOpenaiResponseDecoder then)
+        {
+            String value = null;
+
+            if (event != JsonEvent.VALUE_STRING)
+            {
+                skipAfter(event, then);
+            }
+            else if (parser.deferredBytes())
+            {
+                parser.consumed(0);
+            }
+            else
+            {
+                value = parser.getString();
+                decoder = then;
+            }
+
+            return value;
+        }
+
+        private int intValue(
+            JsonEvent event,
+            LlmOpenaiResponseDecoder then)
+        {
+            int value = NONE;
+
+            if (event != JsonEvent.VALUE_NUMBER)
+            {
+                skipAfter(event, then);
+            }
+            else if (parser.deferredBytes())
+            {
+                parser.consumed(0);
+            }
+            else
+            {
+                value = parser.getInt();
+                decoder = then;
+            }
+
+            return value;
+        }
+
+        private void skipMember(
+            LlmOpenaiResponseDecoder then)
+        {
+            skipDepth = 0;
+            skipThen = then;
+            decoder = decodeSkip;
+        }
+
+        private void skipAfter(
+            JsonEvent event,
+            LlmOpenaiResponseDecoder then)
+        {
+            skipDepth = nesting(event);
+            skipThen = then;
+            decoder = skipDepth == 0 ? then : decodeSkip;
+        }
+
+        private boolean deferredScalar(
+            JsonEvent event)
+        {
+            return (event == JsonEvent.VALUE_STRING || event == JsonEvent.VALUE_NUMBER) && parser.deferredBytes();
+        }
+
+        private int deferredLength(
+            JsonEvent event)
+        {
+            return event == JsonEvent.VALUE_STRING ? parser.getStringView().length() : 0;
+        }
+
+        private void beginUsage()
+        {
+            usagePath.setLength(0);
+            usagePath.append(USAGE);
+            usageKey = null;
+            usageDepth = 0;
+            captureDepth = 0;
+        }
+
+        private void trackUsage(
+            JsonEvent event)
+        {
+            switch (event)
+            {
+            case START_OBJECT:
+                usageMark[usageDepth++] = usagePath.length();
+
+                if (usageKey != null)
+                {
+                    usagePath.append('.').append(usageKey);
                     usageKey = null;
+                }
+                break;
+            case END_OBJECT:
+                usagePath.setLength(usageMark[--usageDepth]);
+                break;
+            case KEY_NAME:
+                if (parser.deferredBytes())
+                {
+                    parser.consumed(0);
+                }
+                else
+                {
+                    usageKey = parser.getString();
+                }
+                break;
+            case VALUE_NUMBER:
+                if (usageKey != null)
+                {
+                    final int length = usagePath.length();
+
+                    usagePath.append('.').append(usageKey);
+                    decodeUsageNumber(usagePath.toString(), parser.deferredBytes());
+                    usagePath.setLength(length);
+                    usageKey = null;
+                }
+                break;
+            case VALUE_STRING:
+            case VALUE_TRUE:
+            case VALUE_FALSE:
+            case VALUE_NULL:
+                usageKey = null;
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void decodeUsageNumber(
+            String field,
+            boolean deferred)
+        {
+            if (deferred)
+            {
+                parser.consumed(0);
+            }
+            else
+            {
+                switch (field)
+                {
+                case "usage.prompt_tokens":
+                    documentInputTokens = parser.getInt();
+                    break;
+                case "usage.completion_tokens":
+                    documentOutputTokens = parser.getInt();
+                    break;
+                case "usage.total_tokens":
+                    documentTotalTokens = parser.getInt();
+                    break;
+                case "usage.prompt_tokens_details.cached_tokens":
+                    documentCacheReadTokens = parser.getInt();
+                    break;
+                case "usage.completion_tokens_details.reasoning_tokens":
+                    documentReasoningTokens = parser.getInt();
                     break;
                 default:
                     break;
                 }
             }
+        }
 
-            private void captureFinishReason(
-                int from,
-                int end,
-                boolean fin)
+        private void emitText(
+            boolean deferred)
+        {
+            final CharSequence chars = parser.getStringView();
+            final int length = chars.length();
+            final boolean atomic = messageScope;
+
+            if (length > 0 || highSurrogate != 0 || !deferred && atomic && sectionOpen)
             {
-                for (int index = from; index < end; index++)
+                if (!sectionOpen || textType != sectionType || sectionMessage != choiceIndex)
                 {
-                    captureValue.append((char) input.getByte(index));
+                    closeSection();
+                    openSection(textType, choiceIndex, null, null, NONE);
+                    sectionFollow = logprobsRequested && !atomic;
+                }
+
+                emitSection(encodeText(chars, !deferred), !deferred && (atomic || sectionFollow));
+            }
+
+            if (deferred)
+            {
+                parser.consumed(length);
+            }
+        }
+
+        private void emitArguments(
+            boolean deferred)
+        {
+            final CharSequence chars = parser.getStringView();
+            final int length = chars.length();
+            final boolean atomic = messageScope;
+
+            toolArguments = true;
+
+            if (!sectionOpen || !continuesTool())
+            {
+                openTool();
+
+                if (length == 0 && (deferred || !atomic))
+                {
+                    emitSection(0, false);
+                }
+            }
+
+            if (length > 0 || highSurrogate != 0 || !deferred && atomic && sectionOpen)
+            {
+                emitSection(encodeText(chars, !deferred), !deferred && atomic);
+            }
+
+            if (deferred)
+            {
+                parser.consumed(length);
+            }
+        }
+
+        private void emitNullMember(
+            String member)
+        {
+            closeSection();
+            doAppFrame(http.decodeTraceId, Flags.COMPLETE, member, LlmBlockOwner.CONTAINER, null, NO_MESSAGE,
+                null, null, false, NULL_VALUE, 0, NULL_VALUE.capacity());
+        }
+
+        private boolean continuesTool()
+        {
+            return sectionType == LlmSectionType.TOOL_CALL &&
+                sectionMessage == choiceIndex &&
+                toolIndex != NONE &&
+                sectionTool == toolIndex &&
+                (toolId == null || toolId.equals(sectionToolId));
+        }
+
+        private void openTool()
+        {
+            if (!sectionOpen || !continuesTool())
+            {
+                closeSection();
+                openSection(LlmSectionType.TOOL_CALL, choiceIndex, toolId, toolName, toolIndex);
+            }
+        }
+
+        private void openSection(
+            LlmSectionType type,
+            int message,
+            String toolCallId,
+            String toolName,
+            int tool)
+        {
+            sectionOpen = true;
+            sectionStarted = false;
+            sectionWritten = false;
+            sectionAtomic = messageScope;
+            sectionFollow = false;
+            sectionType = type;
+            sectionMessage = message;
+            sectionTool = tool;
+            sectionToolId = toolCallId;
+            sectionToolName = toolName;
+        }
+
+        private void closeSection()
+        {
+            if (sectionOpen && sectionStarted)
+            {
+                emitSection(0, true);
+            }
+
+            sectionOpen = false;
+        }
+
+        private void emitSection(
+            int length,
+            boolean fin)
+        {
+            if (sectionOpen)
+            {
+                sectionStarted = true;
+                sectionOpen = !fin;
+
+                if (sectionAtomic)
+                {
+                    emitAtomicSection(length, fin);
+                }
+                else
+                {
+                    writeSection(textBuffer, length, fin);
+                }
+            }
+        }
+
+        private void emitAtomicSection(
+            int length,
+            boolean fin)
+        {
+            if (heldLength != NONE && fin && length == 0)
+            {
+                writeSection(heldBuffer, heldLength, true);
+                heldLength = NONE;
+            }
+            else
+            {
+                if (heldLength != NONE)
+                {
+                    writeSection(heldBuffer, heldLength, false);
+                    heldLength = NONE;
                 }
 
                 if (fin)
                 {
-                    final String value = captureValue.toString().strip();
-
-                    if (value.length() > 1 && value.charAt(0) == '"')
-                    {
-                        documentFinishReason = value.substring(1, value.length() - 1);
-                    }
-                }
-            }
-
-            private void onDocumentEnd()
-            {
-                inputTokens = documentInputTokens != NONE ? documentInputTokens : inputTokens;
-                outputTokens = documentOutputTokens != NONE ? documentOutputTokens : outputTokens;
-                totalTokens = documentTotalTokens != NONE ? documentTotalTokens : totalTokens;
-                cacheReadTokens = documentCacheReadTokens != NONE ? documentCacheReadTokens : cacheReadTokens;
-                reasoningTokens = documentReasoningTokens != NONE ? documentReasoningTokens : reasoningTokens;
-                errorType = documentErrorType != null ? documentErrorType : errorType;
-                errorMessage = documentErrorMessage != null ? documentErrorMessage : errorMessage;
-                id = documentId != null ? documentId : id;
-                model = documentModel != null ? documentModel : model;
-                finishReason = documentFinishReason != null ? documentFinishReason : finishReason;
-
-                documentInputTokens = NONE;
-                documentOutputTokens = NONE;
-                documentTotalTokens = NONE;
-                documentCacheReadTokens = NONE;
-                documentReasoningTokens = NONE;
-                documentErrorType = null;
-                documentErrorMessage = null;
-                documentId = null;
-                documentModel = null;
-                documentFinishReason = null;
-                choiceMessage = false;
-                completion = false;
-            }
-
-            private boolean pathIs(
-                String value)
-            {
-                return path.length() == value.length() && path.indexOf(value) == 0;
-            }
-
-            private boolean toolCalls()
-            {
-                final int length = path.length();
-
-                return length > 0 &&
-                    (path.indexOf("choices.delta.tool_calls") == 0 && length == "choices.delta.tool_calls".length() ||
-                    path.indexOf("choices.message.tool_calls") == 0 && length == "choices.message.tool_calls".length());
-            }
-
-            private boolean delta()
-            {
-                return path.indexOf("choices.delta") == 0;
-            }
-
-            private static boolean isSeparator(
-                byte value)
-            {
-                return value == ':' || isWhitespace(value);
-            }
-
-            private static boolean isWhitespace(
-                byte value)
-            {
-                return value == ' ' || value == '\t' || value == '\r' || value == '\n';
-            }
-
-            private static void addIfPresent(
-                JsonObjectBuilder builder,
-                String name,
-                int value)
-            {
-                if (value != NONE)
-                {
-                    builder.add(name, value);
-                }
-            }
-
-            private int encode(
-                CharSequence chars,
-                boolean last)
-            {
-                final int length = chars.length();
-
-                if (textBytes.length < length * 3 + 8)
-                {
-                    textBytes = new byte[length * 3 + 8];
-                    textBuffer = new UnsafeBufferEx(textBytes);
-                }
-
-                int position = 0;
-                int index = 0;
-
-                if (highSurrogate != 0 && length > 0)
-                {
-                    final char c = chars.charAt(0);
-                    if (Character.isLowSurrogate(c))
-                    {
-                        position = put(Character.toCodePoint(highSurrogate, c), position);
-                        index = 1;
-                    }
-                    else
-                    {
-                        position = put(REPLACEMENT_CHARACTER, position);
-                    }
-                    highSurrogate = 0;
-                }
-
-                while (index < length)
-                {
-                    final char c = chars.charAt(index++);
-
-                    if (Character.isHighSurrogate(c))
-                    {
-                        if (index < length)
-                        {
-                            final char d = chars.charAt(index);
-                            if (Character.isLowSurrogate(d))
-                            {
-                                position = put(Character.toCodePoint(c, d), position);
-                                index++;
-                            }
-                            else
-                            {
-                                position = put(REPLACEMENT_CHARACTER, position);
-                            }
-                        }
-                        else if (last)
-                        {
-                            position = put(REPLACEMENT_CHARACTER, position);
-                        }
-                        else
-                        {
-                            highSurrogate = c;
-                        }
-                    }
-                    else if (Character.isLowSurrogate(c))
-                    {
-                        position = put(REPLACEMENT_CHARACTER, position);
-                    }
-                    else
-                    {
-                        position = put(c, position);
-                    }
-                }
-
-                if (last && highSurrogate != 0)
-                {
-                    position = put(REPLACEMENT_CHARACTER, position);
-                    highSurrogate = 0;
-                }
-
-                return position;
-            }
-
-            private int put(
-                int codePoint,
-                int position)
-            {
-                int next = position;
-
-                if (codePoint < 0x80)
-                {
-                    textBytes[next++] = (byte) codePoint;
-                }
-                else if (codePoint < 0x800)
-                {
-                    textBytes[next++] = (byte) (0xC0 | codePoint >> 6);
-                    textBytes[next++] = (byte) (0x80 | codePoint & 0x3F);
-                }
-                else if (codePoint < 0x10000)
-                {
-                    textBytes[next++] = (byte) (0xE0 | codePoint >> 12);
-                    textBytes[next++] = (byte) (0x80 | codePoint >> 6 & 0x3F);
-                    textBytes[next++] = (byte) (0x80 | codePoint & 0x3F);
+                    writeSection(textBuffer, length, true);
                 }
                 else
                 {
-                    textBytes[next++] = (byte) (0xF0 | codePoint >> 18);
-                    textBytes[next++] = (byte) (0x80 | codePoint >> 12 & 0x3F);
-                    textBytes[next++] = (byte) (0x80 | codePoint >> 6 & 0x3F);
-                    textBytes[next++] = (byte) (0x80 | codePoint & 0x3F);
+                    if (heldBytes.length < length)
+                    {
+                        heldBytes = new byte[length];
+                        heldBuffer = new UnsafeBufferEx(heldBytes);
+                    }
+
+                    textBuffer.getBytes(0, heldBytes, 0, length);
+                    heldLength = length;
                 }
-
-                return next;
-            }
-
-            private int credit()
-            {
-                return muted ? Integer.MAX_VALUE : replyCredit();
             }
         }
 
-        private void muteReply()
+        private void writeSection(
+            DirectBufferEx buffer,
+            int length,
+            boolean fin)
         {
-            responseDecoder.muted = true;
+            final int flags = sectionWritten ? Flags.NONE : Flags.INIT;
+
+            sectionWritten = true;
+
+            doAppFrame(http.decodeTraceId, fin ? Flags.fin(flags) : flags, null, null, sectionType, sectionMessage,
+                sectionToolId, sectionToolName, sectionFollow, buffer, 0, length);
+
+            followPending = fin && sectionFollow;
+        }
+
+        private void emitAfterEmpty()
+        {
+            followPending = false;
+            doAppFrame(http.decodeTraceId, Flags.COMPLETE, BLOCK_LOGPROBS, LlmBlockOwner.SECTION, null, NO_MESSAGE, null, null,
+                false, textBuffer, 0, 0);
+        }
+
+        private void beginCapture(
+            String name,
+            boolean after,
+            boolean container,
+            LlmOpenaiResponseDecoder then)
+        {
+            captureAfter = after;
+            captureContainer = container;
+            captureThen = then;
+            captureUsage = !after && USAGE.equals(name);
+            captureName = name;
+            captureValue.setLength(0);
+            captureStarted = false;
+            captureTrim = true;
+            captureFrom = position();
+
+            beginUsage();
+            closeSection();
+
+            decoder = decodeCapture;
+        }
+
+        private void endCapture(
+            DirectBufferEx buffer,
+            JsonEvent event)
+        {
+            if (captureAfter && !completion && !captureStarted && event == JsonEvent.VALUE_NULL)
+            {
+                if (followPending)
+                {
+                    emitAfterEmpty();
+                }
+            }
+            else
+            {
+                flushCapture(buffer, true);
+                followPending = followPending && !captureAfter;
+            }
+
+            decoder = captureThen;
+        }
+
+        private void flushCapture(
+            DirectBufferEx buffer,
+            boolean fin)
+        {
+            final int end = position();
+            int from = captureFrom;
+
+            if (captureTrim)
+            {
+                while (from < end && isSeparator(buffer.getByte(from)))
+                {
+                    from++;
+                }
+
+                captureTrim = from == end;
+            }
+
+            if (end > from || fin)
+            {
+                final int flags = captureStarted
+                    ? fin ? Flags.FIN : Flags.NONE
+                    : fin ? Flags.COMPLETE : Flags.INIT;
+                final LlmBlockOwner owner = captureAfter
+                    ? captureContainer ? LlmBlockOwner.CONTAINER : LlmBlockOwner.SECTION
+                    : null;
+
+                captureStarted = !fin;
+
+                if (captureAfter && FINISH_REASON.equals(captureName))
+                {
+                    captureFinishReason(buffer, from, end, fin);
+                }
+
+                doAppFrame(http.decodeTraceId, flags, captureName, owner, null, NO_MESSAGE, null, null,
+                    false, buffer, from, end - from);
+            }
+
+            captureFrom = end;
+        }
+
+        private void captureFinishReason(
+            DirectBufferEx buffer,
+            int from,
+            int end,
+            boolean fin)
+        {
+            for (int index = from; index < end; index++)
+            {
+                captureValue.append((char) buffer.getByte(index));
+            }
+
+            if (fin)
+            {
+                final String value = captureValue.toString().strip();
+
+                if (value.length() > 1 && value.charAt(0) == '"')
+                {
+                    documentFinishReason = value.substring(1, value.length() - 1);
+                }
+            }
+        }
+
+        private void commitDocument()
+        {
+            inputTokens = documentInputTokens != NONE ? documentInputTokens : inputTokens;
+            outputTokens = documentOutputTokens != NONE ? documentOutputTokens : outputTokens;
+            totalTokens = documentTotalTokens != NONE ? documentTotalTokens : totalTokens;
+            cacheReadTokens = documentCacheReadTokens != NONE ? documentCacheReadTokens : cacheReadTokens;
+            reasoningTokens = documentReasoningTokens != NONE ? documentReasoningTokens : reasoningTokens;
+            errorType = documentErrorType != null ? documentErrorType : errorType;
+            errorMessage = documentErrorMessage != null ? documentErrorMessage : errorMessage;
+            id = documentId != null ? documentId : id;
+            servedModel = documentServedModel != null ? documentServedModel : servedModel;
+            finishReason = documentFinishReason != null ? documentFinishReason : finishReason;
+
+            documentInputTokens = NONE;
+            documentOutputTokens = NONE;
+            documentTotalTokens = NONE;
+            documentCacheReadTokens = NONE;
+            documentReasoningTokens = NONE;
+            documentErrorType = null;
+            documentErrorMessage = null;
+            documentId = null;
+            documentServedModel = null;
+            documentFinishReason = null;
+            choiceMessage = false;
+            completion = false;
+        }
+
+        private int encodeText(
+            CharSequence chars,
+            boolean last)
+        {
+            final int length = chars.length();
+
+            if (textBytes.length < length * 3 + 8)
+            {
+                textBytes = new byte[length * 3 + 8];
+                textBuffer = new UnsafeBufferEx(textBytes);
+            }
+
+            int position = 0;
+            int index = 0;
+
+            if (highSurrogate != 0 && length > 0)
+            {
+                final char c = chars.charAt(0);
+                if (Character.isLowSurrogate(c))
+                {
+                    position = putCodePoint(Character.toCodePoint(highSurrogate, c), position);
+                    index = 1;
+                }
+                else
+                {
+                    position = putCodePoint(REPLACEMENT_CHARACTER, position);
+                }
+                highSurrogate = 0;
+            }
+
+            while (index < length)
+            {
+                final char c = chars.charAt(index++);
+
+                if (Character.isHighSurrogate(c))
+                {
+                    if (index < length)
+                    {
+                        final char d = chars.charAt(index);
+                        if (Character.isLowSurrogate(d))
+                        {
+                            position = putCodePoint(Character.toCodePoint(c, d), position);
+                            index++;
+                        }
+                        else
+                        {
+                            position = putCodePoint(REPLACEMENT_CHARACTER, position);
+                        }
+                    }
+                    else if (last)
+                    {
+                        position = putCodePoint(REPLACEMENT_CHARACTER, position);
+                    }
+                    else
+                    {
+                        highSurrogate = c;
+                    }
+                }
+                else if (Character.isLowSurrogate(c))
+                {
+                    position = putCodePoint(REPLACEMENT_CHARACTER, position);
+                }
+                else
+                {
+                    position = putCodePoint(c, position);
+                }
+            }
+
+            if (last && highSurrogate != 0)
+            {
+                position = putCodePoint(REPLACEMENT_CHARACTER, position);
+                highSurrogate = 0;
+            }
+
+            return position;
+        }
+
+        private int putCodePoint(
+            int codePoint,
+            int position)
+        {
+            int next = position;
+
+            if (codePoint < 0x80)
+            {
+                textBytes[next++] = (byte) codePoint;
+            }
+            else if (codePoint < 0x800)
+            {
+                textBytes[next++] = (byte) (0xC0 | codePoint >> 6);
+                textBytes[next++] = (byte) (0x80 | codePoint & 0x3F);
+            }
+            else if (codePoint < 0x10000)
+            {
+                textBytes[next++] = (byte) (0xE0 | codePoint >> 12);
+                textBytes[next++] = (byte) (0x80 | codePoint >> 6 & 0x3F);
+                textBytes[next++] = (byte) (0x80 | codePoint & 0x3F);
+            }
+            else
+            {
+                textBytes[next++] = (byte) (0xF0 | codePoint >> 18);
+                textBytes[next++] = (byte) (0x80 | codePoint >> 12 & 0x3F);
+                textBytes[next++] = (byte) (0x80 | codePoint >> 6 & 0x3F);
+                textBytes[next++] = (byte) (0x80 | codePoint & 0x3F);
+            }
+
+            return next;
         }
 
         private void doAppEnd(
@@ -2232,21 +2970,21 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
             if (!LlmState.replyClosed(state))
             {
-                if (responseDecoder.failed())
+                if (failed())
                 {
                     doAppAbort(traceId);
                 }
                 else
                 {
-                    responseDecoder.finish();
+                    finish();
                     doAppBeginSections(traceId);
 
                     state = LlmState.closeReply(state);
 
                     final LlmEndExFW llmEndEx = llmEndExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(llmTypeId)
-                        .usage(u -> responseDecoder.populateUsage(u))
-                        .finishReason(responseDecoder.finishReason())
+                        .usage(this::populateUsage)
+                        .finishReason(finishReason())
                         .build();
 
                     final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
@@ -2277,8 +3015,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
                 final LlmAbortExFW llmAbortEx = llmAbortExRW.wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(llmTypeId)
-                    .usage(u -> responseDecoder.populateUsage(u))
-                    .error(e -> responseDecoder.populateError(e))
+                    .usage(this::populateUsage)
+                    .error(this::populateError)
                     .build();
 
                 final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
@@ -2472,7 +3210,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private boolean stageLast;
         private boolean framing;
         private boolean errorJson;
-        private LlmErrorBodyDecoder errorBody;
         private int errorStatus = NO_ERROR;
         private boolean errorBodyDropped;
         private long decodeTraceId;
@@ -3401,8 +4138,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             {
                 errorStatus = status;
                 framing = eventStream;
-                errorBody = framing ? new LlmErrorBodyDecoder(stream) : null;
                 errorJson = declared && !framing;
+                stream.decoder = stream.decodeErrorStart;
                 doNetWindow(traceId);
             }
             else if (!declared)
@@ -3474,9 +4211,9 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             if (errorStatus != NO_ERROR)
             {
                 state = LlmState.closeReply(state);
-                final LlmErrorBodyDecoder errorDecoder = decodeErrorBody();
+                decodeErrorBody();
                 doNetAbort(traceId);
-                stream.doAppReset(traceId, errorStatus, errorDecoder.type(), errorDecoder.message());
+                stream.doAppReset(traceId, errorStatus, stream.errorType, stream.errorMessage);
             }
             else
             {
@@ -3508,7 +4245,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
             if (errorStatus == NO_ERROR)
             {
-                stream.muteReply();
+                stream.decoder = stream.decodeIgnore;
                 decodeTraceId = traceId;
 
                 if (stageSlot != NO_SLOT)
@@ -3658,16 +4395,15 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            final LlmOpenaiStream.LlmOpenaiResponseDecoder responseDecoder = stream.responseDecoder;
             final boolean last = LlmState.replyClosing(state);
 
-            int progress = responseDecoder.decode(buffer, offset, limit, last);
+            int progress = stream.decodeResponse(buffer, offset, limit, last);
 
-            responseStarted = !responseDecoder.completed();
+            responseStarted = !stream.completed();
 
-            if (responseDecoder.rejected())
+            if (stream.parseRejected())
             {
-                responseDecoder.reset();
+                stream.resetResponse();
                 cleanupNet(decodeTraceId);
                 progress = limit;
             }
@@ -3688,11 +4424,11 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
             if (errorStatus != NO_ERROR)
             {
-                errorBody.data(buffer, offset, length, last);
+                stream.decodeErrorResponse(buffer, offset, limit, last);
 
                 if (last)
                 {
-                    errorBody.flush();
+                    stream.resetErrorDocument();
                 }
             }
             else if (decodeSlot == NO_SLOT && eventAvailable())
@@ -3828,12 +4564,11 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int to,
             boolean last)
         {
-            final LlmOpenaiStream.LlmOpenaiResponseDecoder responseDecoder = stream.responseDecoder;
-            final int progress = responseDecoder.decode(source, from, to, last);
+            final int progress = stream.decodeResponse(source, from, to, last);
 
-            if (responseDecoder.rejected())
+            if (stream.parseRejected())
             {
-                responseDecoder.reset();
+                stream.resetResponse();
                 cleanupStageSlot();
                 cleanupNet(decodeTraceId);
             }
@@ -3841,9 +4576,9 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             {
                 restage(source, progress, to, last);
 
-                if (last && stageSlot == NO_SLOT && responseDecoder.completed())
+                if (last && stageSlot == NO_SLOT && stream.completed())
                 {
-                    responseDecoder.nextDocument();
+                    stream.resetDocument();
                 }
             }
         }
@@ -3908,18 +4643,15 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             }
         }
 
-        private LlmErrorBodyDecoder decodeErrorBody()
+        private void decodeErrorBody()
         {
-            final LlmErrorBodyDecoder errorDecoder = errorBody != null ? errorBody : new LlmErrorBodyDecoder(stream);
-
             if (decodeSlot != NO_SLOT)
             {
-                errorDecoder.data(decodePool.buffer(decodeSlot), 0, decodeSlotOffset, true);
-                errorDecoder.flush();
+                stream.decodeErrorResponse(decodePool.buffer(decodeSlot), 0, decodeSlotOffset, true);
                 cleanupDecodeSlot();
             }
 
-            return errorDecoder;
+            stream.resetErrorDocument();
         }
 
         private void doAppEnd(
@@ -3944,7 +4676,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
         private void resetDecodeState()
         {
-            stream.responseDecoder.reset();
+            stream.resetResponse();
             cleanupStageSlot();
             responseStarted = false;
         }
@@ -4126,41 +4858,5 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         contentTypeMatcher.reset(contentType != null ? contentType : "");
 
         return contentTypeMatcher.matches() ? contentTypeMatcher.group(1) : null;
-    }
-
-    private final class LlmErrorBodyDecoder
-    {
-        private final LlmOpenaiStream.LlmOpenaiResponseDecoder responseDecoder;
-
-        private LlmErrorBodyDecoder(
-            LlmOpenaiStream stream)
-        {
-            this.responseDecoder = stream.new LlmOpenaiResponseDecoder(true, decodeMax);
-        }
-
-        private String type()
-        {
-            responseDecoder.nextDocument();
-            return responseDecoder.errorType();
-        }
-
-        private String message()
-        {
-            return responseDecoder.errorMessage();
-        }
-
-        private void data(
-            DirectBufferEx buffer,
-            int offset,
-            int length,
-            boolean last)
-        {
-            responseDecoder.decode(buffer, offset, offset + length, last);
-        }
-
-        private void flush()
-        {
-            responseDecoder.reset();
-        }
     }
 }
