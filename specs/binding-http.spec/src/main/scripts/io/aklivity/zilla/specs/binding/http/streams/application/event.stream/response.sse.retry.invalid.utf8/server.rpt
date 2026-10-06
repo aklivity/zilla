@@ -39,7 +39,4 @@ write zilla:begin.ext ${http:beginEx()
                               .build()}
 write flush
 
-write "Hello, world"
-write flush
-
-write close
+write aborted

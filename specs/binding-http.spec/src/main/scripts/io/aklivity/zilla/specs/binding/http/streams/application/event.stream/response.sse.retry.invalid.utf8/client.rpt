@@ -37,6 +37,4 @@ read zilla:begin.ext ${http:matchBeginEx()
                              .header("content-type", "text/event-stream")
                              .build()}
 
-read "Hello, world"
-
-read closed
+read abort

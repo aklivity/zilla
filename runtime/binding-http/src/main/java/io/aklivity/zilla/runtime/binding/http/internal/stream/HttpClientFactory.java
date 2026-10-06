@@ -6862,7 +6862,8 @@ public final class HttpClientFactory implements HttpStreamFactory
                     }
                     break;
                 case RETRY:
-                    if (isEventRetry(buffer, progress, limitOfField))
+                    valid = isEventUtf8(buffer, progress, limitOfField);
+                    if (valid && isEventRetry(buffer, progress, limitOfField))
                     {
                         exchange.decodedRetry = eventRetryRW
                             .set(buffer, progress, limitOfField - progress)
