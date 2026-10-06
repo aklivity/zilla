@@ -341,8 +341,6 @@ public class SseClientFactory implements SseStreamFactory
             if (!SseState.replyOpening(state))
             {
                 replySeq = delegate.replySeq;
-                replyAck = delegate.replyAck;
-                replyMax = delegate.replyMax;
                 state = SseState.openingReply(state);
 
                 doBegin(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
@@ -590,7 +588,6 @@ public class SseClientFactory implements SseStreamFactory
             final long traceId = begin.traceId();
             final long authorization = begin.authorization();
             final long affinity = begin.affinity();
-            final int maximum = begin.maximum();
             final OctetsFW extension = begin.extension();
             final HttpBeginExFW httpBeginEx = extension.get(httpBeginExRO::tryWrap);
 
@@ -608,11 +605,9 @@ public class SseClientFactory implements SseStreamFactory
 
             assert acknowledge <= sequence;
             assert sequence >= replySeq;
-            assert acknowledge >= replyAck;
+            assert acknowledge <= replyAck;
 
             replySeq = sequence;
-            replyAck = acknowledge;
-            replyMax = maximum;
             state = SseState.openingReply(state);
 
             assert replyAck <= replySeq;

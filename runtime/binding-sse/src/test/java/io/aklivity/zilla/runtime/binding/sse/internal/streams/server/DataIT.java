@@ -71,6 +71,16 @@ public class DataIT
     @Test
     @Configuration("server.when.yaml")
     @Specification({
+        "${net}/window.before.begin/request",
+        "${app}/non.empty/server" })
+    public void shouldReceiveMessageWithWindowBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.when.yaml")
+    @Specification({
         "${net}/multiple/request",
         "${app}/multiple/server" })
     public void shouldReceiveMultipleMessages() throws Exception

@@ -108,4 +108,13 @@ public class DataIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/window.before.begin/client",
+        "${app}/window.before.begin/server" })
+    public void shouldReceiveDataWithWindowBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }

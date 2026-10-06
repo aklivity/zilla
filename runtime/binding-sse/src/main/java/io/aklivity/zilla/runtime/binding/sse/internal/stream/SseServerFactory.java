@@ -617,24 +617,17 @@ public final class SseServerFactory implements SseStreamFactory
         }
 
         private void doNetBegin(
-            long replySeq,
-            long replyAck,
-            int replyMax,
             long traceId,
             long authorization,
             long affinity)
         {
-            this.httpReplySeq = replySeq;
-            this.httpReplyAck = replyAck;
-            this.httpReplyMax = replyMax;
-
             if (!windowed)
             {
                 doNetWindow(authorization, traceId, 0L, 0, CHALLENGE_CAPABILITIES_MASK | FRAMING_CAPABILITIES_MASK);
             }
 
             doHttpBegin(network, originId, routedId, replyId,
-                    replySeq, replyAck, replyMax, traceId, authorization, affinity,
+                    httpReplySeq, httpReplyAck, httpReplyMax, traceId, authorization, affinity,
                     setHttpResponseHeaders);
 
             state = SseState.openingReply(state);
@@ -920,24 +913,20 @@ public final class SseServerFactory implements SseStreamFactory
             {
                 final long sequence = begin.sequence();
                 final long acknowledge = begin.acknowledge();
-                final int maximum = begin.maximum();
                 final long traceId = begin.traceId();
                 final long authorization = begin.authorization();
                 final long affinity = begin.affinity();
 
                 assert acknowledge <= sequence;
                 assert sequence >= sseReplySeq;
-                assert acknowledge >= sseReplyAck;
+                assert acknowledge <= sseReplyAck;
 
                 sseReplySeq = sequence;
-                sseReplyAck = acknowledge;
-                sseReplyMax = maximum;
                 state = SseState.openingReply(state);
 
                 assert sseReplyAck <= sseReplySeq;
 
-                doNetBegin(sseReplySeq, sseReplyAck, sseReplyMax,
-                        traceId, authorization, affinity);
+                doNetBegin(traceId, authorization, affinity);
             }
 
             private void onAppData(
