@@ -146,6 +146,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.streaming.abort/client",
+        "${app}/openai.streaming.abort/server"})
+    public void shouldAbortOpenaiStreamingWithPartialUsage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/anthropic.streaming.abort/client",
         "${app}/anthropic.streaming.abort/server"})
     public void shouldAbortAnthropicStreamingWithPartialUsage() throws Exception

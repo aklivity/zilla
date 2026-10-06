@@ -164,6 +164,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.streaming.abort/client",
+        "${net}/openai.streaming.abort/server"})
+    public void shouldAbortOpenaiStreamingWithPartialUsage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/anthropic.streaming.abort/client",
         "${net}/anthropic.streaming.abort/server"})
     public void shouldAbortAnthropicStreamingWithPartialUsage() throws Exception

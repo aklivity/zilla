@@ -1085,4 +1085,24 @@ public class LlmOpenaiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.streaming.abort/client",
+        "${net}/openai.streaming.abort/server"})
+    public void shouldAbortOpenaiStreamingWithPartialUsage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.streaming.abort.nocredit/client",
+        "${net}/openai.streaming.abort/server"})
+    public void shouldAbortOpenaiStreamingWithPartialUsageWithoutCredit() throws Exception
+    {
+        k3po.finish();
+    }
 }

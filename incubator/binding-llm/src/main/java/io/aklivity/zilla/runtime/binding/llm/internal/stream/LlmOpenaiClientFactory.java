@@ -520,6 +520,9 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private final LlmOpenaiResponseDecoder decodeSkip = this::decodeSkip;
         private final LlmOpenaiResponseDecoder decodeEnd = this::decodeEnd;
         private final LlmOpenaiResponseDecoder decodeIgnore = this::decodeIgnore;
+        private final LlmOpenaiResponseDecoder decodeDrainStart = this::decodeDrainStart;
+        private final LlmOpenaiResponseDecoder decodeDrainRootStart = this::decodeDrainRootStart;
+        private final LlmOpenaiResponseDecoder decodeDrainRoot = this::decodeDrainRoot;
         private final LlmOpenaiResponseDecoder decodeErrorStart = this::decodeErrorStart;
         private final LlmOpenaiResponseDecoder decodeErrorRootStart = this::decodeErrorRootStart;
         private final LlmOpenaiResponseDecoder decodeErrorRoot = this::decodeErrorRoot;
@@ -546,12 +549,14 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private LlmOpenaiResponseDecoder skipThen;
         private LlmOpenaiResponseDecoder captureThen;
         private LlmOpenaiResponseDecoder errorThen;
+        private LlmOpenaiResponseDecoder usageThen;
         private int decodeLimit;
         private int skipDepth;
 
         private boolean scanned;
         private boolean scanError;
         private boolean parseRejected;
+        private boolean draining;
         private boolean logprobsRequested;
         private boolean messageScope;
         private boolean completion;
@@ -1139,6 +1144,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             resetDocument();
             scanned = false;
             parseRejected = false;
+            draining = false;
             sectionOpen = false;
             sectionStarted = false;
             sectionFollow = false;
@@ -1161,6 +1167,10 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 if (decoder == decodeEnd || decoder == decodeIgnore)
                 {
                     progress = decoder.decode(buffer, offset, limit);
+                }
+                else if (draining)
+                {
+                    progress = decodeDrain(buffer, offset, limit, last);
                 }
                 else
                 {
@@ -1199,6 +1209,30 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             }
 
             return progress;
+        }
+
+        private void beginDrain()
+        {
+            draining = true;
+            decoder = decoder == decodeStart ? decodeDrainStart : decodeIgnore;
+        }
+
+        private int decodeDrain(
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
+        {
+            try
+            {
+                decodeWindow(buffer, offset, limit, last);
+            }
+            catch (JsonException ex)
+            {
+                decoder = decodeIgnore;
+            }
+
+            return limit;
         }
 
         private void decodeErrorResponse(
@@ -1472,6 +1506,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                     else if (USAGE.contentEquals(member))
                     {
                         beginUsage();
+                        usageThen = decodeRoot;
                         decoder = decodeUsage;
                     }
                     else
@@ -2117,7 +2152,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 }
                 else if (captureDepth == 0)
                 {
-                    decoder = decodeRoot;
+                    decoder = usageThen;
                 }
             }
 
@@ -2206,6 +2241,67 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             http.cleanupDecodeSlot();
 
             return limit;
+        }
+
+        private int decodeDrainStart(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            if (parser.hasNextEvent())
+            {
+                parser.nextEvent();
+                decoder = decodeDrainRootStart;
+            }
+
+            return position();
+        }
+
+        private int decodeDrainRootStart(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            if (parser.hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                decoder = event == JsonEvent.START_OBJECT ? decodeDrainRoot : decodeIgnore;
+            }
+
+            return position();
+        }
+
+        private int decodeDrainRoot(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeDrainRoot && parser.hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.END_OBJECT)
+                {
+                    decoder = decodeIgnore;
+                }
+                else if (parser.deferredBytes())
+                {
+                    parser.consumed(0);
+                }
+                else if (USAGE.contentEquals(parser.getStringView()))
+                {
+                    beginUsage();
+                    usageThen = decodeDrainRoot;
+                    decoder = decodeUsage;
+                }
+                else
+                {
+                    skipMember(decodeDrainRoot);
+                }
+            }
+
+            return position();
         }
 
         private int decodeErrorStart(
@@ -4245,7 +4341,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
             if (errorStatus == NO_ERROR)
             {
-                stream.decoder = stream.decodeIgnore;
+                stream.beginDrain();
                 decodeTraceId = traceId;
 
                 if (stageSlot != NO_SLOT)
@@ -4266,6 +4362,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 {
                     decodeNet(traceId, emptyBufferRO, 0, 0);
                 }
+
+                stream.commitDocument();
             }
 
             cleanupDecodeSlot();
