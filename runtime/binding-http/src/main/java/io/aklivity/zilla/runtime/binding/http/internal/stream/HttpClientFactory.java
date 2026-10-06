@@ -316,6 +316,8 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final HttpEventDecoder decodeEventLineEndingAfterCR = this::decodeEventLineEndingAfterCR;
     private final HttpEventDecoder decodeEventLineEnded = this::decodeEventLineEnded;
     private final HttpEventDecoder decodeEventIgnoreLine = this::decodeEventIgnoreLine;
+    private final HttpEventDecoder decodeEventIgnore = this::decodeEventIgnore;
+    private final HttpEventDecoder decodeEventReject = this::decodeEventReject;
     private final HttpEventDecoder decodeEventFieldName = this::decodeEventFieldName;
     private final HttpEventDecoder decodeEventFieldColon = this::decodeEventFieldColon;
     private final HttpEventDecoder decodeEventFieldSpace = this::decodeEventFieldSpace;
@@ -6837,30 +6839,26 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             if (limitOfField != -1)
             {
+                boolean valid = true;
+
                 switch (exchange.decodedFieldName)
                 {
                 case ID:
-                    if (isEventUtf8(buffer, progress, limitOfField))
+                    valid = isEventUtf8(buffer, progress, limitOfField);
+                    if (valid)
                     {
                         exchange.decodedId = eventIdRW
                             .set(buffer, progress, limitOfField - progress)
                             .build();
                     }
-                    else
-                    {
-                        exchange.responseEventInvalid = true;
-                    }
                     break;
                 case TYPE:
-                    if (isEventUtf8(buffer, progress, limitOfField))
+                    valid = isEventUtf8(buffer, progress, limitOfField);
+                    if (valid)
                     {
                         exchange.decodedType = eventTypeRW
                             .set(buffer, progress, limitOfField - progress)
                             .build();
-                    }
-                    else
-                    {
-                        exchange.responseEventInvalid = true;
                     }
                     break;
                 case RETRY:
@@ -6877,11 +6875,42 @@ public final class HttpClientFactory implements HttpStreamFactory
 
                 progress = limitOfField;
 
-                exchange.eventDecoder = decodeEventLineEnding;
+                exchange.eventDecoder = valid ? decodeEventLineEnding : decodeEventReject;
             }
         }
 
         return progress;
+    }
+
+    private int decodeEventReject(
+        HttpExchange exchange,
+        long traceId,
+        long authorization,
+        DirectBufferEx buffer,
+        int progress,
+        int limit)
+    {
+        exchange.decodedId = EVENT_FIELD_VALUE_NULL;
+        exchange.decodedType = EVENT_FIELD_VALUE_NULL;
+        exchange.decodedRetry = EVENT_FIELD_VALUE_NULL;
+        exchange.decodedData = null;
+        exchange.decodedDataLines = 0;
+
+        exchange.eventDecoder = decodeEventIgnore;
+        exchange.onResponseInvalid(traceId, authorization);
+
+        return progress;
+    }
+
+    private int decodeEventIgnore(
+        HttpExchange exchange,
+        long traceId,
+        long authorization,
+        DirectBufferEx buffer,
+        int progress,
+        int limit)
+    {
+        return limit;
     }
 
     private int decodeEventFieldDataValue(
