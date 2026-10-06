@@ -6839,14 +6839,28 @@ public final class HttpClientFactory implements HttpStreamFactory
                 switch (exchange.decodedFieldName)
                 {
                 case ID:
-                    exchange.decodedId = eventIdRW
-                        .set(buffer, progress, limitOfField - progress)
-                        .build();
+                    if (isEventUtf8(buffer, progress, limitOfField))
+                    {
+                        exchange.decodedId = eventIdRW
+                            .set(buffer, progress, limitOfField - progress)
+                            .build();
+                    }
+                    else
+                    {
+                        exchange.responseEventInvalid = true;
+                    }
                     break;
                 case TYPE:
-                    exchange.decodedType = eventTypeRW
-                        .set(buffer, progress, limitOfField - progress)
-                        .build();
+                    if (isEventUtf8(buffer, progress, limitOfField))
+                    {
+                        exchange.decodedType = eventTypeRW
+                            .set(buffer, progress, limitOfField - progress)
+                            .build();
+                    }
+                    else
+                    {
+                        exchange.responseEventInvalid = true;
+                    }
                     break;
                 case RETRY:
                     if (isEventRetry(buffer, progress, limitOfField))
@@ -6985,6 +6999,54 @@ public final class HttpClientFactory implements HttpStreamFactory
         }
 
         return matchAll;
+    }
+
+    private static boolean isEventUtf8(
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        boolean valid = true;
+
+        int index = offset;
+        while (valid && index < limit)
+        {
+            final int lead = buffer.getByte(index) & 0xff;
+
+            final int continuation =
+                lead < 0x80 ? 0 :
+                lead >= 0xc2 && lead <= 0xdf ? 1 :
+                lead >= 0xe0 && lead <= 0xef ? 2 :
+                lead >= 0xf0 && lead <= 0xf4 ? 3 :
+                -1;
+
+            valid = continuation >= 0 && index + continuation < limit;
+
+            for (int next = 1; valid && next <= continuation; next++)
+            {
+                final int trail = buffer.getByte(index + next) & 0xff;
+                final int trailMin = next == 1 ? utf8SecondByteMin(lead) : 0x80;
+                final int trailMax = next == 1 ? utf8SecondByteMax(lead) : 0xbf;
+
+                valid = trail >= trailMin && trail <= trailMax;
+            }
+
+            index += continuation + 1;
+        }
+
+        return valid;
+    }
+
+    private static int utf8SecondByteMin(
+        int lead)
+    {
+        return lead == 0xe0 ? 0xa0 : lead == 0xf0 ? 0x90 : 0x80;
+    }
+
+    private static int utf8SecondByteMax(
+        int lead)
+    {
+        return lead == 0xed ? 0x9f : lead == 0xf4 ? 0x8f : 0xbf;
     }
 
     private static boolean isEventRetry(
