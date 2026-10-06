@@ -264,6 +264,60 @@ public class EventStreamIT
 
     @Test
     @Specification({
+        "${net}/response.sse.custom.empty/client",
+        "${net}/response.sse.custom.empty/server" })
+    public void shouldReceiveResponseCustomEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/response.sse.custom.initial.whitespace/client",
+        "${net}/response.sse.custom.initial.whitespace/server" })
+    public void shouldReceiveResponseCustomInitialWhitespace() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/response.sse.custom.invalid.utf8/client",
+        "${net}/response.sse.custom.invalid.utf8/server" })
+    public void shouldReceiveResponseCustomInvalidUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/response.sse.custom.name.only/client",
+        "${net}/response.sse.custom.name.only/server" })
+    public void shouldReceiveResponseCustomNameOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/response.sse.custom.non.empty/client",
+        "${net}/response.sse.custom.non.empty/server" })
+    public void shouldReceiveResponseCustomNonEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/response.sse.id.name.only/client",
+        "${net}/response.sse.id.name.only/server" })
+    public void shouldReceiveResponseIdNameOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/response.sse.type.invalid.utf8/client",
         "${net}/response.sse.type.invalid.utf8/server" })
     public void shouldReceiveResponseTypeInvalidUtf8() throws Exception
