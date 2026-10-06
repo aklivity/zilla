@@ -39,7 +39,6 @@ import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
 import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
 import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
 import static io.aklivity.zilla.runtime.engine.util.Flags.fin;
-import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
 import static java.lang.Character.toLowerCase;
 import static java.lang.Character.toUpperCase;
 import static java.lang.Integer.parseInt;
@@ -2972,7 +2971,6 @@ public final class HttpServerFactory implements HttpStreamFactory
             private boolean eventFraming;
             private long lastEventAt;
             private long idleId = NO_CANCEL_ID;
-            private boolean eventOpen;
             private int responseRemaining;
             private boolean redirected;
 
@@ -3390,8 +3388,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 if (responseState == HttpExchangeState.OPEN)
                 {
-                    if (!eventOpen &&
-                        System.currentTimeMillis() - lastEventAt >= SECONDS.toMillis(config.sseMaximumIdleTime()))
+                    if (System.currentTimeMillis() - lastEventAt >= SECONDS.toMillis(config.sseMaximumIdleTime()))
                     {
                         doEncodeEventComment(this, traceId, sessionId);
                     }
@@ -3433,10 +3430,6 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                     doEncodeBody(this, traceId, authorization, flags, budgetId, reserved, payload, data.extension());
 
-                    if (eventFraming)
-                    {
-                        eventOpen = !hasFin(flags);
-                    }
                 }
             }
 
