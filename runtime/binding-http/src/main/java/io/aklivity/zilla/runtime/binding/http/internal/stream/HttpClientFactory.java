@@ -179,6 +179,12 @@ public final class HttpClientFactory implements HttpStreamFactory
                     .item(h -> h.name("retry-after").value("0"))
                     .build();
 
+    private static final Array32FW<HttpHeaderFW> HEADERS_502 =
+            new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
+                    .wrap(new UnsafeBufferEx(new byte[64]), 0, 64)
+                    .item(h -> h.name(":status").value("502"))
+                    .build();
+
     private static final String GET_METHOD = "GET";
     private static final String HEAD_METHOD = "HEAD";
     private static final String CONTENT_LENGTH = "content-length";
@@ -5378,6 +5384,15 @@ public final class HttpClientFactory implements HttpStreamFactory
             long authorization,
             Flyweight extension)
         {
+            doResponseAbort(traceId, authorization, extension, HEADERS_503_RETRY_AFTER);
+        }
+
+        private void doResponseAbort(
+            long traceId,
+            long authorization,
+            Flyweight extension,
+            Array32FW<HttpHeaderFW> unopenedHeaders)
+        {
             if (!HttpState.replyClosed(state))
             {
                 cleanupEventSlot();
@@ -5392,7 +5407,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 {
                     HttpBeginExFW beginEx = beginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
                             .typeId(httpTypeId)
-                            .headers(HEADERS_503_RETRY_AFTER)
+                            .headers(unopenedHeaders)
                             .build();
                     doResponseBegin(traceId, authorization, beginEx);
                     doResponseEnd(traceId, authorization, EMPTY_OCTETS);
@@ -5880,7 +5895,8 @@ public final class HttpClientFactory implements HttpStreamFactory
                     System.currentTimeMillis(), context.supplyNamespace(routedId),
                     context.supplyLocalName(routedId), requestType.method, requestType.path);
             }
-            cleanup(traceId, authorization);
+            doRequestReset(traceId, authorization);
+            doResponseAbort(traceId, authorization, EMPTY_OCTETS, HEADERS_502);
         }
     }
 
