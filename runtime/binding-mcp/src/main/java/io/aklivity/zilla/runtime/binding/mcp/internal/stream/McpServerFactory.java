@@ -4438,6 +4438,8 @@ public final class McpServerFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
+            doNetWindow(traceId, authorization, 0, 0);
+
             doNetBegin(traceId, authorization, httpBeginExRW
                 .wrap(codecBuffer, 0, codecBuffer.capacity())
                 .typeId(httpTypeId)
@@ -4446,8 +4448,6 @@ public final class McpServerFactory implements McpStreamFactory
                 .headersItem(h -> h.name(HTTP_HEADER_SESSION).value(session.sessionId))
                 .inject(this::injectAltSvc)
                 .build());
-
-            doNetWindow(traceId, authorization, 0, 0);
         }
 
         private void doNetBeginRejected(
