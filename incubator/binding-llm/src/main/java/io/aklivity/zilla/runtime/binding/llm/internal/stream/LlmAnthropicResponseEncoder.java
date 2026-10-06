@@ -36,17 +36,17 @@ final class LlmAnthropicResponseEncoder
     private static final int NONE = -1;
     private static final int MESSAGE_FIRST = 0;
 
-    private static final byte[] EVENT_MESSAGE_START = "event: message_start\ndata: ".getBytes(UTF_8);
-    private static final byte[] EVENT_BLOCK_START = "event: content_block_start\ndata: ".getBytes(UTF_8);
-    private static final byte[] EVENT_BLOCK_DELTA = "event: content_block_delta\ndata: ".getBytes(UTF_8);
-    private static final byte[] EVENT_BLOCK_STOP = "event: content_block_stop\ndata: ".getBytes(UTF_8);
-    private static final byte[] EVENT_MESSAGE_DELTA = "event: message_delta\ndata: ".getBytes(UTF_8);
-    private static final byte[] EVENT_MESSAGE_STOP = "event: message_stop\ndata: {\"type\":\"message_stop\"}\n\n"
-        .getBytes(UTF_8);
-    private static final byte[] EVENT_ERROR = "event: error\ndata: {\"type\":\"error\",\"error\":{\"type\":\"".getBytes(UTF_8);
+    private static final String EVENT_MESSAGE_START = "message_start";
+    private static final String EVENT_BLOCK_START = "content_block_start";
+    private static final String EVENT_BLOCK_DELTA = "content_block_delta";
+    private static final String EVENT_BLOCK_STOP = "content_block_stop";
+    private static final String EVENT_MESSAGE_DELTA = "message_delta";
+    private static final String EVENT_MESSAGE_STOP = "message_stop";
+    private static final String EVENT_ERROR = "error";
+    private static final byte[] MESSAGE_STOP = "{\"type\":\"message_stop\"}".getBytes(UTF_8);
+    private static final byte[] ERROR_START = "{\"type\":\"error\",\"error\":{\"type\":\"".getBytes(UTF_8);
     private static final byte[] ERROR_MESSAGE = "\",\"message\":\"".getBytes(UTF_8);
-    private static final byte[] ERROR_END = "\"}}\n\n".getBytes(UTF_8);
-    private static final byte[] SSE_END = "\n\n".getBytes(UTF_8);
+    private static final byte[] ERROR_END = "\"}}".getBytes(UTF_8);
     private static final String BLOCK_STOP_SEQUENCE = "stop_sequence";
     private static final String BLOCK_STOP_REASON = "stop_reason";
     private static final byte[] OBJECT_START = "{".getBytes(UTF_8);
@@ -99,6 +99,7 @@ final class LlmAnthropicResponseEncoder
     private static final byte[] QUOTE = "\"".getBytes(UTF_8);
     private static final byte[] REPLACEMENT = "\\ufffd".getBytes(UTF_8);
 
+    private final LlmEventFrames frames;
     private final boolean streaming;
     private final byte[] id;
     private final byte[] model;
@@ -123,11 +124,17 @@ final class LlmAnthropicResponseEncoder
         String id,
         String model)
     {
+        this.frames = new LlmEventFrames();
         this.streaming = streaming;
         this.id = id != null ? escape(id) : null;
         this.model = model != null ? escape(model) : null;
         this.carry = new byte[3];
         this.state = STATE_PRELUDE;
+    }
+
+    LlmEventFrames frames()
+    {
+        return frames;
     }
 
     int begin(
@@ -138,7 +145,7 @@ final class LlmAnthropicResponseEncoder
 
         if (streaming)
         {
-            put(EVENT_MESSAGE_START);
+            frames.begin(position, EVENT_MESSAGE_START);
             put(STREAM_MESSAGE_START);
             messageIdentity();
             put(STREAM_MESSAGE_CONTENT);
@@ -291,11 +298,11 @@ final class LlmAnthropicResponseEncoder
                     dataChunkEnd();
                 }
 
-                put(EVENT_BLOCK_STOP);
+                frames.begin(position, EVENT_BLOCK_STOP);
                 put(STOP_START);
                 putNumber(blocks - 1);
                 put(STOP_END);
-                put(SSE_END);
+                frames.end(position);
             }
             else
             {
@@ -350,8 +357,10 @@ final class LlmAnthropicResponseEncoder
             put(MESSAGE_DELTA_USAGE);
             putUsage(inputTokens, cacheWriteTokens, cacheReadTokens, outputTokens);
             put(OBJECT_END);
-            put(SSE_END);
-            put(EVENT_MESSAGE_STOP);
+            frames.end(position);
+            frames.begin(position, EVENT_MESSAGE_STOP);
+            put(MESSAGE_STOP);
+            frames.end(position);
         }
         else
         {
@@ -395,14 +404,16 @@ final class LlmAnthropicResponseEncoder
         {
             put(OBJECT_END);
             put(OBJECT_END);
-            put(SSE_END);
+            frames.end(position);
         }
 
-        put(EVENT_ERROR);
+        frames.begin(position, EVENT_ERROR);
+        put(ERROR_START);
         put(escape(type != null ? type : "api_error"));
         put(ERROR_MESSAGE);
         put(escape(message != null ? message : ""));
         put(ERROR_END);
+        frames.end(position);
 
         return position - offset;
     }
@@ -432,7 +443,7 @@ final class LlmAnthropicResponseEncoder
         String toolCallId,
         String toolName)
     {
-        put(EVENT_BLOCK_START);
+        frames.begin(position, EVENT_BLOCK_START);
         put(BLOCK_START);
         putNumber(blocks++);
 
@@ -454,7 +465,7 @@ final class LlmAnthropicResponseEncoder
             break;
         }
 
-        put(SSE_END);
+        frames.end(position);
     }
 
     private void sectionBlock(
@@ -508,7 +519,7 @@ final class LlmAnthropicResponseEncoder
 
     private void dataChunkStart()
     {
-        put(EVENT_BLOCK_DELTA);
+        frames.begin(position, EVENT_BLOCK_DELTA);
         put(DELTA_START);
         putNumber(blocks - 1);
 
@@ -529,7 +540,7 @@ final class LlmAnthropicResponseEncoder
     private void dataChunkEnd()
     {
         put(DELTA_END);
-        put(SSE_END);
+        frames.end(position);
     }
 
     private void putUsage(
@@ -596,6 +607,7 @@ final class LlmAnthropicResponseEncoder
     {
         this.out = out;
         this.position = offset;
+        frames.wrap(offset);
     }
 
     private void dataChunk(
@@ -687,7 +699,7 @@ final class LlmAnthropicResponseEncoder
 
             putStopSequenceDefault();
             put(STREAM_MESSAGE_USAGE);
-            put(SSE_END);
+            frames.end(position);
             stopSequence = false;
             stopReason = false;
         }
@@ -704,7 +716,7 @@ final class LlmAnthropicResponseEncoder
     {
         if (streaming)
         {
-            put(EVENT_MESSAGE_DELTA);
+            frames.begin(position, EVENT_MESSAGE_DELTA);
             put(DELTA_START_OBJECT);
         }
         else

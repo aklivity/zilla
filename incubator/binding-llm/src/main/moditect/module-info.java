@@ -34,6 +34,5 @@ module io.aklivity.zilla.runtime.binding.llm
              io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmAnthropicDialectFactorySpi;
 
     provides io.aklivity.zilla.runtime.binding.llm.codec.LlmContentCodecSpi
-        with io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmSseContentCodecSpi,
-             io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmJsonContentCodecSpi;
+        with io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmJsonContentCodecSpi;
 }

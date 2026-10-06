@@ -40,10 +40,10 @@ write zilla:begin.ext ${http:beginEx()
                            .header("content-type", "text/event-stream")
                            .build()}
 
-write "data: {\"id\":\"msg_02\",\"object\":\"chat.completion.chunk\",\"model\":\"claude-3-opus-20240229\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\"},\"finish_reason\":null}]}\n\n"
-write "data: {\"id\":\"msg_02\",\"object\":\"chat.completion.chunk\",\"model\":\"claude-3-opus-20240229\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"caf\"},\"finish_reason\":null}]}\n\n"
-write "data: {\"id\":\"msg_02\",\"object\":\"chat.completion.chunk\",\"model\":\"claude-3-opus-20240229\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"é ok\"},\"finish_reason\":null}]}\n\n"
-write "data: {\"id\":\"msg_02\",\"object\":\"chat.completion.chunk\",\"model\":\"claude-3-opus-20240229\",\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n"
-write "data: {\"id\":\"msg_02\",\"object\":\"chat.completion.chunk\",\"model\":\"claude-3-opus-20240229\",\"choices\":[],\"usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}}\n\n"
-write "data: [DONE]\n\n"
+write "{\"id\":\"msg_02\",\"object\":\"chat.completion.chunk\",\"model\":\"claude-3-opus-20240229\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\"},\"finish_reason\":null}]}"
+write "{\"id\":\"msg_02\",\"object\":\"chat.completion.chunk\",\"model\":\"claude-3-opus-20240229\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"caf\"},\"finish_reason\":null}]}"
+write "{\"id\":\"msg_02\",\"object\":\"chat.completion.chunk\",\"model\":\"claude-3-opus-20240229\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"é ok\"},\"finish_reason\":null}]}"
+write "{\"id\":\"msg_02\",\"object\":\"chat.completion.chunk\",\"model\":\"claude-3-opus-20240229\",\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}"
+write "{\"id\":\"msg_02\",\"object\":\"chat.completion.chunk\",\"model\":\"claude-3-opus-20240229\",\"choices\":[],\"usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}}"
+write "[DONE]"
 write close

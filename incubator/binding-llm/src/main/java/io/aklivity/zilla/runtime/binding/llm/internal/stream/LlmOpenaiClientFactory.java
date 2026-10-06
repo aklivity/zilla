@@ -37,6 +37,7 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.BeginFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.Capability;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.ChallengeFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.EndFW;
@@ -91,6 +92,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private static final int STATUS_BAD_REQUEST = 400;
     private static final int NO_ERROR = -1;
     private static final int STATUS_BAD_GATEWAY = 502;
+    private static final int FRAMING_CAPABILITIES_MASK = 1 << Capability.FRAMING.ordinal();
+    private static final int EVENT_HEADER_SIZE = Integer.BYTES + Byte.BYTES;
 
     private static final int KIND_SYSTEM_INSTRUCTION = 1;
     private static final int KIND_USER_TEXT = 2;
@@ -1069,7 +1072,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         }
     }
 
-    private final class LlmOpenaiHttpStream implements LlmContentDecoderOutput
+    private final class LlmOpenaiHttpStream
     {
         private final LlmOpenaiStream stream;
         private final long originId;
@@ -1133,7 +1136,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private int stageSlotOffset;
         private boolean stageLast;
         private LlmContentDecoder decoder;
-        private boolean streaming;
+        private boolean framing;
+        private LlmErrorBodyDecoder errorBody;
         private int errorStatus = NO_ERROR;
         private boolean errorBodyDropped;
         private long decodeTraceId;
@@ -2052,6 +2056,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             final String mediaType = LlmContentCodecFactory.mediaType(responseContentType);
             final int status = responseStatus != null ? Integer.parseInt(responseStatus) : STATUS_OK;
             final boolean declared = mediaType != null && RESPONSE_CONTENT_TYPES.contains(mediaType);
+            final boolean eventStream = CONTENT_TYPE_EVENT_STREAM.equals(mediaType);
 
             if (stream.rejected)
             {
@@ -2060,7 +2065,9 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             else if (status < STATUS_OK || status >= STATUS_MULTIPLE_CHOICES)
             {
                 errorStatus = status;
-                decoder = declared ? codecs.createDecoder(responseContentType) : null;
+                framing = eventStream;
+                errorBody = framing ? new LlmErrorBodyDecoder() : null;
+                decoder = declared && !framing ? codecs.createDecoder(responseContentType) : null;
                 doNetWindow(traceId);
             }
             else if (!declared)
@@ -2069,8 +2076,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             }
             else
             {
-                decoder = codecs.createDecoder(responseContentType);
-                streaming = decoder.streaming();
+                framing = eventStream;
 
                 doNetWindow(traceId);
             }
@@ -2084,11 +2090,16 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
             replySeq = data.sequence() + data.reserved();
 
-            DirectBufferEx buffer = payload.buffer();
-            int offset = payload.offset();
-            int limit = payload.limit();
+            DirectBufferEx buffer = payload != null ? payload.buffer() : emptyBufferRO;
+            int offset = payload != null ? payload.offset() : 0;
+            int limit = payload != null ? payload.limit() : 0;
 
-            if (errorStatus != NO_ERROR)
+            if (framing)
+            {
+                onNetEvent(traceId, buffer, offset, limit, Flags.hasFin(data.flags()));
+                doNetWindow(traceId);
+            }
+            else if (errorStatus != NO_ERROR)
             {
                 appendErrorBody(buffer, offset, limit);
                 doNetWindow(traceId);
@@ -2134,7 +2145,11 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             }
             else
             {
-                if (decodeSlot != NO_SLOT)
+                if (framing)
+                {
+                    drainEvents(traceId);
+                }
+                else if (decodeSlot != NO_SLOT)
                 {
                     final MutableDirectBufferEx slotBuffer = decodePool.buffer(decodeSlot);
                     decodeNet(traceId, slotBuffer, 0, decodeSlotOffset);
@@ -2166,7 +2181,11 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                     decodeStaged();
                 }
 
-                if (decodeSlot != NO_SLOT)
+                if (framing)
+                {
+                    drainEvents(traceId);
+                }
+                else if (decodeSlot != NO_SLOT)
                 {
                     final MutableDirectBufferEx slotBuffer = decodePool.buffer(decodeSlot);
                     decodeNet(traceId, slotBuffer, 0, decodeSlotOffset);
@@ -2232,7 +2251,20 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 decodeStaged();
             }
 
-            if (decodeSlot != NO_SLOT && stageSlot == NO_SLOT)
+            if (framing)
+            {
+                drainEvents(traceId);
+
+                if (!LlmState.replyClosing(state))
+                {
+                    doNetWindow(traceId);
+                }
+                else if (decodeSlot == NO_SLOT && stageSlot == NO_SLOT)
+                {
+                    doAppEnd(pendingEndTraceId);
+                }
+            }
+            else if (decodeSlot != NO_SLOT && stageSlot == NO_SLOT)
             {
                 final MutableDirectBufferEx slotBuffer = decodePool.buffer(decodeSlot);
                 decodeNet(traceId, slotBuffer, 0, decodeSlotOffset);
@@ -2251,25 +2283,9 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            int progress = offset;
-
             decodeTraceId = traceId;
 
-            if (streaming)
-            {
-                final int bound = stream.responseDecoder.begun() && stream.replyCredit() == 0
-                    ? 0
-                    : limit - offset;
-
-                if (bound > 0 || limit == offset)
-                {
-                    progress = decoder.decode(buffer, offset, offset + bound, this);
-                }
-            }
-            else
-            {
-                progress = decodeJsonSections(buffer, offset, limit);
-            }
+            final int progress = decodeJsonSections(buffer, offset, limit);
 
             if (progress < limit)
             {
@@ -2324,35 +2340,101 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             return progress;
         }
 
-        @Override
-        public boolean available()
+        private void onNetEvent(
+            long traceId,
+            DirectBufferEx buffer,
+            int offset,
+            int limit,
+            boolean last)
         {
-            return stageSlot == NO_SLOT && stream.replyAvailable();
+            final int length = limit - offset;
+
+            decodeTraceId = traceId;
+
+            if (errorStatus != NO_ERROR)
+            {
+                errorBody.data(buffer, offset, length, last);
+
+                if (last)
+                {
+                    errorBody.flush(null, emptyBufferRO, 0, 0);
+                }
+            }
+            else if (decodeSlot == NO_SLOT && eventAvailable())
+            {
+                forwardResponseSections(buffer, offset, length, last);
+            }
+            else
+            {
+                enqueueEvent(traceId, buffer, offset, length, last);
+            }
         }
 
-        @Override
-        public void event(
-            String event)
+        private boolean eventAvailable()
         {
+            return stageSlot == NO_SLOT ? stream.replyAvailable() : !stageLast;
         }
 
-        @Override
-        public void data(
-            DirectBuffer buffer,
+        private void enqueueEvent(
+            long traceId,
+            DirectBufferEx buffer,
             int offset,
             int length,
             boolean last)
         {
-            forwardResponseSections(buffer, offset, length, last);
+            if (decodeSlot == NO_SLOT)
+            {
+                decodeSlot = decodePool.acquire(initialId);
+            }
+
+            if (decodeSlot == NO_SLOT || decodeSlotOffset + EVENT_HEADER_SIZE + length > decodeMax)
+            {
+                cleanupNet(traceId);
+            }
+            else
+            {
+                final MutableDirectBufferEx slotBuffer = decodePool.buffer(decodeSlot);
+                slotBuffer.putInt(decodeSlotOffset, length);
+                slotBuffer.putByte(decodeSlotOffset + Integer.BYTES, (byte) (last ? 1 : 0));
+                slotBuffer.putBytes(decodeSlotOffset + EVENT_HEADER_SIZE, buffer, offset, length);
+                decodeSlotOffset += EVENT_HEADER_SIZE + length;
+            }
         }
 
-        @Override
-        public void flush(
-            String event,
-            DirectBuffer buffer,
-            int offset,
-            int length)
+        private void drainEvents(
+            long traceId)
         {
+            decodeTraceId = traceId;
+
+            int progress = 0;
+
+            while (decodeSlot != NO_SLOT && progress < decodeSlotOffset && eventAvailable())
+            {
+                final MutableDirectBufferEx slotBuffer = decodePool.buffer(decodeSlot);
+                final int length = slotBuffer.getInt(progress);
+                final boolean last = slotBuffer.getByte(progress + Integer.BYTES) != 0;
+
+                progress += EVENT_HEADER_SIZE;
+                forwardResponseSections(slotBuffer, progress, length, last);
+                progress += length;
+            }
+
+            if (decodeSlot != NO_SLOT)
+            {
+                final int remaining = decodeSlotOffset - progress;
+
+                if (remaining > 0)
+                {
+                    final MutableDirectBufferEx slotBuffer = decodePool.buffer(decodeSlot);
+                    copyBuffer.putBytes(0, slotBuffer, progress, remaining);
+                    slotBuffer.putBytes(0, copyBuffer, 0, remaining);
+                    decodeSlotOffset = remaining;
+                }
+                else
+                {
+                    cleanupDecodeSlot();
+                }
+            }
         }
 
         private boolean matchesTerminator(
@@ -2493,7 +2575,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
         private LlmErrorBodyDecoder decodeErrorBody()
         {
-            final LlmErrorBodyDecoder errorDecoder = new LlmErrorBodyDecoder();
+            final LlmErrorBodyDecoder errorDecoder = errorBody != null ? errorBody : new LlmErrorBodyDecoder();
 
             if (decodeSlot != NO_SLOT)
             {
@@ -2622,7 +2704,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private void doNetWindow(
             long traceId)
         {
-            final int buffered = errorStatus == NO_ERROR ? decodeSlotOffset : 0;
+            final int buffered = errorStatus == NO_ERROR ? decodeSlotOffset + stageSlotOffset : 0;
             final long replyAckMax = replySeq - buffered;
 
             if (replyAckMax > replyAck)
@@ -2640,6 +2722,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 .traceId(traceId)
                 .budgetId(0L)
                 .padding(0)
+                .capabilities(framing ? FRAMING_CAPABILITIES_MASK : 0)
                 .build();
 
             net.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());

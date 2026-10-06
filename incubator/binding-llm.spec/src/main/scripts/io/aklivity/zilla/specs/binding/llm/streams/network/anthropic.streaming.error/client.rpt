@@ -38,7 +38,15 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("content-type", "text/event-stream")
                            .build()}
 
-read "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3-opus-20240229\",\"content\":[],\"usage\":{\"input_tokens\":25,\"output_tokens\":1}}}\n\n"
-read "event: error\ndata: {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"}}\n\n"
+read zilla:data.ext ${http:matchDataEx()
+                         .typeId(zilla:id("http"))
+                         .header("type", "message_start")
+                         .build()}
+read "{\"type\":\"message_start\",\"message\":{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3-opus-20240229\",\"content\":[],\"usage\":{\"input_tokens\":25,\"output_tokens\":1}}}"
+read zilla:data.ext ${http:matchDataEx()
+                         .typeId(zilla:id("http"))
+                         .header("type", "error")
+                         .build()}
+read "{\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"}}"
 
 read closed

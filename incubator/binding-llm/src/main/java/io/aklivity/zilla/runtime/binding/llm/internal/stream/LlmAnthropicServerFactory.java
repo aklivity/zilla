@@ -36,11 +36,13 @@ import io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmContentCodecFacto
 import io.aklivity.zilla.runtime.binding.llm.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.BeginFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.Capability;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.ChallengeFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmAbortExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBeginExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBlockOwner;
@@ -72,6 +74,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private static final String HEADER_METHOD = ":method";
     private static final String HEADER_PATH = ":path";
     private static final String HEADER_STATUS = ":status";
+    private static final String HEADER_TYPE = "type";
+    private static final int FRAMING_CAPABILITIES_MASK = 1 << Capability.FRAMING.ordinal();
     private static final String HEADER_CONTENT_TYPE = "content-type";
     private static final String HEADER_API_KEY = "x-api-key";
     private static final String HEADER_ANTHROPIC_VERSION = "anthropic-version";
@@ -150,6 +154,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
 
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
+    private final HttpDataExFW.Builder httpDataExRW = new HttpDataExFW.Builder();
     private final LlmBeginExFW llmBeginExRO = new LlmBeginExFW();
     private final LlmBeginExFW.Builder llmBeginExRW = new LlmBeginExFW.Builder();
     private final LlmDataExFW llmDataExRO = new LlmDataExFW();
@@ -2691,7 +2696,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             cleanupDecodeSlot();
 
             doNetBegin(traceId, authorization, 0L, Integer.toString(status), CONTENT_TYPE_JSON);
-            doNetData(body, 0, body.capacity(), 0, Flags.COMPLETE, 0L, traceId, authorization);
+            doNetData(body, 0, body.capacity(), 0, Flags.COMPLETE, null, 0L, traceId, authorization);
 
             if (encodeSlot != NO_SLOT)
             {
@@ -2837,8 +2842,42 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             long traceId,
             long authorization)
         {
-            doNetData(payload.buffer(), payload.offset(), payload.sizeof(), payload.sizeof(), flags, budgetId,
+            doNetData(payload.buffer(), payload.offset(), payload.sizeof(), payload.sizeof(), flags, null, budgetId,
                 traceId, authorization);
+        }
+
+        private void doNetEvents(
+            DirectBufferEx buffer,
+            LlmEventFrames frames,
+            int length,
+            int reserved,
+            long budgetId,
+            long traceId,
+            long authorization)
+        {
+            if (streaming)
+            {
+                frames.flush(length);
+
+                final int count = frames.count();
+
+                for (int index = 0; index < count; index++)
+                {
+                    doNetData(buffer, frames.offset(index), frames.length(index), index == count - 1 ? reserved : 0,
+                        frames.flags(index), frames.type(index), budgetId, traceId, authorization);
+                }
+
+                frames.clear();
+
+                if (count == 0 && stream != null)
+                {
+                    stream.ackReply(traceId);
+                }
+            }
+            else
+            {
+                doNetData(buffer, 0, length, reserved, Flags.COMPLETE, null, budgetId, traceId, authorization);
+            }
         }
 
         private void doNetData(
@@ -2847,6 +2886,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             int length,
             int rawLength,
             int flags,
+            String type,
             long budgetId,
             long traceId,
             long authorization)
@@ -2868,7 +2908,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 slotBuffer.putBytes(encodeSlotOffset, buffer, offset, length);
                 encodeSlotOffset += length;
                 encodeSlotRawOffset += rawLength;
-                encodeChunks.add(new SlotChunk(length, rawLength, flags, budgetId, traceId, authorization));
+                encodeChunks.add(new SlotChunk(length, rawLength, flags, type, budgetId, traceId, authorization));
 
                 flushEncodeSlot(traceId);
             }
@@ -2880,11 +2920,12 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             int flags,
             long budgetId,
             int reserved,
+            String type,
             MutableDirectBufferEx buffer,
             int offset,
             int length)
         {
-            final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            final DataFW.Builder dataBuilder = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(replyId)
@@ -2896,9 +2937,23 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 .flags(flags)
                 .budgetId(budgetId)
                 .reserved(reserved)
-                .payload(buffer, offset, length)
-                .extension(EMPTY_OCTETS)
-                .build();
+                .payload(buffer, offset, length);
+
+            if (type != null)
+            {
+                final HttpDataExFW dataEx = httpDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(httpTypeId)
+                    .headersItem(h -> h.name(HEADER_TYPE).value(type))
+                    .build();
+
+                dataBuilder.extension(dataEx.buffer(), dataEx.offset(), dataEx.sizeof());
+            }
+            else
+            {
+                dataBuilder.extension(EMPTY_OCTETS);
+            }
+
+            final DataFW data = dataBuilder.build();
 
             network.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
             replySeq += reserved;
@@ -2927,7 +2982,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                     final SlotChunk chunk = encodeChunks.peek();
                     final int remaining = chunk.length - chunk.sent;
                     final int sliceLength = (int) Math.min(remaining, available);
-                    if (sliceLength <= 0)
+                    if (sliceLength <= 0 && remaining > 0)
                     {
                         break;
                     }
@@ -2938,7 +2993,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                     final int initFlags = sliceOffset == 0 && Flags.hasInit(chunk.flags) ? Flags.INIT : Flags.NONE;
                     final int flags = chunk.sent == chunk.length && Flags.hasFin(chunk.flags) ? Flags.fin(initFlags) : initFlags;
                     doNetData(chunk.traceId, chunk.authorization, flags, chunk.budgetId,
-                        sliceLength + replyPad, buffer, sliceOffset, sliceLength);
+                        sliceLength + replyPad, initFlags == Flags.INIT ? chunk.type : null, buffer, sliceOffset, sliceLength);
 
                     if (chunk.sent >= chunk.length)
                     {
@@ -3085,6 +3140,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 .traceId(traceId)
                 .budgetId(0L)
                 .padding(0)
+                .capabilities(FRAMING_CAPABILITIES_MASK)
                 .build();
 
             network.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
@@ -3302,7 +3358,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 server.streaming ? CONTENT_TYPE_EVENT_STREAM : CONTENT_TYPE_JSON);
 
             final int length = responseEncoder.begin(copyBuffer, 0);
-            server.doNetData(copyBuffer, 0, length, 0, Flags.COMPLETE, 0L, traceId, authorization);
+            server.doNetEvents(copyBuffer, responseEncoder.frames(), length, 0, 0L, traceId, authorization);
 
             doAppWindow(traceId);
         }
@@ -3376,7 +3432,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
             if (length > 0)
             {
-                server.doNetData(copyBuffer, 0, length, reserved, Flags.COMPLETE, budgetId, traceId, authorization);
+                server.doNetEvents(copyBuffer, responseEncoder.frames(), length, reserved, budgetId, traceId, authorization);
             }
             else
             {
@@ -3420,7 +3476,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 usage != null ? usage.reasoningTokens() : -1,
                 usage != null ? usage.totalTokens() : -1);
 
-            server.doNetData(copyBuffer, 0, length, 0, Flags.COMPLETE, 0L, traceId, authorization);
+            server.doNetEvents(copyBuffer, responseEncoder.frames(), length, 0, 0L, traceId, authorization);
 
             if (server.encodeSlot != NO_SLOT)
             {
@@ -3459,7 +3515,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 final int length = responseEncoder.error(copyBuffer, 0,
                     error.type().asString(), error.param().asString(), error.message().asString());
 
-                server.doNetData(copyBuffer, 0, length, 0, Flags.COMPLETE, 0L, traceId, authorization);
+                server.doNetEvents(copyBuffer, responseEncoder.frames(), length, 0, 0L, traceId, authorization);
 
                 if (server.encodeSlot != NO_SLOT)
                 {
@@ -3711,6 +3767,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private final int length;
         private final int rawLength;
         private final int flags;
+        private final String type;
         private final long budgetId;
         private final long traceId;
         private final long authorization;
@@ -3720,6 +3777,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             int length,
             int rawLength,
             int flags,
+            String type,
             long budgetId,
             long traceId,
             long authorization)
@@ -3727,6 +3785,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             this.length = length;
             this.rawLength = rawLength;
             this.flags = flags;
+            this.type = type;
             this.budgetId = budgetId;
             this.traceId = traceId;
             this.authorization = authorization;

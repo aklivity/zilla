@@ -41,9 +41,7 @@ final class LlmOpenaiResponseEncoder
     private static final int NONE = -1;
     private static final int MESSAGE_FIRST = 0;
 
-    private static final byte[] SSE_DATA = "data: ".getBytes(UTF_8);
-    private static final byte[] SSE_END = "\n\n".getBytes(UTF_8);
-    private static final byte[] SSE_DONE = "data: [DONE]\n\n".getBytes(UTF_8);
+    private static final byte[] DONE = "[DONE]".getBytes(UTF_8);
     private static final byte[] OBJECT_START = "{".getBytes(UTF_8);
     private static final byte[] ID_START = "\"id\":\"".getBytes(UTF_8);
     private static final byte[] OBJECT_COMPLETION = "\"object\":\"chat.completion\"".getBytes(UTF_8);
@@ -101,6 +99,7 @@ final class LlmOpenaiResponseEncoder
     private static final byte[] MEMBER_COLON = "\":".getBytes(UTF_8);
     private static final byte[] REPLACEMENT = "\\ufffd".getBytes(UTF_8);
 
+    private final LlmEventFrames frames;
     private final boolean streaming;
     private final byte[] id;
     private final byte[] model;
@@ -131,11 +130,17 @@ final class LlmOpenaiResponseEncoder
         String id,
         String model)
     {
+        this.frames = new LlmEventFrames();
         this.streaming = streaming;
         this.state = STATE_PRELUDE;
         this.id = id != null ? escape(id) : null;
         this.model = model != null ? escape(model) : null;
         this.carry = new byte[3];
+    }
+
+    LlmEventFrames frames()
+    {
+        return frames;
     }
 
     int begin(
@@ -296,7 +301,7 @@ final class LlmOpenaiResponseEncoder
         if (blockOpen && streaming)
         {
             put(OBJECT_END);
-            put(SSE_END);
+            frames.end(position);
         }
 
         blockOpen = false;
@@ -453,7 +458,9 @@ final class LlmOpenaiResponseEncoder
                 chunkUsageEnd(inputTokens, cacheReadTokens, outputTokens, reasoningTokens, totalTokens);
             }
 
-            put(SSE_DONE);
+            frames.begin(position, null);
+            put(DONE);
+            frames.end(position);
         }
         else
         {
@@ -492,7 +499,7 @@ final class LlmOpenaiResponseEncoder
             closeChunk();
         }
 
-        put(SSE_DATA);
+        frames.begin(position, null);
         put(ERROR_START);
         put(escape(message != null ? message : ""));
         put(ERROR_TYPE);
@@ -510,7 +517,7 @@ final class LlmOpenaiResponseEncoder
             put(NULL);
         }
         put(ERROR_CODE);
-        put(SSE_END);
+        frames.end(position);
 
         return position - offset;
     }
@@ -523,6 +530,7 @@ final class LlmOpenaiResponseEncoder
     {
         this.out = out;
         this.position = offset;
+        frames.wrap(offset);
     }
 
     private static int kindOf(
@@ -712,7 +720,7 @@ final class LlmOpenaiResponseEncoder
         put(CHUNK_FINISH);
         put(CHOICES_END);
         put(OBJECT_END);
-        put(SSE_END);
+        frames.end(position);
         chunkOpen = false;
     }
 
@@ -808,7 +816,7 @@ final class LlmOpenaiResponseEncoder
 
     private void chunkStart()
     {
-        put(SSE_DATA);
+        frames.begin(position, null);
         put(OBJECT_START);
         if (id != null)
         {
@@ -833,7 +841,7 @@ final class LlmOpenaiResponseEncoder
     {
         put(CHOICES_END);
         put(OBJECT_END);
-        put(SSE_END);
+        frames.end(position);
     }
 
     private void chunkUsageEnd(
@@ -846,7 +854,7 @@ final class LlmOpenaiResponseEncoder
         put(CHOICES_END);
         putUsage(inputTokens, cacheReadTokens, outputTokens, reasoningTokens, totalTokens);
         put(OBJECT_END);
-        put(SSE_END);
+        frames.end(position);
     }
 
     private void putUsage(
