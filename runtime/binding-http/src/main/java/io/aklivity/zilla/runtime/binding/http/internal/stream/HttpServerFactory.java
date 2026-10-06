@@ -3500,13 +3500,15 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                     if (validated != null || payload == null)
                     {
-                        doEncodeBody(this, traceId, authorization, flags, budgetId, reserved, validated, data.extension());
+                        if (!isModelBuffered(payload, validated))
+                        {
+                            doEncodeBody(this, traceId, authorization, flags, budgetId, reserved, validated, data.extension());
+                        }
                     }
                     else
                     {
                         onDecodeBodyInvalid(traceId, authorization, ERROR_502_BAD_GATEWAY);
                     }
-
                 }
             }
 
@@ -8050,6 +8052,13 @@ public final class HttpServerFactory implements HttpStreamFactory
         }
 
         return validated;
+    }
+
+    private static boolean isModelBuffered(
+        OctetsFW payload,
+        OctetsFW validated)
+    {
+        return payload != null && payload.sizeof() > 0 && validated != null && validated.sizeof() == 0;
     }
 
     private OctetsFW encodeEventComment()

@@ -110,4 +110,13 @@ public class ModelIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/response.valid.fragmented/client",
+        "${net}/response.valid.fragmented/server" })
+    public void shouldPassValidFragmentedResponse() throws Exception
+    {
+        k3po.finish();
+    }
 }
