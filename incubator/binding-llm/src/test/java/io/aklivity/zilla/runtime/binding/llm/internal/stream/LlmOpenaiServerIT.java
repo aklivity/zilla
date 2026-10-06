@@ -725,6 +725,16 @@ public class LlmOpenaiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.response.encode.text.multibyte/client",
+        "${app}/openai.response.encode.text.multibyte/server"})
+    public void shouldEncodeOpenaiResponseTextMultibyte() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.response.encode.streaming.multibyte/client",
         "${app}/openai.response.encode.streaming.multibyte/server"})
     public void shouldEncodeOpenaiResponseStreamingMultibyte() throws Exception

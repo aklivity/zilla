@@ -63,16 +63,14 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .id("msg_02")
                            .build()}
 
-read option zilla:flags "init"
+read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-read "caf" [0xc3]
-
-read option zilla:flags "fin"
-read "" [0xa9] " ok"
+read "café ok"
+read notify SECOND_EVENT_READ
 
 read zilla:end.ext ${llm:matchEndEx()
                             .typeId(zilla:id("llm"))

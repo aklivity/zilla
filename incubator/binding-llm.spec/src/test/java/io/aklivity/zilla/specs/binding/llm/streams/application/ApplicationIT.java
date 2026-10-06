@@ -911,6 +911,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.response.encode.text.multibyte/client",
+        "${app}/openai.response.encode.text.multibyte/server"})
+    public void shouldEncodeOpenaiResponseTextMultibyte() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.response.encode.streaming.multibyte/client",
         "${app}/openai.response.encode.streaming.multibyte/server"})
     public void shouldEncodeOpenaiResponseStreamingMultibyte() throws Exception
@@ -1742,6 +1751,15 @@ public class ApplicationIT
         "${app}/anthropic.response.encode.text.escaped/client",
         "${app}/anthropic.response.encode.text.escaped/server"})
     public void shouldEncodeAnthropicResponseTextEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.response.encode.text.multibyte/client",
+        "${app}/anthropic.response.encode.text.multibyte/server"})
+    public void shouldEncodeAnthropicResponseTextMultibyte() throws Exception
     {
         k3po.finish();
     }

@@ -13,9 +13,6 @@
 # specific language governing permissions and limitations under the License.
 #
 
-# Fragment boundaries within a section are not significant, so a fragment may end part way through a multi-byte character.
-# The openai server carries the incomplete trailing bytes into the next delta rather than splitting the character.
-
 accept "zilla://streams/app0"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
@@ -59,18 +56,18 @@ write zilla:begin.ext ${llm:beginEx()
                            .build()}
 write flush
 
-write option zilla:flags "init"
+write await FIRST_EVENT_READ
+
+write option zilla:flags "init fin"
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-write "caf" [0xc3]
+write "café ok"
 write flush
 
-write option zilla:flags "fin"
-write [0xa9] " ok"
-write flush
+write await SECOND_EVENT_READ
 
 write zilla:end.ext ${llm:endEx()
                             .typeId(zilla:id("llm"))

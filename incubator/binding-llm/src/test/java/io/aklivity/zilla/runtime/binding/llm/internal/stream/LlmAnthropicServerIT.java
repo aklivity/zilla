@@ -877,6 +877,16 @@ public class LlmAnthropicServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/anthropic.response.encode.text.multibyte/client",
+        "${app}/anthropic.response.encode.text.multibyte/server"})
+    public void shouldEncodeAnthropicResponseTextMultibyte() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/anthropic.section.assistant.tool.call.100k/client",
         "${app}/anthropic.section.assistant.tool.call.100k/server"})
     public void shouldDecodeAnthropicSectionAssistantToolCall100k() throws Exception

@@ -929,6 +929,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.response.encode.text.multibyte/client",
+        "${net}/openai.response.encode.text.multibyte/server"})
+    public void shouldEncodeOpenaiResponseTextMultibyte() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.response.encode.streaming.multibyte/client",
         "${net}/openai.response.encode.streaming.multibyte/server"})
     public void shouldEncodeOpenaiResponseStreamingMultibyte() throws Exception
@@ -2102,6 +2111,15 @@ public class NetworkIT
         "${net}/anthropic.response.encode.text.escaped/client",
         "${net}/anthropic.response.encode.text.escaped/server"})
     public void shouldEncodeAnthropicResponseTextEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.response.encode.text.multibyte/client",
+        "${net}/anthropic.response.encode.text.multibyte/server"})
+    public void shouldEncodeAnthropicResponseTextMultibyte() throws Exception
     {
         k3po.finish();
     }
