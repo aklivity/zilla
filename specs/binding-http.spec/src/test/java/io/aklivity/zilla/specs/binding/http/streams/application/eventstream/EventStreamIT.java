@@ -129,6 +129,33 @@ public class EventStreamIT
 
     @Test
     @Specification({
+        "${app}/response.sse.data.invalid.utf8.fragmented/client",
+        "${app}/response.sse.data.invalid.utf8.fragmented/server" })
+    public void shouldReceiveResponseDataInvalidUtf8Fragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/response.sse.data.invalid.utf8.truncated/client",
+        "${app}/response.sse.data.invalid.utf8.truncated/server" })
+    public void shouldReceiveResponseDataInvalidUtf8Truncated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/response.sse.data.multi.byte.fragmented/client",
+        "${app}/response.sse.data.multi.byte.fragmented/server" })
+    public void shouldReceiveResponseDataMultiByteFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/response.sse.bom.empty/client",
         "${app}/response.sse.bom.empty/server" })
     public void shouldReceiveResponseBomEmpty() throws Exception

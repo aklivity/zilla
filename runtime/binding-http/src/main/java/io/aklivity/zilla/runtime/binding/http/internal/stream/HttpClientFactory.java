@@ -6933,18 +6933,30 @@ public final class HttpClientFactory implements HttpStreamFactory
                 int endOfLineAt = indexOfEventEndOfLine(buffer, progress, limitMax);
                 int limitOfData = endOfLineAt != -1 ? endOfLineAt : limitMax;
 
-                exchange.decodedDataLines += Math.min(endOfLineAt, 0) + 1;
-                exchange.decodedData = eventDataRO.wrap(buffer, progress, limitOfData);
+                final int dataBytes = MemorySegments.utf8Bytes(buffer.segment(),
+                    buffer.wrapAdjustment() + progress, limitOfData - progress);
 
-                progress = limitOfData;
-
-                if (endOfLineAt == -1)
+                if (dataBytes < 0 || endOfLineAt != -1 && dataBytes != limitOfData - progress)
                 {
-                    exchange.doEncodeEventFragment(traceId, authorization);
+                    exchange.eventDecoder = decodeEventReject;
                 }
-                else
+                else if (dataBytes > 0 || endOfLineAt != -1)
                 {
-                    exchange.eventDecoder = decodeEventLineEnding;
+                    limitOfData = progress + dataBytes;
+
+                    exchange.decodedDataLines += Math.min(endOfLineAt, 0) + 1;
+                    exchange.decodedData = eventDataRO.wrap(buffer, progress, limitOfData);
+
+                    progress = limitOfData;
+
+                    if (endOfLineAt == -1)
+                    {
+                        exchange.doEncodeEventFragment(traceId, authorization);
+                    }
+                    else
+                    {
+                        exchange.eventDecoder = decodeEventLineEnding;
+                    }
                 }
             }
         }
