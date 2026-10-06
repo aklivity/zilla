@@ -16,13 +16,19 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.util.Arrays;
+
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionType;
+import io.aklivity.zilla.runtime.engine.util.Flags;
 
 final class LlmAnthropicResponseEncoder
 {
+    private static final int EVENT_CAPACITY = 8;
+    private static final int NO_EVENT = -1;
+
     private static final int KIND_NONE = 0;
     private static final int KIND_TEXT = 1;
     private static final int KIND_REASONING = 2;
@@ -99,7 +105,6 @@ final class LlmAnthropicResponseEncoder
     private static final byte[] QUOTE = "\"".getBytes(UTF_8);
     private static final byte[] REPLACEMENT = "\\ufffd".getBytes(UTF_8);
 
-    private final LlmEventFrames frames;
     private final boolean streaming;
     private final byte[] id;
     private final byte[] model;
@@ -107,6 +112,16 @@ final class LlmAnthropicResponseEncoder
 
     private MutableDirectBuffer out;
     private int position;
+
+    private int[] eventOffsets;
+    private int[] eventLengths;
+    private int[] eventFlags;
+    private String[] eventTypes;
+    private int eventCount;
+    private boolean eventOpen;
+    private boolean eventStarted;
+    private String eventType;
+    private int eventStart;
 
     private int kind;
     private int blocks;
@@ -124,7 +139,11 @@ final class LlmAnthropicResponseEncoder
         String id,
         String model)
     {
-        this.frames = new LlmEventFrames();
+        this.eventOffsets = new int[EVENT_CAPACITY];
+        this.eventLengths = new int[EVENT_CAPACITY];
+        this.eventFlags = new int[EVENT_CAPACITY];
+        this.eventTypes = new String[EVENT_CAPACITY];
+        this.eventStart = NO_EVENT;
         this.streaming = streaming;
         this.id = id != null ? escape(id) : null;
         this.model = model != null ? escape(model) : null;
@@ -132,9 +151,48 @@ final class LlmAnthropicResponseEncoder
         this.state = STATE_PRELUDE;
     }
 
-    LlmEventFrames frames()
+    int eventCount()
     {
-        return frames;
+        return eventCount;
+    }
+
+    int eventOffset(
+        int index)
+    {
+        return eventOffsets[index];
+    }
+
+    int eventLength(
+        int index)
+    {
+        return eventLengths[index];
+    }
+
+    int eventFlags(
+        int index)
+    {
+        return eventFlags[index];
+    }
+
+    String eventType(
+        int index)
+    {
+        return eventTypes[index];
+    }
+
+    void flushEvents(
+        int position)
+    {
+        if (eventOpen && eventStart != NO_EVENT)
+        {
+            emitEvent(position, false);
+            eventStart = NO_EVENT;
+        }
+    }
+
+    void clearEvents()
+    {
+        eventCount = 0;
     }
 
     int begin(
@@ -145,7 +203,7 @@ final class LlmAnthropicResponseEncoder
 
         if (streaming)
         {
-            frames.begin(position, EVENT_MESSAGE_START);
+            eventBegin(position, EVENT_MESSAGE_START);
             put(STREAM_MESSAGE_START);
             messageIdentity();
             put(STREAM_MESSAGE_CONTENT);
@@ -298,11 +356,11 @@ final class LlmAnthropicResponseEncoder
                     dataChunkEnd();
                 }
 
-                frames.begin(position, EVENT_BLOCK_STOP);
+                eventBegin(position, EVENT_BLOCK_STOP);
                 put(STOP_START);
                 putNumber(blocks - 1);
                 put(STOP_END);
-                frames.end(position);
+                eventEnd(position);
             }
             else
             {
@@ -357,10 +415,10 @@ final class LlmAnthropicResponseEncoder
             put(MESSAGE_DELTA_USAGE);
             putUsage(inputTokens, cacheWriteTokens, cacheReadTokens, outputTokens);
             put(OBJECT_END);
-            frames.end(position);
-            frames.begin(position, EVENT_MESSAGE_STOP);
+            eventEnd(position);
+            eventBegin(position, EVENT_MESSAGE_STOP);
             put(MESSAGE_STOP);
-            frames.end(position);
+            eventEnd(position);
         }
         else
         {
@@ -404,16 +462,16 @@ final class LlmAnthropicResponseEncoder
         {
             put(OBJECT_END);
             put(OBJECT_END);
-            frames.end(position);
+            eventEnd(position);
         }
 
-        frames.begin(position, EVENT_ERROR);
+        eventBegin(position, EVENT_ERROR);
         put(ERROR_START);
         put(escape(type != null ? type : "api_error"));
         put(ERROR_MESSAGE);
         put(escape(message != null ? message : ""));
         put(ERROR_END);
-        frames.end(position);
+        eventEnd(position);
 
         return position - offset;
     }
@@ -443,7 +501,7 @@ final class LlmAnthropicResponseEncoder
         String toolCallId,
         String toolName)
     {
-        frames.begin(position, EVENT_BLOCK_START);
+        eventBegin(position, EVENT_BLOCK_START);
         put(BLOCK_START);
         putNumber(blocks++);
 
@@ -465,7 +523,7 @@ final class LlmAnthropicResponseEncoder
             break;
         }
 
-        frames.end(position);
+        eventEnd(position);
     }
 
     private void sectionBlock(
@@ -519,7 +577,7 @@ final class LlmAnthropicResponseEncoder
 
     private void dataChunkStart()
     {
-        frames.begin(position, EVENT_BLOCK_DELTA);
+        eventBegin(position, EVENT_BLOCK_DELTA);
         put(DELTA_START);
         putNumber(blocks - 1);
 
@@ -540,7 +598,7 @@ final class LlmAnthropicResponseEncoder
     private void dataChunkEnd()
     {
         put(DELTA_END);
-        frames.end(position);
+        eventEnd(position);
     }
 
     private void putUsage(
@@ -601,13 +659,66 @@ final class LlmAnthropicResponseEncoder
         };
     }
 
+    private void eventBegin(
+        int position,
+        String type)
+    {
+        this.eventOpen = true;
+        this.eventStarted = false;
+        this.eventType = type;
+        this.eventStart = position;
+    }
+
+    private void eventEnd(
+        int position)
+    {
+        if (eventOpen)
+        {
+            emitEvent(position, true);
+            eventOpen = false;
+            eventStart = NO_EVENT;
+        }
+    }
+
+    private void emitEvent(
+        int position,
+        boolean fin)
+    {
+        final int length = position - eventStart;
+
+        if (length > 0 || fin && eventStarted)
+        {
+            if (eventCount == eventOffsets.length)
+            {
+                final int capacity = eventCount << 1;
+                eventOffsets = Arrays.copyOf(eventOffsets, capacity);
+                eventLengths = Arrays.copyOf(eventLengths, capacity);
+                eventFlags = Arrays.copyOf(eventFlags, capacity);
+                eventTypes = Arrays.copyOf(eventTypes, capacity);
+            }
+
+            final int init = eventStarted ? Flags.NONE : Flags.INIT;
+
+            eventOffsets[eventCount] = eventStart;
+            eventLengths[eventCount] = length;
+            eventFlags[eventCount] = fin ? Flags.fin(init) : init;
+            eventTypes[eventCount] = eventStarted ? null : eventType;
+            eventCount++;
+
+            eventStarted = true;
+        }
+    }
+
     private void wrap(
         MutableDirectBuffer out,
         int offset)
     {
         this.out = out;
         this.position = offset;
-        frames.wrap(offset);
+        if (eventOpen && eventStart == NO_EVENT)
+        {
+            eventStart = offset;
+        }
     }
 
     private void dataChunk(
@@ -699,7 +810,7 @@ final class LlmAnthropicResponseEncoder
 
             putStopSequenceDefault();
             put(STREAM_MESSAGE_USAGE);
-            frames.end(position);
+            eventEnd(position);
             stopSequence = false;
             stopReason = false;
         }
@@ -716,7 +827,7 @@ final class LlmAnthropicResponseEncoder
     {
         if (streaming)
         {
-            frames.begin(position, EVENT_MESSAGE_DELTA);
+            eventBegin(position, EVENT_MESSAGE_DELTA);
             put(DELTA_START_OBJECT);
         }
         else

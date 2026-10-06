@@ -2847,7 +2847,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
         private void doNetEvents(
             DirectBufferEx buffer,
-            LlmEventFrames frames,
+            LlmAnthropicResponseEncoder encoder,
             int length,
             int reserved,
             long budgetId,
@@ -2856,17 +2856,18 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         {
             if (streaming)
             {
-                frames.flush(length);
+                encoder.flushEvents(length);
 
-                final int count = frames.count();
+                final int count = encoder.eventCount();
 
                 for (int index = 0; index < count; index++)
                 {
-                    doNetData(buffer, frames.offset(index), frames.length(index), index == count - 1 ? reserved : 0,
-                        frames.flags(index), frames.type(index), budgetId, traceId, authorization);
+                    doNetData(buffer, encoder.eventOffset(index), encoder.eventLength(index),
+                        index == count - 1 ? reserved : 0, encoder.eventFlags(index), encoder.eventType(index),
+                        budgetId, traceId, authorization);
                 }
 
-                frames.clear();
+                encoder.clearEvents();
 
                 if (count == 0 && stream != null)
                 {
@@ -3357,7 +3358,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 server.streaming ? CONTENT_TYPE_EVENT_STREAM : CONTENT_TYPE_JSON);
 
             final int length = responseEncoder.begin(copyBuffer, 0);
-            server.doNetEvents(copyBuffer, responseEncoder.frames(), length, 0, 0L, traceId, authorization);
+            server.doNetEvents(copyBuffer, responseEncoder, length, 0, 0L, traceId, authorization);
 
             doAppWindow(traceId);
         }
@@ -3431,7 +3432,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
             if (length > 0)
             {
-                server.doNetEvents(copyBuffer, responseEncoder.frames(), length, reserved, budgetId, traceId, authorization);
+                server.doNetEvents(copyBuffer, responseEncoder, length, reserved, budgetId, traceId, authorization);
             }
             else
             {
@@ -3475,7 +3476,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 usage != null ? usage.reasoningTokens() : -1,
                 usage != null ? usage.totalTokens() : -1);
 
-            server.doNetEvents(copyBuffer, responseEncoder.frames(), length, 0, 0L, traceId, authorization);
+            server.doNetEvents(copyBuffer, responseEncoder, length, 0, 0L, traceId, authorization);
 
             if (server.encodeSlot != NO_SLOT)
             {
@@ -3514,7 +3515,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 final int length = responseEncoder.error(copyBuffer, 0,
                     error.type().asString(), error.param().asString(), error.message().asString());
 
-                server.doNetEvents(copyBuffer, responseEncoder.frames(), length, 0, 0L, traceId, authorization);
+                server.doNetEvents(copyBuffer, responseEncoder, length, 0, 0L, traceId, authorization);
 
                 if (server.encodeSlot != NO_SLOT)
                 {
