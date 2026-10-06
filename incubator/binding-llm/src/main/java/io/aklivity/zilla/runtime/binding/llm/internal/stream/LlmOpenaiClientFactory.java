@@ -20,6 +20,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.Set;
 import java.util.function.LongUnaryOperator;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 import org.agrona.DirectBuffer;
@@ -77,6 +79,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private static final String METHOD_POST = "POST";
     private static final String PATH_CHAT_COMPLETIONS = "/chat/completions";
     private static final String CONTENT_TYPE_JSON = "application/json";
+    private static final Pattern CONTENT_TYPE = Pattern.compile("\\s*([^;\\s]+)\\s*(?:;.*)?");
     private static final String CONTENT_TYPE_EVENT_STREAM = "text/event-stream";
     private static final String ERROR_TYPE_INVALID_REQUEST = "invalid_request_error";
     private static final String MODEL = "model";
@@ -180,6 +183,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
+    private final Matcher contentTypeMatcher;
     private final MutableDirectBufferEx convertBuffer;
     private final MutableDirectBufferEx copyBuffer;
     private final MutableDirectBufferEx transformBuffer;
@@ -201,6 +205,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     {
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.contentTypeMatcher = CONTENT_TYPE.matcher("");
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool().duplicate();
         this.decodeMax = decodePool.slotCapacity();
@@ -2048,7 +2053,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
             final String responseStatus = header(httpBeginEx, HEADER_STATUS);
             final String responseContentType = header(httpBeginEx, HEADER_CONTENT_TYPE);
-            final String mediaType = LlmContentTypes.mediaType(responseContentType);
+            final String mediaType = mediaType(responseContentType);
             final int status = responseStatus != null ? Integer.parseInt(responseStatus) : STATUS_OK;
             final boolean declared = mediaType != null && RESPONSE_CONTENT_TYPES.contains(mediaType);
             final boolean eventStream = CONTENT_TYPE_EVENT_STREAM.equals(mediaType);
@@ -2778,6 +2783,14 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 stageSlotOffset = 0;
             }
         }
+    }
+
+    private String mediaType(
+        String contentType)
+    {
+        contentTypeMatcher.reset(contentType != null ? contentType : "");
+
+        return contentTypeMatcher.matches() ? contentTypeMatcher.group(1) : null;
     }
 
     private final class LlmErrorBodyDecoder

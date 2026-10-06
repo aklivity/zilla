@@ -21,6 +21,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.function.LongUnaryOperator;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import jakarta.json.Json;
 import jakarta.json.JsonException;
@@ -88,6 +90,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private static final int STATUS_UNSUPPORTED_MEDIA_TYPE = 415;
     private static final int STATUS_INTERNAL_SERVER_ERROR = 500;
     private static final String CONTENT_TYPE_JSON = "application/json";
+    private static final Pattern CONTENT_TYPE = Pattern.compile("\\s*([^;\\s]+)\\s*(?:;.*)?");
     private static final String CONTENT_TYPE_EVENT_STREAM = "text/event-stream";
     private static final String UNAUTHORIZED_BODY = "{\"error\":{\"message\":\"Incorrect API key provided.\"," +
         "\"type\":\"invalid_request_error\",\"param\":null,\"code\":\"invalid_api_key\"}}";
@@ -160,6 +163,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
+    private final Matcher contentTypeMatcher;
     private final MutableDirectBufferEx copyBuffer;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -207,6 +211,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     {
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.contentTypeMatcher = CONTENT_TYPE.matcher("");
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool().duplicate();
         this.decodeMax = decodePool.slotCapacity();
@@ -271,7 +276,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             final LlmRequestHeaders headers = LlmRequestHeaders.of(httpBeginEx);
             final String contentType = header(headers, HEADER_CONTENT_TYPE);
 
-            if (!CONTENT_TYPE_JSON.equals(LlmContentTypes.mediaType(contentType)))
+            if (!CONTENT_TYPE_JSON.equals(mediaType(contentType)))
             {
                 newStream = new LlmOpenaiRejectHandler(network, originId, routedId, initialId,
                     Integer.toString(STATUS_UNSUPPORTED_MEDIA_TYPE),
@@ -3518,6 +3523,14 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
             initialSeq += length;
         }
+    }
+
+    private String mediaType(
+        String contentType)
+    {
+        contentTypeMatcher.reset(contentType != null ? contentType : "");
+
+        return contentTypeMatcher.matches() ? contentTypeMatcher.group(1) : null;
     }
 
     private static final class SlotChunk
