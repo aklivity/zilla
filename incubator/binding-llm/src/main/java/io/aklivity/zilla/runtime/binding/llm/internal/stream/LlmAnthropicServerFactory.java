@@ -29,7 +29,6 @@ import jakarta.json.Json;
 import jakarta.json.JsonException;
 
 import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.llm.config.LlmAuthorizationResult;
@@ -2853,41 +2852,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 traceId, authorization);
         }
 
-        private void doNetEvents(
-            DirectBufferEx buffer,
-            LlmAnthropicResponseEncoder encoder,
-            int length,
-            int reserved,
-            long budgetId,
-            long traceId,
-            long authorization)
-        {
-            if (streaming)
-            {
-                encoder.flushEvents(length);
-
-                final int count = encoder.eventCount();
-
-                for (int index = 0; index < count; index++)
-                {
-                    doNetData(buffer, encoder.eventOffset(index), encoder.eventLength(index),
-                        index == count - 1 ? reserved : 0, encoder.eventFlags(index), encoder.eventType(index),
-                        budgetId, traceId, authorization);
-                }
-
-                encoder.clearEvents();
-
-                if (count == 0 && stream != null)
-                {
-                    stream.ackReply(traceId);
-                }
-            }
-            else
-            {
-                doNetData(buffer, 0, length, reserved, Flags.COMPLETE, null, budgetId, traceId, authorization);
-            }
-        }
-
         private void doNetData(
             DirectBufferEx buffer,
             int offset,
@@ -3214,7 +3178,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
         private int state;
 
-        private LlmAnthropicResponseEncoder responseEncoder;
+        private boolean replyBegun;
         private boolean replyDialect;
         private int replyKind;
         private boolean flushed;
@@ -3223,6 +3187,12 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             LlmAnthropicServer server)
         {
             this.server = server;
+            this.carry = new byte[3];
+            this.eventOffsets = new int[EVENT_CAPACITY];
+            this.eventLengths = new int[EVENT_CAPACITY];
+            this.eventFlags = new int[EVENT_CAPACITY];
+            this.eventTypes = new String[EVENT_CAPACITY];
+            this.eventStart = NO_EVENT;
         }
 
         private long initialAvailable()
@@ -3358,15 +3328,20 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
             replyMax = (encodePool.slotCapacity() - RESPONSE_ENCODE_SLACK) / RESPONSE_ESCAPE_EXPANSION;
             replyDialect = llmBeginEx != null && NAME.equals(llmBeginEx.dialect().asString());
-            responseEncoder = new LlmAnthropicResponseEncoder(server.streaming,
-                llmBeginEx != null ? llmBeginEx.id().asString() : null,
-                llmBeginEx != null ? llmBeginEx.model().asString() : null);
+
+            final String responseId = llmBeginEx != null ? llmBeginEx.id().asString() : null;
+            final String responseModel = llmBeginEx != null ? llmBeginEx.model().asString() : null;
+
+            encodeId = responseId != null ? escape(responseId) : null;
+            encodeModel = responseModel != null ? escape(responseModel) : null;
+            replyBegun = true;
 
             server.doNetBegin(traceId, authorization, affinity, STATUS_OK,
                 server.streaming ? CONTENT_TYPE_EVENT_STREAM : CONTENT_TYPE_JSON);
 
-            final int length = responseEncoder.begin(copyBuffer, 0);
-            server.doNetEvents(copyBuffer, responseEncoder, length, 0, 0L, traceId, authorization);
+            beginEncode();
+            doEncodeBegin();
+            doEncodeFlush(0, 0L, traceId, authorization);
 
             doAppWindow(traceId);
         }
@@ -3389,7 +3364,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             final int reserved = data.reserved();
             final OctetsFW payload = data.payload();
 
-            int length = 0;
+            beginEncode();
 
             if (Flags.hasInit(flags))
             {
@@ -3400,14 +3375,14 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 switch (replyKind)
                 {
                 case LlmDataExFW.KIND_BLOCK:
-                    length += responseEncoder.blockBegin(copyBuffer, length, llmDataEx.block().block().asString(), replyDialect);
+                    doEncodeBlockBegin(llmDataEx.block().block().asString(), replyDialect);
                     break;
                 case LlmDataExFW.KIND_SECTION:
                     final LlmSectionDataExFW section = llmDataEx != null ? llmDataEx.section() : null;
 
                     replyAttributes.readFrom(section);
 
-                    length += responseEncoder.section(copyBuffer, length,
+                    doEncodeSection(
                         section != null ? section.type().get() : LlmSectionType.NONE,
                         section != null ? section.message() : -1,
                         replyAttributes.toolCallId(),
@@ -3421,26 +3396,26 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             switch (replyKind)
             {
             case LlmDataExFW.KIND_BLOCK:
-                length += responseEncoder.blockData(copyBuffer, length, payload.buffer(), payload.offset(), payload.sizeof());
+                doEncodeBlockData(payload.buffer(), payload.offset(), payload.sizeof());
                 break;
             case LlmDataExFW.KIND_SECTION:
                 if (payload.sizeof() > 0)
                 {
-                    length += responseEncoder.data(copyBuffer, length, payload.buffer(), payload.offset(), payload.sizeof());
+                    doEncodeData(payload.buffer(), payload.offset(), payload.sizeof());
                 }
 
                 if (Flags.hasFin(flags))
                 {
-                    length += responseEncoder.end(copyBuffer, length);
+                    doEncodeEnd();
                 }
                 break;
             default:
                 break;
             }
 
-            if (length > 0)
+            if (position > 0)
             {
-                server.doNetEvents(copyBuffer, responseEncoder, length, reserved, budgetId, traceId, authorization);
+                doEncodeFlush(reserved, budgetId, traceId, authorization);
             }
             else
             {
@@ -3473,9 +3448,9 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             final LlmEndExFW llmEndEx = extension.get(llmEndExRO::tryWrap);
             final LlmUsageFW usage = llmEndEx != null ? llmEndEx.usage() : null;
 
-            int length = responseEncoder.end(copyBuffer, 0);
-
-            length += responseEncoder.finish(copyBuffer, length,
+            beginEncode();
+            doEncodeEnd();
+            doEncodeFinish(
                 llmEndEx != null ? llmEndEx.finishReason().asString() : null,
                 usage != null ? usage.inputTokens() : -1,
                 usage != null ? usage.cacheWriteTokens() : -1,
@@ -3483,8 +3458,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 usage != null ? usage.outputTokens() : -1,
                 usage != null ? usage.reasoningTokens() : -1,
                 usage != null ? usage.totalTokens() : -1);
-
-            server.doNetEvents(copyBuffer, responseEncoder, length, 0, 0L, traceId, authorization);
+            doEncodeFlush(0, 0L, traceId, authorization);
 
             if (server.encodeSlot != NO_SLOT)
             {
@@ -3513,17 +3487,16 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             replySeq = abort.sequence();
             state = LlmState.closeReply(state);
 
-            final LlmAbortExFW llmAbortEx = responseEncoder != null && server.streaming
+            final LlmAbortExFW llmAbortEx = replyBegun && server.streaming
                 ? extension.get(llmAbortExRO::tryWrap)
                 : null;
             final LlmErrorFW error = llmAbortEx != null ? llmAbortEx.error() : null;
 
             if (error != null && (error.type().asString() != null || error.message().asString() != null))
             {
-                final int length = responseEncoder.error(copyBuffer, 0,
-                    error.type().asString(), error.param().asString(), error.message().asString());
-
-                server.doNetEvents(copyBuffer, responseEncoder, length, 0, 0L, traceId, authorization);
+                beginEncode();
+                doEncodeError(error.type().asString(), error.param().asString(), error.message().asString());
+                doEncodeFlush(0, 0L, traceId, authorization);
 
                 if (server.encodeSlot != NO_SLOT)
                 {
@@ -3767,6 +3740,861 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             app.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
 
             initialSeq += length;
+        }
+
+        private void beginEncode()
+        {
+            position = 0;
+
+            if (eventOpen)
+            {
+                eventStart = 0;
+            }
+        }
+
+        private void doEncodeFlush(
+            int reserved,
+            long budgetId,
+            long traceId,
+            long authorization)
+        {
+            if (server.streaming)
+            {
+                if (eventOpen && eventStart != NO_EVENT)
+                {
+                    emitEvent(position, false);
+                    eventStart = NO_EVENT;
+                }
+
+                final int count = eventCount;
+
+                for (int index = 0; index < count; index++)
+                {
+                    server.doNetData(copyBuffer, eventOffsets[index], eventLengths[index], index == count - 1 ? reserved : 0,
+                        eventFlags[index], eventTypes[index], budgetId, traceId, authorization);
+                }
+
+                eventCount = 0;
+
+                if (count == 0)
+                {
+                    ackReply(traceId);
+                }
+            }
+            else
+            {
+                server.doNetData(copyBuffer, 0, position, reserved, Flags.COMPLETE, null, budgetId, traceId, authorization);
+            }
+        }
+
+        private static final int EVENT_CAPACITY = 8;
+        private static final int NO_EVENT = -1;
+
+        private static final int KIND_NONE = 0;
+        private static final int KIND_TEXT = 1;
+        private static final int KIND_REASONING = 2;
+        private static final int KIND_TOOL_CALL = 3;
+        private static final int KIND_SKIPPED = 4;
+
+        private static final int ENVELOPE_PRELUDE = 0;
+        private static final int ENVELOPE_CONTENT = 1;
+        private static final int ENVELOPE_TAIL = 2;
+
+        private static final int NONE = -1;
+        private static final int MESSAGE_FIRST = 0;
+
+        private static final String EVENT_MESSAGE_START = "message_start";
+        private static final String EVENT_BLOCK_START = "content_block_start";
+        private static final String EVENT_BLOCK_DELTA = "content_block_delta";
+        private static final String EVENT_BLOCK_STOP = "content_block_stop";
+        private static final String EVENT_MESSAGE_DELTA = "message_delta";
+        private static final String EVENT_MESSAGE_STOP = "message_stop";
+        private static final String EVENT_ERROR = "error";
+        private static final byte[] MESSAGE_STOP = "{\"type\":\"message_stop\"}".getBytes(UTF_8);
+        private static final byte[] ERROR_START = "{\"type\":\"error\",\"error\":{\"type\":\"".getBytes(UTF_8);
+        private static final byte[] ERROR_MESSAGE = "\",\"message\":\"".getBytes(UTF_8);
+        private static final byte[] ERROR_END = "\"}}".getBytes(UTF_8);
+        private static final String BLOCK_STOP_SEQUENCE = "stop_sequence";
+        private static final String BLOCK_STOP_REASON = "stop_reason";
+        private static final byte[] OBJECT_START = "{".getBytes(UTF_8);
+        private static final byte[] OBJECT_END = "}".getBytes(UTF_8);
+        private static final byte[] MESSAGE_ID = "\"id\":\"".getBytes(UTF_8);
+        private static final byte[] MESSAGE_TYPE = "\"type\":\"message\",\"role\":\"assistant\"".getBytes(UTF_8);
+        private static final byte[] MODEL_START = "\"model\":\"".getBytes(UTF_8);
+        private static final byte[] CONTENT_START = "\"content\":[".getBytes(UTF_8);
+        private static final byte[] CONTENT_END = "]".getBytes(UTF_8);
+        private static final byte[] STREAM_MESSAGE_START = "{\"type\":\"message_start\",\"message\":{".getBytes(UTF_8);
+        private static final byte[] STREAM_MESSAGE_CONTENT = ",\"content\":[]".getBytes(UTF_8);
+        private static final byte[] STOP_REASON_NULL = ",\"stop_reason\":null".getBytes(UTF_8);
+        private static final byte[] STREAM_MESSAGE_USAGE = ",\"usage\":{\"input_tokens\":0,\"output_tokens\":0}}}"
+            .getBytes(UTF_8);
+        private static final byte[] BLOCK_START = "{\"type\":\"content_block_start\",\"index\":".getBytes(UTF_8);
+        private static final byte[] BLOCK_TEXT = ",\"content_block\":{\"type\":\"text\",\"text\":\"\"}}".getBytes(UTF_8);
+        private static final byte[] BLOCK_THINKING =
+            ",\"content_block\":{\"type\":\"thinking\",\"thinking\":\"\",\"signature\":\"\"}}".getBytes(UTF_8);
+        private static final byte[] BLOCK_TOOL_ID = ",\"content_block\":{\"type\":\"tool_use\",\"id\":\"".getBytes(UTF_8);
+        private static final byte[] BLOCK_TOOL_NAME = "\",\"name\":\"".getBytes(UTF_8);
+        private static final byte[] BLOCK_TOOL_INPUT = "\",\"input\":{}}}".getBytes(UTF_8);
+        private static final byte[] DELTA_START = "{\"type\":\"content_block_delta\",\"index\":".getBytes(UTF_8);
+        private static final byte[] DELTA_TEXT = ",\"delta\":{\"type\":\"text_delta\",\"text\":\"".getBytes(UTF_8);
+        private static final byte[] DELTA_THINKING = ",\"delta\":{\"type\":\"thinking_delta\",\"thinking\":\"".getBytes(UTF_8);
+        private static final byte[] DELTA_JSON = ",\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"".getBytes(UTF_8);
+        private static final byte[] DELTA_END = "\"}}".getBytes(UTF_8);
+        private static final byte[] STOP_START = "{\"type\":\"content_block_stop\",\"index\":".getBytes(UTF_8);
+        private static final byte[] STOP_END = "}".getBytes(UTF_8);
+        private static final byte[] STOP_REASON_FIRST = "\"stop_reason\":\"".getBytes(UTF_8);
+        private static final byte[] STOP_SEQUENCE_NULL = ",\"stop_sequence\":null".getBytes(UTF_8);
+        private static final byte[] STOP_SEQUENCE_NULL_FIRST = "\"stop_sequence\":null".getBytes(UTF_8);
+        private static final byte[] DELTA_START_OBJECT = "{\"type\":\"message_delta\",\"delta\":{".getBytes(UTF_8);
+        private static final byte[] MESSAGE_DELTA_USAGE = "},".getBytes(UTF_8);
+        private static final byte[] MEMBER_NAME_END = "\":".getBytes(UTF_8);
+        private static final byte[] STOP_REASON = ",\"stop_reason\":\"".getBytes(UTF_8);
+        private static final byte[] MEMBER_SEPARATOR = ",".getBytes(UTF_8);
+        private static final byte[] USAGE_START = "\"usage\":{\"input_tokens\":".getBytes(UTF_8);
+        private static final byte[] USAGE_CACHE_WRITE = ",\"cache_creation_input_tokens\":".getBytes(UTF_8);
+        private static final byte[] USAGE_CACHE_READ = ",\"cache_read_input_tokens\":".getBytes(UTF_8);
+        private static final byte[] USAGE_OUTPUT = ",\"output_tokens\":".getBytes(UTF_8);
+        private static final byte[] TEXT_BLOCK = "{\"type\":\"text\",\"text\":\"".getBytes(UTF_8);
+        private static final byte[] TEXT_BLOCK_END = "\"}".getBytes(UTF_8);
+        private static final byte[] THINKING_BLOCK = "{\"type\":\"thinking\",\"thinking\":\"".getBytes(UTF_8);
+        private static final byte[] THINKING_BLOCK_END = "\",\"signature\":\"\"}".getBytes(UTF_8);
+        private static final byte[] TOOL_BLOCK = "{\"type\":\"tool_use\",\"id\":\"".getBytes(UTF_8);
+        private static final byte[] TOOL_BLOCK_NAME = "\",\"name\":\"".getBytes(UTF_8);
+        private static final byte[] TOOL_BLOCK_INPUT = "\",\"input\":".getBytes(UTF_8);
+        private static final byte[] TOOL_INPUT_EMPTY = "{}".getBytes(UTF_8);
+        private static final byte[] COMMA = ",".getBytes(UTF_8);
+        private static final byte[] QUOTE = "\"".getBytes(UTF_8);
+        private static final byte[] REPLACEMENT = "\\ufffd".getBytes(UTF_8);
+
+        private final byte[] carry;
+
+        private byte[] encodeId;
+        private byte[] encodeModel;
+        private int position;
+
+        private int[] eventOffsets;
+        private int[] eventLengths;
+        private int[] eventFlags;
+        private String[] eventTypes;
+        private int eventCount;
+        private boolean eventOpen;
+        private boolean eventStarted;
+        private String eventType;
+        private int eventStart;
+
+        private int kind;
+        private int blocks;
+        private boolean inputWritten;
+        private int toolCalls;
+        private int carried;
+        private int envelope;
+        private int tailMembers;
+        private boolean stopSequenceBlock;
+        private boolean stopReasonBlock;
+        private boolean blockOpen;
+
+        private void doEncodeBegin()
+        {
+            if (server.streaming)
+            {
+                eventBegin(position, EVENT_MESSAGE_START);
+                put(STREAM_MESSAGE_START);
+                messageIdentity();
+                put(STREAM_MESSAGE_CONTENT);
+            }
+            else
+            {
+                put(OBJECT_START);
+                messageIdentity();
+            }
+        }
+
+        private void doEncodeSection(
+            LlmSectionType type,
+            int message,
+            String toolCallId,
+            String toolName)
+        {
+            kind = message == MESSAGE_FIRST && envelope != ENVELOPE_TAIL ? kindOf(type) : KIND_SKIPPED;
+
+            if (kind != KIND_SKIPPED)
+            {
+                if (envelope == ENVELOPE_PRELUDE)
+                {
+                    closePrelude();
+                }
+
+                if (server.streaming)
+                {
+                    carried = 0;
+                    sectionStream(toolCallId, toolName);
+                }
+                else
+                {
+                    sectionBlock(toolCallId, toolName);
+                }
+            }
+        }
+
+        private void doEncodeData(
+            DirectBuffer payload,
+            int payloadOffset,
+            int payloadLength)
+        {
+            if (kind != KIND_NONE && kind != KIND_SKIPPED)
+            {
+                if (server.streaming)
+                {
+                    dataChunk(payload, payloadOffset, payloadLength);
+                }
+                else if (kind == KIND_TOOL_CALL)
+                {
+                    put(payload, payloadOffset, payloadLength);
+                    inputWritten = inputWritten || payloadLength > 0;
+                }
+                else
+                {
+                    putEscaped(payload, payloadOffset, payloadLength);
+                }
+            }
+        }
+
+        private void doEncodeBlockBegin(
+            String block,
+            boolean render)
+        {
+            blockOpen = render;
+
+            if (render)
+            {
+                if (envelope == ENVELOPE_CONTENT)
+                {
+                    openTail();
+                }
+
+                if (envelope == ENVELOPE_TAIL)
+                {
+                    if (!server.streaming || tailMembers > 0)
+                    {
+                        put(MEMBER_SEPARATOR);
+                    }
+
+                    tailMembers++;
+                }
+                else
+                {
+                    put(MEMBER_SEPARATOR);
+                }
+
+                stopSequenceBlock |= BLOCK_STOP_SEQUENCE.equals(block);
+                stopReasonBlock |= BLOCK_STOP_REASON.equals(block);
+
+                put(QUOTE);
+                put(escape(block));
+                put(MEMBER_NAME_END);
+            }
+        }
+
+        private void doEncodeBlockData(
+            DirectBuffer payload,
+            int payloadOffset,
+            int payloadLength)
+        {
+            if (blockOpen)
+            {
+                put(payload, payloadOffset, payloadLength);
+            }
+        }
+
+        private void doEncodeEnd()
+        {
+            if (kind != KIND_NONE && kind != KIND_SKIPPED)
+            {
+                if (server.streaming)
+                {
+                    if (carried > 0)
+                    {
+                        carried = 0;
+                        dataChunkStart();
+                        put(REPLACEMENT);
+                        dataChunkEnd();
+                    }
+
+                    eventBegin(position, EVENT_BLOCK_STOP);
+                    put(STOP_START);
+                    putNumber(blocks - 1);
+                    put(STOP_END);
+                    eventEnd(position);
+                }
+                else
+                {
+                    sectionBlockEnd();
+                }
+            }
+
+            kind = KIND_NONE;
+        }
+
+        private void doEncodeFinish(
+            String finishReason,
+            int inputTokens,
+            int cacheWriteTokens,
+            int cacheReadTokens,
+            int outputTokens,
+            int reasoningTokens,
+            int totalTokens)
+        {
+            final byte[] reason = stopReason(finishReason);
+
+            if (envelope == ENVELOPE_PRELUDE)
+            {
+                closePrelude();
+            }
+
+            if (server.streaming)
+            {
+                if (envelope == ENVELOPE_CONTENT)
+                {
+                    openTail();
+                }
+
+                if (!stopReasonBlock)
+                {
+                    put(tailMembers++ > 0 ? STOP_REASON : STOP_REASON_FIRST);
+                    put(reason);
+                    put(QUOTE);
+                }
+
+                if (!stopSequenceBlock)
+                {
+                    put(tailMembers++ > 0 ? STOP_SEQUENCE_NULL : STOP_SEQUENCE_NULL_FIRST);
+                }
+
+                put(MESSAGE_DELTA_USAGE);
+                putUsage(inputTokens, cacheWriteTokens, cacheReadTokens, outputTokens);
+                put(OBJECT_END);
+                eventEnd(position);
+                eventBegin(position, EVENT_MESSAGE_STOP);
+                put(MESSAGE_STOP);
+                eventEnd(position);
+            }
+            else
+            {
+                if (envelope == ENVELOPE_CONTENT)
+                {
+                    put(CONTENT_END);
+                }
+
+                if (!stopReasonBlock)
+                {
+                    put(STOP_REASON);
+                    put(reason);
+                    put(QUOTE);
+                }
+
+                putStopSequenceDefault();
+                put(MEMBER_SEPARATOR);
+                putUsage(inputTokens, cacheWriteTokens, cacheReadTokens, outputTokens);
+                put(OBJECT_END);
+            }
+
+            envelope = ENVELOPE_TAIL;
+        }
+
+        private void doEncodeError(
+            String type,
+            String param,
+            String message)
+        {
+            if (server.streaming && envelope == ENVELOPE_PRELUDE)
+            {
+                closePrelude();
+            }
+            else if (server.streaming && envelope == ENVELOPE_TAIL)
+            {
+                put(OBJECT_END);
+                put(OBJECT_END);
+                eventEnd(position);
+            }
+
+            eventBegin(position, EVENT_ERROR);
+            put(ERROR_START);
+            put(escape(type != null ? type : "api_error"));
+            put(ERROR_MESSAGE);
+            put(escape(message != null ? message : ""));
+            put(ERROR_END);
+            eventEnd(position);
+        }
+
+        private void messageIdentity()
+        {
+            if (encodeId != null)
+            {
+                put(MESSAGE_ID);
+                put(encodeId);
+                put(QUOTE);
+                put(COMMA);
+            }
+
+            put(MESSAGE_TYPE);
+
+            if (encodeModel != null)
+            {
+                put(COMMA);
+                put(MODEL_START);
+                put(encodeModel);
+                put(QUOTE);
+            }
+        }
+
+        private void sectionStream(
+            String toolCallId,
+            String toolName)
+        {
+            eventBegin(position, EVENT_BLOCK_START);
+            put(BLOCK_START);
+            putNumber(blocks++);
+
+            switch (kind)
+            {
+            case KIND_TEXT:
+                put(BLOCK_TEXT);
+                break;
+            case KIND_REASONING:
+                put(BLOCK_THINKING);
+                break;
+            default:
+                toolCalls++;
+                put(BLOCK_TOOL_ID);
+                put(escape(toolCallId != null ? toolCallId : ""));
+                put(BLOCK_TOOL_NAME);
+                put(escape(toolName != null ? toolName : ""));
+                put(BLOCK_TOOL_INPUT);
+                break;
+            }
+
+            eventEnd(position);
+        }
+
+        private void sectionBlock(
+            String toolCallId,
+            String toolName)
+        {
+            if (blocks++ > 0)
+            {
+                put(COMMA);
+            }
+
+            switch (kind)
+            {
+            case KIND_TEXT:
+                put(TEXT_BLOCK);
+                break;
+            case KIND_REASONING:
+                put(THINKING_BLOCK);
+                break;
+            default:
+                toolCalls++;
+                inputWritten = false;
+                put(TOOL_BLOCK);
+                put(escape(toolCallId != null ? toolCallId : ""));
+                put(TOOL_BLOCK_NAME);
+                put(escape(toolName != null ? toolName : ""));
+                put(TOOL_BLOCK_INPUT);
+                break;
+            }
+        }
+
+        private void sectionBlockEnd()
+        {
+            switch (kind)
+            {
+            case KIND_TEXT:
+                put(TEXT_BLOCK_END);
+                break;
+            case KIND_REASONING:
+                put(THINKING_BLOCK_END);
+                break;
+            default:
+                if (!inputWritten)
+                {
+                    put(TOOL_INPUT_EMPTY);
+                }
+                put(OBJECT_END);
+                break;
+            }
+        }
+
+        private void dataChunkStart()
+        {
+            eventBegin(position, EVENT_BLOCK_DELTA);
+            put(DELTA_START);
+            putNumber(blocks - 1);
+
+            switch (kind)
+            {
+            case KIND_TEXT:
+                put(DELTA_TEXT);
+                break;
+            case KIND_REASONING:
+                put(DELTA_THINKING);
+                break;
+            default:
+                put(DELTA_JSON);
+                break;
+            }
+        }
+
+        private void dataChunkEnd()
+        {
+            put(DELTA_END);
+            eventEnd(position);
+        }
+
+        private void putUsage(
+            int inputTokens,
+            int cacheWriteTokens,
+            int cacheReadTokens,
+            int outputTokens)
+        {
+            put(USAGE_START);
+            putNumber(inputTokens != NONE ? inputTokens : 0);
+
+            if (cacheWriteTokens != NONE)
+            {
+                put(USAGE_CACHE_WRITE);
+                putNumber(cacheWriteTokens);
+            }
+
+            if (cacheReadTokens != NONE)
+            {
+                put(USAGE_CACHE_READ);
+                putNumber(cacheReadTokens);
+            }
+
+            put(USAGE_OUTPUT);
+            putNumber(outputTokens != NONE ? outputTokens : 0);
+            put(OBJECT_END);
+        }
+
+        private byte[] stopReason(
+            String finishReason)
+        {
+            String reason = toolCalls > 0 ? "tool_use" : "end_turn";
+
+            if (finishReason != null)
+            {
+                reason = switch (finishReason)
+                {
+                case "stop" -> "end_turn";
+                case "length" -> "max_tokens";
+                case "tool-call" -> "tool_use";
+                case "content-filter" -> "refusal";
+                default -> finishReason;
+                };
+            }
+
+            return escape(reason);
+        }
+
+        private static int kindOf(
+            LlmSectionType type)
+        {
+            return switch (type)
+            {
+            case ASSISTANT_TEXT, ASSISTANT_REFUSAL -> KIND_TEXT;
+            case ASSISTANT_REASONING -> KIND_REASONING;
+            case TOOL_CALL -> KIND_TOOL_CALL;
+            default -> KIND_SKIPPED;
+            };
+        }
+
+        private void eventBegin(
+            int position,
+            String type)
+        {
+            this.eventOpen = true;
+            this.eventStarted = false;
+            this.eventType = type;
+            this.eventStart = position;
+        }
+
+        private void eventEnd(
+            int position)
+        {
+            if (eventOpen)
+            {
+                emitEvent(position, true);
+                eventOpen = false;
+                eventStart = NO_EVENT;
+            }
+        }
+
+        private void emitEvent(
+            int position,
+            boolean fin)
+        {
+            final int length = position - eventStart;
+
+            if (length > 0 || fin && eventStarted)
+            {
+                if (eventCount == eventOffsets.length)
+                {
+                    final int capacity = eventCount << 1;
+                    eventOffsets = Arrays.copyOf(eventOffsets, capacity);
+                    eventLengths = Arrays.copyOf(eventLengths, capacity);
+                    eventFlags = Arrays.copyOf(eventFlags, capacity);
+                    eventTypes = Arrays.copyOf(eventTypes, capacity);
+                }
+
+                final int init = eventStarted ? Flags.NONE : Flags.INIT;
+
+                eventOffsets[eventCount] = eventStart;
+                eventLengths[eventCount] = length;
+                eventFlags[eventCount] = fin ? Flags.fin(init) : init;
+                eventTypes[eventCount] = eventStarted ? null : eventType;
+                eventCount++;
+
+                eventStarted = true;
+            }
+        }
+
+        private void dataChunk(
+            DirectBuffer payload,
+            int offset,
+            int length)
+        {
+            final int limit = offset + length;
+            final int boundary = boundary(payload, offset, limit);
+            final int complete = carried + (boundary - offset);
+
+            if (complete > 0)
+            {
+                dataChunkStart();
+                putEscaped(carry, 0, carried);
+                putEscaped(payload, offset, boundary - offset);
+                dataChunkEnd();
+            }
+
+            carried = 0;
+
+            for (int i = boundary; i < limit; i++)
+            {
+                carry[carried++] = payload.getByte(i);
+            }
+        }
+
+        private int boundary(
+            DirectBuffer payload,
+            int offset,
+            int limit)
+        {
+            int boundary = limit;
+
+            for (int back = 1; back <= 3 && limit - back >= offset && boundary == limit; back++)
+            {
+                final int value = payload.getByte(limit - back) & 0xFF;
+
+                if ((value & 0xC0) != 0x80)
+                {
+                    final int expected = value >= 0xF0 ? 4 : value >= 0xE0 ? 3 : value >= 0xC0 ? 2 : 1;
+
+                    if (expected > back)
+                    {
+                        boundary = limit - back;
+                    }
+                    else
+                    {
+                        back = 4;
+                    }
+                }
+            }
+
+            return boundary;
+        }
+
+        private void put(
+            DirectBuffer source,
+            int offset,
+            int length)
+        {
+            copyBuffer.putBytes(position, source, offset, length);
+            position += length;
+        }
+
+        private void put(
+            byte[] bytes)
+        {
+            copyBuffer.putBytes(position, bytes);
+            position += bytes.length;
+        }
+
+        private void putStopSequenceDefault()
+        {
+            if (!stopSequenceBlock)
+            {
+                put(STOP_SEQUENCE_NULL);
+            }
+        }
+
+        private void closePrelude()
+        {
+            if (server.streaming)
+            {
+                if (!stopReasonBlock)
+                {
+                    put(STOP_REASON_NULL);
+                }
+
+                putStopSequenceDefault();
+                put(STREAM_MESSAGE_USAGE);
+                eventEnd(position);
+                stopSequenceBlock = false;
+                stopReasonBlock = false;
+            }
+            else
+            {
+                put(MEMBER_SEPARATOR);
+                put(CONTENT_START);
+            }
+
+            envelope = ENVELOPE_CONTENT;
+        }
+
+        private void openTail()
+        {
+            if (server.streaming)
+            {
+                eventBegin(position, EVENT_MESSAGE_DELTA);
+                put(DELTA_START_OBJECT);
+            }
+            else
+            {
+                put(CONTENT_END);
+            }
+
+            envelope = ENVELOPE_TAIL;
+        }
+
+        private void putNumber(
+            int value)
+        {
+            position += copyBuffer.putIntAscii(position, value);
+        }
+
+        private void putEscaped(
+            byte[] source,
+            int offset,
+            int length)
+        {
+            for (int i = 0; i < length; i++)
+            {
+                putEscaped(source[offset + i]);
+            }
+        }
+
+        private void putEscaped(
+            DirectBuffer source,
+            int offset,
+            int length)
+        {
+            for (int i = 0; i < length; i++)
+            {
+                putEscaped(source.getByte(offset + i));
+            }
+        }
+
+        private void putEscaped(
+            byte value)
+        {
+            switch (value)
+            {
+            case '"':
+                putPair('"');
+                break;
+            case '\\':
+                putPair('\\');
+                break;
+            case '\n':
+                putPair('n');
+                break;
+            case '\r':
+                putPair('r');
+                break;
+            case '\t':
+                putPair('t');
+                break;
+            case '\b':
+                putPair('b');
+                break;
+            case '\f':
+                putPair('f');
+                break;
+            default:
+                if (value >= 0 && value < 0x20)
+                {
+                    copyBuffer.putByte(position++, (byte) '\\');
+                    copyBuffer.putByte(position++, (byte) 'u');
+                    copyBuffer.putByte(position++, (byte) '0');
+                    copyBuffer.putByte(position++, (byte) '0');
+                    copyBuffer.putByte(position++, (byte) Character.forDigit(value >> 4, 16));
+                    copyBuffer.putByte(position++, (byte) Character.forDigit(value & 0x0f, 16));
+                }
+                else
+                {
+                    copyBuffer.putByte(position++, value);
+                }
+                break;
+            }
+        }
+
+        private void putPair(
+            char value)
+        {
+            copyBuffer.putByte(position++, (byte) '\\');
+            copyBuffer.putByte(position++, (byte) value);
+        }
+
+        private static byte[] escape(
+            String value)
+        {
+            final StringBuilder escaped = new StringBuilder(value.length() + 8);
+
+            for (int i = 0; i < value.length(); i++)
+            {
+                final char c = value.charAt(i);
+
+                switch (c)
+                {
+                case '"':
+                    escaped.append("\\\"");
+                    break;
+                case '\\':
+                    escaped.append("\\\\");
+                    break;
+                case '\n':
+                    escaped.append("\\n");
+                    break;
+                case '\r':
+                    escaped.append("\\r");
+                    break;
+                case '\t':
+                    escaped.append("\\t");
+                    break;
+                default:
+                    if (c < 0x20)
+                    {
+                        escaped.append(String.format("\\u%04x", (int) c));
+                    }
+                    else
+                    {
+                        escaped.append(c);
+                    }
+                    break;
+                }
+            }
+
+            return escaped.toString().getBytes(UTF_8);
         }
     }
 
@@ -4033,942 +4861,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 .build();
 
             network.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
-        }
-    }
-
-    private static final class LlmAnthropicResponseEncoder
-    {
-        private static final int EVENT_CAPACITY = 8;
-        private static final int NO_EVENT = -1;
-
-        private static final int KIND_NONE = 0;
-        private static final int KIND_TEXT = 1;
-        private static final int KIND_REASONING = 2;
-        private static final int KIND_TOOL_CALL = 3;
-        private static final int KIND_SKIPPED = 4;
-
-        private static final int STATE_PRELUDE = 0;
-        private static final int STATE_CONTENT = 1;
-        private static final int STATE_TAIL = 2;
-
-        private static final int NONE = -1;
-        private static final int MESSAGE_FIRST = 0;
-
-        private static final String EVENT_MESSAGE_START = "message_start";
-        private static final String EVENT_BLOCK_START = "content_block_start";
-        private static final String EVENT_BLOCK_DELTA = "content_block_delta";
-        private static final String EVENT_BLOCK_STOP = "content_block_stop";
-        private static final String EVENT_MESSAGE_DELTA = "message_delta";
-        private static final String EVENT_MESSAGE_STOP = "message_stop";
-        private static final String EVENT_ERROR = "error";
-        private static final byte[] MESSAGE_STOP = "{\"type\":\"message_stop\"}".getBytes(UTF_8);
-        private static final byte[] ERROR_START = "{\"type\":\"error\",\"error\":{\"type\":\"".getBytes(UTF_8);
-        private static final byte[] ERROR_MESSAGE = "\",\"message\":\"".getBytes(UTF_8);
-        private static final byte[] ERROR_END = "\"}}".getBytes(UTF_8);
-        private static final String BLOCK_STOP_SEQUENCE = "stop_sequence";
-        private static final String BLOCK_STOP_REASON = "stop_reason";
-        private static final byte[] OBJECT_START = "{".getBytes(UTF_8);
-        private static final byte[] OBJECT_END = "}".getBytes(UTF_8);
-        private static final byte[] MESSAGE_ID = "\"id\":\"".getBytes(UTF_8);
-        private static final byte[] MESSAGE_TYPE = "\"type\":\"message\",\"role\":\"assistant\"".getBytes(UTF_8);
-        private static final byte[] MODEL_START = "\"model\":\"".getBytes(UTF_8);
-        private static final byte[] CONTENT_START = "\"content\":[".getBytes(UTF_8);
-        private static final byte[] CONTENT_END = "]".getBytes(UTF_8);
-        private static final byte[] STREAM_MESSAGE_START = "{\"type\":\"message_start\",\"message\":{".getBytes(UTF_8);
-        private static final byte[] STREAM_MESSAGE_CONTENT = ",\"content\":[]".getBytes(UTF_8);
-        private static final byte[] STOP_REASON_NULL = ",\"stop_reason\":null".getBytes(UTF_8);
-        private static final byte[] STREAM_MESSAGE_USAGE = ",\"usage\":{\"input_tokens\":0,\"output_tokens\":0}}}"
-            .getBytes(UTF_8);
-        private static final byte[] BLOCK_START = "{\"type\":\"content_block_start\",\"index\":".getBytes(UTF_8);
-        private static final byte[] BLOCK_TEXT = ",\"content_block\":{\"type\":\"text\",\"text\":\"\"}}".getBytes(UTF_8);
-        private static final byte[] BLOCK_THINKING =
-            ",\"content_block\":{\"type\":\"thinking\",\"thinking\":\"\",\"signature\":\"\"}}".getBytes(UTF_8);
-        private static final byte[] BLOCK_TOOL_ID = ",\"content_block\":{\"type\":\"tool_use\",\"id\":\"".getBytes(UTF_8);
-        private static final byte[] BLOCK_TOOL_NAME = "\",\"name\":\"".getBytes(UTF_8);
-        private static final byte[] BLOCK_TOOL_INPUT = "\",\"input\":{}}}".getBytes(UTF_8);
-        private static final byte[] DELTA_START = "{\"type\":\"content_block_delta\",\"index\":".getBytes(UTF_8);
-        private static final byte[] DELTA_TEXT = ",\"delta\":{\"type\":\"text_delta\",\"text\":\"".getBytes(UTF_8);
-        private static final byte[] DELTA_THINKING = ",\"delta\":{\"type\":\"thinking_delta\",\"thinking\":\"".getBytes(UTF_8);
-        private static final byte[] DELTA_JSON = ",\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"".getBytes(UTF_8);
-        private static final byte[] DELTA_END = "\"}}".getBytes(UTF_8);
-        private static final byte[] STOP_START = "{\"type\":\"content_block_stop\",\"index\":".getBytes(UTF_8);
-        private static final byte[] STOP_END = "}".getBytes(UTF_8);
-        private static final byte[] STOP_REASON_FIRST = "\"stop_reason\":\"".getBytes(UTF_8);
-        private static final byte[] STOP_SEQUENCE_NULL = ",\"stop_sequence\":null".getBytes(UTF_8);
-        private static final byte[] STOP_SEQUENCE_NULL_FIRST = "\"stop_sequence\":null".getBytes(UTF_8);
-        private static final byte[] DELTA_START_OBJECT = "{\"type\":\"message_delta\",\"delta\":{".getBytes(UTF_8);
-        private static final byte[] MESSAGE_DELTA_USAGE = "},".getBytes(UTF_8);
-        private static final byte[] MEMBER_NAME_END = "\":".getBytes(UTF_8);
-        private static final byte[] STOP_REASON = ",\"stop_reason\":\"".getBytes(UTF_8);
-        private static final byte[] MEMBER_SEPARATOR = ",".getBytes(UTF_8);
-        private static final byte[] USAGE_START = "\"usage\":{\"input_tokens\":".getBytes(UTF_8);
-        private static final byte[] USAGE_CACHE_WRITE = ",\"cache_creation_input_tokens\":".getBytes(UTF_8);
-        private static final byte[] USAGE_CACHE_READ = ",\"cache_read_input_tokens\":".getBytes(UTF_8);
-        private static final byte[] USAGE_OUTPUT = ",\"output_tokens\":".getBytes(UTF_8);
-        private static final byte[] TEXT_BLOCK = "{\"type\":\"text\",\"text\":\"".getBytes(UTF_8);
-        private static final byte[] TEXT_BLOCK_END = "\"}".getBytes(UTF_8);
-        private static final byte[] THINKING_BLOCK = "{\"type\":\"thinking\",\"thinking\":\"".getBytes(UTF_8);
-        private static final byte[] THINKING_BLOCK_END = "\",\"signature\":\"\"}".getBytes(UTF_8);
-        private static final byte[] TOOL_BLOCK = "{\"type\":\"tool_use\",\"id\":\"".getBytes(UTF_8);
-        private static final byte[] TOOL_BLOCK_NAME = "\",\"name\":\"".getBytes(UTF_8);
-        private static final byte[] TOOL_BLOCK_INPUT = "\",\"input\":".getBytes(UTF_8);
-        private static final byte[] TOOL_INPUT_EMPTY = "{}".getBytes(UTF_8);
-        private static final byte[] COMMA = ",".getBytes(UTF_8);
-        private static final byte[] QUOTE = "\"".getBytes(UTF_8);
-        private static final byte[] REPLACEMENT = "\\ufffd".getBytes(UTF_8);
-
-        private final boolean streaming;
-        private final byte[] id;
-        private final byte[] model;
-        private final byte[] carry;
-
-        private MutableDirectBuffer out;
-        private int position;
-
-        private int[] eventOffsets;
-        private int[] eventLengths;
-        private int[] eventFlags;
-        private String[] eventTypes;
-        private int eventCount;
-        private boolean eventOpen;
-        private boolean eventStarted;
-        private String eventType;
-        private int eventStart;
-
-        private int kind;
-        private int blocks;
-        private boolean inputWritten;
-        private int toolCalls;
-        private int carried;
-        private int state;
-        private int tailMembers;
-        private boolean stopSequence;
-        private boolean stopReason;
-        private boolean blockOpen;
-
-        LlmAnthropicResponseEncoder(
-            boolean streaming,
-            String id,
-            String model)
-        {
-            this.eventOffsets = new int[EVENT_CAPACITY];
-            this.eventLengths = new int[EVENT_CAPACITY];
-            this.eventFlags = new int[EVENT_CAPACITY];
-            this.eventTypes = new String[EVENT_CAPACITY];
-            this.eventStart = NO_EVENT;
-            this.streaming = streaming;
-            this.id = id != null ? escape(id) : null;
-            this.model = model != null ? escape(model) : null;
-            this.carry = new byte[3];
-            this.state = STATE_PRELUDE;
-        }
-
-        int eventCount()
-        {
-            return eventCount;
-        }
-
-        int eventOffset(
-            int index)
-        {
-            return eventOffsets[index];
-        }
-
-        int eventLength(
-            int index)
-        {
-            return eventLengths[index];
-        }
-
-        int eventFlags(
-            int index)
-        {
-            return eventFlags[index];
-        }
-
-        String eventType(
-            int index)
-        {
-            return eventTypes[index];
-        }
-
-        void flushEvents(
-            int position)
-        {
-            if (eventOpen && eventStart != NO_EVENT)
-            {
-                emitEvent(position, false);
-                eventStart = NO_EVENT;
-            }
-        }
-
-        void clearEvents()
-        {
-            eventCount = 0;
-        }
-
-        int begin(
-            MutableDirectBuffer out,
-            int offset)
-        {
-            wrap(out, offset);
-
-            if (streaming)
-            {
-                eventBegin(position, EVENT_MESSAGE_START);
-                put(STREAM_MESSAGE_START);
-                messageIdentity();
-                put(STREAM_MESSAGE_CONTENT);
-            }
-            else
-            {
-                put(OBJECT_START);
-                messageIdentity();
-            }
-
-            return position - offset;
-        }
-
-        int section(
-            MutableDirectBuffer out,
-            int offset,
-            LlmSectionType type,
-            int message,
-            String toolCallId,
-            String toolName)
-        {
-            wrap(out, offset);
-
-            kind = message == MESSAGE_FIRST && state != STATE_TAIL ? kindOf(type) : KIND_SKIPPED;
-
-            if (kind != KIND_SKIPPED)
-            {
-                if (state == STATE_PRELUDE)
-                {
-                    closePrelude();
-                }
-
-                if (streaming)
-                {
-                    carried = 0;
-                    sectionStream(toolCallId, toolName);
-                }
-                else
-                {
-                    sectionBlock(toolCallId, toolName);
-                }
-            }
-
-            return position - offset;
-        }
-
-        int data(
-            MutableDirectBuffer out,
-            int offset,
-            DirectBuffer payload,
-            int payloadOffset,
-            int payloadLength)
-        {
-            wrap(out, offset);
-
-            if (kind != KIND_NONE && kind != KIND_SKIPPED)
-            {
-                if (streaming)
-                {
-                    dataChunk(payload, payloadOffset, payloadLength);
-                }
-                else if (kind == KIND_TOOL_CALL)
-                {
-                    put(payload, payloadOffset, payloadLength);
-                    inputWritten = inputWritten || payloadLength > 0;
-                }
-                else
-                {
-                    putEscaped(payload, payloadOffset, payloadLength);
-                }
-            }
-
-            return position - offset;
-        }
-
-        int blockBegin(
-            MutableDirectBuffer out,
-            int offset,
-            String block,
-            boolean render)
-        {
-            wrap(out, offset);
-
-            blockOpen = render;
-
-            if (render)
-            {
-                if (state == STATE_CONTENT)
-                {
-                    openTail();
-                }
-
-                if (state == STATE_TAIL)
-                {
-                    if (!streaming || tailMembers > 0)
-                    {
-                        put(MEMBER_SEPARATOR);
-                    }
-
-                    tailMembers++;
-                }
-                else
-                {
-                    put(MEMBER_SEPARATOR);
-                }
-
-                stopSequence |= BLOCK_STOP_SEQUENCE.equals(block);
-                stopReason |= BLOCK_STOP_REASON.equals(block);
-
-                put(QUOTE);
-                put(escape(block));
-                put(MEMBER_NAME_END);
-            }
-
-            return position - offset;
-        }
-
-        int blockData(
-            MutableDirectBuffer out,
-            int offset,
-            DirectBuffer payload,
-            int payloadOffset,
-            int payloadLength)
-        {
-            wrap(out, offset);
-
-            if (blockOpen)
-            {
-                put(payload, payloadOffset, payloadLength);
-            }
-
-            return position - offset;
-        }
-
-        int end(
-            MutableDirectBuffer out,
-            int offset)
-        {
-            wrap(out, offset);
-
-            if (kind != KIND_NONE && kind != KIND_SKIPPED)
-            {
-                if (streaming)
-                {
-                    if (carried > 0)
-                    {
-                        carried = 0;
-                        dataChunkStart();
-                        put(REPLACEMENT);
-                        dataChunkEnd();
-                    }
-
-                    eventBegin(position, EVENT_BLOCK_STOP);
-                    put(STOP_START);
-                    putNumber(blocks - 1);
-                    put(STOP_END);
-                    eventEnd(position);
-                }
-                else
-                {
-                    sectionBlockEnd();
-                }
-            }
-
-            kind = KIND_NONE;
-
-            return position - offset;
-        }
-
-        int finish(
-            MutableDirectBuffer out,
-            int offset,
-            String finishReason,
-            int inputTokens,
-            int cacheWriteTokens,
-            int cacheReadTokens,
-            int outputTokens,
-            int reasoningTokens,
-            int totalTokens)
-        {
-            wrap(out, offset);
-
-            final byte[] reason = stopReason(finishReason);
-
-            if (state == STATE_PRELUDE)
-            {
-                closePrelude();
-            }
-
-            if (streaming)
-            {
-                if (state == STATE_CONTENT)
-                {
-                    openTail();
-                }
-
-                if (!stopReason)
-                {
-                    put(tailMembers++ > 0 ? STOP_REASON : STOP_REASON_FIRST);
-                    put(reason);
-                    put(QUOTE);
-                }
-
-                if (!stopSequence)
-                {
-                    put(tailMembers++ > 0 ? STOP_SEQUENCE_NULL : STOP_SEQUENCE_NULL_FIRST);
-                }
-
-                put(MESSAGE_DELTA_USAGE);
-                putUsage(inputTokens, cacheWriteTokens, cacheReadTokens, outputTokens);
-                put(OBJECT_END);
-                eventEnd(position);
-                eventBegin(position, EVENT_MESSAGE_STOP);
-                put(MESSAGE_STOP);
-                eventEnd(position);
-            }
-            else
-            {
-                if (state == STATE_CONTENT)
-                {
-                    put(CONTENT_END);
-                }
-
-                if (!stopReason)
-                {
-                    put(STOP_REASON);
-                    put(reason);
-                    put(QUOTE);
-                }
-
-                putStopSequenceDefault();
-                put(MEMBER_SEPARATOR);
-                putUsage(inputTokens, cacheWriteTokens, cacheReadTokens, outputTokens);
-                put(OBJECT_END);
-            }
-
-            state = STATE_TAIL;
-
-            return position - offset;
-        }
-
-        int error(
-            MutableDirectBuffer out,
-            int offset,
-            String type,
-            String param,
-            String message)
-        {
-            wrap(out, offset);
-
-            if (streaming && state == STATE_PRELUDE)
-            {
-                closePrelude();
-            }
-            else if (streaming && state == STATE_TAIL)
-            {
-                put(OBJECT_END);
-                put(OBJECT_END);
-                eventEnd(position);
-            }
-
-            eventBegin(position, EVENT_ERROR);
-            put(ERROR_START);
-            put(escape(type != null ? type : "api_error"));
-            put(ERROR_MESSAGE);
-            put(escape(message != null ? message : ""));
-            put(ERROR_END);
-            eventEnd(position);
-
-            return position - offset;
-        }
-
-        private void messageIdentity()
-        {
-            if (id != null)
-            {
-                put(MESSAGE_ID);
-                put(id);
-                put(QUOTE);
-                put(COMMA);
-            }
-
-            put(MESSAGE_TYPE);
-
-            if (model != null)
-            {
-                put(COMMA);
-                put(MODEL_START);
-                put(model);
-                put(QUOTE);
-            }
-        }
-
-        private void sectionStream(
-            String toolCallId,
-            String toolName)
-        {
-            eventBegin(position, EVENT_BLOCK_START);
-            put(BLOCK_START);
-            putNumber(blocks++);
-
-            switch (kind)
-            {
-            case KIND_TEXT:
-                put(BLOCK_TEXT);
-                break;
-            case KIND_REASONING:
-                put(BLOCK_THINKING);
-                break;
-            default:
-                toolCalls++;
-                put(BLOCK_TOOL_ID);
-                put(escape(toolCallId != null ? toolCallId : ""));
-                put(BLOCK_TOOL_NAME);
-                put(escape(toolName != null ? toolName : ""));
-                put(BLOCK_TOOL_INPUT);
-                break;
-            }
-
-            eventEnd(position);
-        }
-
-        private void sectionBlock(
-            String toolCallId,
-            String toolName)
-        {
-            if (blocks++ > 0)
-            {
-                put(COMMA);
-            }
-
-            switch (kind)
-            {
-            case KIND_TEXT:
-                put(TEXT_BLOCK);
-                break;
-            case KIND_REASONING:
-                put(THINKING_BLOCK);
-                break;
-            default:
-                toolCalls++;
-                inputWritten = false;
-                put(TOOL_BLOCK);
-                put(escape(toolCallId != null ? toolCallId : ""));
-                put(TOOL_BLOCK_NAME);
-                put(escape(toolName != null ? toolName : ""));
-                put(TOOL_BLOCK_INPUT);
-                break;
-            }
-        }
-
-        private void sectionBlockEnd()
-        {
-            switch (kind)
-            {
-            case KIND_TEXT:
-                put(TEXT_BLOCK_END);
-                break;
-            case KIND_REASONING:
-                put(THINKING_BLOCK_END);
-                break;
-            default:
-                if (!inputWritten)
-                {
-                    put(TOOL_INPUT_EMPTY);
-                }
-                put(OBJECT_END);
-                break;
-            }
-        }
-
-        private void dataChunkStart()
-        {
-            eventBegin(position, EVENT_BLOCK_DELTA);
-            put(DELTA_START);
-            putNumber(blocks - 1);
-
-            switch (kind)
-            {
-            case KIND_TEXT:
-                put(DELTA_TEXT);
-                break;
-            case KIND_REASONING:
-                put(DELTA_THINKING);
-                break;
-            default:
-                put(DELTA_JSON);
-                break;
-            }
-        }
-
-        private void dataChunkEnd()
-        {
-            put(DELTA_END);
-            eventEnd(position);
-        }
-
-        private void putUsage(
-            int inputTokens,
-            int cacheWriteTokens,
-            int cacheReadTokens,
-            int outputTokens)
-        {
-            put(USAGE_START);
-            putNumber(inputTokens != NONE ? inputTokens : 0);
-
-            if (cacheWriteTokens != NONE)
-            {
-                put(USAGE_CACHE_WRITE);
-                putNumber(cacheWriteTokens);
-            }
-
-            if (cacheReadTokens != NONE)
-            {
-                put(USAGE_CACHE_READ);
-                putNumber(cacheReadTokens);
-            }
-
-            put(USAGE_OUTPUT);
-            putNumber(outputTokens != NONE ? outputTokens : 0);
-            put(OBJECT_END);
-        }
-
-        private byte[] stopReason(
-            String finishReason)
-        {
-            String reason = toolCalls > 0 ? "tool_use" : "end_turn";
-
-            if (finishReason != null)
-            {
-                reason = switch (finishReason)
-                {
-                case "stop" -> "end_turn";
-                case "length" -> "max_tokens";
-                case "tool-call" -> "tool_use";
-                case "content-filter" -> "refusal";
-                default -> finishReason;
-                };
-            }
-
-            return escape(reason);
-        }
-
-        private static int kindOf(
-            LlmSectionType type)
-        {
-            return switch (type)
-            {
-            case ASSISTANT_TEXT, ASSISTANT_REFUSAL -> KIND_TEXT;
-            case ASSISTANT_REASONING -> KIND_REASONING;
-            case TOOL_CALL -> KIND_TOOL_CALL;
-            default -> KIND_SKIPPED;
-            };
-        }
-
-        private void eventBegin(
-            int position,
-            String type)
-        {
-            this.eventOpen = true;
-            this.eventStarted = false;
-            this.eventType = type;
-            this.eventStart = position;
-        }
-
-        private void eventEnd(
-            int position)
-        {
-            if (eventOpen)
-            {
-                emitEvent(position, true);
-                eventOpen = false;
-                eventStart = NO_EVENT;
-            }
-        }
-
-        private void emitEvent(
-            int position,
-            boolean fin)
-        {
-            final int length = position - eventStart;
-
-            if (length > 0 || fin && eventStarted)
-            {
-                if (eventCount == eventOffsets.length)
-                {
-                    final int capacity = eventCount << 1;
-                    eventOffsets = Arrays.copyOf(eventOffsets, capacity);
-                    eventLengths = Arrays.copyOf(eventLengths, capacity);
-                    eventFlags = Arrays.copyOf(eventFlags, capacity);
-                    eventTypes = Arrays.copyOf(eventTypes, capacity);
-                }
-
-                final int init = eventStarted ? Flags.NONE : Flags.INIT;
-
-                eventOffsets[eventCount] = eventStart;
-                eventLengths[eventCount] = length;
-                eventFlags[eventCount] = fin ? Flags.fin(init) : init;
-                eventTypes[eventCount] = eventStarted ? null : eventType;
-                eventCount++;
-
-                eventStarted = true;
-            }
-        }
-
-        private void wrap(
-            MutableDirectBuffer out,
-            int offset)
-        {
-            this.out = out;
-            this.position = offset;
-            if (eventOpen && eventStart == NO_EVENT)
-            {
-                eventStart = offset;
-            }
-        }
-
-        private void dataChunk(
-            DirectBuffer payload,
-            int offset,
-            int length)
-        {
-            final int limit = offset + length;
-            final int boundary = boundary(payload, offset, limit);
-            final int complete = carried + (boundary - offset);
-
-            if (complete > 0)
-            {
-                dataChunkStart();
-                putEscaped(carry, 0, carried);
-                putEscaped(payload, offset, boundary - offset);
-                dataChunkEnd();
-            }
-
-            carried = 0;
-
-            for (int i = boundary; i < limit; i++)
-            {
-                carry[carried++] = payload.getByte(i);
-            }
-        }
-
-        private int boundary(
-            DirectBuffer payload,
-            int offset,
-            int limit)
-        {
-            int boundary = limit;
-
-            for (int back = 1; back <= 3 && limit - back >= offset && boundary == limit; back++)
-            {
-                final int value = payload.getByte(limit - back) & 0xFF;
-
-                if ((value & 0xC0) != 0x80)
-                {
-                    final int expected = value >= 0xF0 ? 4 : value >= 0xE0 ? 3 : value >= 0xC0 ? 2 : 1;
-
-                    if (expected > back)
-                    {
-                        boundary = limit - back;
-                    }
-                    else
-                    {
-                        back = 4;
-                    }
-                }
-            }
-
-            return boundary;
-        }
-
-        private void put(
-            DirectBuffer source,
-            int offset,
-            int length)
-        {
-            out.putBytes(position, source, offset, length);
-            position += length;
-        }
-
-        private void put(
-            byte[] bytes)
-        {
-            out.putBytes(position, bytes);
-            position += bytes.length;
-        }
-
-        private void putStopSequenceDefault()
-        {
-            if (!stopSequence)
-            {
-                put(STOP_SEQUENCE_NULL);
-            }
-        }
-
-        private void closePrelude()
-        {
-            if (streaming)
-            {
-                if (!stopReason)
-                {
-                    put(STOP_REASON_NULL);
-                }
-
-                putStopSequenceDefault();
-                put(STREAM_MESSAGE_USAGE);
-                eventEnd(position);
-                stopSequence = false;
-                stopReason = false;
-            }
-            else
-            {
-                put(MEMBER_SEPARATOR);
-                put(CONTENT_START);
-            }
-
-            state = STATE_CONTENT;
-        }
-
-        private void openTail()
-        {
-            if (streaming)
-            {
-                eventBegin(position, EVENT_MESSAGE_DELTA);
-                put(DELTA_START_OBJECT);
-            }
-            else
-            {
-                put(CONTENT_END);
-            }
-
-            state = STATE_TAIL;
-        }
-
-        private void putNumber(
-            int value)
-        {
-            position += out.putIntAscii(position, value);
-        }
-
-        private void putEscaped(
-            byte[] source,
-            int offset,
-            int length)
-        {
-            for (int i = 0; i < length; i++)
-            {
-                putEscaped(source[offset + i]);
-            }
-        }
-
-        private void putEscaped(
-            DirectBuffer source,
-            int offset,
-            int length)
-        {
-            for (int i = 0; i < length; i++)
-            {
-                putEscaped(source.getByte(offset + i));
-            }
-        }
-
-        private void putEscaped(
-            byte value)
-        {
-            switch (value)
-            {
-            case '"':
-                putPair('"');
-                break;
-            case '\\':
-                putPair('\\');
-                break;
-            case '\n':
-                putPair('n');
-                break;
-            case '\r':
-                putPair('r');
-                break;
-            case '\t':
-                putPair('t');
-                break;
-            case '\b':
-                putPair('b');
-                break;
-            case '\f':
-                putPair('f');
-                break;
-            default:
-                if (value >= 0 && value < 0x20)
-                {
-                    out.putByte(position++, (byte) '\\');
-                    out.putByte(position++, (byte) 'u');
-                    out.putByte(position++, (byte) '0');
-                    out.putByte(position++, (byte) '0');
-                    out.putByte(position++, (byte) Character.forDigit(value >> 4, 16));
-                    out.putByte(position++, (byte) Character.forDigit(value & 0x0f, 16));
-                }
-                else
-                {
-                    out.putByte(position++, value);
-                }
-                break;
-            }
-        }
-
-        private void putPair(
-            char value)
-        {
-            out.putByte(position++, (byte) '\\');
-            out.putByte(position++, (byte) value);
-        }
-
-        private static byte[] escape(
-            String value)
-        {
-            final StringBuilder escaped = new StringBuilder(value.length() + 8);
-
-            for (int i = 0; i < value.length(); i++)
-            {
-                final char c = value.charAt(i);
-
-                switch (c)
-                {
-                case '"':
-                    escaped.append("\\\"");
-                    break;
-                case '\\':
-                    escaped.append("\\\\");
-                    break;
-                case '\n':
-                    escaped.append("\\n");
-                    break;
-                case '\r':
-                    escaped.append("\\r");
-                    break;
-                case '\t':
-                    escaped.append("\\t");
-                    break;
-                default:
-                    if (c < 0x20)
-                    {
-                        escaped.append(String.format("\\u%04x", (int) c));
-                    }
-                    else
-                    {
-                        escaped.append(c);
-                    }
-                    break;
-                }
-            }
-
-            return escaped.toString().getBytes(UTF_8);
         }
     }
 }
