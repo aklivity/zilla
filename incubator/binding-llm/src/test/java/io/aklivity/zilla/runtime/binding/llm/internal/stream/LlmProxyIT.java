@@ -147,6 +147,29 @@ public class LlmProxyIT
     @Test
     @Configuration("proxy.fallback.yaml")
     @Specification({
+        "${app}/openai.proxy.fallback/client",
+        "${app}/openai.proxy.fallback/server"})
+    @ScriptProperty("model \"gpt-s\"")
+    public void shouldSkipFallbackModelWithoutRoute() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.fallback.yaml")
+    @Specification({
+        "${app}/openai.proxy.fallback/client",
+        "${app}/openai.proxy.fallback.unavailable/server",
+        "${app}/openai.proxy.fallback.accepted/server"})
+    @ScriptProperty("model \"gpt-c\"")
+    public void shouldFallbackToExitRoutedForNextModel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.fallback.yaml")
+    @Specification({
         "${app}/openai.proxy.fallback.exhausted/client",
         "${app}/openai.proxy.fallback.exhausted/server"})
     public void shouldRejectWhenEveryFallbackModelIsRefused() throws Exception

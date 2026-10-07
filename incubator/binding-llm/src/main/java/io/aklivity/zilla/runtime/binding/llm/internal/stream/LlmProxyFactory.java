@@ -155,6 +155,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
                             routedId,
                             begin.streamId(),
                             route.id,
+                            binding,
                             dialect,
                             route.fallback)::onNetMessage;
                 }
@@ -171,14 +172,17 @@ public final class LlmProxyFactory implements LlmStreamFactory
         private final long routedId;
         private final long initialId;
         private final long replyId;
-        private final long exitId;
+        private final LlmBindingConfig binding;
         private final String dialect;
         private final List<String> fallback;
+
+        private long exitId;
 
         private LlmClient app;
 
         private byte[] beginExtension;
         private long beginAffinity;
+        private long beginAuthorization;
         private int fallbackIndex;
 
         private long replyBudgetId;
@@ -202,6 +206,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             long routedId,
             long initialId,
             long exitId,
+            LlmBindingConfig binding,
             String dialect,
             List<String> fallback)
         {
@@ -211,6 +216,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.exitId = exitId;
+            this.binding = binding;
             this.dialect = dialect;
             this.fallback = fallback;
         }
@@ -267,6 +273,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
                 this.beginExtension = new byte[extension.sizeof()];
                 extension.buffer().getBytes(extension.offset(), beginExtension);
                 this.beginAffinity = affinity;
+                this.beginAuthorization = authorization;
             }
 
             this.app = new LlmClient(this);
@@ -452,16 +459,23 @@ public final class LlmProxyFactory implements LlmStreamFactory
             long traceId,
             long authorization)
         {
-            final boolean fallingBack = !LlmState.initialClosed(state) &&
+            LlmRouteConfig route = null;
+            String model = null;
+
+            while (route == null &&
+                !LlmState.initialClosed(state) &&
                 fallback != null &&
-                fallbackIndex < fallback.size();
-
-            if (fallingBack)
+                fallbackIndex < fallback.size())
             {
-                final String model = fallback.get(fallbackIndex++);
+                model = fallback.get(fallbackIndex++);
+                route = binding.resolve(beginAuthorization, dialect, model);
+            }
 
+            if (route != null)
+            {
                 doNetModelChallenge(traceId, authorization, model);
 
+                this.exitId = route.id;
                 this.app = new LlmClient(this);
                 app.doAppBegin(traceId, authorization, beginAffinity, fallbackBeginEx(model));
 
@@ -471,7 +485,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
                 }
             }
 
-            return fallingBack;
+            return route != null;
         }
 
         private OctetsFW fallbackBeginEx(
