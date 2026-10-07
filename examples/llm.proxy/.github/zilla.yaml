@@ -103,6 +103,8 @@ bindings:
       - when:
           - model: [ "claude-*" ]
         exit: south_llm_client_anthropic
+        with:
+          fallback: [ claude-3-5-haiku-20241022 ]
       - when:
           - model: [ "gpt-*" ]
         exit: south_llm_client_openai
