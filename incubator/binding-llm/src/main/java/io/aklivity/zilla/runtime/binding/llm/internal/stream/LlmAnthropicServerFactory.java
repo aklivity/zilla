@@ -83,6 +83,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private static final String HEADER_CONTENT_TYPE = "content-type";
     private static final String HEADER_API_KEY = "x-api-key";
     private static final String HEADER_ANTHROPIC_VERSION = "anthropic-version";
+    private static final String HEADER_ANTHROPIC_BETA = "anthropic-beta";
     private static final String ANTHROPIC_VERSION = "2023-06-01";
     private static final String HEADER_AUTHORIZATION = "authorization";
     private static final String METHOD_POST = "POST";
@@ -287,6 +288,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             final LlmRequestHeaders headers = LlmRequestHeaders.of(httpBeginEx);
             final String contentType = header(headers, HEADER_CONTENT_TYPE);
             final String version = header(headers, HEADER_ANTHROPIC_VERSION);
+            final String beta = header(headers, HEADER_ANTHROPIC_BETA);
 
             if (!CONTENT_TYPE_JSON.equals(mediaType(contentType)))
             {
@@ -322,6 +324,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                             route.id,
                             authResult.authorization(),
                             contentType,
+                            beta,
                             authResult.deauthorize())::onNetMessage;
                 }
             }
@@ -1868,6 +1871,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private final long exitId;
         private final long initialAuthorization;
         private final String contentType;
+        private final String beta;
         private final Runnable deauthorize;
         private final JsonParserEx parser;
         private final Deque<SlotChunk> encodeChunks;
@@ -1975,6 +1979,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             long exitId,
             long authorization,
             String contentType,
+            String beta,
             Runnable deauthorize)
         {
             this.network = network;
@@ -1985,6 +1990,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             this.exitId = exitId;
             this.initialAuthorization = authorization;
             this.contentType = contentType;
+            this.beta = beta;
             this.deauthorize = deauthorize;
             this.parser = JsonEx.createParser();
             this.probe = new LlmAnthropicAttributeProbe();
@@ -3280,6 +3286,12 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
             builder.model(model);
 
+            if (server.beta != null)
+            {
+                final byte[] beta = server.beta.getBytes(UTF_8);
+                builder.extension(e -> e.set(beta));
+            }
+
             final LlmBeginExFW llmBeginEx = builder.build();
 
             final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
@@ -3749,7 +3761,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                         if (extension != null)
                         {
                             final byte[] bytes = extension.getBytes(UTF_8);
-                            x.extensionLength(bytes.length).extension(e -> e.set(bytes));
+                            x.extension(e -> e.set(bytes));
                         }
                     });
                 }

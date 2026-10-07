@@ -2096,4 +2096,13 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.beta/client",
+        "${app}/anthropic.request.beta/server"})
+    public void shouldForwardAnthropicRequestBeta() throws Exception
+    {
+        k3po.finish();
+    }
 }

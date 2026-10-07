@@ -1115,4 +1115,14 @@ public class LlmAnthropicClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.beta/client",
+        "${net}/anthropic.request.beta/server"})
+    public void shouldEncodeAnthropicBetaFromBeginExtension() throws Exception
+    {
+        k3po.finish();
+    }
 }

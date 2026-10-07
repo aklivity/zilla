@@ -22,8 +22,7 @@ scope llm
             string16 contentType = null;
             string16 model = null;
             string16 id = null;
-            varint32 extensionLength;
-            octets[extensionLength] extension = null;
+            octets extension;
         }
 
         struct LlmAttribute
@@ -62,9 +61,8 @@ scope llm
             LlmSectionType type = NONE;
             int32 message = -1;
             LlmAttribute[] attributes;
-            varint32 extensionLength;
-            octets[extensionLength] extension = null;
             LlmFollow follow = NONE;
+            octets extension;
         }
 
         enum LlmBlockOwner (uint8)

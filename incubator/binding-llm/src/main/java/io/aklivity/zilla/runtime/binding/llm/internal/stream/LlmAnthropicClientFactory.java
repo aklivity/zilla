@@ -86,6 +86,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final String HEADER_CONTENT_TYPE = "content-type";
     private static final String HEADER_API_KEY = "x-api-key";
     private static final String HEADER_ANTHROPIC_VERSION = "anthropic-version";
+    private static final String HEADER_ANTHROPIC_BETA = "anthropic-beta";
     private static final String ANTHROPIC_VERSION = "2023-06-01";
     private static final String METHOD_POST = "POST";
     private static final String PATH_MESSAGES = "/messages";
@@ -316,7 +317,10 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 affinity,
                 binding,
                 llmBeginEx.model().asString(),
-                llmBeginEx.dialect().asString())::onAppMessage;
+                llmBeginEx.dialect().asString(),
+                llmBeginEx.extension().sizeof() > 0
+                    ? llmBeginEx.extension().get((b, o, l) -> b.getStringWithoutLengthUtf8(o, l - o))
+                    : null)::onAppMessage;
         }
 
         return newStream;
@@ -486,6 +490,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private final LlmBindingConfig binding;
         private final String model;
         private final String dialect;
+        private final String beta;
         private final LlmAnthropicHttpStream http;
         private final JsonParserEx parser;
         private final StringBuilder captureValue;
@@ -621,7 +626,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             long affinity,
             LlmBindingConfig binding,
             String model,
-            String dialect)
+            String dialect,
+            String beta)
         {
             this.app = app;
             this.originId = originId;
@@ -634,6 +640,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             this.binding = binding;
             this.model = model;
             this.dialect = dialect;
+            this.beta = beta;
             this.http = new LlmAnthropicHttpStream(this);
             this.parser = JsonEx.createParser();
             this.captureValue = new StringBuilder();
@@ -3306,6 +3313,11 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 .headersItem(h -> h.name(HEADER_PATH).value(requestPath))
                 .headersItem(h -> h.name(HEADER_ANTHROPIC_VERSION).value(ANTHROPIC_VERSION))
                 .headersItem(h -> h.name(HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON));
+
+            if (stream.beta != null)
+            {
+                httpBeginExBuilder.headersItem(h -> h.name(HEADER_ANTHROPIC_BETA).value(stream.beta));
+            }
 
             if (credentials != null)
             {

@@ -183,7 +183,7 @@ public final class LlmFunctions
             String extension)
         {
             final byte[] bytes = extension.getBytes(StandardCharsets.UTF_8);
-            beginExRW.extensionLength(bytes.length).extension(e -> e.set(bytes));
+            beginExRW.extension(e -> e.set(bytes));
             return this;
         }
 
@@ -272,7 +272,7 @@ public final class LlmFunctions
             }
 
             bufferRO.wrap(byteBuf);
-            final LlmBeginExFW beginEx = beginExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+            final LlmBeginExFW beginEx = beginExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.limit());
 
             if (beginEx != null &&
                 matchTypeId(beginEx) &&
@@ -404,15 +404,15 @@ public final class LlmFunctions
 
                 attributes.forEach((name, value) -> s.attributesItem(a -> a.name(name).value(value)));
 
-                if (extension != null)
-                {
-                    final byte[] bytes = extension.getBytes(StandardCharsets.UTF_8);
-                    s.extensionLength(bytes.length).extension(e -> e.set(bytes));
-                }
-
                 if (follow != null)
                 {
                     s.follow(f -> f.set(follow));
+                }
+
+                if (extension != null)
+                {
+                    final byte[] bytes = extension.getBytes(StandardCharsets.UTF_8);
+                    s.extension(e -> e.set(bytes));
                 }
             });
 
@@ -670,7 +670,7 @@ public final class LlmFunctions
             }
 
             bufferRO.wrap(byteBuf);
-            final LlmDataExFW dataEx = dataExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+            final LlmDataExFW dataEx = dataExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.limit());
 
             if (dataEx != null &&
                 dataEx.kind() == LlmDataExFW.KIND_SECTION &&
@@ -767,7 +767,7 @@ public final class LlmFunctions
             }
 
             bufferRO.wrap(byteBuf);
-            final LlmDataExFW dataEx = dataExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+            final LlmDataExFW dataEx = dataExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.limit());
 
             if (dataEx != null &&
                 dataEx.kind() == LlmDataExFW.KIND_BLOCK &&
@@ -857,7 +857,7 @@ public final class LlmFunctions
             }
 
             bufferRO.wrap(byteBuf);
-            final LlmDataExFW dataEx = dataExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+            final LlmDataExFW dataEx = dataExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.limit());
 
             if (dataEx != null &&
                 dataEx.kind() == LlmDataExFW.KIND_BEFORE &&
@@ -930,7 +930,7 @@ public final class LlmFunctions
             }
 
             bufferRO.wrap(byteBuf);
-            final LlmDataExFW dataEx = dataExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+            final LlmDataExFW dataEx = dataExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.limit());
 
             if (dataEx != null &&
                 dataEx.kind() == LlmDataExFW.KIND_AFTER &&
@@ -1747,7 +1747,7 @@ public final class LlmFunctions
     private static String asString(
         OctetsFW octets)
     {
-        return octets != null
+        return octets != null && octets.sizeof() > 0
             ? octets.get((buffer, offset, limit) -> buffer.getStringWithoutLengthUtf8(offset, limit - offset))
             : null;
     }

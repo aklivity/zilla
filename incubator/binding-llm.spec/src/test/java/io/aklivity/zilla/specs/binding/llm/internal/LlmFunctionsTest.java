@@ -127,7 +127,7 @@ public class LlmFunctionsTest
         assertEquals(LlmSectionType.USER_TEXT, dataEx.type().get());
         assertEquals(2, dataEx.message());
         assertEquals(Map.of("media-type", "image/png", "source", "url"), attributesOf(dataEx));
-        assertEquals(3, dataEx.extensionLength());
+        assertEquals(3, dataEx.extension().sizeof());
     }
 
     @Test
@@ -143,7 +143,7 @@ public class LlmFunctionsTest
         LlmSectionDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length).section();
         assertEquals(Map.of("tool-call-id", "call_1"), attributesOf(dataEx));
         assertEquals("ext", dataEx.extension().buffer()
-            .getStringWithoutLengthUtf8(dataEx.extension().offset(), dataEx.extensionLength()));
+            .getStringWithoutLengthUtf8(dataEx.extension().offset(), dataEx.extension().sizeof()));
     }
 
     @Test
@@ -158,7 +158,7 @@ public class LlmFunctionsTest
 
         LlmSectionDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length).section();
         assertEquals(Map.of("tool-call-id", "call_1"), attributesOf(dataEx));
-        assertEquals(3, dataEx.extensionLength());
+        assertEquals(3, dataEx.extension().sizeof());
     }
 
     @Test
@@ -221,11 +221,12 @@ public class LlmFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
 
-        new LlmDataExFW.Builder()
+        final LlmDataExFW dataEx = new LlmDataExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .section(s -> s.message(-1))
             .build();
+        byteBuf.limit(dataEx.limit());
 
         assertNotNull(matcher.match(byteBuf));
     }
@@ -373,7 +374,7 @@ public class LlmFunctionsTest
         LlmSectionDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length).section();
         assertEquals(-1, dataEx.message());
         assertEquals(Map.of(), attributesOf(dataEx));
-        assertNull(dataEx.extension());
+        assertEquals(0, dataEx.extension().sizeof());
     }
 
     @Test

@@ -2663,4 +2663,13 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.beta/client",
+        "${net}/anthropic.request.beta/server"})
+    public void shouldForwardAnthropicRequestBeta() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -1040,4 +1040,14 @@ public class LlmAnthropicServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.request.beta/client",
+        "${app}/anthropic.request.beta/server"})
+    public void shouldCarryAnthropicBetaOnBeginExtension() throws Exception
+    {
+        k3po.finish();
+    }
 }
