@@ -925,16 +925,6 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @Specification({
-        "${net}/openai.request.options/client",
-        "${app}/openai.request.options.cross.dialect/server"})
-    public void shouldDropOpenaiRequestOptionsCrossDialect() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
     @ScriptProperty({"source \"openai\""})
     @Specification({
         "${net}/openai.transform.user.text/client",
@@ -973,6 +963,17 @@ public class LlmOpenaiServerIT
         "${net}/openai.transform.tool.result.blocks/client",
         "${app}/transform.tool.result.blocks/server"})
     public void shouldTransformToolResultBlocksFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai\""})
+    @Specification({
+        "${net}/openai.transform.request.options/client",
+        "${app}/transform.request.options/server"})
+    public void shouldTransformRequestOptionsFromOpenai() throws Exception
     {
         k3po.finish();
     }

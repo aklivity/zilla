@@ -1049,16 +1049,6 @@ public class LlmOpenaiClientIT
 
     @Test
     @Configuration("client.openai.yaml")
-    @Specification({
-        "${app}/openai.response.decode.options.cross.dialect/client",
-        "${net}/openai.response.decode.options/server"})
-    public void shouldDropOpenaiResponseOptionsCrossDialect() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
         "${app}/transform.user.text/client",
@@ -1130,6 +1120,17 @@ public class LlmOpenaiClientIT
         "${app}/transform.tool.result.error/client",
         "${net}/openai.transform.tool.result.error/server"})
     public void shouldTransformToolResultErrorAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
+        "${app}/transform.response.options/client",
+        "${net}/openai.transform.response.options/server"})
+    public void shouldTransformResponseOptionsAsOpenai() throws Exception
     {
         k3po.finish();
     }

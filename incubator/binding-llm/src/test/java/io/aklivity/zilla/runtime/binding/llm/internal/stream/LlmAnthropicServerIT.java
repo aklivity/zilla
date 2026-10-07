@@ -1054,16 +1054,6 @@ public class LlmAnthropicServerIT
 
     @Test
     @Configuration("server.yaml")
-    @Specification({
-        "${net}/anthropic.request.options/client",
-        "${app}/anthropic.request.options.cross.dialect/server"})
-    public void shouldDropAnthropicRequestOptionsCrossDialect() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
     @ScriptProperty({"source \"anthropic\""})
     @Specification({
         "${net}/anthropic.transform.user.text/client",
@@ -1102,6 +1092,17 @@ public class LlmAnthropicServerIT
         "${net}/anthropic.transform.tool.result/client",
         "${app}/transform.tool.result/server"})
     public void shouldTransformToolResultFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
+        "${net}/anthropic.transform.request.options/client",
+        "${app}/transform.request.options/server"})
+    public void shouldTransformRequestOptionsFromAnthropic() throws Exception
     {
         k3po.finish();
     }

@@ -13,7 +13,9 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property dialect "openai"
+property source "source"
+property target "target"
+property model "model"
 
 connect "zilla://streams/app0"
         option zilla:window 8192
@@ -21,15 +23,15 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("anthropic")
-                           .model("claude-3-opus-20240229")
+                           .dialect(source)
+                           .model(model)
                            .build()}
 
 connected
 
 write advised zilla:challenge ${llm:matchChallengeEx()
                                     .typeId(zilla:id("llm"))
-                                    .dialect(dialect)
+                                    .dialect(target)
                                     .build()}
 
 write zilla:data.ext ${llm:dataEx()
@@ -44,9 +46,9 @@ write advise zilla:flush
 
 read zilla:reset.ext ${llm:matchResetEx()
                            .typeId(zilla:id("llm"))
-                           .status(429)
-                           .type("rate_limit_error")
-                           .message("Rate limit exceeded")
+                           .status(400)
+                           .type("invalid_request_error")
+                           .message("Invalid request")
                            .build()}
 
 write aborted

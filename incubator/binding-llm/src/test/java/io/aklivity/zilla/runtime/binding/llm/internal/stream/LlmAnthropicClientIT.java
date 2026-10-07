@@ -1090,16 +1090,6 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/anthropic.response.decode.options.cross.dialect/client",
-        "${net}/anthropic.response.decode.options/server"})
-    public void shouldDropAnthropicResponseOptionsCrossDialect() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
         "${app}/anthropic.transform.openai.rejected.user.audio/client",
         "${net}/anthropic.transform.openai.rejected.user.audio/server"})
     public void shouldRejectOpenaiSectionUserAudioAsAnthropicNamingSectionAndDialects() throws Exception
@@ -1158,6 +1148,17 @@ public class LlmAnthropicClientIT
         "${app}/transform.assistant.refusal/client",
         "${net}/anthropic.transform.assistant.refusal/server"})
     public void shouldTransformAssistantRefusalAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"target \"anthropic\""})
+    @Specification({
+        "${app}/transform.response.options/client",
+        "${net}/anthropic.transform.response.options/server"})
+    public void shouldTransformResponseOptionsAsAnthropic() throws Exception
     {
         k3po.finish();
     }

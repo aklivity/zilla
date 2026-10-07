@@ -29,7 +29,9 @@
 # The end carries the usage and the finish reason (stop, length, tool-call or content-filter).
 # A failure before the begin is a reset; a failure after it is an abort. Both carry the error.
 
-property dialect "anthropic"
+property source "source"
+property target "target"
+property model "model"
 
 connect "zilla://streams/app0"
         option zilla:window 8192
@@ -37,15 +39,15 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect(dialect)
-                           .model("gpt-4")
+                           .dialect(source)
+                           .model(model)
                            .build()}
 
 connected
 
 write advised zilla:challenge ${llm:matchChallengeEx()
                                     .typeId(zilla:id("llm"))
-                                    .dialect("openai")
+                                    .dialect(target)
                                     .build()}
 
 write zilla:data.ext ${llm:dataEx()
@@ -60,9 +62,9 @@ write advise zilla:flush
 
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
-                           .model("gpt-4")
-                           .id("chatcmpl_2")
+                           .dialect(target)
+                           .model(model)
+                           .id("id_1")
                            .build()}
 
 read zilla:data.ext ${llm:matchDataEx()
@@ -76,7 +78,6 @@ read zilla:end.ext ${llm:matchEndEx()
                             .typeId(zilla:id("llm"))
                             .inputTokens(25)
                             .outputTokens(15)
-                            .totalTokens(40)
                             .finishReason("stop")
                             .build()}
 

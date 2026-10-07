@@ -13,7 +13,9 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property dialect "anthropic"
+property source "source"
+property target "target"
+property model "model"
 
 accept "zilla://streams/app0"
        option zilla:window 0
@@ -23,15 +25,15 @@ accepted
 
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
-                           .model("gpt-4")
+                           .dialect(source)
+                           .model(model)
                            .build()}
 
 connected
 
 read advise zilla:challenge ${llm:challengeEx()
                                 .typeId(zilla:id("llm"))
-                                .dialect(dialect)
+                                .dialect(target)
                                 .build()}
 
 read option zilla:window 8192
@@ -47,9 +49,9 @@ read advised zilla:flush
 
 write zilla:reset.ext ${llm:resetEx()
                             .typeId(zilla:id("llm"))
-                            .status(429)
-                            .type("requests")
-                            .message("Rate limit reached for gpt-4")
+                            .status(400)
+                            .type("invalid_request_error")
+                            .message("Invalid request")
                             .build()}
 
 read abort

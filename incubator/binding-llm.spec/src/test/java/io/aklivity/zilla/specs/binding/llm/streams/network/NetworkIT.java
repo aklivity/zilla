@@ -2681,4 +2681,40 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.request.options/client",
+        "${net}/openai.transform.request.options/server"})
+    public void shouldOpenaiTransformRequestOptions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.options/client",
+        "${net}/openai.transform.response.options/server"})
+    public void shouldOpenaiTransformResponseOptions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.request.options/client",
+        "${net}/anthropic.transform.request.options/server"})
+    public void shouldAnthropicTransformRequestOptions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.options/client",
+        "${net}/anthropic.transform.response.options/server"})
+    public void shouldAnthropicTransformResponseOptions() throws Exception
+    {
+        k3po.finish();
+    }
 }
