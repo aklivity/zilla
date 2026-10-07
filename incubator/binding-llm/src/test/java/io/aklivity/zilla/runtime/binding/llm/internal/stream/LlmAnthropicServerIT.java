@@ -109,6 +109,16 @@ public class LlmAnthropicServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/anthropic.rejected.section/client",
+        "${app}/anthropic.rejected.section/server"})
+    public void shouldRejectAnthropicRequestSection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/anthropic.request.unsupported.content.type/client"})
     public void shouldRejectAnthropicRequestWithUnsupportedContentType() throws Exception
     {

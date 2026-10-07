@@ -128,6 +128,16 @@ public class LlmOpenaiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.rejected.section/client",
+        "${app}/openai.rejected.section/server"})
+    public void shouldRejectOpenaiRequestSection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.section.system.instruction/client",
         "${app}/openai.section.system.instruction/server"})
     public void shouldDecodeOpenaiSectionSystemInstruction() throws Exception

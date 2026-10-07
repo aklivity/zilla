@@ -37,7 +37,7 @@ read zilla:reset.ext ${llm:matchResetEx()
                            .typeId(zilla:id("llm"))
                            .status(400)
                            .type("invalid_request_error")
-                           .param("messages[3]")
+                           .param("tool-result[3]")
                            .message("tool-result rejected")
                            .build()}
 

@@ -308,6 +308,24 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.rejected.section/client",
+        "${net}/openai.rejected.section/server"})
+    public void shouldRejectOpenaiSection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.rejected.section/client",
+        "${net}/anthropic.rejected.section/server"})
+    public void shouldRejectAnthropicSection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.rejected.bad.gateway/client",
         "${net}/openai.rejected.bad.gateway/server"})
     public void shouldRejectOpenaiBadGateway() throws Exception
