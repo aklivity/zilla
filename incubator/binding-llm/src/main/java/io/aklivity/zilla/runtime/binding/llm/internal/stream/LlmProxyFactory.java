@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.List;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.collections.Long2ObjectHashMap;
@@ -33,10 +34,12 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBeginExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmChallengeExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -45,6 +48,10 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 // hop that produced this stream's own begin extension -- unlike llm(server)/llm(client), this never
 // decodes or re-encodes request/response content: DATA/FLUSH/END/ABORT/RESET/WINDOW/CHALLENGE relay
 // verbatim between the resolved exit and the accepted network stream once the route is picked.
+//
+// A route with a fallback list is resolved when the stream begins and locks as soon as the exit grants
+// credit or challenges: until then, an exit that resets the stream is retried with the next fallback
+// model, and the network stream is challenged with that model so the request carries it.
 public final class LlmProxyFactory implements LlmStreamFactory
 {
     private final BeginFW beginRO = new BeginFW();
@@ -56,6 +63,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
     private final WindowFW windowRO = new WindowFW();
     private final ChallengeFW challengeRO = new ChallengeFW();
     private final LlmBeginExFW llmBeginExRO = new LlmBeginExFW();
+    private final OctetsFW fallbackOctetsRO = new OctetsFW();
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -65,8 +73,11 @@ public final class LlmProxyFactory implements LlmStreamFactory
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
+    private final LlmBeginExFW.Builder llmBeginExRW = new LlmBeginExFW.Builder();
+    private final LlmChallengeExFW.Builder llmChallengeExRW = new LlmChallengeExFW.Builder();
 
     private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx extBuffer;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final BindingHandler streamFactory;
@@ -79,6 +90,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
         EngineContext context)
     {
         this.writeBuffer = requireNonNull(context.writeBuffer());
+        this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();
@@ -142,7 +154,9 @@ public final class LlmProxyFactory implements LlmStreamFactory
                             begin.originId(),
                             routedId,
                             begin.streamId(),
-                            route.id)::onNetMessage;
+                            route.id,
+                            dialect,
+                            route.fallback)::onNetMessage;
                 }
             }
         }
@@ -158,8 +172,23 @@ public final class LlmProxyFactory implements LlmStreamFactory
         private final long initialId;
         private final long replyId;
         private final long exitId;
+        private final String dialect;
+        private final List<String> fallback;
 
         private LlmClient app;
+
+        private byte[] beginExtension;
+        private long beginAffinity;
+        private int fallbackIndex;
+        private String challengeModel;
+        private boolean committed;
+
+        private long replyWindowTraceId;
+        private long replyWindowAuthorization;
+        private long replyBudgetId;
+        private int replyPadding;
+        private int replyMinimum;
+        private int replyCapabilities;
 
         private long initialSeq;
         private long initialAck;
@@ -176,7 +205,9 @@ public final class LlmProxyFactory implements LlmStreamFactory
             long originId,
             long routedId,
             long initialId,
-            long exitId)
+            long exitId,
+            String dialect,
+            List<String> fallback)
         {
             this.network = network;
             this.originId = originId;
@@ -184,6 +215,8 @@ public final class LlmProxyFactory implements LlmStreamFactory
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.exitId = exitId;
+            this.dialect = dialect;
+            this.fallback = fallback;
         }
 
         private void onNetMessage(
@@ -231,6 +264,14 @@ public final class LlmProxyFactory implements LlmStreamFactory
             this.initialSeq = begin.sequence();
             this.initialAck = begin.acknowledge();
             this.state = LlmState.openingInitial(state);
+
+            if (fallback != null)
+            {
+                final OctetsFW extension = begin.extension();
+                this.beginExtension = new byte[extension.sizeof()];
+                extension.buffer().getBytes(extension.offset(), beginExtension);
+                this.beginAffinity = affinity;
+            }
 
             this.app = new LlmClient(this);
             app.doAppBegin(traceId, authorization, affinity, begin.extension());
@@ -294,10 +335,23 @@ public final class LlmProxyFactory implements LlmStreamFactory
             this.replyMax = window.maximum();
             this.state = LlmState.openReply(state);
 
+            this.replyWindowTraceId = traceId;
+            this.replyWindowAuthorization = authorization;
+            this.replyBudgetId = budgetId;
+            this.replyPadding = padding;
+            this.replyMinimum = minimum;
+            this.replyCapabilities = capabilities;
+
+            doAppReplyWindow();
+        }
+
+        private void doAppReplyWindow()
+        {
             final int replyWin = replyMax - (int)(replySeq - replyAck);
             if (replyWin > 0)
             {
-                app.doAppWindow(traceId, authorization, budgetId, minimum, capabilities, replyWin, padding, replyMax);
+                app.doAppWindow(replyWindowTraceId, replyWindowAuthorization, replyBudgetId, replyMinimum,
+                    replyCapabilities, replyWin, replyPadding, replyMax);
             }
         }
 
@@ -391,10 +445,107 @@ public final class LlmProxyFactory implements LlmStreamFactory
             {
                 this.initialAck = newInitialAck;
                 this.initialMax = minInitialMax;
+                this.state = LlmState.openInitial(state);
 
                 doWindow(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, budgetId, minInitialPad, minimum, capabilities);
             }
+        }
+
+        private void onAppEstablished(
+            long traceId,
+            long authorization,
+            boolean credited)
+        {
+            if (challengeModel != null)
+            {
+                doNetModelChallenge(traceId, authorization);
+                this.challengeModel = null;
+            }
+
+            this.committed |= credited;
+        }
+
+        private boolean doFallback(
+            LlmClient refused,
+            long traceId,
+            long authorization)
+        {
+            final boolean fallingBack = refused == app &&
+                !committed &&
+                !LlmState.initialClosed(state) &&
+                fallback != null &&
+                fallbackIndex < fallback.size();
+
+            if (fallingBack)
+            {
+                final String model = fallback.get(fallbackIndex++);
+
+                this.challengeModel = model;
+                this.app = new LlmClient(this);
+                app.doAppBegin(traceId, authorization, beginAffinity, fallbackBeginEx(model));
+
+                if (LlmState.replyOpened(state))
+                {
+                    doAppReplyWindow();
+                }
+            }
+
+            return fallingBack;
+        }
+
+        private OctetsFW fallbackBeginEx(
+            String model)
+        {
+            final UnsafeBufferEx buffer = new UnsafeBufferEx(beginExtension);
+            final LlmBeginExFW original = llmBeginExRO.wrap(buffer, 0, buffer.capacity());
+
+            final LlmBeginExFW.Builder builder = llmBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(original.typeId())
+                .dialect(original.dialect().asString());
+
+            final String contentType = original.contentType().asString();
+            if (contentType != null)
+            {
+                builder.contentType(contentType);
+            }
+
+            builder.model(model);
+
+            final String id = original.id().asString();
+            if (id != null)
+            {
+                builder.id(id);
+            }
+
+            final OctetsFW extension = original.extension();
+            final LlmBeginExFW llmBeginEx = builder
+                .extension(extension.buffer(), extension.offset(), extension.sizeof())
+                .build();
+
+            return fallbackOctetsRO.wrap(llmBeginEx.buffer(), llmBeginEx.offset(), llmBeginEx.limit());
+        }
+
+        private void doNetModelChallenge(
+            long traceId,
+            long authorization)
+        {
+            if (!LlmState.initialOpened(state))
+            {
+                this.state = LlmState.openInitial(state);
+
+                doWindow(network, originId, routedId, initialId, initialSeq, initialAck, 0,
+                        traceId, authorization, 0L, 0, 0, 0);
+            }
+
+            final LlmChallengeExFW llmChallengeEx = llmChallengeExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(llmTypeId)
+                .dialect(dialect)
+                .model(challengeModel)
+                .build();
+
+            doNetChallenge(traceId, authorization,
+                fallbackOctetsRO.wrap(llmChallengeEx.buffer(), llmChallengeEx.offset(), llmChallengeEx.limit()));
         }
 
         private void doNetReset(
@@ -482,6 +633,18 @@ public final class LlmProxyFactory implements LlmStreamFactory
             int index,
             int length)
         {
+            if (net.app == this)
+            {
+                onAppMessageCurrent(msgTypeId, buffer, index, length);
+            }
+        }
+
+        private void onAppMessageCurrent(
+            int msgTypeId,
+            DirectBufferEx buffer,
+            int index,
+            int length)
+        {
             switch (msgTypeId)
             {
             case BeginFW.TYPE_ID:
@@ -522,6 +685,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             this.replyAck = begin.acknowledge();
             this.state = LlmState.openingReply(state);
 
+            net.onAppEstablished(traceId, authorization, true);
             net.doNetBegin(traceId, authorization, affinity, begin.extension());
         }
 
@@ -584,6 +748,9 @@ public final class LlmProxyFactory implements LlmStreamFactory
             this.state = LlmState.openInitial(state);
 
             final int initialWin = initialMax - (int)(initialSeq - initialAck);
+
+            net.onAppEstablished(traceId, authorization, initialWin > 0);
+
             if (initialWin > 0)
             {
                 net.doNetWindow(traceId, authorization, budgetId, minimum, capabilities, initialWin, padding, initialMax);
@@ -595,12 +762,16 @@ public final class LlmProxyFactory implements LlmStreamFactory
         {
             this.state = LlmState.closeInitial(state);
 
-            net.doNetReset(reset.traceId(), reset.authorization(), reset.extension());
+            if (!net.doFallback(this, reset.traceId(), reset.authorization()))
+            {
+                net.doNetReset(reset.traceId(), reset.authorization(), reset.extension());
+            }
         }
 
         private void onAppChallenge(
             ChallengeFW challenge)
         {
+            net.onAppEstablished(challenge.traceId(), challenge.authorization(), true);
             net.doNetChallenge(challenge.traceId(), challenge.authorization(), challenge.extension());
         }
 

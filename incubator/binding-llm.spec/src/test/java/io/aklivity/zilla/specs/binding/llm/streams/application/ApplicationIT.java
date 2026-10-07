@@ -353,6 +353,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.proxy.fallback.unavailable/client",
+        "${app}/openai.proxy.fallback.unavailable/server"})
+    public void shouldRejectOpenaiProxyFallbackUnavailable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/canonical.block.single/client",
         "${app}/canonical.block.single/server"})
     public void shouldCanonicalBlockSingle() throws Exception

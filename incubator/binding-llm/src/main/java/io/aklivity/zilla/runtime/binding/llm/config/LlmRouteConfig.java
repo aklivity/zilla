@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.config.binding.llm.LlmConditionConfig;
+import io.aklivity.zilla.config.binding.llm.LlmWithConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 
@@ -28,6 +29,7 @@ public final class LlmRouteConfig
 {
     public final long id;
     public final int order;
+    public final List<String> fallback;
 
     private final LongObjectPredicate<UnaryOperator<String>> authorized;
     private final List<LlmConditionMatcher> matchers;
@@ -37,6 +39,7 @@ public final class LlmRouteConfig
     {
         this.id = route.id;
         this.order = route.order;
+        this.fallback = route.with != null ? ((LlmWithConfig) route.with).fallback : null;
         this.authorized = route.authorized;
         this.matchers = route.when.stream()
             .map(LlmConditionConfig.class::cast)

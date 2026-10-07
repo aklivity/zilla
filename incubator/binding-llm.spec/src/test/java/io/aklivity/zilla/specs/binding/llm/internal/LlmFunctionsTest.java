@@ -162,6 +162,96 @@ public class LlmFunctionsTest
     }
 
     @Test
+    public void shouldGenerateChallengeExWithModel()
+    {
+        byte[] bytes = LlmFunctions.challengeEx()
+            .typeId(0)
+            .dialect("anthropic")
+            .model("claude-opus-4-1")
+            .build();
+
+        final LlmChallengeExFW challengeEx = new LlmChallengeExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+
+        assertEquals("anthropic", challengeEx.dialect().asString());
+        assertEquals("claude-opus-4-1", challengeEx.model().asString());
+    }
+
+    @Test
+    public void shouldGenerateChallengeExWithoutModel()
+    {
+        byte[] bytes = LlmFunctions.challengeEx()
+            .typeId(0)
+            .dialect("anthropic")
+            .build();
+
+        final LlmChallengeExFW challengeEx = new LlmChallengeExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+
+        assertNull(challengeEx.model().asString());
+    }
+
+    @Test
+    public void shouldMatchChallengeExWithModel() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchChallengeEx()
+            .typeId(0)
+            .dialect("anthropic")
+            .model("claude-opus-4-1")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new LlmChallengeExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .dialect("anthropic")
+            .model("claude-opus-4-1")
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchChallengeExModelMismatch() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchChallengeEx()
+            .typeId(0)
+            .dialect("anthropic")
+            .model("claude-opus-4-1")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new LlmChallengeExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .dialect("anthropic")
+            .model("claude-haiku-4-5")
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchChallengeExModelExpectedButAbsent() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchChallengeEx()
+            .typeId(0)
+            .dialect("anthropic")
+            .model("claude-opus-4-1")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new LlmChallengeExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .dialect("anthropic")
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
     public void shouldMatchChallengeExWithoutConstraints() throws Exception
     {
         BytesMatcher matcher = LlmFunctions.matchChallengeEx().build();

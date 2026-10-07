@@ -977,6 +977,13 @@ public final class LlmFunctions
             return this;
         }
 
+        public LlmChallengeExBuilder model(
+            String model)
+        {
+            challengeExRW.model(model);
+            return this;
+        }
+
         public byte[] build()
         {
             final LlmChallengeExFW challengeEx = challengeExRW.build();
@@ -994,6 +1001,7 @@ public final class LlmFunctions
 
         private Integer typeId;
         private String dialect;
+        private String model;
 
         public LlmChallengeExMatcherBuilder typeId(
             int typeId)
@@ -1006,6 +1014,13 @@ public final class LlmFunctions
             String dialect)
         {
             this.dialect = dialect;
+            return this;
+        }
+
+        public LlmChallengeExMatcherBuilder model(
+            String model)
+        {
+            this.model = model;
             return this;
         }
 
@@ -1027,7 +1042,8 @@ public final class LlmFunctions
 
             if (challengeEx != null &&
                 matchTypeId(challengeEx) &&
-                matchDialect(challengeEx))
+                matchDialect(challengeEx) &&
+                matchModel(challengeEx))
             {
                 byteBuf.position(byteBuf.position() + challengeEx.sizeof());
                 return challengeEx;
@@ -1046,6 +1062,12 @@ public final class LlmFunctions
             LlmChallengeExFW challengeEx)
         {
             return dialect == null || dialect.equals(challengeEx.dialect().asString());
+        }
+
+        private boolean matchModel(
+            LlmChallengeExFW challengeEx)
+        {
+            return model == null || model.equals(challengeEx.model().asString());
         }
     }
 
