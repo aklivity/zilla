@@ -50,7 +50,9 @@
 #      anthropic-facing frontend to mock-anthropic-secondary, the same
 #      model-based intra-dialect routing mirrored, non-streaming and
 #      streaming
-#   9. every llm binding an exchange passes through -- server, proxy and
+#   9. a model neither route names is served by the provider of the client's
+#      own dialect, with no translation
+#  10. every llm binding an exchange passes through -- server, proxy and
 #      client -- records that exchange's llm.* metrics, scraped from the
 #      prometheus exporter: the upstream's reported token usage, a token
 #      count the upstream dialect never reports left unrecorded, one
@@ -269,6 +271,20 @@ def check_anthropic_text_secondary_streaming():
     assert stop_reason == "end_turn", stop_reason
 
 
+# WHEN: a client sends a model that neither the claude-* nor the gpt-* route
+#       names to the frontend of its own dialect
+# THEN: the dialect-only route serves it from the provider of that same
+#       dialect, with no translation
+def check_openai_other_model_same_dialect():
+    resp = openai_chat("llama-3", streaming=False)
+    assert resp.choices[0].message.content == "Hello! How can I help you today?", resp
+
+
+def check_anthropic_other_model_same_dialect():
+    resp = anthropic_message("llama-3", streaming=False)
+    assert resp.content[0].text == "Hello! How can I help you today?", resp
+
+
 # Scrapes the prometheus exporter into {(sample, binding, le): value}, where
 # le is the cumulative bucket limit for a histogram _bucket sample and None
 # for every other sample.
@@ -389,6 +405,8 @@ run_check("anthropic_to_openai_text_streaming", check_anthropic_to_openai_text_s
 run_check("anthropic_to_openai_tools", check_anthropic_to_openai_tools)
 run_check("anthropic_text_secondary", check_anthropic_text_secondary)
 run_check("anthropic_text_secondary_streaming", check_anthropic_text_secondary_streaming)
+run_check("openai_other_model_same_dialect", check_openai_other_model_same_dialect)
+run_check("anthropic_other_model_same_dialect", check_anthropic_other_model_same_dialect)
 run_check("credential_pass_through_to_anthropic", check_credential_pass_through_to_anthropic)
 run_check("credential_pass_through_to_openai", check_credential_pass_through_to_openai)
 run_check("openai_llm_metrics", check_openai_llm_metrics)

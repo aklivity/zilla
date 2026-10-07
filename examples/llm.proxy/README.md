@@ -38,8 +38,11 @@ own `http(client)` → `tcp(client)`, purely from the stream's `dialect`/`model`
 | `anthropic` | `gpt-*`, e.g. `gpt-4` | `south_llm_client_openai` → `mock-openai:4101` | **yes -- anthropic to openai** |
 | `anthropic` | `claude-*`, e.g. `claude-3-opus-20240229` | `south_llm_client_anthropic` → `mock-anthropic:4102` | no -- same dialect |
 | `openai` | `gpt-*`, e.g. `gpt-4` | `south_llm_client_openai` → `mock-openai:4101` | no -- same dialect |
+| `openai` | *(any other model)* | `south_llm_client_openai` → `mock-openai:4101` | no -- same dialect |
+| `anthropic` | *(any other model)* | `south_llm_client_anthropic` → `mock-anthropic:4102` | no -- same dialect |
 
-A model that matches no route is rejected.
+A model neither prefix names is served by the provider of the client's own
+dialect, with no translation.
 
 The `llm` binding sits on top of `http`, the same way `mcp` does in
 `examples/mcp.proxy` -- `http(server)`/`http(client)` do the wire-level
@@ -87,6 +90,12 @@ bindings:
       - when:
           - model: [ "gpt-*" ]
         exit: south_llm_client_openai
+      - when:
+          - dialect: openai
+        exit: south_llm_client_openai
+      - when:
+          - dialect: anthropic
+        exit: south_llm_client_anthropic
 ```
 
 Routes are evaluated top to bottom; the first matching one wins. The two
@@ -95,7 +104,8 @@ routes beneath them match any dialect and send each model to the provider that
 serves it, so the same route is a straight pass-through for a client speaking
 that provider's dialect and a cross-dialect translation for a client speaking
 the other one -- the dialect translation is a consequence of the model chosen,
-not something the route configures.
+not something the route configures. The two `dialect`-only routes last catch any
+other model and keep it on the provider of the client's own dialect.
 
 ## Credential pass-through
 
