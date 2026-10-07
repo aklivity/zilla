@@ -29,13 +29,15 @@
 # The end carries the usage and the finish reason (stop, length, tool-call or content-filter).
 # A failure before the begin is a reset; a failure after it is an abort. Both carry the error.
 
+property dialect "anthropic"
+
 connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("anthropic")
+                           .dialect(dialect)
                            .model("gpt-4")
                            .build()}
 

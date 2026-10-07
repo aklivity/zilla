@@ -13,6 +13,8 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property dialect "openai"
+
 accept "zilla://streams/app0"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
@@ -21,7 +23,7 @@ accepted
 
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
+                           .dialect(dialect)
                            .model("claude-3-opus-20240229")
                            .build()}
 

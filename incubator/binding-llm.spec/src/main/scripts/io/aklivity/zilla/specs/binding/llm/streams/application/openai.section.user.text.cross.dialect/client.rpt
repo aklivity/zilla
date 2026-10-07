@@ -13,13 +13,15 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property dialect "anthropic"
+
 connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
+                           .dialect(dialect)
                            .model("gpt-4")
                            .build()}
 
@@ -27,7 +29,7 @@ connected
 
 write advised zilla:challenge ${llm:matchChallengeEx()
                                     .typeId(zilla:id("llm"))
-                                    .dialect("anthropic")
+                                    .dialect("openai")
                                     .build()}
 
 write zilla:data.ext ${llm:dataEx()

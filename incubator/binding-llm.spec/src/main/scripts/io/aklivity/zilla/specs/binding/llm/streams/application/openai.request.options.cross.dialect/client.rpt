@@ -13,6 +13,8 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property dialect "anthropic"
+
 connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
@@ -27,7 +29,7 @@ connected
 
 write advised zilla:challenge ${llm:matchChallengeEx()
                                     .typeId(zilla:id("llm"))
-                                    .dialect("anthropic")
+                                    .dialect(dialect)
                                     .build()}
 
 write zilla:data.ext ${llm:dataEx()

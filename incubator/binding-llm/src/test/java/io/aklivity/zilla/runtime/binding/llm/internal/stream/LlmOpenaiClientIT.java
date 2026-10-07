@@ -1119,9 +1119,9 @@ public class LlmOpenaiClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
-        "${app}/anthropic.section.user.text.cross.dialect/client",
-        "${net}/openai.transform.anthropic.user.text/server"})
-    public void shouldChallengeCrossDialectAnthropicRequestAsOpenai() throws Exception
+        "${app}/openai.section.user.text.cross.dialect/client",
+        "${net}/openai.section.user.text/server"})
+    public void shouldChallengeCrossDialectRequestAsOpenai() throws Exception
     {
         k3po.finish();
     }
