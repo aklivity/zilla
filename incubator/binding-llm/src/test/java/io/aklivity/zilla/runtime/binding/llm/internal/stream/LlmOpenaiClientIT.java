@@ -1168,4 +1168,15 @@ public class LlmOpenaiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
+        "${app}/transform.rejected.user.video/client",
+        "${net}/openai.transform.rejected.user.video/server"})
+    public void shouldRejectUserVideoAsOpenaiNamingSectionAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
 }

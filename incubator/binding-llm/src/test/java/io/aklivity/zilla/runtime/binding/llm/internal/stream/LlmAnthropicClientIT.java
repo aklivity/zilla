@@ -1197,4 +1197,15 @@ public class LlmAnthropicClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"target \"anthropic\""})
+    @Specification({
+        "${app}/transform.rejected.user.video/client",
+        "${net}/anthropic.transform.rejected.user.video/server"})
+    public void shouldRejectUserVideoAsAnthropicNamingSectionAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
 }

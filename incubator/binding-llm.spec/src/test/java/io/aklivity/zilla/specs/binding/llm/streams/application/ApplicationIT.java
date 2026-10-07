@@ -2753,4 +2753,13 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.user.video/client",
+        "${app}/transform.rejected.user.video/server"})
+    public void shouldTransformRejectedUserVideo() throws Exception
+    {
+        k3po.finish();
+    }
 }
