@@ -60,7 +60,7 @@ public class LlmBindingConfig
     public final List<LlmRouteConfig> routes;
     public final GuardHandler guard;
     public final String credentials;
-    private final Map<String, List<LlmGuardrailStage>> guardrails;
+    private final Map<String, LlmGuardrail> guardrails;
 
     private final Pattern credentialsPattern;
 
@@ -86,7 +86,7 @@ public class LlmBindingConfig
             ? Pattern.compile(credentials.replace(CREDENTIALS_PLACEHOLDER, "(?<credentials>[^\\s]+)"))
             : null;
         this.guardrails = new LinkedHashMap<>();
-        this.options.guardrails.forEach(guardrail -> guardrails.put(guardrail.name, supplyStages(context, guardrail)));
+        this.options.guardrails.forEach(guardrail -> guardrails.put(guardrail.name, supplyGuardrail(context, guardrail)));
     }
 
     protected LlmBindingConfig(
@@ -166,25 +166,30 @@ public class LlmBindingConfig
         return resolved;
     }
 
-    public List<LlmGuardrailStage> guardrails(
+    public LlmGuardrail guardrails(
         String model)
     {
-        return guardrails.getOrDefault(model, List.of());
+        return guardrails.getOrDefault(model, LlmGuardrail.NONE);
+    }
+
+    private static LlmGuardrail supplyGuardrail(
+        EngineContext context,
+        LlmGuardrailConfig guardrail)
+    {
+        return new LlmGuardrail(
+            supplyStages(context, guardrail.name, guardrail.request),
+            supplyStages(context, guardrail.name, guardrail.response));
     }
 
     private static List<LlmGuardrailStage> supplyStages(
         EngineContext context,
-        LlmGuardrailConfig guardrail)
+        String name,
+        List<LlmGuardrailStageConfig> configs)
     {
-        if (!guardrail.response.isEmpty())
-        {
-            throw new ConfigException(String.format("guardrails %s: response stages are not yet supported", guardrail.name));
-        }
-
         final List<LlmGuardrailStage> stages = new ArrayList<>();
         final Set<LlmSectionType> covered = EnumSet.noneOf(LlmSectionType.class);
 
-        for (LlmGuardrailStageConfig stage : guardrail.request)
+        for (LlmGuardrailStageConfig stage : configs)
         {
             final Set<LlmSectionType> sections = EnumSet.noneOf(LlmSectionType.class);
             stage.sections.forEach(section -> sections.add(LlmSectionType.valueOf(section.replace('-', '_').toUpperCase())));
@@ -192,22 +197,20 @@ public class LlmBindingConfig
             if (!Collections.disjoint(covered, sections))
             {
                 throw new ConfigException(String.format(
-                    "guardrails %s: more than one stage for a section is not yet supported", guardrail.name));
+                    "guardrails %s: more than one stage for a section is not yet supported", name));
             }
             covered.addAll(sections);
 
             final ModelHandler handler = context.supplyModel(stage.value);
             if (handler == null)
             {
-                throw new ConfigException(String.format(
-                    "guardrails %s: unknown model %s", guardrail.name, stage.value.model));
+                throw new ConfigException(String.format("guardrails %s: unknown model %s", name, stage.value.model));
             }
 
             if (!handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE).identity())
             {
                 throw new ConfigException(String.format(
-                    "guardrails %s: model %s transforms the section, which is not yet supported",
-                    guardrail.name, stage.value.model));
+                    "guardrails %s: model %s transforms the section, which is not yet supported", name, stage.value.model));
             }
 
             stages.add(new LlmGuardrailStage(sections, handler));

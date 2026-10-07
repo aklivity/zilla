@@ -28,6 +28,12 @@ bindings:
                 model: test
                 reject:
                   - ignore previous instructions
+          response:
+            - section: assistant-text
+              value:
+                model: test
+                reject:
+                  - ignore previous instructions
     routes:
     - when:
       - dialect: openai

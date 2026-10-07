@@ -72,10 +72,11 @@ public class LlmBindingConfigTest
                 .build()
             .build()), context);
 
-        assertThat(binding.guardrails("gpt-4o"), hasSize(1));
-        assertThat(binding.guardrails("gpt-4o").get(0).handler, sameInstance(handler));
-        assertThat(binding.guardrails("gpt-4o").get(0).sections,
+        assertThat(binding.guardrails("gpt-4o").request, hasSize(1));
+        assertThat(binding.guardrails("gpt-4o").request.get(0).handler, sameInstance(handler));
+        assertThat(binding.guardrails("gpt-4o").request.get(0).sections,
             contains(LlmSectionType.USER_TEXT, LlmSectionType.TOOL_RESULT));
+        assertThat(binding.guardrails("gpt-4o").response, empty());
     }
 
     @Test
@@ -83,15 +84,38 @@ public class LlmBindingConfigTest
     {
         LlmBindingConfig binding = new LlmBindingConfig(binding(LlmOptionsConfig.builder().build()), context);
 
-        assertThat(binding.guardrails("gpt-4o"), empty());
+        assertThat(binding.guardrails("gpt-4o").request, empty());
+        assertThat(binding.guardrails("gpt-4o").response, empty());
+    }
+
+    @Test
+    public void shouldSupplyGuardrailResponseStages()
+    {
+        LlmBindingConfig binding = new LlmBindingConfig(binding(LlmOptionsConfig.builder()
+            .guardrail()
+                .name("gpt-4o")
+                .response()
+                    .section("assistant-text")
+                    .value(TestModelConfig.builder().length(0).build())
+                    .build()
+                .build()
+            .build()), context);
+
+        assertThat(binding.guardrails("gpt-4o").request, empty());
+        assertThat(binding.guardrails("gpt-4o").response, hasSize(1));
+        assertThat(binding.guardrails("gpt-4o").response.get(0).sections, contains(LlmSectionType.ASSISTANT_TEXT));
     }
 
     @Test(expected = ConfigException.class)
-    public void shouldRejectGuardrailResponseStages()
+    public void shouldRejectGuardrailResponseStagesSharingSection()
     {
         new LlmBindingConfig(binding(LlmOptionsConfig.builder()
             .guardrail()
                 .name("gpt-4o")
+                .response()
+                    .section("assistant-text")
+                    .value(TestModelConfig.builder().length(0).build())
+                    .build()
                 .response()
                     .section("assistant-text")
                     .value(TestModelConfig.builder().length(0).build())

@@ -91,6 +91,39 @@ public class LlmProxyIT
     }
 
     @Test
+    @Configuration("proxy.guardrail.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.rejected/client",
+        "${app}/openai.proxy.guardrail.response.rejected/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRejectGuardedResponseSection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.async.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.accepted/client",
+        "${app}/openai.proxy.guardrail.accepted/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayGuardedSectionAsync() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.async.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.rejected/client",
+        "${app}/openai.proxy.guardrail.rejected/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRejectGuardedSectionAsync() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.yaml")
     @Specification({
         "${app}/openai.10k/client",
