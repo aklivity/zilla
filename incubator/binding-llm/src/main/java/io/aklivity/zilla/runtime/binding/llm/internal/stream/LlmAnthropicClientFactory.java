@@ -576,6 +576,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private LlmSectionType textType;
 
         private boolean sectionOpen;
+        private boolean contentContinued;
         private boolean sectionStarted;
         private boolean sectionWritten;
         private LlmSectionType sectionType;
@@ -2678,6 +2679,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             {
                 parser.consumed(length);
             }
+
+            contentContinued = deferred;
         }
 
         private void emitArguments(
@@ -2705,6 +2708,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             {
                 parser.consumed(length);
             }
+
+            contentContinued = deferred;
         }
 
         private int contentFrom(
@@ -2712,12 +2717,17 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             int from = eventFrom;
 
-            while (decodeInput.getByte(from) != '"')
+            if (!contentContinued)
             {
+                while (decodeInput.getByte(from) != '"')
+                {
+                    from++;
+                }
+
                 from++;
             }
 
-            return from + 1;
+            return from;
         }
 
         private void dialectResume(
