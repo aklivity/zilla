@@ -40,7 +40,7 @@ write zilla:reset.ext ${llm:resetEx()
                             .typeId(zilla:id("llm"))
                             .status(400)
                             .type("invalid_request_error")
-                            .message("Invalid request section.")
+                            .message("tool-call cannot be converted from openai to anthropic")
                             .build()}
 
 read abort

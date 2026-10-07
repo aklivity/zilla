@@ -52,6 +52,7 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmAbortExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmAttributeFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBeginExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmChallengeExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmEndExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmErrorFW;
@@ -98,6 +99,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final String ERROR_TYPE_INVALID_REQUEST = "invalid_request_error";
     private static final String MESSAGE_MODEL_MISSING = "model: Field required";
     private static final String MESSAGE_SECTION_INVALID = "Invalid request section.";
+    private static final String MESSAGE_SECTION_CONVERT = "%s cannot be converted from %s to %s";
     private static final Set<String> RESPONSE_CONTENT_TYPES = Set.of(CONTENT_TYPE_JSON, CONTENT_TYPE_EVENT_STREAM);
     private static final int STATUS_OK = 200;
     private static final int STATUS_MULTIPLE_CHOICES = 300;
@@ -224,6 +226,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
     private final LlmBeginExFW.Builder llmBeginExRW = new LlmBeginExFW.Builder();
+    private final LlmChallengeExFW.Builder llmChallengeExRW = new LlmChallengeExFW.Builder();
     private final LlmDataExFW.Builder llmDataExRW = new LlmDataExFW.Builder();
     private final LlmResetExFW.Builder llmResetExRW = new LlmResetExFW.Builder();
     private final LlmEndExFW.Builder llmEndExRW = new LlmEndExFW.Builder();
@@ -533,6 +536,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private boolean rejected;
         private int appKind;
         private final boolean replay;
+        private boolean challenged;
+        private LlmSectionType requestSection;
 
         private LlmAnthropicResponseDecoder decoder;
         private LlmAnthropicResponseDecoder skipThen;
@@ -745,6 +750,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
                         final LlmSectionType type = section != null ? section.type().get() : LlmSectionType.NONE;
 
+                        requestSection = type;
+
                         if (replay)
                         {
                             http.doReplaySection(type);
@@ -800,7 +807,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
                 if (http.encodeFailed)
                 {
-                    doAppReset(traceId, STATUS_BAD_REQUEST, ERROR_TYPE_INVALID_REQUEST, MESSAGE_SECTION_INVALID);
+                    doAppReset(traceId, STATUS_BAD_REQUEST, ERROR_TYPE_INVALID_REQUEST, rejection());
                     http.doNetAbort(traceId);
                 }
                 else
@@ -886,6 +893,13 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             http.doNetChallenge(challenge.traceId(), challenge.authorization(), challenge.extension());
         }
 
+        private String rejection()
+        {
+            return replay || requestSection == null || requestSection == LlmSectionType.NONE
+                ? MESSAGE_SECTION_INVALID
+                : MESSAGE_SECTION_CONVERT.formatted(requestSection.name().toLowerCase().replace('_', '-'), dialect, NAME);
+        }
+
         private void flushAppWindow(
             long traceId)
         {
@@ -962,6 +976,11 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int offset,
             int length)
         {
+            if (dialectFrame && !replay)
+            {
+                return;
+            }
+
             final OctetsFW extension;
 
             if (Flags.hasInit(flags) || dialectFrame && complete)
@@ -3181,9 +3200,38 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             }
         }
 
+        private void doAppDialectChallenge(
+            long traceId)
+        {
+            final LlmChallengeExFW llmChallengeEx = llmChallengeExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(llmTypeId)
+                .dialect(NAME)
+                .build();
+
+            final ChallengeFW challenge = challengeRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(initialId)
+                .sequence(initialSeq)
+                .acknowledge(initialAck)
+                .maximum(initialMax)
+                .traceId(traceId)
+                .authorization(authorization)
+                .extension(llmChallengeEx.buffer(), llmChallengeEx.offset(), llmChallengeEx.sizeof())
+                .build();
+
+            app.accept(challenge.typeId(), challenge.buffer(), challenge.offset(), challenge.sizeof());
+            challenged = true;
+        }
+
         private void doAppWindow(
             long traceId)
         {
+            if (!replay && !challenged)
+            {
+                doAppDialectChallenge(traceId);
+            }
+
             final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)

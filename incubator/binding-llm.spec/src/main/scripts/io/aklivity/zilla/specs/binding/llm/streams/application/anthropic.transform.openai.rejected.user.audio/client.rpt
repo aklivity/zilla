@@ -44,7 +44,7 @@ read zilla:reset.ext ${llm:matchResetEx()
                            .typeId(zilla:id("llm"))
                            .status(400)
                            .type("invalid_request_error")
-                           .message("user-audio has no mapping from openai to anthropic")
+                           .message("user-audio cannot be converted from openai to anthropic")
                            .build()}
 
 write aborted
