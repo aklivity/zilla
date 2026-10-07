@@ -43,6 +43,7 @@ read "{\"id\":\"call_1\",\"type\":\"function\",\"function\":{\"name\":\"get_weat
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
+                          .complete(true)
                           .build()}
 read "]}]}"
 

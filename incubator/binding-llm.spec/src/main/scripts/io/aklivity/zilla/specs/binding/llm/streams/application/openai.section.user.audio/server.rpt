@@ -43,6 +43,7 @@ read "{\"type\":\"input_audio\",\"input_audio\":{\"data\":\"UklGRg==\",\"format\
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
+                          .complete(true)
                           .build()}
 read "]}]}"
 

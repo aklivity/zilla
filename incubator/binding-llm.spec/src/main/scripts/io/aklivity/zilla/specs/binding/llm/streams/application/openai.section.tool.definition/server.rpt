@@ -54,6 +54,7 @@ read "{\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"parameters
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
+                          .complete(true)
                           .build()}
 read "]}"
 

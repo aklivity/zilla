@@ -43,6 +43,7 @@ read "{\"type\":\"document\",\"source\":{\"type\":\"file\",\"file_id\":\"file_01
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
+                          .complete(true)
                           .build()}
 read "]}]}"
 

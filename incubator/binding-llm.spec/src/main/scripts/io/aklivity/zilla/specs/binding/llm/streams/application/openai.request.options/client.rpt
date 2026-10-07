@@ -41,6 +41,7 @@ write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
+                          .complete(true)
                           .build()}
 write "\"}],\"temperature\":0.7,\"top_p\":0.9,\"max_tokens\":100,\"seed\":42,\"stop\":[\"END\"],\"store\":true,\"service_tier\":\"auto\",\"logprobs\":true,\"top_logprobs\":3,\"n\":2,\"audio\":{\"voice\":\"alloy\",\"format\":\"wav\"}}"
 write flush

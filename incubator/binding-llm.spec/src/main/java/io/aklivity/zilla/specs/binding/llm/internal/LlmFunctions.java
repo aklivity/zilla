@@ -530,6 +530,8 @@ public final class LlmFunctions
     {
         private final LlmDataExFW.Builder dataExRW;
 
+        private boolean complete;
+
         private LlmDialectDataExBuilder()
         {
             final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024]);
@@ -543,11 +545,16 @@ public final class LlmFunctions
             return this;
         }
 
+        public LlmDialectDataExBuilder complete(
+            boolean complete)
+        {
+            this.complete = complete;
+            return this;
+        }
+
         public byte[] build()
         {
-            final LlmDataExFW dataEx = dataExRW.dialect(d ->
-            {
-            }).build();
+            final LlmDataExFW dataEx = dataExRW.dialect(d -> d.complete(complete ? 1 : 0)).build();
             final byte[] array = new byte[dataEx.sizeof()];
             dataEx.buffer().getBytes(dataEx.offset(), array);
             return array;
@@ -561,11 +568,19 @@ public final class LlmFunctions
         private final LlmDataExFW dataExRO = new LlmDataExFW();
 
         private Integer typeId;
+        private Boolean complete;
 
         public LlmDialectDataExMatcherBuilder typeId(
             int typeId)
         {
             this.typeId = typeId;
+            return this;
+        }
+
+        public LlmDialectDataExMatcherBuilder complete(
+            boolean complete)
+        {
+            this.complete = complete;
             return this;
         }
 
@@ -587,7 +602,8 @@ public final class LlmFunctions
 
             if (dataEx != null &&
                 dataEx.kind() == LlmDataExFW.KIND_DIALECT &&
-                (typeId == null || typeId == dataEx.typeId()))
+                (typeId == null || typeId == dataEx.typeId()) &&
+                (complete == null || complete == (dataEx.dialect().complete() != 0)))
             {
                 byteBuf.position(byteBuf.position() + dataEx.sizeof());
                 return dataEx;

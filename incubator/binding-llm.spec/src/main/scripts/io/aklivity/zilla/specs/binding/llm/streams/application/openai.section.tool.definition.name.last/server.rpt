@@ -50,6 +50,7 @@ read ",\"name\":\"get_weather\"}}"
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
+                          .complete(true)
                           .build()}
 read "],\"messages\":[]}"
 

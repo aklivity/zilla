@@ -41,6 +41,7 @@ read "{\"type\":\"video_url\",\"video_url\":{\"url\":\"https://example.com/cat.m
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
+                          .complete(true)
                           .build()}
 read "]}]}"
 

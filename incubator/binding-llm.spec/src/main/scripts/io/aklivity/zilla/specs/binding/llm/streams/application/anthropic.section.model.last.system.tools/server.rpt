@@ -65,6 +65,7 @@ read "{\"name\":\"get_weather\",\"description\":\"Get the weather\",\"input_sche
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
+                          .complete(true)
                           .build()}
 read "]}"
 

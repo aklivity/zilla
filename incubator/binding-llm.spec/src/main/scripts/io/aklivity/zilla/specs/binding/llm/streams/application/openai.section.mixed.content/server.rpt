@@ -54,6 +54,7 @@ read "{\"type\":\"image_url\",\"image_url\":{\"url\":\"https://example.com/cat.p
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
+                          .complete(true)
                           .build()}
 read "]}]}"
 

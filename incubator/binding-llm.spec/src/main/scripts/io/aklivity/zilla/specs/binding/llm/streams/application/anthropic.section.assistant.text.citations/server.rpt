@@ -65,6 +65,7 @@ read "[{\"type\":\"char_location\",\"cited_text\":\"blue\",\"document_index\":0,
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
+                          .complete(true)
                           .build()}
 read "}]}]}"
 

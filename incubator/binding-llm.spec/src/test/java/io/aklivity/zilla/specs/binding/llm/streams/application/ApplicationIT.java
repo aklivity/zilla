@@ -2609,4 +2609,22 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/openai.streaming.complete/client",
+        "${app}/openai.streaming.complete/server"})
+    public void shouldCompleteEachOpenaiStreamingEvent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.streaming.complete/client",
+        "${app}/anthropic.streaming.complete/server"})
+    public void shouldCompleteEachAnthropicStreamingEvent() throws Exception
+    {
+        k3po.finish();
+    }
 }

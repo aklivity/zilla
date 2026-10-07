@@ -1125,4 +1125,14 @@ public class LlmAnthropicClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.streaming.complete/client",
+        "${net}/anthropic.streaming.complete/server"})
+    public void shouldMarkAnthropicStreamingEventsComplete() throws Exception
+    {
+        k3po.finish();
+    }
 }

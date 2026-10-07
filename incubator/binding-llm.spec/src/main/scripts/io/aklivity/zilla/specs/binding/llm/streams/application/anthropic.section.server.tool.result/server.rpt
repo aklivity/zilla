@@ -72,6 +72,7 @@ read "{\"type\":\"web_search_tool_result\",\"tool_use_id\":\"srvtoolu_1\",\"cont
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
+                          .complete(true)
                           .build()}
 read "]}]}"
 

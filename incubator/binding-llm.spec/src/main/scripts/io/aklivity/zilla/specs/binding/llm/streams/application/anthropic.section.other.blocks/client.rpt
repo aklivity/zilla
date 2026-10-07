@@ -41,6 +41,7 @@ write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
+                          .complete(true)
                           .build()}
 write "\",\"x_custom\":1}]}],\"tool_choice\":{\"type\":\"auto\"}}"
 write flush

@@ -2645,4 +2645,22 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.streaming.complete/client",
+        "${net}/openai.streaming.complete/server"})
+    public void shouldCompleteEachOpenaiStreamingEvent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.streaming.complete/client",
+        "${net}/anthropic.streaming.complete/server"})
+    public void shouldCompleteEachAnthropicStreamingEvent() throws Exception
+    {
+        k3po.finish();
+    }
 }

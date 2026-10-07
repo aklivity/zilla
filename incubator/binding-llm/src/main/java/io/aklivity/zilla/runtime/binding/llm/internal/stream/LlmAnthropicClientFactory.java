@@ -948,6 +948,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             long traceId,
             int flags,
             boolean dialectFrame,
+            boolean complete,
             LlmSectionType type,
             int message,
             String toolCallId,
@@ -958,16 +959,14 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             final OctetsFW extension;
 
-            if (Flags.hasInit(flags))
+            if (Flags.hasInit(flags) || dialectFrame && complete)
             {
                 final LlmDataExFW.Builder dataExBuilder = llmDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(llmTypeId);
 
                 if (dialectFrame)
                 {
-                    dataExBuilder.dialect(d ->
-                    {
-                    });
+                    dataExBuilder.dialect(d -> d.complete(complete ? 1 : 0));
                 }
                 else
                 {
@@ -1305,7 +1304,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             }
             else
             {
-                flushDialect(progress, false);
+                flushDialect(progress, false, false);
             }
 
             return parseRejected ? windowLimit : progress;
@@ -1464,7 +1463,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
                 if (event == JsonEvent.END_OBJECT)
                 {
-                    flushDialect(position(), true);
+                    flushDialect(position(), true, true);
                     commitDocument();
                     decoder = decodeEnd;
                 }
@@ -2742,7 +2741,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
         private void flushDialect(
             int to,
-            boolean fin)
+            boolean fin,
+            boolean complete)
         {
             if (dialectActive)
             {
@@ -2752,7 +2752,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 {
                     final int flags = dialectOpen ? Flags.NONE : Flags.INIT;
 
-                    doAppFrame(http.decodeTraceId, fin ? Flags.fin(flags) : flags, true, null, NO_MESSAGE, null, null,
+                    doAppFrame(http.decodeTraceId, fin ? Flags.fin(flags) : flags, true, complete, null, NO_MESSAGE, null, null,
                         decodeInput, dialectFrom, length);
 
                     dialectOpen = !fin;
@@ -2768,7 +2768,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             String toolName,
             int sectionFrom)
         {
-            flushDialect(sectionFrom, true);
+            flushDialect(sectionFrom, true, false);
             dialectActive = false;
 
             sectionOpen = true;
@@ -2847,7 +2847,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
             sectionWritten = true;
 
-            doAppFrame(http.decodeTraceId, fin ? Flags.fin(flags) : flags, false, sectionType, 0, sectionToolCallId,
+            doAppFrame(http.decodeTraceId, fin ? Flags.fin(flags) : flags, false, false, sectionType, 0, sectionToolCallId,
                 sectionToolName, buffer, offset, length);
         }
 
@@ -2890,7 +2890,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
                 sectionWritten = true;
 
-                doAppFrame(http.decodeTraceId, flags, false, sectionType, 0, sectionToolCallId, sectionToolName, buffer,
+                doAppFrame(http.decodeTraceId, flags, false, false, sectionType, 0, sectionToolCallId, sectionToolName, buffer,
                     captureFrom, end - captureFrom);
             }
 

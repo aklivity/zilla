@@ -41,6 +41,7 @@ read "Hello"
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
+                          .complete(true)
                           .build()}
 read "\",\"x_custom\":1}]}],\"tool_choice\":{\"type\":\"auto\"}}"
 

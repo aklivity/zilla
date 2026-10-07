@@ -45,6 +45,7 @@ read "{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
+                          .complete(true)
                           .build()}
 read "]}]}"
 

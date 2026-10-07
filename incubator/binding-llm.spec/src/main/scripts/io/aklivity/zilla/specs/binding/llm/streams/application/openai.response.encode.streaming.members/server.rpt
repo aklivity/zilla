@@ -44,6 +44,7 @@ read "Hello"
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
+                          .complete(true)
                           .build()}
 read "\"}],\"stream\":true}"
 
@@ -59,18 +60,21 @@ write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
+                          .complete(true)
                           .build()}
 write "{\"id\":\"msg_01\",\"object\":\"chat.completion.chunk\",\"model\":\"claude-3-opus-20240229\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\"},\"finish_reason\":null}]}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
+                          .complete(true)
                           .build()}
 write "{\"id\":\"msg_01\",\"object\":\"chat.completion.chunk\",\"model\":\"claude-3-opus-20240229\",\"choices\":[],\"created\":1700000001}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
+                          .complete(true)
                           .build()}
 write "{\"id\":\"msg_01\",\"object\":\"chat.completion.chunk\",\"model\":\"claude-3-opus-20240229\",\"choices\":[],\"service_tier\":\"default\"}"
 write flush
@@ -91,6 +95,7 @@ write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
+                          .complete(true)
                           .build()}
 write "\"},\"finish_reason\":null}]}"
 write flush
@@ -111,30 +116,35 @@ write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
+                          .complete(true)
                           .build()}
 write "\"},\"finish_reason\":null}]}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
+                          .complete(true)
                           .build()}
 write "{\"id\":\"msg_01\",\"object\":\"chat.completion.chunk\",\"model\":\"claude-3-opus-20240229\",\"choices\":[],\"obfuscation\":\"abc\"}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
+                          .complete(true)
                           .build()}
 write "{\"id\":\"msg_01\",\"object\":\"chat.completion.chunk\",\"model\":\"claude-3-opus-20240229\",\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
+                          .complete(true)
                           .build()}
 write "{\"id\":\"msg_01\",\"object\":\"chat.completion.chunk\",\"model\":\"claude-3-opus-20240229\",\"choices\":[],\"usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
+                          .complete(true)
                           .build()}
 write "[DONE]"
 write flush

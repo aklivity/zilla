@@ -43,6 +43,7 @@ read "{\"type\":\"document\",\"source\":{\"type\":\"base64\",\"media_type\":\"ap
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
+                          .complete(true)
                           .build()}
 read "]}]}"
 

@@ -1994,7 +1994,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             }
             else if (holding)
             {
-                flushDialect(holdFrom, false);
+                flushDialect(holdFrom, false, false);
                 retained = position() - holdFrom;
                 progress = holdFrom;
 
@@ -2017,7 +2017,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             }
             else
             {
-                flushDialect(progress, false);
+                flushDialect(progress, false, false);
             }
 
             if (windowLast && !replayed && decoder != decodeEnd && decoder != decodeIgnore)
@@ -2173,7 +2173,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
         private void flushDialect(
             int to,
-            boolean fin)
+            boolean fin,
+            boolean complete)
         {
             if (dialectActive)
             {
@@ -2184,7 +2185,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                     final int flags = dialectOpen ? Flags.NONE : Flags.INIT;
 
                     stream.doAppData(decodeTraceId, decodeAuthorization, fin ? Flags.fin(flags) : flags,
-                        true, null, -1, null, decodedInput, dialectFrom, length);
+                        true, complete, null, -1, null, decodedInput, dialectFrom, length);
 
                     dialectOpen = !fin;
                 }
@@ -2219,7 +2220,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             String toolCallId,
             int sectionFrom)
         {
-            flushDialect(sectionFrom, true);
+            flushDialect(sectionFrom, true, false);
             dialectActive = false;
 
             blockSection = type;
@@ -2263,7 +2264,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 attributes = null;
             }
 
-            stream.doAppData(traceId, authorization, flags, false, init ? blockSection : null, blockMessage, attributes,
+            stream.doAppData(traceId, authorization, flags, false, false, init ? blockSection : null, blockMessage, attributes,
                 buffer, offset, length);
 
             blockFlags = Flags.NONE;
@@ -2272,7 +2273,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private void onDecodeRootEnd(
             long traceId)
         {
-            flushDialect(position(), true);
+            flushDialect(position(), true, true);
             decoder = decodeEnd;
         }
 
@@ -3038,6 +3039,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 final LlmDataExFW llmDataEx = data.extension().get(llmDataExRO::tryWrap);
 
                 replyKind = llmDataEx != null ? llmDataEx.kind() : LlmDataExFW.KIND_SECTION;
+                replyComplete = replyKind == LlmDataExFW.KIND_DIALECT && llmDataEx.dialect().complete() != 0;
 
                 if (replyKind == LlmDataExFW.KIND_SECTION)
                 {
@@ -3063,6 +3065,13 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 {
                     doReplayDialect();
                 }
+            }
+            else if (Flags.hasFin(flags) && replyKind == LlmDataExFW.KIND_DIALECT)
+            {
+                final LlmDataExFW llmDataEx = data.extension().get(llmDataExRO::tryWrap);
+
+                replyComplete = llmDataEx != null && llmDataEx.kind() == LlmDataExFW.KIND_DIALECT &&
+                    llmDataEx.dialect().complete() != 0;
             }
 
             if (replyDialect)
@@ -3333,6 +3342,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             long authorization,
             int flags,
             boolean dialect,
+            boolean complete,
             LlmSectionType type,
             int message,
             LlmSectionAttributes attributes,
@@ -3354,13 +3364,11 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 .reserved(length)
                 .payload(buffer, offset, length);
 
-            if (dialect && Flags.hasInit(flags))
+            if (dialect && (Flags.hasInit(flags) || complete))
             {
                 final LlmDataExFW dataEx = llmDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(llmTypeId)
-                    .dialect(d ->
-                    {
-                    })
+                    .dialect(d -> d.complete(complete ? 1 : 0))
                     .build();
 
                 builder.extension(dataEx.buffer(), dataEx.offset(), dataEx.sizeof());
@@ -3493,7 +3501,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
         private int replayPosition;
         private boolean replayEscaped;
-        private boolean replayAfterDialect;
+        private boolean replyComplete;
 
         private void doEncodeBegin()
         {
@@ -3683,17 +3691,9 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         {
             replayEscaped = false;
 
-            if (server.streaming)
+            if (server.streaming && !eventOpen)
             {
-                if (eventOpen && replayAfterDialect)
-                {
-                    eventEnd(replayPosition);
-                }
-
-                if (!eventOpen)
-                {
-                    eventBegin(replayPosition, null);
-                }
+                eventBegin(replayPosition, null);
             }
         }
 
@@ -3718,16 +3718,16 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 }
             }
 
-            if (fin)
+            if (fin && replyComplete && replyKind == LlmDataExFW.KIND_DIALECT)
             {
-                replayAfterDialect = replyKind == LlmDataExFW.KIND_DIALECT;
+                replyComplete = false;
+                eventEnd(replayPosition);
             }
         }
 
         private void doReplayEnd()
         {
-            eventOpen = false;
-            eventStart = NO_EVENT;
+            eventEnd(replayPosition);
         }
 
         private void eventBegin(

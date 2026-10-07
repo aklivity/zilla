@@ -1519,6 +1519,50 @@ public class LlmFunctionsTest
     }
 
     @Test
+    public void shouldDefaultDialectDataExCompleteToFalse() throws Exception
+    {
+        final byte[] dataEx = LlmFunctions.dialectDataEx()
+            .typeId(0)
+            .build();
+
+        final LlmDataExFW decoded = new LlmDataExFW().wrap(new UnsafeBufferEx(dataEx), 0, dataEx.length);
+
+        assertEquals(0, decoded.dialect().complete());
+        assertNotNull(LlmFunctions.matchDialectDataEx().typeId(0).complete(false).build().match(ByteBuffer.wrap(dataEx)));
+    }
+
+    @Test
+    public void shouldGenerateAndMatchDialectDataExComplete() throws Exception
+    {
+        final byte[] dataEx = LlmFunctions.dialectDataEx()
+            .typeId(0)
+            .complete(true)
+            .build();
+
+        final LlmDataExFW decoded = new LlmDataExFW().wrap(new UnsafeBufferEx(dataEx), 0, dataEx.length);
+
+        assertEquals(1, decoded.dialect().complete());
+        assertNotNull(LlmFunctions.matchDialectDataEx().typeId(0).complete(true).build().match(ByteBuffer.wrap(dataEx)));
+        assertNotNull(LlmFunctions.matchDialectDataEx().typeId(0).build().match(ByteBuffer.wrap(dataEx)));
+    }
+
+    @Test
+    public void shouldFailMatchDialectDataExCompleteMismatch() throws Exception
+    {
+        final byte[] dataEx = LlmFunctions.dialectDataEx()
+            .typeId(0)
+            .complete(true)
+            .build();
+
+        final BytesMatcher matcher = LlmFunctions.matchDialectDataEx()
+            .typeId(0)
+            .complete(false)
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(dataEx)));
+    }
+
+    @Test
     public void shouldFailMatchDialectDataExTypeIdMismatch() throws Exception
     {
         final byte[] dataEx = LlmFunctions.dialectDataEx()

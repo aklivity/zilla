@@ -84,6 +84,7 @@ read "{\"city\":\"London\"}"
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
+                          .complete(true)
                           .build()}
 read "}],\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"usage\":{\"input_tokens\":30,\"cache_creation_input_tokens\":3,\"cache_read_input_tokens\":10,\"output_tokens\":25}}"
 

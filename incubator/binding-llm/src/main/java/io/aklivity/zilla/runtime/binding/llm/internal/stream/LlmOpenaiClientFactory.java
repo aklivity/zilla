@@ -902,6 +902,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             long traceId,
             int flags,
             boolean dialectFrame,
+            boolean complete,
             LlmSectionType type,
             int message,
             String toolCallId,
@@ -912,16 +913,14 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             final OctetsFW extension;
 
-            if (Flags.hasInit(flags))
+            if (Flags.hasInit(flags) || dialectFrame && complete)
             {
                 final LlmDataExFW.Builder dataExBuilder = llmDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(llmTypeId);
 
                 if (dialectFrame)
                 {
-                    dataExBuilder.dialect(d ->
-                    {
-                    });
+                    dataExBuilder.dialect(d -> d.complete(complete ? 1 : 0));
                 }
                 else
                 {
@@ -976,7 +975,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             if (begun() && !draining)
             {
-                doAppFrame(traceId, Flags.COMPLETE, true, null, NO_MESSAGE, null, null, buffer, offset, length);
+                doAppFrame(traceId, Flags.COMPLETE, true, true, null, NO_MESSAGE, null, null, buffer, offset, length);
             }
         }
 
@@ -1267,7 +1266,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             }
             else
             {
-                flushDialect(progress, false);
+                flushDialect(progress, false, false);
             }
 
             return parseRejected ? windowLimit : progress;
@@ -1418,7 +1417,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
                 if (event == JsonEvent.END_OBJECT)
                 {
-                    flushDialect(position(), true);
+                    flushDialect(position(), true, true);
                     commitDocument();
                     decoder = decodeEnd;
                 }
@@ -2620,7 +2619,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
         private void flushDialect(
             int to,
-            boolean fin)
+            boolean fin,
+            boolean complete)
         {
             if (dialectActive)
             {
@@ -2630,7 +2630,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 {
                     final int flags = dialectOpen ? Flags.NONE : Flags.INIT;
 
-                    doAppFrame(http.decodeTraceId, fin ? Flags.fin(flags) : flags, true, null, NO_MESSAGE, null, null,
+                    doAppFrame(http.decodeTraceId, fin ? Flags.fin(flags) : flags, true, complete, null, NO_MESSAGE, null, null,
                         decodeInput, dialectFrom, length);
 
                     dialectOpen = !fin;
@@ -2648,7 +2648,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int tool,
             int sectionFrom)
         {
-            flushDialect(sectionFrom, true);
+            flushDialect(sectionFrom, true, false);
             dialectActive = false;
 
             sectionOpen = true;
@@ -2728,7 +2728,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
             sectionWritten = true;
 
-            doAppFrame(http.decodeTraceId, fin ? Flags.fin(flags) : flags, false, sectionType, sectionMessage,
+            doAppFrame(http.decodeTraceId, fin ? Flags.fin(flags) : flags, false, false, sectionType, sectionMessage,
                 sectionToolId, sectionToolName, buffer, 0, length);
         }
 

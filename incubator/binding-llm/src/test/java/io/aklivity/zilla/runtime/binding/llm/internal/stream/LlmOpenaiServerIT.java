@@ -911,4 +911,14 @@ public class LlmOpenaiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.streaming.complete/client",
+        "${app}/openai.streaming.complete/server"})
+    public void shouldEndOpenaiStreamingEventsOnComplete() throws Exception
+    {
+        k3po.finish();
+    }
 }
