@@ -4240,7 +4240,23 @@
                                                             "additionalProperties": false
                                                         }
                                                     },
-                                                    "with": false
+                                                    "with": {
+                                                        "title": "With",
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "fallback": {
+                                                                "title": "Fallback",
+                                                                "description": "Ordered models to try when the route's exit resets the stream before sending a window. Each model is routed through this binding's routes, and a model that matches no authorized route is skipped. The path is resolved at the start of the stream and locks once the exit sends a window.",
+                                                                "type": "array",
+                                                                "minItems": 1,
+                                                                "items": {
+                                                                    "type": "string",
+                                                                    "pattern": "^[^*]+$"
+                                                                }
+                                                            }
+                                                        },
+                                                        "additionalProperties": false
+                                                    }
                                                 }
                                             }
                                         }
