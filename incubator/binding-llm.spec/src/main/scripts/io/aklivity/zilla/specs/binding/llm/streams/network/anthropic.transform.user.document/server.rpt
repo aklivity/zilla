@@ -31,7 +31,7 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-read "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"document\",\"source\":{\"type\":\"file\",\"file_id\":\"file-abc123\"}}]}]}"
+read "{\"model\":\"model\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"document\",\"source\":{\"type\":\"file\",\"file_id\":\"file-abc123\"}}]}]}"
 
 read closed
 

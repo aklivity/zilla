@@ -14,7 +14,7 @@
 #
 
 property target "target"
-property model "gpt-4"
+property model "model"
 
 accept "zilla://streams/app0"
        option zilla:window 8192

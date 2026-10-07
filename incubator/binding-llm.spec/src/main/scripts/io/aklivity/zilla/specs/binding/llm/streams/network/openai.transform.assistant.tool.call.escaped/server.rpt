@@ -30,7 +30,7 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-read "{\"model\":\"claude-3-opus-20240229\",\"messages\":[{\"role\":\"user\",\"content\":\"Weather in Paris?\"},{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"toolu_1\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":\"{\\\"query\\\":\\\"say \\\\\\\"hi\\\\\\\" \\\\\\\\ done\\\\nnext\\\",\\\"text\\\":\\\"café ✓ 😀\\\",\\\"nested\\\":{\\\"items\\\":[1,2.5,true,null,{\\\"k\\\":\\\"v\\\"}],\\\"empty\\\":{},\\\"list\\\":[]}}\"}}]}]}"
+read "{\"model\":\"model\",\"messages\":[{\"role\":\"user\",\"content\":\"Weather in Paris?\"},{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"toolu_1\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":\"{\\\"query\\\":\\\"say \\\\\\\"hi\\\\\\\" \\\\\\\\ done\\\\nnext\\\",\\\"text\\\":\\\"café ✓ 😀\\\",\\\"nested\\\":{\\\"items\\\":[1,2.5,true,null,{\\\"k\\\":\\\"v\\\"}],\\\"empty\\\":{},\\\"list\\\":[]}}\"}}]}]}"
 
 read closed
 

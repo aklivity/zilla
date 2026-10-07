@@ -28,7 +28,7 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-write "{\"model\":\"claude-3-opus-20240229\",\"messages\":[{\"role\":\"user\",\"content\":\"Sky colour?\"},{\"role\":\"assistant\",\"content\":\"The sky is blue.\"}]}"
+write "{\"model\":\"model\",\"messages\":[{\"role\":\"user\",\"content\":\"Sky colour?\"},{\"role\":\"assistant\",\"content\":\"The sky is blue.\"}]}"
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()
