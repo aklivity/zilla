@@ -101,6 +101,11 @@ bindings:
             model: [ claude-3-5-haiku-20241022 ]
         exit: south_llm_client_anthropic_secondary
       - when:
+          - model: [ claude-unreachable ]
+        exit: south_llm_client_anthropic_unreachable
+        with:
+          fallback: [ claude-3-5-haiku-20241022 ]
+      - when:
           - model: [ "claude-*" ]
         exit: south_llm_client_anthropic
         with:
@@ -138,6 +143,33 @@ bindings:
     options:
       host: mock-anthropic
       port: 4102
+
+  # Nothing listens on this port, so the connection is refused before the llm
+  # client grants any credit and north_llm_proxy falls back to the next model
+  # in the claude-unreachable route, which routes to the secondary deployment.
+  south_llm_client_anthropic_unreachable:
+    type: llm
+    kind: client
+    options:
+      dialect: anthropic
+      server: http://mock-anthropic:4999
+      authorization:
+        api_key:
+          credentials: "{credentials}"
+    telemetry:
+      metrics:
+        - llm.*
+    exit: south_http_client_anthropic_unreachable
+  south_http_client_anthropic_unreachable:
+    type: http
+    kind: client
+    exit: south_tcp_client_anthropic_unreachable
+  south_tcp_client_anthropic_unreachable:
+    type: tcp
+    kind: client
+    options:
+      host: mock-anthropic
+      port: 4999
 
   south_llm_client_openai:
     type: llm

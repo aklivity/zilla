@@ -115,12 +115,14 @@ A route can list `fallback` models under `with`. The route is resolved when the
 request begins, and `llm(proxy)` tries the exit with the requested model. An
 `llm(client)` sends its first window only once the connection to its server is
 established, so a server that cannot be reached resets the stream before any
-window. When the exit resets the stream before it sends a window, the request is
-retried on the same exit with the next model in the list, and the request is
-rewritten to carry that model. The path locks as soon as the exit sends a
-window, so a failure after the server has accepted the request is never retried,
-and when every model has been refused the last reset reaches the client.
-Fallback entries are exact model names, not patterns.
+window. When the exit resets the stream before it sends a window, `llm(proxy)`
+takes the next model in the list, routes it through the same routes as any
+other request, and retries on the exit that model resolves to, rewriting the
+request to carry that model. A fallback model that matches no route the caller
+is authorized for is skipped. The path locks as soon as the exit sends a
+window, so a failure after the server has accepted the request is never
+retried, and when every model has been refused or skipped the last reset reaches
+the client. Fallback entries are exact model names, not patterns.
 
 ## Credential pass-through
 

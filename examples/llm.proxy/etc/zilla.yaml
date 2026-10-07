@@ -83,7 +83,7 @@ bindings:
   # provider of the client's own dialect, with no translation. The claude-*
   # route lists a fallback model: when its exit resets the stream before
   # sending a window, such as when the upstream server cannot be reached, the
-  # request is retried on the same exit with that model.
+  # request is retried with that model, routed like any other request for it.
   north_llm_proxy:
     type: llm
     kind: proxy
