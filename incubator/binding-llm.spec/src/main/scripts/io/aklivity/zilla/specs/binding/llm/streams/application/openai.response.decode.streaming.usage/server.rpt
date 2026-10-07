@@ -21,17 +21,11 @@ accepted
 
 read zilla:begin.ext ${llm:matchBeginEx()
                           .typeId(zilla:id("llm"))
-                          .dialect("openai")
+                          .dialect("anthropic")
                           .model("gpt-4o-mini")
                           .build()}
 
 connected
-
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
-                          .typeId(zilla:id("llm"))
-                          .block("model")
-                          .build()}
-read "\"gpt-4o-mini\""
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
