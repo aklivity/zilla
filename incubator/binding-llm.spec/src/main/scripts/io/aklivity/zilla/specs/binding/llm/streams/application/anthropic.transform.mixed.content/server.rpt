@@ -50,14 +50,6 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "{\"type\":\"image\",\"source\":{\"type\":\"url\",\"url\":\"https://example.com/cat.png\"}}"
 
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("TOOL_RESULT")
-                          .message(0)
-                          .attribute("tool-call-id", "toolu_1")
-                          .build()}
-read "sunny"
-
 read advised zilla:flush
 
 write zilla:reset.ext ${llm:resetEx()

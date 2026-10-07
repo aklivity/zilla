@@ -50,15 +50,6 @@ write zilla:data.ext ${llm:dataEx()
 write "{\"type\":\"image\",\"source\":{\"type\":\"url\",\"url\":\"https://example.com/cat.png\"}}"
 write flush
 
-write zilla:data.ext ${llm:dataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("TOOL_RESULT")
-                          .message(0)
-                          .attribute("tool-call-id", "toolu_1")
-                          .build()}
-write "sunny"
-write flush
-
 write advise zilla:flush
 
 read zilla:reset.ext ${llm:matchResetEx()

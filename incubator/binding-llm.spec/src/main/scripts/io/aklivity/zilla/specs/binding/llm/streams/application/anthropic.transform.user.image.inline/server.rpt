@@ -39,10 +39,10 @@ read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("USER_IMAGE")
                           .message(0)
-                          .attribute("media-type", "image/jpeg")
+                          .attribute("media-type", "image/png")
                           .attribute("source", "inline")
                           .build()}
-read "{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image/jpeg\",\"data\":\"/9j/4AAQ\"}}"
+read "{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image/png\",\"data\":\"iVBORw0KGgo=\"}}"
 
 read advised zilla:flush
 

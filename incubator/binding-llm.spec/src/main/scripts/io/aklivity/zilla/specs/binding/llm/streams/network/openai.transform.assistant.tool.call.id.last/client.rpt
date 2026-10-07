@@ -35,7 +35,7 @@ write flush
 
 write await FIRST_FRAME_READ
 
-write "},\"id\":\"toolu_1\"}]}]}"
+write "},\"id\":\"call_1\"}]}]}"
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()

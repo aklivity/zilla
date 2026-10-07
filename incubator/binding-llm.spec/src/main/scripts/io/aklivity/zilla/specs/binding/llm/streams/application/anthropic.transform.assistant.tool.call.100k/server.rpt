@@ -47,9 +47,9 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("TOOL_CALL")
                           .message(1)
                           .attribute("tool-name", "get_weather")
-                          .attribute("tool-call-id", "toolu_1")
+                          .attribute("tool-call-id", "call_1")
                           .build()}
-read "{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"get_weather\",\"input\":{\"city\":\""
+read "{\"type\":\"tool_use\",\"id\":\"call_1\",\"name\":\"get_weather\",\"input\":{\"city\":\""
      ${core:randomBase64(100000)}
      "\"}}"
 

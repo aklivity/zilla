@@ -1262,9 +1262,9 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/anthropic.transform.user.document/client",
-        "${net}/anthropic.transform.user.document/server"})
-    public void shouldAnthropicTransformOpenaiUserDocument() throws Exception
+        "${net}/anthropic.transform.user.document.reference/client",
+        "${net}/anthropic.transform.user.document.reference/server"})
+    public void shouldAnthropicTransformOpenaiUserDocumentReference() throws Exception
     {
         k3po.finish();
     }
@@ -1838,54 +1838,54 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/anthropic.transform.tool.call/client",
-        "${net}/anthropic.transform.tool.call/server"})
-    public void shouldAnthropicTransformOpenaiToolCall() throws Exception
+        "${net}/anthropic.transform.assistant.tool.call/client",
+        "${net}/anthropic.transform.assistant.tool.call/server"})
+    public void shouldAnthropicTransformOpenaiAssistantToolCall() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/anthropic.transform.tool.call.100k/client",
-        "${net}/anthropic.transform.tool.call.100k/server"})
-    public void shouldAnthropicTransformOpenaiToolCall100k() throws Exception
+        "${net}/anthropic.transform.assistant.tool.call.100k/client",
+        "${net}/anthropic.transform.assistant.tool.call.100k/server"})
+    public void shouldAnthropicTransformOpenaiAssistantToolCall100k() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/anthropic.transform.tool.call.10k/client",
-        "${net}/anthropic.transform.tool.call.10k/server"})
-    public void shouldAnthropicTransformOpenaiToolCall10k() throws Exception
+        "${net}/anthropic.transform.assistant.tool.call.10k/client",
+        "${net}/anthropic.transform.assistant.tool.call.10k/server"})
+    public void shouldAnthropicTransformOpenaiAssistantToolCall10k() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/anthropic.transform.tool.call.escaped/client",
-        "${net}/anthropic.transform.tool.call.escaped/server"})
-    public void shouldAnthropicTransformOpenaiToolCallEscaped() throws Exception
+        "${net}/anthropic.transform.assistant.tool.call.escaped/client",
+        "${net}/anthropic.transform.assistant.tool.call.escaped/server"})
+    public void shouldAnthropicTransformOpenaiAssistantToolCallEscaped() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/anthropic.transform.tool.call.id.last/client",
-        "${net}/anthropic.transform.tool.call.id.last/server"})
-    public void shouldAnthropicTransformOpenaiToolCallIdLast() throws Exception
+        "${net}/anthropic.transform.assistant.tool.call.id.last/client",
+        "${net}/anthropic.transform.assistant.tool.call.id.last/server"})
+    public void shouldAnthropicTransformOpenaiAssistantToolCallIdLast() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/anthropic.transform.tool.call.name.last/client",
-        "${net}/anthropic.transform.tool.call.name.last/server"})
-    public void shouldAnthropicTransformOpenaiToolCallNameLast() throws Exception
+        "${net}/anthropic.transform.assistant.tool.call.name.last/client",
+        "${net}/anthropic.transform.assistant.tool.call.name.last/server"})
+    public void shouldAnthropicTransformOpenaiAssistantToolCallNameLast() throws Exception
     {
         k3po.finish();
     }

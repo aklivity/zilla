@@ -39,9 +39,8 @@ write zilla:data.ext ${llm:dataEx()
                           .message(0)
                           .attribute("media-type", "application/pdf")
                           .attribute("source", "inline")
-                          .attribute("filename", "contract.pdf")
                           .build()}
-write "{\"type\":\"file\",\"file\":{\"filename\":\"contract.pdf\",\"file_data\":\"data:application/pdf;base64,JVBERi0=\"}}"
+write "{\"type\":\"file\",\"file\":{\"file_data\":\"data:application/pdf;base64,JVBERi0=\"}}"
 write flush
 
 write advise zilla:flush

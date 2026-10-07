@@ -29,9 +29,9 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-write "{\"model\":\"model\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Weather in Paris?\"}]}],\"tools\":[{\"name\":\"get_weather\",\"description\":\""
+write "{\"model\":\"model\",\"tools\":[{\"name\":\"get_weather\",\"description\":\""
       ${core:randomBase64(100000)}
-      "\",\"input_schema\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}}}}]}"
+      "\",\"input_schema\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}}}}],\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Weather in Paris?\"}]}]}"
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()

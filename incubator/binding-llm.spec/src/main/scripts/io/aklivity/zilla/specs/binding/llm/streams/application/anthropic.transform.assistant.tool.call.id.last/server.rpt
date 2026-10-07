@@ -57,9 +57,9 @@ read option zilla:flags "fin"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .typeNull()
-                          .attribute("tool-call-id", "toolu_1")
+                          .attribute("tool-call-id", "call_1")
                           .build()}
-read ",\"id\":\"toolu_1\"}"
+read ",\"id\":\"call_1\"}"
 
 read advised zilla:flush
 

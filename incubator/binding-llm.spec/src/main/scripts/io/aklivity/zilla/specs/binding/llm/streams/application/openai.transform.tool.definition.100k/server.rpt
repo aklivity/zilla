@@ -37,13 +37,6 @@ read advise zilla:challenge ${llm:challengeEx()
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("USER_TEXT")
-                          .message(0)
-                          .build()}
-read "Weather in Paris?"
-
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
                           .type("TOOL_DEFINITION")
                           .message(-1)
                           .attribute("tool-name", "get_weather")
@@ -51,6 +44,13 @@ read zilla:data.ext ${llm:matchDataEx()
 read "{\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"description\":\""
      ${core:randomBase64(100000)}
      "\",\"parameters\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}}}}}"
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("USER_TEXT")
+                          .message(0)
+                          .build()}
+read "Weather in Paris?"
 
 read advised zilla:flush
 

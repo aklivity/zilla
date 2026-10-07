@@ -38,9 +38,9 @@ write zilla:data.ext ${llm:dataEx()
                           .type("USER_DOCUMENT")
                           .message(0)
                           .attribute("source", "reference")
-                          .attribute("ref-id", "file_011abc")
+                          .attribute("ref-id", "file-abc123")
                           .build()}
-write "{\"type\":\"document\",\"source\":{\"type\":\"file\",\"file_id\":\"file_011abc\"}}"
+write "{\"type\":\"document\",\"source\":{\"type\":\"file\",\"file_id\":\"file-abc123\"}}"
 write flush
 
 write advise zilla:flush

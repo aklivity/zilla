@@ -36,7 +36,7 @@ read "{\"model\":\"model\",\"messages\":[{\"role\":\"user\",\"content\":\"Weathe
 
 read notify FIRST_FRAME_READ
 
-read "},\"id\":\"toolu_1\"}]}]}"
+read "},\"id\":\"call_1\"}]}]}"
 
 read closed
 

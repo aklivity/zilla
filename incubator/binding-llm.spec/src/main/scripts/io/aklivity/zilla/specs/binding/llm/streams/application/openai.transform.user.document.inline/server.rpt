@@ -41,9 +41,8 @@ read zilla:data.ext ${llm:matchDataEx()
                           .message(0)
                           .attribute("media-type", "application/pdf")
                           .attribute("source", "inline")
-                          .attribute("filename", "contract.pdf")
                           .build()}
-read "{\"type\":\"file\",\"file\":{\"filename\":\"contract.pdf\",\"file_data\":\"data:application/pdf;base64,JVBERi0=\"}}"
+read "{\"type\":\"file\",\"file\":{\"file_data\":\"data:application/pdf;base64,JVBERi0=\"}}"
 
 read advised zilla:flush
 

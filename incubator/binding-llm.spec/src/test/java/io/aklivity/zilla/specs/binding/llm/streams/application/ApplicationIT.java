@@ -1883,9 +1883,9 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/openai.transform.user.document/client",
-        "${app}/openai.transform.user.document/server"})
-    public void shouldCarryAnthropicTransformOpenaiUserDocument() throws Exception
+        "${app}/openai.transform.user.document.reference/client",
+        "${app}/openai.transform.user.document.reference/server"})
+    public void shouldCarryAnthropicTransformOpenaiUserDocumentReference() throws Exception
     {
         k3po.finish();
     }
@@ -1973,54 +1973,54 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/openai.transform.tool.call/client",
-        "${app}/openai.transform.tool.call/server"})
-    public void shouldCarryAnthropicTransformOpenaiToolCall() throws Exception
+        "${app}/openai.transform.assistant.tool.call/client",
+        "${app}/openai.transform.assistant.tool.call/server"})
+    public void shouldCarryAnthropicTransformOpenaiAssistantToolCall() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/openai.transform.tool.call.100k/client",
-        "${app}/openai.transform.tool.call.100k/server"})
-    public void shouldCarryAnthropicTransformOpenaiToolCall100k() throws Exception
+        "${app}/openai.transform.assistant.tool.call.100k/client",
+        "${app}/openai.transform.assistant.tool.call.100k/server"})
+    public void shouldCarryAnthropicTransformOpenaiAssistantToolCall100k() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/openai.transform.tool.call.10k/client",
-        "${app}/openai.transform.tool.call.10k/server"})
-    public void shouldCarryAnthropicTransformOpenaiToolCall10k() throws Exception
+        "${app}/openai.transform.assistant.tool.call.10k/client",
+        "${app}/openai.transform.assistant.tool.call.10k/server"})
+    public void shouldCarryAnthropicTransformOpenaiAssistantToolCall10k() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/openai.transform.tool.call.escaped/client",
-        "${app}/openai.transform.tool.call.escaped/server"})
-    public void shouldCarryAnthropicTransformOpenaiToolCallEscaped() throws Exception
+        "${app}/openai.transform.assistant.tool.call.escaped/client",
+        "${app}/openai.transform.assistant.tool.call.escaped/server"})
+    public void shouldCarryAnthropicTransformOpenaiAssistantToolCallEscaped() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/openai.transform.tool.call.id.last/client",
-        "${app}/openai.transform.tool.call.id.last/server"})
-    public void shouldCarryAnthropicTransformOpenaiToolCallIdLast() throws Exception
+        "${app}/openai.transform.assistant.tool.call.id.last/client",
+        "${app}/openai.transform.assistant.tool.call.id.last/server"})
+    public void shouldCarryAnthropicTransformOpenaiAssistantToolCallIdLast() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/openai.transform.tool.call.name.last/client",
-        "${app}/openai.transform.tool.call.name.last/server"})
-    public void shouldCarryAnthropicTransformOpenaiToolCallNameLast() throws Exception
+        "${app}/openai.transform.assistant.tool.call.name.last/client",
+        "${app}/openai.transform.assistant.tool.call.name.last/server"})
+    public void shouldCarryAnthropicTransformOpenaiAssistantToolCallNameLast() throws Exception
     {
         k3po.finish();
     }
