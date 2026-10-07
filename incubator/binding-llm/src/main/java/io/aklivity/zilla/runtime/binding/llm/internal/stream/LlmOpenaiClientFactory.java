@@ -860,7 +860,10 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             final int credit = Math.max(0, room - http.holdLength);
             final long target = initialSeq + credit;
 
-            if (!LlmState.initialClosing(state) && !LlmState.initialClosed(state) && target > initialAck + initialMax)
+            if (http.initialMax > 0 &&
+                !LlmState.initialClosing(state) &&
+                !LlmState.initialClosed(state) &&
+                target > initialAck + initialMax)
             {
                 initialAck = initialSeq;
                 initialMax = (int) (target - initialSeq);
@@ -4267,6 +4270,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             state = LlmState.openInitial(state);
 
             flushEncode(window.traceId());
+            stream.flushAppWindow(window.traceId());
         }
 
         private void onNetReset(

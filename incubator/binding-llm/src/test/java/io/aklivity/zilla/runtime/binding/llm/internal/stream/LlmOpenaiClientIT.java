@@ -1158,4 +1158,14 @@ public class LlmOpenaiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.rejected.unreachable/client",
+        "${net}/openai.rejected.unreachable/server"})
+    public void shouldResetOpenaiRequestWhenServerUnreachable() throws Exception
+    {
+        k3po.finish();
+    }
 }

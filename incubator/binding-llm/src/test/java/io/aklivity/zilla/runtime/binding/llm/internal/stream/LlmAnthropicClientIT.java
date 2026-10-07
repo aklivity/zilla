@@ -1187,4 +1187,14 @@ public class LlmAnthropicClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.rejected.unreachable/client",
+        "${net}/anthropic.rejected.unreachable/server"})
+    public void shouldResetAnthropicRequestWhenServerUnreachable() throws Exception
+    {
+        k3po.finish();
+    }
 }
