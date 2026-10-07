@@ -58,11 +58,11 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .id("chatcmpl_2")
                            .build()}
 
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .block("model")
                           .build()}
-read "\"gpt-4\""
+read "{\"id\":\"chatcmpl_2\",\"object\":\"chat.completion\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\""
 
 read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDataEx()
@@ -73,17 +73,10 @@ read zilla:data.ext ${llm:matchDataEx()
 read "Hello! How can I help you today?"
 
 read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectAfterBlockDataEx()
-                        .typeId(zilla:id("llm"))
-                        .block("finish_reason")
-                        .build()}
-read "\"stop\""
-
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
+read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .block("usage")
                           .build()}
-read "{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}"
+read "\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}}"
 
 read zilla:end.ext ${llm:matchEndEx()
                             .typeId(zilla:id("llm"))

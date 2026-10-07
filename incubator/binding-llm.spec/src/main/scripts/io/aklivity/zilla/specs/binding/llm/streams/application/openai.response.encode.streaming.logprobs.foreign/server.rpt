@@ -32,11 +32,10 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
+read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .block("model")
                           .build()}
-read "\"gpt-4\""
+read "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\""
 
 read zilla:data.ext ${llm:matchDataEx()
                         .typeId(zilla:id("llm"))
@@ -45,19 +44,10 @@ read zilla:data.ext ${llm:matchDataEx()
                         .build()}
 read "Hello"
 
-read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
-                        .typeId(zilla:id("llm"))
-                        .block("logprobs")
-                        .build()}
-read "true"
-
-read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
-                        .typeId(zilla:id("llm"))
-                        .block("stream")
-                        .build()}
-read "true"
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+read "\"}],\"logprobs\":true,\"stream\":true}"
 
 read advised zilla:flush
 
@@ -74,53 +64,26 @@ write zilla:data.ext ${llm:dataEx()
                          .typeId(zilla:id("llm"))
                          .type("ASSISTANT_TEXT")
                          .message(0)
-                         .follow("AFTER_BLOCK")
                          .build()}
 write "Hello"
 write flush
 
 write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectAfterBlockDataEx()
-                         .typeId(zilla:id("llm"))
-                         .block("logprobs")
-                         .build()}
-write "{\"content\":[{\"token\":\"Hello\",\"logprob\":-0.5,\"bytes\":[72,101,108,108,111],\"top_logprobs\":[{\"token\":\"Hello\",\"logprob\":-0.5,\"bytes\":[72,101,108,108,111]}]}],\"refusal\":null}"
-write flush
-
-write option zilla:flags "init fin"
 write zilla:data.ext ${llm:dataEx()
                          .typeId(zilla:id("llm"))
                          .type("ASSISTANT_TEXT")
                          .message(0)
-                         .follow("AFTER_BLOCK")
                          .build()}
 write " there"
 write flush
 
 write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectAfterBlockDataEx()
-                         .typeId(zilla:id("llm"))
-                         .block("logprobs")
-                         .build()}
-write zilla:data.empty
-write flush
-
-write option zilla:flags "init fin"
 write zilla:data.ext ${llm:dataEx()
                          .typeId(zilla:id("llm"))
                          .type("ASSISTANT_TEXT")
                          .message(0)
-                         .follow("AFTER_BLOCK")
                          .build()}
 write "!"
-write flush
-
-write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectAfterBlockDataEx()
-                         .typeId(zilla:id("llm"))
-                         .block("logprobs")
-                         .build()}
-write "{\"content\":[{\"token\":\"!\",\"logprob\":-1.25,\"bytes\":[33],\"top_logprobs\":[]}],\"refusal\":null}"
 write flush
 
 write zilla:end.ext ${llm:endEx()

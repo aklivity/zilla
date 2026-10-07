@@ -27,11 +27,10 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
+read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .block("model")
                           .build()}
-read "\"claude-3-opus-20240229\""
+read "{\"model\":\"claude-3-opus-20240229\",\"system\":[{\"type\":\"text\",\"text\":\""
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
@@ -39,6 +38,11 @@ read zilla:data.ext ${llm:matchDataEx()
                           .message(-1)
                           .build()}
 read "You are helpful."
+
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+read "\"}],\"tools\":["
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
@@ -48,12 +52,22 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "{\"name\":\"get_weather\",\"description\":\"Get the weather\",\"input_schema\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}}}}"
 
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+read "],\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\""
+
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
 read "Weather in Paris?"
+
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+read "\"}]},{\"role\":\"assistant\",\"content\":["
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
@@ -64,6 +78,11 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"get_weather\",\"input\":{\"city\":\"Paris\"}}"
 
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+read "]},{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":[{\"type\":\"text\",\"text\":\""
+
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("TOOL_RESULT")
@@ -71,6 +90,11 @@ read zilla:data.ext ${llm:matchDataEx()
                           .attribute("tool-call-id", "toolu_1")
                           .build()}
 read "sunny"
+
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+read "\"}]}]}]}"
 
 read advised zilla:flush
 

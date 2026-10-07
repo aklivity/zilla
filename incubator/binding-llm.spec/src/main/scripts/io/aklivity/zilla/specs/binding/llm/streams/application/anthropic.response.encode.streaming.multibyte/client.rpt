@@ -25,25 +25,10 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write zilla:data.ext ${llm:dialectBlockDataEx()
-                           .typeId(zilla:id("llm"))
-                           .block("model")
-                           .build()}
-write "\"claude-3-opus-20240229\""
-write flush
-
-write zilla:data.ext ${llm:dialectBlockDataEx()
-                           .typeId(zilla:id("llm"))
-                           .block("max_tokens")
-                           .build()}
-write "1024"
-write flush
-
-write zilla:data.ext ${llm:dialectBlockDataEx()
-                           .typeId(zilla:id("llm"))
-                           .block("stream")
-                           .build()}
-write "true"
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "{\"model\":\"claude-3-opus-20240229\",\"max_tokens\":1024,\"stream\":true,\"messages\":[{\"role\":\"user\",\"content\":\""
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -52,6 +37,12 @@ write zilla:data.ext ${llm:dataEx()
                           .message(0)
                           .build()}
 write "Hello"
+write flush
+
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "\"}]}"
 write flush
 
 write advise zilla:flush

@@ -28,11 +28,10 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
+read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .block("model")
                           .build()}
-read "\"gpt-a\""
+read "{\"model\":\"gpt-a\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\""
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
@@ -40,6 +39,11 @@ read zilla:data.ext ${llm:matchDataEx()
                           .message(0)
                           .build()}
 read ${core:randomBase64(100000)}
+
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+read "\"}]}]}"
 
 read advised zilla:flush
 
@@ -51,11 +55,11 @@ write zilla:begin.ext ${llm:beginEx()
                            .build()}
 write flush
 
-write zilla:data.ext ${llm:dialectBlockDataEx()
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .block("model")
                           .build()}
-write "\"gpt-4\""
+write "{\"id\":\"chatcmpl_2\",\"object\":\"chat.completion\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\""
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -67,18 +71,10 @@ write ${core:randomBase64(100000)}
 write flush
 
 write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectAfterBlockDataEx()
-                        .typeId(zilla:id("llm"))
-                        .block("finish_reason")
-                        .build()}
-write "\"stop\""
-write flush
-
-write zilla:data.ext ${llm:dialectBlockDataEx()
+write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .block("usage")
                           .build()}
-write "{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}"
+write "\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}}"
 write flush
 
 write zilla:end.ext ${llm:endEx()

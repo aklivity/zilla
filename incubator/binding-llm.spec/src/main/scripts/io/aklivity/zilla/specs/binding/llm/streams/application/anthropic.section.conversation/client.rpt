@@ -25,11 +25,10 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write zilla:data.ext ${llm:dialectBlockDataEx()
-                           .typeId(zilla:id("llm"))
-                           .block("model")
-                           .build()}
-write "\"claude-3-opus-20240229\""
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "{\"model\":\"claude-3-opus-20240229\",\"system\":[{\"type\":\"text\",\"text\":\""
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -38,6 +37,12 @@ write zilla:data.ext ${llm:dataEx()
                           .message(-1)
                           .build()}
 write "You are helpful."
+write flush
+
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "\"}],\"tools\":["
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -49,12 +54,24 @@ write zilla:data.ext ${llm:dataEx()
 write "{\"name\":\"get_weather\",\"description\":\"Get the weather\",\"input_schema\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}}}}"
 write flush
 
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "],\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\""
+write flush
+
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
 write "Weather in Paris?"
+write flush
+
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "\"}]},{\"role\":\"assistant\",\"content\":["
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -67,6 +84,12 @@ write zilla:data.ext ${llm:dataEx()
 write "{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"get_weather\",\"input\":{\"city\":\"Paris\"}}"
 write flush
 
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "]},{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":[{\"type\":\"text\",\"text\":\""
+write flush
+
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("TOOL_RESULT")
@@ -74,6 +97,12 @@ write zilla:data.ext ${llm:dataEx()
                           .attribute("tool-call-id", "toolu_1")
                           .build()}
 write "sunny"
+write flush
+
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "\"}]}]}]}"
 write flush
 
 write advise zilla:flush

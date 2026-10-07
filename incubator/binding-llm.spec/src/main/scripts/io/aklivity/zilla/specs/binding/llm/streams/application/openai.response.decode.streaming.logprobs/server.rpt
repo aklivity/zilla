@@ -32,11 +32,10 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
+read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .block("model")
                           .build()}
-read "\"gpt-4\""
+read "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\""
 
 read zilla:data.ext ${llm:matchDataEx()
                         .typeId(zilla:id("llm"))
@@ -45,12 +44,10 @@ read zilla:data.ext ${llm:matchDataEx()
                         .build()}
 read "Hello"
 
-read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
-                        .typeId(zilla:id("llm"))
-                        .block("logprobs")
-                        .build()}
-read "true"
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+read "\"}],\"logprobs\":true}"
 
 read advised zilla:flush
 
@@ -63,21 +60,40 @@ write zilla:begin.ext ${llm:beginEx()
 write flush
 
 write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"\"},\"logprobs\":null,\"finish_reason\":null}]}"
+write flush
+
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\""
+write flush
+
+write option zilla:flags "init fin"
 write zilla:data.ext ${llm:dataEx()
                          .typeId(zilla:id("llm"))
                          .type("ASSISTANT_TEXT")
                          .message(0)
-                         .follow("AFTER_BLOCK")
                          .build()}
 write "Hello"
 write flush
 
 write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectAfterBlockDataEx()
-                         .typeId(zilla:id("llm"))
-                         .block("logprobs")
-                         .build()}
-write "{\"content\":[{\"token\":\"Hello\",\"logprob\":-0.5,\"bytes\":[72,101,108,108,111],\"top_logprobs\":[{\"token\":\"Hello\",\"logprob\":-0.5,\"bytes\":[72,101,108,108,111]}]}],\"refusal\":null}"
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "\"},\"logprobs\":{\"content\":[{\"token\":\"Hello\",\"logprob\":-0.5,\"bytes\":[72,101,108,108,111],\"top_logprobs\":[{\"token\":\"Hello\",\"logprob\":-0.5,\"bytes\":[72,101,108,108,111]}]}],\"refusal\":null},\"finish_reason\":null}]}"
+write flush
+
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\""
 write flush
 
 write option zilla:flags "init fin"
@@ -85,17 +101,22 @@ write zilla:data.ext ${llm:dataEx()
                          .typeId(zilla:id("llm"))
                          .type("ASSISTANT_TEXT")
                          .message(0)
-                         .follow("AFTER_BLOCK")
                          .build()}
 write " there"
 write flush
 
 write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectAfterBlockDataEx()
-                         .typeId(zilla:id("llm"))
-                         .block("logprobs")
-                         .build()}
-write zilla:data.empty
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "\"},\"logprobs\":null,\"finish_reason\":null}]}"
+write flush
+
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\""
 write flush
 
 write option zilla:flags "init fin"
@@ -103,17 +124,36 @@ write zilla:data.ext ${llm:dataEx()
                          .typeId(zilla:id("llm"))
                          .type("ASSISTANT_TEXT")
                          .message(0)
-                         .follow("AFTER_BLOCK")
                          .build()}
 write "!"
 write flush
 
 write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectAfterBlockDataEx()
-                         .typeId(zilla:id("llm"))
-                         .block("logprobs")
-                         .build()}
-write "{\"content\":[{\"token\":\"!\",\"logprob\":-1.25,\"bytes\":[33],\"top_logprobs\":[]}],\"refusal\":null}"
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "\"},\"logprobs\":{\"content\":[{\"token\":\"!\",\"logprob\":-1.25,\"bytes\":[33],\"top_logprobs\":[]}],\"refusal\":null},\"finish_reason\":null}]}"
+write flush
+
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{},\"logprobs\":null,\"finish_reason\":\"stop\"}]}"
+write flush
+
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[],\"usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}}"
+write flush
+
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "[DONE]"
 write flush
 
 write zilla:end.ext ${llm:endEx()

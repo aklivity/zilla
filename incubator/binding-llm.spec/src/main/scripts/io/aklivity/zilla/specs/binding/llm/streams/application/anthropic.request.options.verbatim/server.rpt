@@ -27,30 +27,10 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
+read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .block("model")
                           .build()}
-read "\"claude-3-opus-20240229\""
-
-read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
-                          .typeId(zilla:id("llm"))
-                          .block("temperature")
-                          .build()}
-read "0.5"
-read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
-                          .typeId(zilla:id("llm"))
-                          .block("container_id")
-                          .build()}
-read "\"ctr\\u005f1\""
-read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
-                          .typeId(zilla:id("llm"))
-                          .block("thinking")
-                          .build()}
-read "{ \"type\" : \"enabled\" , \"budget_tokens\" : 2048 }"
+read "{\"model\":\"claude-3-opus-20240229\", \"temperature\" :  0.5 ,\"container_id\" : \"ctr\\u005f1\" ,\"thinking\" : { \"type\" : \"enabled\" , \"budget_tokens\" : 2048 } ,\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\""
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
@@ -58,6 +38,11 @@ read zilla:data.ext ${llm:matchDataEx()
                           .message(0)
                           .build()}
 read "Hello"
+
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+read "\"}]}]}"
 
 read advised zilla:flush
 

@@ -30,11 +30,10 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
+read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .block("model")
                           .build()}
-read "\"gpt-4\""
+read "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\""
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
@@ -43,11 +42,10 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "What is the weather in Paris?"
 
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
+read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .block("stream")
                           .build()}
-read "true"
+read "\"}],\"stream\":true}"
 
 read advised zilla:flush
 
@@ -67,7 +65,6 @@ write zilla:data.ext ${llm:dataEx()
                           .build()}
 write "Let me check"
 write flush
-
 write option zilla:flags "fin"
 write zilla:data.empty
 write flush
@@ -82,15 +79,12 @@ write zilla:data.ext ${llm:dataEx()
                           .build()}
 write zilla:data.empty
 write flush
-
 write option zilla:flags "none"
 write "{\"city\":"
 write flush
-
 write option zilla:flags "none"
 write "\"Paris\"}"
 write flush
-
 write option zilla:flags "fin"
 write zilla:data.empty
 write flush

@@ -605,6 +605,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.roundtrip.streaming/client",
+        "${net}/openai.roundtrip.streaming/server"})
+    public void shouldOpenaiRoundtripStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.section.unknown.part/client",
         "${net}/openai.section.unknown.part/server"})
     public void shouldOpenaiSectionUnknownPart() throws Exception
@@ -974,15 +983,6 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/anthropic.section.rejected.tool.result.cache.control.without.content/client",
-        "${net}/anthropic.section.rejected.tool.result.cache.control.without.content/server"})
-    public void shouldAnthropicSectionRejectedToolResultCacheControlWithoutContent() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/anthropic.section.tool.result.cache.control.part.first/client",
         "${net}/anthropic.section.tool.result.cache.control.part.first/server"})
     public void shouldAnthropicSectionToolResultCacheControlPartFirst() throws Exception
@@ -1031,15 +1031,6 @@ public class NetworkIT
         "${net}/anthropic.section.other.blocks/client",
         "${net}/anthropic.section.other.blocks/server"})
     public void shouldAnthropicSectionOtherBlocks() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/anthropic.section.rejected.cache.control.without.text/client",
-        "${net}/anthropic.section.rejected.cache.control.without.text/server"})
-    public void shouldAnthropicSectionRejectedCacheControlWithoutText() throws Exception
     {
         k3po.finish();
     }

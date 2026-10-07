@@ -25,11 +25,10 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write zilla:data.ext ${llm:dialectBlockDataEx()
-                           .typeId(zilla:id("llm"))
-                           .block("model")
-                           .build()}
-write "\"claude-3-opus-20240229\""
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "{\"model\":\"claude-3-opus-20240229\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\""
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -40,13 +39,12 @@ write zilla:data.ext ${llm:dataEx()
 write "Hello"
 write flush
 
-write zilla:data.ext ${llm:dialectBlockDataEx()
-                           .typeId(zilla:id("llm"))
-                           .block("output_config")
-                           .build()}
-write "{\"format\":{\"type\":\"json_schema\",\"schema\":{\"type\":\"object\",\"description\":\""
-     ${core:randomBase64(100000)}
-     "\"}}}"
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "\"}]}],\"output_config\":{\"format\":{\"type\":\"json_schema\",\"schema\":{\"type\":\"object\",\"description\":\""
+      ${core:randomBase64(100000)}
+      "\"}}}}"
 write flush
 
 write advise zilla:flush

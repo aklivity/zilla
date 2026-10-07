@@ -59,31 +59,10 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .build()}
 
 read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
+read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .block("created")
                           .build()}
-read "1700000000"
-
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
-                          .typeId(zilla:id("llm"))
-                          .block("model")
-                          .build()}
-read "\"gpt-4\""
-
-read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
-                          .typeId(zilla:id("llm"))
-                          .block("service_tier")
-                          .build()}
-read "\"default\""
-
-read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
-                          .typeId(zilla:id("llm"))
-                          .block("prompt_filter_results")
-                          .build()}
-read "[{\"prompt_index\":0}]"
+read "{\"id\":\"chatcmpl_2\",\"object\":\"chat.completion\",\"created\":1700000000,\"model\":\"gpt-4\",\"service_tier\":\"default\",\"prompt_filter_results\":[{\"prompt_index\":0}],\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\""
 
 read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDataEx()
@@ -94,31 +73,10 @@ read zilla:data.ext ${llm:matchDataEx()
 read "Hello! How can I help you today?"
 
 read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectAfterBlockDataEx()
-                        .typeId(zilla:id("llm"))
-                        .block("finish_reason")
-                        .build()}
-read "\"stop\""
-
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
+read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .block("usage")
                           .build()}
-read "{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}"
-
-read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
-                          .typeId(zilla:id("llm"))
-                          .block("x_unset")
-                          .build()}
-read "null"
-
-read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
-                          .typeId(zilla:id("llm"))
-                          .block("system_fingerprint")
-                          .build()}
-read "\"fp_abc\""
+read "\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40},\"x_unset\":null,\"system_fingerprint\":\"fp_abc\"}"
 
 read zilla:end.ext ${llm:matchEndEx()
                             .typeId(zilla:id("llm"))

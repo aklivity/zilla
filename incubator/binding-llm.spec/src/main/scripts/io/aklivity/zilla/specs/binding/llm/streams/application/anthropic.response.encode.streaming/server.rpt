@@ -27,23 +27,10 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
+read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .block("model")
                           .build()}
-read "\"claude-3-opus-20240229\""
-
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
-                          .typeId(zilla:id("llm"))
-                          .block("max_tokens")
-                          .build()}
-read "1024"
-
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
-                          .typeId(zilla:id("llm"))
-                          .block("stream")
-                          .build()}
-read "true"
+read "{\"model\":\"claude-3-opus-20240229\",\"max_tokens\":1024,\"stream\":true,\"messages\":[{\"role\":\"user\",\"content\":\""
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
@@ -51,6 +38,11 @@ read zilla:data.ext ${llm:matchDataEx()
                           .message(0)
                           .build()}
 read "Hello"
+
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+read "\"}]}"
 
 read advised zilla:flush
 
@@ -70,11 +62,9 @@ write zilla:data.ext ${llm:dataEx()
                           .build()}
 write "Hello"
 write flush
-
 write option zilla:flags "none"
 write " there"
 write flush
-
 write option zilla:flags "fin"
 write zilla:data.empty
 write flush

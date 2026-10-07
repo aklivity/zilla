@@ -25,11 +25,10 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write zilla:data.ext ${llm:dialectBlockDataEx()
-                           .typeId(zilla:id("llm"))
-                           .block("max_tokens")
-                           .build()}
-write "1024"
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "{\"max_tokens\":1024,\"messages\":[{\"role\":\"user\",\"content\":\""
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -40,11 +39,10 @@ write zilla:data.ext ${llm:dataEx()
 write "Weather in Paris?"
 write flush
 
-write zilla:data.ext ${llm:dialectBlockDataEx()
-                           .typeId(zilla:id("llm"))
-                           .block("model")
-                           .build()}
-write "\"claude-3-opus-20240229\""
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "\"}],\"model\":\"claude-3-opus-20240229\",\"system\":\""
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -55,12 +53,24 @@ write zilla:data.ext ${llm:dataEx()
 write "You are helpful."
 write flush
 
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "\",\"tools\":["
+write flush
+
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("TOOL_DEFINITION")
                           .message(-1)
                           .build()}
 write "{\"name\":\"get_weather\",\"description\":\"Get the weather\",\"input_schema\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}}}}"
+write flush
+
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "]}"
 write flush
 
 write advise zilla:flush

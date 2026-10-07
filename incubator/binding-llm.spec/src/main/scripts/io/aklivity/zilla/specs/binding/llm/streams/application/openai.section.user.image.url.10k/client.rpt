@@ -25,11 +25,10 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write zilla:data.ext ${llm:dialectBlockDataEx()
-                           .typeId(zilla:id("llm"))
-                           .block("model")
-                           .build()}
-write "\"gpt-4\""
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":["
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -41,6 +40,12 @@ write zilla:data.ext ${llm:dataEx()
 write "{\"type\":\"image_url\",\"image_url\":{\"url\":\"https://example.com/images/"
       ${core:randomBase64(10000)}
       "\"}}"
+write flush
+
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "]}]}"
 write flush
 
 write advise zilla:flush

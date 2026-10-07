@@ -25,11 +25,10 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write zilla:data.ext ${llm:dialectBlockDataEx()
-                           .typeId(zilla:id("llm"))
-                           .block("model")
-                           .build()}
-write "\"claude-3-opus-20240229\""
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "{\"model\":\"claude-3-opus-20240229\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\""
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -38,6 +37,12 @@ write zilla:data.ext ${llm:dataEx()
                           .message(0)
                           .build()}
 write "Search"
+write flush
+
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "\"}]},{\"role\":\"assistant\",\"content\":["
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -52,6 +57,12 @@ write zilla:data.ext ${llm:dataEx()
 write "{\"type\":\"server_tool_use\",\"id\":\"srvtoolu_1\",\"name\":\"web_search\",\"input\":{\"query\":\"paris weather\"}}"
 write flush
 
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write ","
+write flush
+
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("SERVER_TOOL_RESULT")
@@ -61,6 +72,12 @@ write zilla:data.ext ${llm:dataEx()
                           .attribute("provider-executed", "true")
                           .build()}
 write "{\"type\":\"web_search_tool_result\",\"tool_use_id\":\"srvtoolu_1\",\"content\":[{\"type\":\"web_search_result\",\"url\":\"https://example.com\",\"title\":\"Example\"}]}"
+write flush
+
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "]}]}"
 write flush
 
 write advise zilla:flush

@@ -25,11 +25,10 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write zilla:data.ext ${llm:dialectBlockDataEx()
-                           .typeId(zilla:id("llm"))
-                           .block("model")
-                           .build()}
-write "\"gpt-4\""
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\""
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -40,12 +39,10 @@ write zilla:data.ext ${llm:dataEx()
 write "Hello"
 write flush
 
-write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectBlockDataEx()
-                           .typeId(zilla:id("llm"))
-                           .block("response_format")
-                           .build()}
-write "{\"type\":\"json_schema\",\"json_schema\":{\"name\":\"answer\",\"strict\":true,\"schema\":{\"type\":\"object\",\"description\":\"small\"}}}"
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "\"}],\"response_format\":{\"type\":\"json_schema\",\"json_schema\":{\"name\":\"answer\",\"strict\":true,\"schema\":{\"type\":\"object\",\"description\":\"small\"}}}}"
 write flush
 
 write advise zilla:flush

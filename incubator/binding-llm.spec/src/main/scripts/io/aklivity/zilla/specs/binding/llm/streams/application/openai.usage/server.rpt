@@ -29,11 +29,10 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
+read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .block("model")
                           .build()}
-read "\"gpt-4o-mini\""
+read "{\"model\":\"gpt-4o-mini\",\"messages\":[{\"role\":\"user\",\"content\":\""
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
@@ -41,6 +40,11 @@ read zilla:data.ext ${llm:matchDataEx()
                           .message(0)
                           .build()}
 read "Say hello in one sentence."
+
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+read "\"}]}"
 
 read advised zilla:flush
 
@@ -53,18 +57,10 @@ write zilla:begin.ext ${llm:beginEx()
 write flush
 
 write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectBlockDataEx()
-                           .typeId(zilla:id("llm"))
-                           .block("created")
-                           .build()}
-write "1789954927"
-write flush
-
-write zilla:data.ext ${llm:dialectBlockDataEx()
+write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .block("model")
                           .build()}
-write "\"gpt-4o-mini-2024-07-18\""
+write "{\"id\":\"chatcmpl-EQNKhNLHHohc7KwUHH83164mX3IMA\",\"object\":\"chat.completion\",\"created\":1789954927,\"model\":\"gpt-4o-mini-2024-07-18\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\""
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -76,59 +72,10 @@ write "Hello! How can I assist you today?"
 write flush
 
 write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectAfterBlockDataEx()
+write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .owner("CONTAINER")
-                          .block("refusal")
                           .build()}
-write "null"
-write flush
-
-write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectAfterBlockDataEx()
-                          .typeId(zilla:id("llm"))
-                          .owner("CONTAINER")
-                          .block("annotations")
-                          .build()}
-write "[]"
-write flush
-
-write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectAfterBlockDataEx()
-                          .typeId(zilla:id("llm"))
-                          .block("logprobs")
-                          .build()}
-write "null"
-write flush
-
-write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectAfterBlockDataEx()
-                        .typeId(zilla:id("llm"))
-                        .block("finish_reason")
-                        .build()}
-write "\"stop\""
-write flush
-
-write zilla:data.ext ${llm:dialectBlockDataEx()
-                          .typeId(zilla:id("llm"))
-                          .block("usage")
-                          .build()}
-write "{\"prompt_tokens\":13,\"completion_tokens\":9,\"total_tokens\":22,\"prompt_tokens_details\":{\"cached_tokens\":0,\"audio_tokens\":0},\"completion_tokens_details\":{\"reasoning_tokens\":0,\"audio_tokens\":0,\"accepted_prediction_tokens\":0,\"rejected_prediction_tokens\":0}}"
-write flush
-
-write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectBlockDataEx()
-                           .typeId(zilla:id("llm"))
-                           .block("service_tier")
-                           .build()}
-write "\"default\""
-write flush
-
-write zilla:data.ext ${llm:dialectBlockDataEx()
-                           .typeId(zilla:id("llm"))
-                           .block("system_fingerprint")
-                           .build()}
-write "\"fp_c28ee603a6\""
+write "\",\"refusal\":null,\"annotations\":[]},\"logprobs\":null,\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":13,\"completion_tokens\":9,\"total_tokens\":22,\"prompt_tokens_details\":{\"cached_tokens\":0,\"audio_tokens\":0},\"completion_tokens_details\":{\"reasoning_tokens\":0,\"audio_tokens\":0,\"accepted_prediction_tokens\":0,\"rejected_prediction_tokens\":0}},\"service_tier\":\"default\",\"system_fingerprint\":\"fp_c28ee603a6\"}"
 write flush
 
 write zilla:end.ext ${llm:endEx()

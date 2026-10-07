@@ -147,16 +147,6 @@ public class LlmAnthropicServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/anthropic.section.rejected.tool.result.cache.control.without.content/client",
-        "${app}/anthropic.section.rejected.tool.result.cache.control.without.content/server"})
-    public void shouldDecodeAnthropicSectionRejectedToolResultCacheControlWithoutContent() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
         "${net}/anthropic.section.tool.result.cache.control.part.first/client",
         "${app}/anthropic.section.tool.result.cache.control.part.first/server"})
     public void shouldDecodeAnthropicSectionToolResultCacheControlPartFirst() throws Exception
@@ -210,16 +200,6 @@ public class LlmAnthropicServerIT
         "${net}/anthropic.section.other.blocks/client",
         "${app}/anthropic.section.other.blocks/server"})
     public void shouldDecodeAnthropicSectionOtherBlocks() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/anthropic.section.rejected.cache.control.without.text/client",
-        "${app}/anthropic.section.rejected.cache.control.without.text/server"})
-    public void shouldDecodeAnthropicSectionRejectedCacheControlWithoutText() throws Exception
     {
         k3po.finish();
     }

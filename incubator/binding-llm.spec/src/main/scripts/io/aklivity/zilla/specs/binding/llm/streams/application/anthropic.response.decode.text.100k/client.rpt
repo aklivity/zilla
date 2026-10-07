@@ -42,6 +42,12 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .id("msg_01")
                            .build()}
 
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+read "{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3-opus-20240229\",\"content\":[{\"type\":\"text\",\"text\":\""
+
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
@@ -50,18 +56,10 @@ read zilla:data.ext ${llm:matchDataEx()
 read ${core:randomBase64(100000)}
 
 read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
+read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .block("stop_reason")
                           .build()}
-read "\"end_turn\""
-
-read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
-                          .typeId(zilla:id("llm"))
-                          .block("stop_sequence")
-                          .build()}
-read "null"
+read "\"}],\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"usage\":{\"input_tokens\":25,\"output_tokens\":15}}"
 
 read zilla:end.ext ${llm:matchEndEx()
                             .typeId(zilla:id("llm"))

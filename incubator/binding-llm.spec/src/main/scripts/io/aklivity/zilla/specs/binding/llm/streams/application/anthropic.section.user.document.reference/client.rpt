@@ -25,11 +25,10 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write zilla:data.ext ${llm:dialectBlockDataEx()
-                           .typeId(zilla:id("llm"))
-                           .block("model")
-                           .build()}
-write "\"claude-3-opus-20240229\""
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "{\"model\":\"claude-3-opus-20240229\",\"messages\":[{\"role\":\"user\",\"content\":["
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -40,6 +39,12 @@ write zilla:data.ext ${llm:dataEx()
                           .attribute("ref-id", "file_011abc")
                           .build()}
 write "{\"type\":\"document\",\"source\":{\"type\":\"file\",\"file_id\":\"file_011abc\"}}"
+write flush
+
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "]}]}"
 write flush
 
 write advise zilla:flush

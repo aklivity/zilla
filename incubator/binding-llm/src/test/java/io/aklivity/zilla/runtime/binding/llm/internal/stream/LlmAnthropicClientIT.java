@@ -529,7 +529,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/openai.section.system.instruction/client",
+        "${app}/anthropic.transform.openai.system.instruction/client",
         "${net}/anthropic.transform.openai.system.instruction/server"})
     public void shouldTransformOpenaiSectionSystemInstructionAsAnthropic() throws Exception
     {
@@ -539,7 +539,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/openai.section.user.text/client",
+        "${app}/anthropic.transform.openai.user.text/client",
         "${net}/anthropic.transform.openai.user.text/server"})
     public void shouldTransformOpenaiSectionUserTextAsAnthropic() throws Exception
     {
@@ -549,7 +549,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/openai.section.user.image/client",
+        "${app}/anthropic.transform.openai.user.image/client",
         "${net}/anthropic.transform.openai.user.image/server"})
     public void shouldTransformOpenaiSectionUserImageAsAnthropic() throws Exception
     {
@@ -559,7 +559,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/openai.section.user.document/client",
+        "${app}/anthropic.transform.openai.user.document/client",
         "${net}/anthropic.transform.openai.user.document/server"})
     public void shouldTransformOpenaiSectionUserDocumentAsAnthropic() throws Exception
     {
@@ -569,7 +569,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/openai.section.assistant.text/client",
+        "${app}/anthropic.transform.openai.assistant.text/client",
         "${net}/anthropic.transform.openai.assistant.text/server"})
     public void shouldTransformOpenaiSectionAssistantTextAsAnthropic() throws Exception
     {
@@ -579,7 +579,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/openai.section.assistant.refusal/client",
+        "${app}/anthropic.transform.openai.assistant.refusal/client",
         "${net}/anthropic.transform.openai.assistant.refusal/server"})
     public void shouldTransformOpenaiSectionAssistantRefusalAsAnthropic() throws Exception
     {
@@ -589,7 +589,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/openai.section.assistant.text.and.tool.call/client",
+        "${app}/anthropic.transform.openai.assistant.text.and.tool.call/client",
         "${net}/anthropic.transform.openai.assistant.text.and.tool.call/server"})
     public void shouldTransformOpenaiSectionAssistantTextAndToolCallAsAnthropic() throws Exception
     {
@@ -599,7 +599,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/openai.section.tool.definition/client",
+        "${app}/anthropic.transform.openai.tool.definition/client",
         "${net}/anthropic.transform.openai.tool.definition/server"})
     public void shouldTransformOpenaiSectionToolDefinitionAsAnthropic() throws Exception
     {
@@ -609,7 +609,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/openai.section.tool.result/client",
+        "${app}/anthropic.transform.openai.tool.result/client",
         "${net}/anthropic.transform.openai.tool.result/server"})
     public void shouldTransformOpenaiSectionToolResultAsAnthropic() throws Exception
     {
@@ -619,7 +619,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/openai.section.mixed.content/client",
+        "${app}/anthropic.transform.openai.mixed.content/client",
         "${net}/anthropic.transform.openai.mixed.content/server"})
     public void shouldTransformOpenaiSectionMixedContentAsAnthropic() throws Exception
     {
@@ -629,7 +629,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/openai.section.conversation/client",
+        "${app}/anthropic.transform.openai.conversation/client",
         "${net}/anthropic.transform.openai.conversation/server"})
     public void shouldTransformOpenaiSectionConversationAsAnthropic() throws Exception
     {
@@ -719,7 +719,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/openai.section.user.image.inline/client",
+        "${app}/anthropic.transform.openai.user.image.inline/client",
         "${net}/anthropic.transform.openai.user.image.inline/server"})
     public void shouldTransformOpenaiSectionUserImageInlineAsAnthropic() throws Exception
     {
@@ -729,7 +729,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/openai.section.user.document.inline/client",
+        "${app}/anthropic.transform.openai.user.document.inline/client",
         "${net}/anthropic.transform.openai.user.document.inline/server"})
     public void shouldTransformOpenaiSectionUserDocumentInlineAsAnthropic() throws Exception
     {
@@ -739,7 +739,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/openai.section.user.image.10k/client",
+        "${app}/anthropic.transform.openai.user.image.10k/client",
         "${net}/anthropic.transform.openai.user.image.10k/server"})
     public void shouldTransformOpenaiSectionUserImage10kAsAnthropic() throws Exception
     {
@@ -769,7 +769,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/openai.section.user.image.url.10k/client",
+        "${app}/anthropic.transform.openai.user.image.url.10k/client",
         "${net}/anthropic.transform.openai.user.image.url.10k/server"})
     public void shouldTransformOpenaiSectionUserImageUrl10kAsAnthropic() throws Exception
     {
@@ -779,7 +779,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/openai.section.user.image.url.100k/client",
+        "${app}/anthropic.transform.openai.user.image.url.100k/client",
         "${net}/anthropic.transform.openai.user.image.url.100k/server"})
     public void shouldTransformOpenaiSectionUserImageUrl100kAsAnthropic() throws Exception
     {
@@ -989,7 +989,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/openai.section.tool.call/client",
+        "${app}/anthropic.transform.openai.tool.call/client",
         "${net}/anthropic.transform.openai.tool.call/server"})
     public void shouldTransformOpenaiSectionToolCallAsAnthropic() throws Exception
     {
@@ -999,7 +999,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/openai.section.tool.call.100k/client",
+        "${app}/anthropic.transform.openai.tool.call.100k/client",
         "${net}/anthropic.transform.openai.tool.call.100k/server"})
     public void shouldTransformOpenaiSectionToolCall100kAsAnthropic() throws Exception
     {
@@ -1009,7 +1009,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/openai.section.tool.call.10k/client",
+        "${app}/anthropic.transform.openai.tool.call.10k/client",
         "${net}/anthropic.transform.openai.tool.call.10k/server"})
     public void shouldTransformOpenaiSectionToolCall10kAsAnthropic() throws Exception
     {
@@ -1019,7 +1019,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/openai.section.tool.call.escaped/client",
+        "${app}/anthropic.transform.openai.tool.call.escaped/client",
         "${net}/anthropic.transform.openai.tool.call.escaped/server"})
     public void shouldTransformOpenaiSectionToolCallEscapedAsAnthropic() throws Exception
     {
@@ -1029,7 +1029,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/openai.section.tool.call.id.last/client",
+        "${app}/anthropic.transform.openai.tool.call.id.last/client",
         "${net}/anthropic.transform.openai.tool.call.id.last/server"})
     public void shouldTransformOpenaiSectionToolCallIdLastAsAnthropic() throws Exception
     {
@@ -1039,7 +1039,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/openai.section.tool.call.name.last/client",
+        "${app}/anthropic.transform.openai.tool.call.name.last/client",
         "${net}/anthropic.transform.openai.tool.call.name.last/server"})
     public void shouldTransformOpenaiSectionToolCallNameLastAsAnthropic() throws Exception
     {
@@ -1049,7 +1049,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/openai.section.tool.definition.100k/client",
+        "${app}/anthropic.transform.openai.tool.definition.100k/client",
         "${net}/anthropic.transform.openai.tool.definition.100k/server"})
     public void shouldTransformOpenaiSectionToolDefinition100kAsAnthropic() throws Exception
     {
@@ -1059,7 +1059,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/openai.section.tool.definition.10k/client",
+        "${app}/anthropic.transform.openai.tool.definition.10k/client",
         "${net}/anthropic.transform.openai.tool.definition.10k/server"})
     public void shouldTransformOpenaiSectionToolDefinition10kAsAnthropic() throws Exception
     {
@@ -1069,7 +1069,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/openai.section.tool.definition.name.last/client",
+        "${app}/anthropic.transform.openai.tool.definition.name.last/client",
         "${net}/anthropic.transform.openai.tool.definition.name.last/server"})
     public void shouldTransformOpenaiSectionToolDefinitionNameLastAsAnthropic() throws Exception
     {
@@ -1079,7 +1079,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/openai.section.tool.definition.parameters.100k/client",
+        "${app}/anthropic.transform.openai.tool.definition.parameters.100k/client",
         "${net}/anthropic.transform.openai.tool.definition.parameters.100k/server"})
     public void shouldTransformOpenaiSectionToolDefinitionParameters100kAsAnthropic() throws Exception
     {
@@ -1089,7 +1089,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/openai.section.tool.definition.parameters.10k/client",
+        "${app}/anthropic.transform.openai.tool.definition.parameters.10k/client",
         "${net}/anthropic.transform.openai.tool.definition.parameters.10k/server"})
     public void shouldTransformOpenaiSectionToolDefinitionParameters10kAsAnthropic() throws Exception
     {

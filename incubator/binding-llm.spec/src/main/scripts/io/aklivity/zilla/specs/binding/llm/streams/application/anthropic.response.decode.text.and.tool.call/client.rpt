@@ -43,12 +43,24 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .build()}
 
 read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+read "{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3-opus-20240229\",\"content\":[{\"type\":\"text\",\"text\":\""
+
+read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
 read "Let me check both cities."
+
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+read "\"},{\"type\":\"tool_use\",\"id\":\"call_1\",\"name\":\"get_weather\",\"input\":"
 
 read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDataEx()
@@ -61,6 +73,12 @@ read zilla:data.ext ${llm:matchDataEx()
 read "{\"city\":\"Paris\"}"
 
 read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+read "},{\"type\":\"tool_use\",\"id\":\"call_2\",\"name\":\"get_weather\",\"input\":"
+
+read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("TOOL_CALL")
@@ -71,18 +89,10 @@ read zilla:data.ext ${llm:matchDataEx()
 read "{\"city\":\"London\"}"
 
 read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
+read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .block("stop_reason")
                           .build()}
-read "\"tool_use\""
-
-read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
-                          .typeId(zilla:id("llm"))
-                          .block("stop_sequence")
-                          .build()}
-read "null"
+read "}],\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"usage\":{\"input_tokens\":30,\"cache_creation_input_tokens\":3,\"cache_read_input_tokens\":10,\"output_tokens\":25}}"
 
 read zilla:end.ext ${llm:matchEndEx()
                             .typeId(zilla:id("llm"))

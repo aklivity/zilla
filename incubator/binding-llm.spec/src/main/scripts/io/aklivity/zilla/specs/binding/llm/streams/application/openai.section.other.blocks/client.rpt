@@ -25,42 +25,10 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write zilla:data.ext ${llm:dialectBlockDataEx()
-                           .typeId(zilla:id("llm"))
-                           .block("stream")
-                           .build()}
-write "false"
-write flush
-
-write zilla:data.ext ${llm:dialectBlockDataEx()
-                           .typeId(zilla:id("llm"))
-                           .block("temperature")
-                           .build()}
-write "0.5"
-write flush
-
-write zilla:data.ext ${llm:dialectBlockDataEx()
-                           .typeId(zilla:id("llm"))
-                           .block("logit_bias")
-                           .build()}
-write "{\"50256\":-100}"
-write flush
-
-write zilla:data.ext ${llm:dialectBlockDataEx()
-                           .typeId(zilla:id("llm"))
-                           .block("model")
-                           .build()}
-write "\"gpt-4\""
-write flush
-
-write zilla:data.ext ${llm:dialectBeforeBlockDataEx()
-                           .typeId(zilla:id("llm"))
-                           .type("USER_TEXT")
-                           .message(0)
-                           .owner("CONTAINER")
-                           .block("name")
-                           .build()}
-write "\"alice\""
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "{\"stream\":false,\"temperature\":0.5,\"logit_bias\":{\"50256\":-100},\"model\":\"gpt-4\",\"messages\":[{\"name\":\"alice\",\"role\":\"user\",\"content\":\""
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -71,11 +39,10 @@ write zilla:data.ext ${llm:dataEx()
 write "Hello"
 write flush
 
-write zilla:data.ext ${llm:dialectBlockDataEx()
-                           .typeId(zilla:id("llm"))
-                           .block("stop")
-                           .build()}
-write "[\"a\",\"b\"]"
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "\"}],\"stop\":[\"a\",\"b\"]}"
 write flush
 
 write advise zilla:flush

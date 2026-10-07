@@ -42,11 +42,11 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .id("chatcmpl_3")
                            .build()}
 
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .block("model")
                           .build()}
-read "\"gpt-4\""
+read "{\"id\":\"chatcmpl_3\",\"object\":\"chat.completion\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\""
 
 read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDataEx()
@@ -55,6 +55,12 @@ read zilla:data.ext ${llm:matchDataEx()
                           .message(0)
                           .build()}
 read "Let me check both cities."
+
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+read "\",\"tool_calls\":[{\"id\":\"call_1\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":\""
 
 read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDataEx()
@@ -67,6 +73,12 @@ read zilla:data.ext ${llm:matchDataEx()
 read "{\"city\":\"Paris\"}"
 
 read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+read "\"}},{\"id\":\"call_2\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":\""
+
+read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("TOOL_CALL")
@@ -77,17 +89,10 @@ read zilla:data.ext ${llm:matchDataEx()
 read "{\"city\":\"London\"}"
 
 read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectAfterBlockDataEx()
-                        .typeId(zilla:id("llm"))
-                        .block("finish_reason")
-                        .build()}
-read "\"tool_calls\""
-
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
+read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .block("usage")
                           .build()}
-read "{\"prompt_tokens\":30,\"completion_tokens\":25,\"total_tokens\":55,\"prompt_tokens_details\":{\"cached_tokens\":10},\"completion_tokens_details\":{\"reasoning_tokens\":2}}"
+read "\"}}]},\"finish_reason\":\"tool_calls\"}],\"usage\":{\"prompt_tokens\":30,\"completion_tokens\":25,\"total_tokens\":55,\"prompt_tokens_details\":{\"cached_tokens\":10},\"completion_tokens_details\":{\"reasoning_tokens\":2}}}"
 
 read zilla:end.ext ${llm:matchEndEx()
                             .typeId(zilla:id("llm"))

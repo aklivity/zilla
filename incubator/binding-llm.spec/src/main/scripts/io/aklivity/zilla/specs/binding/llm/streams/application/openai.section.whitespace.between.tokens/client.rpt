@@ -25,11 +25,10 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write zilla:data.ext ${llm:dialectBlockDataEx()
-                           .typeId(zilla:id("llm"))
-                           .block("model")
-                           .build()}
-write "\"gpt-4\""
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "{\n\t\"model\" : \"gpt-4\" ,\n\t\"messages\" : [\n\t\t{ \"role\" : \"system\" , \"content\" : \""
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -40,12 +39,24 @@ write zilla:data.ext ${llm:dataEx()
 write "Be brief"
 write flush
 
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "\" } ,\n\t\t{\t\"role\"\t:\t\"user\"\t,\n\t\t  \"content\" : \""
+write flush
+
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("USER_TEXT")
                           .message(1)
                           .build()}
 write "Hello  there"
+write flush
+
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "\" }\n\t]\n}"
 write flush
 
 write advise zilla:flush

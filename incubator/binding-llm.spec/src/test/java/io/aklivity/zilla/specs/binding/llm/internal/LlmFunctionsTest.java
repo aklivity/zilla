@@ -29,10 +29,8 @@ import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmAbortExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmBeginExFW;
-import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmBlockOwner;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmDataExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmEndExFW;
-import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmFollow;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmResetExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmSectionDataExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmSectionType;
@@ -1498,451 +1496,73 @@ public class LlmFunctionsTest
     }
 
     @Test
-    public void shouldGenerateAndMatchDialectBlockDataEx() throws Exception
+    public void shouldGenerateAndMatchDialectDataEx() throws Exception
     {
-        final byte[] dataEx = LlmFunctions.dialectBlockDataEx()
+        final byte[] dataEx = LlmFunctions.dialectDataEx()
             .typeId(0)
-            .block("response_format")
             .build();
 
-        final BytesMatcher matcher = LlmFunctions.matchDialectBlockDataEx()
-            .typeId(0)
-            .block("response_format")
-            .build();
+        final LlmDataExFW decoded = new LlmDataExFW().wrap(new UnsafeBufferEx(dataEx), 0, dataEx.length);
 
-        final ByteBuffer byteBuf = ByteBuffer.wrap(dataEx);
-        assertNotNull(matcher.match(byteBuf));
-        assertEquals(dataEx.length, byteBuf.position());
+        assertEquals(LlmDataExFW.KIND_DIALECT, decoded.kind());
+        assertNotNull(LlmFunctions.matchDialectDataEx().typeId(0).build().match(ByteBuffer.wrap(dataEx)));
     }
 
     @Test
-    public void shouldFailMatchDialectBlockDataExBlockMismatch() throws Exception
+    public void shouldMatchDialectDataExWithoutConstraints() throws Exception
     {
-        final byte[] dataEx = LlmFunctions.dialectBlockDataEx()
-            .typeId(0)
-            .block("response_format")
+        final byte[] dataEx = LlmFunctions.dialectDataEx()
+            .typeId(1)
             .build();
 
-        final BytesMatcher matcher = LlmFunctions.matchDialectBlockDataEx()
-            .typeId(0)
-            .block("output_config")
+        assertNotNull(LlmFunctions.matchDialectDataEx().build().match(ByteBuffer.wrap(dataEx)));
+    }
+
+    @Test
+    public void shouldFailMatchDialectDataExTypeIdMismatch() throws Exception
+    {
+        final byte[] dataEx = LlmFunctions.dialectDataEx()
+            .typeId(1)
+            .build();
+
+        final BytesMatcher matcher = LlmFunctions.matchDialectDataEx()
+            .typeId(2)
             .build();
 
         assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(dataEx)));
     }
 
     @Test
-    public void shouldMatchDialectBlockDataExWithoutConstraints() throws Exception
-    {
-        final byte[] dataEx = LlmFunctions.dialectBlockDataEx()
-            .typeId(0)
-            .block("n")
-            .build();
-
-        assertNotNull(LlmFunctions.matchDialectBlockDataEx().build().match(ByteBuffer.wrap(dataEx)));
-    }
-
-    @Test
-    public void shouldNotMatchSectionAsDialectBlockDataEx() throws Exception
+    public void shouldNotMatchSectionAsDialectDataEx() throws Exception
     {
         final byte[] dataEx = LlmFunctions.dataEx()
             .typeId(0)
             .type("USER_TEXT")
             .build();
 
-        assertThrows(Exception.class, () -> LlmFunctions.matchDialectBlockDataEx().build().match(ByteBuffer.wrap(dataEx)));
+        assertThrows(Exception.class, () -> LlmFunctions.matchDialectDataEx().build().match(ByteBuffer.wrap(dataEx)));
     }
 
     @Test
-    public void shouldNotMatchDialectBlockAsSectionDataEx() throws Exception
+    public void shouldNotMatchDialectAsSectionDataEx() throws Exception
     {
-        final byte[] dataEx = LlmFunctions.dialectBlockDataEx()
+        final byte[] dataEx = LlmFunctions.dialectDataEx()
             .typeId(0)
-            .block("n")
             .build();
 
         assertThrows(Exception.class, () -> LlmFunctions.matchDataEx().build().match(ByteBuffer.wrap(dataEx)));
     }
 
     @Test
-    public void shouldGenerateDialectBlockDataExAsBlockKind()
+    public void shouldGenerateDialectDataExAsDialectKind()
     {
-        final byte[] bytes = LlmFunctions.dialectBlockDataEx()
+        final byte[] dataEx = LlmFunctions.dialectDataEx()
             .typeId(0)
-            .block("logprobs")
-            .build();
-
-        final LlmDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
-
-        assertEquals(LlmDataExFW.KIND_BLOCK, dataEx.kind());
-        assertEquals("logprobs", dataEx.block().block().asString());
-    }
-
-    @Test
-    public void shouldGenerateAndMatchDialectBeforeBlockDataEx() throws Exception
-    {
-        final byte[] dataEx = LlmFunctions.dialectBeforeBlockDataEx()
-            .typeId(0)
-            .type("USER_TEXT")
-            .block("cache_control")
-            .build();
-
-        final BytesMatcher matcher = LlmFunctions.matchDialectBeforeBlockDataEx()
-            .typeId(0)
-            .type("USER_TEXT")
-            .block("cache_control")
-            .build();
-
-        final ByteBuffer byteBuf = ByteBuffer.wrap(dataEx);
-        assertNotNull(matcher.match(byteBuf));
-        assertEquals(dataEx.length, byteBuf.position());
-    }
-
-    @Test
-    public void shouldGenerateDialectBeforeBlockDataExAsBeforeKind()
-    {
-        final byte[] bytes = LlmFunctions.dialectBeforeBlockDataEx()
-            .typeId(0)
-            .type("USER_TEXT")
-            .block("cache_control")
-            .build();
-
-        final LlmDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
-
-        assertEquals(LlmDataExFW.KIND_BEFORE, dataEx.kind());
-        assertEquals(LlmSectionType.USER_TEXT, dataEx.before().type().get());
-        assertEquals("cache_control", dataEx.before().block().asString());
-    }
-
-    @Test
-    public void shouldGenerateAndMatchDialectBeforeBlockDataExMessage() throws Exception
-    {
-        final byte[] dataEx = LlmFunctions.dialectBeforeBlockDataEx()
-            .typeId(0)
-            .type("USER_TEXT")
-            .message(2)
-            .block("cache_control")
             .build();
 
         final LlmDataExFW decoded = new LlmDataExFW().wrap(new UnsafeBufferEx(dataEx), 0, dataEx.length);
 
-        assertEquals(2, decoded.before().message());
-        assertNotNull(LlmFunctions.matchDialectBeforeBlockDataEx().typeId(0).message(2).build().match(ByteBuffer.wrap(dataEx)));
-        assertThrows(Exception.class,
-            () -> LlmFunctions.matchDialectBeforeBlockDataEx().typeId(0).message(3).build().match(ByteBuffer.wrap(dataEx)));
-    }
-
-    @Test
-    public void shouldDefaultDialectBeforeBlockDataExMessageToNone()
-    {
-        final byte[] bytes = LlmFunctions.dialectBeforeBlockDataEx()
-            .typeId(0)
-            .type("SYSTEM_INSTRUCTION")
-            .block("cache_control")
-            .build();
-
-        final LlmDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
-
-        assertEquals(-1, dataEx.before().message());
-    }
-
-    @Test
-    public void shouldFailMatchDialectBeforeBlockDataExTypeMismatch() throws Exception
-    {
-        final byte[] dataEx = LlmFunctions.dialectBeforeBlockDataEx()
-            .typeId(0)
-            .type("USER_TEXT")
-            .block("cache_control")
-            .build();
-
-        final BytesMatcher matcher = LlmFunctions.matchDialectBeforeBlockDataEx()
-            .typeId(0)
-            .type("ASSISTANT_TEXT")
-            .build();
-
-        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(dataEx)));
-    }
-
-    @Test
-    public void shouldFailMatchDialectBeforeBlockDataExBlockMismatch() throws Exception
-    {
-        final byte[] dataEx = LlmFunctions.dialectBeforeBlockDataEx()
-            .typeId(0)
-            .type("USER_TEXT")
-            .block("cache_control")
-            .build();
-
-        final BytesMatcher matcher = LlmFunctions.matchDialectBeforeBlockDataEx()
-            .typeId(0)
-            .block("citations")
-            .build();
-
-        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(dataEx)));
-    }
-
-    @Test
-    public void shouldMatchDialectBeforeBlockDataExWithoutConstraints() throws Exception
-    {
-        final byte[] dataEx = LlmFunctions.dialectBeforeBlockDataEx()
-            .typeId(0)
-            .type("USER_TEXT")
-            .block("cache_control")
-            .build();
-
-        assertNotNull(LlmFunctions.matchDialectBeforeBlockDataEx().build().match(ByteBuffer.wrap(dataEx)));
-    }
-
-    @Test
-    public void shouldNotMatchDialectBeforeBlockAsAfterBlockDataEx() throws Exception
-    {
-        final byte[] dataEx = LlmFunctions.dialectBeforeBlockDataEx()
-            .typeId(0)
-            .type("USER_TEXT")
-            .block("cache_control")
-            .build();
-
-        assertThrows(Exception.class,
-            () -> LlmFunctions.matchDialectAfterBlockDataEx().build().match(ByteBuffer.wrap(dataEx)));
-    }
-
-    @Test
-    public void shouldGenerateAndMatchDialectAfterBlockDataEx() throws Exception
-    {
-        final byte[] dataEx = LlmFunctions.dialectAfterBlockDataEx()
-            .typeId(0)
-            .block("cache_control")
-            .build();
-
-        final BytesMatcher matcher = LlmFunctions.matchDialectAfterBlockDataEx()
-            .typeId(0)
-            .block("cache_control")
-            .build();
-
-        final ByteBuffer byteBuf = ByteBuffer.wrap(dataEx);
-        assertNotNull(matcher.match(byteBuf));
-        assertEquals(dataEx.length, byteBuf.position());
-    }
-
-    @Test
-    public void shouldGenerateDialectAfterBlockDataExAsAfterKind()
-    {
-        final byte[] bytes = LlmFunctions.dialectAfterBlockDataEx()
-            .typeId(0)
-            .block("cache_control")
-            .build();
-
-        final LlmDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
-
-        assertEquals(LlmDataExFW.KIND_AFTER, dataEx.kind());
-        assertEquals("cache_control", dataEx.after().block().asString());
-    }
-
-    @Test
-    public void shouldFailMatchDialectAfterBlockDataExBlockMismatch() throws Exception
-    {
-        final byte[] dataEx = LlmFunctions.dialectAfterBlockDataEx()
-            .typeId(0)
-            .block("cache_control")
-            .build();
-
-        final BytesMatcher matcher = LlmFunctions.matchDialectAfterBlockDataEx()
-            .typeId(0)
-            .block("citations")
-            .build();
-
-        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(dataEx)));
-    }
-
-    @Test
-    public void shouldMatchDialectAfterBlockDataExWithoutConstraints() throws Exception
-    {
-        final byte[] dataEx = LlmFunctions.dialectAfterBlockDataEx()
-            .typeId(0)
-            .block("cache_control")
-            .build();
-
-        assertNotNull(LlmFunctions.matchDialectAfterBlockDataEx().build().match(ByteBuffer.wrap(dataEx)));
-    }
-
-    @Test
-    public void shouldNotMatchStreamDialectAsSectionScoped() throws Exception
-    {
-        final byte[] dataEx = LlmFunctions.dialectBlockDataEx()
-            .typeId(0)
-            .block("temperature")
-            .build();
-
-        assertThrows(Exception.class,
-            () -> LlmFunctions.matchDialectBeforeBlockDataEx().build().match(ByteBuffer.wrap(dataEx)));
-        assertThrows(Exception.class,
-            () -> LlmFunctions.matchDialectAfterBlockDataEx().build().match(ByteBuffer.wrap(dataEx)));
-    }
-
-    @Test
-    public void shouldGenerateAndMatchDialectAfterBlockDataExContainerOwner() throws Exception
-    {
-        final byte[] dataEx = LlmFunctions.dialectAfterBlockDataEx()
-            .typeId(0)
-            .owner("CONTAINER")
-            .block("cache_control")
-            .build();
-
-        final LlmDataExFW decoded = new LlmDataExFW().wrap(new UnsafeBufferEx(dataEx), 0, dataEx.length);
-
-        assertEquals(LlmBlockOwner.CONTAINER, decoded.after().owner().get());
-        assertNotNull(LlmFunctions.matchDialectAfterBlockDataEx().typeId(0).owner("CONTAINER").block("cache_control").build()
-            .match(ByteBuffer.wrap(dataEx)));
-    }
-
-    @Test
-    public void shouldDefaultDialectAfterBlockDataExOwnerToSection() throws Exception
-    {
-        final byte[] dataEx = LlmFunctions.dialectAfterBlockDataEx()
-            .typeId(0)
-            .block("cache_control")
-            .build();
-
-        final LlmDataExFW decoded = new LlmDataExFW().wrap(new UnsafeBufferEx(dataEx), 0, dataEx.length);
-
-        assertEquals(LlmBlockOwner.SECTION, decoded.after().owner().get());
-    }
-
-    @Test
-    public void shouldFailMatchDialectAfterBlockDataExOwnerMismatch() throws Exception
-    {
-        final byte[] dataEx = LlmFunctions.dialectAfterBlockDataEx()
-            .typeId(0)
-            .owner("CONTAINER")
-            .block("cache_control")
-            .build();
-
-        final BytesMatcher matcher = LlmFunctions.matchDialectAfterBlockDataEx()
-            .typeId(0)
-            .block("cache_control")
-            .build();
-
-        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(dataEx)));
-    }
-
-    @Test
-    public void shouldGenerateAndMatchDialectBeforeBlockDataExContainerOwnerAndAttributes() throws Exception
-    {
-        final byte[] dataEx = LlmFunctions.dialectBeforeBlockDataEx()
-            .typeId(0)
-            .type("TOOL_RESULT")
-            .message(0)
-            .owner("CONTAINER")
-            .attribute("tool-call-id", "toolu_1")
-            .block("cache_control")
-            .build();
-
-        final LlmDataExFW decoded = new LlmDataExFW().wrap(new UnsafeBufferEx(dataEx), 0, dataEx.length);
-
-        assertEquals(LlmBlockOwner.CONTAINER, decoded.before().owner().get());
-        assertEquals(1, decoded.before().attributes().fieldCount());
-        assertNotNull(LlmFunctions.matchDialectBeforeBlockDataEx()
-            .typeId(0)
-            .type("TOOL_RESULT")
-            .message(0)
-            .owner("CONTAINER")
-            .attribute("tool-call-id", "toolu_1")
-            .block("cache_control")
-            .build()
-            .match(ByteBuffer.wrap(dataEx)));
-    }
-
-    @Test
-    public void shouldFailMatchDialectBeforeBlockDataExAttributeMismatch() throws Exception
-    {
-        final byte[] dataEx = LlmFunctions.dialectBeforeBlockDataEx()
-            .typeId(0)
-            .type("TOOL_RESULT")
-            .attribute("tool-call-id", "toolu_1")
-            .block("cache_control")
-            .build();
-
-        final BytesMatcher matcher = LlmFunctions.matchDialectBeforeBlockDataEx()
-            .typeId(0)
-            .attribute("tool-call-id", "toolu_2")
-            .build();
-
-        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(dataEx)));
-    }
-
-    @Test
-    public void shouldFailMatchDialectBeforeBlockDataExMissingAttribute() throws Exception
-    {
-        final byte[] dataEx = LlmFunctions.dialectBeforeBlockDataEx()
-            .typeId(0)
-            .type("TOOL_RESULT")
-            .attribute("tool-call-id", "toolu_1")
-            .block("cache_control")
-            .build();
-
-        assertThrows(Exception.class,
-            () -> LlmFunctions.matchDialectBeforeBlockDataEx().typeId(0).build().match(ByteBuffer.wrap(dataEx)));
-    }
-
-    @Test
-    public void shouldGenerateAndMatchDataExFollow() throws Exception
-    {
-        final byte[] dataEx = LlmFunctions.dataEx()
-            .typeId(0)
-            .type("ASSISTANT_TEXT")
-            .message(0)
-            .follow("AFTER_BLOCK")
-            .build();
-
-        final LlmDataExFW decoded = new LlmDataExFW().wrap(new UnsafeBufferEx(dataEx), 0, dataEx.length);
-
-        assertEquals(LlmFollow.AFTER_BLOCK, decoded.section().follow().get());
-        assertNotNull(LlmFunctions.matchDataEx().typeId(0).type("ASSISTANT_TEXT").follow("AFTER_BLOCK").build()
-            .match(ByteBuffer.wrap(dataEx)));
-    }
-
-    @Test
-    public void shouldDefaultDataExFollowToNone() throws Exception
-    {
-        final byte[] dataEx = LlmFunctions.dataEx()
-            .typeId(0)
-            .type("ASSISTANT_TEXT")
-            .build();
-
-        final LlmDataExFW decoded = new LlmDataExFW().wrap(new UnsafeBufferEx(dataEx), 0, dataEx.length);
-
-        assertEquals(LlmFollow.NONE, decoded.section().follow().get());
-        assertNotNull(LlmFunctions.matchDataEx().typeId(0).follow("NONE").build().match(ByteBuffer.wrap(dataEx)));
-    }
-
-    @Test
-    public void shouldFailMatchDataExFollowMismatch() throws Exception
-    {
-        final byte[] dataEx = LlmFunctions.dataEx()
-            .typeId(0)
-            .type("ASSISTANT_TEXT")
-            .follow("AFTER_BLOCK")
-            .build();
-
-        final BytesMatcher matcher = LlmFunctions.matchDataEx()
-            .typeId(0)
-            .follow("NONE")
-            .build();
-
-        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(dataEx)));
-    }
-
-    @Test
-    public void shouldGenerateContinuationDataExWithFollowOnly() throws Exception
-    {
-        final byte[] dataEx = LlmFunctions.dataEx()
-            .typeId(0)
-            .follow("AFTER_BLOCK")
-            .build();
-
-        final LlmDataExFW decoded = new LlmDataExFW().wrap(new UnsafeBufferEx(dataEx), 0, dataEx.length);
-
-        assertEquals(LlmSectionType.NONE, decoded.section().type().get());
-        assertEquals(LlmFollow.AFTER_BLOCK, decoded.section().follow().get());
+        assertEquals(LlmDataExFW.KIND_DIALECT, decoded.kind());
     }
 
     private static Map<String, String> attributesOf(

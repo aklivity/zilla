@@ -368,7 +368,7 @@ public class LlmOpenaiServerIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/openai.section.user.text.100k.parts/client",
-        "${app}/openai.section.user.text.100k/server"})
+        "${app}/openai.section.user.text.100k.parts/server"})
     public void shouldDecodeOpenaiSectionUserText100kParts() throws Exception
     {
         k3po.finish();
@@ -378,7 +378,7 @@ public class LlmOpenaiServerIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/openai.section.tool.result.100k.parts/client",
-        "${app}/openai.section.tool.result.100k/server"})
+        "${app}/openai.section.tool.result.100k.parts/server"})
     public void shouldDecodeOpenaiSectionToolResult100kParts() throws Exception
     {
         k3po.finish();

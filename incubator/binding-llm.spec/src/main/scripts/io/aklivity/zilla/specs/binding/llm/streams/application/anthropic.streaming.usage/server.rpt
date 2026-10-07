@@ -29,11 +29,10 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
+read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .block("model")
                           .build()}
-read "\"claude-haiku-4-5-20251001\""
+read "{\"model\":\"claude-haiku-4-5-20251001\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\""
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
@@ -41,6 +40,11 @@ read zilla:data.ext ${llm:matchDataEx()
                           .message(0)
                           .build()}
 read "Say hello in one sentence."
+
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+read "\"}]}]}"
 
 read advised zilla:flush
 
@@ -53,38 +57,27 @@ write zilla:begin.ext ${llm:beginEx()
 write flush
 
 write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectBlockDataEx()
+write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .block("container")
                           .build()}
-write "null"
+write "{\"type\":\"message_start\",\"message\":{\"model\":\"claude-haiku-4-5-20251001\",\"id\":\"msg_011CfFkXKDQA6Xuf9Bf5seBn\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"container\":null,\"stop_reason\":null,\"stop_sequence\":null,\"stop_details\":null,\"usage\":{\"input_tokens\":13,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":0},\"output_tokens\":5,\"service_tier\":\"standard\",\"inference_geo\":\"not_available\"}}}"
 write flush
 
 write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectBlockDataEx()
+write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .block("stop_reason")
                           .build()}
-write "null"
+write "{\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}"
 write flush
 
 write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectBlockDataEx()
+write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .block("stop_sequence")
                           .build()}
-write "null"
+write "{\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\""
 write flush
 
 write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectBlockDataEx()
-                          .typeId(zilla:id("llm"))
-                          .block("stop_details")
-                          .build()}
-write "null"
-write flush
-
-write option zilla:flags "init"
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
@@ -93,40 +86,32 @@ write zilla:data.ext ${llm:dataEx()
 write "Hello! I'm happy"
 write flush
 
-write option zilla:flags "fin"
-write zilla:data.empty
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "\"}}"
 write flush
 
 write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectBlockDataEx()
+write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .block("stop_reason")
                           .build()}
-write "\"end_turn\""
+write "{\"type\":\"content_block_stop\",\"index\":0}"
 write flush
 
 write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectBlockDataEx()
+write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .block("stop_sequence")
                           .build()}
-write "null"
+write "{\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":13,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":13}}"
 write flush
 
 write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectBlockDataEx()
+write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .block("stop_details")
                           .build()}
-write "null"
-write flush
-
-write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectBlockDataEx()
-                          .typeId(zilla:id("llm"))
-                          .block("container")
-                          .build()}
-write "null"
+write "{\"type\":\"message_stop\"}"
 write flush
 
 write zilla:end.ext ${llm:endEx()

@@ -27,11 +27,10 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
+read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .block("max_tokens")
                           .build()}
-read "1024"
+read "{\"max_tokens\":1024,\"messages\":[{\"role\":\"user\",\"content\":\""
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
@@ -40,11 +39,10 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read ${core:randomBase64(10000)}
 
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
+read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .block("model")
                           .build()}
-read "\"claude-3-opus-20240229\""
+read "\"}],\"model\":\"claude-3-opus-20240229\"}"
 
 read advised zilla:flush
 

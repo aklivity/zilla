@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 import java.util.function.Consumer;
 
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmAttributeFW;
-import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDialectBeforeBlockDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionDataExFW;
 
 final class LlmSectionAttributes
@@ -66,13 +65,6 @@ final class LlmSectionAttributes
     {
         clear();
         mergeFrom(dataEx);
-    }
-
-    void readFrom(
-        LlmDialectBeforeBlockDataExFW dataEx)
-    {
-        clear();
-        dataEx.attributes().forEach(reader);
     }
 
     void mergeFrom(
@@ -248,19 +240,6 @@ final class LlmSectionAttributes
     }
 
     void writeTo(
-        LlmDialectBeforeBlockDataExFW.Builder builder)
-    {
-        write(builder, MEDIA_TYPE, mediaType);
-        write(builder, SOURCE, source);
-        write(builder, REF_ID, refId);
-        write(builder, FILENAME, filename);
-        write(builder, TOOL_NAME, toolName);
-        write(builder, TOOL_CALL_ID, toolCallId);
-        write(builder, IS_ERROR, isError);
-        write(builder, PROVIDER_EXECUTED, providerExecuted);
-    }
-
-    void writeTo(
         LlmSectionDataExFW.Builder builder)
     {
         write(builder, MEDIA_TYPE, mediaType);
@@ -313,17 +292,6 @@ final class LlmSectionAttributes
             break;
         default:
             break;
-        }
-    }
-
-    private static void write(
-        LlmDialectBeforeBlockDataExFW.Builder builder,
-        String name,
-        String value)
-    {
-        if (value != null)
-        {
-            builder.attributesItem(a -> a.name(name).value(value));
         }
     }
 

@@ -27,11 +27,10 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
-read zilla:data.ext ${llm:matchDialectBlockDataEx()
+read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .block("model")
                           .build()}
-read "\"claude-3-opus-20240229\""
+read "{\"model\":\"claude-3-opus-20240229\",\"messages\":[{\"role\":\"user\",\"content\":["
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
@@ -40,6 +39,11 @@ read zilla:data.ext ${llm:matchDataEx()
                           .attribute("source", "url")
                           .build()}
 read "{\"type\":\"document\",\"source\":{\"type\":\"url\",\"url\":\"https://example.com/report.pdf\"},\"title\":\"Q3 report\",\"context\":\"Quarterly numbers\"}"
+
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+read "]}]}"
 
 read advised zilla:flush
 

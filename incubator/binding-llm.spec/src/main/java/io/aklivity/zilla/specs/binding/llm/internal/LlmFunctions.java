@@ -28,11 +28,9 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.llm.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmAbortExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmBeginExFW;
-import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmBlockOwner;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmDataExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmEndExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmErrorFW;
-import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmFollow;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmResetExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmSectionType;
 
@@ -60,42 +58,6 @@ public final class LlmFunctions
     public static LlmDataExMatcherBuilder matchDataEx()
     {
         return new LlmDataExMatcherBuilder();
-    }
-
-    @Function
-    public static LlmDialectBlockDataExBuilder dialectBlockDataEx()
-    {
-        return new LlmDialectBlockDataExBuilder();
-    }
-
-    @Function
-    public static LlmDialectBlockDataExMatcherBuilder matchDialectBlockDataEx()
-    {
-        return new LlmDialectBlockDataExMatcherBuilder();
-    }
-
-    @Function
-    public static LlmDialectBeforeBlockDataExBuilder dialectBeforeBlockDataEx()
-    {
-        return new LlmDialectBeforeBlockDataExBuilder();
-    }
-
-    @Function
-    public static LlmDialectBeforeBlockDataExMatcherBuilder matchDialectBeforeBlockDataEx()
-    {
-        return new LlmDialectBeforeBlockDataExMatcherBuilder();
-    }
-
-    @Function
-    public static LlmDialectAfterBlockDataExBuilder dialectAfterBlockDataEx()
-    {
-        return new LlmDialectAfterBlockDataExBuilder();
-    }
-
-    @Function
-    public static LlmDialectAfterBlockDataExMatcherBuilder matchDialectAfterBlockDataEx()
-    {
-        return new LlmDialectAfterBlockDataExMatcherBuilder();
     }
 
     @Function
@@ -132,6 +94,18 @@ public final class LlmFunctions
     public static LlmResetExMatcherBuilder matchResetEx()
     {
         return new LlmResetExMatcherBuilder();
+    }
+
+    @Function
+    public static LlmDialectDataExBuilder dialectDataEx()
+    {
+        return new LlmDialectDataExBuilder();
+    }
+
+    @Function
+    public static LlmDialectDataExMatcherBuilder matchDialectDataEx()
+    {
+        return new LlmDialectDataExMatcherBuilder();
     }
 
     public static final class LlmBeginExBuilder
@@ -336,7 +310,6 @@ public final class LlmFunctions
         private LlmSectionType type;
         private Integer message;
         private String extension;
-        private LlmFollow follow;
 
         private LlmDataExBuilder()
         {
@@ -381,13 +354,6 @@ public final class LlmFunctions
             return this;
         }
 
-        public LlmDataExBuilder follow(
-            String follow)
-        {
-            this.follow = LlmFollow.valueOf(follow);
-            return this;
-        }
-
         public byte[] build()
         {
             dataExRW.section(s ->
@@ -404,11 +370,6 @@ public final class LlmFunctions
 
                 attributes.forEach((name, value) -> s.attributesItem(a -> a.name(name).value(value)));
 
-                if (follow != null)
-                {
-                    s.follow(f -> f.set(follow));
-                }
-
                 if (extension != null)
                 {
                     final byte[] bytes = extension.getBytes(StandardCharsets.UTF_8);
@@ -417,157 +378,6 @@ public final class LlmFunctions
             });
 
             final LlmDataExFW dataEx = dataExRW.build();
-            final byte[] array = new byte[dataEx.sizeof()];
-            dataEx.buffer().getBytes(dataEx.offset(), array);
-            return array;
-        }
-    }
-
-    public static final class LlmDialectBlockDataExBuilder
-    {
-        private final LlmDataExFW.Builder dataExRW;
-
-        private String block;
-
-        private LlmDialectBlockDataExBuilder()
-        {
-            final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024]);
-            this.dataExRW = new LlmDataExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
-        }
-
-        public LlmDialectBlockDataExBuilder typeId(
-            int typeId)
-        {
-            dataExRW.typeId(typeId);
-            return this;
-        }
-
-        public LlmDialectBlockDataExBuilder block(
-            String block)
-        {
-            this.block = block;
-            return this;
-        }
-
-        public byte[] build()
-        {
-            final LlmDataExFW dataEx = dataExRW.block(d -> d.block(block)).build();
-            final byte[] array = new byte[dataEx.sizeof()];
-            dataEx.buffer().getBytes(dataEx.offset(), array);
-            return array;
-        }
-    }
-
-    public static final class LlmDialectBeforeBlockDataExBuilder
-    {
-        private final LlmDataExFW.Builder dataExRW;
-
-        private LlmSectionType type;
-        private int message = -1;
-        private LlmBlockOwner owner = LlmBlockOwner.SECTION;
-        private final Map<String, String> attributes = new LinkedHashMap<>();
-        private String block;
-
-        private LlmDialectBeforeBlockDataExBuilder()
-        {
-            final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024]);
-            this.dataExRW = new LlmDataExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
-        }
-
-        public LlmDialectBeforeBlockDataExBuilder typeId(
-            int typeId)
-        {
-            dataExRW.typeId(typeId);
-            return this;
-        }
-
-        public LlmDialectBeforeBlockDataExBuilder type(
-            String type)
-        {
-            this.type = LlmSectionType.valueOf(type);
-            return this;
-        }
-
-        public LlmDialectBeforeBlockDataExBuilder message(
-            int message)
-        {
-            this.message = message;
-            return this;
-        }
-
-        public LlmDialectBeforeBlockDataExBuilder owner(
-            String owner)
-        {
-            this.owner = LlmBlockOwner.valueOf(owner);
-            return this;
-        }
-
-        public LlmDialectBeforeBlockDataExBuilder attribute(
-            String name,
-            String value)
-        {
-            attributes.put(name, value);
-            return this;
-        }
-
-        public LlmDialectBeforeBlockDataExBuilder block(
-            String block)
-        {
-            this.block = block;
-            return this;
-        }
-
-        public byte[] build()
-        {
-            final LlmDataExFW dataEx = dataExRW.before(d ->
-            {
-                d.type(t -> t.set(type)).message(message);
-                attributes.forEach((name, value) -> d.attributesItem(a -> a.name(name).value(value)));
-                d.owner(o -> o.set(owner)).block(block);
-            }).build();
-            final byte[] array = new byte[dataEx.sizeof()];
-            dataEx.buffer().getBytes(dataEx.offset(), array);
-            return array;
-        }
-    }
-
-    public static final class LlmDialectAfterBlockDataExBuilder
-    {
-        private final LlmDataExFW.Builder dataExRW;
-
-        private LlmBlockOwner owner = LlmBlockOwner.SECTION;
-        private String block;
-
-        private LlmDialectAfterBlockDataExBuilder()
-        {
-            final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024]);
-            this.dataExRW = new LlmDataExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
-        }
-
-        public LlmDialectAfterBlockDataExBuilder typeId(
-            int typeId)
-        {
-            dataExRW.typeId(typeId);
-            return this;
-        }
-
-        public LlmDialectAfterBlockDataExBuilder owner(
-            String owner)
-        {
-            this.owner = LlmBlockOwner.valueOf(owner);
-            return this;
-        }
-
-        public LlmDialectAfterBlockDataExBuilder block(
-            String block)
-        {
-            this.block = block;
-            return this;
-        }
-
-        public byte[] build()
-        {
-            final LlmDataExFW dataEx = dataExRW.after(d -> d.owner(o -> o.set(owner)).block(block)).build();
             final byte[] array = new byte[dataEx.sizeof()];
             dataEx.buffer().getBytes(dataEx.offset(), array);
             return array;
@@ -588,7 +398,6 @@ public final class LlmFunctions
         private boolean attributesNull;
         private String extension;
         private boolean extensionNull;
-        private LlmFollow follow;
 
         public LlmDataExMatcherBuilder typeId(
             int typeId)
@@ -649,13 +458,6 @@ public final class LlmFunctions
             return this;
         }
 
-        public LlmDataExMatcherBuilder follow(
-            String follow)
-        {
-            this.follow = LlmFollow.valueOf(follow);
-            return this;
-        }
-
         public BytesMatcher build()
         {
             return this::match;
@@ -678,8 +480,7 @@ public final class LlmFunctions
                 matchType(dataEx) &&
                 matchMessage(dataEx) &&
                 matchAttributes(dataEx) &&
-                matchExtension(dataEx) &&
-                matchFollow(dataEx))
+                matchExtension(dataEx))
             {
                 byteBuf.position(byteBuf.position() + dataEx.sizeof());
                 return dataEx;
@@ -723,33 +524,48 @@ public final class LlmFunctions
             return extensionNull ? actual == null : extension == null || extension.equals(actual);
         }
 
-        private boolean matchFollow(
-            LlmDataExFW dataEx)
+    }
+
+    public static final class LlmDialectDataExBuilder
+    {
+        private final LlmDataExFW.Builder dataExRW;
+
+        private LlmDialectDataExBuilder()
         {
-            return follow == null || follow == dataEx.section().follow().get();
+            final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024]);
+            this.dataExRW = new LlmDataExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public LlmDialectDataExBuilder typeId(
+            int typeId)
+        {
+            dataExRW.typeId(typeId);
+            return this;
+        }
+
+        public byte[] build()
+        {
+            final LlmDataExFW dataEx = dataExRW.dialect(d ->
+            {
+            }).build();
+            final byte[] array = new byte[dataEx.sizeof()];
+            dataEx.buffer().getBytes(dataEx.offset(), array);
+            return array;
         }
     }
 
-    public static final class LlmDialectBlockDataExMatcherBuilder
+    public static final class LlmDialectDataExMatcherBuilder
     {
         private final DirectBufferEx bufferRO = new UnsafeBufferEx();
 
         private final LlmDataExFW dataExRO = new LlmDataExFW();
 
         private Integer typeId;
-        private String block;
 
-        public LlmDialectBlockDataExMatcherBuilder typeId(
+        public LlmDialectDataExMatcherBuilder typeId(
             int typeId)
         {
             this.typeId = typeId;
-            return this;
-        }
-
-        public LlmDialectBlockDataExMatcherBuilder block(
-            String block)
-        {
-            this.block = block;
             return this;
         }
 
@@ -770,173 +586,8 @@ public final class LlmFunctions
             final LlmDataExFW dataEx = dataExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.limit());
 
             if (dataEx != null &&
-                dataEx.kind() == LlmDataExFW.KIND_BLOCK &&
-                (typeId == null || typeId == dataEx.typeId()) &&
-                (block == null || block.equals(dataEx.block().block().asString())))
-            {
-                byteBuf.position(byteBuf.position() + dataEx.sizeof());
-                return dataEx;
-            }
-
-            throw new Exception(String.valueOf(dataEx));
-        }
-    }
-
-    public static final class LlmDialectBeforeBlockDataExMatcherBuilder
-    {
-        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
-
-        private final LlmDataExFW dataExRO = new LlmDataExFW();
-
-        private Integer typeId;
-        private LlmSectionType type;
-        private Integer message;
-        private LlmBlockOwner owner = LlmBlockOwner.SECTION;
-        private Map<String, String> attributes;
-        private String block;
-
-        public LlmDialectBeforeBlockDataExMatcherBuilder typeId(
-            int typeId)
-        {
-            this.typeId = typeId;
-            return this;
-        }
-
-        public LlmDialectBeforeBlockDataExMatcherBuilder type(
-            String type)
-        {
-            this.type = LlmSectionType.valueOf(type);
-            return this;
-        }
-
-        public LlmDialectBeforeBlockDataExMatcherBuilder message(
-            int message)
-        {
-            this.message = message;
-            return this;
-        }
-
-        public LlmDialectBeforeBlockDataExMatcherBuilder owner(
-            String owner)
-        {
-            this.owner = LlmBlockOwner.valueOf(owner);
-            return this;
-        }
-
-        public LlmDialectBeforeBlockDataExMatcherBuilder attribute(
-            String name,
-            String value)
-        {
-            if (attributes == null)
-            {
-                attributes = new LinkedHashMap<>();
-            }
-
-            attributes.put(name, value);
-            return this;
-        }
-
-        public LlmDialectBeforeBlockDataExMatcherBuilder block(
-            String block)
-        {
-            this.block = block;
-            return this;
-        }
-
-        public BytesMatcher build()
-        {
-            return this::match;
-        }
-
-        private LlmDataExFW match(
-            ByteBuffer byteBuf) throws Exception
-        {
-            if (!byteBuf.hasRemaining())
-            {
-                return null;
-            }
-
-            bufferRO.wrap(byteBuf);
-            final LlmDataExFW dataEx = dataExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.limit());
-
-            if (dataEx != null &&
-                dataEx.kind() == LlmDataExFW.KIND_BEFORE &&
-                (typeId == null || typeId == dataEx.typeId()) &&
-                (type == null || type == dataEx.before().type().get()) &&
-                (message == null || message == dataEx.before().message()) &&
-                owner == dataEx.before().owner().get() &&
-                matchAttributes(dataEx) &&
-                (block == null || block.equals(dataEx.before().block().asString())))
-            {
-                byteBuf.position(byteBuf.position() + dataEx.sizeof());
-                return dataEx;
-            }
-
-            throw new Exception(String.valueOf(dataEx));
-        }
-
-        private boolean matchAttributes(
-            LlmDataExFW dataEx)
-        {
-            final Map<String, String> actual = new LinkedHashMap<>();
-            dataEx.before().attributes().forEach(a -> actual.put(a.name().asString(), a.value().asString()));
-
-            return attributes == null ? actual.isEmpty() : attributes.equals(actual);
-        }
-    }
-
-    public static final class LlmDialectAfterBlockDataExMatcherBuilder
-    {
-        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
-
-        private final LlmDataExFW dataExRO = new LlmDataExFW();
-
-        private Integer typeId;
-        private LlmBlockOwner owner = LlmBlockOwner.SECTION;
-        private String block;
-
-        public LlmDialectAfterBlockDataExMatcherBuilder typeId(
-            int typeId)
-        {
-            this.typeId = typeId;
-            return this;
-        }
-
-        public LlmDialectAfterBlockDataExMatcherBuilder owner(
-            String owner)
-        {
-            this.owner = LlmBlockOwner.valueOf(owner);
-            return this;
-        }
-
-        public LlmDialectAfterBlockDataExMatcherBuilder block(
-            String block)
-        {
-            this.block = block;
-            return this;
-        }
-
-        public BytesMatcher build()
-        {
-            return this::match;
-        }
-
-        private LlmDataExFW match(
-            ByteBuffer byteBuf) throws Exception
-        {
-            if (!byteBuf.hasRemaining())
-            {
-                return null;
-            }
-
-            bufferRO.wrap(byteBuf);
-            final LlmDataExFW dataEx = dataExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.limit());
-
-            if (dataEx != null &&
-                dataEx.kind() == LlmDataExFW.KIND_AFTER &&
-                (typeId == null || typeId == dataEx.typeId()) &&
-                owner == dataEx.after().owner().get() &&
-                (block == null || block.equals(dataEx.after().block().asString())))
+                dataEx.kind() == LlmDataExFW.KIND_DIALECT &&
+                (typeId == null || typeId == dataEx.typeId()))
             {
                 byteBuf.position(byteBuf.position() + dataEx.sizeof());
                 return dataEx;

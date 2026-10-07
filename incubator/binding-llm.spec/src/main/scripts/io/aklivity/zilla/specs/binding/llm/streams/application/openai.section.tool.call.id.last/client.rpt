@@ -25,11 +25,10 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write zilla:data.ext ${llm:dialectBlockDataEx()
-                           .typeId(zilla:id("llm"))
-                           .block("model")
-                           .build()}
-write "\"gpt-4\""
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"assistant\",\"content\":null,\"tool_calls\":["
 write flush
 
 write option zilla:flags "init"
@@ -43,15 +42,19 @@ write "{\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments
       ${core:randomBase64(1000)}
       "\\\"}\"}"
 write flush
-
 write await FIRST_FRAME_READ
-
 write option zilla:flags "fin"
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .attribute("tool-call-id", "call_1")
                           .build()}
 write ",\"id\":\"call_1\"}"
+write flush
+
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "]}]}"
 write flush
 
 write advise zilla:flush

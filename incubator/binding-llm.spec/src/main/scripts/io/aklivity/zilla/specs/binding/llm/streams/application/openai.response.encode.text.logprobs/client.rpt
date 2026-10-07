@@ -27,11 +27,10 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write zilla:data.ext ${llm:dialectBlockDataEx()
-                           .typeId(zilla:id("llm"))
-                           .block("model")
-                           .build()}
-write "\"gpt-4\""
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\""
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -42,12 +41,10 @@ write zilla:data.ext ${llm:dataEx()
 write "Hello"
 write flush
 
-write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectBlockDataEx()
-                         .typeId(zilla:id("llm"))
-                         .block("logprobs")
-                         .build()}
-write "true"
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "\"}],\"logprobs\":true}"
 write flush
 
 write advise zilla:flush
@@ -60,6 +57,12 @@ read zilla:begin.ext ${llm:matchBeginEx()
                          .build()}
 
 read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+read "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\""
+
+read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDataEx()
                         .typeId(zilla:id("llm"))
                         .type("ASSISTANT_TEXT")
@@ -68,11 +71,10 @@ read zilla:data.ext ${llm:matchDataEx()
 read "Hello!"
 
 read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectAfterBlockDataEx()
-                        .typeId(zilla:id("llm"))
-                        .block("logprobs")
-                        .build()}
-read "{\"content\":[{\"token\":\"Hello\",\"logprob\":-0.5,\"bytes\":[72,101,108,108,111],\"top_logprobs\":[]},{\"token\":\"!\",\"logprob\":-1.25e-1,\"bytes\":[33],\"top_logprobs\":[]}],\"refusal\":null}"
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+read "\"},\"logprobs\":{\"content\":[{\"token\":\"Hello\",\"logprob\":-0.5,\"bytes\":[72,101,108,108,111],\"top_logprobs\":[]},{\"token\":\"!\",\"logprob\":-1.25e-1,\"bytes\":[33],\"top_logprobs\":[]}],\"refusal\":null},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}}"
 
 read zilla:end.ext ${llm:matchEndEx()
                           .typeId(zilla:id("llm"))
