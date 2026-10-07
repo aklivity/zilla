@@ -971,9 +971,9 @@ public class LlmOpenaiServerIT
     @Configuration("server.yaml")
     @ScriptProperty({"source \"openai\""})
     @Specification({
-        "${net}/openai.transform.request.options/client",
-        "${app}/transform.request.options/server"})
-    public void shouldTransformRequestOptionsFromOpenai() throws Exception
+        "${net}/openai.transform.request.frames/client",
+        "${app}/transform.request.frames/server"})
+    public void shouldTransformRequestFramesFromOpenai() throws Exception
     {
         k3po.finish();
     }
@@ -1002,9 +1002,9 @@ public class LlmOpenaiServerIT
     @Configuration("server.yaml")
     @ScriptProperty({"source \"openai\""})
     @Specification({
-        "${net}/openai.transform.response.options/client",
-        "${app}/transform.response.options/server"})
-    public void shouldTransformResponseOptionsFromOpenai() throws Exception
+        "${net}/openai.transform.response.frames/client",
+        "${app}/transform.response.frames/server"})
+    public void shouldTransformResponseFramesFromOpenai() throws Exception
     {
         k3po.finish();
     }

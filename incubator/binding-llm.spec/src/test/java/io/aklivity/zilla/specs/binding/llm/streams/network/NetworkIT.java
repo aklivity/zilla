@@ -2684,36 +2684,18 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.transform.request.options/client",
-        "${net}/openai.transform.request.options/server"})
-    public void shouldOpenaiTransformRequestOptions() throws Exception
+        "${net}/openai.transform.request.frames/client",
+        "${net}/openai.transform.request.frames/server"})
+    public void shouldOpenaiTransformRequestFrames() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/openai.transform.response.options/client",
-        "${net}/openai.transform.response.options/server"})
-    public void shouldOpenaiTransformResponseOptions() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/anthropic.transform.request.options/client",
-        "${net}/anthropic.transform.request.options/server"})
-    public void shouldAnthropicTransformRequestOptions() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/anthropic.transform.response.options/client",
-        "${net}/anthropic.transform.response.options/server"})
-    public void shouldAnthropicTransformResponseOptions() throws Exception
+        "${net}/anthropic.transform.request.frames/client",
+        "${net}/anthropic.transform.request.frames/server"})
+    public void shouldAnthropicTransformRequestFrames() throws Exception
     {
         k3po.finish();
     }

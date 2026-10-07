@@ -1152,9 +1152,9 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/transform.response.options/client",
-        "${net}/openai.transform.response.options/server"})
-    public void shouldTransformResponseOptionsAsOpenai() throws Exception
+        "${app}/transform.response.frames/client",
+        "${net}/openai.transform.response.frames/server"})
+    public void shouldTransformResponseFramesAsOpenai() throws Exception
     {
         k3po.finish();
     }

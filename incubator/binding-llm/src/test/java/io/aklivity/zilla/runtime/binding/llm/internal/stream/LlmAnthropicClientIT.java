@@ -1181,9 +1181,9 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/transform.response.options/client",
-        "${net}/anthropic.transform.response.options/server"})
-    public void shouldTransformResponseOptionsAsAnthropic() throws Exception
+        "${app}/transform.response.frames/client",
+        "${net}/anthropic.transform.response.frames/server"})
+    public void shouldTransformResponseFramesAsAnthropic() throws Exception
     {
         k3po.finish();
     }

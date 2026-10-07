@@ -2648,18 +2648,18 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/transform.request.options/client",
-        "${app}/transform.request.options/server"})
-    public void shouldTransformRequestOptions() throws Exception
+        "${app}/transform.request.frames/client",
+        "${app}/transform.request.frames/server"})
+    public void shouldTransformRequestFrames() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/transform.response.options/client",
-        "${app}/transform.response.options/server"})
-    public void shouldTransformResponseOptions() throws Exception
+        "${app}/transform.response.frames/client",
+        "${app}/transform.response.frames/server"})
+    public void shouldTransformResponseFrames() throws Exception
     {
         k3po.finish();
     }

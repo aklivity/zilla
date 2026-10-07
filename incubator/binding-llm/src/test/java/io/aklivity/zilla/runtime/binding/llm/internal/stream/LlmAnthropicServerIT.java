@@ -1100,9 +1100,9 @@ public class LlmAnthropicServerIT
     @Configuration("server.yaml")
     @ScriptProperty({"source \"anthropic\""})
     @Specification({
-        "${net}/anthropic.transform.request.options/client",
-        "${app}/transform.request.options/server"})
-    public void shouldTransformRequestOptionsFromAnthropic() throws Exception
+        "${net}/anthropic.transform.request.frames/client",
+        "${app}/transform.request.frames/server"})
+    public void shouldTransformRequestFramesFromAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -1131,9 +1131,9 @@ public class LlmAnthropicServerIT
     @Configuration("server.yaml")
     @ScriptProperty({"source \"anthropic\""})
     @Specification({
-        "${net}/anthropic.transform.response.options/client",
-        "${app}/transform.response.options/server"})
-    public void shouldTransformResponseOptionsFromAnthropic() throws Exception
+        "${net}/anthropic.transform.response.frames/client",
+        "${app}/transform.response.frames/server"})
+    public void shouldTransformResponseFramesFromAnthropic() throws Exception
     {
         k3po.finish();
     }
