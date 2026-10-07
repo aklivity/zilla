@@ -1188,4 +1188,58 @@ public class LlmAnthropicClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"target \"anthropic\""})
+    @Specification({
+        "${app}/transform.response.text/client",
+        "${net}/anthropic.transform.response.text/server"})
+    public void shouldTransformResponseTextAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"target \"anthropic\""})
+    @Specification({
+        "${app}/transform.response.text.escaped/client",
+        "${net}/anthropic.transform.response.text.escaped/server"})
+    public void shouldTransformResponseTextEscapedAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"target \"anthropic\""})
+    @Specification({
+        "${app}/transform.response.text.100k/client",
+        "${net}/anthropic.transform.response.text.100k/server"})
+    public void shouldTransformResponseText100kAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"target \"anthropic\""})
+    @Specification({
+        "${app}/transform.response.text.and.tool.call/client",
+        "${net}/anthropic.transform.response.text.and.tool.call/server"})
+    public void shouldTransformResponseTextAndToolCallAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.assistant.text.members.streaming/client",
+        "${net}/anthropic.section.assistant.text.members.streaming/server"})
+    public void shouldEncodeAnthropicSectionAssistantTextMembersStreaming() throws Exception
+    {
+        k3po.finish();
+    }
 }

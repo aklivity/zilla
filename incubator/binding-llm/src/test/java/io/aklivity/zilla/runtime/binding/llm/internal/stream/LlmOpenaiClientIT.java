@@ -1149,4 +1149,78 @@ public class LlmOpenaiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
+        "${app}/transform.response.text/client",
+        "${net}/openai.transform.response.text/server"})
+    public void shouldTransformResponseTextAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
+        "${app}/transform.response.text.escaped/client",
+        "${net}/openai.transform.response.text.escaped/server"})
+    public void shouldTransformResponseTextEscapedAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
+        "${app}/transform.response.text.100k/client",
+        "${net}/openai.transform.response.text.100k/server"})
+    public void shouldTransformResponseText100kAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
+        "${app}/transform.response.text.and.tool.call/client",
+        "${net}/openai.transform.response.text.and.tool.call/server"})
+    public void shouldTransformResponseTextAndToolCallAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.assistant.text.members.streaming/client",
+        "${net}/openai.section.assistant.text.members.streaming/server"})
+    public void shouldEncodeOpenaiSectionAssistantTextMembersStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.assistant.text.members.large/client",
+        "${net}/openai.section.assistant.text.members.large/server"})
+    public void shouldEncodeOpenaiSectionAssistantTextMembersLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.assistant.text.logprobs.streaming.role.first/client",
+        "${net}/openai.section.assistant.text.logprobs.streaming.role.first/server"})
+    public void shouldEncodeOpenaiSectionAssistantTextLogprobsStreamingRoleFirst() throws Exception
+    {
+        k3po.finish();
+    }
 }
