@@ -977,4 +977,24 @@ public class LlmOpenaiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.user.text/client",
+        "${app}/openai.section.model.override/server"})
+    public void shouldReplaceOpenaiModelWhenChallengedWithModel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.model.last/client",
+        "${app}/openai.section.model.last.override/server"})
+    public void shouldReplaceOpenaiModelLastWhenChallengedWithModel() throws Exception
+    {
+        k3po.finish();
+    }
 }
