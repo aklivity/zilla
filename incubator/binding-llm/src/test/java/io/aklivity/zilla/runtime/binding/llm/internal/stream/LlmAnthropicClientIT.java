@@ -23,6 +23,7 @@ import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 
+import io.aklivity.k3po.runtime.junit.annotation.ScriptProperty;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
@@ -529,26 +530,6 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/anthropic.transform.openai.system.instruction/client",
-        "${net}/anthropic.transform.openai.system.instruction/server"})
-    public void shouldTransformOpenaiSectionSystemInstructionAsAnthropic() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
-        "${app}/anthropic.transform.openai.user.text/client",
-        "${net}/anthropic.transform.openai.user.text/server"})
-    public void shouldTransformOpenaiSectionUserTextAsAnthropic() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
         "${app}/anthropic.transform.openai.user.image/client",
         "${net}/anthropic.transform.openai.user.image/server"})
     public void shouldTransformOpenaiSectionUserImageAsAnthropic() throws Exception
@@ -569,26 +550,6 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/anthropic.transform.openai.assistant.text/client",
-        "${net}/anthropic.transform.openai.assistant.text/server"})
-    public void shouldTransformOpenaiSectionAssistantTextAsAnthropic() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
-        "${app}/anthropic.transform.openai.assistant.refusal/client",
-        "${net}/anthropic.transform.openai.assistant.refusal/server"})
-    public void shouldTransformOpenaiSectionAssistantRefusalAsAnthropic() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
         "${app}/anthropic.transform.openai.assistant.text.and.tool.call/client",
         "${net}/anthropic.transform.openai.assistant.text.and.tool.call/server"})
     public void shouldTransformOpenaiSectionAssistantTextAndToolCallAsAnthropic() throws Exception
@@ -602,16 +563,6 @@ public class LlmAnthropicClientIT
         "${app}/anthropic.transform.openai.tool.definition/client",
         "${net}/anthropic.transform.openai.tool.definition/server"})
     public void shouldTransformOpenaiSectionToolDefinitionAsAnthropic() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
-        "${app}/anthropic.transform.openai.tool.result/client",
-        "${net}/anthropic.transform.openai.tool.result/server"})
-    public void shouldTransformOpenaiSectionToolResultAsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -1139,16 +1090,6 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/anthropic.section.user.text.cross.dialect/client",
-        "${net}/anthropic.section.user.text/server"})
-    public void shouldChallengeCrossDialectRequestAsAnthropic() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
         "${app}/anthropic.response.decode.options.cross.dialect/client",
         "${net}/anthropic.response.decode.options/server"})
     public void shouldDropAnthropicResponseOptionsCrossDialect() throws Exception
@@ -1162,6 +1103,61 @@ public class LlmAnthropicClientIT
         "${app}/anthropic.transform.openai.rejected.user.audio/client",
         "${net}/anthropic.transform.openai.rejected.user.audio/server"})
     public void shouldRejectOpenaiSectionUserAudioAsAnthropicNamingSectionAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"target \"anthropic\""})
+    @Specification({
+        "${app}/transform.user.text/client",
+        "${net}/anthropic.transform.user.text/server"})
+    public void shouldTransformUserTextAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"target \"anthropic\""})
+    @Specification({
+        "${app}/transform.system.instruction/client",
+        "${net}/anthropic.transform.system.instruction/server"})
+    public void shouldTransformSystemInstructionAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"target \"anthropic\""})
+    @Specification({
+        "${app}/transform.assistant.text/client",
+        "${net}/anthropic.transform.assistant.text/server"})
+    public void shouldTransformAssistantTextAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"target \"anthropic\""})
+    @Specification({
+        "${app}/transform.tool.result/client",
+        "${net}/anthropic.transform.tool.result/server"})
+    public void shouldTransformToolResultAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"target \"anthropic\""})
+    @Specification({
+        "${app}/transform.assistant.refusal/client",
+        "${net}/anthropic.transform.assistant.refusal/server"})
+    public void shouldTransformAssistantRefusalAsAnthropic() throws Exception
     {
         k3po.finish();
     }

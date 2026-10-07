@@ -23,6 +23,7 @@ import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 
+import io.aklivity.k3po.runtime.junit.annotation.ScriptProperty;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
@@ -928,6 +929,50 @@ public class LlmOpenaiServerIT
         "${net}/openai.request.options/client",
         "${app}/openai.request.options.cross.dialect/server"})
     public void shouldDropOpenaiRequestOptionsCrossDialect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai\""})
+    @Specification({
+        "${net}/openai.transform.user.text/client",
+        "${app}/transform.user.text/server"})
+    public void shouldTransformUserTextFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai\""})
+    @Specification({
+        "${net}/openai.transform.assistant.text/client",
+        "${app}/transform.assistant.text/server"})
+    public void shouldTransformAssistantTextFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai\""})
+    @Specification({
+        "${net}/openai.transform.tool.result/client",
+        "${app}/transform.tool.result/server"})
+    public void shouldTransformToolResultFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai\""})
+    @Specification({
+        "${net}/openai.transform.tool.result.blocks/client",
+        "${app}/transform.tool.result.blocks/server"})
+    public void shouldTransformToolResultBlocksFromOpenai() throws Exception
     {
         k3po.finish();
     }

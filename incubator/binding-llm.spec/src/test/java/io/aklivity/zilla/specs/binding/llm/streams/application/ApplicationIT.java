@@ -2126,24 +2126,6 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/anthropic.transform.openai.system.instruction/client",
-        "${app}/anthropic.transform.openai.system.instruction/server"})
-    public void shouldCarryAnthropicTransformOpenaiSystemInstruction() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/anthropic.transform.openai.user.text/client",
-        "${app}/anthropic.transform.openai.user.text/server"})
-    public void shouldCarryAnthropicTransformOpenaiUserText() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/anthropic.transform.openai.user.image/client",
         "${app}/anthropic.transform.openai.user.image/server"})
     public void shouldCarryAnthropicTransformOpenaiUserImage() throws Exception
@@ -2162,24 +2144,6 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/anthropic.transform.openai.assistant.text/client",
-        "${app}/anthropic.transform.openai.assistant.text/server"})
-    public void shouldCarryAnthropicTransformOpenaiAssistantText() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/anthropic.transform.openai.assistant.refusal/client",
-        "${app}/anthropic.transform.openai.assistant.refusal/server"})
-    public void shouldCarryAnthropicTransformOpenaiAssistantRefusal() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/anthropic.transform.openai.assistant.text.and.tool.call/client",
         "${app}/anthropic.transform.openai.assistant.text.and.tool.call/server"})
     public void shouldCarryAnthropicTransformOpenaiAssistantTextAndToolCall() throws Exception
@@ -2192,15 +2156,6 @@ public class ApplicationIT
         "${app}/anthropic.transform.openai.tool.definition/client",
         "${app}/anthropic.transform.openai.tool.definition/server"})
     public void shouldCarryAnthropicTransformOpenaiToolDefinition() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/anthropic.transform.openai.tool.result/client",
-        "${app}/anthropic.transform.openai.tool.result/server"})
-    public void shouldCarryAnthropicTransformOpenaiToolResult() throws Exception
     {
         k3po.finish();
     }
@@ -2369,24 +2324,6 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/openai.transform.anthropic.system.instruction/client",
-        "${app}/openai.transform.anthropic.system.instruction/server"})
-    public void shouldCarryOpenaiTransformAnthropicSystemInstruction() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/openai.transform.anthropic.user.text/client",
-        "${app}/openai.transform.anthropic.user.text/server"})
-    public void shouldCarryOpenaiTransformAnthropicUserText() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/openai.transform.anthropic.user.image/client",
         "${app}/openai.transform.anthropic.user.image/server"})
     public void shouldCarryOpenaiTransformAnthropicUserImage() throws Exception
@@ -2396,36 +2333,9 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/openai.transform.anthropic.assistant.text/client",
-        "${app}/openai.transform.anthropic.assistant.text/server"})
-    public void shouldCarryOpenaiTransformAnthropicAssistantText() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/openai.transform.anthropic.assistant.tool.call/client",
         "${app}/openai.transform.anthropic.assistant.tool.call/server"})
     public void shouldCarryOpenaiTransformAnthropicAssistantToolCall() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/openai.transform.anthropic.tool.result/client",
-        "${app}/openai.transform.anthropic.tool.result/server"})
-    public void shouldCarryOpenaiTransformAnthropicToolResult() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/openai.transform.anthropic.tool.result.blocks/client",
-        "${app}/openai.transform.anthropic.tool.result.blocks/server"})
-    public void shouldCarryOpenaiTransformAnthropicToolResultBlocks() throws Exception
     {
         k3po.finish();
     }
@@ -2450,15 +2360,6 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/openai.transform.anthropic.assistant.reasoning/client",
-        "${app}/openai.transform.anthropic.assistant.reasoning/server"})
-    public void shouldCarryOpenaiTransformAnthropicAssistantReasoning() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/openai.transform.anthropic.server.tool.result/client",
         "${app}/openai.transform.anthropic.server.tool.result/server"})
     public void shouldCarryOpenaiTransformAnthropicServerToolResult() throws Exception
@@ -2471,15 +2372,6 @@ public class ApplicationIT
         "${app}/openai.transform.anthropic.assistant.text.citations/client",
         "${app}/openai.transform.anthropic.assistant.text.citations/server"})
     public void shouldCarryOpenaiTransformAnthropicAssistantTextCitations() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/openai.transform.anthropic.tool.result.error/client",
-        "${app}/openai.transform.anthropic.tool.result.error/server"})
-    public void shouldCarryOpenaiTransformAnthropicToolResultError() throws Exception
     {
         k3po.finish();
     }
@@ -2657,24 +2549,6 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/anthropic.section.user.text.cross.dialect/client",
-        "${app}/anthropic.section.user.text.cross.dialect/server"})
-    public void shouldAnthropicSectionUserTextCrossDialect() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/openai.section.user.text.cross.dialect/client",
-        "${app}/openai.section.user.text.cross.dialect/server"})
-    public void shouldOpenaiSectionUserTextCrossDialect() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/openai.request.options.cross.dialect/client",
         "${app}/openai.request.options.cross.dialect/server"})
     public void shouldOpenaiRequestOptionsCrossDialect() throws Exception
@@ -2723,6 +2597,78 @@ public class ApplicationIT
         "${app}/openai.proxy.sections/client",
         "${app}/openai.proxy.sections/server"})
     public void shouldOpenaiProxySections() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.user.text/client",
+        "${app}/transform.user.text/server"})
+    public void shouldTransformUserText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.system.instruction/client",
+        "${app}/transform.system.instruction/server"})
+    public void shouldTransformSystemInstruction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.assistant.text/client",
+        "${app}/transform.assistant.text/server"})
+    public void shouldTransformAssistantText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.tool.result/client",
+        "${app}/transform.tool.result/server"})
+    public void shouldTransformToolResult() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.assistant.reasoning/client",
+        "${app}/transform.assistant.reasoning/server"})
+    public void shouldTransformAssistantReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.assistant.refusal/client",
+        "${app}/transform.assistant.refusal/server"})
+    public void shouldTransformAssistantRefusal() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.tool.result.blocks/client",
+        "${app}/transform.tool.result.blocks/server"})
+    public void shouldTransformToolResultBlocks() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.tool.result.error/client",
+        "${app}/transform.tool.result.error/server"})
+    public void shouldTransformToolResultError() throws Exception
     {
         k3po.finish();
     }
