@@ -308,6 +308,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.proxy.guardrail.accepted/client",
+        "${app}/openai.proxy.guardrail.accepted/server"})
+    public void shouldRelayOpenaiGuardedSection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.rejected.section/client",
         "${app}/openai.rejected.section/server"})
     public void shouldRejectOpenaiSection() throws Exception

@@ -23,6 +23,7 @@ import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmBindingConfig;
+import io.aklivity.zilla.runtime.binding.llm.config.LlmGuardrailStage;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmRouteConfig;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmBinding;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmConfiguration;
@@ -35,6 +36,10 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBeginExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmChallengeExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDataExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmResetExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionDataExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionType;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -43,17 +48,32 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
+import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
+import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
+import io.aklivity.zilla.runtime.engine.model.ModelStatus;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
+import io.aklivity.zilla.runtime.engine.util.Flags;
 
 // Routes purely on LlmBeginEx.dialect/model, both already resolved and populated by the llm(server)
 // hop that produced this stream's own begin extension -- unlike llm(server)/llm(client), this never
 // decodes or re-encodes request/response content: DATA/FLUSH/END/ABORT/RESET/WINDOW/CHALLENGE relay
 // verbatim between the resolved exit and the accepted network stream once the route is picked.
 //
+// The sections of a request pass through the guardrail stages configured for the requested model: a stage
+// is a validating model, so the original bytes continue to the exit, and the first section a stage rejects
+// aborts the exit stream and resets the network stream with an error naming that section.
+//
 // A route with a fallback list is resolved when the stream begins and locks as soon as the exit sends a
 // window: until then, an exit that resets the stream is retried with the next fallback model, and the
 // network stream is challenged with that model so the request carries it.
 public final class LlmProxyFactory implements LlmStreamFactory
 {
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
+    private static final int STATUS_BAD_REQUEST = 400;
+    private static final String ERROR_TYPE_INVALID_REQUEST = "invalid_request_error";
+
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
@@ -63,6 +83,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
     private final WindowFW windowRO = new WindowFW();
     private final ChallengeFW challengeRO = new ChallengeFW();
     private final LlmBeginExFW llmBeginExRO = new LlmBeginExFW();
+    private final LlmDataExFW llmDataExRO = new LlmDataExFW();
     private final OctetsFW fallbackOctetsRO = new OctetsFW();
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
@@ -75,9 +96,11 @@ public final class LlmProxyFactory implements LlmStreamFactory
     private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
     private final LlmBeginExFW.Builder llmBeginExRW = new LlmBeginExFW.Builder();
     private final LlmChallengeExFW.Builder llmChallengeExRW = new LlmChallengeExFW.Builder();
+    private final LlmResetExFW.Builder llmResetExRW = new LlmResetExFW.Builder();
 
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
+    private final MutableDirectBufferEx guardrailBuffer;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final BindingHandler streamFactory;
@@ -91,6 +114,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
     {
         this.writeBuffer = requireNonNull(context.writeBuffer());
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.guardrailBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();
@@ -157,7 +181,8 @@ public final class LlmProxyFactory implements LlmStreamFactory
                             route.id,
                             binding,
                             dialect,
-                            route.fallback)::onNetMessage;
+                            route.fallback,
+                            binding.guardrails(model))::onNetMessage;
                 }
             }
         }
@@ -175,6 +200,8 @@ public final class LlmProxyFactory implements LlmStreamFactory
         private final LlmBindingConfig binding;
         private final String dialect;
         private final List<String> fallback;
+        private final List<LlmGuardrailStage> guardrails;
+        private final ModelPipeline[] pipelines;
 
         private long exitId;
 
@@ -184,6 +211,10 @@ public final class LlmProxyFactory implements LlmStreamFactory
         private long beginAffinity;
         private long beginAuthorization;
         private int fallbackIndex;
+
+        private ModelPipeline sectionPipeline;
+        private LlmSectionType sectionType;
+        private int sectionMessage;
 
         private long replyBudgetId;
         private int replyPadding;
@@ -208,7 +239,8 @@ public final class LlmProxyFactory implements LlmStreamFactory
             long exitId,
             LlmBindingConfig binding,
             String dialect,
-            List<String> fallback)
+            List<String> fallback,
+            List<LlmGuardrailStage> guardrails)
         {
             this.network = network;
             this.originId = originId;
@@ -219,6 +251,10 @@ public final class LlmProxyFactory implements LlmStreamFactory
             this.binding = binding;
             this.dialect = dialect;
             this.fallback = fallback;
+            this.guardrails = guardrails;
+            this.pipelines = guardrails.stream()
+                .map(stage -> stage.handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE))
+                .toArray(ModelPipeline[]::new);
         }
 
         private void onNetMessage(
@@ -291,7 +327,112 @@ public final class LlmProxyFactory implements LlmStreamFactory
 
             this.initialSeq = data.sequence() + reserved;
 
-            app.doAppData(traceId, authorization, flags, budgetId, reserved, data.payload(), data.extension());
+            if (!LlmState.initialClosed(state) &&
+                (pipelines.length == 0 || guard(traceId, authorization, flags, data.payload(), data.extension())))
+            {
+                app.doAppData(traceId, authorization, flags, budgetId, reserved, data.payload(), data.extension());
+            }
+        }
+
+        private boolean guard(
+            long traceId,
+            long authorization,
+            int flags,
+            OctetsFW payload,
+            OctetsFW extension)
+        {
+            if (Flags.hasInit(flags))
+            {
+                selectSection(extension);
+            }
+
+            boolean accepted = true;
+
+            if (sectionPipeline != null)
+            {
+                accepted = validate(traceId, authorization, flags, payload);
+
+                if (!accepted)
+                {
+                    doRejectSection(traceId, authorization);
+                }
+            }
+
+            if (Flags.hasFin(flags))
+            {
+                this.sectionPipeline = null;
+            }
+
+            return accepted;
+        }
+
+        private void selectSection(
+            OctetsFW extension)
+        {
+            final LlmDataExFW llmDataEx = extension.get(llmDataExRO::tryWrap);
+
+            this.sectionPipeline = null;
+
+            if (llmDataEx != null && llmDataEx.kind() == LlmDataExFW.KIND_SECTION)
+            {
+                final LlmSectionDataExFW section = llmDataEx.section();
+
+                this.sectionType = section.type().get();
+                this.sectionMessage = section.message();
+
+                for (int index = 0; index < pipelines.length; index++)
+                {
+                    if (guardrails.get(index).sections.contains(sectionType))
+                    {
+                        this.sectionPipeline = pipelines[index];
+                        break;
+                    }
+                }
+            }
+        }
+
+        private boolean validate(
+            long traceId,
+            long authorization,
+            int flags,
+            OctetsFW payload)
+        {
+            int progress = payload.offset();
+            int fragmentFlags = flags;
+            ModelStatus status;
+
+            do
+            {
+                final ModelPipelineResult result = sectionPipeline.transform(traceId, routedId, authorization, fragmentFlags,
+                    payload.buffer(), progress, payload.limit(), guardrailBuffer, 0, guardrailBuffer.capacity());
+
+                status = result.status();
+                progress += result.consumed();
+                fragmentFlags &= ~Flags.INIT;
+            }
+            while (status == ModelStatus.OVERFLOW);
+
+            return status != ModelStatus.REJECTED && status != ModelStatus.SUSPENDED;
+        }
+
+        private void doRejectSection(
+            long traceId,
+            long authorization)
+        {
+            final String section = sectionType.name().toLowerCase().replace('_', '-');
+            final String param = sectionMessage >= 0 ? String.format("%s[%d]", section, sectionMessage) : section;
+
+            final LlmResetExFW llmResetEx = llmResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(llmTypeId)
+                .error(e -> e.status(STATUS_BAD_REQUEST)
+                             .type(ERROR_TYPE_INVALID_REQUEST)
+                             .param(param)
+                             .message(section + " rejected"))
+                .build();
+
+            app.doAppAbort(traceId, authorization, EMPTY_OCTETS);
+            doNetReset(traceId, authorization,
+                fallbackOctetsRO.wrap(llmResetEx.buffer(), llmResetEx.offset(), llmResetEx.limit()));
         }
 
         private void onNetEnd(

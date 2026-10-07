@@ -16,18 +16,32 @@ package io.aklivity.zilla.runtime.binding.llm.config;
 
 import static java.util.stream.Collectors.toList;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.aklivity.zilla.config.binding.llm.LlmGuardrailConfig;
+import io.aklivity.zilla.config.binding.llm.LlmGuardrailStageConfig;
 import io.aklivity.zilla.config.binding.llm.LlmOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.ConfigException;
 import io.aklivity.zilla.config.engine.KindConfig;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionType;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
+import io.aklivity.zilla.runtime.engine.model.ModelHandler;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 public class LlmBindingConfig
 {
@@ -46,6 +60,7 @@ public class LlmBindingConfig
     public final List<LlmRouteConfig> routes;
     public final GuardHandler guard;
     public final String credentials;
+    private final Map<String, List<LlmGuardrailStage>> guardrails;
 
     private final Pattern credentialsPattern;
 
@@ -70,6 +85,8 @@ public class LlmBindingConfig
         this.credentialsPattern = credentials != null
             ? Pattern.compile(credentials.replace(CREDENTIALS_PLACEHOLDER, "(?<credentials>[^\\s]+)"))
             : null;
+        this.guardrails = new LinkedHashMap<>();
+        this.options.guardrails.forEach(guardrail -> guardrails.put(guardrail.name, supplyStages(context, guardrail)));
     }
 
     protected LlmBindingConfig(
@@ -83,6 +100,7 @@ public class LlmBindingConfig
         this.guard = binding.guard;
         this.credentials = binding.credentials;
         this.credentialsPattern = binding.credentialsPattern;
+        this.guardrails = binding.guardrails;
     }
 
     public LlmAuthorizationResult authorize(
@@ -146,5 +164,55 @@ public class LlmBindingConfig
             }
         }
         return resolved;
+    }
+
+    public List<LlmGuardrailStage> guardrails(
+        String model)
+    {
+        return guardrails.getOrDefault(model, List.of());
+    }
+
+    private static List<LlmGuardrailStage> supplyStages(
+        EngineContext context,
+        LlmGuardrailConfig guardrail)
+    {
+        if (!guardrail.response.isEmpty())
+        {
+            throw new ConfigException(String.format("guardrails %s: response stages are not yet supported", guardrail.name));
+        }
+
+        final List<LlmGuardrailStage> stages = new ArrayList<>();
+        final Set<LlmSectionType> covered = EnumSet.noneOf(LlmSectionType.class);
+
+        for (LlmGuardrailStageConfig stage : guardrail.request)
+        {
+            final Set<LlmSectionType> sections = EnumSet.noneOf(LlmSectionType.class);
+            stage.sections.forEach(section -> sections.add(LlmSectionType.valueOf(section.replace('-', '_').toUpperCase())));
+
+            if (!Collections.disjoint(covered, sections))
+            {
+                throw new ConfigException(String.format(
+                    "guardrails %s: more than one stage for a section is not yet supported", guardrail.name));
+            }
+            covered.addAll(sections);
+
+            final ModelHandler handler = context.supplyModel(stage.value);
+            if (handler == null)
+            {
+                throw new ConfigException(String.format(
+                    "guardrails %s: unknown model %s", guardrail.name, stage.value.model));
+            }
+
+            if (!handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE).identity())
+            {
+                throw new ConfigException(String.format(
+                    "guardrails %s: model %s transforms the section, which is not yet supported",
+                    guardrail.name, stage.value.model));
+            }
+
+            stages.add(new LlmGuardrailStage(sections, handler));
+        }
+
+        return stages;
     }
 }
