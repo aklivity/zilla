@@ -65,8 +65,8 @@ read advised zilla:flush
 write zilla:reset.ext ${llm:resetEx()
                             .typeId(zilla:id("llm"))
                             .status(429)
-                            .type("requests")
-                            .message("Rate limit reached for gpt-4")
+                            .type("rate_limit_error")
+                            .message("Rate limit exceeded")
                             .build()}
 
 read abort

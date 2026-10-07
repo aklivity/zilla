@@ -40,6 +40,6 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("content-type", "application/json")
                            .build()}
 
-read "{\"type\":\"error\",\"error\":{\"type\":\"requests\",\"message\":\"Rate limit reached for gpt-4\"}}"
+read "{\"type\":\"error\",\"error\":{\"type\":\"rate_limit_error\",\"message\":\"Rate limit exceeded\"}}"
 
 read closed
