@@ -1129,7 +1129,6 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-<<<<<<< HEAD
         "${app}/anthropic.streaming.complete/client",
         "${net}/anthropic.streaming.complete/server"})
     public void shouldMarkAnthropicStreamingEventsComplete() throws Exception
@@ -1140,14 +1139,9 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/openai.section.user.text.cross.dialect/client",
-        "${net}/anthropic.transform.openai.user.text/server"})
-    public void shouldChallengeCrossDialectOpenaiRequestAsAnthropic() throws Exception
-=======
         "${app}/anthropic.section.user.text.cross.dialect/client",
         "${net}/anthropic.section.user.text/server"})
     public void shouldChallengeCrossDialectRequestAsAnthropic() throws Exception
->>>>>>> c00afec52f (test(binding-llm): parameterize cross-dialect scenarios by the other dialect)
     {
         k3po.finish();
     }
