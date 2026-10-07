@@ -34,7 +34,7 @@ property target "target"
 property model "model"
 
 accept "zilla://streams/app0"
-       option zilla:window 8192
+       option zilla:window 0
        option zilla:transmission "half-duplex"
 
 accepted
@@ -51,6 +51,8 @@ read advise zilla:challenge ${llm:challengeEx()
                                 .typeId(zilla:id("llm"))
                                 .dialect(target)
                                 .build()}
+
+read option zilla:window 8192
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))

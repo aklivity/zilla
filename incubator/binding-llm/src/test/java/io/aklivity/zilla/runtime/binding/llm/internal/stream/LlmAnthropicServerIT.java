@@ -1126,4 +1126,15 @@ public class LlmAnthropicServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
+        "${net}/anthropic.transform.response.options/client",
+        "${app}/transform.response.options/server"})
+    public void shouldTransformResponseOptionsFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
 }

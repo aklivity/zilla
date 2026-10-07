@@ -997,4 +997,15 @@ public class LlmOpenaiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai\""})
+    @Specification({
+        "${net}/openai.transform.response.options/client",
+        "${app}/transform.response.options/server"})
+    public void shouldTransformResponseOptionsFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
 }
