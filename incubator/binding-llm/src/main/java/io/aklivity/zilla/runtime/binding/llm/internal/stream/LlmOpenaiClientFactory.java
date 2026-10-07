@@ -18,8 +18,6 @@ import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmOpenaiDia
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.LongUnaryOperator;
@@ -39,8 +37,10 @@ import io.aklivity.zilla.runtime.binding.llm.config.LlmBindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmRouteConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectHandler;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmBinding;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.OctetsFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.queue.LlmQueueEntryFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.Capability;
@@ -51,6 +51,7 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmAbortExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmAttributeFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBeginExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmEndExFW;
@@ -122,11 +123,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private static final String MEMBER_ARGUMENTS = "arguments";
     private static final String MEMBER_TYPE = "type";
     private static final int FRAMING_CAPABILITIES_MASK = 1 << Capability.FRAMING.ordinal();
-    private static final int EVENT_HEADER_SIZE = Integer.BYTES + Byte.BYTES;
-    private static final int EVENT_LAST = 1;
-    private static final int EVENT_INIT = 2;
-    private static final int EVENT_TYPED = 4;
-    private static final String ATTRIBUTE_EVENT_TYPE = "type";
+    private static final int EVENT_ATTRIBUTES_CAPACITY = 256;
+    private static final int QUEUE_ENTRY_OVERHEAD = 5 * Integer.BYTES + 3 * Long.BYTES + Byte.BYTES;
 
     private static final int KIND_SYSTEM_INSTRUCTION = 1;
     private static final int KIND_USER_TEXT = 2;
@@ -927,21 +925,21 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
                 if (dialectFrame)
                 {
-                    final String eventName = http.eventType;
+                    final Array32FW<LlmAttributeFW> eventAttributes = Flags.hasInit(flags) ? http.eventAttributes() : null;
 
                     dataExBuilder.dialect(d ->
                     {
                         d.complete(complete ? 1 : 0);
 
-                        if (eventName != null && Flags.hasInit(flags))
+                        if (eventAttributes != null)
                         {
-                            d.attributesItem(a -> a.name(ATTRIBUTE_EVENT_TYPE).value(eventName));
+                            d.attributes(eventAttributes);
                         }
                     });
 
                     if (Flags.hasInit(flags))
                     {
-                        http.eventType = null;
+                        http.eventAttributesLength = 0;
                     }
                 }
                 else
@@ -3073,8 +3071,11 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private final class LlmOpenaiHttpStream
     {
         private final HttpDataExFW httpDataExRO = new HttpDataExFW();
-        private final Deque<String> queuedEventTypes;
-        private String eventType;
+        private final Array32FW<LlmAttributeFW> eventAttributesRO = new Array32FW<>(new LlmAttributeFW());
+        private final LlmQueueEntryFW queueEntryRO = new LlmQueueEntryFW();
+        private final LlmQueueEntryFW.Builder queueEntryRW = new LlmQueueEntryFW.Builder();
+        private final MutableDirectBufferEx eventAttributesBuffer = new UnsafeBufferEx(new byte[EVENT_ATTRIBUTES_CAPACITY]);
+        private int eventAttributesLength;
         private final LlmOpenaiStream stream;
         private final long originId;
         private final long routedId;
@@ -3155,7 +3156,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             final LlmServerConfig server = stream.binding.options.server;
 
             this.stream = stream;
-            this.queuedEventTypes = new ArrayDeque<>();
             this.originId = stream.routedId;
             this.routedId = stream.resolvedId;
             this.initialId = supplyInitialId.applyAsLong(routedId);
@@ -4085,7 +4085,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
             if (framing)
             {
-                onNetEvent(traceId, buffer, offset, limit, data.flags(), eventTypeOf(data));
+                onNetEvent(traceId, buffer, offset, limit, data.flags(), data.extension());
                 doNetWindow(traceId);
             }
             else if (errorStatus != NO_ERROR)
@@ -4336,7 +4336,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int limit,
             int flags,
-            String type)
+            OctetsFW extension)
         {
             final boolean last = Flags.hasFin(flags);
             final int length = limit - offset;
@@ -4354,41 +4354,61 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             }
             else if (decodeSlot == NO_SLOT && eventAvailable())
             {
-                startEvent(Flags.hasInit(flags), type);
+                final Array32FW<HttpHeaderFW> headers = eventHeadersOf(flags, extension);
+
+                startEvent(Flags.hasInit(flags), headers);
                 forwardResponseSections(buffer, offset, length, last);
             }
             else
             {
-                enqueueEvent(traceId, buffer, offset, length, flags, type);
+                enqueueEvent(traceId, buffer, offset, length, flags, extension);
             }
         }
 
-        private String eventTypeOf(
-            DataFW data)
+        private Array32FW<HttpHeaderFW> eventHeadersOf(
+            int flags,
+            OctetsFW extension)
         {
-            final HttpDataExFW httpDataEx = Flags.hasInit(data.flags()) ? data.extension().get(httpDataExRO::tryWrap) : null;
+            final HttpDataExFW httpDataEx = Flags.hasInit(flags) ? extension.get(httpDataExRO::tryWrap) : null;
+            final Array32FW<HttpHeaderFW> headers = httpDataEx != null ? httpDataEx.headers() : null;
 
-            String type = null;
-
-            if (httpDataEx != null)
-            {
-                final HttpHeaderFW header =
-                    httpDataEx.headers().matchFirst(h -> ATTRIBUTE_EVENT_TYPE.contentEquals(h.name().asString()));
-
-                type = header != null ? header.value().asString() : null;
-            }
-
-            return type;
+            return headers != null && headers.fieldCount() > 0 ? headers : null;
         }
 
         private void startEvent(
             boolean init,
-            String type)
+            Array32FW<HttpHeaderFW> headers)
+        {
+            if (headers != null)
+            {
+                startEvent(init, headers.buffer(), headers.offset(), headers.sizeof());
+            }
+            else
+            {
+                startEvent(init, null, 0, 0);
+            }
+        }
+
+        private void startEvent(
+            boolean init,
+            DirectBufferEx attributes,
+            int offset,
+            int length)
         {
             if (init)
             {
-                eventType = type;
+                eventAttributesLength = length <= eventAttributesBuffer.capacity() ? length : 0;
+
+                if (eventAttributesLength > 0)
+                {
+                    eventAttributesBuffer.putBytes(0, attributes, offset, length);
+                }
             }
+        }
+
+        private Array32FW<LlmAttributeFW> eventAttributes()
+        {
+            return eventAttributesLength > 0 ? eventAttributesRO.wrap(eventAttributesBuffer, 0, eventAttributesLength) : null;
         }
 
         private boolean eventAvailable()
@@ -4402,32 +4422,43 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int length,
             int flags,
-            String type)
+            OctetsFW extension)
         {
+            final Array32FW<HttpHeaderFW> headers = eventHeadersOf(flags, extension);
+            final int attributesLength = headers != null ? headers.sizeof() : 0;
+
             if (decodeSlot == NO_SLOT)
             {
                 decodeSlot = decodePool.acquire(initialId);
             }
 
-            if (decodeSlot == NO_SLOT || decodeSlotOffset + EVENT_HEADER_SIZE + length > decodeMax)
+            if (decodeSlot == NO_SLOT || decodeSlotOffset + QUEUE_ENTRY_OVERHEAD + attributesLength + length > decodeMax)
             {
                 cleanupNet(traceId);
             }
             else
             {
                 final MutableDirectBufferEx slotBuffer = decodePool.buffer(decodeSlot);
-                slotBuffer.putInt(decodeSlotOffset, length);
-                slotBuffer.putByte(decodeSlotOffset + Integer.BYTES,
-                    (byte) ((Flags.hasFin(flags) ? EVENT_LAST : 0) | (Flags.hasInit(flags) ? EVENT_INIT : 0) |
-                        (type != null ? EVENT_TYPED : 0)));
+                final LlmQueueEntryFW.Builder entry = queueEntryRW.wrap(slotBuffer, decodeSlotOffset, slotBuffer.capacity());
 
-                if (type != null)
+                if (headers != null)
                 {
-                    queuedEventTypes.add(type);
+                    entry.extension(headers.buffer(), headers.offset(), attributesLength);
+                }
+                else
+                {
+                    entry.extension(emptyBufferRO, 0, 0);
                 }
 
-                slotBuffer.putBytes(decodeSlotOffset + EVENT_HEADER_SIZE, buffer, offset, length);
-                decodeSlotOffset += EVENT_HEADER_SIZE + length;
+                decodeSlotOffset = entry
+                    .traceId(traceId)
+                    .authorization(0L)
+                    .budgetId(0L)
+                    .reserved(0)
+                    .flags(flags)
+                    .payload(buffer, offset, length)
+                    .build()
+                    .limit();
             }
         }
 
@@ -4441,14 +4472,14 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             while (decodeSlot != NO_SLOT && progress < decodeSlotOffset && eventAvailable())
             {
                 final MutableDirectBufferEx slotBuffer = decodePool.buffer(decodeSlot);
-                final int length = slotBuffer.getInt(progress);
-                final int eventFlags = slotBuffer.getByte(progress + Integer.BYTES);
-                final boolean last = (eventFlags & EVENT_LAST) != 0;
+                final LlmQueueEntryFW entry = queueEntryRO.wrap(slotBuffer, progress, decodeSlotOffset);
+                final OctetsFW attributes = entry.extension();
+                final OctetsFW payload = entry.payload();
+                final int flags = entry.flags();
 
-                progress += EVENT_HEADER_SIZE;
-                startEvent((eventFlags & EVENT_INIT) != 0, (eventFlags & EVENT_TYPED) != 0 ? queuedEventTypes.poll() : null);
-                forwardResponseSections(slotBuffer, progress, length, last);
-                progress += length;
+                progress = entry.limit();
+                startEvent(Flags.hasInit(flags), attributes.buffer(), attributes.offset(), attributes.sizeof());
+                forwardResponseSections(payload.buffer(), payload.offset(), payload.sizeof(), Flags.hasFin(flags));
             }
 
             if (decodeSlot != NO_SLOT)
