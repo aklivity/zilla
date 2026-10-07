@@ -38,7 +38,7 @@ read zilla:reset.ext ${llm:matchResetEx()
                            .typeId(zilla:id("llm"))
                            .status(400)
                            .type("invalid_request_error")
-                           .message("Invalid request section.")
+                           .message("tool-definition has no mapping from anthropic to openai")
                            .build()}
 
 write aborted

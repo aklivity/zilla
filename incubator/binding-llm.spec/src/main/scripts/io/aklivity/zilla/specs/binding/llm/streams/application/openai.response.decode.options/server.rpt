@@ -37,7 +37,7 @@ accepted
 
 read zilla:begin.ext ${llm:matchBeginEx()
                           .typeId(zilla:id("llm"))
-                          .dialect("anthropic")
+                          .dialect("openai")
                           .model("gpt-4")
                           .build()}
 

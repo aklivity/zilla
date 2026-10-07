@@ -1135,4 +1135,34 @@ public class LlmAnthropicClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/openai.section.user.text.cross.dialect/client",
+        "${net}/anthropic.transform.openai.user.text/server"})
+    public void shouldChallengeCrossDialectOpenaiRequestAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.response.decode.options.cross.dialect/client",
+        "${net}/anthropic.response.decode.options/server"})
+    public void shouldDropAnthropicResponseOptionsCrossDialect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.transform.openai.rejected.user.audio/client",
+        "${net}/anthropic.transform.openai.rejected.user.audio/server"})
+    public void shouldRejectOpenaiSectionUserAudioAsAnthropicNamingSectionAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
 }

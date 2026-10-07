@@ -921,4 +921,14 @@ public class LlmOpenaiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.request.options/client",
+        "${app}/openai.request.options.cross.dialect/server"})
+    public void shouldDropOpenaiRequestOptionsCrossDialect() throws Exception
+    {
+        k3po.finish();
+    }
 }

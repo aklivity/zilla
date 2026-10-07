@@ -2654,4 +2654,76 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.user.text.cross.dialect/client",
+        "${app}/anthropic.section.user.text.cross.dialect/server"})
+    public void shouldAnthropicSectionUserTextCrossDialect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.user.text.cross.dialect/client",
+        "${app}/openai.section.user.text.cross.dialect/server"})
+    public void shouldOpenaiSectionUserTextCrossDialect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.options.cross.dialect/client",
+        "${app}/openai.request.options.cross.dialect/server"})
+    public void shouldOpenaiRequestOptionsCrossDialect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.options.cross.dialect/client",
+        "${app}/anthropic.request.options.cross.dialect/server"})
+    public void shouldAnthropicRequestOptionsCrossDialect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.decode.options.cross.dialect/client",
+        "${app}/openai.response.decode.options.cross.dialect/server"})
+    public void shouldOpenaiResponseDecodeOptionsCrossDialect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.response.decode.options.cross.dialect/client",
+        "${app}/anthropic.response.decode.options.cross.dialect/server"})
+    public void shouldAnthropicResponseDecodeOptionsCrossDialect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.transform.openai.rejected.user.audio/client",
+        "${app}/anthropic.transform.openai.rejected.user.audio/server"})
+    public void shouldAnthropicTransformOpenaiRejectedUserAudio() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.sections/client",
+        "${app}/openai.proxy.sections/server"})
+    public void shouldOpenaiProxySections() throws Exception
+    {
+        k3po.finish();
+    }
 }

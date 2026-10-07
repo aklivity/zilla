@@ -1050,4 +1050,14 @@ public class LlmAnthropicServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.request.options/client",
+        "${app}/anthropic.request.options.cross.dialect/server"})
+    public void shouldDropAnthropicRequestOptionsCrossDialect() throws Exception
+    {
+        k3po.finish();
+    }
 }
