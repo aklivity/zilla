@@ -21,19 +21,20 @@
 # hand-rolled request/response shapes.
 #
 #   1. an OpenAI SDK client talking to the openai-facing frontend
-#      (north_llm_server_openai, port 7161) gets back a response the SDK
-#      itself parses as OpenAI-shaped, even though the real upstream
-#      (mock-anthropic) only speaks the Anthropic dialect -- proving
+#      (north_llm_server_openai, port 7161) and asking for a Claude model gets
+#      back a response the SDK itself parses as OpenAI-shaped, even though the
+#      model is served by mock-anthropic, which only speaks the Anthropic
+#      dialect -- north_llm_proxy routes on the model, so this proves
 #      request+response cross-dialect translation, openai in -> anthropic
 #      upstream -> openai out, in both non-streaming and streaming form
 #   2. the same round trip, but the request carries a `tools` definition,
 #      and the response carries an OpenAI-shaped tool call translated from
 #      the upstream's native Anthropic tool-use content block
 #   3. an Anthropic SDK client talking to the anthropic-facing frontend
-#      (north_llm_server_anthropic, port 7162) gets back a response the SDK
-#      parses as Anthropic-shaped, even though the real upstream
-#      (mock-openai) only speaks the OpenAI dialect -- the same translation,
-#      mirrored, non-streaming and streaming
+#      (north_llm_server_anthropic, port 7162) and asking for a GPT model gets
+#      back a response the SDK parses as Anthropic-shaped, even though the
+#      model is served by mock-openai, which only speaks the OpenAI dialect --
+#      the same translation, mirrored, non-streaming and streaming
 #   4. the same round trip, but with `tools`, translating the upstream's
 #      native OpenAI tool call into an Anthropic-shaped tool-use block
 #   5. south_llm_client_anthropic forwards the caller's own bearer token
@@ -41,10 +42,10 @@
 #   6. south_llm_client_openai forwards the caller's own `x-api-key` upstream
 #      as `Authorization: Bearer ...`, the same pass-through mirrored
 #   7. north_llm_proxy routes a gpt-4o request from the openai-facing
-#      frontend to mock-openai-secondary (same dialect, no translation)
-#      instead of the default cross-dialect route to mock-anthropic --
-#      routing purely on LlmBeginEx.model, never on request content --
-#      exercised both non-streaming and streaming
+#      frontend to mock-openai-secondary (same dialect, no translation),
+#      ahead of the gpt-* route to mock-openai -- routing purely on
+#      LlmBeginEx.dialect/model, never on request content -- exercised both
+#      non-streaming and streaming
 #   8. north_llm_proxy routes a claude-3-5-haiku-20241022 request from the
 #      anthropic-facing frontend to mock-anthropic-secondary, the same
 #      model-based intra-dialect routing mirrored, non-streaming and
@@ -180,18 +181,19 @@ def anthropic_message(model, streaming, tools=None):
     return text, stop_reason
 
 
-# WHEN: an OpenAI SDK client sends a plain chat request to the openai-facing
-#       frontend, backed by the Anthropic-only mock-anthropic
+# WHEN: an OpenAI SDK client sends a plain chat request naming a Claude model
+#       to the openai-facing frontend; north_llm_proxy routes the claude-*
+#       model to the Anthropic-only mock-anthropic
 # THEN: the SDK parses back an OpenAI-shaped response, proving the
 #       anthropic-native reply was translated back to openai on the way out
-def check_openai_text_default():
-    resp = openai_chat("gpt-4", streaming=False)
+def check_openai_to_anthropic_text():
+    resp = openai_chat("claude-3-opus-20240229", streaming=False)
     assert resp.choices[0].message.content == "Hello! How can I help you today?", resp
     assert resp.choices[0].finish_reason == "stop", resp
 
 
-def check_openai_text_default_streaming():
-    content, finish_reason = openai_chat("gpt-4", streaming=True)
+def check_openai_to_anthropic_text_streaming():
+    content, finish_reason = openai_chat("claude-3-opus-20240229", streaming=True)
     assert content == "Hello! How can I help you today?", content
     assert finish_reason == "stop", finish_reason
 
@@ -199,20 +201,20 @@ def check_openai_text_default_streaming():
 # WHEN: the same client instead sends a request carrying a `tools` definition
 # THEN: the SDK parses an openai-shaped tool call, translated from
 #       mock-anthropic's native tool_use content block
-def check_openai_tools_default():
+def check_openai_to_anthropic_tools():
     tools = [{
         "type": "function",
         "function": {"name": "get_weather", "parameters": {"type": "object", "properties": {"city": {"type": "string"}}}}
     }]
-    resp = openai_chat("gpt-4", streaming=False, tools=tools)
+    resp = openai_chat("claude-3-opus-20240229", streaming=False, tools=tools)
     assert resp.choices[0].finish_reason == "tool_calls", resp
     assert resp.choices[0].message.tool_calls[0].function.name == "get_weather", resp
 
 
 # WHEN: an OpenAI SDK client sends a request naming model gpt-4o
-# THEN: north_llm_proxy routes it to mock-openai-secondary, not the default
-#       cross-dialect route to mock-anthropic -- routing purely on
-#       LlmBeginEx.model, never on request content
+# THEN: north_llm_proxy routes it to mock-openai-secondary, ahead of the
+#       gpt-* route to mock-openai -- routing purely on LlmBeginEx.dialect/model,
+#       never on request content
 def check_openai_text_secondary():
     resp = openai_chat("gpt-4o", streaming=False)
     assert "secondary openai-dialect deployment" in resp.choices[0].message.content, resp
@@ -224,18 +226,19 @@ def check_openai_text_secondary_streaming():
     assert finish_reason == "stop", finish_reason
 
 
-# WHEN: an Anthropic SDK client sends a plain messages request to the
-#       anthropic-facing frontend, backed by the OpenAI-only mock-openai
+# WHEN: an Anthropic SDK client sends a plain messages request naming a GPT
+#       model to the anthropic-facing frontend; north_llm_proxy routes the
+#       gpt-* model to the OpenAI-only mock-openai
 # THEN: the SDK parses back an Anthropic-shaped response, proving the
 #       openai-native reply was translated back to anthropic on the way out
-def check_anthropic_text_default():
-    resp = anthropic_message("claude-3-opus-20240229", streaming=False)
+def check_anthropic_to_openai_text():
+    resp = anthropic_message("gpt-4", streaming=False)
     assert resp.content[0].text == "Hello! How can I help you today?", resp
     assert resp.stop_reason == "end_turn", resp
 
 
-def check_anthropic_text_default_streaming():
-    text, stop_reason = anthropic_message("claude-3-opus-20240229", streaming=True)
+def check_anthropic_to_openai_text_streaming():
+    text, stop_reason = anthropic_message("gpt-4", streaming=True)
     assert text == "Hello! How can I help you today?", text
     assert stop_reason == "end_turn", stop_reason
 
@@ -243,9 +246,9 @@ def check_anthropic_text_default_streaming():
 # WHEN: the same client instead sends a request carrying a `tools` definition
 # THEN: the SDK parses an anthropic-shaped tool_use block, translated from
 #       mock-openai's native tool_calls entry
-def check_anthropic_tools_default():
+def check_anthropic_to_openai_tools():
     tools = [{"name": "get_weather", "input_schema": {"type": "object", "properties": {"city": {"type": "string"}}}}]
-    resp = anthropic_message("claude-3-opus-20240229", streaming=False, tools=tools)
+    resp = anthropic_message("gpt-4", streaming=False, tools=tools)
     assert resp.stop_reason == "tool_use", resp
     assert resp.content[0].type == "tool_use", resp
     assert resp.content[0].name == "get_weather", resp
@@ -253,8 +256,8 @@ def check_anthropic_tools_default():
 
 # WHEN: an Anthropic SDK client sends a request naming model
 #       claude-3-5-haiku-20241022
-# THEN: north_llm_proxy routes it to mock-anthropic-secondary, not the
-#       default cross-dialect route to mock-openai
+# THEN: north_llm_proxy routes it to mock-anthropic-secondary, ahead of the
+#       claude-* route to mock-anthropic
 def check_anthropic_text_secondary():
     resp = anthropic_message("claude-3-5-haiku-20241022", streaming=False)
     assert "secondary anthropic-dialect deployment" in resp.content[0].text, resp
@@ -305,25 +308,25 @@ def assert_llm_metrics(exchange, bindings):
         assert after.get(("llm_active_requests", binding, None), 0) == 0, (binding, "active requests")
 
 
-# WHEN: an OpenAI SDK client sends a chat request, routed across dialects to
-#       mock-anthropic, which reports input and output tokens but no total
+# WHEN: an OpenAI SDK client sends a chat request naming a Claude model, routed
+#       across dialects to mock-anthropic, which reports input and output tokens but no total
 # THEN: north_llm_server_openai, north_llm_proxy and south_llm_client_anthropic
 #       each record the reported tokens and one duration sample, leave the
 #       unreported total unrecorded, and have no request left active
 def check_openai_llm_metrics():
     assert_llm_metrics(
-        lambda: openai_chat("gpt-4", streaming=False),
+        lambda: openai_chat("claude-3-opus-20240229", streaming=False),
         ["north_llm_server_openai", "north_llm_proxy", "south_llm_client_anthropic"])
 
 
-# WHEN: an Anthropic SDK client sends a messages request, routed across
-#       dialects to mock-openai, which reports prompt and completion tokens
+# WHEN: an Anthropic SDK client sends a messages request naming a GPT model,
+#       routed across dialects to mock-openai, which reports prompt and completion tokens
 #       but no total
 # THEN: the same llm.* metrics are recorded at north_llm_server_anthropic,
 #       north_llm_proxy and south_llm_client_openai
 def check_anthropic_llm_metrics():
     assert_llm_metrics(
-        lambda: anthropic_message("claude-3-opus-20240229", streaming=False),
+        lambda: anthropic_message("gpt-4", streaming=False),
         ["north_llm_server_anthropic", "north_llm_proxy", "south_llm_client_openai"])
 
 
@@ -349,39 +352,41 @@ def service_logs(project, service):
 
 
 # WHEN: a caller presents its own bearer token to the openai-facing frontend
+#       and asks for a Claude model
 # THEN: south_llm_client_anthropic forwards that exact token upstream as
 #       x-api-key (no "Bearer " prefix) -- the caller's own credential, not a
 #       separate secret configured in zilla.yaml
 def check_credential_pass_through_to_anthropic():
     token = f"caller-openai-token-{os.getpid()}"
     openai_client(api_key=token).chat.completions.create(
-        model="gpt-4", messages=[{"role": "user", "content": "Hello"}])
+        model="claude-3-opus-20240229", messages=[{"role": "user", "content": "Hello"}])
     logs = service_logs(PROJECT, "mock-anthropic")
     assert f"x-api-key: {token}" in logs, logs
 
 
 # WHEN: a caller presents its own x-api-key to the anthropic-facing frontend
+#       and asks for a GPT model
 # THEN: south_llm_client_openai forwards that exact token upstream as
 #       Authorization: Bearer ... -- the caller's own credential, not a
 #       separate secret configured in zilla.yaml
 def check_credential_pass_through_to_openai():
     token = f"caller-anthropic-token-{os.getpid()}"
     anthropic_client(api_key=token).messages.create(
-        model="claude-3-opus-20240229", max_tokens=1024, messages=[{"role": "user", "content": "Hello"}])
+        model="gpt-4", max_tokens=1024, messages=[{"role": "user", "content": "Hello"}])
     logs = service_logs(PROJECT, "mock-openai")
     assert f"authorization: Bearer {token}" in logs, logs
 
 
 PROJECT = compose_project()
 
-run_check("openai_text_default", check_openai_text_default)
-run_check("openai_text_default_streaming", check_openai_text_default_streaming)
-run_check("openai_tools_default", check_openai_tools_default)
+run_check("openai_to_anthropic_text", check_openai_to_anthropic_text)
+run_check("openai_to_anthropic_text_streaming", check_openai_to_anthropic_text_streaming)
+run_check("openai_to_anthropic_tools", check_openai_to_anthropic_tools)
 run_check("openai_text_secondary", check_openai_text_secondary)
 run_check("openai_text_secondary_streaming", check_openai_text_secondary_streaming)
-run_check("anthropic_text_default", check_anthropic_text_default)
-run_check("anthropic_text_default_streaming", check_anthropic_text_default_streaming)
-run_check("anthropic_tools_default", check_anthropic_tools_default)
+run_check("anthropic_to_openai_text", check_anthropic_to_openai_text)
+run_check("anthropic_to_openai_text_streaming", check_anthropic_to_openai_text_streaming)
+run_check("anthropic_to_openai_tools", check_anthropic_to_openai_tools)
 run_check("anthropic_text_secondary", check_anthropic_text_secondary)
 run_check("anthropic_text_secondary_streaming", check_anthropic_text_secondary_streaming)
 run_check("credential_pass_through_to_anthropic", check_credential_pass_through_to_anthropic)
