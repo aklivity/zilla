@@ -1008,4 +1008,84 @@ public class LlmOpenaiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.assistant.text.100k/client",
+        "${app}/openai.section.assistant.text.100k/server"})
+    public void shouldDecodeOpenaiSectionAssistantText100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.assistant.text.escaped/client",
+        "${app}/openai.section.assistant.text.escaped/server"})
+    public void shouldDecodeOpenaiSectionAssistantTextEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.assistant.text.logprobs/client",
+        "${app}/openai.section.assistant.text.logprobs/server"})
+    public void shouldDecodeOpenaiSectionAssistantTextLogprobs() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.assistant.text.members/client",
+        "${app}/openai.section.assistant.text.members/server"})
+    public void shouldDecodeOpenaiSectionAssistantTextMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.assistant.text.streaming/client",
+        "${app}/openai.section.assistant.text.streaming/server"})
+    public void shouldDecodeOpenaiSectionAssistantTextStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.assistant.text.logprobs.streaming/client",
+        "${app}/openai.section.assistant.text.logprobs.streaming/server"})
+    public void shouldDecodeOpenaiSectionAssistantTextLogprobsStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.assistant.tool.call.streaming/client",
+        "${app}/openai.section.assistant.tool.call.streaming/server"})
+    public void shouldDecodeOpenaiSectionAssistantToolCallStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.assistant.text.usage.streaming/client",
+        "${app}/openai.section.assistant.text.usage.streaming/server"})
+    public void shouldDecodeOpenaiSectionAssistantTextUsageStreaming() throws Exception
+    {
+        k3po.finish();
+    }
 }

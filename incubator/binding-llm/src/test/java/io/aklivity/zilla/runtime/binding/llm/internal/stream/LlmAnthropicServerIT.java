@@ -1137,4 +1137,64 @@ public class LlmAnthropicServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.assistant.text.100k/client",
+        "${app}/anthropic.section.assistant.text.100k/server"})
+    public void shouldDecodeAnthropicSectionAssistantText100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.assistant.text.escaped/client",
+        "${app}/anthropic.section.assistant.text.escaped/server"})
+    public void shouldDecodeAnthropicSectionAssistantTextEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.assistant.text.members/client",
+        "${app}/anthropic.section.assistant.text.members/server"})
+    public void shouldDecodeAnthropicSectionAssistantTextMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.assistant.text.streaming/client",
+        "${app}/anthropic.section.assistant.text.streaming/server"})
+    public void shouldDecodeAnthropicSectionAssistantTextStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.streaming/client",
+        "${app}/anthropic.section.assistant.tool.call.streaming/server"})
+    public void shouldDecodeAnthropicSectionAssistantToolCallStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.rejected.streaming/client",
+        "${app}/anthropic.rejected.streaming/server"})
+    public void shouldDecodeAnthropicRejectedStreaming() throws Exception
+    {
+        k3po.finish();
+    }
 }

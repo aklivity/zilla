@@ -652,9 +652,9 @@ public class LlmOpenaiClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
-        "${app}/openai.response.decode.options/client",
-        "${net}/openai.response.decode.options/server"})
-    public void shouldDecodeOpenaiResponseOptions() throws Exception
+        "${app}/openai.section.assistant.text.members/client",
+        "${net}/openai.section.assistant.text.members/server"})
+    public void shouldEncodeOpenaiSectionAssistantTextMembers() throws Exception
     {
         k3po.finish();
     }
@@ -662,9 +662,9 @@ public class LlmOpenaiClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
-        "${app}/openai.response.decode.text/client",
-        "${net}/openai.response.decode.text/server"})
-    public void shouldDecodeOpenaiResponseText() throws Exception
+        "${app}/openai.section.assistant.text.streaming/client",
+        "${net}/openai.section.assistant.text.streaming/server"})
+    public void shouldEncodeOpenaiSectionAssistantTextStreaming() throws Exception
     {
         k3po.finish();
     }
@@ -672,9 +672,9 @@ public class LlmOpenaiClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
-        "${app}/openai.response.decode.text.and.tool.call/client",
-        "${net}/openai.response.decode.text.and.tool.call/server"})
-    public void shouldDecodeOpenaiResponseTextAndToolCall() throws Exception
+        "${app}/openai.section.assistant.tool.call.streaming/client",
+        "${net}/openai.section.assistant.tool.call.streaming/server"})
+    public void shouldEncodeOpenaiSectionAssistantToolCallStreaming() throws Exception
     {
         k3po.finish();
     }
@@ -682,9 +682,9 @@ public class LlmOpenaiClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
-        "${app}/openai.response.decode.refusal/client",
-        "${net}/openai.response.decode.refusal/server"})
-    public void shouldDecodeOpenaiResponseRefusal() throws Exception
+        "${app}/openai.section.assistant.text.usage.streaming/client",
+        "${net}/openai.section.assistant.text.usage.streaming/server"})
+    public void shouldEncodeOpenaiSectionAssistantTextUsageStreaming() throws Exception
     {
         k3po.finish();
     }
@@ -692,9 +692,9 @@ public class LlmOpenaiClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
-        "${app}/openai.response.decode.streaming/client",
-        "${net}/openai.response.decode.streaming/server"})
-    public void shouldDecodeOpenaiResponseStreaming() throws Exception
+        "${app}/openai.rejected.streaming/client",
+        "${net}/openai.rejected.streaming/server"})
+    public void shouldEncodeOpenaiRejectedStreaming() throws Exception
     {
         k3po.finish();
     }
@@ -702,9 +702,9 @@ public class LlmOpenaiClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
-        "${app}/openai.response.decode.streaming.tool.call/client",
-        "${net}/openai.response.decode.streaming.tool.call/server"})
-    public void shouldDecodeOpenaiResponseStreamingToolCall() throws Exception
+        "${app}/openai.section.assistant.text.100k/client",
+        "${net}/openai.section.assistant.text.100k/server"})
+    public void shouldEncodeOpenaiSectionAssistantText100k() throws Exception
     {
         k3po.finish();
     }
@@ -712,39 +712,9 @@ public class LlmOpenaiClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
-        "${app}/openai.response.decode.streaming.usage/client",
-        "${net}/openai.response.decode.streaming.usage/server"})
-    public void shouldDecodeOpenaiResponseStreamingUsage() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.openai.yaml")
-    @Specification({
-        "${app}/openai.response.decode.streaming.error/client",
-        "${net}/openai.response.decode.streaming.error/server"})
-    public void shouldDecodeOpenaiResponseStreamingError() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.openai.yaml")
-    @Specification({
-        "${app}/openai.response.decode.text.100k/client",
-        "${net}/openai.response.decode.text.100k/server"})
-    public void shouldDecodeOpenaiResponseText100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.openai.yaml")
-    @Specification({
-        "${app}/openai.response.decode.text.escaped/client",
-        "${net}/openai.response.decode.text.escaped/server"})
-    public void shouldDecodeOpenaiResponseTextEscaped() throws Exception
+        "${app}/openai.section.assistant.text.escaped/client",
+        "${net}/openai.section.assistant.text.escaped/server"})
+    public void shouldEncodeOpenaiSectionAssistantTextEscaped() throws Exception
     {
         k3po.finish();
     }
@@ -974,9 +944,9 @@ public class LlmOpenaiClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
-        "${app}/openai.response.decode.streaming.logprobs/client",
-        "${net}/openai.response.decode.streaming.logprobs/server"})
-    public void shouldDecodeOpenaiResponseStreamingLogprobs() throws Exception
+        "${app}/openai.section.assistant.text.logprobs.streaming/client",
+        "${net}/openai.section.assistant.text.logprobs.streaming/server"})
+    public void shouldEncodeOpenaiSectionAssistantTextLogprobsStreaming() throws Exception
     {
         k3po.finish();
     }
@@ -984,9 +954,9 @@ public class LlmOpenaiClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
-        "${app}/openai.response.decode.text.logprobs/client",
-        "${net}/openai.response.decode.text.logprobs/server"})
-    public void shouldDecodeOpenaiResponseTextLogprobs() throws Exception
+        "${app}/openai.section.assistant.text.logprobs/client",
+        "${net}/openai.section.assistant.text.logprobs/server"})
+    public void shouldEncodeOpenaiSectionAssistantTextLogprobs() throws Exception
     {
         k3po.finish();
     }

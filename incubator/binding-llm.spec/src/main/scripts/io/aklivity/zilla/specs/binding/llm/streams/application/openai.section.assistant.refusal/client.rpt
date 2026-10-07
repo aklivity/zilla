@@ -52,32 +52,32 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("openai")
                            .model("gpt-4")
-                           .id("chatcmpl_2")
+                           .id("chatcmpl_4")
                            .build()}
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-read "{\"id\":\"chatcmpl_2\",\"object\":\"chat.completion\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\""
+read "{\"id\":\"chatcmpl_4\",\"object\":\"chat.completion\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":null,\"refusal\":\""
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("ASSISTANT_TEXT")
+                          .type("ASSISTANT_REFUSAL")
                           .message(0)
                           .build()}
-read "Hello! How can I help you today?"
+read "I cannot help with that."
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
                           .build()}
-read "\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}}"
+read "\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":12,\"completion_tokens\":6,\"total_tokens\":18}}"
 
 read zilla:end.ext ${llm:matchEndEx()
                             .typeId(zilla:id("llm"))
-                            .inputTokens(25)
-                            .outputTokens(15)
-                            .totalTokens(40)
+                            .inputTokens(12)
+                            .outputTokens(6)
+                            .totalTokens(18)
                             .finishReason("stop")
                             .build()}
 
