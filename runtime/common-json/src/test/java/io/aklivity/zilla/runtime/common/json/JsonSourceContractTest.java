@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 class JsonSourceContractTest
 {
@@ -31,13 +32,27 @@ class JsonSourceContractTest
     @Test
     void shouldRejectSegmentAccessOnStructuredValue()
     {
-        JsonTransform probe = (control, source, event, sink) ->
+        JsonTransform probe = new JsonTransform()
         {
-            if (event == JsonEvent.VALUE_NUMBER)
+            @Override
+            public Status transform(
+                JsonController control,
+                JsonSource source,
+                JsonEvent event,
+                JsonSink sink)
             {
-                assertThrows(AssertionError.class, source::getSegment);
+                if (event == JsonEvent.VALUE_NUMBER)
+                {
+                    assertThrows(AssertionError.class, source::getSegment);
+                }
+                return sink.transform(control, source, event);
             }
-            return sink.transform(control, source, event);
+
+            @Override
+            public boolean deterministic()
+            {
+                return true;
+            }
         };
         run(probe, "[42]", JsonSink.Delivery.STRUCTURED);
     }
@@ -47,14 +62,28 @@ class JsonSourceContractTest
     @Test
     void shouldRejectScalarAccessOnSegment()
     {
-        JsonTransform probe = (control, source, event, sink) ->
+        JsonTransform probe = new JsonTransform()
         {
-            if (event == JsonEvent.SEGMENT)
+            @Override
+            public Status transform(
+                JsonController control,
+                JsonSource source,
+                JsonEvent event,
+                JsonSink sink)
             {
-                assertThrows(AssertionError.class, source::getStringView);
-                assertThrows(AssertionError.class, source::getInt);
+                if (event == JsonEvent.SEGMENT)
+                {
+                    assertThrows(AssertionError.class, source::getStringView);
+                    assertThrows(AssertionError.class, source::getInt);
+                }
+                return sink.transform(control, source, event);
             }
-            return sink.transform(control, source, event);
+
+            @Override
+            public boolean deterministic()
+            {
+                return true;
+            }
         };
         // the sink opts into segment delivery, so the whole document arrives as SEGMENT events
         run(probe, "{\"a\":1}", JsonSink.Delivery.SEGMENTABLE);

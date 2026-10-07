@@ -171,6 +171,12 @@ public class LlmResponseExtractTransformExtensionTest
         }
 
         @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
+        @Override
         protected void onField(
             String fieldPath,
             JsonSource source,

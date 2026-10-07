@@ -549,6 +549,12 @@ public class KafkaCachePartitionTest
         }
 
         @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
+        @Override
         public void reset()
         {
             resetCount++;
@@ -593,6 +599,12 @@ public class KafkaCachePartitionTest
         public boolean identity()
         {
             return false;
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
         }
 
         @Override
@@ -1230,6 +1242,12 @@ public class KafkaCachePartitionTest
         }
 
         @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
+        @Override
         public void reset()
         {
         }
@@ -1268,6 +1286,12 @@ public class KafkaCachePartitionTest
         public boolean identity()
         {
             return false;
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
         }
 
         @Override

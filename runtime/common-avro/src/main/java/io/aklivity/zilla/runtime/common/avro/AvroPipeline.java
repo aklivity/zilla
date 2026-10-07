@@ -61,6 +61,12 @@ public interface AvroPipeline
     boolean identity();
 
     /**
+     * Whether this pipeline produces the same output for the same input, configuration and authorization —
+     * the composition of its parser, transform stages, and terminal generator all being deterministic.
+     */
+    boolean deterministic();
+
+    /**
      * Sets the authorization in effect for the next datum {@link #transform fed} to this pipeline, reached
      * by any stage via {@link AvroController#authorization()}. The default does nothing, for a pipeline
      * assembled with no stage that reads it. Call before each {@code transform}, since a reused pipeline

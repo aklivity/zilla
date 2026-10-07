@@ -308,6 +308,12 @@ public class JsonModelEnvelopeTest
         }
 
         @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
+        @Override
         public Status transform(
             JsonController control,
             JsonSource avroSource,
@@ -352,6 +358,12 @@ public class JsonModelEnvelopeTest
         }
 
         @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
+        @Override
         public Status transform(
             JsonController control,
             JsonSource source,
@@ -376,6 +388,12 @@ public class JsonModelEnvelopeTest
     private static final class Observing implements JsonTransform
     {
         private JsonEnvelope envelope;
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
 
         @Override
         public Status transform(

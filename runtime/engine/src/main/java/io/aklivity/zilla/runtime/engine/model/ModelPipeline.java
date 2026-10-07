@@ -78,10 +78,69 @@ public interface ModelPipeline
      * the whole value to recompute its framing and checksum. A pipeline that may rewrite bytes or resize
      * the value returns {@code false}.
      * </p>
+     * <p>
+     * The answer is a property of the supplied pipeline, available before any data is transformed and
+     * stable for its lifetime. It is conservative: it reflects the installed stages and the intrinsic
+     * behavior of the pipeline's parser and generator, never a per-value selection made while
+     * transforming, and is {@code false} whenever any installed stage could change bytes for any
+     * schema.
+     * </p>
      *
      * @return {@code true} if accepted values pass through unchanged; {@code false} otherwise
      */
     boolean identity();
+
+    /**
+     * Indicates whether this pipeline is a pure function of its input, configuration and authorization.
+     * <p>
+     * A deterministic pipeline always produces the same output for the same input, configuration and
+     * authorization. A pipeline whose output may also depend on randomness, time or external state
+     * returns {@code false}. A caller that re-drives the same input, or composes pipelines, can rely on
+     * observing the same output only when every stage is deterministic.
+     * </p>
+     * <p>
+     * Like {@link #identity()}, the answer is a property of the supplied pipeline, available before any
+     * data is transformed and conservative.
+     * </p>
+     *
+     * @return {@code true} if the output is repeatable for the same input, configuration and authorization;
+     *         {@code false} otherwise
+     */
+    boolean deterministic();
+
+    /**
+     * Returns a pipeline that applies this pipeline and then {@code next} to the same value.
+     * <p>
+     * The result owns the driving loop between the two stages: the unconsumed tail of the input,
+     * the {@code INIT} flag (delivered to each stage exactly once), the {@code FIN} flag (delivered to
+     * {@code next} only after this pipeline reports {@link ModelStatus#COMPLETE}), draining on
+     * {@link ModelStatus#OVERFLOW} and supplying input on {@link ModelStatus#UNDERFLOW}. A
+     * {@link ModelStatus#REJECTED} from either stage rejects the chain, and {@link #reset()} resets both.
+     * A stage that reports {@link ModelStatus#SUSPENDED} is resumed through the callback it was supplied
+     * with; the caller then re-drives the chain with an empty source and the chain re-enters the
+     * suspended stage.
+     * </p>
+     * <p>
+     * A stage that reports {@link #identity()} is a verdict: it observes the bytes presented to it and
+     * accepts or rejects them, and its output is not forwarded. The chain passes the original bytes on, and
+     * only a stage that is not identity feeds transformed bytes to the next stage, through a single
+     * intermediate buffer allocated when the chain is built. The chain preserves the order it is given;
+     * which stage rejects first, and which side effects run on rejection, are not specified.
+     * </p>
+     * <p>
+     * {@link #identity()} and {@link #deterministic()} of the result combine with logical AND, and
+     * {@link #padding} sums. An implementation may override this method to compose more efficiently with a
+     * pipeline of the same kind, provided the observable behavior is identical.
+     * </p>
+     *
+     * @param next  the pipeline to apply to the output of this pipeline
+     * @return a pipeline that applies this pipeline and then {@code next}
+     */
+    default ModelPipeline andThen(
+        ModelPipeline next)
+    {
+        return new ModelPipelineChain(this, next);
+    }
 
     /**
      * Returns the number of additional bytes required in the output buffer to accommodate any framing

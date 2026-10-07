@@ -80,4 +80,9 @@ public interface JsonTransform
     {
         return false;
     }
+
+    /**
+     * Whether this stage always produces the same output for the same input, configuration and authorization.
+     */
+    boolean deterministic();
 }

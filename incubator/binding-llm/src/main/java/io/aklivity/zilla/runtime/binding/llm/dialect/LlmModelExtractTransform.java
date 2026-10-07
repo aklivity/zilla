@@ -72,6 +72,12 @@ final class LlmModelExtractTransform extends LlmRequestFieldTransform
         return true;
     }
 
+    @Override
+    public boolean deterministic()
+    {
+        return true;
+    }
+
     private static boolean contentEquals(
         CharSequence key,
         String name)

@@ -285,5 +285,11 @@ public class AvroPipelineBM
         {
             return false;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     }
 }

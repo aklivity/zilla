@@ -119,6 +119,12 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
     }
 
     @Override
+    public boolean deterministic()
+    {
+        return true;
+    }
+
+    @Override
     public ProtobufParser wrap(
         DirectBufferEx buffer,
         int offset,

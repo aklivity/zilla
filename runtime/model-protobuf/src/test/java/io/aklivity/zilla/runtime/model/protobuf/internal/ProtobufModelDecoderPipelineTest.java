@@ -263,31 +263,50 @@ public class ProtobufModelDecoderPipelineTest
     }
 
     @Test
-    public void shouldReportIdentityWhenNoView()
+    public void shouldReportNoIdentityBeforeAndAfterDataWhenNoView()
     {
         ProtobufModelHandlerImpl handler = newHandler(null);
         ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         assertFalse(pipeline.identity());
-
-        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        pipeline.transform(0L, 0L, 0L, COMPLETE,
-            new UnsafeBufferEx(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
-
-        assertTrue(pipeline.identity());
-    }
-
-    @Test
-    public void shouldNotReportIdentityWhenJsonView()
-    {
-        ProtobufModelHandlerImpl handler = newHandler("json");
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+        assertTrue(pipeline.deterministic());
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
         pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
 
         assertFalse(pipeline.identity());
+        assertTrue(pipeline.deterministic());
+    }
+
+    @Test
+    public void shouldReportNoIdentityWhenJsonView()
+    {
+        ProtobufModelHandlerImpl handler = newHandler("json");
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+
+        assertFalse(pipeline.identity());
+        assertTrue(pipeline.deterministic());
+    }
+
+    @Test
+    public void shouldReportNotDeterministicWhenFieldTransformWired()
+    {
+        ProtobufModelHandlerImpl handler = newHandler(null);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(new HashMap<>()), ModelCache.NONE);
+
+        assertFalse(pipeline.identity());
+        assertFalse(pipeline.deterministic());
+    }
+
+    @Test
+    public void shouldReportNoIdentityNorDeterministicWhenExtensionInstalled()
+    {
+        ProtobufModelHandlerImpl handler = newHandler(null, List.of(failing()));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+
+        assertFalse(pipeline.identity());
+        assertFalse(pipeline.deterministic());
     }
 
     @Test
@@ -485,6 +504,12 @@ public class ProtobufModelDecoderPipelineTest
 
     private static final class Failing implements ProtobufTransform
     {
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
         @Override
         public ProtobufPipeline.Status transform(
             ProtobufController control,

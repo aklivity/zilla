@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.model.json.internal;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -66,6 +67,16 @@ public class JsonModelEncoderPipelineTest
 
         byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
         assertTrue(pipeline.padding(new UnsafeBufferEx(in), 0, in.length) >= 0);
+    }
+
+    @Test
+    public void shouldReportDeterministicNonIdentityBeforeData()
+    {
+        JsonModelHandlerImpl handler = newHandler();
+        ModelPipeline pipeline = handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE);
+
+        assertFalse(pipeline.identity());
+        assertTrue(pipeline.deterministic());
     }
 
     private JsonModelHandlerImpl newHandler()

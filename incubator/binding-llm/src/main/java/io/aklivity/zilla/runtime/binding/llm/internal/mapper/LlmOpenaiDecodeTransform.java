@@ -98,6 +98,12 @@ public final class LlmOpenaiDecodeTransform extends LlmCanonicalEmitter implemen
         return status;
     }
 
+    @Override
+    public boolean deterministic()
+    {
+        return true;
+    }
+
     private void onEvent(
         JsonController control,
         JsonSource source,

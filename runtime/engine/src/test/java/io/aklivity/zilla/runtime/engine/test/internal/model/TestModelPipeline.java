@@ -95,6 +95,7 @@ final class TestModelPipeline implements ModelPipeline
     private final List<Long> discloseAuthorized;
     private final DirectBufferEx discloseRedacted;
     private final String envelopeDiscloseName;
+    private final boolean deterministic;
 
     private int processed;
     private int contentLength;
@@ -116,7 +117,8 @@ final class TestModelPipeline implements ModelPipeline
         EngineContext context,
         List<Long> discloseAuthorized,
         DirectBufferEx discloseRedacted,
-        String envelopeDiscloseName)
+        String envelopeDiscloseName,
+        boolean deterministic)
     {
         this.length = length;
         this.transformLength = transformLength;
@@ -134,6 +136,7 @@ final class TestModelPipeline implements ModelPipeline
         this.discloseAuthorized = discloseAuthorized;
         this.discloseRedacted = discloseRedacted;
         this.envelopeDiscloseName = envelopeDiscloseName;
+        this.deterministic = deterministic;
     }
 
     @Override
@@ -364,6 +367,12 @@ final class TestModelPipeline implements ModelPipeline
     public boolean identity()
     {
         return transformLength < 0 && discloseAuthorized == null && envelopeDiscloseName == null;
+    }
+
+    @Override
+    public boolean deterministic()
+    {
+        return deterministic;
     }
 
     @Override

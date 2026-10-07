@@ -342,6 +342,12 @@ public class AvroModelEnvelopeTest
         {
             return true;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     }
 
     // format-native stage: writes each string value it observes into the envelope under one name
@@ -374,6 +380,12 @@ public class AvroModelEnvelopeTest
         {
             return true;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     }
 
     // format-native stage: captures the envelope the pipeline supplies, without touching its contents
@@ -394,6 +406,12 @@ public class AvroModelEnvelopeTest
 
         @Override
         public boolean identity()
+        {
+            return true;
+        }
+
+        @Override
+        public boolean deterministic()
         {
             return true;
         }

@@ -378,10 +378,11 @@ public class AvroModelTransformTest
             new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
 
         assertFalse(pipeline.identity());
+        assertFalse(pipeline.deterministic());
     }
 
     @Test
-    public void shouldReportIdentityWhenObserving()
+    public void shouldNotReportIdentityOrDeterministicWhenObserving()
     {
         AvroModelHandlerImpl handler = newHandler(SCHEMA, null);
         ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, new Observing(), ModelCache.NONE);
@@ -390,7 +391,8 @@ public class AvroModelTransformTest
         pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
 
-        assertTrue(pipeline.identity());
+        assertFalse(pipeline.identity());
+        assertFalse(pipeline.deterministic());
     }
 
     @Test

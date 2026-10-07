@@ -40,6 +40,7 @@ public class TestModelConfigBuilder<T> extends ConfigBuilder<T, TestModelConfigB
     private List<Long> discloseAuthorized;
     private String discloseRedacted;
     private String envelopeDiscloseName;
+    private boolean deterministic = true;
 
     TestModelConfigBuilder(
         Function<ModelConfig, T> mapper)
@@ -163,11 +164,18 @@ public class TestModelConfigBuilder<T> extends ConfigBuilder<T, TestModelConfigB
         return this;
     }
 
+    public TestModelConfigBuilder<T> deterministic(
+        boolean deterministic)
+    {
+        this.deterministic = deterministic;
+        return this;
+    }
+
     @Override
     public T build()
     {
         return mapper.apply(
             new TestModelConfig(length, catalogs, read, transformLength, fields, validate, transformAuthorizations,
-                reject, suspend, discloseAuthorized, discloseRedacted, envelopeDiscloseName));
+                reject, suspend, discloseAuthorized, discloseRedacted, envelopeDiscloseName, deterministic));
     }
 }

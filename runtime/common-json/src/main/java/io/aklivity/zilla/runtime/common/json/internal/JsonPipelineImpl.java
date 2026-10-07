@@ -128,6 +128,12 @@ public final class JsonPipelineImpl implements JsonPipeline
     }
 
     @Override
+    public boolean deterministic()
+    {
+        return parser.deterministic() && root.deterministic();
+    }
+
+    @Override
     public int remaining()
     {
         return driver.remaining();

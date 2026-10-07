@@ -56,6 +56,12 @@ final class LlmOpenaiResponseExtractTransform extends LlmResponseExtractTransfor
         }
     }
 
+    @Override
+    public boolean deterministic()
+    {
+        return true;
+    }
+
     private void onString(
         String fieldPath,
         JsonSource source)

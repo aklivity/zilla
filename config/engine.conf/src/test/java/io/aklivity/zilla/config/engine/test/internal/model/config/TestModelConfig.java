@@ -33,6 +33,7 @@ public class TestModelConfig extends ModelConfig
     public final List<Long> discloseAuthorized;
     public final String discloseRedacted;
     public final String envelopeDiscloseName;
+    public final boolean deterministic;
 
     public TestModelConfig(
         int length,
@@ -115,6 +116,25 @@ public class TestModelConfig extends ModelConfig
         String discloseRedacted,
         String envelopeDiscloseName)
     {
+        this(length, cataloged, read, transformLength, fields, validate, transformAuthorizations,
+            reject, suspend, discloseAuthorized, discloseRedacted, envelopeDiscloseName, true);
+    }
+
+    public TestModelConfig(
+        int length,
+        List<CatalogedConfig> cataloged,
+        boolean read,
+        int transformLength,
+        List<String> fields,
+        ValidateConfig validate,
+        List<Long> transformAuthorizations,
+        List<String> reject,
+        boolean suspend,
+        List<Long> discloseAuthorized,
+        String discloseRedacted,
+        String envelopeDiscloseName,
+        boolean deterministic)
+    {
         super("test", cataloged, validate);
         this.length = length;
         this.read = read;
@@ -126,6 +146,7 @@ public class TestModelConfig extends ModelConfig
         this.discloseAuthorized = discloseAuthorized;
         this.discloseRedacted = discloseRedacted;
         this.envelopeDiscloseName = envelopeDiscloseName;
+        this.deterministic = deterministic;
     }
 
     public static <T> TestModelConfigBuilder<T> builder(

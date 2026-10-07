@@ -441,6 +441,12 @@ public class KafkaCacheModelTest
         }
 
         @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
+        @Override
         public void reset()
         {
             resetCount++;
@@ -474,6 +480,12 @@ public class KafkaCacheModelTest
 
         @Override
         public boolean identity()
+        {
+            return true;
+        }
+
+        @Override
+        public boolean deterministic()
         {
             return true;
         }
@@ -521,6 +533,12 @@ public class KafkaCacheModelTest
         }
 
         @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
+        @Override
         public void reset()
         {
             resetCount++;
@@ -558,6 +576,12 @@ public class KafkaCacheModelTest
 
         @Override
         public boolean identity()
+        {
+            return true;
+        }
+
+        @Override
+        public boolean deterministic()
         {
             return true;
         }
@@ -605,6 +629,12 @@ public class KafkaCacheModelTest
         public boolean identity()
         {
             return false;
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
         }
 
         @Override

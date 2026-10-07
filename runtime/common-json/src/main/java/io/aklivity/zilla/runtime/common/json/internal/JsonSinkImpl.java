@@ -183,6 +183,12 @@ public final class JsonSinkImpl implements JsonSink
         return generator.identity();
     }
 
+    @Override
+    public boolean deterministic()
+    {
+        return generator.deterministic();
+    }
+
     // Writes one atomic event (a brace/bracket, or a boolean/null literal) whose generator call has no
     // partial-write contract: it either fully happens or, on insufficient room, leaves no trace (state and
     // output both unchanged). The generator's own boolean Ex() return — rather than a length() delta or a

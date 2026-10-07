@@ -43,6 +43,7 @@ final class AvroModelEncoderPipeline implements ModelPipeline
     private final AvroEnvelope envelope;
     private final Int2ObjectCache<AvroPipeline> pipelines;
     private final ModelPipelineResult result;
+    private final boolean deterministic;
 
     private AvroPipeline active;
     private String diagnostic;
@@ -59,6 +60,7 @@ final class AvroModelEncoderPipeline implements ModelPipeline
         this.adapter = AvroModelTransform.of(transform);
         this.pipelines = new Int2ObjectCache<>(1, 16, p -> {});
         this.result = new ModelPipelineResult();
+        this.deterministic = adapter.deterministic() && handler.encodeDeterministic();
     }
 
     @Override
@@ -126,6 +128,12 @@ final class AvroModelEncoderPipeline implements ModelPipeline
     public boolean identity()
     {
         return false;
+    }
+
+    @Override
+    public boolean deterministic()
+    {
+        return deterministic;
     }
 
     @Override

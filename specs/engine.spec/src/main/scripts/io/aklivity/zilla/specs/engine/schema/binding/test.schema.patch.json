@@ -46,6 +46,15 @@
                             {
                                 "$ref": "#/$defs/models"
                             },
+                            "values":
+                            {
+                                "type": "array",
+                                "items":
+                                {
+                                    "$ref": "#/$defs/models"
+                                },
+                                "minItems": 1
+                            },
                             "catalog":
                             {
                                 "type": "object",
@@ -153,6 +162,46 @@
                                             ],
                                             "additionalProperties": false
                                         }
+                                    },
+                                    "pipeline":
+                                    {
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "encode":
+                                            {
+                                                "type": "object",
+                                                "properties":
+                                                {
+                                                    "identity":
+                                                    {
+                                                        "type": "boolean"
+                                                    },
+                                                    "deterministic":
+                                                    {
+                                                        "type": "boolean"
+                                                    }
+                                                },
+                                                "additionalProperties": false
+                                            },
+                                            "decode":
+                                            {
+                                                "type": "object",
+                                                "properties":
+                                                {
+                                                    "identity":
+                                                    {
+                                                        "type": "boolean"
+                                                    },
+                                                    "deterministic":
+                                                    {
+                                                        "type": "boolean"
+                                                    }
+                                                },
+                                                "additionalProperties": false
+                                            }
+                                        },
+                                        "additionalProperties": false
                                     }
                                 }
                             },

@@ -69,6 +69,11 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
         this.exts = exts;
     }
 
+    boolean extended()
+    {
+        return !exts.isEmpty();
+    }
+
     @Override
     public ModelPipeline supplyDecoder(
         ModelEnvelope envelope,

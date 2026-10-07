@@ -102,6 +102,10 @@
                     {
                         "type": "boolean"
                     },
+                    "deterministic":
+                    {
+                        "type": "boolean"
+                    },
                     "discloseAuthorized":
                     {
                         "type": "array",

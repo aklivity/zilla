@@ -2479,6 +2479,12 @@ public final class JsonSchemaImpl implements JsonSchema
             return true;
         }
 
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
         // streaming-over-buffers surface, delegated; validation runs on the next()/getString() pull path
         @Override
         public JsonParserEx wrap(
@@ -2923,6 +2929,12 @@ public final class JsonSchemaImpl implements JsonSchema
 
         @Override
         public boolean identity()
+        {
+            return true;
+        }
+
+        @Override
+        public boolean deterministic()
         {
             return true;
         }

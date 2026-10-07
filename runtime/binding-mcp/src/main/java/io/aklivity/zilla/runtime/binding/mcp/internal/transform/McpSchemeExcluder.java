@@ -142,6 +142,12 @@ public final class McpSchemeExcluder implements JsonTransform
         return sink.flush(mediator, source);
     }
 
+    @Override
+    public boolean deterministic()
+    {
+        return true;
+    }
+
     // dispatches to whichever position-specific key check applies, or forwards immediately when neither
     // the arm key nor a candidate element key is possible at the current depth
     private Status onKey(

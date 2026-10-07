@@ -207,6 +207,12 @@ public class JsonEscapedBM
             }
             return status;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     }
 
     // Wraps the value of key "a" in markers, so the generator renders it as a string.
@@ -265,6 +271,12 @@ public class JsonEscapedBM
                 depth = 1;
             }
             return status;
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
         }
     }
 

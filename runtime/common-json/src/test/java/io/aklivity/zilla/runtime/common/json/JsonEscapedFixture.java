@@ -130,6 +130,12 @@ final class JsonEscapedFixture
                 upstream.escaped();
             }
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     }
 
     // Wraps the value of each named key in synthesized markers, which escapes the value as a string: the
@@ -202,6 +208,12 @@ final class JsonEscapedFixture
             }
             return status;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     }
 
     // Misbehaves in one of the ways a stage can misuse the markers.
@@ -266,6 +278,12 @@ final class JsonEscapedFixture
             }
             return status;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     }
 
     // Records each delivered event, with the decoded text of a key or scalar, as one token per event.
@@ -329,6 +347,12 @@ final class JsonEscapedFixture
         public boolean identity()
         {
             return false;
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
         }
     }
 

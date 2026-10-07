@@ -237,13 +237,27 @@ class JsonEscapedParserTest
     void shouldLocateWithinDecodedContent()
     {
         final List<Long> offsets = new ArrayList<>();
-        final JsonTransform locator = (control, source, event, sink) ->
+        final JsonTransform locator = new JsonTransform()
         {
-            if (event == JsonEvent.END_OBJECT)
+            @Override
+            public Status transform(
+                JsonController control,
+                JsonSource source,
+                JsonEvent event,
+                JsonSink sink)
             {
-                offsets.add(source.getLocation().getStreamOffset());
+                if (event == JsonEvent.END_OBJECT)
+                {
+                    offsets.add(source.getLocation().getStreamOffset());
+                }
+                return sink.transform(control, source, event);
             }
-            return sink.transform(control, source, event);
+
+            @Override
+            public boolean deterministic()
+            {
+                return true;
+            }
         };
         final JsonStream stream = JsonEx.stream(JsonEx.createParser())
             .transform(new Unescaper(true, "a"))

@@ -42,6 +42,7 @@ final class ProtobufModelEncoderPipeline implements ModelPipeline
     private final Map<String, ProtobufPipeline> pipelines;
     private final ProtobufEnvelope envelope;
     private final ModelPipelineResult result;
+    private final boolean deterministic;
 
     private ProtobufPipeline active;
     private String diagnostic;
@@ -56,6 +57,7 @@ final class ProtobufModelEncoderPipeline implements ModelPipeline
         this.handler = handler;
         this.pipelines = new HashMap<>();
         this.result = new ModelPipelineResult();
+        this.deterministic = handler.encodeDeterministic();
     }
 
     @Override
@@ -121,6 +123,12 @@ final class ProtobufModelEncoderPipeline implements ModelPipeline
     public boolean identity()
     {
         return false;
+    }
+
+    @Override
+    public boolean deterministic()
+    {
+        return deterministic;
     }
 
     @Override

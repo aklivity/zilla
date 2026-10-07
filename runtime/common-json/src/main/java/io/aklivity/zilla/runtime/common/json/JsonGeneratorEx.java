@@ -410,4 +410,9 @@ public interface JsonGeneratorEx extends JsonGenerator
      * leaving the input bytes unchanged. A generator that re-encodes into a different representation is not.
      */
     boolean identity();
+
+    /**
+     * Whether this generator always writes the same output for the same values.
+     */
+    boolean deterministic();
 }

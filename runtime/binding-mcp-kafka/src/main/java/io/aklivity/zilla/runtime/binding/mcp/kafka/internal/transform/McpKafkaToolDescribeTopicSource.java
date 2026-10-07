@@ -100,6 +100,12 @@ public final class McpKafkaToolDescribeTopicSource implements JsonSink, Source
     }
 
     @Override
+    public boolean deterministic()
+    {
+        return true;
+    }
+
+    @Override
     public Status transform(
         JsonController control,
         JsonSource source,

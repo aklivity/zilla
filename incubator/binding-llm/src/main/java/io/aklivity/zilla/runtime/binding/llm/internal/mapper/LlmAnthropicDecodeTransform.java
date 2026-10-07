@@ -124,6 +124,12 @@ public final class LlmAnthropicDecodeTransform extends LlmCanonicalEmitter imple
         return status;
     }
 
+    @Override
+    public boolean deterministic()
+    {
+        return true;
+    }
+
     private void onEvent(
         JsonController control,
         JsonSource source,

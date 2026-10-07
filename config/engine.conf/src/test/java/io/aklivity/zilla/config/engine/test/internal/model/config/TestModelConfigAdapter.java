@@ -44,6 +44,7 @@ public class TestModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue
     private static final String FIELDS = "fields";
     private static final String REJECT = "reject";
     private static final String SUSPEND = "suspend";
+    private static final String DETERMINISTIC = "deterministic";
     private static final String DISCLOSE_AUTHORIZED = "discloseAuthorized";
     private static final String DISCLOSE_REDACTED = "discloseRedacted";
     private static final String ENVELOPE_DISCLOSE = "envelopeDisclose";
@@ -146,7 +147,9 @@ public class TestModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue
 
         boolean suspend = object.containsKey(SUSPEND) && object.getBoolean(SUSPEND);
 
+        boolean deterministic = !object.containsKey(DETERMINISTIC) || object.getBoolean(DETERMINISTIC);
+
         return new TestModelConfig(length, catalogs, read, transformLength, fields, validateConfig, transformAuthorizations,
-            reject, suspend, discloseAuthorized, discloseRedacted, envelopeDiscloseName);
+            reject, suspend, discloseAuthorized, discloseRedacted, envelopeDiscloseName, deterministic);
     }
 }

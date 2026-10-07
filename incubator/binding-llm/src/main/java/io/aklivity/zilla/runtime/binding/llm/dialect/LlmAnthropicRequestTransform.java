@@ -112,6 +112,12 @@ final class LlmAnthropicRequestTransform extends LlmRequestFieldTransform
         return false;
     }
 
+    @Override
+    public boolean deterministic()
+    {
+        return true;
+    }
+
     private static boolean contentEquals(
         CharSequence key,
         String name)

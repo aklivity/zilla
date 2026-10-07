@@ -106,6 +106,7 @@ public class VectorModelPipelineTest
         // THEN
         assertThat(resolved.status(), equalTo(ModelStatus.COMPLETE));
         assertThat(pipeline.identity(), equalTo(true));
+        assertThat(pipeline.deterministic(), equalTo(false));
     }
 
     @Test

@@ -80,6 +80,12 @@ public final class JsonFlattenerImpl implements JsonTransform
     }
 
     @Override
+    public boolean deterministic()
+    {
+        return true;
+    }
+
+    @Override
     public void reset()
     {
         mode = Mode.ANCESTOR;

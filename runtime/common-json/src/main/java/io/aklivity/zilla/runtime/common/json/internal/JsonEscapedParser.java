@@ -141,6 +141,12 @@ final class JsonEscapedParser implements JsonParserEx
     }
 
     @Override
+    public boolean deterministic()
+    {
+        return outer.deterministic();
+    }
+
+    @Override
     public int remaining()
     {
         return outer.remaining();

@@ -126,6 +126,12 @@ public final class JsonProjectorImpl implements JsonTransform
     }
 
     @Override
+    public boolean deterministic()
+    {
+        return true;
+    }
+
+    @Override
     public void reset()
     {
         containers = 0;

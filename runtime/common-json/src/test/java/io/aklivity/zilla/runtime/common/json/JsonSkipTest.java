@@ -192,5 +192,11 @@ class JsonSkipTest
             }
             return matches;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     }
 }

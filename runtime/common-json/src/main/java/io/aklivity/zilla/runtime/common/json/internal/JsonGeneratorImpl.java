@@ -107,6 +107,12 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     }
 
     @Override
+    public boolean deterministic()
+    {
+        return true;
+    }
+
+    @Override
     public JsonGeneratorImpl wrap(
         MutableDirectBufferEx buffer,
         int offset,

@@ -49,6 +49,7 @@ public class TestModelHandler implements ModelHandler
     private final List<Long> discloseAuthorized;
     private final DirectBufferEx discloseRedacted;
     private final String envelopeDiscloseName;
+    private final boolean deterministic;
 
     private int transformAuthorizationIndex;
 
@@ -76,6 +77,7 @@ public class TestModelHandler implements ModelHandler
             ? new UnsafeBufferEx(config.discloseRedacted.getBytes(UTF_8))
             : null;
         this.envelopeDiscloseName = config.envelopeDiscloseName;
+        this.deterministic = config.deterministic;
     }
 
     @Override
@@ -93,7 +95,7 @@ public class TestModelHandler implements ModelHandler
         ModelTransform transform)
     {
         return new TestModelPipeline(length, transformLength, fields, encodeLenient, envelope, transform, this,
-            null, false, NOOP, null, null, null, null);
+            null, false, NOOP, null, null, null, null, deterministic);
     }
 
     @Override
@@ -112,7 +114,7 @@ public class TestModelHandler implements ModelHandler
         Runnable resumed)
     {
         return new TestModelPipeline(length, transformLength, fields, encodeLenient, envelope, transform, this,
-            reject, suspend, resumed, context, null, null, null);
+            reject, suspend, resumed, context, null, null, null, deterministic);
     }
 
     private ModelPipeline supplyDecoder(
@@ -123,9 +125,9 @@ public class TestModelHandler implements ModelHandler
     {
         return cache == ModelCache.WRITE
             ? new TestModelPipeline(length, transformLength, fields, decodeLenient, envelope, transform, this,
-                null, false, resumed, context, null, null, null)
+                null, false, resumed, context, null, null, null, deterministic)
             : new TestModelPipeline(length, transformLength, fields, decodeLenient, envelope, transform, this,
-                reject, suspend, resumed, context, discloseAuthorized, discloseRedacted, envelopeDiscloseName);
+                reject, suspend, resumed, context, discloseAuthorized, discloseRedacted, envelopeDiscloseName, deterministic);
     }
 
     Long nextTransformAuthorization()

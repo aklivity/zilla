@@ -53,6 +53,11 @@ public interface AvroParser
     boolean identity();
 
     /**
+     * Whether this cursor yields the same events for the same input and configuration.
+     */
+    boolean deterministic();
+
+    /**
      * Presents {@code [offset, limit)} of the caller-owned {@code buffer} as the next contiguous
      * run of datum bytes with {@code last == true} — the whole datum, or the final window of a streamed one.
      */

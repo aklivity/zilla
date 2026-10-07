@@ -106,6 +106,12 @@ public final class McpHttpArguments implements JsonTransform
     }
 
     @Override
+    public boolean deterministic()
+    {
+        return true;
+    }
+
+    @Override
     public Status transform(
         JsonController control,
         JsonSource source,

@@ -138,7 +138,8 @@ final class TestBindingFactory implements BindingHandler
     private final int transformMax;
     private final int testTypeId;
 
-    private ModelHandler valueModel;
+    private List<ModelHandler> valueModels;
+    private TestBindingOptionsConfig.PipelineAssertion pipelineAssertion;
     private String schema;
     private SchemaConfig catalog;
     private List<CatalogHandler> catalogs;
@@ -187,10 +188,16 @@ final class TestBindingFactory implements BindingHandler
         {
             int namespaceId = NamespacedId.namespaceId(binding.id);
 
-            if (options.value != null)
+            if (options.values != null)
             {
-                this.valueModel = context.supplyModel(options.value);
+                this.valueModels = options.values.stream().map(context::supplyModel).toList();
             }
+            else if (options.value != null)
+            {
+                this.valueModels = List.of(context.supplyModel(options.value));
+            }
+
+            this.pipelineAssertion = options.pipelineAssertion;
 
             this.schema = options.schema;
 
@@ -352,6 +359,52 @@ final class TestBindingFactory implements BindingHandler
         }
 
         return newStream;
+    }
+
+    private ModelPipeline supplyEncoder(
+        TestModelEnvelope envelope,
+        Runnable resumed)
+    {
+        ModelPipeline pipeline = null;
+
+        if (valueModels != null)
+        {
+            for (ModelHandler model : valueModels)
+            {
+                final ModelPipeline stage = model.supplyEncoder(envelope, ModelTransform.NONE, resumed);
+                pipeline = pipeline != null ? pipeline.andThen(stage) : stage;
+            }
+        }
+
+        return pipeline;
+    }
+
+    private ModelPipeline supplyDecoder(
+        TestModelEnvelope envelope,
+        Runnable resumed)
+    {
+        ModelPipeline pipeline = null;
+
+        if (valueModels != null)
+        {
+            for (ModelHandler model : valueModels)
+            {
+                final ModelPipeline stage = model.supplyDecoder(envelope, ModelTransform.NONE, resumed);
+                pipeline = pipeline != null ? pipeline.andThen(stage) : stage;
+            }
+        }
+
+        return pipeline;
+    }
+
+    private static boolean assertPipeline(
+        ModelPipeline pipeline,
+        TestBindingOptionsConfig.PipelineExpectation expectation)
+    {
+        return expectation == null ||
+            pipeline != null &&
+            (expectation.identity == null || expectation.identity == pipeline.identity()) &&
+            (expectation.deterministic == null || expectation.deterministic == pipeline.deterministic());
     }
 
     private static OctetsFW copyOf(
@@ -557,6 +610,7 @@ final class TestBindingFactory implements BindingHandler
         private OctetsFW pendingExtension;
         private boolean storeAssertionsStarted;
         private final ModelPipeline pipeline;
+        private final boolean encodeAsserted;
         private final MutableDirectBufferEx initialBuffer;
 
         private int decodeSlot = NO_SLOT;
@@ -591,21 +645,20 @@ final class TestBindingFactory implements BindingHandler
             this.replyId = replyId;
             this.authorization = authorization;
             this.target = resolvedId != 0L ? new TestTarget(routedId, resolvedId, authorization) : null;
-            this.envelope = valueModel != null ? new TestModelEnvelope() : null;
+            this.envelope = valueModels != null ? new TestModelEnvelope() : null;
             if (envelope != null)
             {
                 seedEnvelope(envelope);
             }
-            this.pipeline = valueModel != null
-                ? valueModel.supplyEncoder(envelope, ModelTransform.NONE, this::onInitialResumed)
-                : null;
+            this.pipeline = supplyEncoder(envelope, this::onInitialResumed);
+            this.encodeAsserted = assertPipeline(pipeline, pipelineAssertion != null ? pipelineAssertion.encode : null);
             this.initialBuffer = pipeline != null ? new UnsafeBufferEx(new byte[transformMax]) : null;
         }
 
         private void onInitialResumed()
         {
             transformInitial(suspendedTraceId, suspendedAuthorization, 0x00,
-                decodePool.buffer(decodeSlot), decodeSlotOffset);
+                decodePool.buffer(decodeSlot), 0);
             flushInitialWindow(suspendedTraceId);
 
             if (!awaitingResume)
@@ -803,6 +856,11 @@ final class TestBindingFactory implements BindingHandler
             OctetsFW extension)
         {
             target.doInitialBegin(traceId, extension);
+
+            if (!encodeAsserted || !target.decodeAsserted)
+            {
+                doInitialReset(traceId);
+            }
 
             if (vault != null && vaultAssertion != null)
             {
@@ -1697,6 +1755,7 @@ final class TestBindingFactory implements BindingHandler
 
             private final TestSource source;
             private final ModelPipeline pipeline;
+            private final boolean decodeAsserted;
             private final MutableDirectBufferEx replyBuffer;
 
             private int decodeSlot = NO_SLOT;
@@ -1726,21 +1785,20 @@ final class TestBindingFactory implements BindingHandler
                 this.replyId = context.supplyReplyId(initialId);
                 this.authorization = authorization;
                 this.source = TestSource.this;
-                this.envelope = valueModel != null ? new TestModelEnvelope() : null;
+                this.envelope = valueModels != null ? new TestModelEnvelope() : null;
                 if (envelope != null)
                 {
                     seedEnvelope(envelope);
                 }
-                this.pipeline = valueModel != null
-                    ? valueModel.supplyDecoder(envelope, ModelTransform.NONE, this::onReplyResumed)
-                    : null;
+                this.pipeline = supplyDecoder(envelope, this::onReplyResumed);
+                this.decodeAsserted = assertPipeline(pipeline, pipelineAssertion != null ? pipelineAssertion.decode : null);
                 this.replyBuffer = pipeline != null ? new UnsafeBufferEx(new byte[transformMax]) : null;
             }
 
             private void onReplyResumed()
             {
                 transformReply(suspendedTraceId, suspendedAuthorization, 0x00,
-                    decodePool.buffer(decodeSlot), decodeSlotOffset);
+                    decodePool.buffer(decodeSlot), 0);
                 flushReplyWindow(suspendedTraceId);
 
                 if (!awaitingResume)

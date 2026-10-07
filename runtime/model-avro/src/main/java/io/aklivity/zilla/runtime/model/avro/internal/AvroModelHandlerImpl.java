@@ -56,6 +56,9 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
 
     private final AvroModelConfig options;
     private final List<AvroModelExtContext> exts;
+    private final boolean decodeDeterministic;
+    private final boolean readDeterministic;
+    private final boolean encodeDeterministic;
 
     public AvroModelHandlerImpl(
         AvroModelConfiguration config,
@@ -66,6 +69,16 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
         super(config, options, context);
         this.options = options;
         this.exts = exts;
+
+        AvroSchema probe = Avro.schema("\"null\"");
+        boolean json = VIEW_JSON.equals(view);
+        boolean avroParser = Avro.parser(probe).deterministic();
+        boolean jsonParser = AvroJson.parser(probe, JsonEx.createParser(), true).deterministic();
+        boolean avroGenerator = Avro.generator(probe, new UnsafeBufferEx(new byte[1]), 0).deterministic();
+        boolean jsonGenerator = AvroJson.generator(probe, JsonEx.createGenerator(), true).deterministic();
+        this.decodeDeterministic = exts.isEmpty() && avroParser && (json ? jsonGenerator : avroGenerator);
+        this.readDeterministic = exts.isEmpty() && (json ? jsonParser && jsonGenerator : avroParser && avroGenerator);
+        this.encodeDeterministic = exts.isEmpty() && (json ? jsonParser : avroParser) && avroGenerator;
     }
 
     @Override
@@ -84,6 +97,17 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
         ModelTransform transform)
     {
         return new AvroModelEncoderPipeline(this, AvroModelEnvelope.of(requireNonNull(envelope)), requireNonNull(transform));
+    }
+
+    boolean decodeDeterministic(
+        ModelCache cache)
+    {
+        return cache == ModelCache.READ ? readDeterministic : decodeDeterministic;
+    }
+
+    boolean encodeDeterministic()
+    {
+        return encodeDeterministic;
     }
 
     int decodePadding(

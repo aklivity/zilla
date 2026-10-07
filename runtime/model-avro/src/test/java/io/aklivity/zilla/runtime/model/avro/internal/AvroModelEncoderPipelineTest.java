@@ -20,6 +20,7 @@ import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -140,6 +141,26 @@ public class AvroModelEncoderPipelineTest
 
         byte[] in = JSON.getBytes(UTF_8);
         assertTrue(pipeline.padding(new UnsafeBufferEx(in), 0, in.length) >= 0);
+    }
+
+    @Test
+    public void shouldReportDeterministicNotIdentityWhenJsonView()
+    {
+        AvroModelHandlerImpl handler = newHandler("json");
+        ModelPipeline pipeline = handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE);
+
+        assertFalse(pipeline.identity());
+        assertTrue(pipeline.deterministic());
+    }
+
+    @Test
+    public void shouldReportDeterministicNotIdentityWhenNoView()
+    {
+        AvroModelHandlerImpl handler = newHandler(null);
+        ModelPipeline pipeline = handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE);
+
+        assertFalse(pipeline.identity());
+        assertTrue(pipeline.deterministic());
     }
 
     private AvroModelHandlerImpl newHandler()

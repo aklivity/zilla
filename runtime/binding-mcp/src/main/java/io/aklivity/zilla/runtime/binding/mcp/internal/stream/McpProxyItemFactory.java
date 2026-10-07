@@ -151,6 +151,12 @@ abstract class McpProxyItemFactory implements BindingHandler
         {
             return true;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     };
 
     private final BeginFW beginRO = new BeginFW();

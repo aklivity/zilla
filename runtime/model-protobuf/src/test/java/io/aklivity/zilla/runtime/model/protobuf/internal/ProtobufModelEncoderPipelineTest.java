@@ -20,6 +20,8 @@ import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -105,6 +107,16 @@ public class ProtobufModelEncoderPipelineTest
         drain(dst, ra2.produced(), outA);
 
         assertArrayEquals(WIRE, outA.toByteArray());
+    }
+
+    @Test
+    public void shouldReportDeterministicWithoutIdentityBeforeAnyData()
+    {
+        ProtobufModelHandlerImpl handler = newHandler();
+        ModelPipeline pipeline = handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE);
+
+        assertFalse(pipeline.identity());
+        assertTrue(pipeline.deterministic());
     }
 
     @Test

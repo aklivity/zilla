@@ -168,6 +168,12 @@ final class LlmTestDialect implements LlmDialect
             {
                 return true;
             }
+
+            @Override
+            public boolean deterministic()
+            {
+                return true;
+            }
         };
     }
 
@@ -181,6 +187,12 @@ final class LlmTestDialect implements LlmDialect
             JsonSink sink)
         {
             return sink.transform(control, source, event);
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
         }
 
         @Override
@@ -203,6 +215,12 @@ final class LlmTestDialect implements LlmDialect
 
         @Override
         public boolean identity()
+        {
+            return true;
+        }
+
+        @Override
+        public boolean deterministic()
         {
             return true;
         }

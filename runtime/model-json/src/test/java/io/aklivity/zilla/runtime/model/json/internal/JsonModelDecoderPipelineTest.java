@@ -246,19 +246,41 @@ public class JsonModelDecoderPipelineTest
     }
 
     @Test
-    public void shouldReportIdentity()
+    public void shouldReportDeterministicNonIdentityBeforeAndAfterData()
     {
         JsonModelHandlerImpl handler = newHandler();
         ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         assertFalse(pipeline.identity());
+        assertTrue(pipeline.deterministic());
 
         byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
         pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
 
-        assertTrue(pipeline.identity());
+        assertFalse(pipeline.identity());
+        assertTrue(pipeline.deterministic());
+    }
+
+    @Test
+    public void shouldReportNeitherIdentityNorDeterminismWithFieldTransformWired()
+    {
+        JsonModelHandlerImpl handler = newHandler();
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(new HashMap<>()), ModelCache.NONE);
+
+        assertFalse(pipeline.identity());
+        assertFalse(pipeline.deterministic());
+    }
+
+    @Test
+    public void shouldReportNeitherIdentityNorDeterminismWithExtensionInstalled()
+    {
+        JsonModelHandlerImpl handler = newHandler(OBJECT_SCHEMA, List.of(dropping("status")));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+
+        assertFalse(pipeline.identity());
+        assertFalse(pipeline.deterministic());
     }
 
     @Test
@@ -410,6 +432,12 @@ public class JsonModelDecoderPipelineTest
 
     private static final class Failing implements JsonTransform
     {
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
         @Override
         public Status transform(
             JsonController control,
@@ -584,6 +612,12 @@ public class JsonModelDecoderPipelineTest
             String dropKey)
         {
             this.dropKey = dropKey;
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
         }
 
         @Override

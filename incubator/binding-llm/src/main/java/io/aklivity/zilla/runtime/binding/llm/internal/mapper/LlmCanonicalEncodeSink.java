@@ -138,6 +138,12 @@ abstract class LlmCanonicalEncodeSink implements JsonSink
         return false;
     }
 
+    @Override
+    public boolean deterministic()
+    {
+        return true;
+    }
+
     protected abstract boolean write(
         String type);
 

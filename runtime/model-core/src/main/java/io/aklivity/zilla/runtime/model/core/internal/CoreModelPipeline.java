@@ -125,6 +125,12 @@ final class CoreModelPipeline implements ModelPipeline
     }
 
     @Override
+    public boolean deterministic()
+    {
+        return true;
+    }
+
+    @Override
     public void reset()
     {
     }

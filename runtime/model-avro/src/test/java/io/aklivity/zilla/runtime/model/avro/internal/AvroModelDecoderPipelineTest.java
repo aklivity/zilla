@@ -249,18 +249,30 @@ public class AvroModelDecoderPipelineTest
     }
 
     @Test
-    public void shouldReportIdentityWhenNoView()
+    public void shouldReportDeterministicNotIdentityWhenNoView()
     {
         AvroModelHandlerImpl handler = newHandler(SCHEMA, null);
         ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         assertFalse(pipeline.identity());
+        assertTrue(pipeline.deterministic());
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
         pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
 
-        assertTrue(pipeline.identity());
+        assertFalse(pipeline.identity());
+        assertTrue(pipeline.deterministic());
+    }
+
+    @Test
+    public void shouldNotReportDeterministicWhenExtensionInstalled()
+    {
+        AvroModelHandlerImpl handler = newHandler(SCHEMA, null, List.of(expandingExt(64)));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+
+        assertFalse(pipeline.identity());
+        assertFalse(pipeline.deterministic());
     }
 
     @Test
@@ -269,11 +281,15 @@ public class AvroModelDecoderPipelineTest
         AvroModelHandlerImpl handler = newHandler(SCHEMA, "json");
         ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
+        assertFalse(pipeline.identity());
+        assertTrue(pipeline.deterministic());
+
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
         pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
 
         assertFalse(pipeline.identity());
+        assertTrue(pipeline.deterministic());
     }
 
     @Test
@@ -461,6 +477,12 @@ public class AvroModelDecoderPipelineTest
             AvroSink sink)
         {
             throw new AvroException("extension failure");
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
         }
     }
 
