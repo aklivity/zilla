@@ -44,14 +44,12 @@ write zilla:begin.ext ${llm:beginEx()
                            .build()}
 write flush
 
-write option zilla:flags "init fin"
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
 write "{\"id\":\"chatcmpl_3\",\"object\":\"chat.completion\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\""
 write flush
 
-write option zilla:flags "init fin"
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
@@ -60,14 +58,12 @@ write zilla:data.ext ${llm:dataEx()
 write "Let me check both cities."
 write flush
 
-write option zilla:flags "init fin"
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
 write "\",\"tool_calls\":[{\"id\":\"call_1\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":\""
 write flush
 
-write option zilla:flags "init fin"
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("TOOL_CALL")
@@ -78,14 +74,12 @@ write zilla:data.ext ${llm:dataEx()
 write "{\"city\":\"Paris\"}"
 write flush
 
-write option zilla:flags "init fin"
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
 write "\"}},{\"id\":\"call_2\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":\""
 write flush
 
-write option zilla:flags "init fin"
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("TOOL_CALL")
@@ -96,7 +90,6 @@ write zilla:data.ext ${llm:dataEx()
 write "{\"city\":\"London\"}"
 write flush
 
-write option zilla:flags "init fin"
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}

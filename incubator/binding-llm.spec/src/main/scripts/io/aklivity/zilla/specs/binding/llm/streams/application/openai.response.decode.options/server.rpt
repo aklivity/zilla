@@ -60,14 +60,12 @@ write zilla:begin.ext ${llm:beginEx()
                            .build()}
 write flush
 
-write option zilla:flags "init fin"
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
 write "{\"id\":\"chatcmpl_2\",\"object\":\"chat.completion\",\"created\":1700000000,\"model\":\"gpt-4\",\"service_tier\":\"default\",\"prompt_filter_results\":[{\"prompt_index\":0}],\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\""
 write flush
 
-write option zilla:flags "init fin"
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
@@ -76,7 +74,6 @@ write zilla:data.ext ${llm:dataEx()
 write "Hello! How can I help you today?"
 write flush
 
-write option zilla:flags "init fin"
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}

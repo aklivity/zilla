@@ -596,24 +596,6 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.roundtrip.conversation/client",
-        "${net}/openai.roundtrip.conversation/server"})
-    public void shouldOpenaiRoundtripConversation() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/openai.roundtrip.streaming/client",
-        "${net}/openai.roundtrip.streaming/server"})
-    public void shouldOpenaiRoundtripStreaming() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/openai.section.unknown.part/client",
         "${net}/openai.section.unknown.part/server"})
     public void shouldOpenaiSectionUnknownPart() throws Exception

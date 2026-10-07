@@ -55,7 +55,6 @@ write zilla:begin.ext ${llm:beginEx()
                            .build()}
 write flush
 
-write option zilla:flags "init fin"
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
@@ -70,7 +69,6 @@ write zilla:data.ext ${llm:dataEx()
 write ${core:randomBase64(100000)}
 write flush
 
-write option zilla:flags "init fin"
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}

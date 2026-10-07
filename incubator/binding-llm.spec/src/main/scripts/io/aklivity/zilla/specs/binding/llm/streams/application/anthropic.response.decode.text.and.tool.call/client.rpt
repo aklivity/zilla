@@ -42,13 +42,11 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .id("msg_01")
                            .build()}
 
-read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
 read "{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3-opus-20240229\",\"content\":[{\"type\":\"text\",\"text\":\""
 
-read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
@@ -56,13 +54,11 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "Let me check both cities."
 
-read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
 read "\"},{\"type\":\"tool_use\",\"id\":\"call_1\",\"name\":\"get_weather\",\"input\":"
 
-read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("TOOL_CALL")
@@ -72,13 +68,11 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "{\"city\":\"Paris\"}"
 
-read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
 read "},{\"type\":\"tool_use\",\"id\":\"call_2\",\"name\":\"get_weather\",\"input\":"
 
-read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("TOOL_CALL")
@@ -88,7 +82,6 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "{\"city\":\"London\"}"
 
-read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}

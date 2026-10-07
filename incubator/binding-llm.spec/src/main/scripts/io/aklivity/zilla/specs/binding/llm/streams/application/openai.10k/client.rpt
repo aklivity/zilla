@@ -57,7 +57,6 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .id("chatcmpl_2")
                            .build()}
 
-read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
@@ -70,7 +69,6 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read ${core:randomBase64(10000)}
 
-read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}

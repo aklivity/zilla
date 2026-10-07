@@ -61,7 +61,6 @@ read "{\"id\":\"chatcmpl_2\",\"object\":\"chat.completion\",\"model\":\"gpt-4\",
      ${core:randomBase64(10000)}
      "\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\""
 
-read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDataEx()
                         .typeId(zilla:id("llm"))
                         .type("ASSISTANT_TEXT")
@@ -69,7 +68,6 @@ read zilla:data.ext ${llm:matchDataEx()
                         .build()}
 read "Hello! How can I help you today?"
 
-read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}

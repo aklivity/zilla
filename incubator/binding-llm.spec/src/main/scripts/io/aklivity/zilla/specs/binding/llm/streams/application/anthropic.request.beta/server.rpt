@@ -57,14 +57,12 @@ write zilla:begin.ext ${llm:beginEx()
                            .build()}
 write flush
 
-write option zilla:flags "init fin"
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
 write "{\"id\":\"msg_011CfFkXGJGvcevU8tu1qHAP\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-haiku-4-5-20251001\",\"content\":[{\"type\":\"text\",\"text\":\""
 write flush
 
-write option zilla:flags "init fin"
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
@@ -73,7 +71,6 @@ write zilla:data.ext ${llm:dataEx()
 write "Hello! I'm happy to help you with whatever you need."
 write flush
 
-write option zilla:flags "init fin"
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}

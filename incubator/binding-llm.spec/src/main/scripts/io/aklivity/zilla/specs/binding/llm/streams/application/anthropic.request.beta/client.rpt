@@ -55,13 +55,11 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .id("msg_011CfFkXGJGvcevU8tu1qHAP")
                            .build()}
 
-read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
 read "{\"id\":\"msg_011CfFkXGJGvcevU8tu1qHAP\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-haiku-4-5-20251001\",\"content\":[{\"type\":\"text\",\"text\":\""
 
-read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
@@ -69,7 +67,6 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "Hello! I'm happy to help you with whatever you need."
 
-read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}

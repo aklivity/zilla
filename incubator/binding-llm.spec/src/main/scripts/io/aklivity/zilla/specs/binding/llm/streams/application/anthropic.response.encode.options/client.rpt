@@ -54,13 +54,11 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .id("msg_01")
                            .build()}
 
-read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
 read "{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3-opus-20240229\",\"content\":[{\"type\":\"text\",\"text\":\""
 
-read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
@@ -68,7 +66,6 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "Hello! How can I help you today?"
 
-read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}

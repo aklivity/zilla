@@ -42,13 +42,11 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .id("msg_01")
                            .build()}
 
-read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
 read "{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3-opus-20240229\",\"content\":[{\"type\":\"thinking\",\"thinking\":\""
 
-read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_REASONING")
@@ -56,13 +54,11 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "Let me think about it."
 
-read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
 read "\",\"signature\":\"sig-1\"},{\"type\":\"text\",\"text\":\""
 
-read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
@@ -70,7 +66,6 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "Hello!"
 
-read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}

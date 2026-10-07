@@ -55,7 +55,6 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .build()}
 read notify FIRST_EVENT_READ
 
-read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")

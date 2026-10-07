@@ -54,7 +54,6 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .id("chatcmpl_2")
                            .build()}
 
-read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")

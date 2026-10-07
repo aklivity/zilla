@@ -54,7 +54,6 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .id("chatcmpl-EQNKhNLHHohc7KwUHH83164mX3IMA")
                            .build()}
 
-read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
@@ -67,7 +66,6 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "Hello! How can I assist you today?"
 
-read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
