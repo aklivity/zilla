@@ -3229,16 +3229,24 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             if (!replay && !challenged)
             {
+                doAppWindow(traceId, 0);
                 doAppDialectChallenge(traceId);
             }
 
+            doAppWindow(traceId, initialMax);
+        }
+
+        private void doAppWindow(
+            long traceId,
+            int maximum)
+        {
             final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(initialId)
                 .sequence(initialSeq)
                 .acknowledge(initialAck)
-                .maximum(initialMax)
+                .maximum(maximum)
                 .traceId(traceId)
                 .budgetId(0L)
                 .padding(0)
