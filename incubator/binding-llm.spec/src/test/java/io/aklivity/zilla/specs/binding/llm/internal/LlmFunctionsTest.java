@@ -1563,6 +1563,41 @@ public class LlmFunctionsTest
     }
 
     @Test
+    public void shouldGenerateAndMatchDialectDataExAttributes() throws Exception
+    {
+        final byte[] dataEx = LlmFunctions.dialectDataEx()
+            .typeId(0)
+            .attribute("type", "content_block_delta")
+            .build();
+
+        final LlmDataExFW decoded = new LlmDataExFW().wrap(new UnsafeBufferEx(dataEx), 0, dataEx.length);
+
+        assertEquals(1, decoded.dialect().attributes().fieldCount());
+        assertNotNull(LlmFunctions.matchDialectDataEx()
+            .typeId(0)
+            .attribute("type", "content_block_delta")
+            .build()
+            .match(ByteBuffer.wrap(dataEx)));
+        assertNotNull(LlmFunctions.matchDialectDataEx().typeId(0).build().match(ByteBuffer.wrap(dataEx)));
+    }
+
+    @Test
+    public void shouldFailMatchDialectDataExAttributesMismatch() throws Exception
+    {
+        final byte[] dataEx = LlmFunctions.dialectDataEx()
+            .typeId(0)
+            .attribute("type", "content_block_delta")
+            .build();
+
+        final BytesMatcher matcher = LlmFunctions.matchDialectDataEx()
+            .typeId(0)
+            .attribute("type", "message_stop")
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(dataEx)));
+    }
+
+    @Test
     public void shouldFailMatchDialectDataExTypeIdMismatch() throws Exception
     {
         final byte[] dataEx = LlmFunctions.dialectDataEx()

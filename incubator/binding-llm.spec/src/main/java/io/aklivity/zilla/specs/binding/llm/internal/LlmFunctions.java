@@ -530,10 +530,13 @@ public final class LlmFunctions
     {
         private final LlmDataExFW.Builder dataExRW;
 
+        private final Map<String, String> attributes;
+
         private boolean complete;
 
         private LlmDialectDataExBuilder()
         {
+            this.attributes = new LinkedHashMap<>();
             final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024]);
             this.dataExRW = new LlmDataExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
         }
@@ -552,9 +555,21 @@ public final class LlmFunctions
             return this;
         }
 
+        public LlmDialectDataExBuilder attribute(
+            String name,
+            String value)
+        {
+            attributes.put(name, value);
+            return this;
+        }
+
         public byte[] build()
         {
-            final LlmDataExFW dataEx = dataExRW.dialect(d -> d.complete(complete ? 1 : 0)).build();
+            final LlmDataExFW dataEx = dataExRW.dialect(d ->
+            {
+                d.complete(complete ? 1 : 0);
+                attributes.forEach((name, value) -> d.attributesItem(a -> a.name(name).value(value)));
+            }).build();
             final byte[] array = new byte[dataEx.sizeof()];
             dataEx.buffer().getBytes(dataEx.offset(), array);
             return array;
@@ -569,6 +584,7 @@ public final class LlmFunctions
 
         private Integer typeId;
         private Boolean complete;
+        private Map<String, String> attributes;
 
         public LlmDialectDataExMatcherBuilder typeId(
             int typeId)
@@ -581,6 +597,19 @@ public final class LlmFunctions
             boolean complete)
         {
             this.complete = complete;
+            return this;
+        }
+
+        public LlmDialectDataExMatcherBuilder attribute(
+            String name,
+            String value)
+        {
+            if (attributes == null)
+            {
+                attributes = new LinkedHashMap<>();
+            }
+
+            attributes.put(name, value);
             return this;
         }
 
@@ -603,13 +632,23 @@ public final class LlmFunctions
             if (dataEx != null &&
                 dataEx.kind() == LlmDataExFW.KIND_DIALECT &&
                 (typeId == null || typeId == dataEx.typeId()) &&
-                (complete == null || complete == (dataEx.dialect().complete() != 0)))
+                (complete == null || complete == (dataEx.dialect().complete() != 0)) &&
+                matchAttributes(dataEx))
             {
                 byteBuf.position(byteBuf.position() + dataEx.sizeof());
                 return dataEx;
             }
 
             throw new Exception(String.valueOf(dataEx));
+        }
+
+        private boolean matchAttributes(
+            LlmDataExFW dataEx)
+        {
+            final Map<String, String> actual = new LinkedHashMap<>();
+            dataEx.dialect().attributes().forEach(a -> actual.put(a.name().asString(), a.value().asString()));
+
+            return attributes == null || attributes.equals(actual);
         }
     }
 

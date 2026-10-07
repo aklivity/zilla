@@ -1040,4 +1040,14 @@ public class LlmAnthropicServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.streaming.fragmented/client",
+        "${app}/anthropic.streaming.fragmented/server"})
+    public void shouldNameAnthropicStreamingEventSplitInsideItsType() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -18,6 +18,8 @@ import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmOpenaiDia
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.LongUnaryOperator;
@@ -47,6 +49,7 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmAbortExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBeginExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDataExFW;
@@ -120,6 +123,10 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private static final String MEMBER_TYPE = "type";
     private static final int FRAMING_CAPABILITIES_MASK = 1 << Capability.FRAMING.ordinal();
     private static final int EVENT_HEADER_SIZE = Integer.BYTES + Byte.BYTES;
+    private static final int EVENT_LAST = 1;
+    private static final int EVENT_INIT = 2;
+    private static final int EVENT_TYPED = 4;
+    private static final String ATTRIBUTE_EVENT_TYPE = "type";
 
     private static final int KIND_SYSTEM_INSTRUCTION = 1;
     private static final int KIND_USER_TEXT = 2;
@@ -920,7 +927,22 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
                 if (dialectFrame)
                 {
-                    dataExBuilder.dialect(d -> d.complete(complete ? 1 : 0));
+                    final String eventName = http.eventType;
+
+                    dataExBuilder.dialect(d ->
+                    {
+                        d.complete(complete ? 1 : 0);
+
+                        if (eventName != null && Flags.hasInit(flags))
+                        {
+                            d.attributesItem(a -> a.name(ATTRIBUTE_EVENT_TYPE).value(eventName));
+                        }
+                    });
+
+                    if (Flags.hasInit(flags))
+                    {
+                        http.eventType = null;
+                    }
                 }
                 else
                 {
@@ -3050,6 +3072,9 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
     private final class LlmOpenaiHttpStream
     {
+        private final HttpDataExFW httpDataExRO = new HttpDataExFW();
+        private final Deque<String> queuedEventTypes;
+        private String eventType;
         private final LlmOpenaiStream stream;
         private final long originId;
         private final long routedId;
@@ -3130,6 +3155,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             final LlmServerConfig server = stream.binding.options.server;
 
             this.stream = stream;
+            this.queuedEventTypes = new ArrayDeque<>();
             this.originId = stream.routedId;
             this.routedId = stream.resolvedId;
             this.initialId = supplyInitialId.applyAsLong(routedId);
@@ -4059,7 +4085,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
             if (framing)
             {
-                onNetEvent(traceId, buffer, offset, limit, Flags.hasFin(data.flags()));
+                onNetEvent(traceId, buffer, offset, limit, data.flags(), eventTypeOf(data));
                 doNetWindow(traceId);
             }
             else if (errorStatus != NO_ERROR)
@@ -4309,8 +4335,10 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             DirectBufferEx buffer,
             int offset,
             int limit,
-            boolean last)
+            int flags,
+            String type)
         {
+            final boolean last = Flags.hasFin(flags);
             final int length = limit - offset;
 
             decodeTraceId = traceId;
@@ -4326,11 +4354,40 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             }
             else if (decodeSlot == NO_SLOT && eventAvailable())
             {
+                startEvent(Flags.hasInit(flags), type);
                 forwardResponseSections(buffer, offset, length, last);
             }
             else
             {
-                enqueueEvent(traceId, buffer, offset, length, last);
+                enqueueEvent(traceId, buffer, offset, length, flags, type);
+            }
+        }
+
+        private String eventTypeOf(
+            DataFW data)
+        {
+            final HttpDataExFW httpDataEx = Flags.hasInit(data.flags()) ? data.extension().get(httpDataExRO::tryWrap) : null;
+
+            String type = null;
+
+            if (httpDataEx != null)
+            {
+                final HttpHeaderFW header =
+                    httpDataEx.headers().matchFirst(h -> ATTRIBUTE_EVENT_TYPE.contentEquals(h.name().asString()));
+
+                type = header != null ? header.value().asString() : null;
+            }
+
+            return type;
+        }
+
+        private void startEvent(
+            boolean init,
+            String type)
+        {
+            if (init)
+            {
+                eventType = type;
             }
         }
 
@@ -4344,7 +4401,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             DirectBufferEx buffer,
             int offset,
             int length,
-            boolean last)
+            int flags,
+            String type)
         {
             if (decodeSlot == NO_SLOT)
             {
@@ -4359,7 +4417,15 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             {
                 final MutableDirectBufferEx slotBuffer = decodePool.buffer(decodeSlot);
                 slotBuffer.putInt(decodeSlotOffset, length);
-                slotBuffer.putByte(decodeSlotOffset + Integer.BYTES, (byte) (last ? 1 : 0));
+                slotBuffer.putByte(decodeSlotOffset + Integer.BYTES,
+                    (byte) ((Flags.hasFin(flags) ? EVENT_LAST : 0) | (Flags.hasInit(flags) ? EVENT_INIT : 0) |
+                        (type != null ? EVENT_TYPED : 0)));
+
+                if (type != null)
+                {
+                    queuedEventTypes.add(type);
+                }
+
                 slotBuffer.putBytes(decodeSlotOffset + EVENT_HEADER_SIZE, buffer, offset, length);
                 decodeSlotOffset += EVENT_HEADER_SIZE + length;
             }
@@ -4376,9 +4442,11 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             {
                 final MutableDirectBufferEx slotBuffer = decodePool.buffer(decodeSlot);
                 final int length = slotBuffer.getInt(progress);
-                final boolean last = slotBuffer.getByte(progress + Integer.BYTES) != 0;
+                final int eventFlags = slotBuffer.getByte(progress + Integer.BYTES);
+                final boolean last = (eventFlags & EVENT_LAST) != 0;
 
                 progress += EVENT_HEADER_SIZE;
+                startEvent((eventFlags & EVENT_INIT) != 0, (eventFlags & EVENT_TYPED) != 0 ? queuedEventTypes.poll() : null);
                 forwardResponseSections(slotBuffer, progress, length, last);
                 progress += length;
             }

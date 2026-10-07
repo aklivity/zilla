@@ -48,8 +48,10 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmAbortExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmAttributeFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBeginExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDataExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDialectDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmEndExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmErrorFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmResetExFW;
@@ -75,6 +77,7 @@ import io.aklivity.zilla.runtime.engine.util.Flags;
 public final class LlmOpenaiServerFactory implements LlmDialectHandler
 {
     private static final String HTTP_TYPE_NAME = "http";
+    private static final String ATTRIBUTE_EVENT_TYPE = "type";
     private static final String HEADER_METHOD = ":method";
     private static final String HEADER_PATH = ":path";
     private static final String HEADER_STATUS = ":status";
@@ -3063,7 +3066,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 }
                 else if (replyDialect)
                 {
-                    doReplayDialect();
+                    doReplayDialect(llmDataEx.dialect());
                 }
             }
             else if (Flags.hasFin(flags) && replyKind == LlmDataExFW.KIND_DIALECT)
@@ -3687,14 +3690,24 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             }
         }
 
-        private void doReplayDialect()
+        private void doReplayDialect(
+            LlmDialectDataExFW dialect)
         {
             replayEscaped = false;
 
             if (server.streaming && !eventOpen)
             {
-                eventBegin(replayPosition, null);
+                eventBegin(replayPosition, eventTypeOf(dialect));
             }
+        }
+
+        private String eventTypeOf(
+            LlmDialectDataExFW dialect)
+        {
+            final LlmAttributeFW attribute =
+                dialect.attributes().matchFirst(a -> ATTRIBUTE_EVENT_TYPE.contentEquals(a.name().asString()));
+
+            return attribute != null ? attribute.value().asString() : null;
         }
 
         private void doReplayData(

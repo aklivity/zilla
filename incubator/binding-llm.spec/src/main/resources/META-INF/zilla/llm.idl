@@ -61,6 +61,7 @@ scope llm
         struct LlmDialectDataEx
         {
             uint8 complete = 0;
+            LlmAttribute[] attributes;
         }
 
         union LlmDataEx switch (uint8) extends core::stream::Extension

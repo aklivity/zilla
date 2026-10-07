@@ -47,8 +47,10 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmAbortExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmAttributeFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBeginExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDataExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDialectDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmEndExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmErrorFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmResetExFW;
@@ -75,6 +77,7 @@ import io.aklivity.zilla.runtime.engine.util.Flags;
 public final class LlmAnthropicServerFactory implements LlmDialectHandler
 {
     private static final String HTTP_TYPE_NAME = "http";
+    private static final String ATTRIBUTE_EVENT_TYPE = "type";
     private static final String HEADER_METHOD = ":method";
     private static final String HEADER_PATH = ":path";
     private static final String HEADER_STATUS = ":status";
@@ -3368,7 +3371,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 }
                 else if (replyDialect)
                 {
-                    doReplayDialect(payload.buffer(), payload.offset(), payload.sizeof());
+                    doReplayDialect(llmDataEx.dialect());
                 }
             }
             else if (Flags.hasFin(flags) && replyKind == LlmDataExFW.KIND_DIALECT)
@@ -3783,7 +3786,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private static final int NONE = -1;
         private static final int MESSAGE_FIRST = 0;
 
-        private static final String REPLAY_TYPE = "type";
         private static final String EVENT_MESSAGE_START = "message_start";
         private static final String EVENT_BLOCK_START = "content_block_start";
         private static final String EVENT_BLOCK_DELTA = "content_block_delta";
@@ -4191,16 +4193,23 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         }
 
         private void doReplayDialect(
-            DirectBufferEx payload,
-            int offset,
-            int length)
+            LlmDialectDataExFW dialect)
         {
             replayEscaped = false;
 
             if (server.streaming && !eventOpen)
             {
-                eventBegin(replayPosition, replayEventType(payload, offset, length));
+                eventBegin(replayPosition, eventTypeOf(dialect));
             }
+        }
+
+        private String eventTypeOf(
+            LlmDialectDataExFW dialect)
+        {
+            final LlmAttributeFW attribute =
+                dialect.attributes().matchFirst(a -> ATTRIBUTE_EVENT_TYPE.contentEquals(a.name().asString()));
+
+            return attribute != null ? attribute.value().asString() : null;
         }
 
         private void doReplayData(
@@ -4234,52 +4243,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private void doReplayEnd()
         {
             eventEnd(replayPosition);
-        }
-
-        private String replayEventType(
-            DirectBufferEx payload,
-            int offset,
-            int length)
-        {
-            final int limit = offset + length;
-            int index = replaySkip(payload, offset, limit, '{');
-
-            index = replaySkip(payload, index, limit, '"');
-            String type = null;
-
-            if (index + REPLAY_TYPE.length() < limit &&
-                payload.getStringWithoutLengthUtf8(index, REPLAY_TYPE.length()).equals(REPLAY_TYPE))
-            {
-                index = replaySkip(payload, index + REPLAY_TYPE.length(), limit, '"');
-                index = replaySkip(payload, index, limit, ':');
-                index = replaySkip(payload, index, limit, '"');
-
-                final int start = index;
-                while (index < limit && payload.getByte(index) != '"')
-                {
-                    index++;
-                }
-
-                type = index < limit ? payload.getStringWithoutLengthUtf8(start, index - start) : null;
-            }
-
-            return type;
-        }
-
-        private int replaySkip(
-            DirectBufferEx payload,
-            int offset,
-            int limit,
-            char expected)
-        {
-            int index = offset;
-
-            while (index < limit && isWhitespace(payload.getByte(index)))
-            {
-                index++;
-            }
-
-            return index < limit && payload.getByte(index) == expected ? index + 1 : limit;
         }
 
         private void eventBegin(

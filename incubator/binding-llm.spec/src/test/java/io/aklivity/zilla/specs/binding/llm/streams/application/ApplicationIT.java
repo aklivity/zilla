@@ -2627,4 +2627,13 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.streaming.fragmented/client",
+        "${app}/anthropic.streaming.fragmented/server"})
+    public void shouldNameAnthropicStreamingEventSplitInsideItsType() throws Exception
+    {
+        k3po.finish();
+    }
 }
