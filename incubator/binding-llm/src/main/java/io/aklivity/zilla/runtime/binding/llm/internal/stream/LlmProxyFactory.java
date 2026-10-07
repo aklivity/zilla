@@ -49,9 +49,9 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 // decodes or re-encodes request/response content: DATA/FLUSH/END/ABORT/RESET/WINDOW/CHALLENGE relay
 // verbatim between the resolved exit and the accepted network stream once the route is picked.
 //
-// A route with a fallback list is resolved when the stream begins and locks as soon as the exit grants
-// credit or challenges: until then, an exit that resets the stream is retried with the next fallback
-// model, and the network stream is challenged with that model so the request carries it.
+// A route with a fallback list is resolved when the stream begins and locks as soon as the exit sends a
+// window: until then, an exit that resets the stream is retried with the next fallback model, and the
+// network stream is challenged with that model so the request carries it.
 public final class LlmProxyFactory implements LlmStreamFactory
 {
     private final BeginFW beginRO = new BeginFW();
@@ -180,11 +180,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
         private byte[] beginExtension;
         private long beginAffinity;
         private int fallbackIndex;
-        private String challengeModel;
-        private boolean committed;
 
-        private long replyWindowTraceId;
-        private long replyWindowAuthorization;
         private long replyBudgetId;
         private int replyPadding;
         private int replyMinimum;
@@ -335,22 +331,22 @@ public final class LlmProxyFactory implements LlmStreamFactory
             this.replyMax = window.maximum();
             this.state = LlmState.openReply(state);
 
-            this.replyWindowTraceId = traceId;
-            this.replyWindowAuthorization = authorization;
             this.replyBudgetId = budgetId;
             this.replyPadding = padding;
             this.replyMinimum = minimum;
             this.replyCapabilities = capabilities;
 
-            doAppReplyWindow();
+            doAppReplyWindow(traceId, authorization);
         }
 
-        private void doAppReplyWindow()
+        private void doAppReplyWindow(
+            long traceId,
+            long authorization)
         {
             final int replyWin = replyMax - (int)(replySeq - replyAck);
             if (replyWin > 0)
             {
-                app.doAppWindow(replyWindowTraceId, replyWindowAuthorization, replyBudgetId, replyMinimum,
+                app.doAppWindow(traceId, authorization, replyBudgetId, replyMinimum,
                     replyCapabilities, replyWin, replyPadding, replyMax);
             }
         }
@@ -452,28 +448,11 @@ public final class LlmProxyFactory implements LlmStreamFactory
             }
         }
 
-        private void onAppEstablished(
-            long traceId,
-            long authorization,
-            boolean credited)
-        {
-            if (challengeModel != null)
-            {
-                doNetModelChallenge(traceId, authorization);
-                this.challengeModel = null;
-            }
-
-            this.committed |= credited;
-        }
-
         private boolean doFallback(
-            LlmClient refused,
             long traceId,
             long authorization)
         {
-            final boolean fallingBack = refused == app &&
-                !committed &&
-                !LlmState.initialClosed(state) &&
+            final boolean fallingBack = !LlmState.initialClosed(state) &&
                 fallback != null &&
                 fallbackIndex < fallback.size();
 
@@ -481,13 +460,14 @@ public final class LlmProxyFactory implements LlmStreamFactory
             {
                 final String model = fallback.get(fallbackIndex++);
 
-                this.challengeModel = model;
+                doNetModelChallenge(traceId, authorization, model);
+
                 this.app = new LlmClient(this);
                 app.doAppBegin(traceId, authorization, beginAffinity, fallbackBeginEx(model));
 
                 if (LlmState.replyOpened(state))
                 {
-                    doAppReplyWindow();
+                    doAppReplyWindow(traceId, authorization);
                 }
             }
 
@@ -528,20 +508,13 @@ public final class LlmProxyFactory implements LlmStreamFactory
 
         private void doNetModelChallenge(
             long traceId,
-            long authorization)
+            long authorization,
+            String model)
         {
-            if (!LlmState.initialOpened(state))
-            {
-                this.state = LlmState.openInitial(state);
-
-                doWindow(network, originId, routedId, initialId, initialSeq, initialAck, 0,
-                        traceId, authorization, 0L, 0, 0, 0);
-            }
-
             final LlmChallengeExFW llmChallengeEx = llmChallengeExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(llmTypeId)
                 .dialect(dialect)
-                .model(challengeModel)
+                .model(model)
                 .build();
 
             doNetChallenge(traceId, authorization,
@@ -566,6 +539,14 @@ public final class LlmProxyFactory implements LlmStreamFactory
             long authorization,
             OctetsFW extension)
         {
+            if (!LlmState.initialOpened(state))
+            {
+                this.state = LlmState.openInitial(state);
+
+                doWindow(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                        traceId, authorization, 0L, 0, 0, 0);
+            }
+
             doChallenge(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, extension);
         }
@@ -633,18 +614,6 @@ public final class LlmProxyFactory implements LlmStreamFactory
             int index,
             int length)
         {
-            if (net.app == this)
-            {
-                onAppMessageCurrent(msgTypeId, buffer, index, length);
-            }
-        }
-
-        private void onAppMessageCurrent(
-            int msgTypeId,
-            DirectBufferEx buffer,
-            int index,
-            int length)
-        {
             switch (msgTypeId)
             {
             case BeginFW.TYPE_ID:
@@ -685,7 +654,6 @@ public final class LlmProxyFactory implements LlmStreamFactory
             this.replyAck = begin.acknowledge();
             this.state = LlmState.openingReply(state);
 
-            net.onAppEstablished(traceId, authorization, true);
             net.doNetBegin(traceId, authorization, affinity, begin.extension());
         }
 
@@ -749,8 +717,6 @@ public final class LlmProxyFactory implements LlmStreamFactory
 
             final int initialWin = initialMax - (int)(initialSeq - initialAck);
 
-            net.onAppEstablished(traceId, authorization, initialWin > 0);
-
             if (initialWin > 0)
             {
                 net.doNetWindow(traceId, authorization, budgetId, minimum, capabilities, initialWin, padding, initialMax);
@@ -760,9 +726,11 @@ public final class LlmProxyFactory implements LlmStreamFactory
         private void onAppReset(
             ResetFW reset)
         {
+            final boolean refused = !LlmState.initialOpened(state);
+
             this.state = LlmState.closeInitial(state);
 
-            if (!net.doFallback(this, reset.traceId(), reset.authorization()))
+            if (!refused || !net.doFallback(reset.traceId(), reset.authorization()))
             {
                 net.doNetReset(reset.traceId(), reset.authorization(), reset.extension());
             }
@@ -771,7 +739,6 @@ public final class LlmProxyFactory implements LlmStreamFactory
         private void onAppChallenge(
             ChallengeFW challenge)
         {
-            net.onAppEstablished(challenge.traceId(), challenge.authorization(), true);
             net.doNetChallenge(challenge.traceId(), challenge.authorization(), challenge.extension());
         }
 

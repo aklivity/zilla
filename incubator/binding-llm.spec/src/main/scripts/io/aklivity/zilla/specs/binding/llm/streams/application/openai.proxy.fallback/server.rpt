@@ -20,7 +20,7 @@ accept ${serverAddress}
        option zilla:window 8192
        option zilla:transmission "half-duplex"
 
-# first attempt: the exit refuses the stream before granting any credit
+# first attempt: the exit resets the stream before sending a window
 
 rejected
 
