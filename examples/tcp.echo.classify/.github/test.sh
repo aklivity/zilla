@@ -90,5 +90,32 @@ else
   fail "tcp.echo.classify/ rejected message (different vocabulary) was echoed back instead of closing the connection"
 fi
 
+assert_rejected() {
+  DESCRIPTION="$1"
+  INPUT="$2"
+  echo \# Testing tcp.echo.classify/ rejected message \("$DESCRIPTION"\)
+  echo PORT="$PORT"
+  echo INPUT="$INPUT"
+  echo EXPECTED="(connection closes, nothing echoed)"
+  echo
+
+  OUTPUT=$(printf '%s\n' "$INPUT" | nc -w 5 localhost $PORT)
+  RESULT=$?
+
+  echo OUTPUT="$OUTPUT"
+  echo RESULT="$RESULT"
+  echo
+  if [ -z "$OUTPUT" ]; then
+    echo ✅
+  else
+    fail "tcp.echo.classify/ rejected message ($DESCRIPTION) was echoed back instead of closing the connection"
+  fi
+}
+
+assert_rejected "AWS access key" "Here is my key AKIAIOSFODNN7EXAMPLE please keep it safe"
+assert_rejected "GitHub token" "Use ghp_aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789 to push the change"
+assert_rejected "email address" "Reach me at jane.doe@example.com for the details"
+assert_rejected "person name" "Please forward this to John Smith in accounting"
+
 report_failures
 exit $EXIT

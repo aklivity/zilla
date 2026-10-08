@@ -1,19 +1,26 @@
 # tcp.echo.classify
 
 Listens on tcp port `12345` and echoes back whatever is sent to the server —
-unless the message semantically matches one of a configured set of rejected
-phrases, in which case the connection is closed instead. Matching is done by
-comparing embedding vectors, not exact words, so a message can be rejected
-even when it shares no vocabulary at all with the configured phrases, as long
-as it means the same thing.
+unless the message is labelled by one of three classifiers, in which case the
+connection is closed instead:
 
-The moderation is split in two. The
-[`semantic`](../../incubator/classifier-semantic) classifier labels a value
-`withholding` when its embedding is similar enough to one of the configured
-phrases, and the [`classify`](../../incubator/model-classify) model rejects a
-value carrying any label listed under `reject` — `echo` just references the
-model like any binding-agnostic model, the same way a binding might reference
-`json` or `avro`. The embedding vectors come from
+- [`semantic`](../../incubator/classifier-semantic) — the message means the
+  same as one of a configured set of phrases
+- [`patterns`](../../incubator/classifier-patterns) — the message contains a
+  secret, such as an AWS access key or a GitHub token, matched by regular
+  expression
+- [`presidio`](../../incubator/classifier-presidio) — the message contains
+  personal data, such as an email address or a person's name, as reported by a
+  [Presidio](https://microsoft.github.io/presidio/) analyzer
+
+Each classifier only reports labels. The [`classify`](../../incubator/model-classify)
+model rejects a value carrying any label listed under `reject` — `echo` just
+references the model like any binding-agnostic model, the same way a binding
+might reference `json` or `avro`.
+
+Semantic matching compares embedding vectors, not exact words, so a message can
+be rejected even when it shares no vocabulary at all with the configured
+phrases, as long as it means the same thing. The embedding vectors come from
 [`embedding-openai`](../../runtime/embedding-openai), which calls a
 `/v1/embeddings` endpoint, OpenAI's by default. This example sets its
 `endpoint` option to a local
@@ -25,6 +32,10 @@ model is cached in a Docker volume (see [compose.yaml](compose.yaml)) that
 survives `docker compose down`/`up`, and `docker compose down -v` clears it.
 The `cpu-1.9` image is x86_64 only; set `TEI_VERSION=cpu-arm64-1.9` on an arm64
 host.
+
+The Presidio analyzer runs as its own `presidio-analyzer` service in the
+Docker Compose stack, and Zilla waits for both it and `tei` to be healthy
+before starting.
 
 ## Requirements
 
@@ -73,6 +84,27 @@ same "I won't tell you" gatekeeping move, not the specific words:
 
 Nothing is echoed back; the connection ends there.
 
+A message containing a secret is labelled by the `patterns` classifier:
+
+```text
+> Here is my key AKIAIOSFODNN7EXAMPLE please keep it safe
+```
+
+Nothing is echoed back; the connection ends there.
+
+A message containing personal data is labelled by the `presidio` classifier,
+whether it is an email address or a person's name:
+
+```text
+> Reach me at jane.doe@example.com for the details
+```
+
+```text
+> Please forward this to John Smith in accounting
+```
+
+Nothing is echoed back; the connection ends there.
+
 ## Configuration
 
 See [etc/zilla.yaml](etc/zilla.yaml):
@@ -103,6 +135,25 @@ classifiers:
           - "You will never believe what happened next."
           - "I have a massive secret but I absolutely cannot tell anyone here."
 
+  secrets0:
+    type: patterns
+    options:
+      entropy: 3.0
+      labels:
+        secret.aws_key: "AKIA[0-9A-Z]{16}"
+        secret.github_token: "ghp_[A-Za-z0-9]{36}"
+
+  presidio0:
+    type: presidio
+    options:
+      url: http://presidio-analyzer:3000
+      language: en
+      threshold: 0.6
+      timeout: PT5S
+      labels:
+        email: EMAIL_ADDRESS
+        person: PERSON
+
 bindings:
   north_echo_server:
     type: echo
@@ -113,6 +164,12 @@ bindings:
         reject:
           moderator0:
             - withholding
+          secrets0:
+            - secret.aws_key
+            - secret.github_token
+          presidio0:
+            - email
+            - person
 ```
 
 `tei` ignores the `model` and `credentials` values, which the `openai`

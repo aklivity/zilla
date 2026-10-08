@@ -22,6 +22,23 @@ classifiers:
         withholding:
           - "You will never believe what happened next."
           - "I have a massive secret but I absolutely cannot tell anyone here."
+  secrets0:
+    type: patterns
+    options:
+      entropy: 3.0
+      labels:
+        secret.aws_key: "AKIA[0-9A-Z]{16}"
+        secret.github_token: "ghp_[A-Za-z0-9]{36}"
+  presidio0:
+    type: presidio
+    options:
+      url: http://presidio-analyzer:3000
+      language: en
+      threshold: 0.6
+      timeout: PT5S
+      labels:
+        email: EMAIL_ADDRESS
+        person: PERSON
 bindings:
   north_tcp_server:
     type: tcp
@@ -39,6 +56,12 @@ bindings:
         reject:
           moderator0:
             - withholding
+          secrets0:
+            - secret.aws_key
+            - secret.github_token
+          presidio0:
+            - email
+            - person
 telemetry:
   exporters:
     stdout_logs_exporter:

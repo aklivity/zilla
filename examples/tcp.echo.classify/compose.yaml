@@ -16,11 +16,25 @@ services:
       start_interval: 500ms
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:80/health"]
 
+  presidio-analyzer:
+    image: mcr.microsoft.com/presidio-analyzer:${PRESIDIO_VERSION:-latest}
+    restart: unless-stopped
+    ports:
+      - 3000:3000
+    healthcheck:
+      interval: 10s
+      timeout: 3s
+      retries: 60
+      start_period: 30s
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:3000/health')"]
+
   zilla:
     image: ghcr.io/aklivity/zilla:${ZILLA_VERSION:-latest}
     restart: unless-stopped
     depends_on:
       tei:
+        condition: service_healthy
+      presidio-analyzer:
         condition: service_healthy
     hostname: zilla.examples.dev
     ports:
