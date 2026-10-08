@@ -1,4 +1,4 @@
-name: ${NAMESPACE:-zilla-tcp-echo-embedding}
+name: ${NAMESPACE:-zilla-tcp-echo-classify}
 services:
   tei:
     image: ghcr.io/huggingface/text-embeddings-inference:${TEI_VERSION:-cpu-1.9}

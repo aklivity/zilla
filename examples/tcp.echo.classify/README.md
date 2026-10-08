@@ -1,4 +1,4 @@
-# tcp.echo.embedding
+# tcp.echo.classify
 
 Listens on tcp port `12345` and echoes back whatever is sent to the server —
 unless the message semantically matches one of a configured set of rejected
