@@ -6,15 +6,15 @@ set -x
 EXIT=0
 PORT="12345"
 
-# The GloVe vectors download on first use, which can take well past a normal
-# request's timeout. Retry a throwaway message until it echoes, so the
-# assertions below aren't racing the one-time download/parse.
-echo \# Warming up tcp.echo.embedding/ moderator0 \(first-use vectors download\)
+# The reject phrases are embedded the first time the model is used, which can
+# take past a normal request's timeout. Retry a throwaway message until it
+# echoes, so the assertions below aren't racing that one-time embedding.
+echo \# Warming up tcp.echo.embedding/ moderator0 \(first-use reject phrase embedding\)
 warm_up() {
   OUTPUT=$(printf '%s\n' "warm up" | nc -w 20 localhost $PORT)
   [ "$OUTPUT" = "warm up" ]
 }
-retry_until 20 15 warm_up
+retry_until 10 3 warm_up
 echo RESULT=$?
 echo
 

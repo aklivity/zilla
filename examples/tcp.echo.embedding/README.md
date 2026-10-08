@@ -12,14 +12,17 @@ The moderation itself is implemented by
 rejects a value whose embedding is similar enough to a configured list of
 reject phrases — `echo` just references it like any binding-agnostic model,
 the same way a binding might reference `json` or `avro`. The embedding
-vectors come from [`embedding-glove`](../../incubator/embedding-glove), an
-[GloVe](https://nlp.stanford.edu/projects/glove/) word vectors locally — no
-vendor API, no per-request network call, no ML runtime. The vectors download
-automatically the first time `moderator0` is used, so the very first message
-can take a while depending on network speed. They're cached in a Docker
-volume (see [compose.yaml](compose.yaml)) that survives `docker compose
-down`/`up`, so only the very first run across the stack's lifetime pays the
-download cost — `docker compose down -v` clears the cache along with it.
+vectors come from [`embedding-openai`](../../runtime/embedding-openai), which
+calls an OpenAI-compatible `/v1/embeddings` endpoint. This example points it
+at a local
+[text-embeddings-inference](https://github.com/huggingface/text-embeddings-inference)
+(`tei`) server hosting `sentence-transformers/all-MiniLM-L6-v2` — no vendor
+account or API key. `tei` downloads the model the first time it starts, so the
+first `docker compose up` can take a while depending on network speed; the
+model is cached in a Docker volume (see [compose.yaml](compose.yaml)) that
+survives `docker compose down`/`up`, and `docker compose down -v` clears it.
+The `cpu-1.9` image is x86_64 only; set `TEI_VERSION=cpu-arm64-1.9` on an arm64
+host.
 
 ## Requirements
 
@@ -75,7 +78,11 @@ See [etc/zilla.yaml](etc/zilla.yaml):
 ```yaml
 embeddings:
   moderator0:
-    type: glove
+    type: openai
+    options:
+      model: sentence-transformers/all-MiniLM-L6-v2
+      credentials:
+        api-key: unused
 
 bindings:
   north_echo_server:
@@ -88,8 +95,18 @@ bindings:
         reject:
           - "You will never believe what happened next."
           - "I have a massive secret but I absolutely cannot tell anyone here."
-        threshold: 0.94
+        threshold: 0.185
 ```
+
+The endpoint is the `zilla.embedding.openai.endpoint` property, set on the
+`zilla` service's command in [compose.yaml](compose.yaml). `tei` ignores the
+`model` and `credentials` values, which the `openai` embedding type requires.
+Cosine similarity between a whole message and a short reject phrase is low for
+this model, so `threshold` is far lower than it would be for averaged word
+vectors: the accepted message above scores about `0.15` against the closest
+phrase and the rejected ones about `0.22` and `0.40`, so `0.185` sits between
+them with a narrow margin. Tune it, and add more reject phrases, for your own
+messages.
 
 ## Teardown
 
