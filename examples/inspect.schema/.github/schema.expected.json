@@ -1160,6 +1160,7 @@
                     "title": "Type",
                     "type": "string",
                     "enum": [
+                        "patterns",
                         "semantic"
                     ]
                 },
@@ -1181,6 +1182,62 @@
                 "type"
             ],
             "allOf": [
+                {
+                    "if": {
+                        "properties": {
+                            "type": {
+                                "const": "patterns"
+                            }
+                        }
+                    },
+                    "then": {
+                        "properties": {
+                            "type": {
+                                "const": "patterns"
+                            },
+                            "options": {
+                                "title": "Options",
+                                "type": "object",
+                                "properties": {
+                                    "entropy": {
+                                        "title": "Entropy",
+                                        "type": "number",
+                                        "minimum": 0
+                                    },
+                                    "labels": {
+                                        "title": "Labels",
+                                        "type": "object",
+                                        "minProperties": 1,
+                                        "additionalProperties": {
+                                            "oneOf": [
+                                                {
+                                                    "type": "string",
+                                                    "minLength": 1
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "minLength": 1
+                                                    },
+                                                    "minItems": 1
+                                                }
+                                            ]
+                                        }
+                                    }
+                                },
+                                "required": [
+                                    "labels"
+                                ],
+                                "additionalProperties": false
+                            }
+                        },
+                        "required": [
+                            "options"
+                        ],
+                        "additionalProperties": false
+                    }
+                },
                 {
                     "if": {
                         "properties": {
