@@ -1,0 +1,43 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+accept "http://localhost:8000/v1/embeddings"
+
+accepted
+connected
+
+read http:method "POST"
+read http:header "authorization" "Bearer test-api-key"
+read http:header "content-type" "application/json"
+read '{"model":"text-embedding-3-small","input":["init"]}'
+
+read closed
+
+write http:status "200" "OK"
+write http:header "content-type" "application/json"
+write http:content-length
+
+write
+'{'
+  '"data": ['
+    '{'
+      '"embedding": [0.1, 0.2, 0.3],'
+      '"index": 0'
+    '}'
+  '],'
+  '"model": "text-embedding-3-small"'
+'}'
+
+write close

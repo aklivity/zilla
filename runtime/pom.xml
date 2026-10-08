@@ -68,6 +68,7 @@
     <module>command-start</module>
     <module>command-stop</module>
     <module>command-version</module>
+    <module>embedding-openai</module>
     <module>exporter-otlp</module>
     <module>exporter-prometheus</module>
     <module>exporter-stdout</module>
@@ -228,6 +229,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>catalog-inline.conf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>embedding-openai.conf</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -543,6 +549,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>command-version</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>embedding-openai</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
