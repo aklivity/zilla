@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.4](https://github.com/aklivity/zilla/tree/1.3.4) (2026-10-08)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.3.3...1.3.4)
+
+**Merged pull requests:**
+
+- fix\(binding-kafka\): refresh metadata for every topic after a leader c… [\#2698](https://github.com/aklivity/zilla/pull/2698) ([ankitk-me](https://github.com/ankitk-me))
+
 ## [1.3.3](https://github.com/aklivity/zilla/tree/1.3.3) (2026-09-29)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/1.3.2...1.3.3)
