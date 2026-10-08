@@ -273,6 +273,14 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
         return framing;
     }
 
+    // a catalog that frames values is stripped of it on decode (and re-emits it on WRITE), and a value outside a
+    // cached read carries a message index that decode strips, so the bytes change
+    boolean decodeIdentity(
+        ModelCache cache)
+    {
+        return cachedRead(cache) && !VIEW_JSON.equals(view) && exts.isEmpty() && handler.encodePadding(0) == 0;
+    }
+
     // read-direction pipeline; when extractor is null no extractor stage is wired so the verbatim/SEGMENTED
     // fast path stays in effect for a decode with no field extraction
     ProtobufPipeline newPipeline(

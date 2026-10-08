@@ -51,6 +51,7 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
     private final ProtobufEnvelope envelope;
     private final ModelPipelineResult result;
     private final ModelCache cache;
+    private final boolean identity;
 
     private ProtobufPipeline active;
     private String diagnostic;
@@ -72,6 +73,7 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
         this.pipelines = new HashMap<>();
         this.result = new ModelPipelineResult();
         this.cache = cache;
+        this.identity = handler.decodeIdentity(cache) && (extractor == null || extractor.identity());
     }
 
     @Override
@@ -176,7 +178,7 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
     @Override
     public boolean identity()
     {
-        return active != null && active.identity();
+        return identity;
     }
 
     @Override

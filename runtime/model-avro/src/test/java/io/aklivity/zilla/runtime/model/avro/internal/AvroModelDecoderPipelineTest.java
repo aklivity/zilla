@@ -106,6 +106,7 @@ public class AvroModelDecoderPipelineTest
     private static final String JSON = "{\"id\":\"id0\",\"status\":\"positive\"}";
 
     private EngineContext context;
+    private String framing;
     private AvroModelConfiguration config;
 
     @Before
@@ -249,17 +250,17 @@ public class AvroModelDecoderPipelineTest
     }
 
     @Test
-    public void shouldReportIdentityWhenNoView()
+    public void shouldReportIdentityBeforeAndAfterFirstValueWhenNoView()
     {
         AvroModelHandlerImpl handler = newHandler(SCHEMA, null);
         ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
-        assertFalse(pipeline.identity());
+        assertTrue(pipeline.identity());
 
-        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        pipeline.transform(0L, 0L, 0L, COMPLETE,
-            new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
+        transformValue(pipeline);
+        assertTrue(pipeline.identity());
 
+        pipeline.reset();
         assertTrue(pipeline.identity());
     }
 
@@ -269,10 +270,51 @@ public class AvroModelDecoderPipelineTest
         AvroModelHandlerImpl handler = newHandler(SCHEMA, "json");
         ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
-        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        pipeline.transform(0L, 0L, 0L, COMPLETE,
-            new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
+        assertFalse(pipeline.identity());
 
+        transformValue(pipeline);
+        assertFalse(pipeline.identity());
+
+        pipeline.reset();
+        assertFalse(pipeline.identity());
+    }
+
+    @Test
+    public void shouldReportIdentityWhenObservingTransformWired()
+    {
+        AvroModelHandlerImpl handler = newHandler(SCHEMA, null);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(new HashMap<>()), ModelCache.NONE);
+
+        assertTrue(pipeline.identity());
+
+        transformValue(pipeline);
+        assertTrue(pipeline.identity());
+    }
+
+    @Test
+    public void shouldNotReportIdentityWhenCatalogFramesValues()
+    {
+        framing = "ZL";
+        AvroModelHandlerImpl handler = newHandler(SCHEMA, null);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+
+        assertFalse(pipeline.identity());
+    }
+
+    @Test
+    public void shouldNotReportIdentityWhenExtensionInstalled()
+    {
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(capturingKind(new AvroModelEventType[1]));
+        AvroModelHandlerImpl handler = newHandler(SCHEMA, null, List.of(failing()));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+
+        assertFalse(pipeline.identity());
+
+        transformValue(pipeline);
+        assertFalse(pipeline.identity());
+
+        pipeline.reset();
         assertFalse(pipeline.identity());
     }
 
@@ -343,6 +385,7 @@ public class AvroModelDecoderPipelineTest
             .type("test")
             .options(TestCatalogOptionsConfig::builder)
                 .id(1)
+                .prefix(framing)
                 .schema(SCHEMA)
                 .prefix("XX")
                 .build()
@@ -487,6 +530,7 @@ public class AvroModelDecoderPipelineTest
             .type("test")
             .options(TestCatalogOptionsConfig::builder)
                 .id(9)
+                .prefix(framing)
                 .schema(schema)
                 .build()
             .build();
@@ -548,6 +592,14 @@ public class AvroModelDecoderPipelineTest
         byte[] chunk = new byte[produced];
         dst.getBytes(0, chunk);
         return new String(chunk, UTF_8);
+    }
+
+    private static void transformValue(
+        ModelPipeline pipeline)
+    {
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        pipeline.transform(0L, 0L, 0L, COMPLETE,
+            new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
     }
 
     private static ModelTransform observer(

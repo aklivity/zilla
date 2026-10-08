@@ -78,6 +78,11 @@ public interface ModelPipeline
      * the whole value to recompute its framing and checksum. A pipeline that may rewrite bytes or resize
      * the value returns {@code false}.
      * </p>
+     * <p>
+     * The answer is available as soon as the pipeline is supplied, before any value has been transformed.
+     * When it depends on a schema that is only selected once a value arrives, the pipeline answers
+     * {@code false} until then, since {@code false} only ever means the bytes may change.
+     * </p>
      *
      * @return {@code true} if accepted values pass through unchanged; {@code false} otherwise
      */

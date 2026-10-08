@@ -175,6 +175,12 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
         return handler.encodePadding(length);
     }
 
+    // a catalog that frames values is stripped of it on decode (and re-emits it on WRITE), so the bytes change
+    boolean decodeIdentity()
+    {
+        return !VIEW_JSON.equals(view) && exts.isEmpty() && handler.encodePadding(0) == 0;
+    }
+
     AvroPipeline newPipeline(
         int schemaId,
         boolean lenient,

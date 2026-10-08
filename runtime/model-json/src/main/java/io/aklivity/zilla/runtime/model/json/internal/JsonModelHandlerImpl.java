@@ -87,6 +87,12 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
         return new JsonModelEncoderPipeline(this, JsonModelEnvelope.of(requireNonNull(envelope)), requireNonNull(transform));
     }
 
+    // a catalog that frames values is stripped of it on decode (and re-emits it on WRITE), so the bytes change
+    boolean decodeIdentity()
+    {
+        return exts.isEmpty() && handler.encodePadding(0) == 0;
+    }
+
     int decodePadding(
         DirectBufferEx data,
         int index,

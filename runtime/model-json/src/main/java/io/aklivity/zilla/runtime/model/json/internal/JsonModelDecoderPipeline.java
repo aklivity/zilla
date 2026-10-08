@@ -51,6 +51,7 @@ final class JsonModelDecoderPipeline implements ModelPipeline
     private final JsonEnvelope envelope;
     private final ModelPipelineResult result;
     private final ModelCache cache;
+    private final boolean identity;
 
     private JsonPipeline active;
     private String diagnostic;
@@ -73,6 +74,7 @@ final class JsonModelDecoderPipeline implements ModelPipeline
         this.pipelines = new Int2ObjectCache<>(1, 16, p -> {});
         this.result = new ModelPipelineResult();
         this.cache = cache;
+        this.identity = fieldTransform == null && handler.decodeIdentity();
     }
 
     @Override
@@ -137,7 +139,7 @@ final class JsonModelDecoderPipeline implements ModelPipeline
     @Override
     public boolean identity()
     {
-        return active != null && active.identity();
+        return identity;
     }
 
     @Override
