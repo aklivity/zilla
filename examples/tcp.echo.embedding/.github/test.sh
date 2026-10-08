@@ -9,7 +9,7 @@ PORT="12345"
 # The reject phrases are embedded the first time the model is used, which can
 # take past a normal request's timeout. Retry a throwaway message until it
 # echoes, so the assertions below aren't racing that one-time embedding.
-echo \# Warming up tcp.echo.embedding/ moderator0 \(first-use reject phrase embedding\)
+echo \# Warming up tcp.echo.embedding/ embedding0 \(first-use reject phrase embedding\)
 warm_up() {
   OUTPUT=$(printf '%s\n' "warm up" | nc -w 20 localhost $PORT)
   [ "$OUTPUT" = "warm up" ]

@@ -4,16 +4,18 @@ Listens on tcp port `12345` and echoes back whatever is sent to the server —
 unless the message semantically matches one of a configured set of rejected
 phrases, in which case the connection is closed instead. Matching is done by
 comparing embedding vectors, not exact words, so a message can be rejected
-even when it shares no vocabulary at all with the configured `reject`
-phrases, as long as it means the same thing.
+even when it shares no vocabulary at all with the configured phrases, as long
+as it means the same thing.
 
-The moderation itself is implemented by
-[`model-vector`](../../incubator/model-vector), a generic `model:` that
-rejects a value whose embedding is similar enough to a configured list of
-reject phrases — `echo` just references it like any binding-agnostic model,
-the same way a binding might reference `json` or `avro`. The embedding
-vectors come from [`embedding-openai`](../../runtime/embedding-openai), which
-calls a `/v1/embeddings` endpoint, OpenAI's by default. This example sets its
+The moderation is split in two. The
+[`semantic`](../../incubator/classifier-semantic) classifier labels a value
+`withholding` when its embedding is similar enough to one of the configured
+phrases, and the [`classify`](../../incubator/model-classify) model rejects a
+value carrying any label listed under `reject` — `echo` just references the
+model like any binding-agnostic model, the same way a binding might reference
+`json` or `avro`. The embedding vectors come from
+[`embedding-openai`](../../runtime/embedding-openai), which calls a
+`/v1/embeddings` endpoint, OpenAI's by default. This example sets its
 `endpoint` option to a local
 [text-embeddings-inference](https://github.com/huggingface/text-embeddings-inference)
 (`tei`) server hosting `sentence-transformers/all-MiniLM-L6-v2` — no vendor
@@ -77,7 +79,7 @@ See [etc/zilla.yaml](etc/zilla.yaml):
 
 ```yaml
 embeddings:
-  moderator0:
+  embedding0:
     type: openai
     options:
       model: sentence-transformers/all-MiniLM-L6-v2
@@ -85,18 +87,32 @@ embeddings:
       credentials:
         api-key: unused
 
+stores:
+  cache0:
+    type: memory
+
+classifiers:
+  moderator0:
+    type: semantic
+    embedding: embedding0
+    store: cache0
+    options:
+      threshold: 0.185
+      labels:
+        withholding:
+          - "You will never believe what happened next."
+          - "I have a massive secret but I absolutely cannot tell anyone here."
+
 bindings:
   north_echo_server:
     type: echo
     kind: server
     options:
       value:
-        model: vector
-        embedding: moderator0
+        model: classify
         reject:
-          - "You will never believe what happened next."
-          - "I have a massive secret but I absolutely cannot tell anyone here."
-        threshold: 0.185
+          moderator0:
+            - withholding
 ```
 
 `tei` ignores the `model` and `credentials` values, which the `openai`

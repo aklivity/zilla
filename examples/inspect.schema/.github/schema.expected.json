@@ -8240,8 +8240,7 @@
                     "int64",
                     "json",
                     "protobuf",
-                    "string",
-                    "vector"
+                    "string"
                 ]
             },
             "model": {
@@ -8852,50 +8851,6 @@
                                     "$ref": "#/$defs/validate"
                                 }
                             }
-                        }
-                    },
-                    {
-                        "if": {
-                            "properties": {
-                                "model": {
-                                    "const": "vector"
-                                }
-                            }
-                        },
-                        "then": {
-                            "properties": {
-                                "model": {
-                                    "const": "vector"
-                                },
-                                "embedding": {
-                                    "title": "Embedding",
-                                    "type": "string"
-                                },
-                                "reject": {
-                                    "title": "Reject",
-                                    "type": "array",
-                                    "items": {
-                                        "type": "string"
-                                    },
-                                    "minItems": 1
-                                },
-                                "threshold": {
-                                    "title": "Threshold",
-                                    "type": "number",
-                                    "minimum": 0,
-                                    "maximum": 1
-                                },
-                                "store": {
-                                    "title": "Store",
-                                    "type": "string"
-                                }
-                            },
-                            "required": [
-                                "embedding",
-                                "reject",
-                                "threshold",
-                                "store"
-                            ]
                         }
                     }
                 ],

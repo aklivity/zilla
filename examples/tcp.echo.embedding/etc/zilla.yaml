@@ -1,7 +1,7 @@
 ---
 name: example
 embeddings:
-  moderator0:
+  embedding0:
     type: openai
     options:
       model: sentence-transformers/all-MiniLM-L6-v2
@@ -11,6 +11,17 @@ embeddings:
 stores:
   cache0:
     type: memory
+classifiers:
+  moderator0:
+    type: semantic
+    embedding: embedding0
+    store: cache0
+    options:
+      threshold: 0.185
+      labels:
+        withholding:
+          - "You will never believe what happened next."
+          - "I have a massive secret but I absolutely cannot tell anyone here."
 bindings:
   north_tcp_server:
     type: tcp
@@ -24,13 +35,10 @@ bindings:
     kind: server
     options:
       value:
-        model: vector
-        embedding: moderator0
+        model: classify
         reject:
-          - "You will never believe what happened next."
-          - "I have a massive secret but I absolutely cannot tell anyone here."
-        threshold: 0.185
-        store: cache0
+          moderator0:
+            - withholding
 telemetry:
   exporters:
     stdout_logs_exporter:
