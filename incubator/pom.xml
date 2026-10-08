@@ -35,6 +35,8 @@
     <module>model-vector.conf</module>
     <module>model-classify.spec</module>
     <module>model-classify.conf</module>
+    <module>classifier-semantic.spec</module>
+    <module>classifier-semantic.conf</module>
 
     <module>binding-amqp</module>
     <module>binding-llm</module>
@@ -45,6 +47,7 @@
     <module>embedding-glove</module>
     <module>model-vector</module>
     <module>model-classify</module>
+    <module>classifier-semantic</module>
 
     <module>command-log</module>
     <module>command-dump</module>
@@ -87,6 +90,16 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>model-classify.conf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>classifier-semantic</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>classifier-semantic.conf</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
