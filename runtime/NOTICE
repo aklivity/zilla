@@ -50,6 +50,7 @@ This project includes:
   zilla::config::catalog-inline.conf under Aklivity Community License Agreement
   zilla::config::catalog-karapace.conf under Aklivity Community License Agreement
   zilla::config::catalog-schema-registry.conf under Aklivity Community License Agreement
+  zilla::config::embedding-openai.conf under Aklivity Community License Agreement
   zilla::config::engine.conf under Aklivity Community License Agreement
   zilla::config::exporter-otlp.conf under Aklivity Community License Agreement
   zilla::config::exporter-prometheus.conf under Aklivity Community License Agreement
