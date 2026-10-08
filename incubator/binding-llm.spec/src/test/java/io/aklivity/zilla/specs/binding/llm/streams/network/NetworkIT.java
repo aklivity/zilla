@@ -326,6 +326,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.proxy.guardrail.rejected/client",
+        "${net}/openai.proxy.guardrail.rejected/server"})
+    public void shouldRejectOpenaiProxyGuardrailSection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.rejected.bad.gateway/client",
         "${net}/openai.rejected.bad.gateway/server"})
     public void shouldRejectOpenaiBadGateway() throws Exception

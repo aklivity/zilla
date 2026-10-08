@@ -102,6 +102,16 @@ public class LlmProxyIT
     }
 
     @Test
+    @Configuration("server.proxy.guardrail.yaml")
+    @Specification({
+        "${net}/openai.proxy.guardrail.rejected/client",
+        "${app}/openai.proxy.guardrail.rejected.request/server"})
+    public void shouldRejectGuardedSectionFromNetwork() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.guardrail.async.yaml")
     @Specification({
         "${app}/openai.proxy.guardrail.accepted/client",

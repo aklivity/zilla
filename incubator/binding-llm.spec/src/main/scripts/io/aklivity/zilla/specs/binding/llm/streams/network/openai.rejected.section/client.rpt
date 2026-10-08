@@ -14,7 +14,7 @@
 #
 
 connect "zilla://streams/net0"
-        option zilla:window 8192
+        option zilla:window 0
         option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${http:beginEx()
@@ -30,6 +30,8 @@ connected
 
 write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}"
 write close
+
+read option zilla:window 8192
 
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))

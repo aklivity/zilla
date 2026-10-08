@@ -1934,6 +1934,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private int replyMax;
         private int replyPad;
 
+        private boolean replyBegun;
         private int state;
         private boolean appEndPending;
         private boolean deauthorized;
@@ -3120,6 +3121,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 .build();
 
             network.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
+            this.replyBegun = true;
             state = LlmState.openingReply(state);
         }
 
@@ -3298,7 +3300,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             state = LlmState.closeInitial(state);
             server.appEndPending = false;
 
-            if (resetEx != null && !LlmState.replyOpening(server.state))
+            if (resetEx != null && !server.replyBegun)
             {
                 server.doNetError(traceId, authorization, resetEx.error());
             }
