@@ -22,6 +22,8 @@ import static org.hamcrest.Matchers.nullValue;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.feature.Incubating;
+
 public class SemanticClassifierInfoTest
 {
     private final SemanticClassifierInfo info = new SemanticClassifierInfo();
@@ -36,6 +38,12 @@ public class SemanticClassifierInfoTest
     public void shouldResolveSchema()
     {
         assertThat(info.schema(), not(nullValue()));
+    }
+
+    @Test
+    public void shouldBeIncubating()
+    {
+        assertThat(SemanticClassifierInfo.class.isAnnotationPresent(Incubating.class), equalTo(true));
     }
 
     @Test
