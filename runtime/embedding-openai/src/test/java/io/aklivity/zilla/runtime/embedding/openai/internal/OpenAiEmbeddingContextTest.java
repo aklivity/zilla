@@ -20,10 +20,10 @@ import static org.mockito.Mockito.mock;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.config.engine.EmbeddingConfig;
-import io.aklivity.zilla.config.engine.GenericEmbeddingConfig;
 import io.aklivity.zilla.config.embedding.openai.OpenAiCredentialsConfig;
 import io.aklivity.zilla.config.embedding.openai.OpenAiOptionsConfig;
+import io.aklivity.zilla.config.engine.EmbeddingConfig;
+import io.aklivity.zilla.config.engine.GenericEmbeddingConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.embedding.EmbeddingHandler;
 

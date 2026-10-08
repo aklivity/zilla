@@ -18,10 +18,10 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 
-import io.aklivity.zilla.config.engine.ConfigAdapter;
-import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.embedding.openai.OpenAiOptionsConfig;
 import io.aklivity.zilla.config.embedding.openai.OpenAiOptionsConfigBuilder;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public class OpenAiOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
