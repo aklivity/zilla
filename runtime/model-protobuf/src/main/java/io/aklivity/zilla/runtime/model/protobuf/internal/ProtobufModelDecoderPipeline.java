@@ -52,6 +52,7 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
     private final ModelPipelineResult result;
     private final ModelCache cache;
     private final boolean deterministic;
+    private final boolean identity;
 
     private ProtobufPipeline active;
     private String diagnostic;
@@ -74,6 +75,7 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
         this.result = new ModelPipelineResult();
         this.cache = cache;
         this.deterministic = transform == ModelTransform.NONE && handler.decodeDeterministic(cache);
+        this.identity = handler.decodeIdentity(cache) && (extractor == null || extractor.identity());
     }
 
     @Override
@@ -178,7 +180,7 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
     @Override
     public boolean identity()
     {
-        return false;
+        return identity;
     }
 
     @Override

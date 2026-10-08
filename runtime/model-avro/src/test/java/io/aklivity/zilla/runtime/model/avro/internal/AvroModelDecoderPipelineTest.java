@@ -106,6 +106,7 @@ public class AvroModelDecoderPipelineTest
     private static final String JSON = "{\"id\":\"id0\",\"status\":\"positive\"}";
 
     private EngineContext context;
+    private String framing;
     private AvroModelConfiguration config;
 
     @Before
@@ -249,24 +250,25 @@ public class AvroModelDecoderPipelineTest
     }
 
     @Test
-    public void shouldReportDeterministicNotIdentityWhenNoView()
+    public void shouldReportIdentityAndDeterministicBeforeAndAfterFirstValueWhenNoView()
     {
         AvroModelHandlerImpl handler = newHandler(SCHEMA, null);
         ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
-        assertFalse(pipeline.identity());
+        assertTrue(pipeline.identity());
         assertTrue(pipeline.deterministic());
 
-        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        pipeline.transform(0L, 0L, 0L, COMPLETE,
-            new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
+        transformValue(pipeline);
+        assertTrue(pipeline.identity());
+        assertTrue(pipeline.deterministic());
 
-        assertFalse(pipeline.identity());
+        pipeline.reset();
+        assertTrue(pipeline.identity());
         assertTrue(pipeline.deterministic());
     }
 
     @Test
-    public void shouldNotReportDeterministicWhenExtensionInstalled()
+    public void shouldNotReportIdentityNorDeterminismWhenExtensionInstalled()
     {
         AvroModelHandlerImpl handler = newHandler(SCHEMA, null, List.of(expandingExt(64)));
         ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
@@ -284,12 +286,52 @@ public class AvroModelDecoderPipelineTest
         assertFalse(pipeline.identity());
         assertTrue(pipeline.deterministic());
 
-        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        pipeline.transform(0L, 0L, 0L, COMPLETE,
-            new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
+        transformValue(pipeline);
+        assertFalse(pipeline.identity());
+
+        pipeline.reset();
+        assertFalse(pipeline.identity());
+    }
+
+    @Test
+    public void shouldReportIdentityWhenObservingTransformWired()
+    {
+        AvroModelHandlerImpl handler = newHandler(SCHEMA, null);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(new HashMap<>()), ModelCache.NONE);
+
+        assertTrue(pipeline.identity());
+        assertFalse(pipeline.deterministic());
+
+        transformValue(pipeline);
+        assertTrue(pipeline.identity());
+    }
+
+    @Test
+    public void shouldNotReportIdentityWhenCatalogFramesValues()
+    {
+        framing = "ZL";
+        AvroModelHandlerImpl handler = newHandler(SCHEMA, null);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         assertFalse(pipeline.identity());
-        assertTrue(pipeline.deterministic());
+    }
+
+    @Test
+    public void shouldNotReportIdentityWhenExtensionInstalled()
+    {
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(capturingKind(new AvroModelEventType[1]));
+        AvroModelHandlerImpl handler = newHandler(SCHEMA, null, List.of(failing()));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+
+        assertFalse(pipeline.identity());
+
+        transformValue(pipeline);
+        assertFalse(pipeline.identity());
+
+        pipeline.reset();
+        assertFalse(pipeline.identity());
+        assertFalse(pipeline.deterministic());
     }
 
     @Test
@@ -359,6 +401,7 @@ public class AvroModelDecoderPipelineTest
             .type("test")
             .options(TestCatalogOptionsConfig::builder)
                 .id(1)
+                .prefix(framing)
                 .schema(SCHEMA)
                 .prefix("XX")
                 .build()
@@ -509,6 +552,7 @@ public class AvroModelDecoderPipelineTest
             .type("test")
             .options(TestCatalogOptionsConfig::builder)
                 .id(9)
+                .prefix(framing)
                 .schema(schema)
                 .build()
             .build();
@@ -570,6 +614,14 @@ public class AvroModelDecoderPipelineTest
         byte[] chunk = new byte[produced];
         dst.getBytes(0, chunk);
         return new String(chunk, UTF_8);
+    }
+
+    private static void transformValue(
+        ModelPipeline pipeline)
+    {
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        pipeline.transform(0L, 0L, 0L, COMPLETE,
+            new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
     }
 
     private static ModelTransform observer(

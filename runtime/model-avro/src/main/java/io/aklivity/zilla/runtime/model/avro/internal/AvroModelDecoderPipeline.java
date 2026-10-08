@@ -51,6 +51,7 @@ final class AvroModelDecoderPipeline implements ModelPipeline
     private final ModelPipelineResult result;
     private final ModelCache cache;
     private final boolean deterministic;
+    private final boolean identity;
 
     private AvroPipeline active;
     private String diagnostic;
@@ -72,6 +73,7 @@ final class AvroModelDecoderPipeline implements ModelPipeline
         this.result = new ModelPipelineResult();
         this.cache = cache;
         this.deterministic = adapter.deterministic() && handler.decodeDeterministic(cache);
+        this.identity = handler.decodeIdentity() && adapter.identity();
     }
 
     @Override
@@ -166,7 +168,7 @@ final class AvroModelDecoderPipeline implements ModelPipeline
     @Override
     public boolean identity()
     {
-        return false;
+        return identity;
     }
 
     @Override

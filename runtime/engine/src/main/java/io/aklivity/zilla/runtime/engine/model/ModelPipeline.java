@@ -79,11 +79,11 @@ public interface ModelPipeline
      * the value returns {@code false}.
      * </p>
      * <p>
-     * The answer is a property of the supplied pipeline, available before any data is transformed and
-     * stable for its lifetime. It is conservative: it reflects the installed stages and the intrinsic
-     * behavior of the pipeline's parser and generator, never a per-value selection made while
-     * transforming, and is {@code false} whenever any installed stage could change bytes for any
-     * schema.
+     * The answer is a property of the supplied pipeline, available as soon as it is supplied, before any
+     * value has been transformed, and stable for its lifetime. It is conservative: it reflects the installed
+     * stages and the intrinsic behavior of the pipeline's parser and generator, never a per-value selection
+     * made while transforming, and is {@code false} whenever any installed stage could change bytes for any
+     * schema, since {@code false} only ever means the bytes may change.
      * </p>
      *
      * @return {@code true} if accepted values pass through unchanged; {@code false} otherwise

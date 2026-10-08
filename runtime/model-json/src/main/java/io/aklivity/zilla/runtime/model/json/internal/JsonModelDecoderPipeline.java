@@ -53,6 +53,7 @@ final class JsonModelDecoderPipeline implements ModelPipeline
     private final ModelPipelineResult result;
     private final ModelCache cache;
     private final boolean deterministic;
+    private final boolean identity;
 
     private JsonPipeline active;
     private String diagnostic;
@@ -77,6 +78,7 @@ final class JsonModelDecoderPipeline implements ModelPipeline
         this.cache = cache;
         JsonParserEx parser = JsonEx.createParser();
         this.deterministic = fieldTransform == null && !handler.extended() && parser.deterministic() && generator.deterministic();
+        this.identity = fieldTransform == null && handler.decodeIdentity();
     }
 
     @Override
@@ -141,7 +143,7 @@ final class JsonModelDecoderPipeline implements ModelPipeline
     @Override
     public boolean identity()
     {
-        return false;
+        return identity;
     }
 
     @Override

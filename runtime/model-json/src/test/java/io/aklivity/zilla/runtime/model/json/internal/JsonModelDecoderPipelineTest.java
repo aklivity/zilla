@@ -99,6 +99,7 @@ public class JsonModelDecoderPipelineTest
         }""";
 
     private EngineContext context;
+    private String framing;
 
     @Before
     public void init()
@@ -246,39 +247,66 @@ public class JsonModelDecoderPipelineTest
     }
 
     @Test
-    public void shouldReportDeterministicNonIdentityBeforeAndAfterData()
+    public void shouldReportIdentityAndDeterministicBeforeAndAfterFirstValue()
     {
         JsonModelHandlerImpl handler = newHandler();
         ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
-        assertFalse(pipeline.identity());
+        assertTrue(pipeline.identity());
         assertTrue(pipeline.deterministic());
 
-        byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
-        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        pipeline.transform(0L, 0L, 0L, COMPLETE,
-            new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
+        transformValue(pipeline);
+        assertTrue(pipeline.identity());
+        assertTrue(pipeline.deterministic());
 
-        assertFalse(pipeline.identity());
+        pipeline.reset();
+        assertTrue(pipeline.identity());
         assertTrue(pipeline.deterministic());
     }
 
     @Test
-    public void shouldReportNeitherIdentityNorDeterminismWithFieldTransformWired()
+    public void shouldNotReportIdentityNorDeterminismWhenFieldTransformWired()
     {
         JsonModelHandlerImpl handler = newHandler();
         ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(new HashMap<>()), ModelCache.NONE);
 
         assertFalse(pipeline.identity());
         assertFalse(pipeline.deterministic());
+
+        transformValue(pipeline);
+        assertFalse(pipeline.identity());
+        assertFalse(pipeline.deterministic());
+
+        pipeline.reset();
+        assertFalse(pipeline.identity());
+        assertFalse(pipeline.deterministic());
     }
 
     @Test
-    public void shouldReportNeitherIdentityNorDeterminismWithExtensionInstalled()
+    public void shouldNotReportIdentityWhenCatalogFramesValues()
+    {
+        framing = "ZL";
+        JsonModelHandlerImpl handler = newHandler();
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+
+        assertFalse(pipeline.identity());
+        assertTrue(pipeline.deterministic());
+    }
+
+    @Test
+    public void shouldNotReportIdentityNorDeterminismWhenExtensionInstalled()
     {
         JsonModelHandlerImpl handler = newHandler(OBJECT_SCHEMA, List.of(dropping("status")));
         ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
+        assertFalse(pipeline.identity());
+        assertFalse(pipeline.deterministic());
+
+        transformValue(pipeline);
+        assertFalse(pipeline.identity());
+        assertFalse(pipeline.deterministic());
+
+        pipeline.reset();
         assertFalse(pipeline.identity());
         assertFalse(pipeline.deterministic());
     }
@@ -499,6 +527,7 @@ public class JsonModelDecoderPipelineTest
             .type("test")
             .options(TestCatalogOptionsConfig::builder)
                 .id(9)
+                .prefix(framing)
                 .schema(schema)
                 .build()
             .build();
@@ -527,6 +556,15 @@ public class JsonModelDecoderPipelineTest
         System.arraycopy(head, headOffset, result, 0, headLength);
         System.arraycopy(tail, 0, result, headLength, tail.length);
         return result;
+    }
+
+    private static void transformValue(
+        ModelPipeline pipeline)
+    {
+        byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        pipeline.transform(0L, 0L, 0L, COMPLETE,
+            new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
     }
 
     private static void drain(
