@@ -1,0 +1,68 @@
+---
+name: example
+embeddings:
+  embedding0:
+    type: openai
+    options:
+      model: sentence-transformers/all-MiniLM-L6-v2
+      endpoint: http://tei:80/v1/embeddings
+      credentials:
+        api-key: unused
+stores:
+  cache0:
+    type: memory
+classifiers:
+  moderator0:
+    type: semantic
+    embedding: embedding0
+    store: cache0
+    options:
+      threshold: 0.185
+      labels:
+        withholding:
+          - "You will never believe what happened next."
+          - "I have a massive secret but I absolutely cannot tell anyone here."
+  secrets0:
+    type: patterns
+    options:
+      entropy: 3.0
+      labels:
+        secret.aws_key: "AKIA[0-9A-Z]{16}"
+        secret.github_token: "ghp_[A-Za-z0-9]{36}"
+  presidio0:
+    type: presidio
+    options:
+      endpoint: http://presidio-analyzer:3000
+      language: en
+      threshold: 0.6
+      timeout: PT5S
+      labels:
+        email: EMAIL_ADDRESS
+        person: PERSON
+bindings:
+  north_tcp_server:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port: 12345
+    exit: north_echo_server
+  north_echo_server:
+    type: echo
+    kind: server
+    options:
+      value:
+        model: classify
+        reject:
+          moderator0:
+            - withholding
+          secrets0:
+            - secret.aws_key
+            - secret.github_token
+          presidio0:
+            - email
+            - person
+telemetry:
+  exporters:
+    stdout_logs_exporter:
+      type: stdout

@@ -49,6 +49,7 @@ import jakarta.json.spi.JsonProvider;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.CatalogConfig;
 import io.aklivity.zilla.config.engine.CatalogedConfig;
+import io.aklivity.zilla.config.engine.ClassifierConfig;
 import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ConfigException;
 import io.aklivity.zilla.config.engine.EmbeddingConfig;
@@ -385,6 +386,21 @@ public class EngineManager
         for (EmbeddingConfig embedding : namespace.embeddings)
         {
             embedding.id = resolver.resolve(embedding.name);
+        }
+
+        for (ClassifierConfig classifier : namespace.classifiers)
+        {
+            classifier.id = resolver.resolve(classifier.name);
+            if (classifier.embedding != null)
+            {
+                classifier.embeddingId = resolver.resolve(classifier.embedding);
+                classifier.qembedding = resolver.format(classifier.embeddingId);
+            }
+            if (classifier.store != null)
+            {
+                classifier.storeId = resolver.resolve(classifier.store);
+                classifier.qstore = resolver.format(classifier.storeId);
+            }
         }
 
         for (VaultConfig vault : namespace.vaults)

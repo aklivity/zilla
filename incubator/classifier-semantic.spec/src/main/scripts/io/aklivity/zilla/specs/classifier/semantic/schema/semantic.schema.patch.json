@@ -1,0 +1,88 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/classifier/properties/type/enum/-",
+        "value": "semantic"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/classifier/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "semantic"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "semantic"
+                    },
+                    "embedding":
+                    {
+                        "title": "Embedding",
+                        "type": "string"
+                    },
+                    "store":
+                    {
+                        "title": "Store",
+                        "type": "string"
+                    },
+                    "options":
+                    {
+                        "title": "Options",
+                        "type": "object",
+                        "properties":
+                        {
+                            "threshold":
+                            {
+                                "title": "Threshold",
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1
+                            },
+                            "labels":
+                            {
+                                "title": "Labels",
+                                "type": "object",
+                                "minProperties": 1,
+                                "additionalProperties":
+                                {
+                                    "type": "array",
+                                    "items":
+                                    {
+                                        "type": "string",
+                                        "minLength": 1
+                                    },
+                                    "minItems": 1
+                                }
+                            }
+                        },
+                        "required":
+                        [
+                            "threshold",
+                            "labels"
+                        ],
+                        "additionalProperties": false
+                    }
+                },
+                "required":
+                [
+                    "embedding",
+                    "store",
+                    "options"
+                ],
+                "additionalProperties": false
+            }
+        }
+    }
+]

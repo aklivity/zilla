@@ -43,6 +43,7 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
     private String store;
     private List<TestBindingOptionsConfig.StoreAssertions> storeAssertions;
     private String embedding;
+    private String classifier;
     private List<TestBindingOptionsConfig.EnvelopeValue> envelope;
     private List<TestBindingOptionsConfig.EnvelopeAssertion> envelopeAssertions;
     private TestBindingOptionsConfig.PipelineAssertion pipelineAssertion;
@@ -224,6 +225,13 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
         return this;
     }
 
+    public TestBindingOptionsConfigBuilder<T> classifier(
+        String classifier)
+    {
+        this.classifier = classifier;
+        return this;
+    }
+
     public TestBindingOptionsConfigBuilder<T> envelope(
         String name,
         String value)
@@ -291,7 +299,7 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
             values.forEach(v -> refs.addAll(v.refs()));
         }
         return mapper.apply(new TestBindingOptionsConfig(value, values, mode, schema, authorization, catalogs, events,
-                metrics, catalogAssertions, vaultAssertion, store, storeAssertions, embedding, envelope, envelopeAssertions,
-                pipelineAssertion, originType, refs));
+                metrics, catalogAssertions, vaultAssertion, store, storeAssertions, embedding, classifier, envelope,
+                envelopeAssertions, pipelineAssertion, originType, refs));
     }
 }

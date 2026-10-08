@@ -103,6 +103,16 @@ public class EngineIT
     }
 
     @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/handshake/client",
+        "${app}/handshake.authorized/server"})
+    public void shouldSupplyClassifier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.metrics.yaml")
     @Specification({
         "${net}/handshake/client",
