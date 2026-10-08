@@ -86,6 +86,7 @@
     "io.aklivity.zilla:metrics-mcp",
     "io.aklivity.zilla:metrics-llm",
     "io.aklivity.zilla:model-avro",
+    "io.aklivity.zilla:model-classify",
     "io.aklivity.zilla:model-core",
     "io.aklivity.zilla:model-json",
     "io.aklivity.zilla:model-protobuf",

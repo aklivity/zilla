@@ -33,6 +33,8 @@
     <module>embedding-glove.conf</module>
     <module>model-vector.spec</module>
     <module>model-vector.conf</module>
+    <module>model-classify.spec</module>
+    <module>model-classify.conf</module>
 
     <module>binding-amqp</module>
     <module>binding-llm</module>
@@ -42,6 +44,7 @@
     <module>metrics-llm</module>
     <module>embedding-glove</module>
     <module>model-vector</module>
+    <module>model-classify</module>
 
     <module>command-log</module>
     <module>command-dump</module>
@@ -74,6 +77,16 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>model-vector.conf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>model-classify</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>model-classify.conf</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
