@@ -40,7 +40,7 @@ public interface Deanonymizer
      * @param data        the buffer holding the fragment
      * @param index       the offset of the fragment
      * @param length      the length of the fragment
-     * @param complete    {@code true} if these are the last bytes of the value
+     * @param completion  whether these are the last bytes of the value
      * @param next        receives the restored value
      * @param result      the holder this call updates and returns
      * @return {@code result}, updated with the outcome
@@ -52,9 +52,20 @@ public interface Deanonymizer
         DirectBuffer data,
         int index,
         int length,
-        boolean complete,
+        Completion completion,
         ValueConsumerEx next,
         Result result);
+
+    /**
+     * Whether a {@link #deanonymize} call carries the last bytes of the value or leaves it open
+     * for further fragments. {@code COMPLETE} describes the value, not the call: it stays true
+     * across however many partial calls it takes to drain the last bytes, so repeating it is safe.
+     */
+    enum Completion
+    {
+        COMPLETE,
+        INCOMPLETE
+    }
 
     /**
      * The outcome of a single {@link #deanonymize} call.
