@@ -31,12 +31,12 @@ import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonWriter;
 
-import io.aklivity.zilla.config.embedding.openai.OpenAiOptionsConfig;
+import io.aklivity.zilla.config.embedding.openai.OpenaiOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.embedding.EmbeddingHandler;
 
-final class OpenAiEmbeddingHandler implements EmbeddingHandler, AutoCloseable
+final class OpenaiEmbeddingHandler implements EmbeddingHandler, AutoCloseable
 {
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(30);
     private static final int SIGNAL_ID = 1;
@@ -55,11 +55,11 @@ final class OpenAiEmbeddingHandler implements EmbeddingHandler, AutoCloseable
     private final String model;
     private final String apiKey;
 
-    OpenAiEmbeddingHandler(
+    OpenaiEmbeddingHandler(
         EngineContext context,
-        OpenAiConfiguration config,
+        OpenaiConfiguration config,
         HttpClient client,
-        OpenAiOptionsConfig options)
+        OpenaiOptionsConfig options)
     {
         this.signaler = context.signaler();
         this.client = client;
@@ -155,7 +155,7 @@ final class OpenAiEmbeddingHandler implements EmbeddingHandler, AutoCloseable
         }
         else if (response.statusCode() != 200)
         {
-            batch.fail(new OpenAiEmbeddingException(response.statusCode(), response.body()));
+            batch.fail(new OpenaiEmbeddingException(response.statusCode(), response.body()));
         }
         else
         {

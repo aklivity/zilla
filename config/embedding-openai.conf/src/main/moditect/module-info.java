@@ -21,5 +21,5 @@ module io.aklivity.zilla.config.embedding.openai
     exports io.aklivity.zilla.config.embedding.openai;
 
     provides io.aklivity.zilla.config.engine.EmbeddingInfo
-        with io.aklivity.zilla.config.embedding.openai.internal.OpenAiEmbeddingInfo;
+        with io.aklivity.zilla.config.embedding.openai.internal.OpenaiEmbeddingInfo;
 }

@@ -18,22 +18,22 @@ import java.net.http.HttpClient;
 
 import org.agrona.collections.Long2ObjectHashMap;
 
-import io.aklivity.zilla.config.embedding.openai.OpenAiOptionsConfig;
+import io.aklivity.zilla.config.embedding.openai.OpenaiOptionsConfig;
 import io.aklivity.zilla.config.engine.EmbeddingConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.embedding.EmbeddingContext;
 import io.aklivity.zilla.runtime.engine.embedding.EmbeddingHandler;
 
-final class OpenAiEmbeddingContext implements EmbeddingContext
+final class OpenaiEmbeddingContext implements EmbeddingContext
 {
     private final EngineContext context;
-    private final OpenAiConfiguration config;
+    private final OpenaiConfiguration config;
     private final HttpClient client;
-    private final Long2ObjectHashMap<OpenAiEmbeddingHandler> handlersById;
+    private final Long2ObjectHashMap<OpenaiEmbeddingHandler> handlersById;
 
-    OpenAiEmbeddingContext(
+    OpenaiEmbeddingContext(
         EngineContext context,
-        OpenAiConfiguration config)
+        OpenaiConfiguration config)
     {
         this.context = context;
         this.config = config;
@@ -45,8 +45,8 @@ final class OpenAiEmbeddingContext implements EmbeddingContext
     public EmbeddingHandler attach(
         EmbeddingConfig embedding)
     {
-        OpenAiOptionsConfig options = (OpenAiOptionsConfig) embedding.options;
-        OpenAiEmbeddingHandler handler = new OpenAiEmbeddingHandler(context, config, client, options);
+        OpenaiOptionsConfig options = (OpenaiOptionsConfig) embedding.options;
+        OpenaiEmbeddingHandler handler = new OpenaiEmbeddingHandler(context, config, client, options);
         handlersById.put(embedding.id, handler);
         return handler;
     }
@@ -55,7 +55,7 @@ final class OpenAiEmbeddingContext implements EmbeddingContext
     public void detach(
         EmbeddingConfig embedding)
     {
-        OpenAiEmbeddingHandler handler = handlersById.remove(embedding.id);
+        OpenaiEmbeddingHandler handler = handlersById.remove(embedding.id);
         if (handler != null)
         {
             handler.close();

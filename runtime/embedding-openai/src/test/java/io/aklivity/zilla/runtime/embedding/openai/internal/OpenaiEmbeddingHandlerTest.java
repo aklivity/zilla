@@ -57,14 +57,14 @@ import org.junit.Test;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
-import io.aklivity.zilla.config.embedding.openai.OpenAiCredentialsConfig;
-import io.aklivity.zilla.config.embedding.openai.OpenAiOptionsConfig;
+import io.aklivity.zilla.config.embedding.openai.OpenaiCredentialsConfig;
+import io.aklivity.zilla.config.embedding.openai.OpenaiOptionsConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.embedding.EmbeddingHandler.CompletionCallback;
 
-public class OpenAiEmbeddingHandlerTest
+public class OpenaiEmbeddingHandlerTest
 {
     private HttpServer server;
     private String endpoint;
@@ -111,7 +111,7 @@ public class OpenAiEmbeddingHandlerTest
         responseStatus = 200;
         responseBody = "{\"data\":[{\"embedding\":[0.1,0.2,0.3],\"index\":0}],\"model\":\"text-embedding-3-small\"}";
 
-        OpenAiEmbeddingHandler handler = new OpenAiEmbeddingHandler(context, config(endpoint), client, options());
+        OpenaiEmbeddingHandler handler = new OpenaiEmbeddingHandler(context, config(endpoint), client, options());
 
         Result result = embed(handler, "hello world");
 
@@ -129,7 +129,7 @@ public class OpenAiEmbeddingHandlerTest
             "{\"embedding\":[0.1,0.2,0.3],\"index\":0}" +
             "],\"model\":\"text-embedding-3-small\"}";
 
-        OpenAiEmbeddingHandler handler = new OpenAiEmbeddingHandler(context, config(endpoint), client, options());
+        OpenaiEmbeddingHandler handler = new OpenaiEmbeddingHandler(context, config(endpoint), client, options());
 
         Results results = embedBatch(handler, List.of("first", "second"));
 
@@ -145,12 +145,12 @@ public class OpenAiEmbeddingHandlerTest
         responseStatus = 401;
         responseBody = "{\"error\":{\"message\":\"Incorrect API key provided\",\"type\":\"invalid_request_error\"}}";
 
-        OpenAiEmbeddingHandler handler = new OpenAiEmbeddingHandler(context, config(endpoint), client, options());
+        OpenaiEmbeddingHandler handler = new OpenaiEmbeddingHandler(context, config(endpoint), client, options());
 
         Result result = embed(handler, "hello world");
 
         assertThat(result.vector, nullValue());
-        assertThat(result.failure, instanceOf(OpenAiEmbeddingException.class));
+        assertThat(result.failure, instanceOf(OpenaiEmbeddingException.class));
     }
 
     @Test
@@ -159,12 +159,12 @@ public class OpenAiEmbeddingHandlerTest
         responseStatus = 429;
         responseBody = "{\"error\":{\"message\":\"Rate limit exceeded\",\"type\":\"rate_limit_error\"}}";
 
-        OpenAiEmbeddingHandler handler = new OpenAiEmbeddingHandler(context, config(endpoint), client, options());
+        OpenaiEmbeddingHandler handler = new OpenaiEmbeddingHandler(context, config(endpoint), client, options());
 
         Result result = embed(handler, "hello world");
 
         assertThat(result.vector, nullValue());
-        assertThat(result.failure, instanceOf(OpenAiEmbeddingException.class));
+        assertThat(result.failure, instanceOf(OpenaiEmbeddingException.class));
     }
 
     @Test
@@ -176,7 +176,7 @@ public class OpenAiEmbeddingHandlerTest
             unboundPort = unbound.getLocalPort();
         }
 
-        OpenAiEmbeddingHandler handler = new OpenAiEmbeddingHandler(
+        OpenaiEmbeddingHandler handler = new OpenaiEmbeddingHandler(
             context,
             config("http://localhost:" + unboundPort + "/v1/embeddings"),
             client,
@@ -194,7 +194,7 @@ public class OpenAiEmbeddingHandlerTest
         responseStatus = 200;
         responseBody = "not valid json";
 
-        OpenAiEmbeddingHandler handler = new OpenAiEmbeddingHandler(context, config(endpoint), client, options());
+        OpenaiEmbeddingHandler handler = new OpenaiEmbeddingHandler(context, config(endpoint), client, options());
 
         Result result = embed(handler, "hello world");
 
@@ -216,7 +216,7 @@ public class OpenAiEmbeddingHandlerTest
             texts.add(String.format("%05d", i));
         }
 
-        OpenAiEmbeddingHandler handler = new OpenAiEmbeddingHandler(context, config(endpoint), client, options());
+        OpenaiEmbeddingHandler handler = new OpenaiEmbeddingHandler(context, config(endpoint), client, options());
 
         Results results = embedBatch(handler, texts);
 
@@ -237,7 +237,7 @@ public class OpenAiEmbeddingHandlerTest
         // stays far under the 2048-element cap -- this must split on token budget alone.
         List<String> texts = List.of("a".repeat(700_000), "b".repeat(700_004));
 
-        OpenAiEmbeddingHandler handler = new OpenAiEmbeddingHandler(context, config(endpoint), client, options());
+        OpenaiEmbeddingHandler handler = new OpenaiEmbeddingHandler(context, config(endpoint), client, options());
 
         Results results = embedBatch(handler, texts);
 
@@ -247,26 +247,26 @@ public class OpenAiEmbeddingHandlerTest
         assertThat(results.vectors[1], equalTo(new float[] { 700_004f }));
     }
 
-    private static OpenAiOptionsConfig options()
+    private static OpenaiOptionsConfig options()
     {
-        return OpenAiOptionsConfig.builder()
+        return OpenaiOptionsConfig.builder()
             .model("text-embedding-3-small")
-            .credentials(OpenAiCredentialsConfig.builder()
+            .credentials(OpenaiCredentialsConfig.builder()
                 .apiKey("test-key")
                 .build())
             .build();
     }
 
-    private static OpenAiConfiguration config(
+    private static OpenaiConfiguration config(
         String endpoint)
     {
         Properties props = new Properties();
-        props.setProperty(OpenAiConfiguration.OPENAI_ENDPOINT.name(), endpoint);
-        return new OpenAiConfiguration(new Configuration(props));
+        props.setProperty(OpenaiConfiguration.OPENAI_ENDPOINT.name(), endpoint);
+        return new OpenaiConfiguration(new Configuration(props));
     }
 
     private Result embed(
-        OpenAiEmbeddingHandler handler,
+        OpenaiEmbeddingHandler handler,
         String text) throws InterruptedException
     {
         Results results = embedBatch(handler, List.of(text));
@@ -274,7 +274,7 @@ public class OpenAiEmbeddingHandlerTest
     }
 
     private Results embedBatch(
-        OpenAiEmbeddingHandler handler,
+        OpenaiEmbeddingHandler handler,
         List<String> texts) throws InterruptedException
     {
         AtomicReference<float[][]> vectors = new AtomicReference<>();

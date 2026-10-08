@@ -14,29 +14,36 @@
  */
 package io.aklivity.zilla.runtime.embedding.openai.internal;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
-
-import org.junit.Test;
-
 import io.aklivity.zilla.runtime.engine.Configuration;
 
-public class OpenAiEmbeddingFactorySpiTest
+public class OpenaiConfiguration extends Configuration
 {
-    @Test
-    public void shouldResolveType()
-    {
-        OpenAiEmbeddingFactorySpi factory = new OpenAiEmbeddingFactorySpi();
+    public static final PropertyDef<String> OPENAI_ENDPOINT;
 
-        assertThat(factory.type(), equalTo("openai"));
+    private static final ConfigurationDef OPENAI_CONFIG;
+
+    static
+    {
+        final ConfigurationDef config = new ConfigurationDef("zilla.embedding.openai");
+
+        OPENAI_ENDPOINT = config.property("endpoint", "https://api.openai.com/v1/embeddings");
+
+        OPENAI_CONFIG = config;
     }
 
-    @Test
-    public void shouldCreateEmbedding()
+    public OpenaiConfiguration()
     {
-        OpenAiEmbeddingFactorySpi factory = new OpenAiEmbeddingFactorySpi();
+        super(OPENAI_CONFIG, new Configuration());
+    }
 
-        assertThat(factory.create(new Configuration()), instanceOf(OpenAiEmbedding.class));
+    public OpenaiConfiguration(
+        Configuration config)
+    {
+        super(OPENAI_CONFIG, config);
+    }
+
+    public String endpoint()
+    {
+        return OPENAI_ENDPOINT.get(this);
     }
 }

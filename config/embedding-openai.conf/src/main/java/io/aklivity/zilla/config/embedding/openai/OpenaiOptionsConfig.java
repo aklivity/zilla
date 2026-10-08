@@ -20,25 +20,25 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public final class OpenAiOptionsConfig extends OptionsConfig
+public final class OpenaiOptionsConfig extends OptionsConfig
 {
     public final String model;
-    public final OpenAiCredentialsConfig credentials;
+    public final OpenaiCredentialsConfig credentials;
 
-    public static OpenAiOptionsConfigBuilder<OpenAiOptionsConfig> builder()
+    public static OpenaiOptionsConfigBuilder<OpenaiOptionsConfig> builder()
     {
-        return new OpenAiOptionsConfigBuilder<>(OpenAiOptionsConfig.class::cast);
+        return new OpenaiOptionsConfigBuilder<>(OpenaiOptionsConfig.class::cast);
     }
 
-    public static <T> OpenAiOptionsConfigBuilder<T> builder(
+    public static <T> OpenaiOptionsConfigBuilder<T> builder(
         Function<OptionsConfig, T> mapper)
     {
-        return new OpenAiOptionsConfigBuilder<>(mapper);
+        return new OpenaiOptionsConfigBuilder<>(mapper);
     }
 
-    OpenAiOptionsConfig(
+    OpenaiOptionsConfig(
         String model,
-        OpenAiCredentialsConfig credentials)
+        OpenaiCredentialsConfig credentials)
     {
         super(null, null);
         this.model = requireNonNull(model);

@@ -14,14 +14,21 @@
  */
 package io.aklivity.zilla.runtime.embedding.openai.internal;
 
-final class OpenAiEmbeddingException extends RuntimeException
-{
-    private static final long serialVersionUID = 1L;
+import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.embedding.EmbeddingFactorySpi;
 
-    OpenAiEmbeddingException(
-        int statusCode,
-        String responseBody)
+public final class OpenaiEmbeddingFactorySpi implements EmbeddingFactorySpi
+{
+    @Override
+    public String type()
     {
-        super(String.format("OpenAI embeddings request failed with status %d: %s", statusCode, responseBody));
+        return OpenaiEmbedding.NAME;
+    }
+
+    @Override
+    public OpenaiEmbedding create(
+        Configuration config)
+    {
+        return new OpenaiEmbedding(config);
     }
 }

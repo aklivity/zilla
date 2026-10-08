@@ -19,15 +19,15 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.config.embedding.openai.OpenAiCredentialsConfig;
+import io.aklivity.zilla.config.embedding.openai.OpenaiCredentialsConfig;
 
-public final class OpenAiCredentialsConfigAdapter implements JsonbAdapter<OpenAiCredentialsConfig, JsonObject>
+public final class OpenaiCredentialsConfigAdapter implements JsonbAdapter<OpenaiCredentialsConfig, JsonObject>
 {
     private static final String API_KEY_NAME = "api-key";
 
     @Override
     public JsonObject adaptToJson(
-        OpenAiCredentialsConfig credentials)
+        OpenaiCredentialsConfig credentials)
     {
         JsonObjectBuilder object = Json.createObjectBuilder();
         object.add(API_KEY_NAME, credentials.apiKey);
@@ -35,10 +35,10 @@ public final class OpenAiCredentialsConfigAdapter implements JsonbAdapter<OpenAi
     }
 
     @Override
-    public OpenAiCredentialsConfig adaptFromJson(
+    public OpenaiCredentialsConfig adaptFromJson(
         JsonObject object)
     {
-        return OpenAiCredentialsConfig.builder()
+        return OpenaiCredentialsConfig.builder()
             .apiKey(object.getString(API_KEY_NAME))
             .build();
     }

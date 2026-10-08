@@ -28,7 +28,7 @@ import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-public class OpenAiEmbeddingIT
+public class OpenaiEmbeddingIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("embed", "io/aklivity/zilla/specs/embedding/openai/embed");
@@ -39,7 +39,7 @@ public class OpenAiEmbeddingIT
         .directory("target/zilla-itests")
         .countersBufferCapacity(4096)
         .configurationRoot("io/aklivity/zilla/specs/embedding/openai/config")
-        .configure(OpenAiConfiguration.OPENAI_ENDPOINT, "http://localhost:8000/v1/embeddings")
+        .configure(OpenaiConfiguration.OPENAI_ENDPOINT, "http://localhost:8000/v1/embeddings")
         .clean();
 
     @Rule

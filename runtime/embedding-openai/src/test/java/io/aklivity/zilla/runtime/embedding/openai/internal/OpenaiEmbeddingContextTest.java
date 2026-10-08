@@ -20,24 +20,24 @@ import static org.mockito.Mockito.mock;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.config.embedding.openai.OpenAiCredentialsConfig;
-import io.aklivity.zilla.config.embedding.openai.OpenAiOptionsConfig;
+import io.aklivity.zilla.config.embedding.openai.OpenaiCredentialsConfig;
+import io.aklivity.zilla.config.embedding.openai.OpenaiOptionsConfig;
 import io.aklivity.zilla.config.engine.EmbeddingConfig;
 import io.aklivity.zilla.config.engine.GenericEmbeddingConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.embedding.EmbeddingHandler;
 
-public class OpenAiEmbeddingContextTest
+public class OpenaiEmbeddingContextTest
 {
     @Test
     public void shouldAttachAndDetachHandler()
     {
-        OpenAiEmbeddingContext context = new OpenAiEmbeddingContext(mock(EngineContext.class), new OpenAiConfiguration());
+        OpenaiEmbeddingContext context = new OpenaiEmbeddingContext(mock(EngineContext.class), new OpenaiConfiguration());
         EmbeddingConfig embedding = embeddingConfig();
 
         EmbeddingHandler handler = context.attach(embedding);
 
-        assertThat(handler, instanceOf(OpenAiEmbeddingHandler.class));
+        assertThat(handler, instanceOf(OpenaiEmbeddingHandler.class));
 
         context.detach(embedding);
     }
@@ -45,19 +45,19 @@ public class OpenAiEmbeddingContextTest
     @Test
     public void shouldTolerateDetachWithoutAttach()
     {
-        OpenAiEmbeddingContext context = new OpenAiEmbeddingContext(mock(EngineContext.class), new OpenAiConfiguration());
+        OpenaiEmbeddingContext context = new OpenaiEmbeddingContext(mock(EngineContext.class), new OpenaiConfiguration());
         EmbeddingConfig embedding = embeddingConfig();
 
         context.detach(embedding);
 
-        assertThat(context.attach(embedding), instanceOf(OpenAiEmbeddingHandler.class));
+        assertThat(context.attach(embedding), instanceOf(OpenaiEmbeddingHandler.class));
     }
 
     private static EmbeddingConfig embeddingConfig()
     {
-        OpenAiOptionsConfig options = OpenAiOptionsConfig.builder()
+        OpenaiOptionsConfig options = OpenaiOptionsConfig.builder()
             .model("text-embedding-3-small")
-            .credentials(OpenAiCredentialsConfig.builder()
+            .credentials(OpenaiCredentialsConfig.builder()
                 .apiKey("test-key")
                 .build())
             .build();

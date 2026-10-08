@@ -17,28 +17,26 @@ package io.aklivity.zilla.runtime.embedding.openai.internal;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.mockito.Mockito.mock;
 
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.EngineContext;
 
-public class OpenAiEmbeddingTest
+public class OpenaiEmbeddingFactorySpiTest
 {
     @Test
-    public void shouldResolveName()
+    public void shouldResolveType()
     {
-        OpenAiEmbedding embedding = new OpenAiEmbedding(new Configuration());
+        OpenaiEmbeddingFactorySpi factory = new OpenaiEmbeddingFactorySpi();
 
-        assertThat(embedding.name(), equalTo("openai"));
+        assertThat(factory.type(), equalTo("openai"));
     }
 
     @Test
-    public void shouldSupplyContext()
+    public void shouldCreateEmbedding()
     {
-        OpenAiEmbedding embedding = new OpenAiEmbedding(new Configuration());
+        OpenaiEmbeddingFactorySpi factory = new OpenaiEmbeddingFactorySpi();
 
-        assertThat(embedding.supply(mock(EngineContext.class)), instanceOf(OpenAiEmbeddingContext.class));
+        assertThat(factory.create(new Configuration()), instanceOf(OpenaiEmbedding.class));
     }
 }

@@ -22,7 +22,7 @@ import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.EmbeddingInfo;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public final class OpenAiEmbeddingInfo implements EmbeddingInfo
+public final class OpenaiEmbeddingInfo implements EmbeddingInfo
 {
     public static final String TYPE = "openai";
 
@@ -41,6 +41,6 @@ public final class OpenAiEmbeddingInfo implements EmbeddingInfo
     @Override
     public ConfigAdapter<OptionsConfig, JsonObject> options()
     {
-        return new OpenAiOptionsConfigAdapter();
+        return new OpenaiOptionsConfigAdapter();
     }
 }

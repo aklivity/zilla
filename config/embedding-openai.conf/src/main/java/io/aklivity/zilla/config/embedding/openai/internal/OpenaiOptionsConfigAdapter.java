@@ -18,23 +18,23 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 
-import io.aklivity.zilla.config.embedding.openai.OpenAiOptionsConfig;
-import io.aklivity.zilla.config.embedding.openai.OpenAiOptionsConfigBuilder;
+import io.aklivity.zilla.config.embedding.openai.OpenaiOptionsConfig;
+import io.aklivity.zilla.config.embedding.openai.OpenaiOptionsConfigBuilder;
 import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public class OpenAiOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
+public class OpenaiOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String MODEL_NAME = "model";
     private static final String CREDENTIALS_NAME = "credentials";
 
-    private final OpenAiCredentialsConfigAdapter credentials = new OpenAiCredentialsConfigAdapter();
+    private final OpenaiCredentialsConfigAdapter credentials = new OpenaiCredentialsConfigAdapter();
 
     @Override
     public JsonObject adaptToJson(
         OptionsConfig options)
     {
-        OpenAiOptionsConfig config = (OpenAiOptionsConfig) options;
+        OpenaiOptionsConfig config = (OpenaiOptionsConfig) options;
         JsonObjectBuilder object = Json.createObjectBuilder();
 
         object.add(MODEL_NAME, config.model);
@@ -47,7 +47,7 @@ public class OpenAiOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, Jso
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        OpenAiOptionsConfigBuilder<OpenAiOptionsConfig> options = OpenAiOptionsConfig.builder();
+        OpenaiOptionsConfigBuilder<OpenaiOptionsConfig> options = OpenaiOptionsConfig.builder();
 
         options.model(object.getString(MODEL_NAME));
         options.credentials(credentials.adaptFromJson(object.getJsonObject(CREDENTIALS_NAME)));

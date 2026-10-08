@@ -17,36 +17,45 @@ package io.aklivity.zilla.config.embedding.openai;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public final class OpenAiCredentialsConfigBuilder<T> extends ConfigBuilder<T, OpenAiCredentialsConfigBuilder<T>>
+public final class OpenaiOptionsConfigBuilder<T> extends ConfigBuilder<T, OpenaiOptionsConfigBuilder<T>>
 {
-    private final Function<OpenAiCredentialsConfig, T> mapper;
+    private final Function<OptionsConfig, T> mapper;
 
-    private String apiKey;
+    private String model;
+    private OpenaiCredentialsConfig credentials;
 
-    OpenAiCredentialsConfigBuilder(
-        Function<OpenAiCredentialsConfig, T> mapper)
+    OpenaiOptionsConfigBuilder(
+        Function<OptionsConfig, T> mapper)
     {
         this.mapper = mapper;
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    protected Class<OpenAiCredentialsConfigBuilder<T>> thisType()
+    protected Class<OpenaiOptionsConfigBuilder<T>> thisType()
     {
-        return (Class<OpenAiCredentialsConfigBuilder<T>>) getClass();
+        return (Class<OpenaiOptionsConfigBuilder<T>>) getClass();
     }
 
-    public OpenAiCredentialsConfigBuilder<T> apiKey(
-        String apiKey)
+    public OpenaiOptionsConfigBuilder<T> model(
+        String model)
     {
-        this.apiKey = apiKey;
+        this.model = model;
+        return this;
+    }
+
+    public OpenaiOptionsConfigBuilder<T> credentials(
+        OpenaiCredentialsConfig credentials)
+    {
+        this.credentials = credentials;
         return this;
     }
 
     @Override
     public T build()
     {
-        return mapper.apply(new OpenAiCredentialsConfig(apiKey));
+        return mapper.apply(new OpenaiOptionsConfig(model, credentials));
     }
 }

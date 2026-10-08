@@ -19,22 +19,22 @@ import static java.util.function.Function.identity;
 
 import java.util.function.Function;
 
-public final class OpenAiCredentialsConfig
+public final class OpenaiCredentialsConfig
 {
     public final String apiKey;
 
-    public static OpenAiCredentialsConfigBuilder<OpenAiCredentialsConfig> builder()
+    public static OpenaiCredentialsConfigBuilder<OpenaiCredentialsConfig> builder()
     {
-        return new OpenAiCredentialsConfigBuilder<>(identity());
+        return new OpenaiCredentialsConfigBuilder<>(identity());
     }
 
-    public static <T> OpenAiCredentialsConfigBuilder<T> builder(
-        Function<OpenAiCredentialsConfig, T> mapper)
+    public static <T> OpenaiCredentialsConfigBuilder<T> builder(
+        Function<OpenaiCredentialsConfig, T> mapper)
     {
-        return new OpenAiCredentialsConfigBuilder<>(mapper);
+        return new OpenaiCredentialsConfigBuilder<>(mapper);
     }
 
-    OpenAiCredentialsConfig(
+    OpenaiCredentialsConfig(
         String apiKey)
     {
         this.apiKey = requireNonNull(apiKey);

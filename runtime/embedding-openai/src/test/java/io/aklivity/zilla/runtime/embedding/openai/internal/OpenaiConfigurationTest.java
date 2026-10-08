@@ -23,12 +23,12 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 
-public class OpenAiConfigurationTest
+public class OpenaiConfigurationTest
 {
     @Test
     public void shouldVerifyConstants() throws Exception
     {
-        assertThat(OpenAiConfiguration.OPENAI_ENDPOINT.name(), equalTo("zilla.embedding.openai.endpoint"));
+        assertThat(OpenaiConfiguration.OPENAI_ENDPOINT.name(), equalTo("zilla.embedding.openai.endpoint"));
     }
 
     @Test
@@ -36,7 +36,7 @@ public class OpenAiConfigurationTest
     {
         Properties props = new Properties();
         Configuration base = new Configuration(props);
-        OpenAiConfiguration config = new OpenAiConfiguration(base);
+        OpenaiConfiguration config = new OpenaiConfiguration(base);
 
         assertThat(config.endpoint(), equalTo("https://api.openai.com/v1/embeddings"));
     }
@@ -47,7 +47,7 @@ public class OpenAiConfigurationTest
         Properties props = new Properties();
         props.setProperty("zilla.embedding.openai.endpoint", "http://localhost:8000/v1/embeddings");
         Configuration base = new Configuration(props);
-        OpenAiConfiguration config = new OpenAiConfiguration(base);
+        OpenaiConfiguration config = new OpenaiConfiguration(base);
 
         assertThat(config.endpoint(), equalTo("http://localhost:8000/v1/embeddings"));
     }

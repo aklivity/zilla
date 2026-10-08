@@ -21,5 +21,5 @@ module io.aklivity.zilla.runtime.embedding.openai
     requires io.aklivity.zilla.config.embedding.openai;
 
     provides io.aklivity.zilla.runtime.engine.embedding.EmbeddingFactorySpi
-        with io.aklivity.zilla.runtime.embedding.openai.internal.OpenAiEmbeddingFactorySpi;
+        with io.aklivity.zilla.runtime.embedding.openai.internal.OpenaiEmbeddingFactorySpi;
 }

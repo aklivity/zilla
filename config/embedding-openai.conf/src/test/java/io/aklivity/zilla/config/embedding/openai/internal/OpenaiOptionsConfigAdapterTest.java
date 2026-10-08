@@ -26,11 +26,11 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.config.embedding.openai.OpenAiCredentialsConfig;
-import io.aklivity.zilla.config.embedding.openai.OpenAiOptionsConfig;
+import io.aklivity.zilla.config.embedding.openai.OpenaiCredentialsConfig;
+import io.aklivity.zilla.config.embedding.openai.OpenaiOptionsConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
-public class OpenAiOptionsConfigAdapterTest
+public class OpenaiOptionsConfigAdapterTest
 {
     private Jsonb jsonb;
 
@@ -38,7 +38,7 @@ public class OpenAiOptionsConfigAdapterTest
     public void initJson()
     {
         JsonbConfig config = new JsonbConfig()
-                .withAdapters(new OpenAiOptionsConfigAdapter());
+                .withAdapters(new OpenaiOptionsConfigAdapter());
         jsonb = JsonbBuilder.newBuilder()
                 .withProvider(YamlJson.provider())
                 .withConfig(config)
@@ -54,7 +54,7 @@ public class OpenAiOptionsConfigAdapterTest
               api-key: test-key
             """;
 
-        OpenAiOptionsConfig options = jsonb.fromJson(yaml, OpenAiOptionsConfig.class);
+        OpenaiOptionsConfig options = jsonb.fromJson(yaml, OpenaiOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         assertThat(options.model, equalTo("text-embedding-3-small"));
@@ -64,9 +64,9 @@ public class OpenAiOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptions()
     {
-        OpenAiOptionsConfig options = OpenAiOptionsConfig.builder()
+        OpenaiOptionsConfig options = OpenaiOptionsConfig.builder()
             .model("text-embedding-3-small")
-            .credentials(OpenAiCredentialsConfig.builder()
+            .credentials(OpenaiCredentialsConfig.builder()
                 .apiKey("test-key")
                 .build())
             .build();

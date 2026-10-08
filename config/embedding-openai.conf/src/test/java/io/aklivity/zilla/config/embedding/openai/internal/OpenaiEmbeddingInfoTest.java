@@ -22,9 +22,9 @@ import static org.hamcrest.Matchers.nullValue;
 
 import org.junit.Test;
 
-public class OpenAiEmbeddingInfoTest
+public class OpenaiEmbeddingInfoTest
 {
-    private final OpenAiEmbeddingInfo info = new OpenAiEmbeddingInfo();
+    private final OpenaiEmbeddingInfo info = new OpenaiEmbeddingInfo();
 
     @Test
     public void shouldResolveType()
@@ -41,6 +41,6 @@ public class OpenAiEmbeddingInfoTest
     @Test
     public void shouldResolveOptionsAdapter()
     {
-        assertThat(info.options(), instanceOf(OpenAiOptionsConfigAdapter.class));
+        assertThat(info.options(), instanceOf(OpenaiOptionsConfigAdapter.class));
     }
 }

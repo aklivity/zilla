@@ -15,35 +15,32 @@
 package io.aklivity.zilla.runtime.embedding.openai.internal;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.embedding.Embedding;
+import io.aklivity.zilla.runtime.engine.embedding.EmbeddingContext;
 
-public class OpenAiConfiguration extends Configuration
+public final class OpenaiEmbedding implements Embedding
 {
-    public static final PropertyDef<String> OPENAI_ENDPOINT;
+    public static final String NAME = "openai";
 
-    private static final ConfigurationDef OPENAI_CONFIG;
+    private final OpenaiConfiguration config;
 
-    static
-    {
-        final ConfigurationDef config = new ConfigurationDef("zilla.embedding.openai");
-
-        OPENAI_ENDPOINT = config.property("endpoint", "https://api.openai.com/v1/embeddings");
-
-        OPENAI_CONFIG = config;
-    }
-
-    public OpenAiConfiguration()
-    {
-        super(OPENAI_CONFIG, new Configuration());
-    }
-
-    public OpenAiConfiguration(
+    public OpenaiEmbedding(
         Configuration config)
     {
-        super(OPENAI_CONFIG, config);
+        this.config = new OpenaiConfiguration(config);
     }
 
-    public String endpoint()
+    @Override
+    public String name()
     {
-        return OPENAI_ENDPOINT.get(this);
+        return NAME;
+    }
+
+    @Override
+    public EmbeddingContext supply(
+        EngineContext context)
+    {
+        return new OpenaiEmbeddingContext(context, config);
     }
 }
