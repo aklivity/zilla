@@ -51,6 +51,7 @@
     "io.aklivity.zilla:catalog-karapace",
     "io.aklivity.zilla:catalog-schema-registry",
     "io.aklivity.zilla:classifier-patterns",
+    "io.aklivity.zilla:classifier-presidio",
     "io.aklivity.zilla:classifier-semantic",
     "io.aklivity.zilla:common-agrona",
     "io.aklivity.zilla:common-asyncapi",
