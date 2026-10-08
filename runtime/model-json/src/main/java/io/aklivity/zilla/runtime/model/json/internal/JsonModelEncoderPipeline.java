@@ -72,7 +72,10 @@ final class JsonModelEncoderPipeline implements ModelPipeline
         this.pipelines = new Int2ObjectCache<>(1, 16, p -> {});
         this.result = new ModelPipelineResult();
         JsonParserEx parser = JsonEx.createParser();
-        this.deterministic = fieldTransform == null && !handler.extended() && parser.deterministic() && generator.deterministic();
+        this.deterministic = transform.deterministic() &&
+            !handler.extended() &&
+            parser.deterministic() &&
+            generator.deterministic();
     }
 
     @Override

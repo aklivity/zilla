@@ -265,20 +265,35 @@ public class JsonModelDecoderPipelineTest
     }
 
     @Test
-    public void shouldNotReportIdentityNorDeterminismWhenFieldTransformWired()
+    public void shouldDeriveDeterminismFromDeterministicFieldTransformWired()
     {
         JsonModelHandlerImpl handler = newHandler();
         ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(new HashMap<>()), ModelCache.NONE);
 
         assertFalse(pipeline.identity());
-        assertFalse(pipeline.deterministic());
+        assertTrue(pipeline.deterministic());
 
         transformValue(pipeline);
         assertFalse(pipeline.identity());
-        assertFalse(pipeline.deterministic());
+        assertTrue(pipeline.deterministic());
 
         pipeline.reset();
         assertFalse(pipeline.identity());
+        assertTrue(pipeline.deterministic());
+    }
+
+    @Test
+    public void shouldNotReportDeterminismWhenNondeterministicFieldTransformWired()
+    {
+        JsonModelHandlerImpl handler = newHandler();
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(new HashMap<>(), false), ModelCache.NONE);
+
+        assertFalse(pipeline.deterministic());
+
+        transformValue(pipeline);
+        assertFalse(pipeline.deterministic());
+
+        pipeline.reset();
         assertFalse(pipeline.deterministic());
     }
 
@@ -589,8 +604,21 @@ public class JsonModelDecoderPipelineTest
     private static ModelTransform observer(
         Map<String, String> extracted)
     {
+        return observer(extracted, true);
+    }
+
+    private static ModelTransform observer(
+        Map<String, String> extracted,
+        boolean deterministic)
+    {
         return new ModelTransform()
         {
+            @Override
+            public boolean deterministic()
+            {
+                return deterministic;
+            }
+
             @Override
             public ModelStatus transform(
                 ModelController control,

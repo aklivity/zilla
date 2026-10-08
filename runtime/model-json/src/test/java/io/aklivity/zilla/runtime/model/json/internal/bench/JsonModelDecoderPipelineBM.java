@@ -159,6 +159,12 @@ public class JsonModelDecoderPipelineBM
     {
         return new ModelTransform()
         {
+            @Override
+            public boolean deterministic()
+            {
+                return true;
+            }
+
             private long fields;
 
             @Override

@@ -211,7 +211,7 @@ final class AvroModelTransform implements AvroTransform
     @Override
     public boolean deterministic()
     {
-        return false;
+        return transform.deterministic();
     }
 
     // stored on the shared Control so every transform.transform(...) call this adapter drives during the

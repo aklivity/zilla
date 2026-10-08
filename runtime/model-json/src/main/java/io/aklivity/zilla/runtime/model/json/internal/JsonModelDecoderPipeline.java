@@ -77,7 +77,10 @@ final class JsonModelDecoderPipeline implements ModelPipeline
         this.result = new ModelPipelineResult();
         this.cache = cache;
         JsonParserEx parser = JsonEx.createParser();
-        this.deterministic = fieldTransform == null && !handler.extended() && parser.deterministic() && generator.deterministic();
+        this.deterministic = transform.deterministic() &&
+            !handler.extended() &&
+            parser.deterministic() &&
+            generator.deterministic();
         this.identity = fieldTransform == null && handler.decodeIdentity();
     }
 

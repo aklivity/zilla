@@ -300,10 +300,11 @@ public class AvroModelDecoderPipelineTest
         ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(new HashMap<>()), ModelCache.NONE);
 
         assertTrue(pipeline.identity());
-        assertFalse(pipeline.deterministic());
+        assertTrue(pipeline.deterministic());
 
         transformValue(pipeline);
         assertTrue(pipeline.identity());
+        assertTrue(pipeline.deterministic());
     }
 
     @Test
@@ -629,6 +630,12 @@ public class AvroModelDecoderPipelineTest
     {
         return new ModelTransform()
         {
+            @Override
+            public boolean deterministic()
+            {
+                return true;
+            }
+
             @Override
             public ModelStatus transform(
                 ModelController control,

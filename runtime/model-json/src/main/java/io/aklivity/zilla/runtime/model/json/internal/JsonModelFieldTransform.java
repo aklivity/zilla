@@ -103,7 +103,7 @@ final class JsonModelFieldTransform implements JsonTransform
     @Override
     public boolean deterministic()
     {
-        return false;
+        return transform.deterministic();
     }
 
     @Override

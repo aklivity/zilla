@@ -368,7 +368,7 @@ public class AvroModelTransformTest
     }
 
     @Test
-    public void shouldNotReportIdentityWhenMediating()
+    public void shouldNotReportIdentityButDeriveDeterminismWhenMediating()
     {
         AvroModelHandlerImpl handler = newHandler(SCHEMA, null);
         ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, new Rewriting("$.id", "replaced"), ModelCache.NONE);
@@ -378,11 +378,11 @@ public class AvroModelTransformTest
             new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
 
         assertFalse(pipeline.identity());
-        assertFalse(pipeline.deterministic());
+        assertTrue(pipeline.deterministic());
     }
 
     @Test
-    public void shouldReportIdentityButNotDeterministicWhenObserving()
+    public void shouldReportIdentityAndDeterministicWhenObserving()
     {
         AvroModelHandlerImpl handler = newHandler(SCHEMA, null);
         ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, new Observing(), ModelCache.NONE);
@@ -390,6 +390,16 @@ public class AvroModelTransformTest
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
         pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
+
+        assertTrue(pipeline.identity());
+        assertTrue(pipeline.deterministic());
+    }
+
+    @Test
+    public void shouldNotReportDeterministicWhenTransformIsNondeterministic()
+    {
+        AvroModelHandlerImpl handler = newHandler(SCHEMA, null);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, new Unstable(), ModelCache.NONE);
 
         assertTrue(pipeline.identity());
         assertFalse(pipeline.deterministic());
@@ -508,6 +518,12 @@ public class AvroModelTransformTest
     // substitutes a fixed value for one path, exercising the mediating (withhold and re-emit) mode
     private static final class Rewriting implements ModelTransform
     {
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
         private final String path;
         private final Substitute substitute;
 
@@ -534,6 +550,12 @@ public class AvroModelTransformTest
 
     private static final class Declining implements ModelTransform
     {
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
         private final String[] paths;
 
         private Declining(
@@ -559,6 +581,12 @@ public class AvroModelTransformTest
     // reproduce the input byte for byte
     private static final class Echoing implements ModelTransform
     {
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
         private final Substitute substitute;
 
         private Echoing()
@@ -582,6 +610,12 @@ public class AvroModelTransformTest
     // records the field run exactly as the adapter delivers it, framing included
     private static final class Recording implements ModelTransform
     {
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
         private final List<String> events;
         private final boolean identity;
 
@@ -625,6 +659,12 @@ public class AvroModelTransformTest
 
     private static final class Rejecting implements ModelTransform
     {
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
         private final String path;
 
         private Rejecting(
@@ -656,6 +696,12 @@ public class AvroModelTransformTest
 
     private static final class Observing implements ModelTransform
     {
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
         @Override
         public ModelStatus transform(
             ModelController control,
@@ -718,6 +764,31 @@ public class AvroModelTransformTest
             this.path = source.getPath();
             this.value = view;
             return this;
+        }
+    }
+
+    private static final class Unstable implements ModelTransform
+    {
+        @Override
+        public boolean deterministic()
+        {
+            return false;
+        }
+
+        @Override
+        public boolean identity()
+        {
+            return true;
+        }
+
+        @Override
+        public ModelStatus transform(
+            ModelController control,
+            ModelSource source,
+            ModelEvent event,
+            ModelSink sink)
+        {
+            return sink.transform(control, source, event);
         }
     }
 }

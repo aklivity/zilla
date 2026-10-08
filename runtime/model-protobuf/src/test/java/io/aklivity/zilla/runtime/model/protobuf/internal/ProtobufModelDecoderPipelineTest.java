@@ -288,12 +288,13 @@ public class ProtobufModelDecoderPipelineTest
     }
 
     @Test
-    public void shouldNotReportDeterminismWhenFieldTransformWired()
+    public void shouldDeriveDeterminismFromFieldTransformWired()
     {
         ProtobufModelHandlerImpl handler = newHandler(null);
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(new HashMap<>()), ModelCache.NONE);
 
-        assertFalse(pipeline.deterministic());
+        assertTrue(handler.supplyDecoder(ModelEnvelope.NONE, observer(new HashMap<>()), ModelCache.NONE).deterministic());
+        assertFalse(handler.supplyDecoder(ModelEnvelope.NONE, observer(new HashMap<>(), false), ModelCache.NONE)
+            .deterministic());
     }
 
     @Test
@@ -663,8 +664,21 @@ public class ProtobufModelDecoderPipelineTest
     private static ModelTransform observer(
         Map<String, String> extracted)
     {
+        return observer(extracted, true);
+    }
+
+    private static ModelTransform observer(
+        Map<String, String> extracted,
+        boolean deterministic)
+    {
         return new ModelTransform()
         {
+            @Override
+            public boolean deterministic()
+            {
+                return deterministic;
+            }
+
             @Override
             public ModelStatus transform(
                 ModelController control,

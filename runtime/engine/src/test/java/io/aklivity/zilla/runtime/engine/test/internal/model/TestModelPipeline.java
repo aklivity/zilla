@@ -136,7 +136,7 @@ final class TestModelPipeline implements ModelPipeline
         this.discloseAuthorized = discloseAuthorized;
         this.discloseRedacted = discloseRedacted;
         this.envelopeDiscloseName = envelopeDiscloseName;
-        this.deterministic = deterministic;
+        this.deterministic = deterministic && transform.deterministic();
     }
 
     @Override

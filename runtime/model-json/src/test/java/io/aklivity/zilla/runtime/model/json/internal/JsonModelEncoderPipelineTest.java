@@ -33,8 +33,13 @@ import io.aklivity.zilla.config.model.json.JsonModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.model.ModelController;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
+import io.aklivity.zilla.runtime.engine.model.ModelEvent;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
+import io.aklivity.zilla.runtime.engine.model.ModelSink;
+import io.aklivity.zilla.runtime.engine.model.ModelSource;
+import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
 
@@ -77,6 +82,38 @@ public class JsonModelEncoderPipelineTest
 
         assertFalse(pipeline.identity());
         assertTrue(pipeline.deterministic());
+    }
+
+    @Test
+    public void shouldDeriveDeterminismFromWiredTransform()
+    {
+        JsonModelHandlerImpl handler = newHandler();
+
+        assertTrue(handler.supplyEncoder(ModelEnvelope.NONE, forwarding(true)).deterministic());
+        assertFalse(handler.supplyEncoder(ModelEnvelope.NONE, forwarding(false)).deterministic());
+    }
+
+    private static ModelTransform forwarding(
+        boolean deterministic)
+    {
+        return new ModelTransform()
+        {
+            @Override
+            public boolean deterministic()
+            {
+                return deterministic;
+            }
+
+            @Override
+            public ModelStatus transform(
+                ModelController control,
+                ModelSource source,
+                ModelEvent event,
+                ModelSink sink)
+            {
+                return sink.transform(control, source, event);
+            }
+        };
     }
 
     private JsonModelHandlerImpl newHandler()

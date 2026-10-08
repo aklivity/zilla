@@ -207,6 +207,12 @@ public class TestModelHandlerTest
         ModelTransform transform = new ModelTransform()
         {
             @Override
+            public boolean deterministic()
+            {
+                return true;
+            }
+
+            @Override
             public ModelStatus transform(
                 ModelController control,
                 ModelSource source,

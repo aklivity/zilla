@@ -74,7 +74,7 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
         this.pipelines = new HashMap<>();
         this.result = new ModelPipelineResult();
         this.cache = cache;
-        this.deterministic = transform == ModelTransform.NONE && handler.decodeDeterministic(cache);
+        this.deterministic = transform.deterministic() && handler.decodeDeterministic(cache);
         this.identity = handler.decodeIdentity(cache) && (extractor == null || extractor.identity());
     }
 
