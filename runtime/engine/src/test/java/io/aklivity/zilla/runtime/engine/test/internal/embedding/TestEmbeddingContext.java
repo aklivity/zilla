@@ -36,6 +36,11 @@ public class TestEmbeddingContext implements EmbeddingContext
     public EmbeddingHandler attach(
         EmbeddingConfig embedding)
     {
+        if (embedding.id == 0L)
+        {
+            throw new IllegalStateException("embedding id not resolved: " + embedding.qname);
+        }
+
         return new TestEmbeddingHandler(dispatcher);
     }
 }

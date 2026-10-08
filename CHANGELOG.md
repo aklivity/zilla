@@ -41,7 +41,11 @@
 - binding-llm: replace LlmFlushEx union + event mapper with uniform DATA + LlmDataEx, driven directly by common-json [\#2596](https://github.com/aklivity/zilla/issues/2596) ([jfallows](https://github.com/jfallows))
 - binding-llm: emit token-usage metrics via a metrics-llm module [\#2605](https://github.com/aklivity/zilla/issues/2605) ([jfallows](https://github.com/jfallows))
 - binding-llm: signal request/response failure on the llm stream \(RESET/ABORT with error\), declare dialect content types [\#2607](https://github.com/aklivity/zilla/issues/2607) ([jfallows](https://github.com/jfallows))
+- Return JsonValue from GuardHandler.attribute and add JsonStrings unwrap helpers [\#2646](https://github.com/aklivity/zilla/issues/2646) ([jfallows](https://github.com/jfallows))
 - common-yaml: configure duplicate-key handling with the standard JsonConfig.KEY\_STRATEGY [\#2652](https://github.com/aklivity/zilla/issues/2652) ([jfallows](https://github.com/jfallows))
+- common-jwt: construct a Jwk directly from a java.security.PublicKey [\#2658](https://github.com/aklivity/zilla/issues/2658) ([jfallows](https://github.com/jfallows))
+- common-json: scoped escape events for stringified JSON values [\#2665](https://github.com/aklivity/zilla/issues/2665) ([jfallows](https://github.com/jfallows))
+- model-json, model-avro, model-protobuf: decoder pipeline identity\(\) is false until the first value arrives [\#2684](https://github.com/aklivity/zilla/issues/2684) ([jfallows](https://github.com/jfallows))
 
 **Merged pull requests:**
 
@@ -87,6 +91,19 @@
 - fix\(binding-mcp-kafka\): use INIT and FIN data flags for fragmented consume result [\#2654](https://github.com/aklivity/zilla/pull/2654) ([jfallows](https://github.com/jfallows))
 - feat\(engine\): test guard injects identity and credentials for unauthorized sessions [\#2656](https://github.com/aklivity/zilla/pull/2656) ([jfallows](https://github.com/jfallows))
 - fix\(engine\): test binding preauthorizes with the stream's authorization [\#2657](https://github.com/aklivity/zilla/pull/2657) ([jfallows](https://github.com/jfallows))
+- feat\(common-jwt\): construct a Jwk directly from a java.security.PublicKey [\#2659](https://github.com/aklivity/zilla/pull/2659) ([jfallows](https://github.com/jfallows))
+- feat\(engine\)!: return JsonValue from GuardHandler.attribute [\#2660](https://github.com/aklivity/zilla/pull/2660) ([jfallows](https://github.com/jfallows))
+- feat\(common-json\): scoped escape events for stringified JSON values [\#2668](https://github.com/aklivity/zilla/pull/2668) ([jfallows](https://github.com/jfallows))
+- fix\(manager\): declare the modules ZpmInstallTest resolves as test dependencies [\#2669](https://github.com/aklivity/zilla/pull/2669) ([jfallows](https://github.com/jfallows))
+- fix\(manager\): regenerate NOTICE [\#2670](https://github.com/aklivity/zilla/pull/2670) ([jfallows](https://github.com/jfallows))
+- fix\(manager\): keep slf4j-api on the compile classpath [\#2671](https://github.com/aklivity/zilla/pull/2671) ([jfallows](https://github.com/jfallows))
+- feat\(binding-http\): event stream framing for text/event-stream, used by binding-sse [\#2673](https://github.com/aklivity/zilla/pull/2673) ([jfallows](https://github.com/jfallows))
+- model-core: grow an expandable target instead of reporting OVERFLOW [\#2674](https://github.com/aklivity/zilla/pull/2674) ([ankitk-me](https://github.com/ankitk-me))
+- feat\(binding-http\): retry field and utf-8 validation in event stream framing [\#2676](https://github.com/aklivity/zilla/pull/2676) ([jfallows](https://github.com/jfallows))
+- feat\(binding-mcp\): uptake http event stream framing [\#2677](https://github.com/aklivity/zilla/pull/2677) ([jfallows](https://github.com/jfallows))
+- fix\(common-agrona\): honor the wrap offset in putStringWithoutLengthUtf8 [\#2678](https://github.com/aklivity/zilla/pull/2678) ([jfallows](https://github.com/jfallows))
+- fix\(model\): report decoder identity from supply time [\#2685](https://github.com/aklivity/zilla/pull/2685) ([jfallows](https://github.com/jfallows))
+- fix\(engine\): resolve embedding ids when processing a namespace [\#2695](https://github.com/aklivity/zilla/pull/2695) ([jfallows](https://github.com/jfallows))
 
 ## [2.4.7](https://github.com/aklivity/zilla/tree/2.4.7) (2026-09-30)
 

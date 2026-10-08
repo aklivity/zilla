@@ -51,6 +51,7 @@ import io.aklivity.zilla.config.engine.CatalogConfig;
 import io.aklivity.zilla.config.engine.CatalogedConfig;
 import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ConfigException;
+import io.aklivity.zilla.config.engine.EmbeddingConfig;
 import io.aklivity.zilla.config.engine.EngineConfig;
 import io.aklivity.zilla.config.engine.EngineConfigReader;
 import io.aklivity.zilla.config.engine.EngineConfigWriter;
@@ -379,6 +380,11 @@ public class EngineManager
         for (StoreConfig store : namespace.stores)
         {
             store.id = resolver.resolve(store.name);
+        }
+
+        for (EmbeddingConfig embedding : namespace.embeddings)
+        {
+            embedding.id = resolver.resolve(embedding.name);
         }
 
         for (VaultConfig vault : namespace.vaults)
