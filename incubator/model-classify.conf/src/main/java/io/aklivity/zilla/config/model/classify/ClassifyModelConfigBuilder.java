@@ -18,7 +18,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 
-import io.aklivity.zilla.config.engine.ClassifiedConfig;
 import io.aklivity.zilla.config.engine.ConfigBuilder;
 
 public class ClassifyModelConfigBuilder<T> extends ConfigBuilder.Extensible<T, ClassifyModelConfigBuilder<T>>
@@ -44,7 +43,7 @@ public class ClassifyModelConfigBuilder<T> extends ConfigBuilder.Extensible<T, C
         String classifier,
         List<String> labels)
     {
-        reject.add(new ClassifyRejectConfig(ClassifiedConfig.builder().name(classifier).build(), labels));
+        reject.add(new ClassifyRejectConfig(classifier, labels));
         return this;
     }
 

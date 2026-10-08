@@ -16,18 +16,17 @@ package io.aklivity.zilla.config.model.classify;
 
 import java.util.List;
 
-import io.aklivity.zilla.config.engine.ClassifiedConfig;
+import io.aklivity.zilla.config.engine.NamedConfig;
 
-public final class ClassifyRejectConfig
+public final class ClassifyRejectConfig extends NamedConfig.Extensible
 {
-    public final ClassifiedConfig classifier;
     public final List<String> labels;
 
     ClassifyRejectConfig(
-        ClassifiedConfig classifier,
+        String classifier,
         List<String> labels)
     {
-        this.classifier = classifier;
+        super(classifier);
         this.labels = labels;
     }
 }

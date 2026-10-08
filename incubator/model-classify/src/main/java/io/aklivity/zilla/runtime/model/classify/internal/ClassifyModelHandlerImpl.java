@@ -40,7 +40,7 @@ final class ClassifyModelHandlerImpl implements ModelHandler
         int maxLength)
     {
         this.detectors = config.reject.stream()
-            .map(entry -> context.supplyClassifier(entry.classifier.id).initDetector(entry.labels))
+            .map(entry -> context.supplyClassifier(entry.id).initDetector(entry.labels))
             .toList();
         this.maxLength = maxLength;
     }

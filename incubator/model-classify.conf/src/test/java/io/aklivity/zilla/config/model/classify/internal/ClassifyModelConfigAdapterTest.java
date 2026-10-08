@@ -68,11 +68,11 @@ public class ClassifyModelConfigAdapterTest
         assertThat(config.reject, hasSize(2));
 
         ClassifyRejectConfig moderator = config.reject.get(0);
-        assertThat(moderator.classifier.name, equalTo("moderator0"));
+        assertThat(moderator.name, equalTo("moderator0"));
         assertThat(moderator.labels, contains("prompt.injection", "policy.exfiltration"));
 
         ClassifyRejectConfig patterns = config.reject.get(1);
-        assertThat(patterns.classifier.name, equalTo("patterns0"));
+        assertThat(patterns.name, equalTo("patterns0"));
         assertThat(patterns.labels, contains("secret.aws_key"));
     }
 
@@ -94,7 +94,7 @@ public class ClassifyModelConfigAdapterTest
         ClassifyModelConfig config = jsonb.fromJson(json, ClassifyModelConfig.class);
 
         // THEN
-        assertThat(config.refs(), contains(config.reject.get(0).classifier, config.reject.get(1).classifier));
+        assertThat(config.refs(), contains(config.reject.get(0), config.reject.get(1)));
     }
 
     @Test

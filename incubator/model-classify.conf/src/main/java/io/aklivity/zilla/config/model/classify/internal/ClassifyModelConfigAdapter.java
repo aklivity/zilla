@@ -56,7 +56,7 @@ public final class ClassifyModelConfigAdapter extends ConfigAdapter.Extensible<M
         {
             JsonArrayBuilder labels = Json.createArrayBuilder();
             entry.labels.forEach(labels::add);
-            reject.add(entry.classifier.name, labels);
+            reject.add(entry.name, labels);
         }
         builder.add(REJECT_NAME, reject);
 

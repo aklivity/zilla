@@ -51,7 +51,7 @@ public final class ClassifyModelConfig extends ModelConfig
         List<Config.Reference> refs)
     {
         final List<Config.Reference> all = new ArrayList<>(reject.size() + refs.size());
-        reject.stream().map(r -> r.classifier).forEach(all::add);
+        all.addAll(reject);
         all.addAll(refs);
         return all;
     }
