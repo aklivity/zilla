@@ -124,6 +124,34 @@ window, so a failure after the server has accepted the request is never
 retried, and when every model has been refused or skipped the last reset reaches
 the client. Fallback entries are exact model names, not patterns.
 
+## Guardrails
+
+`options.guardrails` on `north_llm_proxy` applies validating stages to the
+sections of a request or response, keyed by the requested model name. Each stage
+names the section types it inspects and a `value` model that must accept the
+section's text; a section the model rejects is never relayed:
+
+```yaml
+north_llm_proxy:
+  type: llm
+  kind: proxy
+  options:
+    guardrails:
+      gpt-4o:
+        request:
+          - section: user-text
+            value:
+              model: string
+              pattern: "(?s)(?!.*ignore previous instructions).*"
+```
+
+A `gpt-4o` request whose `user-text` section contains `ignore previous
+instructions` is refused before it reaches `mock-openai-secondary`: the proxy
+aborts the exit and resets the client's stream with a dialect-neutral error
+(`invalid_request_error`, `param: user-text[0]`), which `llm(server)` renders as
+an HTTP 400 in the caller's own dialect. Sections of other types, and requests
+for other models, are relayed untouched.
+
 ## Credential pass-through
 
 Every direction wires `options.authorization` on the `llm(server)` and the

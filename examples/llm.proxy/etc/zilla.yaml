@@ -90,6 +90,14 @@ bindings:
   north_llm_proxy:
     type: llm
     kind: proxy
+    options:
+      guardrails:
+        gpt-4o:
+          request:
+            - section: user-text
+              value:
+                model: string
+                pattern: "(?s)(?!.*ignore previous instructions).*"
     telemetry:
       metrics:
         - llm.*
