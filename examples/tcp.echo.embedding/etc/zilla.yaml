@@ -5,6 +5,7 @@ embeddings:
     type: openai
     options:
       model: sentence-transformers/all-MiniLM-L6-v2
+      endpoint: http://tei:80/v1/embeddings
       credentials:
         api-key: unused
 stores:

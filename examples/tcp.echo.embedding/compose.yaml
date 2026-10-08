@@ -35,7 +35,7 @@ services:
       ZILLA_INCUBATOR_ENABLED: "true"
     volumes:
       - ./etc:/etc/zilla
-    command: start -v -e -Pzilla.embedding.openai.endpoint=http://tei:80/v1/embeddings
+    command: start -v -e
 
 volumes:
   tei-cache:

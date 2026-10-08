@@ -13,8 +13,8 @@ rejects a value whose embedding is similar enough to a configured list of
 reject phrases — `echo` just references it like any binding-agnostic model,
 the same way a binding might reference `json` or `avro`. The embedding
 vectors come from [`embedding-openai`](../../runtime/embedding-openai), which
-calls an OpenAI-compatible `/v1/embeddings` endpoint. This example points it
-at a local
+calls a `/v1/embeddings` endpoint, OpenAI's by default. This example sets its
+`endpoint` option to a local
 [text-embeddings-inference](https://github.com/huggingface/text-embeddings-inference)
 (`tei`) server hosting `sentence-transformers/all-MiniLM-L6-v2` — no vendor
 account or API key. `tei` downloads the model the first time it starts, so the
@@ -81,6 +81,7 @@ embeddings:
     type: openai
     options:
       model: sentence-transformers/all-MiniLM-L6-v2
+      endpoint: http://tei:80/v1/embeddings
       credentials:
         api-key: unused
 
@@ -98,9 +99,8 @@ bindings:
         threshold: 0.185
 ```
 
-The endpoint is the `zilla.embedding.openai.endpoint` property, set on the
-`zilla` service's command in [compose.yaml](compose.yaml). `tei` ignores the
-`model` and `credentials` values, which the `openai` embedding type requires.
+`tei` ignores the `model` and `credentials` values, which the `openai`
+embedding type requires.
 Cosine similarity between a whole message and a short reject phrase is low for
 this model, so `threshold` is far lower than it would be for averaged word
 vectors: the accepted message above scores about `0.15` against the closest
