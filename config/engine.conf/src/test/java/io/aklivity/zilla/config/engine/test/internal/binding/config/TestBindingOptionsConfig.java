@@ -37,6 +37,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
     public final String store;
     public final List<StoreAssertions> storeAssertions;
     public final String embedding;
+    public final String classifier;
     public final List<EnvelopeValue> envelope;
     public final List<EnvelopeAssertion> envelopeAssertions;
     public final String originType;
@@ -65,6 +66,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
         String store,
         List<StoreAssertions> storeAssertions,
         String embedding,
+        String classifier,
         List<EnvelopeValue> envelope,
         List<EnvelopeAssertion> envelopeAssertions,
         String originType,
@@ -83,6 +85,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
         this.store = store;
         this.storeAssertions = storeAssertions;
         this.embedding = embedding;
+        this.classifier = classifier;
         this.envelope = envelope;
         this.envelopeAssertions = envelopeAssertions;
         this.originType = originType;

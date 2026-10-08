@@ -303,6 +303,10 @@
                             {
                                 "type": "string"
                             },
+                            "classifier":
+                            {
+                                "type": "string"
+                            },
                             "originType":
                             {
                                 "type": "string"

@@ -56,6 +56,7 @@ import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.budget.BudgetFlusher;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.classifier.ClassifierHandler;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.embedding.EmbeddingHandler;
 import io.aklivity.zilla.runtime.engine.event.EventFormatter;
@@ -424,6 +425,13 @@ public class TlsWorker implements EngineContext
     @Override
     public EmbeddingHandler supplyEmbedding(
         long embeddingId)
+    {
+        return null;
+    }
+
+    @Override
+    public ClassifierHandler supplyClassifier(
+        long classifierId)
     {
         return null;
     }

@@ -42,6 +42,7 @@ import java.util.function.LongConsumer;
 
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.MutableBoolean;
+import org.agrona.collections.MutableInteger;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.CatalogedConfig;
@@ -63,6 +64,8 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.classifier.ClassifierHandler;
+import io.aklivity.zilla.runtime.engine.classifier.Detector;
 import io.aklivity.zilla.runtime.engine.embedding.EmbeddingHandler;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler.LongCompletionCallback;
@@ -158,6 +161,7 @@ final class TestBindingFactory implements BindingHandler
     private StoreHandler store;
     private List<StoreAssertion> storeAssertions;
     private EmbeddingHandler embedding;
+    private ClassifierHandler classifier;
     private List<TestBindingOptionsConfig.EnvelopeValue> envelopeBootstrap;
     private List<TestBindingOptionsConfig.EnvelopeAssertion> envelopeAssertions;
     private final Map<String, String> heldLockTokens = new HashMap<>();
@@ -292,6 +296,47 @@ final class TestBindingFactory implements BindingHandler
                     {
                         // embedding contract: callback must fire strictly later than the call
                         throw new IllegalStateException("embedding contract violation: sync callback");
+                    }
+                }
+            }
+
+            if (options.classifier != null)
+            {
+                int classifierId = context.supplyTypeId(options.classifier);
+                this.classifier = context.supplyClassifier(NamespacedId.id(namespaceId, classifierId));
+                if (this.classifier != null)
+                {
+                    final Thread dispatchThread = Thread.currentThread();
+                    final MutableInteger callbacksFired = new MutableInteger();
+                    final Detector detector = this.classifier.initDetector(List.of("secret"));
+                    final Detector.CompletionCallback completion = new Detector.CompletionCallback()
+                    {
+                        @Override
+                        public void completed(
+                            long contextId,
+                            boolean detected)
+                        {
+                            if (Thread.currentThread() != dispatchThread || detected != (contextId == 1L))
+                            {
+                                throw new IllegalStateException("classifier contract violation");
+                            }
+                            callbacksFired.value++;
+                        }
+
+                        @Override
+                        public void failed(
+                            long contextId,
+                            Throwable ex)
+                        {
+                            throw new IllegalStateException("classifier contract violation", ex);
+                        }
+                    };
+                    detector.detect(0L, binding.id, 0L, "init", completion);
+                    detector.detect(0L, binding.id, 1L, "init secret", completion);
+                    if (callbacksFired.value != 0)
+                    {
+                        // classifier contract: callback must fire strictly later than the call
+                        throw new IllegalStateException("classifier contract violation: sync callback");
                     }
                 }
             }

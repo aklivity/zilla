@@ -28,6 +28,8 @@ import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.binding.BindingFactory;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogFactory;
+import io.aklivity.zilla.runtime.engine.classifier.Classifier;
+import io.aklivity.zilla.runtime.engine.classifier.ClassifierFactory;
 import io.aklivity.zilla.runtime.engine.embedding.Embedding;
 import io.aklivity.zilla.runtime.engine.embedding.EmbeddingFactory;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterFactory;
@@ -145,6 +147,14 @@ public class EngineBuilder
             embeddings.add(embedding);
         }
 
+        final Set<Classifier> classifiers = new LinkedHashSet<>();
+        final ClassifierFactory classifierFactory = ClassifierFactory.instantiate();
+        for (String name : classifierFactory.names())
+        {
+            Classifier classifier = classifierFactory.create(name, config);
+            classifiers.add(classifier);
+        }
+
         final Set<Model> models = new LinkedHashSet<>();
         final ModelFactory modelFactory = ModelFactory.instantiate();
         for (String name : modelFactory.names())
@@ -173,6 +183,6 @@ public class EngineBuilder
         };
 
         return new Engine(config, bindings, exporters, guards, metricGroups, vaults,
-                catalogs, embeddings, models, stores, eventFormatterFactory, onError, affinities, readonly);
+                catalogs, embeddings, classifiers, models, stores, eventFormatterFactory, onError, affinities, readonly);
     }
 }

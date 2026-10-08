@@ -78,6 +78,7 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
     private static final String STORE_TTL_NAME = "ttl";
     private static final String STORE_EXPECT_NAME = "expect";
     private static final String EMBEDDING_NAME = "embedding";
+    private static final String CLASSIFIER_NAME = "classifier";
     private static final String ORIGIN_TYPE_NAME = "originType";
     private static final String ENVELOPE_NAME = "envelope";
     private static final String ENVELOPE_VALUE_NAME = "value";
@@ -197,6 +198,11 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
         if (testOptions.embedding != null)
         {
             object.add(EMBEDDING_NAME, testOptions.embedding);
+        }
+
+        if (testOptions.classifier != null)
+        {
+            object.add(CLASSIFIER_NAME, testOptions.classifier);
         }
 
         if (testOptions.originType != null)
@@ -465,6 +471,11 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
             if (object.containsKey(EMBEDDING_NAME))
             {
                 testOptions.embedding(object.getString(EMBEDDING_NAME));
+            }
+
+            if (object.containsKey(CLASSIFIER_NAME))
+            {
+                testOptions.classifier(object.getString(CLASSIFIER_NAME));
             }
 
             if (object.containsKey(ORIGIN_TYPE_NAME))
