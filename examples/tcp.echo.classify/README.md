@@ -146,7 +146,7 @@ classifiers:
   presidio0:
     type: presidio
     options:
-      url: http://presidio-analyzer:3000
+      endpoint: http://presidio-analyzer:3000
       language: en
       threshold: 0.6
       timeout: PT5S
