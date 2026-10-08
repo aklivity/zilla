@@ -242,8 +242,8 @@ public class EngineRegistry
     {
         NamespaceRegistry registry =
                 new NamespaceRegistry(namespace, this::findNamespace, bindingsByType, guardsByType, vaultsByType, catalogsByType,
-                    embeddingsByType, classifiersByType, metricsByName, exportersByType, storesByType, supplyLabelId, this::resolveMetric,
-                    exporterAttached, exporterDetached, supplyMetricRecorder, detachBinding, collector);
+                    embeddingsByType, classifiersByType, metricsByName, exportersByType, storesByType, supplyLabelId,
+                    this::resolveMetric, exporterAttached, exporterDetached, supplyMetricRecorder, detachBinding, collector);
         namespacesById.put(registry.namespaceId(), registry);
         registry.attach();
     }
