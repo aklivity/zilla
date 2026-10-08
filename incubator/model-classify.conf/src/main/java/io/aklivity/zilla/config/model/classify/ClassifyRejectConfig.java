@@ -18,7 +18,7 @@ import java.util.List;
 
 import io.aklivity.zilla.config.engine.NamedConfig;
 
-public final class ClassifyRejectConfig extends NamedConfig.Extensible
+public final class ClassifyRejectConfig extends NamedConfig
 {
     public final List<String> labels;
 
