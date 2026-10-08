@@ -29,6 +29,6 @@ public final class OpenaiEmbeddingFactorySpi implements EmbeddingFactorySpi
     public OpenaiEmbedding create(
         Configuration config)
     {
-        return new OpenaiEmbedding(config);
+        return new OpenaiEmbedding();
     }
 }

@@ -32,7 +32,7 @@ public class OpenaiEmbeddingContextTest
     @Test
     public void shouldAttachAndDetachHandler()
     {
-        OpenaiEmbeddingContext context = new OpenaiEmbeddingContext(mock(EngineContext.class), new OpenaiConfiguration());
+        OpenaiEmbeddingContext context = new OpenaiEmbeddingContext(mock(EngineContext.class));
         EmbeddingConfig embedding = embeddingConfig();
 
         EmbeddingHandler handler = context.attach(embedding);
@@ -45,7 +45,7 @@ public class OpenaiEmbeddingContextTest
     @Test
     public void shouldTolerateDetachWithoutAttach()
     {
-        OpenaiEmbeddingContext context = new OpenaiEmbeddingContext(mock(EngineContext.class), new OpenaiConfiguration());
+        OpenaiEmbeddingContext context = new OpenaiEmbeddingContext(mock(EngineContext.class));
         EmbeddingConfig embedding = embeddingConfig();
 
         context.detach(embedding);

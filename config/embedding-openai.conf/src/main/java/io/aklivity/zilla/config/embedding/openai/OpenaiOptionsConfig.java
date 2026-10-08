@@ -22,7 +22,10 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class OpenaiOptionsConfig extends OptionsConfig
 {
+    public static final String DEFAULT_ENDPOINT = "https://api.openai.com/v1/embeddings";
+
     public final String model;
+    public final String endpoint;
     public final OpenaiCredentialsConfig credentials;
 
     public static OpenaiOptionsConfigBuilder<OpenaiOptionsConfig> builder()
@@ -38,10 +41,12 @@ public final class OpenaiOptionsConfig extends OptionsConfig
 
     OpenaiOptionsConfig(
         String model,
+        String endpoint,
         OpenaiCredentialsConfig credentials)
     {
         super(null, null);
         this.model = requireNonNull(model);
+        this.endpoint = requireNonNull(endpoint);
         this.credentials = requireNonNull(credentials);
     }
 }

@@ -37,7 +37,6 @@ import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -59,7 +58,6 @@ import com.sun.net.httpserver.HttpServer;
 
 import io.aklivity.zilla.config.embedding.openai.OpenaiCredentialsConfig;
 import io.aklivity.zilla.config.embedding.openai.OpenaiOptionsConfig;
-import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.embedding.EmbeddingHandler.CompletionCallback;
@@ -111,7 +109,7 @@ public class OpenaiEmbeddingHandlerTest
         responseStatus = 200;
         responseBody = "{\"data\":[{\"embedding\":[0.1,0.2,0.3],\"index\":0}],\"model\":\"text-embedding-3-small\"}";
 
-        OpenaiEmbeddingHandler handler = new OpenaiEmbeddingHandler(context, config(endpoint), client, options());
+        OpenaiEmbeddingHandler handler = new OpenaiEmbeddingHandler(context, client, options(endpoint));
 
         Result result = embed(handler, "hello world");
 
@@ -129,7 +127,7 @@ public class OpenaiEmbeddingHandlerTest
             "{\"embedding\":[0.1,0.2,0.3],\"index\":0}" +
             "],\"model\":\"text-embedding-3-small\"}";
 
-        OpenaiEmbeddingHandler handler = new OpenaiEmbeddingHandler(context, config(endpoint), client, options());
+        OpenaiEmbeddingHandler handler = new OpenaiEmbeddingHandler(context, client, options(endpoint));
 
         Results results = embedBatch(handler, List.of("first", "second"));
 
@@ -145,7 +143,7 @@ public class OpenaiEmbeddingHandlerTest
         responseStatus = 401;
         responseBody = "{\"error\":{\"message\":\"Incorrect API key provided\",\"type\":\"invalid_request_error\"}}";
 
-        OpenaiEmbeddingHandler handler = new OpenaiEmbeddingHandler(context, config(endpoint), client, options());
+        OpenaiEmbeddingHandler handler = new OpenaiEmbeddingHandler(context, client, options(endpoint));
 
         Result result = embed(handler, "hello world");
 
@@ -159,7 +157,7 @@ public class OpenaiEmbeddingHandlerTest
         responseStatus = 429;
         responseBody = "{\"error\":{\"message\":\"Rate limit exceeded\",\"type\":\"rate_limit_error\"}}";
 
-        OpenaiEmbeddingHandler handler = new OpenaiEmbeddingHandler(context, config(endpoint), client, options());
+        OpenaiEmbeddingHandler handler = new OpenaiEmbeddingHandler(context, client, options(endpoint));
 
         Result result = embed(handler, "hello world");
 
@@ -178,9 +176,8 @@ public class OpenaiEmbeddingHandlerTest
 
         OpenaiEmbeddingHandler handler = new OpenaiEmbeddingHandler(
             context,
-            config("http://localhost:" + unboundPort + "/v1/embeddings"),
             client,
-            options());
+            options("http://localhost:" + unboundPort + "/v1/embeddings"));
 
         Result result = embed(handler, "hello world");
 
@@ -194,7 +191,7 @@ public class OpenaiEmbeddingHandlerTest
         responseStatus = 200;
         responseBody = "not valid json";
 
-        OpenaiEmbeddingHandler handler = new OpenaiEmbeddingHandler(context, config(endpoint), client, options());
+        OpenaiEmbeddingHandler handler = new OpenaiEmbeddingHandler(context, client, options(endpoint));
 
         Result result = embed(handler, "hello world");
 
@@ -216,7 +213,7 @@ public class OpenaiEmbeddingHandlerTest
             texts.add(String.format("%05d", i));
         }
 
-        OpenaiEmbeddingHandler handler = new OpenaiEmbeddingHandler(context, config(endpoint), client, options());
+        OpenaiEmbeddingHandler handler = new OpenaiEmbeddingHandler(context, client, options(endpoint));
 
         Results results = embedBatch(handler, texts);
 
@@ -237,7 +234,7 @@ public class OpenaiEmbeddingHandlerTest
         // stays far under the 2048-element cap -- this must split on token budget alone.
         List<String> texts = List.of("a".repeat(700_000), "b".repeat(700_004));
 
-        OpenaiEmbeddingHandler handler = new OpenaiEmbeddingHandler(context, config(endpoint), client, options());
+        OpenaiEmbeddingHandler handler = new OpenaiEmbeddingHandler(context, client, options(endpoint));
 
         Results results = embedBatch(handler, texts);
 
@@ -247,22 +244,16 @@ public class OpenaiEmbeddingHandlerTest
         assertThat(results.vectors[1], equalTo(new float[] { 700_004f }));
     }
 
-    private static OpenaiOptionsConfig options()
+    private static OpenaiOptionsConfig options(
+        String endpoint)
     {
         return OpenaiOptionsConfig.builder()
             .model("text-embedding-3-small")
+            .endpoint(endpoint)
             .credentials(OpenaiCredentialsConfig.builder()
                 .apiKey("test-key")
                 .build())
             .build();
-    }
-
-    private static OpenaiConfiguration config(
-        String endpoint)
-    {
-        Properties props = new Properties();
-        props.setProperty(OpenaiConfiguration.OPENAI_ENDPOINT.name(), endpoint);
-        return new OpenaiConfiguration(new Configuration(props));
     }
 
     private Result embed(

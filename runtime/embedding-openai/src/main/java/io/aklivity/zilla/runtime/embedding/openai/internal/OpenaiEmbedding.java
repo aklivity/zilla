@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.embedding.openai.internal;
 
-import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.embedding.Embedding;
 import io.aklivity.zilla.runtime.engine.embedding.EmbeddingContext;
@@ -22,14 +21,6 @@ import io.aklivity.zilla.runtime.engine.embedding.EmbeddingContext;
 public final class OpenaiEmbedding implements Embedding
 {
     public static final String NAME = "openai";
-
-    private final OpenaiConfiguration config;
-
-    public OpenaiEmbedding(
-        Configuration config)
-    {
-        this.config = new OpenaiConfiguration(config);
-    }
 
     @Override
     public String name()
@@ -41,6 +32,6 @@ public final class OpenaiEmbedding implements Embedding
     public EmbeddingContext supply(
         EngineContext context)
     {
-        return new OpenaiEmbeddingContext(context, config);
+        return new OpenaiEmbeddingContext(context);
     }
 }

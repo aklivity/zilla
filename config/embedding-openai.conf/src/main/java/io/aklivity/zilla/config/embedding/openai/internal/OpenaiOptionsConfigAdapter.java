@@ -26,6 +26,7 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 public class OpenaiOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String MODEL_NAME = "model";
+    private static final String ENDPOINT_NAME = "endpoint";
     private static final String CREDENTIALS_NAME = "credentials";
 
     private final OpenaiCredentialsConfigAdapter credentials = new OpenaiCredentialsConfigAdapter();
@@ -38,6 +39,12 @@ public class OpenaiOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, Jso
         JsonObjectBuilder object = Json.createObjectBuilder();
 
         object.add(MODEL_NAME, config.model);
+
+        if (!OpenaiOptionsConfig.DEFAULT_ENDPOINT.equals(config.endpoint))
+        {
+            object.add(ENDPOINT_NAME, config.endpoint);
+        }
+
         object.add(CREDENTIALS_NAME, credentials.adaptToJson(config.credentials));
 
         return object.build();
@@ -50,6 +57,12 @@ public class OpenaiOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, Jso
         OpenaiOptionsConfigBuilder<OpenaiOptionsConfig> options = OpenaiOptionsConfig.builder();
 
         options.model(object.getString(MODEL_NAME));
+
+        if (object.containsKey(ENDPOINT_NAME))
+        {
+            options.endpoint(object.getString(ENDPOINT_NAME));
+        }
+
         options.credentials(credentials.adaptFromJson(object.getJsonObject(CREDENTIALS_NAME)));
 
         return options.build();

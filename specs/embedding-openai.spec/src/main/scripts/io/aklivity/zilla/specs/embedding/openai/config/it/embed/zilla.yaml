@@ -20,6 +20,7 @@ embeddings:
     type: openai
     options:
       model: text-embedding-3-small
+      endpoint: http://localhost:8000/v1/embeddings
       credentials:
         api-key: test-api-key
 bindings:

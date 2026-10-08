@@ -27,16 +27,13 @@ import io.aklivity.zilla.runtime.engine.embedding.EmbeddingHandler;
 final class OpenaiEmbeddingContext implements EmbeddingContext
 {
     private final EngineContext context;
-    private final OpenaiConfiguration config;
     private final HttpClient client;
     private final Long2ObjectHashMap<OpenaiEmbeddingHandler> handlersById;
 
     OpenaiEmbeddingContext(
-        EngineContext context,
-        OpenaiConfiguration config)
+        EngineContext context)
     {
         this.context = context;
-        this.config = config;
         this.client = HttpClient.newHttpClient();
         this.handlersById = new Long2ObjectHashMap<>();
     }
@@ -46,7 +43,7 @@ final class OpenaiEmbeddingContext implements EmbeddingContext
         EmbeddingConfig embedding)
     {
         OpenaiOptionsConfig options = (OpenaiOptionsConfig) embedding.options;
-        OpenaiEmbeddingHandler handler = new OpenaiEmbeddingHandler(context, config, client, options);
+        OpenaiEmbeddingHandler handler = new OpenaiEmbeddingHandler(context, client, options);
         handlersById.put(embedding.id, handler);
         return handler;
     }

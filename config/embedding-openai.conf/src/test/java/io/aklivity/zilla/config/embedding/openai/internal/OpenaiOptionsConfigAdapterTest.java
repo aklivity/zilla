@@ -58,7 +58,24 @@ public class OpenaiOptionsConfigAdapterTest
 
         assertThat(options, not(nullValue()));
         assertThat(options.model, equalTo("text-embedding-3-small"));
+        assertThat(options.endpoint, equalTo("https://api.openai.com/v1/embeddings"));
         assertThat(options.credentials.apiKey, equalTo("test-key"));
+    }
+
+    @Test
+    public void shouldReadOptionsWithEndpoint()
+    {
+        String yaml = """
+            model: text-embedding-3-small
+            endpoint: http://localhost:8000/v1/embeddings
+            credentials:
+              api-key: test-key
+            """;
+
+        OpenaiOptionsConfig options = jsonb.fromJson(yaml, OpenaiOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.endpoint, equalTo("http://localhost:8000/v1/embeddings"));
     }
 
     @Test
@@ -76,6 +93,27 @@ public class OpenaiOptionsConfigAdapterTest
         assertThat(yaml, not(nullValue()));
         assertThat(yaml, equalTo("""
             model: text-embedding-3-small
+            credentials:
+              api-key: test-key
+            """));
+    }
+
+    @Test
+    public void shouldWriteOptionsWithEndpoint()
+    {
+        OpenaiOptionsConfig options = OpenaiOptionsConfig.builder()
+            .model("text-embedding-3-small")
+            .endpoint("http://localhost:8000/v1/embeddings")
+            .credentials(OpenaiCredentialsConfig.builder()
+                .apiKey("test-key")
+                .build())
+            .build();
+
+        String yaml = jsonb.toJson(options);
+
+        assertThat(yaml, equalTo("""
+            model: text-embedding-3-small
+            endpoint: "http://localhost:8000/v1/embeddings"
             credentials:
               api-key: test-key
             """));

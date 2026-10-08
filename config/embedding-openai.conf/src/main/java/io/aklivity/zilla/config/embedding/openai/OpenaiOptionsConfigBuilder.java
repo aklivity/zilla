@@ -24,6 +24,7 @@ public final class OpenaiOptionsConfigBuilder<T> extends ConfigBuilder<T, Openai
     private final Function<OptionsConfig, T> mapper;
 
     private String model;
+    private String endpoint;
     private OpenaiCredentialsConfig credentials;
 
     OpenaiOptionsConfigBuilder(
@@ -46,6 +47,13 @@ public final class OpenaiOptionsConfigBuilder<T> extends ConfigBuilder<T, Openai
         return this;
     }
 
+    public OpenaiOptionsConfigBuilder<T> endpoint(
+        String endpoint)
+    {
+        this.endpoint = endpoint;
+        return this;
+    }
+
     public OpenaiOptionsConfigBuilder<T> credentials(
         OpenaiCredentialsConfig credentials)
     {
@@ -56,6 +64,9 @@ public final class OpenaiOptionsConfigBuilder<T> extends ConfigBuilder<T, Openai
     @Override
     public T build()
     {
-        return mapper.apply(new OpenaiOptionsConfig(model, credentials));
+        return mapper.apply(new OpenaiOptionsConfig(
+            model,
+            endpoint != null ? endpoint : OpenaiOptionsConfig.DEFAULT_ENDPOINT,
+            credentials));
     }
 }

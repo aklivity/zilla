@@ -39,7 +39,6 @@ public class OpenaiEmbeddingIT
         .directory("target/zilla-itests")
         .countersBufferCapacity(4096)
         .configurationRoot("io/aklivity/zilla/specs/embedding/openai/config")
-        .configure(OpenaiConfiguration.OPENAI_ENDPOINT, "http://localhost:8000/v1/embeddings")
         .clean();
 
     @Rule

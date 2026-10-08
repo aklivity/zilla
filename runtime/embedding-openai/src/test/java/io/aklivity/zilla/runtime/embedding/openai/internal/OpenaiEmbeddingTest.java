@@ -21,7 +21,6 @@ import static org.mockito.Mockito.mock;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 
 public class OpenaiEmbeddingTest
@@ -29,7 +28,7 @@ public class OpenaiEmbeddingTest
     @Test
     public void shouldResolveName()
     {
-        OpenaiEmbedding embedding = new OpenaiEmbedding(new Configuration());
+        OpenaiEmbedding embedding = new OpenaiEmbedding();
 
         assertThat(embedding.name(), equalTo("openai"));
     }
@@ -37,7 +36,7 @@ public class OpenaiEmbeddingTest
     @Test
     public void shouldSupplyContext()
     {
-        OpenaiEmbedding embedding = new OpenaiEmbedding(new Configuration());
+        OpenaiEmbedding embedding = new OpenaiEmbedding();
 
         assertThat(embedding.supply(mock(EngineContext.class)), instanceOf(OpenaiEmbeddingContext.class));
     }

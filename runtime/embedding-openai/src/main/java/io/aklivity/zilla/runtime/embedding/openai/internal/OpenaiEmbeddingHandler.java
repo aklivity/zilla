@@ -57,13 +57,12 @@ final class OpenaiEmbeddingHandler implements EmbeddingHandler, AutoCloseable
 
     OpenaiEmbeddingHandler(
         EngineContext context,
-        OpenaiConfiguration config,
         HttpClient client,
         OpenaiOptionsConfig options)
     {
         this.signaler = context.signaler();
         this.client = client;
-        this.endpoint = URI.create(config.endpoint());
+        this.endpoint = URI.create(options.endpoint);
         this.model = options.model;
         this.apiKey = options.credentials.apiKey;
     }

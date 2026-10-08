@@ -39,4 +39,12 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateEmbeddingWithEndpoint()
+    {
+        JsonObject config = schema.validate("embedding.endpoint.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }

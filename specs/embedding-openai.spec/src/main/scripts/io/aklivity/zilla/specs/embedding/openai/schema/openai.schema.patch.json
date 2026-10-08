@@ -36,6 +36,12 @@
                                 "title": "Model",
                                 "type": "string"
                             },
+                            "endpoint":
+                            {
+                                "title": "Endpoint",
+                                "type": "string",
+                                "default": "https://api.openai.com/v1/embeddings"
+                            },
                             "credentials":
                             {
                                 "title": "Credentials",
