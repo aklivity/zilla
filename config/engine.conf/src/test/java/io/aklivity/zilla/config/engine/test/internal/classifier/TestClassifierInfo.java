@@ -18,8 +18,8 @@ import java.net.URL;
 
 import jakarta.json.JsonObject;
 
-import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.ClassifierInfo;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.engine.test.internal.classifier.config.TestClassifierOptionsConfigAdapter;
 
