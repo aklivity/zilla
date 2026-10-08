@@ -26,6 +26,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
 import java.util.function.UnaryOperator;
 
@@ -821,6 +822,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         private final long affinity;
         private final KafkaMetaClient client;
         private final KafkaClientRoute clientRoute;
+        private final LongConsumer metaFlush;
 
         private int state;
 
@@ -853,6 +855,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             this.affinity = affinity;
             this.clientRoute = supplyClientRoute.apply(resolvedId);
             this.client = new KafkaMetaClient(routedId, resolvedId, topic, servers, sasl);
+            this.metaFlush = client::doEncodeRequestIfNecessary;
         }
 
         private void onApplication(
@@ -903,11 +906,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             final long authorization = begin.authorization();
 
             state = KafkaState.openingInitial(state);
-            clientRoute.metaInitialId = initialId;
-            if (clientRoute.metaFlush == KafkaClientRoute.NOOP)
-            {
-                clientRoute.metaFlush = client::doEncodeRequestIfNecessary;
-            }
+            clientRoute.registerMetaFlush(metaFlush);
 
             client.doNetworkBegin(traceId, authorization, affinity);
         }
@@ -927,8 +926,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             final long authorization = end.authorization();
 
             state = KafkaState.closedInitial(state);
-            clientRoute.metaInitialId = 0L;
-            clientRoute.metaFlush = KafkaClientRoute.NOOP;
+            clientRoute.unregisterMetaFlush(metaFlush);
 
             client.doNetworkEnd(traceId, authorization);
         }
@@ -939,8 +937,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             final long traceId = abort.traceId();
 
             state = KafkaState.closedInitial(state);
-            clientRoute.metaInitialId = 0L;
-            clientRoute.metaFlush = KafkaClientRoute.NOOP;
+            clientRoute.unregisterMetaFlush(metaFlush);
 
             client.doNetworkAbortIfNecessary(traceId);
         }
@@ -1081,8 +1078,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             Flyweight extension)
         {
             state = KafkaState.closedInitial(state);
-            clientRoute.metaInitialId = 0L;
-            clientRoute.metaFlush = KafkaClientRoute.NOOP;
+            clientRoute.unregisterMetaFlush(metaFlush);
             //client.stream = nullIfClosed(state, client.stream);
 
             doReset(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,

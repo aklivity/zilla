@@ -85,6 +85,15 @@ public class FetchIT
 
     @Test
     @Specification({
+        "${app}/partition.not.leader.refresh.meta.topics/client",
+        "${app}/partition.not.leader.refresh.meta.topics/server"})
+    public void shouldRefreshMetaForAllTopicsWhenPartitionNotLeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/partition.not.leader.client.reconnect/client",
         "${app}/partition.not.leader.client.reconnect/server"})
     public void shouldClientReconnectPartitionNotLeader() throws Exception

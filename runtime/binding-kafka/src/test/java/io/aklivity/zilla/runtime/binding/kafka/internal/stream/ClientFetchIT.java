@@ -108,6 +108,16 @@ public class ClientFetchIT
     }
 
     @Test
+    @Configuration("client.when.topics.yaml")
+    @Specification({
+        "${app}/partition.not.leader.refresh.meta.topics/client",
+        "${net}/partition.not.leader.refresh.meta.topics/server"})
+    public void shouldRefreshMetaForAllTopicsWhenPartitionNotLeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/partition.not.leader/client",
