@@ -7930,6 +7930,7 @@
                     "avro",
                     "boolean",
                     "bytes",
+                    "classify",
                     "double",
                     "float",
                     "int32",
@@ -8105,6 +8106,38 @@
                                     "$ref": "#/$defs/validate"
                                 }
                             }
+                        }
+                    },
+                    {
+                        "if": {
+                            "properties": {
+                                "model": {
+                                    "const": "classify"
+                                }
+                            }
+                        },
+                        "then": {
+                            "properties": {
+                                "model": {
+                                    "const": "classify"
+                                },
+                                "reject": {
+                                    "title": "Reject",
+                                    "type": "object",
+                                    "minProperties": 1,
+                                    "additionalProperties": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "minItems": 1
+                                    }
+                                }
+                            },
+                            "required": [
+                                "reject"
+                            ],
+                            "additionalProperties": false
                         }
                     },
                     {
