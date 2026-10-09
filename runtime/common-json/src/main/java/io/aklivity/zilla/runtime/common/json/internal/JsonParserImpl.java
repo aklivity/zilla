@@ -756,9 +756,10 @@ public final class JsonParserImpl implements JsonParserEx
         }
         // discard the whole member by advancing the verbatim cursor to the value's end: when occupied this also
         // drops the dropped member's leading separator (the surviving sibling carries its own); when the dropped
-        // member was the container's first, defer trimming the next survivor's now-dangling leading separator
+        // member was the container's first, defer trimming the next survivor's now-dangling leading separator,
+        // and keep that trim pending across a further drop that no survivor has been pulled between
         verbatimCursor = tokenizer.streamOffset();
-        trimLeadingSeparator = !occupied;
+        trimLeadingSeparator = !occupied || trimLeadingSeparator;
     }
 
     // Advances the verbatim cursor past the new-first survivor's leading whitespace and a single separator
