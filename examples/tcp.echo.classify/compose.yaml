@@ -21,6 +21,10 @@ services:
     restart: unless-stopped
     ports:
       - 3000:3000
+    environment:
+      # With gunicorn 25's control socket enabled, the lone worker intermittently
+      # never boots and the analyzer stays unhealthy; the socket is unused here.
+      GUNICORN_CMD_ARGS: --no-control-socket
     healthcheck:
       interval: 10s
       timeout: 3s
