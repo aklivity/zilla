@@ -102,6 +102,12 @@ abstract class LlmMediaDataTransform implements JsonTransform
     }
 
     @Override
+    public boolean deterministic()
+    {
+        return true;
+    }
+
+    @Override
     public void reset()
     {
         depth = 0;

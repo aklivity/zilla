@@ -129,6 +129,12 @@ abstract class LlmToolTransform implements JsonTransform
     }
 
     @Override
+    public boolean deterministic()
+    {
+        return true;
+    }
+
+    @Override
     public void reset()
     {
         queueHead = 0;
