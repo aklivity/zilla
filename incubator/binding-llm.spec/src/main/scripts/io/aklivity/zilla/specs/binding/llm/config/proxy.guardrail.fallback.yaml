@@ -41,7 +41,7 @@ bindings:
     - when:
       - dialect: openai
         model: [ gpt-a ]
-      exit: app0
+      exit: app1
       with:
         fallback: [ gpt-b ]
     - when:

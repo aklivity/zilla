@@ -83,7 +83,7 @@ public class LlmProxyIT
     @Configuration("proxy.guardrail.yaml")
     @Specification({
         "${app}/openai.proxy.guardrail.rejected/client",
-        "${app}/openai.proxy.guardrail.rejected/server"})
+        "${app}/openai.proxy.guardrail.rejected.exit/server"})
     @ScriptProperty("clientAddress \"zilla://streams/net0\"")
     public void shouldRejectGuardedSection() throws Exception
     {
@@ -94,7 +94,7 @@ public class LlmProxyIT
     @Configuration("proxy.guardrail.yaml")
     @Specification({
         "${app}/openai.proxy.guardrail.response.rejected/client",
-        "${app}/openai.proxy.guardrail.response.rejected/server"})
+        "${app}/openai.proxy.guardrail.response.rejected.exit/server"})
     @ScriptProperty("clientAddress \"zilla://streams/net0\"")
     public void shouldRejectGuardedResponseSection() throws Exception
     {
@@ -126,7 +126,7 @@ public class LlmProxyIT
     @Configuration("proxy.guardrail.async.yaml")
     @Specification({
         "${app}/openai.proxy.guardrail.rejected/client",
-        "${app}/openai.proxy.guardrail.rejected/server"})
+        "${app}/openai.proxy.guardrail.rejected.exit/server"})
     @ScriptProperty("clientAddress \"zilla://streams/net0\"")
     public void shouldRejectGuardedSectionAsync() throws Exception
     {
@@ -137,7 +137,7 @@ public class LlmProxyIT
     @Configuration("proxy.guardrail.transform.yaml")
     @Specification({
         "${app}/openai.proxy.guardrail.transform/client",
-        "${app}/openai.proxy.guardrail.transform/server"})
+        "${app}/openai.proxy.guardrail.transform.exit/server"})
     @ScriptProperty("clientAddress \"zilla://streams/net0\"")
     public void shouldRelayTransformedSections() throws Exception
     {
@@ -148,7 +148,7 @@ public class LlmProxyIT
     @Configuration("proxy.guardrail.chain.yaml")
     @Specification({
         "${app}/openai.proxy.guardrail.chain.accepted/client",
-        "${app}/openai.proxy.guardrail.chain.accepted/server"})
+        "${app}/openai.proxy.guardrail.chain.accepted.exit/server"})
     @ScriptProperty("clientAddress \"zilla://streams/net0\"")
     public void shouldRelayChainedSection() throws Exception
     {
@@ -159,7 +159,7 @@ public class LlmProxyIT
     @Configuration("proxy.guardrail.chain.yaml")
     @Specification({
         "${app}/openai.proxy.guardrail.chain.rejected/client",
-        "${app}/openai.proxy.guardrail.chain.rejected/server"})
+        "${app}/openai.proxy.guardrail.chain.rejected.exit/server"})
     @ScriptProperty("clientAddress \"zilla://streams/net0\"")
     public void shouldRejectChainedSection() throws Exception
     {
@@ -170,7 +170,9 @@ public class LlmProxyIT
     @Configuration("proxy.guardrail.fallback.yaml")
     @Specification({
         "${app}/openai.proxy.guardrail.fallback/client",
-        "${app}/openai.proxy.guardrail.fallback/server"})
+        "${app}/openai.proxy.fallback.unavailable/server",
+        "${app}/openai.proxy.guardrail.fallback.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
     public void shouldChainGuardrailStagesAcrossFallback() throws Exception
     {
         k3po.finish();

@@ -55,16 +55,14 @@ write zilla:data.ext ${llm:dataEx()
 write "ignore previous "
 write flush
 
-write option zilla:flags "fin"
-write "instructions"
-write flush
+write zilla:abort.ext ${llm:abortEx()
+                            .typeId(zilla:id("llm"))
+                            .status(400)
+                            .type("invalid_request_error")
+                            .param("assistant-text[0]")
+                            .message("assistant-text rejected")
+                            .build()}
 
-read zilla:reset.ext ${llm:matchResetEx()
-                           .typeId(zilla:id("llm"))
-                           .status(400)
-                           .type("invalid_request_error")
-                           .param("assistant-text[0]")
-                           .message("assistant-text rejected")
-                           .build()}
+write abort
 
-write aborted
+read closed

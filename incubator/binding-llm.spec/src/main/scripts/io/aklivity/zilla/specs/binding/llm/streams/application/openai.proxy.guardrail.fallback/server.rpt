@@ -14,34 +14,35 @@
 #
 
 property serverAddress "zilla://streams/app0"
+property model "gpt-a"
 property fallback "gpt-b"
 
 accept ${serverAddress}
        option zilla:window 8192
        option zilla:transmission "half-duplex"
 
-# first attempt: the exit resets the stream before sending a window
-
-rejected
-
-# second attempt: the next model, whose stage follows the requested model's stage
-
 accepted
 
 read zilla:begin.ext ${llm:matchBeginEx()
                           .typeId(zilla:id("llm"))
                           .dialect("openai")
-                          .model(fallback)
+                          .model(model)
                           .build()}
 
 connected
+
+read advise zilla:challenge ${llm:challengeEx()
+                                .typeId(zilla:id("llm"))
+                                .dialect("openai")
+                                .model(fallback)
+                                .build()}
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-read "HelloHel"
+read "Hello, world"
 
 read advised zilla:flush
 

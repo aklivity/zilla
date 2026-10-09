@@ -35,4 +35,19 @@ read zilla:data.ext ${llm:matchDialectDataEx()
                           .build()}
 read "{\"model\":\"gpt-a\",\"messages\":[{\"role\":\"user\",\"content\":\""
 
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("USER_TEXT")
+                          .message(0)
+                          .build()}
+read "Hola! world!"
+
+write zilla:reset.ext ${llm:resetEx()
+                            .typeId(zilla:id("llm"))
+                            .status(400)
+                            .type("invalid_request_error")
+                            .param("user-text[0]")
+                            .message("user-text rejected")
+                            .build()}
+
 read abort
