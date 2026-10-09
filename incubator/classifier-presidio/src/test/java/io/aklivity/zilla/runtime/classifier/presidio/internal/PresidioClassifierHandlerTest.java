@@ -105,9 +105,21 @@ public class PresidioClassifierHandlerTest
     }
 
     @Test
-    public void shouldNotSupportDeanonymizer()
+    public void shouldInitDeanonymizerForDeclaredLabels()
     {
-        assertThat(declared.initDeanonymizer(List.of("person")), nullValue());
+        assertThat(declared.initDeanonymizer(List.of("person", "email")), not(nullValue()));
+    }
+
+    @Test
+    public void shouldInitDeanonymizerForEntityNamesWhenLabelsNotDeclared()
+    {
+        assertThat(undeclared.initDeanonymizer(List.of("PERSON")), not(nullValue()));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldRejectUndeclaredLabelForDeanonymizer()
+    {
+        declared.initDeanonymizer(List.of("PERSON"));
     }
 
     private static ClassifierConfig classifier(

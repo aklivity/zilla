@@ -20,12 +20,14 @@ import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import io.aklivity.zilla.config.classifier.presidio.PresidioClassifierOptionsConfig;
 import io.aklivity.zilla.config.engine.ClassifierConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.classifier.Anonymizer;
 import io.aklivity.zilla.runtime.engine.classifier.ClassifierHandler;
+import io.aklivity.zilla.runtime.engine.classifier.Deanonymizer;
 import io.aklivity.zilla.runtime.engine.classifier.Detector;
 
 final class PresidioClassifierHandler implements ClassifierHandler
@@ -86,6 +88,15 @@ final class PresidioClassifierHandler implements ClassifierHandler
         labels.forEach(label -> aliasesByEntity.putIfAbsent(entity(label), label));
 
         return new PresidioAnonymizer(context, analyzer(List.copyOf(aliasesByEntity.keySet())), surrogates, aliasesByEntity);
+    }
+
+    @Override
+    public Deanonymizer initDeanonymizer(
+        List<String> labels)
+    {
+        labels.forEach(this::entity);
+
+        return new PresidioDeanonymizer(surrogates, Set.copyOf(labels));
     }
 
     void close()

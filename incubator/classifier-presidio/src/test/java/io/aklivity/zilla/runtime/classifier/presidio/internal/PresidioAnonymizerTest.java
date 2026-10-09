@@ -37,6 +37,10 @@ import io.aklivity.zilla.config.classifier.presidio.PresidioClassifierOptionsCon
 import io.aklivity.zilla.config.engine.ClassifierConfig;
 import io.aklivity.zilla.config.engine.GenericClassifierConfig;
 import io.aklivity.zilla.runtime.engine.classifier.Anonymizer;
+import io.aklivity.zilla.runtime.engine.classifier.Deanonymizer;
+import io.aklivity.zilla.runtime.engine.classifier.Deanonymizer.Completion;
+import io.aklivity.zilla.runtime.engine.classifier.Deanonymizer.Result;
+import io.aklivity.zilla.runtime.engine.classifier.Deanonymizer.Status;
 
 public class PresidioAnonymizerTest
 {
@@ -312,6 +316,34 @@ public class PresidioAnonymizerTest
         assertThat(sink.size(), equalTo(0));
     }
 
+    @Test
+    public void shouldRestoreWhatWasSubstitutedInSameScope() throws Exception
+    {
+        String original = "reach out to jane.doe@example.com for details";
+        analyzer.respond(200, "[{\"end\":33,\"entity_type\":\"EMAIL_ADDRESS\",\"start\":13}]");
+        anonymize(original);
+
+        RecordingValueConsumer restored = new RecordingValueConsumer();
+        Result result = deanonymize(SCOPE, sink.text(), restored);
+
+        assertThat(restored.text(), equalTo(original));
+        assertThat(result.status(), equalTo(Status.COMPLETE));
+        assertThat(result.unresolved(), equalTo(0));
+    }
+
+    @Test
+    public void shouldNotRestoreWhatWasSubstitutedInAnotherScope() throws Exception
+    {
+        analyzer.respond(200, "[{\"end\":33,\"entity_type\":\"EMAIL_ADDRESS\",\"start\":13}]");
+        anonymize("reach out to jane.doe@example.com for details");
+
+        RecordingValueConsumer restored = new RecordingValueConsumer();
+        Result result = deanonymize(SCOPE + 1, sink.text(), restored);
+
+        assertThat(restored.text(), equalTo(sink.text()));
+        assertThat(result.unresolved(), equalTo(1));
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void shouldRejectUndeclaredLabel()
     {
@@ -333,6 +365,18 @@ public class PresidioAnonymizerTest
 
         anonymizer.anonymize(1L, 2L, SCOPE, CONTEXT, data, 0, value.length, consumer, completion);
         dispatch.runNext();
+    }
+
+    private Result deanonymize(
+        long scopeId,
+        String text,
+        RecordingValueConsumer consumer)
+    {
+        Deanonymizer deanonymizer = handler.initDeanonymizer(List.of("person", "email"));
+        byte[] value = text.getBytes(UTF_8);
+
+        return deanonymizer.deanonymize(1L, 2L, scopeId, new UnsafeBuffer(value), 0, value.length, Completion.COMPLETE,
+            consumer, new Result());
     }
 
     private static String token(
