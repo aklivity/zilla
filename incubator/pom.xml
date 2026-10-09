@@ -29,8 +29,6 @@
     <module>binding-risingwave.conf</module>
     <module>metrics-llm.spec</module>
     <module>metrics-llm.conf</module>
-    <module>embedding-glove.spec</module>
-    <module>embedding-glove.conf</module>
     <module>model-classify.spec</module>
     <module>model-classify.conf</module>
     <module>classifier-semantic.spec</module>
@@ -46,7 +44,6 @@
     <module>binding-pgsql-kafka</module>
     <module>binding-risingwave</module>
     <module>metrics-llm</module>
-    <module>embedding-glove</module>
     <module>model-classify</module>
     <module>classifier-semantic</module>
     <module>classifier-patterns</module>
@@ -63,16 +60,6 @@
       <dependency>
         <groupId>io.aklivity.zilla</groupId>
         <artifactId>common-agrona</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>embedding-glove</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>embedding-glove.conf</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

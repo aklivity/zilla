@@ -291,12 +291,6 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>embedding-glove</artifactId>
-      <version>${project.version}</version>
-      <scope>runtime</scope>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
       <artifactId>embedding-openai</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
