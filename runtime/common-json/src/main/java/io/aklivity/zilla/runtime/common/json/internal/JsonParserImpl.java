@@ -759,7 +759,7 @@ public final class JsonParserImpl implements JsonParserEx
         // member was the container's first, defer trimming the next survivor's now-dangling leading separator,
         // and keep that trim pending across a further drop that no survivor has been pulled between
         verbatimCursor = tokenizer.streamOffset();
-        trimLeadingSeparator = !occupied || trimLeadingSeparator;
+        trimLeadingSeparator |= !occupied;
     }
 
     // Advances the verbatim cursor past the new-first survivor's leading whitespace and a single separator
