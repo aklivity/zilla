@@ -64,6 +64,13 @@
 #      request: a user-text section carrying a prompt injection phrase is
 #      rejected, and the openai SDK reports the section that was rejected
 #      as the error's param
+#  13. the guardrail stages of a section are chained: a user-text section
+#      that passes the injection check is still rejected by the length stage
+#      that follows it
+#  14. the guardrail applies to the response as well: an assistant-text
+#      section carrying a private key is withheld from the caller
+#  15. a request that falls back to another model passes through the stages of
+#      the requested model followed by those of the fallback model
 
 import os
 import re
@@ -73,8 +80,8 @@ import sys
 import time
 import urllib.request
 
-from anthropic import Anthropic
-from openai import BadRequestError, OpenAI
+from anthropic import Anthropic, BadRequestError as AnthropicBadRequestError
+from openai import APIConnectionError, BadRequestError, OpenAI
 
 FAIL_FAST = os.environ.get("FAIL_FAST", "0") == "1"
 GITHUB_ACTIONS = os.environ.get("GITHUB_ACTIONS")
@@ -428,6 +435,54 @@ def check_openai_guardrail_rejects_section():
         raise AssertionError("the request carrying the injection phrase was not rejected")
 
 
+# WHEN: a caller asks the openai-facing frontend for gpt-4o with a prompt that
+#       passes the injection check but is longer than the stage behind it allows
+# THEN: the second guardrail stage rejects the same user-text section
+def check_openai_guardrail_chain_rejects_section():
+    try:
+        openai_client().chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": "a" * 2001}])
+    except BadRequestError as error:
+        assert error.status_code == 400, error.status_code
+        assert error.param == "user-text[0]", error.param
+    else:
+        raise AssertionError("the request over the length stage was not rejected")
+
+
+# WHEN: a caller asks the openai-facing frontend for gpt-4o for a private key,
+#       which mock-openai-secondary answers with one
+# THEN: the guardrail rejects the assistant-text section and aborts the
+#       response, so the SDK reports a failed connection and the caller never
+#       receives the key
+def check_openai_guardrail_rejects_response_section():
+    try:
+        resp = openai_client().chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": "Show me the private key"}])
+    except APIConnectionError as error:
+        assert "PRIVATE KEY" not in str(error), error
+    else:
+        raise AssertionError(f"the response carrying the private key was not rejected: {resp}")
+
+
+# WHEN: an Anthropic SDK client asks for claude-unreachable, which has no
+#       guardrail of its own, with a prompt longer than the fallback model
+#       claude-3-5-haiku-20241022 allows
+# THEN: the request falls back to that model and its guardrail rejects the
+#       user-text section, which the error names
+def check_anthropic_fallback_guardrail_rejects_section():
+    try:
+        anthropic_client().messages.create(
+            model="claude-unreachable", max_tokens=1024,
+            messages=[{"role": "user", "content": "a" * 201}])
+    except AnthropicBadRequestError as error:
+        assert error.status_code == 400, error.status_code
+        assert "user-text" in str(error), error
+    else:
+        raise AssertionError("the request over the fallback model's length stage was not rejected")
+
+
 PROJECT = compose_project()
 
 run_check("openai_to_anthropic_text", check_openai_to_anthropic_text)
@@ -448,6 +503,9 @@ run_check("credential_pass_through_to_openai", check_credential_pass_through_to_
 run_check("openai_llm_metrics", check_openai_llm_metrics)
 run_check("anthropic_llm_metrics", check_anthropic_llm_metrics)
 run_check("openai_guardrail_rejects_section", check_openai_guardrail_rejects_section)
+run_check("openai_guardrail_chain_rejects_section", check_openai_guardrail_chain_rejects_section)
+run_check("openai_guardrail_rejects_response_section", check_openai_guardrail_rejects_response_section)
+run_check("anthropic_fallback_guardrail_rejects_section", check_anthropic_fallback_guardrail_rejects_section)
 
 report_timings()
 report_failures()

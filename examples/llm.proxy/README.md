@@ -126,10 +126,9 @@ the client. Fallback entries are exact model names, not patterns.
 
 ## Guardrails
 
-`options.guardrails` on `north_llm_proxy` applies validating stages to the
-sections of a request or response, keyed by the requested model name. Each stage
-names the section types it inspects and a `value` model that must accept the
-section's text; a section the model rejects is never relayed:
+`options.guardrails` on `north_llm_proxy` applies stages to the sections of a request and of its response,
+keyed by the requested model name. A stage names the section types it applies to and a `value` model, any
+model configured the way it would be elsewhere in `zilla.yaml`:
 
 ```yaml
 north_llm_proxy:
@@ -143,14 +142,44 @@ north_llm_proxy:
             value:
               model: string
               pattern: "(?s)(?!.*ignore previous instructions).*"
+          - section: user-text
+            value:
+              model: string
+              maxLength: 2000
+        response:
+          - section: assistant-text
+            value:
+              model: string
+              pattern: "(?s)(?!.*BEGIN PRIVATE KEY).*"
+      claude-3-5-haiku-20241022:
+        request:
+          - section: user-text
+            value:
+              model: string
+              maxLength: 200
 ```
 
-A `gpt-4o` request whose `user-text` section contains `ignore previous
-instructions` is refused before it reaches `mock-openai-secondary`: the proxy
-aborts the exit and resets the client's stream with a dialect-neutral error
-(`invalid_request_error`, `param: user-text[0]`), which `llm(server)` renders as
-an HTTP 400 in the caller's own dialect. Sections of other types, and requests
-for other models, are relayed untouched.
+- **Rejecting a section.** A section a stage rejects is never relayed. The proxy ends the other side of the
+  stream and answers the sender with a dialect-neutral error (`invalid_request_error`, `param: user-text[0]`),
+  which `llm(server)` renders in the caller's own dialect: an HTTP 400 whose body names the section, with
+  `param` where the dialect has one and the section in the message where it does not. A `gpt-4o` request whose
+  `user-text` contains `ignore previous instructions` is refused before it reaches `mock-openai-secondary`.
+- **Chaining.** The stages that name a section type are applied in the order listed, each to what the previous
+  one produced. A `gpt-4o` prompt of 2001 characters passes the injection check and is rejected by the length
+  stage behind it.
+- **Both directions.** A `response` stage applies to the sections the upstream produces. When a stage rejects
+  one, the caller never receives it: the proxy aborts the response toward the caller and resets the upstream. A
+  `gpt-4o` request that asks for the private key is answered by `mock-openai-secondary` with one, and the
+  `assistant-text` stage withholds it: the SDK reports a failed connection. A streamed response carries each
+  delta as its own section, so a stage sees one delta at a time and cannot match text that spans deltas.
+- **Fallback.** A request that falls back to another model passes through the stages of the requested model,
+  followed by those of the model it falls back to. `claude-unreachable` has no stages of its own, so a prompt
+  over 200 characters sent to it is rejected by the stage of `claude-3-5-haiku-20241022`, the model it falls
+  back to.
+- **Transforming stages.** A stage whose model rewrites the section, rather than only accepting or rejecting
+  it, passes what it produces to the next stage and then to the other side, within the flow control credit that
+  side grants. A transforming stage must be deterministic, which is checked when the binding is attached.
+  Sections that no stage names, and requests for models without a guardrail, are relayed untouched.
 
 ## Credential pass-through
 

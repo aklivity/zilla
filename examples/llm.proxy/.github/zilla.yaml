@@ -99,6 +99,21 @@ bindings:
               value:
                 model: string
                 pattern: "(?s)(?!.*ignore previous instructions).*"
+            - section: user-text
+              value:
+                model: string
+                maxLength: 2000
+          response:
+            - section: assistant-text
+              value:
+                model: string
+                pattern: "(?s)(?!.*BEGIN PRIVATE KEY).*"
+        claude-3-5-haiku-20241022:
+          request:
+            - section: user-text
+              value:
+                model: string
+                maxLength: 200
     telemetry:
       metrics:
         - llm.*
