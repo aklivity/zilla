@@ -128,6 +128,12 @@ final class LlmOpenaiSectionSink implements JsonSink
         return false;
     }
 
+    @Override
+    public boolean deterministic()
+    {
+        return true;
+    }
+
     private void onContainerStart(
         JsonEvent event)
     {

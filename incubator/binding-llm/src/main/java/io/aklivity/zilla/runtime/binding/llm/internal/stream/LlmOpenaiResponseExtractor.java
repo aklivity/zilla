@@ -219,6 +219,12 @@ final class LlmOpenaiResponseExtractor implements JsonTransform
         return true;
     }
 
+    @Override
+    public boolean deterministic()
+    {
+        return true;
+    }
+
     private void onContainerStart()
     {
         pathLengthAt[depth++] = path.length();
