@@ -1061,7 +1061,6 @@
                     "title": "Type",
                     "type": "string",
                     "enum": [
-                        "glove",
                         "openai"
                     ]
                 },
@@ -1079,28 +1078,6 @@
                 "type"
             ],
             "allOf": [
-                {
-                    "if": {
-                        "properties": {
-                            "type": {
-                                "const": "glove"
-                            }
-                        }
-                    },
-                    "then": {
-                        "properties": {
-                            "type": {
-                                "const": "glove"
-                            },
-                            "vault": false,
-                            "options": {
-                                "type": "object",
-                                "additionalProperties": false
-                            }
-                        },
-                        "additionalProperties": false
-                    }
-                },
                 {
                     "if": {
                         "properties": {
