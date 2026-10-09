@@ -56,6 +56,7 @@ public class LlmBindingConfigTest
         when(context.supplyModel(any())).thenReturn(handler);
         when(handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE)).thenReturn(pipeline);
         when(pipeline.identity()).thenReturn(true);
+        when(pipeline.deterministic()).thenReturn(true);
     }
 
     @Test
@@ -106,10 +107,10 @@ public class LlmBindingConfigTest
         assertThat(binding.guardrails("gpt-4o").response.get(0).sections, contains(LlmSectionType.ASSISTANT_TEXT));
     }
 
-    @Test(expected = ConfigException.class)
-    public void shouldRejectGuardrailResponseStagesSharingSection()
+    @Test
+    public void shouldSupplyGuardrailResponseStagesSharingSection()
     {
-        new LlmBindingConfig(binding(LlmOptionsConfig.builder()
+        LlmBindingConfig binding = new LlmBindingConfig(binding(LlmOptionsConfig.builder()
             .guardrail()
                 .name("gpt-4o")
                 .response()
@@ -122,12 +123,14 @@ public class LlmBindingConfigTest
                     .build()
                 .build()
             .build()), context);
+
+        assertThat(binding.guardrails("gpt-4o").response, hasSize(2));
     }
 
-    @Test(expected = ConfigException.class)
-    public void shouldRejectGuardrailStagesSharingSection()
+    @Test
+    public void shouldSupplyGuardrailRequestStagesSharingSection()
     {
-        new LlmBindingConfig(binding(LlmOptionsConfig.builder()
+        LlmBindingConfig binding = new LlmBindingConfig(binding(LlmOptionsConfig.builder()
             .guardrail()
                 .name("gpt-4o")
                 .request()
@@ -140,6 +143,75 @@ public class LlmBindingConfigTest
                     .build()
                 .build()
             .build()), context);
+
+        assertThat(binding.guardrails("gpt-4o").request, hasSize(2));
+    }
+
+    @Test
+    public void shouldChainGuardrailsAcrossFallback()
+    {
+        LlmBindingConfig binding = new LlmBindingConfig(binding(LlmOptionsConfig.builder()
+            .guardrail()
+                .name("gpt-4o")
+                .request()
+                    .section("user-text")
+                    .value(TestModelConfig.builder().length(0).build())
+                    .build()
+                .build()
+            .guardrail()
+                .name("gpt-4o-mini")
+                .request()
+                    .section("user-text")
+                    .value(TestModelConfig.builder().length(0).build())
+                    .build()
+                .response()
+                    .section("assistant-text")
+                    .value(TestModelConfig.builder().length(0).build())
+                    .build()
+                .build()
+            .build()), context);
+
+        LlmGuardrail path = binding.guardrails("gpt-4o").then(binding.guardrails("gpt-4o-mini"));
+
+        assertThat(path.request, hasSize(2));
+        assertThat(path.response, hasSize(1));
+    }
+
+    @Test
+    public void shouldSupplyGuardrailTransformingDeterministicModel()
+    {
+        when(pipeline.identity()).thenReturn(false);
+        when(pipeline.deterministic()).thenReturn(true);
+
+        LlmBindingConfig binding = new LlmBindingConfig(binding(LlmOptionsConfig.builder()
+            .guardrail()
+                .name("gpt-4o")
+                .request()
+                    .section("user-text")
+                    .value(TestModelConfig.builder().length(0).build())
+                    .build()
+                .build()
+            .build()), context);
+
+        assertThat(binding.guardrails("gpt-4o").request, hasSize(1));
+    }
+
+    @Test
+    public void shouldSupplyGuardrailNonDeterministicValidatingModel()
+    {
+        when(pipeline.deterministic()).thenReturn(false);
+
+        LlmBindingConfig binding = new LlmBindingConfig(binding(LlmOptionsConfig.builder()
+            .guardrail()
+                .name("gpt-4o")
+                .request()
+                    .section("user-text")
+                    .value(TestModelConfig.builder().length(0).build())
+                    .build()
+                .build()
+            .build()), context);
+
+        assertThat(binding.guardrails("gpt-4o").request, hasSize(1));
     }
 
     @Test(expected = ConfigException.class)
@@ -159,9 +231,10 @@ public class LlmBindingConfigTest
     }
 
     @Test(expected = ConfigException.class)
-    public void shouldRejectGuardrailTransformingModel()
+    public void shouldRejectGuardrailNonDeterministicTransformingModel()
     {
         when(pipeline.identity()).thenReturn(false);
+        when(pipeline.deterministic()).thenReturn(false);
 
         new LlmBindingConfig(binding(LlmOptionsConfig.builder()
             .guardrail()

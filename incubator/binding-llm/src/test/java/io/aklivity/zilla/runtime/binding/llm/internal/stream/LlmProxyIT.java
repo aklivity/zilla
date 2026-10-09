@@ -134,12 +134,77 @@ public class LlmProxyIT
     }
 
     @Test
+    @Configuration("proxy.guardrail.transform.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.transform/client",
+        "${app}/openai.proxy.guardrail.transform/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayTransformedSections() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.chain.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.chain.accepted/client",
+        "${app}/openai.proxy.guardrail.chain.accepted/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayChainedSection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.chain.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.chain.rejected/client",
+        "${app}/openai.proxy.guardrail.chain.rejected/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRejectChainedSection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.fallback.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.fallback/client",
+        "${app}/openai.proxy.guardrail.fallback/server"})
+    public void shouldChainGuardrailStagesAcrossFallback() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.yaml")
     @Specification({
         "${app}/openai.10k/client",
         "${app}/openai.10k/server"})
     @ScriptProperty("clientAddress \"zilla://streams/net0\"")
     public void shouldRouteOpenai10kToAppZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.disclose.10k.yaml")
+    @Specification({
+        "${app}/openai.10k/client",
+        "${app}/openai.10k/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayTransformedOpenai10kSections() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.disclose.100k.yaml")
+    @Specification({
+        "${app}/openai.100k/client",
+        "${app}/openai.100k/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayTransformedOpenai100kSections() throws Exception
     {
         k3po.finish();
     }

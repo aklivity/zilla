@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.binding.llm.config;
 import static java.util.stream.Collectors.toList;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -41,6 +40,7 @@ import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
+import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 public class LlmBindingConfig
@@ -187,19 +187,11 @@ public class LlmBindingConfig
         List<LlmGuardrailStageConfig> configs)
     {
         final List<LlmGuardrailStage> stages = new ArrayList<>();
-        final Set<LlmSectionType> covered = EnumSet.noneOf(LlmSectionType.class);
 
         for (LlmGuardrailStageConfig stage : configs)
         {
             final Set<LlmSectionType> sections = EnumSet.noneOf(LlmSectionType.class);
             stage.sections.forEach(section -> sections.add(LlmSectionType.valueOf(section.replace('-', '_').toUpperCase())));
-
-            if (!Collections.disjoint(covered, sections))
-            {
-                throw new ConfigException(String.format(
-                    "guardrails %s: more than one stage for a section is not yet supported", name));
-            }
-            covered.addAll(sections);
 
             final ModelHandler handler = context.supplyModel(stage.value);
             if (handler == null)
@@ -207,10 +199,11 @@ public class LlmBindingConfig
                 throw new ConfigException(String.format("guardrails %s: unknown model %s", name, stage.value.model));
             }
 
-            if (!handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE).identity())
+            final ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+            if (!pipeline.identity() && !pipeline.deterministic())
             {
                 throw new ConfigException(String.format(
-                    "guardrails %s: model %s transforms the section, which is not yet supported", name, stage.value.model));
+                    "guardrails %s: model %s transforms the section non-deterministically", name, stage.value.model));
             }
 
             stages.add(new LlmGuardrailStage(sections, handler));

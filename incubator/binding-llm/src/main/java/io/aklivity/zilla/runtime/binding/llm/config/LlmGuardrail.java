@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.config;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public final class LlmGuardrail
@@ -29,5 +30,21 @@ public final class LlmGuardrail
     {
         this.request = request;
         this.response = response;
+    }
+
+    public LlmGuardrail then(
+        LlmGuardrail next)
+    {
+        return new LlmGuardrail(concat(request, next.request), concat(response, next.response));
+    }
+
+    private static List<LlmGuardrailStage> concat(
+        List<LlmGuardrailStage> first,
+        List<LlmGuardrailStage> second)
+    {
+        final List<LlmGuardrailStage> stages = new ArrayList<>(first.size() + second.size());
+        stages.addAll(first);
+        stages.addAll(second);
+        return stages;
     }
 }
