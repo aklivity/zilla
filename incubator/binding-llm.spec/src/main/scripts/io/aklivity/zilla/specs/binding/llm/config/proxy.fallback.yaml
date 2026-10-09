@@ -29,19 +29,13 @@ bindings:
     - when:
       - dialect: openai
         model: [ gpt-b ]
-      exit: app0
+      exit: app1
     - when:
       - dialect: openai
         model: [ gpt-s ]
       exit: app0
       with:
         fallback: [ gpt-missing, gpt-b ]
-    - when:
-      - dialect: openai
-        model: [ gpt-c ]
-      exit: app1
-      with:
-        fallback: [ gpt-b ]
     - when:
       - dialect: openai
         model: [ gpt-n ]

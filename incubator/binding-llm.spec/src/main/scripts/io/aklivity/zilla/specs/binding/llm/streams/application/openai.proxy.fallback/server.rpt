@@ -13,28 +13,31 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property serverAddress "zilla://streams/app0"
+property serverAddress "zilla://streams/net0"
+property model "gpt-a"
 property fallback "gpt-b"
 
 accept ${serverAddress}
-       option zilla:window 8192
+       option zilla:window 0
        option zilla:transmission "half-duplex"
-
-# first attempt: the exit resets the stream before sending a window
-
-rejected
-
-# second attempt: the next model in the route fallback list
 
 accepted
 
 read zilla:begin.ext ${llm:matchBeginEx()
                           .typeId(zilla:id("llm"))
                           .dialect("openai")
-                          .model(fallback)
+                          .model(model)
                           .build()}
 
 connected
+
+read advise zilla:challenge ${llm:challengeEx()
+                                .typeId(zilla:id("llm"))
+                                .dialect("openai")
+                                .model(fallback)
+                                .build()}
+
+read option zilla:window 8192
 
 read '{"model":"gpt-b","messages":[{"role":"user","content":"Hello"}],"stream":false}'
 

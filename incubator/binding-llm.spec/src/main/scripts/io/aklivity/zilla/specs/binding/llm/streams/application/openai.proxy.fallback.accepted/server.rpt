@@ -13,9 +13,10 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property acceptedAddress "zilla://streams/app1"
 property fallback "gpt-b"
 
-accept "zilla://streams/app0"
+accept ${acceptedAddress}
        option zilla:window 8192
        option zilla:transmission "half-duplex"
 
