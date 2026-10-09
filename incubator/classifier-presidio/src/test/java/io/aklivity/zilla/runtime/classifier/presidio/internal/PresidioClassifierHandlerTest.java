@@ -93,9 +93,20 @@ public class PresidioClassifierHandlerTest
     }
 
     @Test
-    public void shouldNotSupportAnonymizerOrDeanonymizer()
+    public void shouldInitAnonymizerForDeclaredLabels()
     {
-        assertThat(declared.initAnonymizer(List.of("person")), nullValue());
+        assertThat(declared.initAnonymizer(List.of("person", "email")), not(nullValue()));
+    }
+
+    @Test
+    public void shouldInitAnonymizerForEntityNamesWhenLabelsNotDeclared()
+    {
+        assertThat(undeclared.initAnonymizer(List.of("PERSON", "EMAIL_ADDRESS")), not(nullValue()));
+    }
+
+    @Test
+    public void shouldNotSupportDeanonymizer()
+    {
         assertThat(declared.initDeanonymizer(List.of("person")), nullValue());
     }
 

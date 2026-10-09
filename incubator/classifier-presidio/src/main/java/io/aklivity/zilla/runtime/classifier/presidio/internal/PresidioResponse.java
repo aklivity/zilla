@@ -15,9 +15,12 @@
 package io.aklivity.zilla.runtime.classifier.presidio.internal;
 
 import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.List;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
+import jakarta.json.JsonNumber;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
 import jakarta.json.JsonStructure;
@@ -29,7 +32,24 @@ final class PresidioResponse
     static boolean detected(
         String body)
     {
-        final boolean detected;
+        return !read(body).isEmpty();
+    }
+
+    static List<PresidioFinding> findings(
+        String body)
+    {
+        JsonArray array = read(body);
+        List<PresidioFinding> findings = new ArrayList<>(array.size());
+
+        array.forEach(finding -> findings.add(finding(finding.asJsonObject())));
+
+        return findings;
+    }
+
+    private static JsonArray read(
+        String body)
+    {
+        final JsonArray findings;
 
         try (JsonReader reader = Json.createReader(new StringReader(body)))
         {
@@ -40,13 +60,23 @@ final class PresidioResponse
                 throw new IllegalArgumentException("Expected an array of findings");
             }
 
-            JsonArray findings = structure.asJsonArray();
+            findings = structure.asJsonArray();
             findings.forEach(PresidioResponse::validate);
-
-            detected = !findings.isEmpty();
         }
 
-        return detected;
+        return findings;
+    }
+
+    private static PresidioFinding finding(
+        JsonObject finding)
+    {
+        JsonValue score = finding.get("score");
+
+        return new PresidioFinding(
+            finding.getString("entity_type"),
+            finding.getJsonNumber("start").intValue(),
+            finding.getJsonNumber("end").intValue(),
+            score != null && score.getValueType() == ValueType.NUMBER ? ((JsonNumber) score).doubleValue() : 0.0);
     }
 
     private static void validate(

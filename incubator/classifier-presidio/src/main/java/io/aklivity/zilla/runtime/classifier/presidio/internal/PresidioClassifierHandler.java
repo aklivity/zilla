@@ -17,12 +17,14 @@ package io.aklivity.zilla.runtime.classifier.presidio.internal;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import io.aklivity.zilla.config.classifier.presidio.PresidioClassifierOptionsConfig;
 import io.aklivity.zilla.config.engine.ClassifierConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.classifier.Anonymizer;
 import io.aklivity.zilla.runtime.engine.classifier.ClassifierHandler;
 import io.aklivity.zilla.runtime.engine.classifier.Detector;
 
@@ -38,6 +40,7 @@ final class PresidioClassifierHandler implements ClassifierHandler
     private final double threshold;
     private final Duration timeout;
     private final Map<String, String> entitiesByLabel;
+    private final PresidioSurrogates surrogates;
 
     PresidioClassifierHandler(
         EngineContext context,
@@ -60,6 +63,7 @@ final class PresidioClassifierHandler implements ClassifierHandler
         this.threshold = options.threshold;
         this.timeout = options.timeout;
         this.entitiesByLabel = options.labels;
+        this.surrogates = new PresidioSurrogates();
     }
 
     @Override
@@ -71,12 +75,28 @@ final class PresidioClassifierHandler implements ClassifierHandler
             .distinct()
             .toList();
 
-        return new PresidioDetector(context, client, analyze, authorization, language, threshold, timeout, entities);
+        return new PresidioDetector(context, analyzer(entities));
+    }
+
+    @Override
+    public Anonymizer initAnonymizer(
+        List<String> labels)
+    {
+        Map<String, String> aliasesByEntity = new LinkedHashMap<>();
+        labels.forEach(label -> aliasesByEntity.putIfAbsent(entity(label), label));
+
+        return new PresidioAnonymizer(context, analyzer(List.copyOf(aliasesByEntity.keySet())), surrogates, aliasesByEntity);
     }
 
     void close()
     {
         client.shutdownNow();
+    }
+
+    private PresidioAnalyzer analyzer(
+        List<String> entities)
+    {
+        return new PresidioAnalyzer(client, analyze, authorization, language, threshold, timeout, entities);
     }
 
     private static URI analyze(
