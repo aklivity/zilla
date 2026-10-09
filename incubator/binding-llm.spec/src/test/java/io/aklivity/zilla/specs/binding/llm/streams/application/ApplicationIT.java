@@ -164,6 +164,24 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.streaming.abort.nocredit/client",
+        "${app}/openai.streaming.abort.nocredit/server"})
+    public void shouldAbortOpenaiStreamingWithPartialUsageWithoutCredit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.streaming.abort.nocredit/client",
+        "${app}/anthropic.streaming.abort.nocredit/server"})
+    public void shouldAbortAnthropicStreamingWithPartialUsageWithoutCredit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/anthropic.usage/client",
         "${app}/anthropic.usage/server"})
     public void shouldForwardAnthropicNonstreamingUsage() throws Exception
