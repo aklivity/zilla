@@ -26,10 +26,37 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write "{\"model\":\"claude-3-opus-20240229\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"max_tokens\":1024}"
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("user-text")
+                          .message(0)
+                          .build()}
+write "Hello"
 write flush
 
-read "{\"model\":\"claude-3-opus-20240229\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"max_tokens\":1024}"
+write advise zilla:flush
+
+read zilla:begin.ext ${llm:matchBeginEx()
+                           .typeId(zilla:id("llm"))
+                           .dialect("anthropic")
+                           .model("claude-3-opus-20240229")
+                           .id("msg_01")
+                           .build()}
+
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("assistant-text")
+                          .message(0)
+                          .build()}
+read "Hello! How can I help you today?"
+
+read zilla:end.ext ${llm:matchEndEx()
+                            .typeId(zilla:id("llm"))
+                            .inputTokens(25)
+                            .outputTokens(15)
+                            .finishReason("stop")
+                            .build()}
 
 read closed
 

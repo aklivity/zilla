@@ -146,15 +146,6 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/anthropic.streaming/client",
-        "${app}/anthropic.streaming/server"})
-    public void shouldForwardAnthropicStreaming() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/anthropic.streaming.usage/client",
         "${app}/anthropic.streaming.usage/server"})
     public void shouldForwardAnthropicStreamingUsage() throws Exception
@@ -942,6 +933,474 @@ public class ApplicationIT
         "${app}/openai.response.encode.streaming.multibyte/client",
         "${app}/openai.response.encode.streaming.multibyte/server"})
     public void shouldEncodeOpenaiResponseStreamingMultibyte() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.assistant.reasoning/client",
+        "${app}/anthropic.section.assistant.reasoning/server"})
+    public void shouldAnthropicSectionAssistantReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.assistant.reasoning.redacted/client",
+        "${app}/anthropic.section.assistant.reasoning.redacted/server"})
+    public void shouldAnthropicSectionAssistantReasoningRedacted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.assistant.text/client",
+        "${app}/anthropic.section.assistant.text/server"})
+    public void shouldAnthropicSectionAssistantText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.assistant.text.and.tool.call/client",
+        "${app}/anthropic.section.assistant.text.and.tool.call/server"})
+    public void shouldAnthropicSectionAssistantTextAndToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.assistant.text.citations/client",
+        "${app}/anthropic.section.assistant.text.citations/server"})
+    public void shouldAnthropicSectionAssistantTextCitations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.assistant.tool.call/client",
+        "${app}/anthropic.section.assistant.tool.call/server"})
+    public void shouldAnthropicSectionAssistantToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.conversation/client",
+        "${app}/anthropic.section.conversation/server"})
+    public void shouldAnthropicSectionConversation() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.mixed.content/client",
+        "${app}/anthropic.section.mixed.content/server"})
+    public void shouldAnthropicSectionMixedContent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.rejected.json.malformed/client",
+        "${app}/anthropic.section.rejected.json.malformed/server"})
+    public void shouldAnthropicSectionRejectedJsonMalformed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.rejected.messages.not.array/client",
+        "${app}/anthropic.section.rejected.messages.not.array/server"})
+    public void shouldAnthropicSectionRejectedMessagesNotArray() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.rejected.part.type.last/client",
+        "${app}/anthropic.section.rejected.part.type.last/server"})
+    public void shouldAnthropicSectionRejectedPartTypeLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.rejected.role.last/client",
+        "${app}/anthropic.section.rejected.role.last/server"})
+    public void shouldAnthropicSectionRejectedRoleLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.rejected.role.missing/client",
+        "${app}/anthropic.section.rejected.role.missing/server"})
+    public void shouldAnthropicSectionRejectedRoleMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.rejected.tool.result.id.last/client",
+        "${app}/anthropic.section.rejected.tool.result.id.last/server"})
+    public void shouldAnthropicSectionRejectedToolResultIdLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.rejected.trailing.content/client",
+        "${app}/anthropic.section.rejected.trailing.content/server"})
+    public void shouldAnthropicSectionRejectedTrailingContent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.server.tool.result/client",
+        "${app}/anthropic.section.server.tool.result/server"})
+    public void shouldAnthropicSectionServerToolResult() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.system.instruction/client",
+        "${app}/anthropic.section.system.instruction/server"})
+    public void shouldAnthropicSectionSystemInstruction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.system.instruction.blocks/client",
+        "${app}/anthropic.section.system.instruction.blocks/server"})
+    public void shouldAnthropicSectionSystemInstructionBlocks() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.tool.definition/client",
+        "${app}/anthropic.section.tool.definition/server"})
+    public void shouldAnthropicSectionToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.tool.result/client",
+        "${app}/anthropic.section.tool.result/server"})
+    public void shouldAnthropicSectionToolResult() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.tool.result.100k/client",
+        "${app}/anthropic.section.tool.result.100k/server"})
+    public void shouldAnthropicSectionToolResult100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.tool.result.blocks/client",
+        "${app}/anthropic.section.tool.result.blocks/server"})
+    public void shouldAnthropicSectionToolResultBlocks() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.unknown.part/client",
+        "${app}/anthropic.section.unknown.part/server"})
+    public void shouldAnthropicSectionUnknownPart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.user.document/client",
+        "${app}/anthropic.section.user.document/server"})
+    public void shouldAnthropicSectionUserDocument() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.user.image/client",
+        "${app}/anthropic.section.user.image/server"})
+    public void shouldAnthropicSectionUserImage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.user.text/client",
+        "${app}/anthropic.section.user.text/server"})
+    public void shouldAnthropicSectionUserText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.user.text.100k/client",
+        "${app}/anthropic.section.user.text.100k/server"})
+    public void shouldAnthropicSectionUserText100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.user.text.10k/client",
+        "${app}/anthropic.section.user.text.10k/server"})
+    public void shouldAnthropicSectionUserText10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.user.text.blocks/client",
+        "${app}/anthropic.section.user.text.blocks/server"})
+    public void shouldAnthropicSectionUserTextBlocks() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.user.text.escaped/client",
+        "${app}/anthropic.section.user.text.escaped/server"})
+    public void shouldAnthropicSectionUserTextEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.user.text.multibyte/client",
+        "${app}/anthropic.section.user.text.multibyte/server"})
+    public void shouldAnthropicSectionUserTextMultibyte() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.response.decode.reasoning/client",
+        "${app}/anthropic.response.decode.reasoning/server"})
+    public void shouldDecodeAnthropicResponseReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.response.decode.streaming/client",
+        "${app}/anthropic.response.decode.streaming/server"})
+    public void shouldDecodeAnthropicResponseStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.response.decode.streaming.error/client",
+        "${app}/anthropic.response.decode.streaming.error/server"})
+    public void shouldDecodeAnthropicResponseStreamingError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.response.decode.streaming.tool.call/client",
+        "${app}/anthropic.response.decode.streaming.tool.call/server"})
+    public void shouldDecodeAnthropicResponseStreamingToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.response.decode.text/client",
+        "${app}/anthropic.response.decode.text/server"})
+    public void shouldDecodeAnthropicResponseText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.response.decode.text.100k/client",
+        "${app}/anthropic.response.decode.text.100k/server"})
+    public void shouldDecodeAnthropicResponseText100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.response.decode.text.and.tool.call/client",
+        "${app}/anthropic.response.decode.text.and.tool.call/server"})
+    public void shouldDecodeAnthropicResponseTextAndToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.response.decode.text.escaped/client",
+        "${app}/anthropic.response.decode.text.escaped/server"})
+    public void shouldDecodeAnthropicResponseTextEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.response.encode.reasoning/client",
+        "${app}/anthropic.response.encode.reasoning/server"})
+    public void shouldEncodeAnthropicResponseReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.response.encode.refusal/client",
+        "${app}/anthropic.response.encode.refusal/server"})
+    public void shouldEncodeAnthropicResponseRefusal() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.response.encode.streaming/client",
+        "${app}/anthropic.response.encode.streaming/server"})
+    public void shouldEncodeAnthropicResponseStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.response.encode.streaming.error/client",
+        "${app}/anthropic.response.encode.streaming.error/server"})
+    public void shouldEncodeAnthropicResponseStreamingError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.response.encode.streaming.multibyte/client",
+        "${app}/anthropic.response.encode.streaming.multibyte/server"})
+    public void shouldEncodeAnthropicResponseStreamingMultibyte() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.response.encode.streaming.tool.call/client",
+        "${app}/anthropic.response.encode.streaming.tool.call/server"})
+    public void shouldEncodeAnthropicResponseStreamingToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.response.encode.text/client",
+        "${app}/anthropic.response.encode.text/server"})
+    public void shouldEncodeAnthropicResponseText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.response.encode.text.100k/client",
+        "${app}/anthropic.response.encode.text.100k/server"})
+    public void shouldEncodeAnthropicResponseText100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.response.encode.text.and.tool.call/client",
+        "${app}/anthropic.response.encode.text.and.tool.call/server"})
+    public void shouldEncodeAnthropicResponseTextAndToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.response.encode.text.escaped/client",
+        "${app}/anthropic.response.encode.text.escaped/server"})
+    public void shouldEncodeAnthropicResponseTextEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.model.last/client",
+        "${app}/anthropic.section.model.last/server"})
+    public void shouldAnthropicSectionModelLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.model.last.system.tools/client",
+        "${app}/anthropic.section.model.last.system.tools/server"})
+    public void shouldAnthropicSectionModelLastSystemTools() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.model.last.text.10k/client",
+        "${app}/anthropic.section.model.last.text.10k/server"})
+    public void shouldAnthropicSectionModelLastText10k() throws Exception
     {
         k3po.finish();
     }

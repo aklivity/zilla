@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import static io.aklivity.zilla.config.engine.KindConfig.CLIENT;
-import static io.aklivity.zilla.config.engine.KindConfig.SERVER;
 
 import io.aklivity.zilla.runtime.binding.llm.config.LlmBindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
@@ -59,7 +58,6 @@ public final class LlmLegacyDialectAdapter implements LlmDialect
         private final EngineContext context;
         private final LlmContentCodecFactory codecs;
 
-        private LlmLegacyServerFactory server;
         private LlmLegacyClientFactory client;
 
         private LlmLegacyDialectAdapterContext(
@@ -83,12 +81,6 @@ public final class LlmLegacyDialectAdapter implements LlmDialect
 
             switch (binding.kind)
             {
-            case SERVER:
-                if (fixed == null || fixed.equals(name))
-                {
-                    handler = new LlmLegacyServerHandler(name, supplyServer(), supplyBinding(binding));
-                }
-                break;
             case CLIENT:
                 if (name.equals(fixed))
                 {
@@ -106,15 +98,6 @@ public final class LlmLegacyDialectAdapter implements LlmDialect
             LlmBindingConfig binding)
         {
             return new LlmLegacyBindingConfig(binding, context, codecs);
-        }
-
-        private LlmLegacyServerFactory supplyServer()
-        {
-            if (server == null)
-            {
-                server = new LlmLegacyServerFactory(config, context);
-            }
-            return server;
         }
 
         private LlmLegacyClientFactory supplyClient()
