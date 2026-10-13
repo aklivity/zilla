@@ -71,11 +71,16 @@ bindings:
     exit: north_llm_proxy
 
   # Shared by both frontends: routes purely on LlmBeginEx.dialect/model, never on
-  # request content. The dialect-only routes (last, catch-all for their dialect)
-  # preserve today's cross-dialect translation demo unconditionally; the
-  # dialect+model routes ahead of them pick off two specific models and send
-  # them, same-dialect, to a second same-dialect deployment instead -- the
-  # intra-dialect failover/multi-backend routing this binding kind exists for.
+  # request content. The model names the backend, so a request reaches the
+  # provider that serves its model whichever dialect the client speaks: a
+  # claude-* model reaches Anthropic and a gpt-* model reaches OpenAI. A client
+  # speaking the other dialect is translated across dialects on the way (an
+  # OpenAI SDK client asking for a Claude model, an Anthropic SDK client asking
+  # for a GPT model), and a client already speaking the backend's dialect is
+  # not. Two specific models are picked off first and sent, same-dialect, to a
+  # second deployment instead -- the intra-dialect failover/multi-backend
+  # routing this binding kind exists for. Any other model is served by the
+  # provider of the client's own dialect, with no translation.
   north_llm_proxy:
     type: llm
     kind: proxy
@@ -92,11 +97,17 @@ bindings:
             model: [ claude-3-5-haiku-20241022 ]
         exit: south_llm_client_anthropic_secondary
       - when:
-          - dialect: openai
+          - model: [ "claude-*" ]
         exit: south_llm_client_anthropic
       - when:
-          - dialect: anthropic
+          - model: [ "gpt-*" ]
         exit: south_llm_client_openai
+      - when:
+          - dialect: openai
+        exit: south_llm_client_openai
+      - when:
+          - dialect: anthropic
+        exit: south_llm_client_anthropic
 
   # Every south_llm_client_* below targets the real OpenAI/Anthropic API
   # directly over TLS -- see README.md's "Credential pass-through" section:

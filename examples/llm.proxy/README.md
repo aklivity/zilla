@@ -3,12 +3,16 @@
 Demonstrates `llm(proxy)`: a hop that routes purely on `LlmBeginEx.dialect`/
 `model` -- both already resolved and populated by the `llm(server)` that
 produced the stream -- never on request content. Both frontends' `llm(server)`
-bindings exit into one shared `north_llm_proxy`, which picks the backend:
+bindings exit into one shared `north_llm_proxy`, which picks the backend from
+the model alone:
 
-- **Cross-dialect translation** (the default route for each dialect): an
-  `llm(server)` speaking one dialect is routed to an `llm(client)` that
-  re-encodes the request for an upstream speaking the *other* dialect, then
-  re-encodes the response back on the way out.
+- **Cross-dialect translation, chosen by model**: the model names the provider
+  that serves it, whichever dialect the client speaks. An OpenAI SDK client
+  asking for a Claude model is routed to an `llm(client)` that re-encodes the
+  request for Anthropic, then re-encodes the response back as OpenAI on the
+  way out; an Anthropic SDK client asking for a GPT model is translated the
+  other way. A client already speaking the backend's dialect is not
+  translated at all.
 - **Intra-dialect, model-based routing**: a specific model name is routed to
   a *second* deployment of the *same* dialect instead -- no translation on
   that leg at all. This is the routing this binding kind exists for --
@@ -26,12 +30,19 @@ anthropic client ───►│ tcp(7162) → http(server) → llm(server, dial
 `north_llm_proxy` then picks one of four `llm(client)` legs, each behind its
 own `http(client)` → `tcp(client)`, purely from the stream's `dialect`/`model`:
 
-| Inbound dialect | Model | Routed to | Same dialect? |
+| Inbound dialect | Model | Routed to | Translated? |
 | --- | --- | --- | --- |
-| `openai` | `gpt-4o` | `south_llm_client_openai_secondary` → `mock-openai-secondary:4103` | yes -- no translation |
-| `anthropic` | `claude-3-5-haiku-20241022` | `south_llm_client_anthropic_secondary` → `mock-anthropic-secondary:4104` | yes -- no translation |
-| `openai` | *(anything else, e.g. `gpt-4`)* | `south_llm_client_anthropic` → `mock-anthropic:4102` | no -- translated |
-| `anthropic` | *(anything else, e.g. `claude-3-opus-20240229`)* | `south_llm_client_openai` → `mock-openai:4101` | no -- translated |
+| `openai` | `gpt-4o` | `south_llm_client_openai_secondary` → `mock-openai-secondary:4103` | no -- same dialect |
+| `anthropic` | `claude-3-5-haiku-20241022` | `south_llm_client_anthropic_secondary` → `mock-anthropic-secondary:4104` | no -- same dialect |
+| `openai` | `claude-*`, e.g. `claude-3-opus-20240229` | `south_llm_client_anthropic` → `mock-anthropic:4102` | **yes -- openai to anthropic** |
+| `anthropic` | `gpt-*`, e.g. `gpt-4` | `south_llm_client_openai` → `mock-openai:4101` | **yes -- anthropic to openai** |
+| `anthropic` | `claude-*`, e.g. `claude-3-opus-20240229` | `south_llm_client_anthropic` → `mock-anthropic:4102` | no -- same dialect |
+| `openai` | `gpt-*`, e.g. `gpt-4` | `south_llm_client_openai` → `mock-openai:4101` | no -- same dialect |
+| `openai` | *(any other model)* | `south_llm_client_openai` → `mock-openai:4101` | no -- same dialect |
+| `anthropic` | *(any other model)* | `south_llm_client_anthropic` → `mock-anthropic:4102` | no -- same dialect |
+
+A model neither prefix names is served by the provider of the client's own
+dialect, with no translation.
 
 The `llm` binding sits on top of `http`, the same way `mcp` does in
 `examples/mcp.proxy` -- `http(server)`/`http(client)` do the wire-level
@@ -43,15 +54,15 @@ decoded request/response (or, for the proxy, on the stream's own metadata).
 | `llm` | `server` (`north_llm_server_openai`) | Terminates OpenAI-dialect `/v1/chat/completions` requests on port 7161 |
 | `llm` | `server` (`north_llm_server_anthropic`) | Terminates Anthropic-dialect `/v1/messages` requests on port 7162 |
 | `llm` | `proxy` (`north_llm_proxy`) | Routes on `dialect`/`model` to one of the four `llm(client)` legs below |
-| `llm` | `client` (`south_llm_client_anthropic`) | Default exit for openai-dialect traffic: re-encodes for `mock-anthropic`'s Messages API and translates its response back |
-| `llm` | `client` (`south_llm_client_openai`) | Default exit for anthropic-dialect traffic: re-encodes for `mock-openai`'s Chat Completions API and translates its response back |
+| `llm` | `client` (`south_llm_client_anthropic`) | Exit for `claude-*` models: for an openai-dialect request, re-encodes for `mock-anthropic`'s Messages API and translates its response back; an anthropic-dialect request passes straight through |
+| `llm` | `client` (`south_llm_client_openai`) | Exit for `gpt-*` models: for an anthropic-dialect request, re-encodes for `mock-openai`'s Chat Completions API and translates its response back; an openai-dialect request passes straight through |
 | `llm` | `client` (`south_llm_client_openai_secondary`) | `model: gpt-4o` exit: same dialect (openai) as the request, no translation, straight to `mock-openai-secondary` |
 | `llm` | `client` (`south_llm_client_anthropic_secondary`) | `model: claude-3-5-haiku-20241022` exit: same dialect (anthropic) as the request, no translation, straight to `mock-anthropic-secondary` |
 
-Each cross-dialect direction also demonstrates a tool-call round trip: a
-request carrying an OpenAI `tools` definition gets an OpenAI `tool_calls`
-response translated from the upstream's native Anthropic `tool_use` content
-block, and vice versa.
+Each cross-dialect direction also demonstrates a tool-call round trip: an
+OpenAI request for a Claude model carrying a `tools` definition gets an OpenAI
+`tool_calls` response translated from the upstream's native Anthropic
+`tool_use` content block, and vice versa.
 
 ## Routing
 
@@ -74,18 +85,27 @@ bindings:
             model: [ claude-3-5-haiku-20241022 ]
         exit: south_llm_client_anthropic_secondary
       - when:
-          - dialect: openai
+          - model: [ "claude-*" ]
         exit: south_llm_client_anthropic
       - when:
-          - dialect: anthropic
+          - model: [ "gpt-*" ]
         exit: south_llm_client_openai
+      - when:
+          - dialect: openai
+        exit: south_llm_client_openai
+      - when:
+          - dialect: anthropic
+        exit: south_llm_client_anthropic
 ```
 
 Routes are evaluated top to bottom; the first matching one wins. The two
-`dialect`+`model` routes only match one specific model each, so every other
-model on that dialect falls through to the dialect-only catch-all beneath
-them -- which is why the existing translation demo (any other model, e.g.
-`gpt-4`/`claude-3-opus-20240229`) keeps working unchanged.
+`dialect`+`model` routes only match one specific model each. The `model`-only
+routes beneath them match any dialect and send each model to the provider that
+serves it, so the same route is a straight pass-through for a client speaking
+that provider's dialect and a cross-dialect translation for a client speaking
+the other one -- the dialect translation is a consequence of the model chosen,
+not something the route configures. The two `dialect`-only routes last catch any
+other model and keep it on the provider of the client's own dialect.
 
 ## Credential pass-through
 
@@ -125,8 +145,8 @@ server side, the `"Bearer {credentials}"` template strips the OpenAI
 client side, the `"{credentials}"` template (no prefix) re-injects that same
 raw token into Anthropic's unprefixed `x-api-key` header. So a caller's own
 API key is forwarded upstream exactly as presented -- Zilla never needs a
-separate secret of its own configured in `zilla.yaml`, for the default routes
-or the secondary, model-routed ones. The reverse route mirrors this: an
+separate secret of its own configured in `zilla.yaml`, for the cross-dialect
+routes or the secondary, same-dialect ones. The reverse route mirrors this: an
 inbound `x-api-key` is captured with the `"{credentials}"` template and
 forwarded upstream as `Authorization: Bearer {credentials}`.
 
@@ -153,23 +173,25 @@ succeed unmodified:
 pip install openai anthropic
 ```
 
-Send an OpenAI-shaped request to the openai-facing frontend; the reply comes
-back openai-shaped even though the real upstream (`mock-anthropic`) only
-speaks Anthropic:
+Send an OpenAI-shaped request for a Claude model to the openai-facing
+frontend; the model picks the backend, so the request is translated to
+Anthropic, and the reply comes back openai-shaped even though the real
+upstream (`mock-anthropic`) only speaks Anthropic:
 
 ```python
 from openai import OpenAI
 
 client = OpenAI(base_url="http://localhost:7161/v1", api_key="your-openai-key")
 resp = client.chat.completions.create(
-    model="gpt-4",
+    model="claude-3-opus-20240229",
     messages=[{"role": "user", "content": "Hello"}])
 print(resp.choices[0].message.content)
 ```
 
-Ask for `gpt-4o` instead, and `north_llm_proxy` routes it to the second
-openai-dialect deployment (`mock-openai-secondary`) rather than translating
-it to Anthropic:
+Ask for `gpt-4` instead and the same client is routed straight to `mock-openai`
+with no translation, since that model is served by an openai-dialect backend.
+Ask for `gpt-4o`, and `north_llm_proxy` routes it to the second
+openai-dialect deployment (`mock-openai-secondary`) instead:
 
 ```python
 resp = client.chat.completions.create(
@@ -182,29 +204,31 @@ Streaming works the same way, including across the translated leg:
 
 ```python
 for chunk in client.chat.completions.create(
-        model="gpt-4", messages=[{"role": "user", "content": "Hello"}], stream=True):
+        model="claude-3-opus-20240229", messages=[{"role": "user", "content": "Hello"}], stream=True):
     if chunk.choices[0].delta.content:
         print(chunk.choices[0].delta.content, end="")
 ```
 
-Send an Anthropic-shaped request to the anthropic-facing frontend; the reply
-comes back anthropic-shaped even though the real upstream (`mock-openai`)
-only speaks OpenAI:
+Send an Anthropic-shaped request for a GPT model to the anthropic-facing
+frontend; the request is translated to OpenAI, and the reply comes back
+anthropic-shaped even though the real upstream (`mock-openai`) only speaks
+OpenAI:
 
 ```python
 from anthropic import Anthropic
 
 client = Anthropic(base_url="http://localhost:7162", api_key="your-anthropic-key")
 resp = client.messages.create(
-    model="claude-3-opus-20240229",
+    model="gpt-4",
     max_tokens=1024,
     messages=[{"role": "user", "content": "Hello"}])
 print(resp.content[0].text)
 ```
 
-Ask for `claude-3-5-haiku-20241022` instead, and `north_llm_proxy` routes it
-to the second anthropic-dialect deployment (`mock-anthropic-secondary`)
-rather than translating it to OpenAI:
+Ask for `claude-3-opus-20240229` instead and the same client is routed straight
+to `mock-anthropic` with no translation. Ask for `claude-3-5-haiku-20241022`,
+and `north_llm_proxy` routes it to the second anthropic-dialect deployment
+(`mock-anthropic-secondary`) instead:
 
 ```python
 resp = client.messages.create(
@@ -218,15 +242,16 @@ Streaming:
 
 ```python
 with client.messages.stream(
-        model="claude-3-opus-20240229", max_tokens=1024,
+        model="gpt-4", max_tokens=1024,
         messages=[{"role": "user", "content": "Hello"}]) as stream:
     for text in stream.text_stream:
         print(text, end="")
 ```
 
 Both directions round-trip through the exact same cross-dialect translation
--- the openai client's request lands on `mock-anthropic`, the anthropic
-client's on `mock-openai` -- the SDKs are simply unaware of it.
+-- the openai client's request for a Claude model lands on `mock-anthropic`,
+the anthropic client's request for a GPT model on `mock-openai` -- the SDKs
+are simply unaware of it.
 
 Add a `tools` definition to either cross-dialect request (see
 `etc/test/verify.py` for the full shape) to see a tool-call response

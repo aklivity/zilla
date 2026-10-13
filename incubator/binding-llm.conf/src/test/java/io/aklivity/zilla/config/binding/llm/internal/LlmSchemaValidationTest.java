@@ -441,6 +441,30 @@ public class LlmSchemaValidationTest
     }
 
     @Test
+    public void shouldAcceptProxyWithRoutesWhenModelGlobAnyDialect()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                routes:
+                - when:
+                  - model: [ "claude-*" ]
+                  exit: app0
+                - when:
+                  - model: [ "gpt-*" ]
+                  exit: app1
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
     public void shouldAcceptProxyWithBareExitAndNoRoutes()
     {
         String text =

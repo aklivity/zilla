@@ -28,6 +28,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.llm.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmAbortExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmBeginExFW;
+import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmChallengeExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmDataExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmEndExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmErrorFW;
@@ -58,6 +59,18 @@ public final class LlmFunctions
     public static LlmDataExMatcherBuilder matchDataEx()
     {
         return new LlmDataExMatcherBuilder();
+    }
+
+    @Function
+    public static LlmChallengeExBuilder challengeEx()
+    {
+        return new LlmChallengeExBuilder();
+    }
+
+    @Function
+    public static LlmChallengeExMatcherBuilder matchChallengeEx()
+    {
+        return new LlmChallengeExMatcherBuilder();
     }
 
     @Function
@@ -938,6 +951,102 @@ public final class LlmFunctions
             return finishReasonNull ? actual == null : finishReason == null || finishReason.equals(actual);
         }
 
+    }
+
+    public static final class LlmChallengeExBuilder
+    {
+        private final LlmChallengeExFW.Builder challengeExRW;
+
+        private LlmChallengeExBuilder()
+        {
+            MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024]);
+            this.challengeExRW = new LlmChallengeExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public LlmChallengeExBuilder typeId(
+            int typeId)
+        {
+            challengeExRW.typeId(typeId);
+            return this;
+        }
+
+        public LlmChallengeExBuilder dialect(
+            String dialect)
+        {
+            challengeExRW.dialect(dialect);
+            return this;
+        }
+
+        public byte[] build()
+        {
+            final LlmChallengeExFW challengeEx = challengeExRW.build();
+            final byte[] array = new byte[challengeEx.sizeof()];
+            challengeEx.buffer().getBytes(challengeEx.offset(), array);
+            return array;
+        }
+    }
+
+    public static final class LlmChallengeExMatcherBuilder
+    {
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
+
+        private final LlmChallengeExFW challengeExRO = new LlmChallengeExFW();
+
+        private Integer typeId;
+        private String dialect;
+
+        public LlmChallengeExMatcherBuilder typeId(
+            int typeId)
+        {
+            this.typeId = typeId;
+            return this;
+        }
+
+        public LlmChallengeExMatcherBuilder dialect(
+            String dialect)
+        {
+            this.dialect = dialect;
+            return this;
+        }
+
+        public BytesMatcher build()
+        {
+            return this::match;
+        }
+
+        private LlmChallengeExFW match(
+            ByteBuffer byteBuf) throws Exception
+        {
+            if (!byteBuf.hasRemaining())
+            {
+                return null;
+            }
+
+            bufferRO.wrap(byteBuf);
+            final LlmChallengeExFW challengeEx = challengeExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.limit());
+
+            if (challengeEx != null &&
+                matchTypeId(challengeEx) &&
+                matchDialect(challengeEx))
+            {
+                byteBuf.position(byteBuf.position() + challengeEx.sizeof());
+                return challengeEx;
+            }
+
+            throw new Exception(challengeEx.toString());
+        }
+
+        private boolean matchTypeId(
+            LlmChallengeExFW challengeEx)
+        {
+            return typeId == null || typeId == challengeEx.typeId();
+        }
+
+        private boolean matchDialect(
+            LlmChallengeExFW challengeEx)
+        {
+            return dialect == null || dialect.equals(challengeEx.dialect().asString());
+        }
     }
 
     public static final class LlmAbortExBuilder

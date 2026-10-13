@@ -122,4 +122,15 @@ public class LlmProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/openai.proxy.sections/client",
+        "${app}/openai.proxy.sections/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRouteOpenaiSectionsToAppZeroRegardlessOfSectionType() throws Exception
+    {
+        k3po.finish();
+    }
 }

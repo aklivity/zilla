@@ -89,6 +89,11 @@ scope llm
             string16 message = null;
         }
 
+        struct LlmChallengeEx extends core::stream::Extension
+        {
+            string16 dialect;
+        }
+
         struct LlmEndEx extends core::stream::Extension
         {
             LlmUsage usage;

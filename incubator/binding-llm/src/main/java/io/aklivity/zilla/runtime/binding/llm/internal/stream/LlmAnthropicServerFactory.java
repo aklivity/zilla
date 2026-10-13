@@ -50,6 +50,7 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmAbortExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmAttributeFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBeginExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmChallengeExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDialectDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmEndExFW;
@@ -157,6 +158,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
     private final HttpDataExFW.Builder httpDataExRW = new HttpDataExFW.Builder();
     private final LlmBeginExFW llmBeginExRO = new LlmBeginExFW();
+    private final LlmChallengeExFW llmChallengeExRO = new LlmChallengeExFW();
     private final LlmBeginExFW.Builder llmBeginExRW = new LlmBeginExFW.Builder();
     private final LlmDataExFW llmDataExRO = new LlmDataExFW();
     private final LlmSectionAttributes replyAttributes = new LlmSectionAttributes();
@@ -3181,6 +3183,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
         private boolean replyBegun;
         private boolean replyDialect;
+        private boolean crossDialect;
         private int replyKind;
         private boolean flushed;
 
@@ -3554,8 +3557,16 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             final long traceId = challenge.traceId();
             final long authorization = challenge.authorization();
             final OctetsFW extension = challenge.extension();
+            final LlmChallengeExFW llmChallengeEx = extension.get(llmChallengeExRO::tryWrap);
 
-            server.doNetChallenge(traceId, authorization, extension);
+            if (llmChallengeEx != null && llmChallengeEx.typeId() == llmTypeId)
+            {
+                crossDialect = !NAME.equals(llmChallengeEx.dialect().asString());
+            }
+            else
+            {
+                server.doNetChallenge(traceId, authorization, extension);
+            }
         }
 
         private void doAppFlush(
@@ -3695,6 +3706,11 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             int offset,
             int length)
         {
+            if (dialect && crossDialect)
+            {
+                return;
+            }
+
             final DataFW.Builder builder = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(server.routedId)
                 .routedId(server.exitId)

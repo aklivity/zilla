@@ -23,6 +23,7 @@ import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 
+import io.aklivity.k3po.runtime.junit.annotation.ScriptProperty;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
@@ -1047,6 +1048,61 @@ public class LlmAnthropicServerIT
         "${net}/anthropic.streaming.fragmented/client",
         "${app}/anthropic.streaming.fragmented/server"})
     public void shouldNameAnthropicStreamingEventSplitInsideItsType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
+        "${net}/anthropic.transform.user.text/client",
+        "${app}/transform.user.text/server"})
+    public void shouldTransformUserTextFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
+        "${net}/anthropic.transform.system.instruction/client",
+        "${app}/transform.system.instruction/server"})
+    public void shouldTransformSystemInstructionFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
+        "${net}/anthropic.transform.assistant.text/client",
+        "${app}/transform.assistant.text/server"})
+    public void shouldTransformAssistantTextFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
+        "${net}/anthropic.transform.tool.result/client",
+        "${app}/transform.tool.result/server"})
+    public void shouldTransformToolResultFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
+        "${net}/anthropic.transform.request.options/client",
+        "${app}/transform.request.options/server"})
+    public void shouldTransformRequestOptionsFromAnthropic() throws Exception
     {
         k3po.finish();
     }

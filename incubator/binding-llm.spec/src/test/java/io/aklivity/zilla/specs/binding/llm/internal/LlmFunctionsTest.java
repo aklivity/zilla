@@ -29,6 +29,7 @@ import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmAbortExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmBeginExFW;
+import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmChallengeExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmDataExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmEndExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmResetExFW;
@@ -107,6 +108,73 @@ public class LlmFunctionsTest
             .build();
 
         assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateChallengeEx()
+    {
+        byte[] bytes = LlmFunctions.challengeEx()
+            .typeId(0)
+            .dialect("anthropic")
+            .build();
+
+        final LlmChallengeExFW challengeEx = new LlmChallengeExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+
+        assertEquals("anthropic", challengeEx.dialect().asString());
+    }
+
+    @Test
+    public void shouldMatchChallengeEx() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchChallengeEx()
+            .typeId(0)
+            .dialect("anthropic")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new LlmChallengeExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .dialect("anthropic")
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchChallengeExMismatch() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchChallengeEx()
+            .typeId(0)
+            .dialect("anthropic")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new LlmChallengeExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .dialect("openai")
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchChallengeExWithoutConstraints() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchChallengeEx().build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new LlmChallengeExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .dialect("openai")
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
     }
 
     @Test
