@@ -20,29 +20,35 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("openai")
+                           .model("gpt-4")
                            .build()}
 
 connected
 
-write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"stream\":true}"
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("user-text")
+                          .message(0)
+                          .build()}
+write "Hello"
+write flush
+
+write advise zilla:flush
 
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("openai")
-                           .contentType("text/event-stream")
+                           .model("gpt-4")
+                           .id("chatcmpl_1")
                            .build()}
 
+read option zilla:flags "init"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .typeNull()
+                          .type("assistant-text")
+                          .message(0)
                           .build()}
-read "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"Hello\"},\"finish_reason\":null}]}"
-
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .typeNull()
-                          .build()}
-read "{\"error\":{\"message\":\"The server had an error while processing your request.\",\"type\":\"server_error\",\"param\":null,\"code\":null}}"
+read "Hello"
 
 read zilla:abort.ext ${llm:matchAbortEx()
                             .typeId(zilla:id("llm"))

@@ -18,7 +18,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectEvent;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyDialectEvent;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonController;
@@ -37,7 +37,7 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
  * non-streaming whole document has no such framing, so {@code event(null)} signals
  * {@link #onDocumentEnd()} to walk that document's own array-of-blocks shape via {@link #onWholeMessage()}.
  */
-public final class LlmAnthropicDecodeTransform extends LlmCanonicalEmitter implements LlmDialectEvent
+public final class LlmAnthropicDecodeTransform extends LlmCanonicalEmitter implements LlmLegacyDialectEvent
 {
     private static final String MESSAGE_START = "message_start";
     private static final String CONTENT_BLOCK_START = "content_block_start";

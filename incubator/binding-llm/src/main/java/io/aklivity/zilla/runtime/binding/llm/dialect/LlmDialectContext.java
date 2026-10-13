@@ -14,18 +14,29 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
-import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import io.aklivity.zilla.runtime.binding.llm.config.LlmBindingConfig;
 
 /**
- * Engine services a {@link LlmDialect} may need beyond the request it is asked to encode/decode, e.g. a
- * signaler for scheduling background credential refresh behind a {@link LlmDialect#signer()}.
+ * Per-worker state of a {@link LlmDialect}, attaching to each binding it supports.
  */
 public interface LlmDialectContext
 {
     /**
-     * The signaler for scheduling work strictly later on this binding's worker thread.
+     * Attaches to a configured binding.
      *
-     * @return the signaler
+     * @param binding  the configured binding
+     * @return the handler for streams of that binding, or {@code null} if this dialect does not support it
      */
-    Signaler signaler();
+    LlmDialectHandler attach(
+        LlmBindingConfig binding);
+
+    /**
+     * Detaches from a binding.
+     *
+     * @param bindingId  the binding identifier
+     */
+    default void detach(
+        long bindingId)
+    {
+    }
 }

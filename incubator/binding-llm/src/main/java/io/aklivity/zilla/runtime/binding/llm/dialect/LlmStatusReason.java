@@ -16,7 +16,7 @@ package io.aklivity.zilla.runtime.binding.llm.dialect;
 
 /**
  * The standard reason phrase for an HTTP status, e.g. {@code Too Many Requests} for {@code 429}, as a
- * fallback message for an {@link LlmDialect#errorBody(int, String, String)} whose canonical message is
+ * fallback message for an {@link LlmLegacyDialect#errorBody(int, String, String)} whose canonical message is
  * unknown.
  */
 public final class LlmStatusReason

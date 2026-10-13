@@ -26,10 +26,38 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}"
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("user-text")
+                          .message(0)
+                          .build()}
+write "Hello"
 write flush
 
-read "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}"
+write advise zilla:flush
+write flush
+
+read zilla:begin.ext ${llm:matchBeginEx()
+                           .typeId(zilla:id("llm"))
+                           .dialect("openai")
+                           .model("gpt-4")
+                           .id("chatcmpl_2")
+                           .build()}
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("assistant-text")
+                          .message(0)
+                          .build()}
+read "Hello! How can I help you today?"
+
+read zilla:end.ext ${llm:matchEndEx()
+                            .typeId(zilla:id("llm"))
+                            .inputTokens(25)
+                            .outputTokens(15)
+                            .totalTokens(40)
+                            .finishReason("stop")
+                            .build()}
 
 read closed
 

@@ -1,2 +1,1 @@
-io.aklivity.zilla.runtime.binding.llm.dialect.LlmOpenaiDialectFactorySpi
-io.aklivity.zilla.runtime.binding.llm.dialect.LlmAnthropicDialectFactorySpi
+io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmOpenaiDialectFactorySpi

@@ -22,11 +22,19 @@ accepted
 read zilla:begin.ext ${llm:matchBeginEx()
                           .typeId(zilla:id("llm"))
                           .dialect("openai")
+                          .model("gpt-4")
                           .build()}
 
 connected
 
-read "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"stream\":false}"
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("user-text")
+                          .message(0)
+                          .build()}
+read "Hello"
+
+read advised zilla:flush
 
 write zilla:reset.ext ${llm:resetEx()
                             .typeId(zilla:id("llm"))

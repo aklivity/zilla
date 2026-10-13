@@ -57,6 +57,8 @@ write zilla:data.ext ${llm:dataEx()
 write "sunny"
 write flush
 
+write advise zilla:flush
+
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("openai")

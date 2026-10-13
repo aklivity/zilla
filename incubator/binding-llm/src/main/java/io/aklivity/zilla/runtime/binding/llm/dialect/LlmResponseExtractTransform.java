@@ -51,7 +51,7 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
  * default implementation ignores it.
  * </p>
  */
-public abstract class LlmResponseExtractTransform implements JsonTransform, LlmDialectEvent
+public abstract class LlmResponseExtractTransform implements JsonTransform, LlmLegacyDialectEvent
 {
     static final String USAGE_INPUT_TOKENS = "usage.inputTokens";
     static final String USAGE_CACHE_WRITE_TOKENS = "usage.cacheWriteTokens";

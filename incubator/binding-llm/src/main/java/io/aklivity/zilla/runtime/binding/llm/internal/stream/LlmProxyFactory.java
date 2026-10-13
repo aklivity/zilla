@@ -21,11 +21,10 @@ import java.util.function.LongUnaryOperator;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.runtime.binding.llm.config.LlmBindingConfig;
+import io.aklivity.zilla.runtime.binding.llm.config.LlmRouteConfig;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmBinding;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmConfiguration;
-import io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmContentCodecFactory;
-import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmBindingConfig;
-import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmRouteConfig;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.BeginFW;
@@ -74,7 +73,6 @@ public final class LlmProxyFactory implements LlmStreamFactory
     private final int llmTypeId;
     private final EngineContext context;
     private final Long2ObjectHashMap<LlmBindingConfig> bindings;
-    private final LlmContentCodecFactory codecs;
 
     public LlmProxyFactory(
         LlmConfiguration config,
@@ -87,7 +85,6 @@ public final class LlmProxyFactory implements LlmStreamFactory
         this.llmTypeId = context.supplyTypeId(LlmBinding.NAME);
         this.context = context;
         this.bindings = new Long2ObjectHashMap<>();
-        this.codecs = new LlmContentCodecFactory();
     }
 
     @Override
@@ -100,7 +97,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        bindings.put(binding.id, new LlmBindingConfig(binding, context, codecs));
+        bindings.put(binding.id, new LlmBindingConfig(binding, context));
     }
 
     @Override

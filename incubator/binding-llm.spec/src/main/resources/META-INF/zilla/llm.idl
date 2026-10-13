@@ -21,6 +21,7 @@ scope llm
             string16 dialect;
             string16 contentType = null;
             string16 model = null;
+            string16 id = null;
             varint32 extensionLength;
             octets[extensionLength] extension = null;
         }
@@ -57,6 +58,7 @@ scope llm
         struct LlmEndEx extends core::stream::Extension
         {
             LlmUsage usage;
+            string16 finishReason = null;
         }
 
         struct LlmAbortEx extends core::stream::Extension
