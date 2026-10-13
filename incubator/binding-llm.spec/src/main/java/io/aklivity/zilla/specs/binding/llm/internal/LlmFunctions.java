@@ -15,6 +15,7 @@
 package io.aklivity.zilla.specs.binding.llm.internal;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.el.Function;
@@ -22,6 +23,7 @@ import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.specs.binding.llm.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmAbortExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmBeginExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmDataExFW;
@@ -129,6 +131,14 @@ public final class LlmFunctions
             return this;
         }
 
+        public LlmBeginExBuilder extension(
+            String extension)
+        {
+            final byte[] bytes = extension.getBytes(StandardCharsets.UTF_8);
+            beginExRW.extensionLength(bytes.length).extension(e -> e.set(bytes));
+            return this;
+        }
+
         public byte[] build()
         {
             final LlmBeginExFW beginEx = beginExRW.build();
@@ -148,6 +158,8 @@ public final class LlmFunctions
         private String dialect;
         private String contentType;
         private String model;
+        private String extension;
+        private boolean extensionNull;
 
         public LlmBeginExMatcherBuilder typeId(
             int typeId)
@@ -177,6 +189,19 @@ public final class LlmFunctions
             return this;
         }
 
+        public LlmBeginExMatcherBuilder extension(
+            String extension)
+        {
+            this.extension = extension;
+            return this;
+        }
+
+        public LlmBeginExMatcherBuilder extensionNull()
+        {
+            this.extensionNull = true;
+            return this;
+        }
+
         public BytesMatcher build()
         {
             return this::match;
@@ -197,7 +222,8 @@ public final class LlmFunctions
                 matchTypeId(beginEx) &&
                 matchDialect(beginEx) &&
                 matchContentType(beginEx) &&
-                matchModel(beginEx))
+                matchModel(beginEx) &&
+                matchExtension(beginEx))
             {
                 byteBuf.position(byteBuf.position() + beginEx.sizeof());
                 return beginEx;
@@ -229,6 +255,13 @@ public final class LlmFunctions
         {
             return model == null || beginEx.model() != null && model.equals(beginEx.model().asString());
         }
+
+        private boolean matchExtension(
+            LlmBeginExFW beginEx)
+        {
+            final String actual = asString(beginEx.extension());
+            return extensionNull ? actual == null : extension == null || extension.equals(actual);
+        }
     }
 
     public static final class LlmDataExBuilder
@@ -256,10 +289,26 @@ public final class LlmFunctions
             return this;
         }
 
-        public LlmDataExBuilder logProbability(
-            String logProbability)
+        public LlmDataExBuilder message(
+            int message)
         {
-            dataExRW.logProbability(logProbability);
+            dataExRW.message(message);
+            return this;
+        }
+
+        public LlmDataExBuilder attributes(
+            String attributes)
+        {
+            final byte[] bytes = attributes.getBytes(StandardCharsets.UTF_8);
+            dataExRW.attributesLength(bytes.length).attributes(a -> a.set(bytes));
+            return this;
+        }
+
+        public LlmDataExBuilder extension(
+            String extension)
+        {
+            final byte[] bytes = extension.getBytes(StandardCharsets.UTF_8);
+            dataExRW.extensionLength(bytes.length).extension(e -> e.set(bytes));
             return this;
         }
 
@@ -281,8 +330,11 @@ public final class LlmFunctions
         private Integer typeId;
         private String type;
         private boolean typeNull;
-        private String logProbability;
-        private boolean logProbabilityNull;
+        private Integer message;
+        private String attributes;
+        private boolean attributesNull;
+        private String extension;
+        private boolean extensionNull;
 
         public LlmDataExMatcherBuilder typeId(
             int typeId)
@@ -304,16 +356,36 @@ public final class LlmFunctions
             return this;
         }
 
-        public LlmDataExMatcherBuilder logProbability(
-            String logProbability)
+        public LlmDataExMatcherBuilder message(
+            int message)
         {
-            this.logProbability = logProbability;
+            this.message = message;
             return this;
         }
 
-        public LlmDataExMatcherBuilder logProbabilityNull()
+        public LlmDataExMatcherBuilder attributes(
+            String attributes)
         {
-            this.logProbabilityNull = true;
+            this.attributes = attributes;
+            return this;
+        }
+
+        public LlmDataExMatcherBuilder attributesNull()
+        {
+            this.attributesNull = true;
+            return this;
+        }
+
+        public LlmDataExMatcherBuilder extension(
+            String extension)
+        {
+            this.extension = extension;
+            return this;
+        }
+
+        public LlmDataExMatcherBuilder extensionNull()
+        {
+            this.extensionNull = true;
             return this;
         }
 
@@ -336,7 +408,9 @@ public final class LlmFunctions
             if (dataEx != null &&
                 matchTypeId(dataEx) &&
                 matchType(dataEx) &&
-                matchLogProbability(dataEx))
+                matchMessage(dataEx) &&
+                matchAttributes(dataEx) &&
+                matchExtension(dataEx))
             {
                 byteBuf.position(byteBuf.position() + dataEx.sizeof());
                 return dataEx;
@@ -358,11 +432,24 @@ public final class LlmFunctions
                 : type == null || type.equals(dataEx.type().asString());
         }
 
-        private boolean matchLogProbability(
+        private boolean matchMessage(
             LlmDataExFW dataEx)
         {
-            return logProbabilityNull ? dataEx.logProbability().asString() == null
-                : logProbability == null || logProbability.equals(dataEx.logProbability().asString());
+            return message == null || message == dataEx.message();
+        }
+
+        private boolean matchAttributes(
+            LlmDataExFW dataEx)
+        {
+            final String actual = asString(dataEx.attributes());
+            return attributesNull ? actual == null : attributes == null || attributes.equals(actual);
+        }
+
+        private boolean matchExtension(
+            LlmDataExFW dataEx)
+        {
+            final String actual = asString(dataEx.extension());
+            return extensionNull ? actual == null : extension == null || extension.equals(actual);
         }
     }
 
@@ -635,6 +722,7 @@ public final class LlmFunctions
         private String nativeUsage;
         private int status = -1;
         private String type;
+        private String param;
         private String message;
 
         private LlmAbortExBuilder()
@@ -713,6 +801,13 @@ public final class LlmFunctions
             return this;
         }
 
+        public LlmAbortExBuilder param(
+            String param)
+        {
+            this.param = param;
+            return this;
+        }
+
         public LlmAbortExBuilder message(
             String message)
         {
@@ -732,7 +827,7 @@ public final class LlmFunctions
                 u.totalTokens(totalTokens != null ? totalTokens : -1);
                 u.nativeUsage(nativeUsage);
             });
-            abortExRW.error(e -> e.status(status).type(type).message(message));
+            abortExRW.error(e -> e.status(status).type(type).param(param).message(message));
             final LlmAbortExFW abortEx = abortExRW.build();
             final byte[] array = new byte[abortEx.sizeof()];
             abortEx.buffer().getBytes(abortEx.offset(), array);
@@ -830,6 +925,19 @@ public final class LlmFunctions
             String type)
         {
             error.type = type;
+            return this;
+        }
+
+        public LlmAbortExMatcherBuilder param(
+            String param)
+        {
+            error.param = param;
+            return this;
+        }
+
+        public LlmAbortExMatcherBuilder paramNull()
+        {
+            error.paramNull = true;
             return this;
         }
 
@@ -937,6 +1045,7 @@ public final class LlmFunctions
 
         private int status = -1;
         private String type;
+        private String param;
         private String message;
 
         private LlmResetExBuilder()
@@ -966,6 +1075,13 @@ public final class LlmFunctions
             return this;
         }
 
+        public LlmResetExBuilder param(
+            String param)
+        {
+            this.param = param;
+            return this;
+        }
+
         public LlmResetExBuilder message(
             String message)
         {
@@ -976,7 +1092,7 @@ public final class LlmFunctions
         public byte[] build()
         {
             final LlmResetExFW resetEx = resetExRW
-                .error(e -> e.status(status).type(type).message(message))
+                .error(e -> e.status(status).type(type).param(param).message(message))
                 .build();
             final byte[] array = new byte[resetEx.sizeof()];
             resetEx.buffer().getBytes(resetEx.offset(), array);
@@ -1018,6 +1134,19 @@ public final class LlmFunctions
         public LlmResetExMatcherBuilder typeNull()
         {
             error.typeNull = true;
+            return this;
+        }
+
+        public LlmResetExMatcherBuilder param(
+            String param)
+        {
+            error.param = param;
+            return this;
+        }
+
+        public LlmResetExMatcherBuilder paramNull()
+        {
+            error.paramNull = true;
             return this;
         }
 
@@ -1067,6 +1196,8 @@ public final class LlmFunctions
         private Integer status;
         private String type;
         private boolean typeNull;
+        private String param;
+        private boolean paramNull;
         private String message;
         private boolean messageNull;
         private boolean none;
@@ -1075,14 +1206,24 @@ public final class LlmFunctions
             LlmErrorFW error)
         {
             final String errorType = error.type().asString();
+            final String errorParam = error.param().asString();
             final String errorMessage = error.message().asString();
 
             return none
-                ? error.status() == -1 && errorType == null && errorMessage == null
+                ? error.status() == -1 && errorType == null && errorParam == null && errorMessage == null
                 : (status == null || status == error.status()) &&
                     (typeNull ? errorType == null : type == null || type.equals(errorType)) &&
+                    (paramNull ? errorParam == null : param == null || param.equals(errorParam)) &&
                     (messageNull ? errorMessage == null : message == null || message.equals(errorMessage));
         }
+    }
+
+    private static String asString(
+        OctetsFW octets)
+    {
+        return octets != null
+            ? octets.get((buffer, offset, limit) -> buffer.getStringWithoutLengthUtf8(offset, limit - offset))
+            : null;
     }
 
     public static class Mapper extends FunctionMapperSpi.Reflective

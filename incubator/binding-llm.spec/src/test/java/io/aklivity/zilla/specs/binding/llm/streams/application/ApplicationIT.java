@@ -494,4 +494,58 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/canonical.block.single/client",
+        "${app}/canonical.block.single/server"})
+    public void shouldCanonicalBlockSingle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/canonical.block.fragmented/client",
+        "${app}/canonical.block.fragmented/server"})
+    public void shouldCanonicalBlockFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/canonical.multi.block/client",
+        "${app}/canonical.multi.block/server"})
+    public void shouldCanonicalMultiBlock() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/canonical.transformed/client",
+        "${app}/canonical.transformed/server"})
+    public void shouldCanonicalTransformed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/canonical.rejected.section/client",
+        "${app}/canonical.rejected.section/server"})
+    public void shouldCanonicalRejectedSection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/canonical.rejected.upstream.abort/client",
+        "${app}/canonical.rejected.upstream.abort/server"})
+    public void shouldCanonicalRejectedUpstreamAbort() throws Exception
+    {
+        k3po.finish();
+    }
 }

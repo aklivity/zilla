@@ -110,11 +110,17 @@ public class LlmFunctionsTest
     {
         byte[] bytes = LlmFunctions.dataEx()
             .typeId(0)
-            .type("message")
-            .logProbability("-0.1")
+            .type("user-text")
+            .message(2)
+            .attributes("attrs")
+            .extension("ext")
             .build();
 
-        assertNotNull(bytes);
+        LlmDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+        assertEquals("user-text", dataEx.type().asString());
+        assertEquals(2, dataEx.message());
+        assertEquals(5, dataEx.attributesLength());
+        assertEquals(3, dataEx.extensionLength());
     }
 
     @Test
@@ -169,7 +175,8 @@ public class LlmFunctionsTest
         BytesMatcher matcher = LlmFunctions.matchDataEx()
             .typeId(0)
             .typeNull()
-            .logProbabilityNull()
+            .attributesNull()
+            .extensionNull()
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
@@ -238,41 +245,262 @@ public class LlmFunctionsTest
     }
 
     @Test
-    public void shouldFailMatchDataExLogProbabilityMismatch() throws Exception
+    public void shouldMatchDataExMessageTypeAttributesAndExtension() throws Exception
     {
         BytesMatcher matcher = LlmFunctions.matchDataEx()
             .typeId(0)
-            .logProbability("-0.1")
+            .type("tool-result")
+            .message(3)
+            .attributes("attrs")
+            .extension("ext")
             .build();
 
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new LlmDataExFW.Builder()
-            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.dataEx()
             .typeId(0)
-            .logProbability("-0.9")
+            .type("tool-result")
+            .message(3)
+            .attributes("attrs")
+            .extension("ext")
+            .build());
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldDefaultDataExMessageAndSlots()
+    {
+        byte[] bytes = LlmFunctions.dataEx()
+            .typeId(0)
+            .type("user-text")
             .build();
+
+        LlmDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+        assertEquals(-1, dataEx.message());
+        assertNull(dataEx.attributes());
+        assertNull(dataEx.extension());
+    }
+
+    @Test
+    public void shouldFailMatchDataExMessageMismatch() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchDataEx()
+            .typeId(0)
+            .message(1)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.dataEx()
+            .typeId(0)
+            .message(2)
+            .build());
 
         assertThrows(Exception.class, () -> matcher.match(byteBuf));
     }
 
     @Test
-    public void shouldFailMatchDataExLogProbabilityNotNullMismatch() throws Exception
+    public void shouldFailMatchDataExAttributesMismatch() throws Exception
     {
         BytesMatcher matcher = LlmFunctions.matchDataEx()
             .typeId(0)
-            .logProbabilityNull()
+            .attributes("a")
             .build();
 
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new LlmDataExFW.Builder()
-            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.dataEx()
             .typeId(0)
-            .logProbability("-0.1")
-            .build();
+            .attributes("b")
+            .build());
 
         assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchDataExAttributesNotNullMismatch() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchDataEx()
+            .typeId(0)
+            .attributesNull()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.dataEx()
+            .typeId(0)
+            .attributes("a")
+            .build());
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchDataExExtensionMismatch() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchDataEx()
+            .typeId(0)
+            .extension("a")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.dataEx()
+            .typeId(0)
+            .extension("b")
+            .build());
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchDataExExtensionNotNullMismatch() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchDataEx()
+            .typeId(0)
+            .extensionNull()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.dataEx()
+            .typeId(0)
+            .extension("a")
+            .build());
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchBeginExExtension() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchBeginEx()
+            .typeId(0)
+            .dialect("openai")
+            .extension("ext")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.beginEx()
+            .typeId(0)
+            .dialect("openai")
+            .extension("ext")
+            .build());
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchBeginExExtensionNull() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchBeginEx()
+            .typeId(0)
+            .dialect("openai")
+            .extensionNull()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.beginEx()
+            .typeId(0)
+            .dialect("openai")
+            .build());
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchBeginExExtensionMismatch() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchBeginEx()
+            .typeId(0)
+            .dialect("openai")
+            .extension("a")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.beginEx()
+            .typeId(0)
+            .dialect("openai")
+            .extension("b")
+            .build());
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateAndMatchResetExParam() throws Exception
+    {
+        byte[] bytes = LlmFunctions.resetEx()
+            .typeId(0)
+            .status(400)
+            .type("invalid_request_error")
+            .param("messages[3]")
+            .build();
+
+        LlmResetExFW resetEx = new LlmResetExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+        assertEquals("messages[3]", resetEx.error().param().asString());
+
+        BytesMatcher matcher = LlmFunctions.matchResetEx()
+            .typeId(0)
+            .param("messages[3]")
+            .build();
+
+        assertNotNull(matcher.match(ByteBuffer.wrap(bytes)));
+    }
+
+    @Test
+    public void shouldMatchResetExParamNull() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchResetEx()
+            .typeId(0)
+            .paramNull()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.resetEx()
+            .typeId(0)
+            .status(400)
+            .build());
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchResetExParamMismatch() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchResetEx()
+            .typeId(0)
+            .param("a")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.resetEx()
+            .typeId(0)
+            .param("b")
+            .build());
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateAndMatchAbortExParam() throws Exception
+    {
+        byte[] bytes = LlmFunctions.abortEx()
+            .typeId(0)
+            .status(400)
+            .type("invalid_request_error")
+            .param("messages[3]")
+            .build();
+
+        LlmAbortExFW abortEx = new LlmAbortExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+        assertEquals("messages[3]", abortEx.error().param().asString());
+
+        BytesMatcher matcher = LlmFunctions.matchAbortEx()
+            .typeId(0)
+            .param("messages[3]")
+            .build();
+
+        assertNotNull(matcher.match(ByteBuffer.wrap(bytes)));
+    }
+
+    @Test
+    public void shouldMatchAbortExParamNull() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchAbortEx()
+            .typeId(0)
+            .paramNull()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.abortEx()
+            .typeId(0)
+            .status(400)
+            .build());
+
+        assertNotNull(matcher.match(byteBuf));
     }
 
     @Test
