@@ -14,7 +14,7 @@
 #
 
 property target "target"
-property model "gpt-4"
+property model "model"
 
 accept "zilla://streams/app0"
        option zilla:window 8192
@@ -37,13 +37,6 @@ read advise zilla:challenge ${llm:challengeEx()
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("USER_TEXT")
-                          .message(0)
-                          .build()}
-read "Weather in Paris?"
-
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
                           .type("TOOL_DEFINITION")
                           .message(-1)
                           .attribute("tool-name", "get_weather")
@@ -52,13 +45,20 @@ read "{\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"descriptio
      ${core:randomBase64(100000)}
      "\"}}}}}"
 
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("USER_TEXT")
+                          .message(0)
+                          .build()}
+read "Weather in Paris?"
+
 read advised zilla:flush
 
 write zilla:reset.ext ${llm:resetEx()
                             .typeId(zilla:id("llm"))
                             .status(429)
-                            .type("requests")
-                            .message("Rate limit reached for gpt-4")
+                            .type("rate_limit_error")
+                            .message("Rate limit exceeded")
                             .build()}
 
 read abort

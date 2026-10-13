@@ -14,7 +14,7 @@
 #
 
 property target "target"
-property model "gpt-4"
+property model "model"
 
 connect "zilla://streams/app0"
         option zilla:window 8192
@@ -39,9 +39,8 @@ write zilla:data.ext ${llm:dataEx()
                           .message(0)
                           .attribute("media-type", "application/pdf")
                           .attribute("source", "inline")
-                          .attribute("filename", "contract.pdf")
                           .build()}
-write "{\"type\":\"file\",\"file\":{\"filename\":\"contract.pdf\",\"file_data\":\"data:application/pdf;base64,JVBERi0=\"}}"
+write "{\"type\":\"file\",\"file\":{\"file_data\":\"data:application/pdf;base64,JVBERi0=\"}}"
 write flush
 
 write advise zilla:flush
@@ -49,8 +48,8 @@ write advise zilla:flush
 read zilla:reset.ext ${llm:matchResetEx()
                            .typeId(zilla:id("llm"))
                            .status(429)
-                           .type("requests")
-                           .message("Rate limit reached for gpt-4")
+                           .type("rate_limit_error")
+                           .message("Rate limit exceeded")
                            .build()}
 
 write aborted

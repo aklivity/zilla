@@ -14,7 +14,7 @@
 #
 
 property target "target"
-property model "claude-3-opus-20240229"
+property model "model"
 
 connect "zilla://streams/app0"
         option zilla:window 8192
@@ -56,9 +56,9 @@ write await FIRST_FRAME_READ
 write option zilla:flags "fin"
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .attribute("tool-call-id", "toolu_1")
+                          .attribute("tool-call-id", "call_1")
                           .build()}
-write ",\"id\":\"toolu_1\"}"
+write ",\"id\":\"call_1\"}"
 write flush
 
 write advise zilla:flush

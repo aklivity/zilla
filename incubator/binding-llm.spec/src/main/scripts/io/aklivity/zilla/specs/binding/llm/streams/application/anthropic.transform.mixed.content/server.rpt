@@ -14,7 +14,7 @@
 #
 
 property target "target"
-property model "claude-3-opus-20240229"
+property model "model"
 
 accept "zilla://streams/app0"
        option zilla:window 8192
@@ -49,14 +49,6 @@ read zilla:data.ext ${llm:matchDataEx()
                           .attribute("source", "url")
                           .build()}
 read "{\"type\":\"image\",\"source\":{\"type\":\"url\",\"url\":\"https://example.com/cat.png\"}}"
-
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("TOOL_RESULT")
-                          .message(0)
-                          .attribute("tool-call-id", "toolu_1")
-                          .build()}
-read "sunny"
 
 read advised zilla:flush
 

@@ -31,7 +31,7 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-read "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"image\",\"source\":{\"type\":\"url\",\"url\":\"https://example.com/cat.png\"}}]}]}"
+read "{\"model\":\"model\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"image\",\"source\":{\"type\":\"url\",\"url\":\"https://example.com/cat.png\"}}]}]}"
 
 read closed
 
@@ -41,5 +41,5 @@ write zilla:begin.ext ${http:beginEx()
                            .header("content-type", "application/json")
                            .build()}
 
-write "{\"type\":\"error\",\"error\":{\"type\":\"requests\",\"message\":\"Rate limit reached for gpt-4\"}}"
+write "{\"type\":\"error\",\"error\":{\"type\":\"rate_limit_error\",\"message\":\"Rate limit exceeded\"}}"
 write close

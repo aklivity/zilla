@@ -14,7 +14,7 @@
 #
 
 property target "target"
-property model "claude-3-opus-20240229"
+property model "model"
 
 connect "zilla://streams/app0"
         option zilla:window 8192
@@ -46,9 +46,9 @@ write zilla:data.ext ${llm:dataEx()
                           .type("TOOL_CALL")
                           .message(1)
                           .attribute("tool-name", "get_weather")
-                          .attribute("tool-call-id", "toolu_1")
+                          .attribute("tool-call-id", "call_1")
                           .build()}
-write "{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"get_weather\",\"input\":{\"query\":\"say \\\"hi\\\" \\\\ done\\nnext\",\"text\":\"caf\\u00e9 ✓ 😀\",\"nested\":{\"items\":[1,2.5,true,null,{\"k\":\"v\"}],\"empty\":{},\"list\":[]}}}"
+write "{\"type\":\"tool_use\",\"id\":\"call_1\",\"name\":\"get_weather\",\"input\":{\"query\":\"say \\\"hi\\\" \\\\ done\\nnext\",\"text\":\"caf\\u00e9 ✓ 😀\",\"nested\":{\"items\":[1,2.5,true,null,{\"k\":\"v\"}],\"empty\":{},\"list\":[]}}}"
 write flush
 
 write advise zilla:flush

@@ -14,7 +14,7 @@
 #
 
 property target "target"
-property model "claude-3-opus-20240229"
+property model "model"
 
 connect "zilla://streams/app0"
         option zilla:window 8192
@@ -37,10 +37,10 @@ write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("USER_IMAGE")
                           .message(0)
-                          .attribute("media-type", "image/jpeg")
+                          .attribute("media-type", "image/png")
                           .attribute("source", "inline")
                           .build()}
-write "{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image/jpeg\",\"data\":\"/9j/4AAQ\"}}"
+write "{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image/png\",\"data\":\"iVBORw0KGgo=\"}}"
 write flush
 
 write advise zilla:flush

@@ -14,7 +14,7 @@
 #
 
 property target "target"
-property model "claude-3-opus-20240229"
+property model "model"
 
 accept "zilla://streams/app0"
        option zilla:window 8192
@@ -40,9 +40,9 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("USER_DOCUMENT")
                           .message(0)
                           .attribute("source", "reference")
-                          .attribute("ref-id", "file_011abc")
+                          .attribute("ref-id", "file-abc123")
                           .build()}
-read "{\"type\":\"document\",\"source\":{\"type\":\"file\",\"file_id\":\"file_011abc\"}}"
+read "{\"type\":\"document\",\"source\":{\"type\":\"file\",\"file_id\":\"file-abc123\"}}"
 
 read advised zilla:flush
 

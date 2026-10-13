@@ -1,0 +1,87 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+# Canonical response contract (dialect-neutral).
+#
+# The response begin names the dialect that served the response (dialect), the served model (model) and the response
+# identifier the upstream reported (id). The response is always sections, with no content type, whether or not the serving
+# dialect is the request's own dialect. Detail a section cannot express is left to dialect extensions.
+#
+# A section is a run of data frames. The first has the init flag and the data extension (type, message and, for a tool call,
+# the call id as extension and the tool name as attributes); the last has the fin flag, possibly with an empty payload.
+# Fragment boundaries within a section are not significant. Sections are never interleaved.
+#
+# Section types: assistant-text, assistant-reasoning, assistant-refusal (utf-8 text) and tool-call (the arguments).
+# The message is the index of the assistant message, 0 for the first.
+#
+# The end carries the usage and the finish reason (stop, length, tool-call or content-filter).
+# A failure before the begin is a reset; a failure after it is an abort. Both carry the error.
+
+property source "source"
+property target "target"
+property model "model"
+
+connect "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${llm:beginEx()
+                           .typeId(zilla:id("llm"))
+                           .dialect(source)
+                           .model(model)
+                           .build()}
+
+connected
+
+write advised zilla:challenge ${llm:matchChallengeEx()
+                                    .typeId(zilla:id("llm"))
+                                    .dialect(target)
+                                    .build()}
+
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("USER_TEXT")
+                          .message(0)
+                          .build()}
+write "Hello"
+write flush
+
+write advise zilla:flush
+
+read zilla:begin.ext ${llm:matchBeginEx()
+                           .typeId(zilla:id("llm"))
+                           .dialect(target)
+                           .model(model)
+                           .id("id_1")
+                           .build()}
+read option zilla:flags "init"
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("ASSISTANT_TEXT")
+                          .message(0)
+                          .build()}
+read "caf" [0xc3]
+read option zilla:flags "fin"
+read [0xa9] " ok"
+read zilla:end.ext ${llm:matchEndEx()
+                            .typeId(zilla:id("llm"))
+                            .inputTokens(25)
+                            .outputTokens(15)
+                            .finishReason("stop")
+                            .build()}
+
+read closed
+
+write close

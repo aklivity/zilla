@@ -14,7 +14,7 @@
 #
 
 property target "target"
-property model "claude-3-opus-20240229"
+property model "model"
 
 connect "zilla://streams/app0"
         option zilla:window 8192
@@ -48,15 +48,6 @@ write zilla:data.ext ${llm:dataEx()
                           .attribute("source", "url")
                           .build()}
 write "{\"type\":\"image\",\"source\":{\"type\":\"url\",\"url\":\"https://example.com/cat.png\"}}"
-write flush
-
-write zilla:data.ext ${llm:dataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("TOOL_RESULT")
-                          .message(0)
-                          .attribute("tool-call-id", "toolu_1")
-                          .build()}
-write "sunny"
 write flush
 
 write advise zilla:flush

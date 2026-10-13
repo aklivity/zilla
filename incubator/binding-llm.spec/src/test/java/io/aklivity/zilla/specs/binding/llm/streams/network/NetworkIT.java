@@ -740,8 +740,8 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.response.decode.options/client",
-        "${net}/openai.response.decode.options/server"})
+        "${net}/openai.section.assistant.text.members/client",
+        "${net}/openai.section.assistant.text.members/server"})
     public void shouldOpenaiResponseDecodeOptions() throws Exception
     {
         k3po.finish();
@@ -749,35 +749,8 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.response.decode.text/client",
-        "${net}/openai.response.decode.text/server"})
-    public void shouldDecodeOpenaiResponseText() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/openai.response.decode.text.and.tool.call/client",
-        "${net}/openai.response.decode.text.and.tool.call/server"})
-    public void shouldDecodeOpenaiResponseTextAndToolCall() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/openai.response.decode.refusal/client",
-        "${net}/openai.response.decode.refusal/server"})
-    public void shouldDecodeOpenaiResponseRefusal() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/openai.response.decode.streaming/client",
-        "${net}/openai.response.decode.streaming/server"})
+        "${net}/openai.section.assistant.text.streaming/client",
+        "${net}/openai.section.assistant.text.streaming/server"})
     public void shouldDecodeOpenaiResponseStreaming() throws Exception
     {
         k3po.finish();
@@ -785,8 +758,8 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.response.decode.streaming.tool.call/client",
-        "${net}/openai.response.decode.streaming.tool.call/server"})
+        "${net}/openai.section.assistant.tool.call.streaming/client",
+        "${net}/openai.section.assistant.tool.call.streaming/server"})
     public void shouldDecodeOpenaiResponseStreamingToolCall() throws Exception
     {
         k3po.finish();
@@ -794,8 +767,8 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.response.decode.streaming.usage/client",
-        "${net}/openai.response.decode.streaming.usage/server"})
+        "${net}/openai.section.assistant.text.usage.streaming/client",
+        "${net}/openai.section.assistant.text.usage.streaming/server"})
     public void shouldDecodeOpenaiResponseStreamingUsage() throws Exception
     {
         k3po.finish();
@@ -803,8 +776,8 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.response.decode.streaming.error/client",
-        "${net}/openai.response.decode.streaming.error/server"})
+        "${net}/openai.rejected.streaming/client",
+        "${net}/openai.rejected.streaming/server"})
     public void shouldDecodeOpenaiResponseStreamingError() throws Exception
     {
         k3po.finish();
@@ -812,8 +785,8 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.response.decode.text.100k/client",
-        "${net}/openai.response.decode.text.100k/server"})
+        "${net}/openai.section.assistant.text.100k/client",
+        "${net}/openai.section.assistant.text.100k/server"})
     public void shouldDecodeOpenaiResponseText100k() throws Exception
     {
         k3po.finish();
@@ -821,89 +794,8 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.response.encode.options/client",
-        "${net}/openai.response.encode.options/server"})
-    public void shouldOpenaiResponseEncodeOptions() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/openai.response.encode.text/client",
-        "${net}/openai.response.encode.text/server"})
-    public void shouldEncodeOpenaiResponseText() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/openai.response.encode.text.and.tool.call/client",
-        "${net}/openai.response.encode.text.and.tool.call/server"})
-    public void shouldEncodeOpenaiResponseTextAndToolCall() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/openai.response.encode.refusal/client",
-        "${net}/openai.response.encode.refusal/server"})
-    public void shouldEncodeOpenaiResponseRefusal() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/openai.response.encode.streaming/client",
-        "${net}/openai.response.encode.streaming/server"})
-    public void shouldEncodeOpenaiResponseStreaming() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/openai.response.encode.streaming.tool.call/client",
-        "${net}/openai.response.encode.streaming.tool.call/server"})
-    public void shouldEncodeOpenaiResponseStreamingToolCall() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/openai.response.encode.streaming.error/client",
-        "${net}/openai.response.encode.streaming.error/server"})
-    public void shouldEncodeOpenaiResponseStreamingError() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/openai.response.encode.text.100k/client",
-        "${net}/openai.response.encode.text.100k/server"})
-    public void shouldEncodeOpenaiResponseText100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/openai.response.encode.reasoning/client",
-        "${net}/openai.response.encode.reasoning/server"})
-    public void shouldEncodeOpenaiResponseReasoning() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/openai.response.decode.text.escaped/client",
-        "${net}/openai.response.decode.text.escaped/server"})
+        "${net}/openai.section.assistant.text.escaped/client",
+        "${net}/openai.section.assistant.text.escaped/server"})
     public void shouldDecodeOpenaiResponseTextEscaped() throws Exception
     {
         k3po.finish();
@@ -911,26 +803,8 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.response.encode.text.escaped/client",
-        "${net}/openai.response.encode.text.escaped/server"})
-    public void shouldEncodeOpenaiResponseTextEscaped() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/openai.response.encode.text.multibyte/client",
-        "${net}/openai.response.encode.text.multibyte/server"})
-    public void shouldEncodeOpenaiResponseTextMultibyte() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/openai.response.encode.streaming.multibyte/client",
-        "${net}/openai.response.encode.streaming.multibyte/server"})
+        "${net}/openai.transform.response.streaming.multibyte/client",
+        "${net}/openai.transform.response.streaming.multibyte/server"})
     public void shouldEncodeOpenaiResponseStreamingMultibyte() throws Exception
     {
         k3po.finish();
@@ -1388,9 +1262,9 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/anthropic.transform.user.document/client",
-        "${net}/anthropic.transform.user.document/server"})
-    public void shouldAnthropicTransformOpenaiUserDocument() throws Exception
+        "${net}/anthropic.transform.user.document.reference/client",
+        "${net}/anthropic.transform.user.document.reference/server"})
+    public void shouldAnthropicTransformOpenaiUserDocumentReference() throws Exception
     {
         k3po.finish();
     }
@@ -1802,17 +1676,8 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/anthropic.response.decode.reasoning/client",
-        "${net}/anthropic.response.decode.reasoning/server"})
-    public void shouldDecodeAnthropicResponseReasoning() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/anthropic.response.decode.streaming/client",
-        "${net}/anthropic.response.decode.streaming/server"})
+        "${net}/anthropic.section.assistant.text.streaming/client",
+        "${net}/anthropic.section.assistant.text.streaming/server"})
     public void shouldDecodeAnthropicResponseStreaming() throws Exception
     {
         k3po.finish();
@@ -1820,8 +1685,8 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/anthropic.response.decode.streaming.error/client",
-        "${net}/anthropic.response.decode.streaming.error/server"})
+        "${net}/anthropic.rejected.streaming/client",
+        "${net}/anthropic.rejected.streaming/server"})
     public void shouldDecodeAnthropicResponseStreamingError() throws Exception
     {
         k3po.finish();
@@ -1829,8 +1694,8 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/anthropic.response.decode.streaming.tool.call/client",
-        "${net}/anthropic.response.decode.streaming.tool.call/server"})
+        "${net}/anthropic.section.assistant.tool.call.streaming/client",
+        "${net}/anthropic.section.assistant.tool.call.streaming/server"})
     public void shouldDecodeAnthropicResponseStreamingToolCall() throws Exception
     {
         k3po.finish();
@@ -1838,8 +1703,8 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/anthropic.response.decode.options/client",
-        "${net}/anthropic.response.decode.options/server"})
+        "${net}/anthropic.section.assistant.text.members/client",
+        "${net}/anthropic.section.assistant.text.members/server"})
     public void shouldAnthropicResponseDecodeOptions() throws Exception
     {
         k3po.finish();
@@ -1847,17 +1712,8 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/anthropic.response.decode.text/client",
-        "${net}/anthropic.response.decode.text/server"})
-    public void shouldDecodeAnthropicResponseText() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/anthropic.response.decode.text.100k/client",
-        "${net}/anthropic.response.decode.text.100k/server"})
+        "${net}/anthropic.section.assistant.text.100k/client",
+        "${net}/anthropic.section.assistant.text.100k/server"})
     public void shouldDecodeAnthropicResponseText100k() throws Exception
     {
         k3po.finish();
@@ -1865,17 +1721,8 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/anthropic.response.decode.text.and.tool.call/client",
-        "${net}/anthropic.response.decode.text.and.tool.call/server"})
-    public void shouldDecodeAnthropicResponseTextAndToolCall() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/anthropic.response.decode.text.escaped/client",
-        "${net}/anthropic.response.decode.text.escaped/server"})
+        "${net}/anthropic.section.assistant.text.escaped/client",
+        "${net}/anthropic.section.assistant.text.escaped/server"})
     public void shouldDecodeAnthropicResponseTextEscaped() throws Exception
     {
         k3po.finish();
@@ -1883,108 +1730,9 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/anthropic.response.encode.reasoning/client",
-        "${net}/anthropic.response.encode.reasoning/server"})
-    public void shouldEncodeAnthropicResponseReasoning() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/anthropic.response.encode.refusal/client",
-        "${net}/anthropic.response.encode.refusal/server"})
-    public void shouldEncodeAnthropicResponseRefusal() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/anthropic.response.encode.streaming/client",
-        "${net}/anthropic.response.encode.streaming/server"})
-    public void shouldEncodeAnthropicResponseStreaming() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/anthropic.response.encode.streaming.error/client",
-        "${net}/anthropic.response.encode.streaming.error/server"})
-    public void shouldEncodeAnthropicResponseStreamingError() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/anthropic.response.encode.streaming.multibyte/client",
-        "${net}/anthropic.response.encode.streaming.multibyte/server"})
+        "${net}/anthropic.transform.response.streaming.multibyte/client",
+        "${net}/anthropic.transform.response.streaming.multibyte/server"})
     public void shouldEncodeAnthropicResponseStreamingMultibyte() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/anthropic.response.encode.streaming.tool.call/client",
-        "${net}/anthropic.response.encode.streaming.tool.call/server"})
-    public void shouldEncodeAnthropicResponseStreamingToolCall() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/anthropic.response.encode.options/client",
-        "${net}/anthropic.response.encode.options/server"})
-    public void shouldAnthropicResponseEncodeOptions() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/anthropic.response.encode.text/client",
-        "${net}/anthropic.response.encode.text/server"})
-    public void shouldEncodeAnthropicResponseText() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/anthropic.response.encode.text.100k/client",
-        "${net}/anthropic.response.encode.text.100k/server"})
-    public void shouldEncodeAnthropicResponseText100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/anthropic.response.encode.text.and.tool.call/client",
-        "${net}/anthropic.response.encode.text.and.tool.call/server"})
-    public void shouldEncodeAnthropicResponseTextAndToolCall() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/anthropic.response.encode.text.escaped/client",
-        "${net}/anthropic.response.encode.text.escaped/server"})
-    public void shouldEncodeAnthropicResponseTextEscaped() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/anthropic.response.encode.text.multibyte/client",
-        "${net}/anthropic.response.encode.text.multibyte/server"})
-    public void shouldEncodeAnthropicResponseTextMultibyte() throws Exception
     {
         k3po.finish();
     }
@@ -2090,54 +1838,54 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/anthropic.transform.tool.call/client",
-        "${net}/anthropic.transform.tool.call/server"})
-    public void shouldAnthropicTransformOpenaiToolCall() throws Exception
+        "${net}/anthropic.transform.assistant.tool.call/client",
+        "${net}/anthropic.transform.assistant.tool.call/server"})
+    public void shouldAnthropicTransformOpenaiAssistantToolCall() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/anthropic.transform.tool.call.100k/client",
-        "${net}/anthropic.transform.tool.call.100k/server"})
-    public void shouldAnthropicTransformOpenaiToolCall100k() throws Exception
+        "${net}/anthropic.transform.assistant.tool.call.100k/client",
+        "${net}/anthropic.transform.assistant.tool.call.100k/server"})
+    public void shouldAnthropicTransformOpenaiAssistantToolCall100k() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/anthropic.transform.tool.call.10k/client",
-        "${net}/anthropic.transform.tool.call.10k/server"})
-    public void shouldAnthropicTransformOpenaiToolCall10k() throws Exception
+        "${net}/anthropic.transform.assistant.tool.call.10k/client",
+        "${net}/anthropic.transform.assistant.tool.call.10k/server"})
+    public void shouldAnthropicTransformOpenaiAssistantToolCall10k() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/anthropic.transform.tool.call.escaped/client",
-        "${net}/anthropic.transform.tool.call.escaped/server"})
-    public void shouldAnthropicTransformOpenaiToolCallEscaped() throws Exception
+        "${net}/anthropic.transform.assistant.tool.call.escaped/client",
+        "${net}/anthropic.transform.assistant.tool.call.escaped/server"})
+    public void shouldAnthropicTransformOpenaiAssistantToolCallEscaped() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/anthropic.transform.tool.call.id.last/client",
-        "${net}/anthropic.transform.tool.call.id.last/server"})
-    public void shouldAnthropicTransformOpenaiToolCallIdLast() throws Exception
+        "${net}/anthropic.transform.assistant.tool.call.id.last/client",
+        "${net}/anthropic.transform.assistant.tool.call.id.last/server"})
+    public void shouldAnthropicTransformOpenaiAssistantToolCallIdLast() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/anthropic.transform.tool.call.name.last/client",
-        "${net}/anthropic.transform.tool.call.name.last/server"})
-    public void shouldAnthropicTransformOpenaiToolCallNameLast() throws Exception
+        "${net}/anthropic.transform.assistant.tool.call.name.last/client",
+        "${net}/anthropic.transform.assistant.tool.call.name.last/server"})
+    public void shouldAnthropicTransformOpenaiAssistantToolCallNameLast() throws Exception
     {
         k3po.finish();
     }
@@ -2414,8 +2162,8 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.response.decode.streaming.logprobs/client",
-        "${net}/openai.response.decode.streaming.logprobs/server"})
+        "${net}/openai.section.assistant.text.logprobs.streaming/client",
+        "${net}/openai.section.assistant.text.logprobs.streaming/server"})
     public void shouldDecodeOpenaiResponseStreamingLogprobs() throws Exception
     {
         k3po.finish();
@@ -2423,8 +2171,8 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.response.decode.text.logprobs/client",
-        "${net}/openai.response.decode.text.logprobs/server"})
+        "${net}/openai.section.assistant.text.logprobs/client",
+        "${net}/openai.section.assistant.text.logprobs/server"})
     public void shouldDecodeOpenaiResponseTextLogprobs() throws Exception
     {
         k3po.finish();
@@ -2432,8 +2180,8 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.response.encode.streaming.logprobs/client",
-        "${net}/openai.response.encode.streaming.logprobs/server"})
+        "${net}/openai.section.assistant.text.logprobs.streaming.role.first/client",
+        "${net}/openai.section.assistant.text.logprobs.streaming.role.first/server"})
     public void shouldEncodeOpenaiResponseStreamingLogprobs() throws Exception
     {
         k3po.finish();
@@ -2441,17 +2189,8 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.response.encode.text.logprobs/client",
-        "${net}/openai.response.encode.text.logprobs/server"})
-    public void shouldEncodeOpenaiResponseTextLogprobs() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/openai.response.encode.streaming.logprobs.foreign/client",
-        "${net}/openai.response.encode.streaming.logprobs.foreign/server"})
+        "${net}/openai.transform.response.streaming.logprobs.foreign/client",
+        "${net}/openai.transform.response.streaming.logprobs.foreign/server"})
     public void shouldEncodeOpenaiResponseStreamingLogprobsForeign() throws Exception
     {
         k3po.finish();
@@ -2504,8 +2243,8 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.response.encode.members/client",
-        "${net}/openai.response.encode.members/server"})
+        "${net}/openai.section.assistant.text.members.large/client",
+        "${net}/openai.section.assistant.text.members.large/server"})
     public void shouldEncodeOpenaiResponseMembers() throws Exception
     {
         k3po.finish();
@@ -2513,8 +2252,8 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/anthropic.response.encode.streaming.members/client",
-        "${net}/anthropic.response.encode.streaming.members/server"})
+        "${net}/anthropic.section.assistant.text.members.streaming/client",
+        "${net}/anthropic.section.assistant.text.members.streaming/server"})
     public void shouldEncodeAnthropicResponseStreamingMembers() throws Exception
     {
         k3po.finish();
@@ -2522,8 +2261,8 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.response.encode.streaming.members/client",
-        "${net}/openai.response.encode.streaming.members/server"})
+        "${net}/openai.section.assistant.text.members.streaming/client",
+        "${net}/openai.section.assistant.text.members.streaming/server"})
     public void shouldEncodeOpenaiResponseStreamingMembers() throws Exception
     {
         k3po.finish();
@@ -2684,36 +2423,18 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.transform.request.options/client",
-        "${net}/openai.transform.request.options/server"})
-    public void shouldOpenaiTransformRequestOptions() throws Exception
+        "${net}/openai.transform.request.frames/client",
+        "${net}/openai.transform.request.frames/server"})
+    public void shouldOpenaiTransformRequestFrames() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/openai.transform.response.options/client",
-        "${net}/openai.transform.response.options/server"})
-    public void shouldOpenaiTransformResponseOptions() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/anthropic.transform.request.options/client",
-        "${net}/anthropic.transform.request.options/server"})
-    public void shouldAnthropicTransformRequestOptions() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/anthropic.transform.response.options/client",
-        "${net}/anthropic.transform.response.options/server"})
-    public void shouldAnthropicTransformResponseOptions() throws Exception
+        "${net}/anthropic.transform.request.frames/client",
+        "${net}/anthropic.transform.request.frames/server"})
+    public void shouldAnthropicTransformRequestFrames() throws Exception
     {
         k3po.finish();
     }
@@ -2732,6 +2453,222 @@ public class NetworkIT
         "${net}/anthropic.rejected.unreachable/client",
         "${net}/anthropic.rejected.unreachable/server"})
     public void shouldRejectAnthropicUnreachable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.rejected.user.video/client",
+        "${net}/anthropic.transform.rejected.user.video/server"})
+    public void shouldAnthropicTransformRejectedUserVideo() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.rejected.user.video/client",
+        "${net}/openai.transform.rejected.user.video/server"})
+    public void shouldOpenaiTransformRejectedUserVideo() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.text/client",
+        "${net}/anthropic.transform.response.text/server"})
+    public void shouldAnthropicTransformResponseText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.text/client",
+        "${net}/openai.transform.response.text/server"})
+    public void shouldOpenaiTransformResponseText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.text.escaped/client",
+        "${net}/anthropic.transform.response.text.escaped/server"})
+    public void shouldAnthropicTransformResponseTextEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.text.escaped/client",
+        "${net}/openai.transform.response.text.escaped/server"})
+    public void shouldOpenaiTransformResponseTextEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.text.100k/client",
+        "${net}/anthropic.transform.response.text.100k/server"})
+    public void shouldAnthropicTransformResponseText100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.text.100k/client",
+        "${net}/openai.transform.response.text.100k/server"})
+    public void shouldOpenaiTransformResponseText100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.text.multibyte/client",
+        "${net}/anthropic.transform.response.text.multibyte/server"})
+    public void shouldAnthropicTransformResponseTextMultibyte() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.text.multibyte/client",
+        "${net}/openai.transform.response.text.multibyte/server"})
+    public void shouldOpenaiTransformResponseTextMultibyte() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.text.and.tool.call/client",
+        "${net}/anthropic.transform.response.text.and.tool.call/server"})
+    public void shouldAnthropicTransformResponseTextAndToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.text.and.tool.call/client",
+        "${net}/openai.transform.response.text.and.tool.call/server"})
+    public void shouldOpenaiTransformResponseTextAndToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.usage/client",
+        "${net}/anthropic.transform.response.usage/server"})
+    public void shouldAnthropicTransformResponseUsage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.usage/client",
+        "${net}/openai.transform.response.usage/server"})
+    public void shouldOpenaiTransformResponseUsage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.reasoning/client",
+        "${net}/anthropic.transform.response.reasoning/server"})
+    public void shouldAnthropicTransformResponseReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.reasoning/client",
+        "${net}/openai.transform.response.reasoning/server"})
+    public void shouldOpenaiTransformResponseReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.refusal/client",
+        "${net}/anthropic.transform.response.refusal/server"})
+    public void shouldAnthropicTransformResponseRefusal() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.refusal/client",
+        "${net}/openai.transform.response.refusal/server"})
+    public void shouldOpenaiTransformResponseRefusal() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.streaming/client",
+        "${net}/anthropic.transform.response.streaming/server"})
+    public void shouldAnthropicTransformResponseStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.streaming/client",
+        "${net}/openai.transform.response.streaming/server"})
+    public void shouldOpenaiTransformResponseStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.streaming.tool.call/client",
+        "${net}/anthropic.transform.response.streaming.tool.call/server"})
+    public void shouldAnthropicTransformResponseStreamingToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.streaming.tool.call/client",
+        "${net}/openai.transform.response.streaming.tool.call/server"})
+    public void shouldOpenaiTransformResponseStreamingToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.streaming.error/client",
+        "${net}/anthropic.transform.response.streaming.error/server"})
+    public void shouldAnthropicTransformResponseStreamingError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.streaming.error/client",
+        "${net}/openai.transform.response.streaming.error/server"})
+    public void shouldOpenaiTransformResponseStreamingError() throws Exception
     {
         k3po.finish();
     }

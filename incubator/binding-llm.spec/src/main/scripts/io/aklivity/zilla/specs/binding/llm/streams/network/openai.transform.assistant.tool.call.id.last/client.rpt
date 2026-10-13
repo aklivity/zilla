@@ -28,14 +28,14 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-write "{\"model\":\"claude-3-opus-20240229\",\"messages\":[{\"role\":\"user\",\"content\":\"Weather in Paris?\"},{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":\"{\\\"city\\\":\\\""
+write "{\"model\":\"model\",\"messages\":[{\"role\":\"user\",\"content\":\"Weather in Paris?\"},{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":\"{\\\"city\\\":\\\""
       ${core:randomBase64(1000)}
       "\\\"}\""
 write flush
 
 write await FIRST_FRAME_READ
 
-write "},\"id\":\"toolu_1\"}]}]}"
+write "},\"id\":\"call_1\"}]}]}"
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()

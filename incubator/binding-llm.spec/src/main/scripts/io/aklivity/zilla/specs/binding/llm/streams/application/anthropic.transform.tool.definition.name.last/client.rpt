@@ -14,7 +14,7 @@
 #
 
 property target "target"
-property model "claude-3-opus-20240229"
+property model "model"
 
 connect "zilla://streams/app0"
         option zilla:window 8192

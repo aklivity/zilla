@@ -78,11 +78,68 @@ write flush
 
 write advise zilla:flush
 
-read zilla:reset.ext ${llm:matchResetEx()
+read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
-                           .status(429)
-                           .type("rate_limit_error")
-                           .message("Rate limit exceeded")
+                           .dialect("anthropic")
+                           .model("claude-3-opus-20240229")
+                           .id("msg_01")
                            .build()}
 
-write aborted
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+read "{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3-opus-20240229\",\"content\":[{\"type\":\"text\",\"text\":\""
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("ASSISTANT_TEXT")
+                          .message(0)
+                          .build()}
+read "Let me check both cities."
+
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+read "\"},{\"type\":\"tool_use\",\"id\":\"call_1\",\"name\":\"get_weather\",\"input\":"
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("TOOL_CALL")
+                          .message(0)
+                          .attribute("tool-name", "get_weather")
+                          .attribute("tool-call-id", "call_1")
+                          .build()}
+read "{\"city\":\"Paris\"}"
+
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+read "},{\"type\":\"tool_use\",\"id\":\"call_2\",\"name\":\"get_weather\",\"input\":"
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("TOOL_CALL")
+                          .message(0)
+                          .attribute("tool-name", "get_weather")
+                          .attribute("tool-call-id", "call_2")
+                          .build()}
+read "{\"city\":\"London\"}"
+
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .complete(true)
+                          .build()}
+read "}],\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"usage\":{\"input_tokens\":30,\"cache_creation_input_tokens\":3,\"cache_read_input_tokens\":10,\"output_tokens\":25}}"
+
+read zilla:end.ext ${llm:matchEndEx()
+                            .typeId(zilla:id("llm"))
+                            .inputTokens(30)
+                            .cacheWriteTokens(3)
+                            .cacheReadTokens(10)
+                            .outputTokens(25)
+                            .finishReason("tool-call")
+                            .build()}
+
+read closed
+
+write close
