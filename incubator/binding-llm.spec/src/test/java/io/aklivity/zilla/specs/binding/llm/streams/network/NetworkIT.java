@@ -2717,4 +2717,22 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.rejected.unreachable/client",
+        "${net}/openai.rejected.unreachable/server"})
+    public void shouldRejectOpenaiUnreachable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.rejected.unreachable/client",
+        "${net}/anthropic.rejected.unreachable/server"})
+    public void shouldRejectAnthropicUnreachable() throws Exception
+    {
+        k3po.finish();
+    }
 }

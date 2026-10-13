@@ -92,6 +92,7 @@ scope llm
         struct LlmChallengeEx extends core::stream::Extension
         {
             string16 dialect;
+            string16 model = null;
         }
 
         struct LlmEndEx extends core::stream::Extension

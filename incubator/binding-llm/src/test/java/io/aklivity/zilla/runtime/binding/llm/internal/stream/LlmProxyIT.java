@@ -133,4 +133,60 @@ public class LlmProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.fallback.yaml")
+    @Specification({
+        "${app}/openai.proxy.fallback/client",
+        "${app}/openai.proxy.fallback.refused/server",
+        "${app}/openai.proxy.fallback.accepted/server"})
+    public void shouldFallbackToNextModelWhenExitRefusesStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.fallback.yaml")
+    @Specification({
+        "${app}/openai.proxy.fallback/client",
+        "${app}/openai.proxy.fallback.refused/server",
+        "${app}/openai.proxy.fallback.accepted/server"})
+    @ScriptProperty("model \"gpt-s\"")
+    public void shouldSkipFallbackModelWithoutRoute() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.fallback.yaml")
+    @Specification({
+        "${app}/openai.proxy.fallback.exhausted/client",
+        "${app}/openai.proxy.fallback.refused/server",
+        "${app}/openai.proxy.fallback.unavailable/server"})
+    public void shouldRejectWhenEveryFallbackModelIsRefused() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.fallback.yaml")
+    @Specification({
+        "${app}/openai.proxy.fallback.unavailable/client",
+        "${app}/openai.proxy.fallback.unavailable/server"})
+    @ScriptProperty({ "clientAddress \"zilla://streams/net0\"", "serverAddress \"zilla://streams/app1\"" })
+    public void shouldRejectWhenRouteHasNoFallback() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.fallback.yaml")
+    @Specification({
+        "${app}/openai.proxy.rejected/client",
+        "${app}/openai.proxy.rejected/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldNotFallbackOnceExitHasGrantedCredit() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -87,6 +87,8 @@ bindings:
       - when:
           - model: [ "claude-*" ]
         exit: south_llm_client_anthropic
+        with:
+          fallback: [ claude-3-5-haiku-20241022 ]
       - when:
           - model: [ "gpt-*" ]
         exit: south_llm_client_openai
@@ -106,6 +108,21 @@ that provider's dialect and a cross-dialect translation for a client speaking
 the other one -- the dialect translation is a consequence of the model chosen,
 not something the route configures. The two `dialect`-only routes last catch any
 other model and keep it on the provider of the client's own dialect.
+
+### Fallback
+
+A route can list `fallback` models under `with`. The route is resolved when the
+request begins, and `llm(proxy)` tries the exit with the requested model. An
+`llm(client)` sends its first window only once the connection to its server is
+established, so a server that cannot be reached resets the stream before any
+window. When the exit resets the stream before it sends a window, `llm(proxy)`
+takes the next model in the list, routes it through the same routes as any
+other request, and retries on the exit that model resolves to, rewriting the
+request to carry that model. A fallback model that matches no route the caller
+is authorized for is skipped. The path locks as soon as the exit sends a
+window, so a failure after the server has accepted the request is never
+retried, and when every model has been refused or skipped the last reset reaches
+the client. Fallback entries are exact model names, not patterns.
 
 ## Credential pass-through
 

@@ -208,6 +208,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private final LlmAnthropicServerDecoder decodeCapture = this::decodeCapture;
     private final LlmAnthropicServerDecoder decodeText = this::decodeText;
     private final LlmAnthropicServerDecoder decodeSkip = this::decodeSkip;
+    private final LlmAnthropicServerDecoder decodeModelOverride = this::decodeModelOverride;
     private final LlmAnthropicServerDecoder decodeStreamValue = this::decodeStreamValue;
     private final LlmAnthropicServerDecoder decodeEnd = this::decodeEnd;
     private final LlmAnthropicServerDecoder decodeIgnore = this::decodeIgnore;
@@ -589,6 +590,10 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 {
                     server.decoder = decodeStreamValue;
                 }
+                else if (server.modelOverride != null && matches(key, "model"))
+                {
+                    server.decoder = decodeModelOverride;
+                }
                 else
                 {
                     server.skip(decodeRoot);
@@ -646,6 +651,41 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 break decode;
             }
 
+        }
+
+        return server.position();
+    }
+
+    private int decodeModelOverride(
+        LlmAnthropicServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        final int eventFrom = server.position();
+
+        decode:
+        if (parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            if (event != JsonEvent.VALUE_STRING)
+            {
+                server.onDecodeParseError(traceId);
+                break decode;
+            }
+
+            if (!parser.deferredBytes())
+            {
+                server.onDecodeModelOverride(eventFrom);
+                server.decoder = decodeRoot;
+            }
         }
 
         return server.position();
@@ -1949,6 +1989,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private boolean dialectActive;
         private boolean dialectOpen;
         private int dialectFrom;
+        private DirectBufferEx modelOverride;
 
         private boolean holding;
         private boolean lookahead;
@@ -2298,7 +2339,47 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
         private int available()
         {
-            return stream != null ? (int) Math.max(stream.initialAvailable(), 0L) : 0;
+            final int available = stream != null ? (int) Math.max(stream.initialAvailable(), 0L) : 0;
+            final int room = modelOverride != null ? Math.min(modelOverride.capacity(), available >> 1) : 0;
+
+            return available - room;
+        }
+
+        private void onModelOverride(
+            String model)
+        {
+            final StringBuilder escaped = new StringBuilder(model.length());
+            for (int i = 0; i < model.length(); i++)
+            {
+                final char ch = model.charAt(i);
+                if (ch == '"' || ch == '\\')
+                {
+                    escaped.append('\\').append(ch);
+                }
+                else if (ch < ' ')
+                {
+                    escaped.append(String.format("\\u%04x", (int) ch));
+                }
+                else
+                {
+                    escaped.append(ch);
+                }
+            }
+
+            this.modelOverride = new UnsafeBufferEx(escaped.toString().getBytes(UTF_8));
+        }
+
+        private void onDecodeModelOverride(
+            int eventFrom)
+        {
+            flushDialect(contentFrom(eventFrom), false, false);
+
+            stream.doAppData(decodeTraceId, decodeAuthorization, dialectOpen ? Flags.NONE : Flags.INIT,
+                true, false, null, -1, null, null, modelOverride, 0, modelOverride.capacity());
+
+            this.dialectOpen = true;
+            this.modelOverride = null;
+            dialectResume(position() - 1);
         }
 
         private int position()
@@ -3562,6 +3643,12 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             if (llmChallengeEx != null && llmChallengeEx.typeId() == llmTypeId)
             {
                 crossDialect = !NAME.equals(llmChallengeEx.dialect().asString());
+
+                final String model = llmChallengeEx.model().asString();
+                if (model != null)
+                {
+                    server.onModelOverride(model);
+                }
             }
             else
             {

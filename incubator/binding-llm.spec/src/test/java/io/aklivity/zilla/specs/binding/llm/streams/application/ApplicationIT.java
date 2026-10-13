@@ -353,6 +353,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.proxy.fallback.unavailable/client",
+        "${app}/openai.proxy.fallback.unavailable/server"})
+    public void shouldRejectOpenaiProxyFallbackUnavailable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/canonical.block.single/client",
         "${app}/canonical.block.single/server"})
     public void shouldCanonicalBlockSingle() throws Exception
@@ -2651,6 +2660,96 @@ public class ApplicationIT
         "${app}/transform.response.options/client",
         "${app}/transform.response.options/server"})
     public void shouldTransformResponseOptions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.fallback/client",
+        "${app}/openai.proxy.fallback/server"})
+    public void shouldTellCallerTheFallbackModelOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.fallback.exhausted/client",
+        "${app}/openai.proxy.fallback.exhausted/server"})
+    public void shouldAbortCallerWhenFallbackExhaustedOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.fallback.refused/client",
+        "${app}/openai.proxy.fallback.refused/server"})
+    public void shouldRefuseOpenaiProxyFallbackAttempt() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.fallback.accepted/client",
+        "${app}/openai.proxy.fallback.accepted/server"})
+    public void shouldAcceptOpenaiProxyFallbackAttempt() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.rejected.unreachable/client",
+        "${app}/openai.rejected.unreachable/server"})
+    public void shouldRejectOpenaiUnreachable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.rejected.unreachable/client",
+        "${app}/anthropic.rejected.unreachable/server"})
+    public void shouldRejectAnthropicUnreachable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.model.override/client",
+        "${app}/openai.section.model.override/server"})
+    public void shouldReplaceOpenaiModelWhenChallenged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.model.last.override/client",
+        "${app}/openai.section.model.last.override/server"})
+    public void shouldReplaceOpenaiModelLastWhenChallenged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.model.override/client",
+        "${app}/anthropic.section.model.override/server"})
+    public void shouldReplaceAnthropicModelWhenChallenged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.model.last.override/client",
+        "${app}/anthropic.section.model.last.override/server"})
+    public void shouldReplaceAnthropicModelLastWhenChallenged() throws Exception
     {
         k3po.finish();
     }

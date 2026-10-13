@@ -687,6 +687,86 @@ public class LlmSchemaValidationTest
         reader.read(text);
     }
 
+    @Test
+    public void shouldAcceptProxyRouteWithFallback()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: proxy
+                routes:
+                  - when:
+                      - model: [ claude-sonnet-4-6 ]
+                    exit: app0
+                    with:
+                      fallback: [ claude-opus-4-1, claude-haiku-4-5 ]
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test(expected = ConfigException.class)
+    public void shouldRejectProxyRouteWithEmptyFallback()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: proxy
+                routes:
+                  - exit: app0
+                    with:
+                      fallback: []
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = ConfigException.class)
+    public void shouldRejectProxyRouteWithFallbackNotArray()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: proxy
+                routes:
+                  - exit: app0
+                    with:
+                      fallback: claude-opus-4-1
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = ConfigException.class)
+    public void shouldRejectProxyRouteWithFallbackPattern()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: proxy
+                routes:
+                  - exit: app0
+                    with:
+                      fallback: [ "claude-*" ]
+            """;
+
+        reader.read(text);
+    }
+
     @Test(expected = RuntimeException.class)
     public void shouldRejectClientWithVault()
     {

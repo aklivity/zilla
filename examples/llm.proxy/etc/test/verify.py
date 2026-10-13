@@ -52,7 +52,10 @@
 #      streaming
 #   9. a model neither route names is served by the provider of the client's
 #      own dialect, with no translation
-#  10. every llm binding an exchange passes through -- server, proxy and
+#  10. a request for a model whose route points at an unreachable server falls
+#      back to the next model in the route's fallback list, routed like any
+#      other request for that model
+#  11. every llm binding an exchange passes through -- server, proxy and
 #      client -- records that exchange's llm.* metrics, scraped from the
 #      prometheus exporter: the upstream's reported token usage, a token
 #      count the upstream dialect never reports left unrecorded, one
@@ -271,6 +274,17 @@ def check_anthropic_text_secondary_streaming():
     assert stop_reason == "end_turn", stop_reason
 
 
+# WHEN: an Anthropic SDK client asks for claude-unreachable, whose route points
+#       at a server that refuses the connection and lists
+#       claude-3-5-haiku-20241022 as its fallback
+# THEN: north_llm_proxy retries with the fallback model, which routes to
+#       mock-anthropic-secondary, and the request body carries that model
+def check_anthropic_fallback_unreachable():
+    resp = anthropic_message("claude-unreachable", streaming=False)
+    assert "secondary anthropic-dialect deployment" in resp.content[0].text, resp
+    assert resp.model == "claude-3-5-haiku-20241022", resp
+
+
 # WHEN: a client sends a model that neither the claude-* nor the gpt-* route
 #       names to the frontend of its own dialect
 # THEN: the dialect-only route serves it from the provider of that same
@@ -405,6 +419,7 @@ run_check("anthropic_to_openai_text_streaming", check_anthropic_to_openai_text_s
 run_check("anthropic_to_openai_tools", check_anthropic_to_openai_tools)
 run_check("anthropic_text_secondary", check_anthropic_text_secondary)
 run_check("anthropic_text_secondary_streaming", check_anthropic_text_secondary_streaming)
+run_check("anthropic_fallback_unreachable", check_anthropic_fallback_unreachable)
 run_check("openai_other_model_same_dialect", check_openai_other_model_same_dialect)
 run_check("anthropic_other_model_same_dialect", check_anthropic_other_model_same_dialect)
 run_check("credential_pass_through_to_anthropic", check_credential_pass_through_to_anthropic)

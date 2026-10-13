@@ -1106,4 +1106,24 @@ public class LlmAnthropicServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.user.text/client",
+        "${app}/anthropic.section.model.override/server"})
+    public void shouldReplaceAnthropicModelWhenChallengedWithModel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.model.last/client",
+        "${app}/anthropic.section.model.last.override/server"})
+    public void shouldReplaceAnthropicModelLastWhenChallengedWithModel() throws Exception
+    {
+        k3po.finish();
+    }
 }
