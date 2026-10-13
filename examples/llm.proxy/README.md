@@ -186,8 +186,6 @@ one of the labels listed under `reject`. The classifiers are declared at the top
   address or a person's name, as reported by a [Presidio](https://microsoft.github.io/presidio/) analyzer
   running as the `presidio-analyzer` service.
 
-[`tcp.echo.classify`](../tcp.echo.classify) shows the same model and classifiers without the `llm` binding.
-
 - **Rejecting a section.** A section a stage rejects is never relayed. The proxy ends the other side of the
   stream and answers the sender with a dialect-neutral error (`invalid_request_error`, `param: user-text[0]`),
   which `llm(server)` renders in the caller's own dialect: an HTTP 400 whose body names the section, with
