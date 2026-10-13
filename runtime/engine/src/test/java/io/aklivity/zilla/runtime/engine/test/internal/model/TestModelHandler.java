@@ -129,7 +129,8 @@ public class TestModelHandler implements ModelHandler
             ? new TestModelPipeline(length, transformLength, fields, decodeLenient, envelope, transform, this,
                 null, null, false, resumed, context, null, null, null, deterministic)
             : new TestModelPipeline(length, transformLength, fields, decodeLenient, envelope, transform, this,
-                reject, withhold, suspend, resumed, context, discloseAuthorized, discloseRedacted, envelopeDiscloseName, deterministic);
+                reject, withhold, suspend, resumed, context, discloseAuthorized, discloseRedacted, envelopeDiscloseName,
+                deterministic);
     }
 
     Long nextTransformAuthorization()

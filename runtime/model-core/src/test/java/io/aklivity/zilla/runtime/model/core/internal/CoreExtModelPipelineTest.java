@@ -217,7 +217,7 @@ public class CoreExtModelPipelineTest
             validator, false, List.of(), ModelEnvelope.NONE, 0);
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
 
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             buffer("abc"), 0, 3, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
