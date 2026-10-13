@@ -39,6 +39,9 @@ public class LlmMetricGroup implements MetricGroup
         }
         metrics.put(LlmDurationMetric.NAME, LlmDurationMetric::new);
         metrics.put(LlmActiveRequestsMetric.NAME, LlmActiveRequestsMetric::new);
+        metrics.put(LlmInteractionsMetric.NAME, LlmInteractionsMetric::new);
+        metrics.put(LlmTimeToFirstTokenMetric.NAME, LlmTimeToFirstTokenMetric::new);
+        metrics.put(LlmUsageIncompleteMetric.NAME, LlmUsageIncompleteMetric::new);
         this.llmMetrics = metrics;
     }
 

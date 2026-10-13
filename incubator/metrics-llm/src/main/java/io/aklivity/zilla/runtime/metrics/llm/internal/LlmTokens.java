@@ -58,4 +58,15 @@ enum LlmTokens
     {
         return count.applyAsInt(usage);
     }
+
+    static boolean reported(
+        LlmUsageFW usage)
+    {
+        boolean reported = false;
+        for (LlmTokens tokens : values())
+        {
+            reported |= tokens.count(usage) > ABSENT;
+        }
+        return reported;
+    }
 }
