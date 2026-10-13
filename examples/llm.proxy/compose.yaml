@@ -1,10 +1,51 @@
 name: ${NAMESPACE:-zilla-llm-proxy}
 
 services:
+  # Serves the embeddings the semantic classifier compares prompts with. Downloads
+  # sentence-transformers/all-MiniLM-L6-v2 the first time it starts, cached in the
+  # tei-cache volume. The cpu-1.9 image is x86_64 only; set TEI_VERSION=cpu-arm64-1.9
+  # on an arm64 host.
+  tei:
+    image: ghcr.io/huggingface/text-embeddings-inference:${TEI_VERSION:-cpu-1.9}
+    restart: unless-stopped
+    hostname: tei
+    command:
+      - --model-id=sentence-transformers/all-MiniLM-L6-v2
+    volumes:
+      - tei-cache:/data
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 180s
+      start_interval: 500ms
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:80/health"]
+
+  # Reports the personal data, such as an email address or a person's name, that
+  # the presidio classifier labels.
+  presidio-analyzer:
+    image: mcr.microsoft.com/presidio-analyzer:${PRESIDIO_VERSION:-latest}
+    restart: unless-stopped
+    environment:
+      # With gunicorn 25's control socket enabled, the lone worker intermittently
+      # never boots and the analyzer stays unhealthy; the socket is unused here.
+      GUNICORN_CMD_ARGS: --no-control-socket
+    healthcheck:
+      interval: 10s
+      timeout: 3s
+      retries: 60
+      start_period: 30s
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:3000/health')"]
+
   zilla:
     image: ghcr.io/aklivity/zilla:${ZILLA_VERSION:-latest}
     restart: unless-stopped
     hostname: zilla.examples.dev
+    depends_on:
+      tei:
+        condition: service_healthy
+      presidio-analyzer:
+        condition: service_healthy
     ports:
       - 7161:7161
       - 7162:7162
@@ -60,6 +101,9 @@ services:
         apk add --no-cache docker-cli > /dev/null
         pip install --no-cache-dir --quiet openai anthropic
         exec python3 /test/verify.py
+
+volumes:
+  tei-cache:
 
 networks:
   default:

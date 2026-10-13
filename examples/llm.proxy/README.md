@@ -141,16 +141,28 @@ north_llm_proxy:
           - section: user-text
             value:
               model: string
-              pattern: "(?s)(?!.*ignore previous instructions).*"
+              maxLength: 2000
           - section: user-text
             value:
-              model: string
-              maxLength: 2000
+              model: classify
+              reject:
+                moderator0:
+                  - jailbreak
+                secrets0:
+                  - secret.aws_key
+                  - secret.github_token
+                presidio0:
+                  - email
+                  - person
         response:
           - section: assistant-text
             value:
-              model: string
-              pattern: "(?s)(?!.*BEGIN PRIVATE KEY).*"
+              model: classify
+              reject:
+                secrets0:
+                  - secret.private_key
+                presidio0:
+                  - email
       claude-3-5-haiku-20241022:
         request:
           - section: user-text
@@ -159,14 +171,32 @@ north_llm_proxy:
               maxLength: 200
 ```
 
+The [`classify`](../../incubator/model-classify) model rejects a value that any of its classifiers labels with
+one of the labels listed under `reject`. The classifiers are declared at the top of
+[`zilla.yaml`](etc/zilla.yaml):
+
+- [`semantic`](../../incubator/classifier-semantic) (`moderator0`) labels a prompt that means the same as one
+  of a set of exemplar phrases, whatever words it uses. Here `jailbreak` covers prompts that tell the model to
+  ignore its instructions. The embeddings come from a local
+  [text-embeddings-inference](https://github.com/huggingface/text-embeddings-inference) service (`tei`)
+  hosting `sentence-transformers/all-MiniLM-L6-v2`, so no vendor account is needed.
+- [`patterns`](../../incubator/classifier-patterns) (`secrets0`) labels a value matching a regular expression,
+  such as an AWS access key, a GitHub token or a private key header.
+- [`presidio`](../../incubator/classifier-presidio) (`presidio0`) labels personal data, such as an email
+  address or a person's name, as reported by a [Presidio](https://microsoft.github.io/presidio/) analyzer
+  running as the `presidio-analyzer` service.
+
+[`tcp.echo.classify`](../tcp.echo.classify) shows the same model and classifiers without the `llm` binding.
+
 - **Rejecting a section.** A section a stage rejects is never relayed. The proxy ends the other side of the
   stream and answers the sender with a dialect-neutral error (`invalid_request_error`, `param: user-text[0]`),
   which `llm(server)` renders in the caller's own dialect: an HTTP 400 whose body names the section, with
-  `param` where the dialect has one and the section in the message where it does not. A `gpt-4o` request whose
-  `user-text` contains `ignore previous instructions` is refused before it reaches `mock-openai-secondary`.
+  `param` where the dialect has one and the section in the message where it does not. A `gpt-4o` prompt that
+  carries an email address, an AWS access key, or an instruction to forget its instructions, is refused before
+  it reaches `mock-openai-secondary`. The semantic stage rejects by meaning, so the last one is refused even
+  when it shares no wording with the exemplars.
 - **Chaining.** The stages that name a section type are applied in the order listed, each to what the previous
-  one produced. A `gpt-4o` prompt of 2001 characters passes the injection check and is rejected by the length
-  stage behind it.
+  one produced. A `gpt-4o` prompt of 2001 characters is rejected by the length stage ahead of the classifier.
 - **Both directions.** A `response` stage applies to the sections the upstream produces. When a stage rejects
   one, the caller never receives it: the proxy aborts the response toward the caller and resets the upstream. A
   `gpt-4o` request that asks for the private key is answered by `mock-openai-secondary` with one, and the
@@ -180,6 +210,10 @@ north_llm_proxy:
   it, passes what it produces to the next stage and then to the other side, within the flow control credit that
   side grants. A transforming stage must be deterministic, which is checked when the binding is attached.
   Sections that no stage names, and requests for models without a guardrail, are relayed untouched.
+
+The `tei` service downloads its model the first time it starts, so the first `docker compose up` can take a
+while; the model is cached in a Docker volume that survives `docker compose down` and `up`. The semantic
+classifier embeds its exemplars the first time it classifies a prompt, so the first request can be slow.
 
 ## Credential pass-through
 
