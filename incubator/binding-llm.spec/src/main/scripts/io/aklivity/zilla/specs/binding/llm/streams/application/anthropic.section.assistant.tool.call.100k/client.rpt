@@ -25,17 +25,29 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "{\"model\":\"claude-3-opus-20240229\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\""
+write flush
+
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .type("user-text")
+                          .type("USER_TEXT")
                           .message(0)
                           .build()}
 write "Weather in Paris?"
 write flush
 
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "\"}]},{\"role\":\"assistant\",\"content\":["
+write flush
+
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .type("tool-call")
+                          .type("TOOL_CALL")
                           .message(1)
                           .attribute("tool-name", "get_weather")
                           .attribute("tool-call-id", "toolu_1")
@@ -43,6 +55,13 @@ write zilla:data.ext ${llm:dataEx()
 write "{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"get_weather\",\"input\":{\"city\":\""
       ${core:randomBase64(100000)}
       "\"}}"
+write flush
+
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .complete(true)
+                          .build()}
+write "]}]}"
 write flush
 
 write advise zilla:flush

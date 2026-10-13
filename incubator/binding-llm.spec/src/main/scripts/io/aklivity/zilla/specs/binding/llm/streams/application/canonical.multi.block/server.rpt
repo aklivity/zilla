@@ -29,28 +29,28 @@ connected
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("system-instruction")
+                          .type("SYSTEM_INSTRUCTION")
                           .message(0)
                           .build()}
 read "Be brief"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("user-text")
+                          .type("USER_TEXT")
                           .message(1)
                           .build()}
 read "Weather in San Francisco?"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("tool-call")
+                          .type("TOOL_CALL")
                           .message(2)
                           .build()}
 read "get_weather"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("tool-result")
+                          .type("TOOL_RESULT")
                           .message(3)
                           .build()}
 read "sunny"
@@ -66,7 +66,7 @@ write flush
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .type("assistant-text")
+                          .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
 write "It is sunny"
@@ -74,7 +74,7 @@ write flush
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .type("tool-call")
+                          .type("TOOL_CALL")
                           .message(0)
                           .build()}
 write "get_forecast"

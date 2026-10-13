@@ -22,8 +22,7 @@ scope llm
             string16 contentType = null;
             string16 model = null;
             string16 id = null;
-            varint32 extensionLength;
-            octets[extensionLength] extension = null;
+            octets extension;
         }
 
         struct LlmAttribute
@@ -32,13 +31,43 @@ scope llm
             string16 value;
         }
 
-        struct LlmDataEx extends core::stream::Extension
+        enum LlmSectionType (uint8)
         {
-            string16 type = null;
+            NONE(0),
+            SYSTEM_INSTRUCTION(1),
+            USER_TEXT(2),
+            USER_IMAGE(3),
+            USER_DOCUMENT(4),
+            USER_AUDIO(5),
+            ASSISTANT_TEXT(6),
+            ASSISTANT_REFUSAL(7),
+            ASSISTANT_REASONING(8),
+            TOOL_DEFINITION(9),
+            TOOL_CALL(10),
+            TOOL_RESULT(11),
+            SERVER_TOOL_RESULT(12),
+            CITATIONS(13),
+            UNKNOWN(14)
+        }
+
+        struct LlmSectionDataEx
+        {
+            LlmSectionType type = NONE;
             int32 message = -1;
             LlmAttribute[] attributes;
-            varint32 extensionLength;
-            octets[extensionLength] extension = null;
+            octets extension;
+        }
+
+        struct LlmDialectDataEx
+        {
+            uint8 complete = 0;
+            LlmAttribute[] attributes;
+        }
+
+        union LlmDataEx switch (uint8) extends core::stream::Extension
+        {
+            case 0: llm::stream::LlmSectionDataEx section;
+            case 1: llm::stream::LlmDialectDataEx dialect;
         }
 
         struct LlmUsage

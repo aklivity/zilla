@@ -29,9 +29,9 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-read '{"model":"gpt-a","messages":[{"role":"user","content":"'
+read '{"model":"gpt-a","messages":[{"role":"user","content":[{"type":"text","text":"'
 read ${core:randomBase64(10000)}
-read '"}]}'
+read '"}]}]}'
 
 read closed
 

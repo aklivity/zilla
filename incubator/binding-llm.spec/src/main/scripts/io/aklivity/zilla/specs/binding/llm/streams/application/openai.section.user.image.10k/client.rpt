@@ -25,9 +25,15 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":["
+write flush
+
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .type("user-image")
+                          .type("USER_IMAGE")
                           .message(0)
                           .attribute("media-type", "image/png")
                           .attribute("source", "inline")
@@ -35,6 +41,13 @@ write zilla:data.ext ${llm:dataEx()
 write "{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,"
       ${core:randomBase64(10000)}
       "\"}}"
+write flush
+
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .complete(true)
+                          .build()}
+write "]}]}"
 write flush
 
 write advise zilla:flush

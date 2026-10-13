@@ -25,12 +25,25 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "{\"model\":\"claude-3-opus-20240229\",\"max_tokens\":1024,\"stream\":true,\"messages\":[{\"role\":\"user\",\"content\":\""
+write flush
+
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .type("user-text")
+                          .type("USER_TEXT")
                           .message(0)
                           .build()}
 write "Hello"
+write flush
+
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .complete(true)
+                          .build()}
+write "\"}]}"
 write flush
 
 write advise zilla:flush
@@ -42,16 +55,13 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .id("msg_02")
                            .build()}
 
-read option zilla:flags "init"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("assistant-text")
+                          .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-read "caf" [0xc3]
-
-read option zilla:flags "fin"
-read "" [0xa9] " ok"
+read "café ok"
+read notify SECOND_EVENT_READ
 
 read zilla:end.ext ${llm:matchEndEx()
                             .typeId(zilla:id("llm"))

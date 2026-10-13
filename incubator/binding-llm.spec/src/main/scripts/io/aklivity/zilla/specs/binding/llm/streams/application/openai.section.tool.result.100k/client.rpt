@@ -25,13 +25,26 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"tool\",\"tool_call_id\":\"call_1\",\"content\":\""
+write flush
+
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .type("tool-result")
+                          .type("TOOL_RESULT")
                           .message(0)
                           .attribute("tool-call-id", "call_1")
                           .build()}
 write ${core:randomBase64(100000)}
+write flush
+
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .complete(true)
+                          .build()}
+write "\"}]}"
 write flush
 
 write advise zilla:flush

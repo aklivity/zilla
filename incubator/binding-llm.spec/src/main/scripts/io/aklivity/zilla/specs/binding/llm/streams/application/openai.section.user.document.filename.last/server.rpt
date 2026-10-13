@@ -27,17 +27,21 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+read "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":["
+
 read option zilla:flags "init"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("user-document")
+                          .type("USER_DOCUMENT")
                           .message(0)
                           .attribute("media-type", "application/pdf")
                           .attribute("source", "inline")
                           .build()}
 read "{\"type\":\"file\",\"file\":{\"file_data\":\"data:application/pdf;base64,JVBERi0=\""
 read notify FIRST_FRAME_READ
-
 read option zilla:flags "fin"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
@@ -45,6 +49,12 @@ read zilla:data.ext ${llm:matchDataEx()
                           .attribute("filename", "contract.pdf")
                           .build()}
 read ",\"filename\":\"contract.pdf\"}}"
+
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .complete(true)
+                          .build()}
+read "]}]}"
 
 read advised zilla:flush
 

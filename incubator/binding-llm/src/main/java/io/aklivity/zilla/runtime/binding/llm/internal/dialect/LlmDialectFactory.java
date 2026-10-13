@@ -21,13 +21,10 @@ import java.util.function.Supplier;
 
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectFactorySpi;
-import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyDialectFactorySpi;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmConfiguration;
-import io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmLegacyDialectAdapter;
 
 /**
- * Loads every {@link LlmDialect} registered via {@link LlmDialectFactorySpi}, and adapts each dialect that is only
- * registered via {@link LlmLegacyDialectFactorySpi} so that it is handled by the same dispatch.
+ * Loads every {@link LlmDialect} registered via {@link LlmDialectFactorySpi}.
  */
 public final class LlmDialectFactory
 {
@@ -44,13 +41,6 @@ public final class LlmDialectFactory
             .map(Supplier::get)
             .map(f -> f.create(config))
             .forEach(d -> dialects.put(d.name(), d));
-
-        ServiceLoader
-            .load(LlmLegacyDialectFactorySpi.class)
-            .stream()
-            .map(Supplier::get)
-            .map(LlmLegacyDialectFactorySpi::name)
-            .forEach(name -> dialects.computeIfAbsent(name, n -> new LlmLegacyDialectAdapter(n, config)));
     }
 
     public Map<String, LlmDialect> dialects()

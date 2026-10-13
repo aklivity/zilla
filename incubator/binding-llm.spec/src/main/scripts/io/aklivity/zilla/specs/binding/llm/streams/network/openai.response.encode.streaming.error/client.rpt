@@ -37,8 +37,8 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("content-type", "text/event-stream")
                            .build()}
 
-read "data: {\"id\":\"msg_01\",\"object\":\"chat.completion.chunk\",\"model\":\"claude-3-opus-20240229\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\"},\"finish_reason\":null}]}\n\n"
-read "data: {\"id\":\"msg_01\",\"object\":\"chat.completion.chunk\",\"model\":\"claude-3-opus-20240229\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Hello\"},\"finish_reason\":null}]}\n\n"
-read "data: {\"error\":{\"message\":\"The server had an error while processing your request.\",\"type\":\"server_error\",\"param\":null,\"code\":null}}\n\n"
+read "{\"id\":\"msg_01\",\"object\":\"chat.completion.chunk\",\"model\":\"claude-3-opus-20240229\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\"},\"finish_reason\":null}]}"
+read "{\"id\":\"msg_01\",\"object\":\"chat.completion.chunk\",\"model\":\"claude-3-opus-20240229\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Hello\"},\"finish_reason\":null}]}"
+read "{\"error\":{\"message\":\"The server had an error while processing your request.\",\"type\":\"server_error\",\"param\":null,\"code\":null}}"
 
 read closed

@@ -54,6 +54,13 @@ public final class LlmRouteConfig
         String dialect,
         String model)
     {
-        return matchers.isEmpty() || matchers.stream().anyMatch(m -> m.matches(dialect, model));
+        boolean matches = matchers.isEmpty();
+
+        for (int index = 0; !matches && index < matchers.size(); index++)
+        {
+            matches = matchers.get(index).matches(dialect, model);
+        }
+
+        return matches;
     }
 }

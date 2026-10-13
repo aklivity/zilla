@@ -27,7 +27,7 @@ connected
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .type("tool-definition")
+                          .type("TOOL_DEFINITION")
                           .message(-1)
                           .attribute("tool-name", "web_search")
                           .build()}

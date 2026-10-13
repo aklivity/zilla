@@ -25,14 +25,27 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"assistant\",\"content\":null,\"tool_calls\":["
+write flush
+
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .type("tool-call")
+                          .type("TOOL_CALL")
                           .message(0)
                           .attribute("tool-name", "get_weather")
                           .attribute("tool-call-id", "call_1")
                           .build()}
 write "{\"id\":\"call_1\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":\"{\\\"query\\\":\\\"say \\\\\\\"hi\\\\\\\" \\\\\\\\ done\\\\nnext\\\",\\\"text\\\":\\\"caf\\\\u00e9 ✓ 😀\\\",\\\"nested\\\":{\\\"items\\\":[1,2.5,true,null,{\\\"k\\\":\\\"v\\\"}],\\\"empty\\\":{},\\\"list\\\":[]}}\"}}"
+write flush
+
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .complete(true)
+                          .build()}
+write "]}]}"
 write flush
 
 write advise zilla:flush

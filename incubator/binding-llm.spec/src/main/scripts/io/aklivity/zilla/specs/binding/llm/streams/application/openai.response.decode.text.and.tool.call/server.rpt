@@ -29,7 +29,7 @@ connected
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("user-text")
+                          .type("USER_TEXT")
                           .message(0)
                           .build()}
 read "What is the weather in Paris and London?"
@@ -44,19 +44,29 @@ write zilla:begin.ext ${llm:beginEx()
                            .build()}
 write flush
 
-write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "{\"id\":\"chatcmpl_3\",\"object\":\"chat.completion\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\""
+write flush
+
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .type("assistant-text")
+                          .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
 write "Let me check both cities."
 write flush
 
-write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "\",\"tool_calls\":[{\"id\":\"call_1\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":\""
+write flush
+
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .type("tool-call")
+                          .type("TOOL_CALL")
                           .message(0)
                           .attribute("tool-name", "get_weather")
                           .attribute("tool-call-id", "call_1")
@@ -64,15 +74,27 @@ write zilla:data.ext ${llm:dataEx()
 write "{\"city\":\"Paris\"}"
 write flush
 
-write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "\"}},{\"id\":\"call_2\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":\""
+write flush
+
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .type("tool-call")
+                          .type("TOOL_CALL")
                           .message(0)
                           .attribute("tool-name", "get_weather")
                           .attribute("tool-call-id", "call_2")
                           .build()}
 write "{\"city\":\"London\"}"
+write flush
+
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .complete(true)
+                          .build()}
+write "\"}}]},\"finish_reason\":\"tool_calls\"}],\"usage\":{\"prompt_tokens\":30,\"completion_tokens\":25,\"total_tokens\":55,\"prompt_tokens_details\":{\"cached_tokens\":10},\"completion_tokens_details\":{\"reasoning_tokens\":2}}}"
 write flush
 
 write zilla:end.ext ${llm:endEx()

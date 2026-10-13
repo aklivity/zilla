@@ -27,17 +27,27 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+read "{\"model\":\"claude-3-opus-20240229\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\""
+
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("user-text")
+                          .type("USER_TEXT")
                           .message(0)
                           .build()}
 read "Weather in Paris?"
 
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+read "\"}]},{\"role\":\"assistant\",\"content\":["
+
 read option zilla:flags "init"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("tool-call")
+                          .type("TOOL_CALL")
                           .message(1)
                           .attribute("tool-name", "get_weather")
                           .build()}
@@ -45,7 +55,6 @@ read "{\"type\":\"tool_use\",\"name\":\"get_weather\",\"input\":{\"city\":\""
      ${core:randomBase64(1000)}
      "\"}"
 read notify FIRST_FRAME_READ
-
 read option zilla:flags "fin"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
@@ -53,6 +62,12 @@ read zilla:data.ext ${llm:matchDataEx()
                           .attribute("tool-call-id", "toolu_1")
                           .build()}
 read ",\"id\":\"toolu_1\"}"
+
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .complete(true)
+                          .build()}
+read "]}]}"
 
 read advised zilla:flush
 

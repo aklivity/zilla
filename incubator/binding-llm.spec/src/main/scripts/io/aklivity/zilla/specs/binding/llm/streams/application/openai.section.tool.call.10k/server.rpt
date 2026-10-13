@@ -27,9 +27,14 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+read "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"assistant\",\"content\":null,\"tool_calls\":["
+
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("tool-call")
+                          .type("TOOL_CALL")
                           .message(0)
                           .attribute("tool-name", "get_weather")
                           .attribute("tool-call-id", "call_1")
@@ -37,6 +42,12 @@ read zilla:data.ext ${llm:matchDataEx()
 read "{\"id\":\"call_1\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":\"{\\\"city\\\":\\\""
      ${core:randomBase64(10000)}
      "\\\"}\"}}"
+
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .complete(true)
+                          .build()}
+read "]}]}"
 
 read advised zilla:flush
 

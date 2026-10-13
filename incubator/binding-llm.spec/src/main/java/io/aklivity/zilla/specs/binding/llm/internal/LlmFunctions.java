@@ -32,6 +32,7 @@ import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmDataExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmEndExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmErrorFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmResetExFW;
+import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmSectionType;
 
 public final class LlmFunctions
 {
@@ -95,6 +96,18 @@ public final class LlmFunctions
         return new LlmResetExMatcherBuilder();
     }
 
+    @Function
+    public static LlmDialectDataExBuilder dialectDataEx()
+    {
+        return new LlmDialectDataExBuilder();
+    }
+
+    @Function
+    public static LlmDialectDataExMatcherBuilder matchDialectDataEx()
+    {
+        return new LlmDialectDataExMatcherBuilder();
+    }
+
     public static final class LlmBeginExBuilder
     {
         private final LlmBeginExFW.Builder beginExRW;
@@ -144,7 +157,7 @@ public final class LlmFunctions
             String extension)
         {
             final byte[] bytes = extension.getBytes(StandardCharsets.UTF_8);
-            beginExRW.extensionLength(bytes.length).extension(e -> e.set(bytes));
+            beginExRW.extension(e -> e.set(bytes));
             return this;
         }
 
@@ -233,7 +246,7 @@ public final class LlmFunctions
             }
 
             bufferRO.wrap(byteBuf);
-            final LlmBeginExFW beginEx = beginExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+            final LlmBeginExFW beginEx = beginExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.limit());
 
             if (beginEx != null &&
                 matchTypeId(beginEx) &&
@@ -294,6 +307,8 @@ public final class LlmFunctions
         private final LlmDataExFW.Builder dataExRW;
         private final Map<String, String> attributes;
 
+        private LlmSectionType type;
+        private Integer message;
         private String extension;
 
         private LlmDataExBuilder()
@@ -313,14 +328,14 @@ public final class LlmFunctions
         public LlmDataExBuilder type(
             String type)
         {
-            dataExRW.type(type);
+            this.type = LlmSectionType.valueOf(type);
             return this;
         }
 
         public LlmDataExBuilder message(
             int message)
         {
-            dataExRW.message(message);
+            this.message = message;
             return this;
         }
 
@@ -341,13 +356,26 @@ public final class LlmFunctions
 
         public byte[] build()
         {
-            attributes.forEach((name, value) -> dataExRW.attributesItem(a -> a.name(name).value(value)));
-
-            if (extension != null)
+            dataExRW.section(s ->
             {
-                final byte[] bytes = extension.getBytes(StandardCharsets.UTF_8);
-                dataExRW.extensionLength(bytes.length).extension(e -> e.set(bytes));
-            }
+                if (type != null)
+                {
+                    s.type(t -> t.set(type));
+                }
+
+                if (message != null)
+                {
+                    s.message(message);
+                }
+
+                attributes.forEach((name, value) -> s.attributesItem(a -> a.name(name).value(value)));
+
+                if (extension != null)
+                {
+                    final byte[] bytes = extension.getBytes(StandardCharsets.UTF_8);
+                    s.extension(e -> e.set(bytes));
+                }
+            });
 
             final LlmDataExFW dataEx = dataExRW.build();
             final byte[] array = new byte[dataEx.sizeof()];
@@ -363,7 +391,7 @@ public final class LlmFunctions
         private final LlmDataExFW dataExRO = new LlmDataExFW();
 
         private Integer typeId;
-        private String type;
+        private LlmSectionType type;
         private boolean typeNull;
         private Integer message;
         private Map<String, String> attributes;
@@ -381,7 +409,7 @@ public final class LlmFunctions
         public LlmDataExMatcherBuilder type(
             String type)
         {
-            this.type = type;
+            this.type = LlmSectionType.valueOf(type);
             return this;
         }
 
@@ -444,9 +472,10 @@ public final class LlmFunctions
             }
 
             bufferRO.wrap(byteBuf);
-            final LlmDataExFW dataEx = dataExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+            final LlmDataExFW dataEx = dataExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.limit());
 
             if (dataEx != null &&
+                dataEx.kind() == LlmDataExFW.KIND_SECTION &&
                 matchTypeId(dataEx) &&
                 matchType(dataEx) &&
                 matchMessage(dataEx) &&
@@ -469,21 +498,21 @@ public final class LlmFunctions
         private boolean matchType(
             LlmDataExFW dataEx)
         {
-            return typeNull ? dataEx.type().asString() == null
-                : type == null || type.equals(dataEx.type().asString());
+            return typeNull ? dataEx.section().type().get() == LlmSectionType.NONE
+                : type == null || type == dataEx.section().type().get();
         }
 
         private boolean matchMessage(
             LlmDataExFW dataEx)
         {
-            return message == null || message == dataEx.message();
+            return message == null || message == dataEx.section().message();
         }
 
         private boolean matchAttributes(
             LlmDataExFW dataEx)
         {
             final Map<String, String> actual = new LinkedHashMap<>();
-            dataEx.attributes().forEach(a -> actual.put(a.name().asString(), a.value().asString()));
+            dataEx.section().attributes().forEach(a -> actual.put(a.name().asString(), a.value().asString()));
 
             return attributesNull ? actual.isEmpty() : attributes == null || attributes.equals(actual);
         }
@@ -491,8 +520,135 @@ public final class LlmFunctions
         private boolean matchExtension(
             LlmDataExFW dataEx)
         {
-            final String actual = asString(dataEx.extension());
+            final String actual = asString(dataEx.section().extension());
             return extensionNull ? actual == null : extension == null || extension.equals(actual);
+        }
+
+    }
+
+    public static final class LlmDialectDataExBuilder
+    {
+        private final LlmDataExFW.Builder dataExRW;
+
+        private final Map<String, String> attributes;
+
+        private boolean complete;
+
+        private LlmDialectDataExBuilder()
+        {
+            this.attributes = new LinkedHashMap<>();
+            final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024]);
+            this.dataExRW = new LlmDataExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public LlmDialectDataExBuilder typeId(
+            int typeId)
+        {
+            dataExRW.typeId(typeId);
+            return this;
+        }
+
+        public LlmDialectDataExBuilder complete(
+            boolean complete)
+        {
+            this.complete = complete;
+            return this;
+        }
+
+        public LlmDialectDataExBuilder attribute(
+            String name,
+            String value)
+        {
+            attributes.put(name, value);
+            return this;
+        }
+
+        public byte[] build()
+        {
+            final LlmDataExFW dataEx = dataExRW.dialect(d ->
+            {
+                d.complete(complete ? 1 : 0);
+                attributes.forEach((name, value) -> d.attributesItem(a -> a.name(name).value(value)));
+            }).build();
+            final byte[] array = new byte[dataEx.sizeof()];
+            dataEx.buffer().getBytes(dataEx.offset(), array);
+            return array;
+        }
+    }
+
+    public static final class LlmDialectDataExMatcherBuilder
+    {
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
+
+        private final LlmDataExFW dataExRO = new LlmDataExFW();
+
+        private Integer typeId;
+        private Boolean complete;
+        private Map<String, String> attributes;
+
+        public LlmDialectDataExMatcherBuilder typeId(
+            int typeId)
+        {
+            this.typeId = typeId;
+            return this;
+        }
+
+        public LlmDialectDataExMatcherBuilder complete(
+            boolean complete)
+        {
+            this.complete = complete;
+            return this;
+        }
+
+        public LlmDialectDataExMatcherBuilder attribute(
+            String name,
+            String value)
+        {
+            if (attributes == null)
+            {
+                attributes = new LinkedHashMap<>();
+            }
+
+            attributes.put(name, value);
+            return this;
+        }
+
+        public BytesMatcher build()
+        {
+            return this::match;
+        }
+
+        private LlmDataExFW match(
+            ByteBuffer byteBuf) throws Exception
+        {
+            if (!byteBuf.hasRemaining())
+            {
+                return null;
+            }
+
+            bufferRO.wrap(byteBuf);
+            final LlmDataExFW dataEx = dataExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.limit());
+
+            if (dataEx != null &&
+                dataEx.kind() == LlmDataExFW.KIND_DIALECT &&
+                (typeId == null || typeId == dataEx.typeId()) &&
+                (complete == null || complete == (dataEx.dialect().complete() != 0)) &&
+                matchAttributes(dataEx))
+            {
+                byteBuf.position(byteBuf.position() + dataEx.sizeof());
+                return dataEx;
+            }
+
+            throw new Exception(String.valueOf(dataEx));
+        }
+
+        private boolean matchAttributes(
+            LlmDataExFW dataEx)
+        {
+            final Map<String, String> actual = new LinkedHashMap<>();
+            dataEx.dialect().attributes().forEach(a -> actual.put(a.name().asString(), a.value().asString()));
+
+            return attributes == null || attributes.equals(actual);
         }
     }
 
@@ -781,6 +937,7 @@ public final class LlmFunctions
             final String actual = endEx.finishReason().asString();
             return finishReasonNull ? actual == null : finishReason == null || finishReason.equals(actual);
         }
+
     }
 
     public static final class LlmAbortExBuilder
@@ -1296,7 +1453,7 @@ public final class LlmFunctions
     private static String asString(
         OctetsFW octets)
     {
-        return octets != null
+        return octets != null && octets.sizeof() > 0
             ? octets.get((buffer, offset, limit) -> buffer.getStringWithoutLengthUtf8(offset, limit - offset))
             : null;
     }

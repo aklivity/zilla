@@ -27,19 +27,35 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+read "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"system\",\"content\":\""
+
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("system-instruction")
+                          .type("SYSTEM_INSTRUCTION")
                           .message(0)
                           .build()}
 read "Be brief"
 
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+read "\"},{\"role\":\"developer\",\"content\":\""
+
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("system-instruction")
+                          .type("SYSTEM_INSTRUCTION")
                           .message(1)
                           .build()}
 read "Answer in French"
+
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .complete(true)
+                          .build()}
+read "\"}]}"
 
 read advised zilla:flush
 

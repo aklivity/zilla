@@ -25,6 +25,7 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header(":scheme", "http")
                            .header(":authority", "example.com:8080")
                            .header(":path", "/v1/messages")
+                           .header("anthropic-version", "2023-06-01")
                            .header("content-type", "application/json")
                            .build()}
 
@@ -39,7 +40,12 @@ write zilla:begin.ext ${http:beginEx()
                            .header(":status", "200")
                            .header("content-type", "text/event-stream")
                            .build()}
+write flush
 
-write "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3-opus-20240229\",\"content\":[],\"usage\":{\"input_tokens\":25,\"cache_creation_input_tokens\":5,\"cache_read_input_tokens\":10,\"output_tokens\":1}}}\n\n"
+write zilla:data.ext ${http:dataEx()
+                          .typeId(zilla:id("http"))
+                          .header("type", "message_start")
+                          .build()}
+write "{\"type\":\"message_start\",\"message\":{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3-opus-20240229\",\"content\":[],\"usage\":{\"input_tokens\":25,\"cache_creation_input_tokens\":5,\"cache_read_input_tokens\":10,\"output_tokens\":1}}}"
 
 write abort

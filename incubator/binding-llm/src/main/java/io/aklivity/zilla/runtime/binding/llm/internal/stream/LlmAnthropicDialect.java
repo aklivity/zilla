@@ -16,19 +16,10 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectContext;
-import io.aklivity.zilla.runtime.binding.llm.internal.LlmConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 
 final class LlmAnthropicDialect implements LlmDialect
 {
-    private final LlmConfiguration config;
-
-    LlmAnthropicDialect(
-        LlmConfiguration config)
-    {
-        this.config = config;
-    }
-
     @Override
     public String name()
     {
@@ -39,6 +30,6 @@ final class LlmAnthropicDialect implements LlmDialect
     public LlmDialectContext supply(
         EngineContext context)
     {
-        return new LlmAnthropicDialectContext(config, context);
+        return new LlmAnthropicDialectContext(context);
     }
 }

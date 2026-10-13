@@ -30,15 +30,13 @@ connected
 read option zilla:flags "init"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("user-text")
+                          .type("USER_TEXT")
                           .message(0)
                           .extension("ext-user-text")
                           .build()}
 read "Hello, "
-
 read option zilla:flags "none"
 read "this block "
-
 read option zilla:flags "fin"
 read "spans several frames"
 
@@ -54,17 +52,15 @@ write flush
 write option zilla:flags "init"
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .type("assistant-text")
+                          .type("ASSISTANT_TEXT")
                           .message(0)
                           .extension("ext-assistant-text")
                           .build()}
 write "Hi, "
 write flush
-
 write option zilla:flags "none"
 write "and this one "
 write flush
-
 write option zilla:flags "fin"
 write "does too"
 write flush

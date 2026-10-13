@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionType;
+
 final class LlmAnthropicAttributeProbe extends LlmAttributeProbe
 {
     private static final int KEY_OTHER = -1;
@@ -37,19 +39,19 @@ final class LlmAnthropicAttributeProbe extends LlmAttributeProbe
     private int section;
 
     static boolean carries(
-        String type)
+        LlmSectionType type)
     {
         return sectionOf(type, null) != SECTION_NONE;
     }
 
     @Override
     protected void onBegin(
-        String type,
+        LlmSectionType type,
         String blockType)
     {
         section = sectionOf(type, blockType);
 
-        if ("server-tool-result".equals(type))
+        if (type == LlmSectionType.SERVER_TOOL_RESULT)
         {
             attributes.providerExecuted(true);
         }
@@ -242,24 +244,17 @@ final class LlmAnthropicAttributeProbe extends LlmAttributeProbe
     }
 
     private static int sectionOf(
-        String type,
+        LlmSectionType type,
         String blockType)
     {
-        int section = SECTION_NONE;
-
-        if (type != null)
+        return switch (type)
         {
-            section = switch (type)
-            {
-            case "user-image", "user-document" -> SECTION_MEDIA;
-            case "tool-call" -> SECTION_TOOL_CALL;
-            case "tool-definition" -> SECTION_TOOL_DEFINITION;
-            case "server-tool-result" -> "server_tool_use".equals(blockType) ? SECTION_SERVER_TOOL_USE
-                : SECTION_SERVER_TOOL_RESULT;
-            default -> SECTION_NONE;
-            };
-        }
-
-        return section;
+        case USER_IMAGE, USER_DOCUMENT -> SECTION_MEDIA;
+        case TOOL_CALL -> SECTION_TOOL_CALL;
+        case TOOL_DEFINITION -> SECTION_TOOL_DEFINITION;
+        case SERVER_TOOL_RESULT -> "server_tool_use".equals(blockType) ? SECTION_SERVER_TOOL_USE
+            : SECTION_SERVER_TOOL_RESULT;
+        default -> SECTION_NONE;
+        };
     }
 }

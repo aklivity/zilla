@@ -19,28 +19,19 @@ import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmAnthropic
 import io.aklivity.zilla.runtime.binding.llm.config.LlmBindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectContext;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectHandler;
-import io.aklivity.zilla.runtime.binding.llm.internal.LlmConfiguration;
-import io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmContentCodecFactory;
-import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmLegacyBindingConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 
 final class LlmAnthropicDialectContext implements LlmDialectContext
 {
-    private final LlmConfiguration config;
     private final EngineContext context;
-    private final LlmContentCodecFactory codecs;
 
     private LlmAnthropicServerFactory server;
     private LlmAnthropicClientFactory client;
-    private LlmLegacyClientFactory legacy;
 
     LlmAnthropicDialectContext(
-        LlmConfiguration config,
         EngineContext context)
     {
-        this.config = config;
         this.context = context;
-        this.codecs = new LlmContentCodecFactory();
     }
 
     @Override
@@ -64,9 +55,7 @@ final class LlmAnthropicDialectContext implements LlmDialectContext
             if (NAME.equals(fixed))
             {
                 supplyClient().attach(binding);
-                handler = new LlmAnthropicClientHandler(
-                    client,
-                    new LlmLegacyClientHandler(NAME, supplyLegacy(), new LlmLegacyBindingConfig(binding, context, codecs)));
+                handler = client;
             }
             break;
         default:
@@ -109,12 +98,4 @@ final class LlmAnthropicDialectContext implements LlmDialectContext
         return client;
     }
 
-    private LlmLegacyClientFactory supplyLegacy()
-    {
-        if (legacy == null)
-        {
-            legacy = new LlmLegacyClientFactory(config, context);
-        }
-        return legacy;
-    }
 }

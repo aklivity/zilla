@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 import java.util.function.Consumer;
 
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmAttributeFW;
-import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDataExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionDataExFW;
 
 final class LlmSectionAttributes
 {
@@ -61,14 +61,14 @@ final class LlmSectionAttributes
     }
 
     void readFrom(
-        LlmDataExFW dataEx)
+        LlmSectionDataExFW dataEx)
     {
         clear();
         mergeFrom(dataEx);
     }
 
     void mergeFrom(
-        LlmDataExFW dataEx)
+        LlmSectionDataExFW dataEx)
     {
         if (dataEx != null)
         {
@@ -240,7 +240,7 @@ final class LlmSectionAttributes
     }
 
     void writeTo(
-        LlmDataExFW.Builder builder)
+        LlmSectionDataExFW.Builder builder)
     {
         write(builder, MEDIA_TYPE, mediaType);
         write(builder, SOURCE, source);
@@ -296,7 +296,7 @@ final class LlmSectionAttributes
     }
 
     private static void write(
-        LlmDataExFW.Builder builder,
+        LlmSectionDataExFW.Builder builder,
         String name,
         String value)
     {

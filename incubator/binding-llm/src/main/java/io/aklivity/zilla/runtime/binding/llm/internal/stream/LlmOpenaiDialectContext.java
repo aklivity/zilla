@@ -19,28 +19,19 @@ import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmOpenaiDia
 import io.aklivity.zilla.runtime.binding.llm.config.LlmBindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectContext;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectHandler;
-import io.aklivity.zilla.runtime.binding.llm.internal.LlmConfiguration;
-import io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmContentCodecFactory;
-import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmLegacyBindingConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 
 final class LlmOpenaiDialectContext implements LlmDialectContext
 {
-    private final LlmConfiguration config;
     private final EngineContext context;
-    private final LlmContentCodecFactory codecs;
 
     private LlmOpenaiServerFactory server;
     private LlmOpenaiClientFactory client;
-    private LlmLegacyClientFactory legacy;
 
     LlmOpenaiDialectContext(
-        LlmConfiguration config,
         EngineContext context)
     {
-        this.config = config;
         this.context = context;
-        this.codecs = new LlmContentCodecFactory();
     }
 
     @Override
@@ -64,9 +55,7 @@ final class LlmOpenaiDialectContext implements LlmDialectContext
             if (NAME.equals(fixed))
             {
                 supplyClient().attach(binding);
-                handler = new LlmOpenaiClientHandler(
-                    client,
-                    new LlmLegacyClientHandler(NAME, supplyLegacy(), new LlmLegacyBindingConfig(binding, context, codecs)));
+                handler = client;
             }
             break;
         default:
@@ -100,14 +89,6 @@ final class LlmOpenaiDialectContext implements LlmDialectContext
         return server;
     }
 
-    private LlmLegacyClientFactory supplyLegacy()
-    {
-        if (legacy == null)
-        {
-            legacy = new LlmLegacyClientFactory(config, context);
-        }
-        return legacy;
-    }
 
     private LlmOpenaiClientFactory supplyClient()
     {

@@ -26,6 +26,8 @@ import static org.hamcrest.Matchers.nullValue;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionType;
+
 public class LlmOpenaiAttributeProbeTest
 {
     private final LlmOpenaiAttributeProbe probe = new LlmOpenaiAttributeProbe();
@@ -33,16 +35,16 @@ public class LlmOpenaiAttributeProbeTest
     @Test
     public void shouldCarryAttributesForMediaAndToolSectionsOnly()
     {
-        assertThat(LlmOpenaiAttributeProbe.carries("user-image"), equalTo(true));
-        assertThat(LlmOpenaiAttributeProbe.carries("user-document"), equalTo(true));
-        assertThat(LlmOpenaiAttributeProbe.carries("user-audio"), equalTo(true));
-        assertThat(LlmOpenaiAttributeProbe.carries("tool-call"), equalTo(true));
-        assertThat(LlmOpenaiAttributeProbe.carries("tool-definition"), equalTo(true));
-        assertThat(LlmOpenaiAttributeProbe.carries("user-text"), equalTo(false));
-        assertThat(LlmOpenaiAttributeProbe.carries("system-instruction"), equalTo(false));
-        assertThat(LlmOpenaiAttributeProbe.carries("assistant-text"), equalTo(false));
-        assertThat(LlmOpenaiAttributeProbe.carries("tool-result"), equalTo(false));
-        assertThat(LlmOpenaiAttributeProbe.carries("unknown"), equalTo(false));
+        assertThat(LlmOpenaiAttributeProbe.carries(LlmSectionType.USER_IMAGE), equalTo(true));
+        assertThat(LlmOpenaiAttributeProbe.carries(LlmSectionType.USER_DOCUMENT), equalTo(true));
+        assertThat(LlmOpenaiAttributeProbe.carries(LlmSectionType.USER_AUDIO), equalTo(true));
+        assertThat(LlmOpenaiAttributeProbe.carries(LlmSectionType.TOOL_CALL), equalTo(true));
+        assertThat(LlmOpenaiAttributeProbe.carries(LlmSectionType.TOOL_DEFINITION), equalTo(true));
+        assertThat(LlmOpenaiAttributeProbe.carries(LlmSectionType.USER_TEXT), equalTo(false));
+        assertThat(LlmOpenaiAttributeProbe.carries(LlmSectionType.SYSTEM_INSTRUCTION), equalTo(false));
+        assertThat(LlmOpenaiAttributeProbe.carries(LlmSectionType.ASSISTANT_TEXT), equalTo(false));
+        assertThat(LlmOpenaiAttributeProbe.carries(LlmSectionType.TOOL_RESULT), equalTo(false));
+        assertThat(LlmOpenaiAttributeProbe.carries(LlmSectionType.UNKNOWN), equalTo(false));
     }
 
     @Test
@@ -50,7 +52,7 @@ public class LlmOpenaiAttributeProbeTest
     {
         final String json = "{\"type\":\"image_url\",\"image_url\":{\"url\":\"https://example.com/cat.png\",\"detail\":\"low\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "user-image", null, json, WHOLE), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_IMAGE, null, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().source(), equalTo("url"));
         assertThat(probe.attributes().mediaType(), nullValue());
         assertThat(probe.attributes().refId(), nullValue());
@@ -61,7 +63,7 @@ public class LlmOpenaiAttributeProbeTest
     {
         final String json = "{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,AAAA\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "user-image", null, json, WHOLE), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_IMAGE, null, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().source(), equalTo("inline"));
         assertThat(probe.attributes().mediaType(), equalTo("image/png"));
     }
@@ -72,7 +74,7 @@ public class LlmOpenaiAttributeProbeTest
         final String json = "{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64," +
             "A".repeat(4096) + "\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "user-image", null, json, 96), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_IMAGE, null, json, 96), equalTo(RESOLVED));
         assertThat(probe.attributes().source(), equalTo("inline"));
         assertThat(probe.attributes().mediaType(), equalTo("image/png"));
     }
@@ -83,7 +85,7 @@ public class LlmOpenaiAttributeProbeTest
         final String json = "{\"type\":\"image_url\",\"image_url\":{\"url\":\"https://example.com/" +
             "a".repeat(4096) + "\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "user-image", null, json, 96), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_IMAGE, null, json, 96), equalTo(RESOLVED));
         assertThat(probe.attributes().source(), equalTo("url"));
     }
 
@@ -93,7 +95,7 @@ public class LlmOpenaiAttributeProbeTest
         final String json = "{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64," +
             "A".repeat(4096) + "\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "user-image", null, json, 42), equalTo(PENDING));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_IMAGE, null, json, 42), equalTo(PENDING));
         assertThat(probe.attributes().source(), nullValue());
     }
 
@@ -103,7 +105,7 @@ public class LlmOpenaiAttributeProbeTest
         final String json = "{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64," +
             "A".repeat(4096) + "\"}}";
 
-        assertThat(LlmAttributeProbeRunner.runResumed(probe, "user-image", null, json, 42), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.runResumed(probe, LlmSectionType.USER_IMAGE, null, json, 42), equalTo(RESOLVED));
         assertThat(probe.attributes().source(), equalTo("inline"));
         assertThat(probe.attributes().mediaType(), equalTo("image/png"));
     }
@@ -114,7 +116,7 @@ public class LlmOpenaiAttributeProbeTest
         final String json = "{\"type\":\"image_url\",\"image_url\":{\"url\":\"https://example.com/" +
             "a".repeat(4096) + "\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "user-image", null, json, 42), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_IMAGE, null, json, 42), equalTo(RESOLVED));
         assertThat(probe.attributes().source(), equalTo("url"));
     }
 
@@ -123,7 +125,7 @@ public class LlmOpenaiAttributeProbeTest
     {
         final String json = "{\"type\":\"file\",\"file\":{\"file_id\":\"" + "a".repeat(4096) + "\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "user-document", null, json, 96), equalTo(REJECTED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_DOCUMENT, null, json, 96), equalTo(REJECTED));
     }
 
     @Test
@@ -131,7 +133,7 @@ public class LlmOpenaiAttributeProbeTest
     {
         final String json = "{\"type\":\"image_url\",\"image_url\":{\"detail\":\"low\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "user-image", null, json, WHOLE), equalTo(COMPLETE));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_IMAGE, null, json, WHOLE), equalTo(COMPLETE));
         assertThat(probe.attributes().source(), nullValue());
     }
 
@@ -140,7 +142,7 @@ public class LlmOpenaiAttributeProbeTest
     {
         final String json = "{\"type\":\"file\",\"file\":{\"file_id\":\"file-abc123\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "user-document", null, json, WHOLE), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_DOCUMENT, null, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().source(), equalTo("reference"));
         assertThat(probe.attributes().refId(), equalTo("file-abc123"));
         assertThat(probe.attributes().mediaType(), nullValue());
@@ -152,7 +154,7 @@ public class LlmOpenaiAttributeProbeTest
         final String json = "{\"type\":\"file\",\"file\":{\"filename\":\"contract.pdf\"," +
             "\"file_data\":\"data:application/pdf;base64,AAAA\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "user-document", null, json, WHOLE), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_DOCUMENT, null, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().source(), equalTo("inline"));
         assertThat(probe.attributes().mediaType(), equalTo("application/pdf"));
         assertThat(probe.attributes().filename(), equalTo("contract.pdf"));
@@ -164,11 +166,11 @@ public class LlmOpenaiAttributeProbeTest
         final String json = "{\"type\":\"file\",\"file\":{\"file_data\":\"data:application/pdf;base64,AAAA\"," +
             "\"filename\":\"contract.pdf\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "user-document", null, json, WHOLE), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_DOCUMENT, null, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().mediaType(), equalTo("application/pdf"));
         assertThat(probe.attributes().filename(), nullValue());
 
-        assertThat(runToEnd(probe, "user-document", null, json, WHOLE), equalTo(COMPLETE));
+        assertThat(runToEnd(probe, LlmSectionType.USER_DOCUMENT, null, json, WHOLE), equalTo(COMPLETE));
         assertThat(probe.attributes().mediaType(), equalTo("application/pdf"));
         assertThat(probe.attributes().filename(), equalTo("contract.pdf"));
     }
@@ -178,7 +180,7 @@ public class LlmOpenaiAttributeProbeTest
     {
         final String json = "{\"type\":\"file\",\"file\":{\"file_data\":\"AAAA\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "user-document", null, json, WHOLE), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_DOCUMENT, null, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().source(), equalTo("inline"));
         assertThat(probe.attributes().mediaType(), nullValue());
     }
@@ -188,7 +190,7 @@ public class LlmOpenaiAttributeProbeTest
     {
         final String json = "{\"type\":\"input_audio\",\"input_audio\":{\"format\":\"wav\",\"data\":\"AAAA\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "user-audio", null, json, WHOLE), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_AUDIO, null, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().source(), equalTo("inline"));
         assertThat(probe.attributes().mediaType(), equalTo("audio/wav"));
     }
@@ -198,7 +200,7 @@ public class LlmOpenaiAttributeProbeTest
     {
         final String json = "{\"type\":\"input_audio\",\"input_audio\":{\"format\":\"mp3\",\"data\":\"AAAA\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "user-audio", null, json, WHOLE), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_AUDIO, null, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().mediaType(), equalTo("audio/mpeg"));
     }
 
@@ -207,11 +209,11 @@ public class LlmOpenaiAttributeProbeTest
     {
         final String json = "{\"type\":\"input_audio\",\"input_audio\":{\"data\":\"AAAA\",\"format\":\"wav\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "user-audio", null, json, WHOLE), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_AUDIO, null, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().source(), equalTo("inline"));
         assertThat(probe.attributes().mediaType(), nullValue());
 
-        assertThat(runToEnd(probe, "user-audio", null, json, WHOLE), equalTo(COMPLETE));
+        assertThat(runToEnd(probe, LlmSectionType.USER_AUDIO, null, json, WHOLE), equalTo(COMPLETE));
         assertThat(probe.attributes().mediaType(), equalTo("audio/wav"));
     }
 
@@ -221,7 +223,7 @@ public class LlmOpenaiAttributeProbeTest
         final String json = "{\"type\":\"function\",\"id\":\"call_1\",\"function\":{\"arguments\":\"{}\"," +
             "\"name\":\"get_weather\"}}";
 
-        assertThat(runToEnd(probe, "tool-call", null, json, WHOLE), equalTo(COMPLETE));
+        assertThat(runToEnd(probe, LlmSectionType.TOOL_CALL, null, json, WHOLE), equalTo(COMPLETE));
         assertThat(probe.attributes().toolCallId(), equalTo("call_1"));
         assertThat(probe.attributes().toolName(), equalTo("get_weather"));
     }
@@ -232,7 +234,7 @@ public class LlmOpenaiAttributeProbeTest
         final String json = "{\"type\":\"function\",\"function\":{\"description\":\"" + "x".repeat(4096) +
             "\",\"name\":\"get_weather\"}}";
 
-        assertThat(runToEnd(probe, "tool-definition", null, json, WHOLE), equalTo(COMPLETE));
+        assertThat(runToEnd(probe, LlmSectionType.TOOL_DEFINITION, null, json, WHOLE), equalTo(COMPLETE));
         assertThat(probe.attributes().toolName(), equalTo("get_weather"));
     }
 
@@ -242,7 +244,7 @@ public class LlmOpenaiAttributeProbeTest
         final String json = "{\"type\":\"function\",\"id\":\"call_1\",\"function\":{\"name\":\"get_weather\"," +
             "\"arguments\":\"{}\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "tool-call", null, json, WHOLE), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.TOOL_CALL, null, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().toolCallId(), equalTo("call_1"));
         assertThat(probe.attributes().toolName(), equalTo("get_weather"));
     }
@@ -252,7 +254,7 @@ public class LlmOpenaiAttributeProbeTest
     {
         final String json = "{\"type\":\"function\",\"id\":\"call_1\",\"function\":{\"arguments\":\"{}\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "tool-call", null, json, WHOLE), equalTo(COMPLETE));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.TOOL_CALL, null, json, WHOLE), equalTo(COMPLETE));
         assertThat(probe.attributes().toolCallId(), equalTo("call_1"));
         assertThat(probe.attributes().toolName(), nullValue());
     }
@@ -263,7 +265,7 @@ public class LlmOpenaiAttributeProbeTest
         final String json = "{\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"description\":\"Weather\"," +
             "\"parameters\":{\"type\":\"object\"}}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "tool-definition", null, json, WHOLE), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.TOOL_DEFINITION, null, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().toolName(), equalTo("get_weather"));
         assertThat(probe.attributes().toolCallId(), nullValue());
     }
@@ -273,7 +275,7 @@ public class LlmOpenaiAttributeProbeTest
     {
         final String json = "{\"type\":\"custom\",\"custom\":{\"name\":\"run_code\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "tool-definition", null, json, WHOLE), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.TOOL_DEFINITION, null, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().toolName(), equalTo("run_code"));
     }
 
@@ -283,7 +285,7 @@ public class LlmOpenaiAttributeProbeTest
         final String json = "{\"type\":\"image_url\",\"id\":\"call_1\",\"image_url\":{\"url\":\"https://example.com/cat.png\"}," +
             "\"function\":{\"name\":\"get_weather\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "user-text", null, json, WHOLE), equalTo(COMPLETE));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_TEXT, null, json, WHOLE), equalTo(COMPLETE));
         assertThat(probe.attributes().source(), nullValue());
         assertThat(probe.attributes().toolCallId(), nullValue());
         assertThat(probe.attributes().toolName(), nullValue());
@@ -295,8 +297,8 @@ public class LlmOpenaiAttributeProbeTest
         final String image = "{\"type\":\"image_url\",\"image_url\":{\"url\":\"https://example.com/cat.png\"}}";
         final String file = "{\"type\":\"file\",\"file\":{\"file_id\":\"file-abc123\"}}";
 
-        LlmAttributeProbeRunner.run(probe, "user-image", null, image, WHOLE);
-        LlmAttributeProbeRunner.run(probe, "user-document", null, file, WHOLE);
+        LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_IMAGE, null, image, WHOLE);
+        LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_DOCUMENT, null, file, WHOLE);
 
         assertThat(probe.attributes().source(), equalTo("reference"));
     }
