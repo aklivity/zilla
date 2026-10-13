@@ -37,6 +37,7 @@ write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("user-image")
                           .message(0)
+                          .attribute("source", "url")
                           .build()}
 write "{\"type\":\"image_url\",\"image_url\":{\"url\":\"https://example.com/cat.png\"}}"
 write flush

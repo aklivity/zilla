@@ -56,8 +56,8 @@ final class LlmAnthropicSectionSink implements JsonSink
     private boolean sectionOpen;
     private boolean sectionStarted;
     private String sectionType;
-    private String sectionExtension;
-    private String sectionAttributes;
+    private String sectionToolCallId;
+    private String sectionToolName;
 
     private char highSurrogate;
     private byte[] textBytes;
@@ -506,14 +506,14 @@ final class LlmAnthropicSectionSink implements JsonSink
 
     private void openSection(
         String type,
-        String extension,
-        String attributes)
+        String toolCallId,
+        String toolName)
     {
         sectionOpen = true;
         sectionStarted = false;
         sectionType = type;
-        sectionExtension = extension;
-        sectionAttributes = attributes;
+        sectionToolCallId = toolCallId;
+        sectionToolName = toolName;
     }
 
     private void closeSection()
@@ -541,8 +541,8 @@ final class LlmAnthropicSectionSink implements JsonSink
             output.frame(
                 sectionType,
                 0,
-                sectionExtension,
-                sectionAttributes,
+                sectionToolCallId,
+                sectionToolName,
                 fin ? Flags.fin(flags) : flags,
                 textBuffer,
                 0,
@@ -686,8 +686,8 @@ final class LlmAnthropicSectionSink implements JsonSink
         void frame(
             String type,
             int message,
-            String extension,
-            String attributes,
+            String toolCallId,
+            String toolName,
             int flags,
             DirectBuffer buffer,
             int offset,

@@ -37,6 +37,7 @@ write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("tool-definition")
                           .message(-1)
+                          .attribute("tool-name", "get_weather")
                           .build()}
 write "{\"name\":\"get_weather\",\"description\":\"Get the weather\",\"input_schema\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}}}}"
 write flush
@@ -53,6 +54,8 @@ write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("tool-call")
                           .message(1)
+                          .attribute("tool-name", "get_weather")
+                          .attribute("tool-call-id", "toolu_1")
                           .build()}
 write "{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"get_weather\",\"input\":{\"city\":\"Paris\"}}"
 write flush
@@ -61,7 +64,7 @@ write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("tool-result")
                           .message(2)
-                          .extension("toolu_1")
+                          .attribute("tool-call-id", "toolu_1")
                           .build()}
 write "sunny"
 write flush

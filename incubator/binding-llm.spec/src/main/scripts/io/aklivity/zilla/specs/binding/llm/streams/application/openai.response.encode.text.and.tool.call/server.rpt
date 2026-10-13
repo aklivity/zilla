@@ -58,8 +58,8 @@ write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("tool-call")
                           .message(0)
-                          .attributes("get_weather")
-                          .extension("call_1")
+                          .attribute("tool-name", "get_weather")
+                          .attribute("tool-call-id", "call_1")
                           .build()}
 write "{\"city\":\"Paris\"}"
 write flush
@@ -69,8 +69,8 @@ write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("tool-call")
                           .message(0)
-                          .attributes("get_weather")
-                          .extension("call_2")
+                          .attribute("tool-name", "get_weather")
+                          .attribute("tool-call-id", "call_2")
                           .build()}
 write "{\"city\":\"London\"}"
 write flush

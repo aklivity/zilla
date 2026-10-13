@@ -16,6 +16,8 @@ package io.aklivity.zilla.specs.binding.llm.internal;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.el.Function;
@@ -290,11 +292,15 @@ public final class LlmFunctions
     {
         private final MutableDirectBufferEx writeBuffer;
         private final LlmDataExFW.Builder dataExRW;
+        private final Map<String, String> attributes;
+
+        private String extension;
 
         private LlmDataExBuilder()
         {
             this.writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
             this.dataExRW = new LlmDataExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
+            this.attributes = new LinkedHashMap<>();
         }
 
         public LlmDataExBuilder typeId(
@@ -318,24 +324,31 @@ public final class LlmFunctions
             return this;
         }
 
-        public LlmDataExBuilder attributes(
-            String attributes)
+        public LlmDataExBuilder attribute(
+            String name,
+            String value)
         {
-            final byte[] bytes = attributes.getBytes(StandardCharsets.UTF_8);
-            dataExRW.attributesLength(bytes.length).attributes(a -> a.set(bytes));
+            attributes.put(name, value);
             return this;
         }
 
         public LlmDataExBuilder extension(
             String extension)
         {
-            final byte[] bytes = extension.getBytes(StandardCharsets.UTF_8);
-            dataExRW.extensionLength(bytes.length).extension(e -> e.set(bytes));
+            this.extension = extension;
             return this;
         }
 
         public byte[] build()
         {
+            attributes.forEach((name, value) -> dataExRW.attributesItem(a -> a.name(name).value(value)));
+
+            if (extension != null)
+            {
+                final byte[] bytes = extension.getBytes(StandardCharsets.UTF_8);
+                dataExRW.extensionLength(bytes.length).extension(e -> e.set(bytes));
+            }
+
             final LlmDataExFW dataEx = dataExRW.build();
             final byte[] array = new byte[dataEx.sizeof()];
             dataEx.buffer().getBytes(dataEx.offset(), array);
@@ -353,7 +366,7 @@ public final class LlmFunctions
         private String type;
         private boolean typeNull;
         private Integer message;
-        private String attributes;
+        private Map<String, String> attributes;
         private boolean attributesNull;
         private String extension;
         private boolean extensionNull;
@@ -385,10 +398,16 @@ public final class LlmFunctions
             return this;
         }
 
-        public LlmDataExMatcherBuilder attributes(
-            String attributes)
+        public LlmDataExMatcherBuilder attribute(
+            String name,
+            String value)
         {
-            this.attributes = attributes;
+            if (attributes == null)
+            {
+                attributes = new LinkedHashMap<>();
+            }
+
+            attributes.put(name, value);
             return this;
         }
 
@@ -463,8 +482,10 @@ public final class LlmFunctions
         private boolean matchAttributes(
             LlmDataExFW dataEx)
         {
-            final String actual = asString(dataEx.attributes());
-            return attributesNull ? actual == null : attributes == null || attributes.equals(actual);
+            final Map<String, String> actual = new LinkedHashMap<>();
+            dataEx.attributes().forEach(a -> actual.put(a.name().asString(), a.value().asString()));
+
+            return attributesNull ? actual.isEmpty() : attributes == null || attributes.equals(actual);
         }
 
         private boolean matchExtension(

@@ -26,12 +26,17 @@ scope llm
             octets[extensionLength] extension = null;
         }
 
+        struct LlmAttribute
+        {
+            string8 name;
+            string16 value;
+        }
+
         struct LlmDataEx extends core::stream::Extension
         {
             string16 type = null;
             int32 message = -1;
-            varint32 attributesLength;
-            octets[attributesLength] attributes = null;
+            LlmAttribute[] attributes;
             varint32 extensionLength;
             octets[extensionLength] extension = null;
         }

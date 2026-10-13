@@ -148,8 +148,8 @@ final class LlmAnthropicResponseEncoder
         int offset,
         String type,
         int message,
-        String extension,
-        String attributes)
+        String toolCallId,
+        String toolName)
     {
         wrap(out, offset);
 
@@ -160,11 +160,11 @@ final class LlmAnthropicResponseEncoder
             if (streaming)
             {
                 carried = 0;
-                sectionStream(extension, attributes);
+                sectionStream(toolCallId, toolName);
             }
             else
             {
-                sectionBlock(extension, attributes);
+                sectionBlock(toolCallId, toolName);
             }
         }
 
@@ -314,8 +314,8 @@ final class LlmAnthropicResponseEncoder
     }
 
     private void sectionStream(
-        String extension,
-        String attributes)
+        String toolCallId,
+        String toolName)
     {
         put(EVENT_BLOCK_START);
         put(BLOCK_START);
@@ -332,9 +332,9 @@ final class LlmAnthropicResponseEncoder
         default:
             toolCalls++;
             put(BLOCK_TOOL_ID);
-            put(escape(extension != null ? extension : ""));
+            put(escape(toolCallId != null ? toolCallId : ""));
             put(BLOCK_TOOL_NAME);
-            put(escape(attributes != null ? attributes : ""));
+            put(escape(toolName != null ? toolName : ""));
             put(BLOCK_TOOL_INPUT);
             break;
         }
@@ -343,8 +343,8 @@ final class LlmAnthropicResponseEncoder
     }
 
     private void sectionBlock(
-        String extension,
-        String attributes)
+        String toolCallId,
+        String toolName)
     {
         if (blocks++ > 0)
         {
@@ -363,9 +363,9 @@ final class LlmAnthropicResponseEncoder
             toolCalls++;
             inputWritten = false;
             put(TOOL_BLOCK);
-            put(escape(extension != null ? extension : ""));
+            put(escape(toolCallId != null ? toolCallId : ""));
             put(TOOL_BLOCK_NAME);
-            put(escape(attributes != null ? attributes : ""));
+            put(escape(toolName != null ? toolName : ""));
             put(TOOL_BLOCK_INPUT);
             break;
         }

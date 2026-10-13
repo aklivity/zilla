@@ -31,6 +31,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("tool-definition")
                           .message(-1)
+                          .attribute("tool-name", "get_weather")
                           .build()}
 read "{\"name\":\"get_weather\",\"description\":\"Get the weather\",\"input_schema\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}}}}"
 

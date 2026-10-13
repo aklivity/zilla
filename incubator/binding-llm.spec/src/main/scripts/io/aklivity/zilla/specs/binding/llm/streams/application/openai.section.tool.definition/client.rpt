@@ -37,6 +37,7 @@ write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("tool-definition")
                           .message(-1)
+                          .attribute("tool-name", "get_weather")
                           .build()}
 write "{\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"parameters\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}}}}}"
 write flush

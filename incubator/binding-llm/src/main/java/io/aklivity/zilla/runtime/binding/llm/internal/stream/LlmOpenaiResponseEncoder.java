@@ -161,8 +161,8 @@ final class LlmOpenaiResponseEncoder
         int offset,
         String type,
         int message,
-        String extension,
-        String attributes)
+        String toolCallId,
+        String toolName)
     {
         wrap(out, offset);
 
@@ -177,7 +177,7 @@ final class LlmOpenaiResponseEncoder
             sectionRefusal();
             break;
         case KIND_TOOL_CALL:
-            sectionToolCall(extension, attributes);
+            sectionToolCall(toolCallId, toolName);
             break;
         default:
             break;
@@ -386,8 +386,8 @@ final class LlmOpenaiResponseEncoder
     }
 
     private void sectionToolCall(
-        String extension,
-        String attributes)
+        String toolCallId,
+        String toolName)
     {
         final int index = toolCalls++;
 
@@ -399,9 +399,9 @@ final class LlmOpenaiResponseEncoder
             put(DELTA_TOOL_CALLS);
             putNumber(index);
             put(DELTA_TOOL_ID);
-            put(escape(extension != null ? extension : ""));
+            put(escape(toolCallId != null ? toolCallId : ""));
             put(DELTA_TOOL_TYPE);
-            put(escape(attributes != null ? attributes : ""));
+            put(escape(toolName != null ? toolName : ""));
             put(DELTA_TOOL_ARGUMENTS_EMPTY);
             put(DELTA_END);
             chunkEnd();
@@ -420,9 +420,9 @@ final class LlmOpenaiResponseEncoder
             }
 
             put(TOOL_CALL_START);
-            put(escape(extension != null ? extension : ""));
+            put(escape(toolCallId != null ? toolCallId : ""));
             put(TOOL_CALL_TYPE);
-            put(escape(attributes != null ? attributes : ""));
+            put(escape(toolName != null ? toolName : ""));
             put(TOOL_CALL_ARGUMENTS);
         }
     }
