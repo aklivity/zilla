@@ -83,7 +83,7 @@ final class TestExporterMetrics
             {
                 if (matches(HISTOGRAM, expected.get(i), record))
                 {
-                    for (int b = 0; b < readers.length; b++)
+                    for (int b = 0; b < BUCKET_LIMITS.length; b++)
                     {
                         values[i][b] += readers[b].getAsLong();
                     }

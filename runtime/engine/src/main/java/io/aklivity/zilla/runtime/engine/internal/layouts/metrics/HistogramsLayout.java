@@ -38,12 +38,15 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 public final class HistogramsLayout extends MetricsLayout
 {
     public static final int BUCKETS = 63;
+    public static final int SUM = BUCKETS;
+    public static final int READERS = SUM + 1;
     public static final long[] BUCKET_LIMITS = generateBucketLimits();
 
     // Record: long bindingId (8) + int metricId (4) + int attributesId (4) + long kind (8)
-    //       + long[63] values (504) = 528 bytes
+    //       + long[63] bucket counts (504) + long sum of recorded values (8) = 536 bytes
     private static final int VALUES_OFFSET = VALUE_OFFSET;
-    private static final int ARRAY_SIZE = BUCKETS * FIELD_SIZE;
+    private static final int SUM_OFFSET = BUCKETS * FIELD_SIZE;
+    private static final int ARRAY_SIZE = READERS * FIELD_SIZE;
     private static final int RECORD_SIZE = VALUES_OFFSET + ARRAY_SIZE;
     private static final LongSupplier ZERO_LONG_SUPPLIER = () -> 0L;
 
@@ -61,7 +64,7 @@ public final class HistogramsLayout extends MetricsLayout
         int kind)
     {
         int index = findOrSetPosition(bindingId, metricId, attributesId, kind);
-        return value -> buffer.getAndAddLong(index + VALUES_OFFSET + findBucket(value) * FIELD_SIZE, 1);
+        return value -> recordValue(index, value);
     }
 
     @Override
@@ -83,19 +86,27 @@ public final class HistogramsLayout extends MetricsLayout
         int index = findPosition(bindingId, metricId, attributesId);
         if (index == -1) // not found
         {
-            readers = IntStream.range(0, BUCKETS)
-                    .mapToObj(bucket -> ZERO_LONG_SUPPLIER)
+            readers = IntStream.range(0, READERS)
+                    .mapToObj(reader -> ZERO_LONG_SUPPLIER)
                     .collect(Collectors.toList())
                     .toArray(LongSupplier[]::new);
         }
         else
         {
-            readers = IntStream.range(0, BUCKETS)
-                    .mapToObj(bucket -> newLongSupplier(index + VALUES_OFFSET + bucket * FIELD_SIZE))
+            readers = IntStream.range(0, READERS)
+                    .mapToObj(reader -> newLongSupplier(index + VALUES_OFFSET + reader * FIELD_SIZE))
                     .collect(Collectors.toList())
                     .toArray(LongSupplier[]::new);
         }
         return readers;
+    }
+
+    private void recordValue(
+        int index,
+        long value)
+    {
+        buffer.getAndAddLong(index + VALUES_OFFSET + SUM_OFFSET, value);
+        buffer.getAndAddLong(index + VALUES_OFFSET + findBucket(value) * FIELD_SIZE, 1);
     }
 
     private int findBucket(

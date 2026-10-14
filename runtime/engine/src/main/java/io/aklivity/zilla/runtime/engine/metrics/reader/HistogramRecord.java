@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.engine.metrics.reader;
 
 import static io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout.BUCKETS;
 import static io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout.BUCKET_LIMITS;
+import static io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout.SUM;
 import static io.aklivity.zilla.runtime.engine.namespace.NamespacedId.namespaceId;
 
 import java.util.Map;
@@ -31,6 +32,7 @@ import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.MetricsLayout;
 
 public class HistogramRecord implements MetricRecord
 {
+    private static final long NANOS_PER_MILLI = 1_000_000L;
     private static final Int2IntHashMap MS_BUCKET_MAP = generateMillisecondsBucketMap();
 
     private final long bindingId;
@@ -43,6 +45,7 @@ public class HistogramRecord implements MetricRecord
 
     private long[] bucketValues = new long[BUCKETS];
     private long[] millisecondBucketValues = null;
+    private long sum;
 
     public HistogramRecord(
         long bindingId,
@@ -120,6 +123,7 @@ public class HistogramRecord implements MetricRecord
         {
             bucketValues[i] = readers[i].getAsLong();
         }
+        sum = readers[SUM].getAsLong();
         millisecondBucketValues = null;
     }
 
@@ -144,7 +148,7 @@ public class HistogramRecord implements MetricRecord
 
     public long[] stats()
     {
-        return stats(bucketValues);
+        return stats(bucketValues, sum);
     }
 
     public long[] millisecondStats()
@@ -153,21 +157,20 @@ public class HistogramRecord implements MetricRecord
         {
             millisecondBucketValues();
         }
-        return stats(millisecondBucketValues);
+        return stats(millisecondBucketValues, sum / NANOS_PER_MILLI);
     }
 
     private long[] stats(
-        long[] bucketValues)
+        long[] bucketValues,
+        long sum)
     {
         long count = 0L;
-        long sum = 0L;
         int minIndex = -1;
         int maxIndex = -1;
         for (int i = 0; i < BUCKETS; i++)
         {
             long bucketCount = bucketValues[i];
             count += bucketCount;
-            sum += bucketCount * getValue(i);
             if (bucketCount != 0)
             {
                 maxIndex = i;
