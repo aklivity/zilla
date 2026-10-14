@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>zilla</artifactId>
-    <version>2.4.8-rc11</version>
+    <version>2.5.0-rc1</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -29,6 +29,7 @@
     <module>binding-http-kafka</module>
     <module>binding-kafka</module>
     <module>binding-kafka-grpc</module>
+    <module>binding-llm</module>
     <module>binding-mqtt</module>
     <module>binding-mcp</module>
     <module>binding-mcp-http</module>
@@ -50,6 +51,9 @@
     <module>catalog-inline</module>
     <module>catalog-karapace</module>
     <module>catalog-schema-registry</module>
+    <module>classifier-patterns</module>
+    <module>classifier-presidio</module>
+    <module>classifier-semantic</module>
     <module>common-agrona</module>
     <module>common-asyncapi</module>
     <module>common-avro</module>
@@ -78,9 +82,11 @@
     <module>guard-x509</module>
     <module>metrics-grpc</module>
     <module>metrics-http</module>
+    <module>metrics-llm</module>
     <module>metrics-mcp</module>
     <module>metrics-stream</module>
     <module>model-avro</module>
+    <module>model-classify</module>
     <module>model-core</module>
     <module>model-json</module>
     <module>model-protobuf</module>
@@ -144,6 +150,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-tls.conf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-llm.conf</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -233,6 +244,21 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>classifier-patterns.conf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>classifier-presidio.conf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>classifier-semantic.conf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>embedding-openai.conf</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -268,7 +294,17 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>metrics-llm.conf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>model-avro.conf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>model-classify.conf</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -354,6 +390,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-kafka</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-llm</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -553,6 +594,21 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>classifier-patterns</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>classifier-presidio</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>classifier-semantic</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>embedding-openai</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -603,6 +659,11 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>metrics-llm</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>metrics-mcp</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -614,6 +675,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>model-avro</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>model-classify</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

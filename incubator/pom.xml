@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>zilla</artifactId>
-    <version>2.4.8-rc11</version>
+    <version>2.5.0-rc1</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -19,35 +19,17 @@
   <modules>
     <module>binding-amqp.spec</module>
     <module>binding-amqp.conf</module>
-    <module>binding-llm.spec</module>
-    <module>binding-llm.conf</module>
     <module>binding-pgsql.spec</module>
     <module>binding-pgsql.conf</module>
     <module>binding-pgsql-kafka.spec</module>
     <module>binding-pgsql-kafka.conf</module>
     <module>binding-risingwave.spec</module>
     <module>binding-risingwave.conf</module>
-    <module>metrics-llm.spec</module>
-    <module>metrics-llm.conf</module>
-    <module>model-classify.spec</module>
-    <module>model-classify.conf</module>
-    <module>classifier-semantic.spec</module>
-    <module>classifier-semantic.conf</module>
-    <module>classifier-patterns.spec</module>
-    <module>classifier-patterns.conf</module>
-    <module>classifier-presidio.spec</module>
-    <module>classifier-presidio.conf</module>
 
     <module>binding-amqp</module>
-    <module>binding-llm</module>
     <module>binding-pgsql</module>
     <module>binding-pgsql-kafka</module>
     <module>binding-risingwave</module>
-    <module>metrics-llm</module>
-    <module>model-classify</module>
-    <module>classifier-semantic</module>
-    <module>classifier-patterns</module>
-    <module>classifier-presidio</module>
 
     <module>command-log</module>
     <module>command-dump</module>
@@ -64,72 +46,12 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>model-classify</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>model-classify.conf</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>classifier-semantic</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>classifier-semantic.conf</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>classifier-patterns</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>classifier-patterns.conf</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>classifier-presidio</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>classifier-presidio.conf</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
         <artifactId>binding-amqp</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-amqp.conf</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>binding-llm</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>binding-llm.conf</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>metrics-llm</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>metrics-llm.conf</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

@@ -29,6 +29,7 @@ This project includes:
   zilla::config::binding-http-kafka.conf under Aklivity Community License Agreement
   zilla::config::binding-http.conf under Aklivity Community License Agreement
   zilla::config::binding-kafka-grpc.conf under Aklivity Community License Agreement
+  zilla::config::binding-llm.conf under Aklivity Community License Agreement
   zilla::config::binding-mcp-http.conf under Aklivity Community License Agreement
   zilla::config::binding-mcp-kafka-connect.conf under Aklivity Community License Agreement
   zilla::config::binding-mcp-kafka.conf under Aklivity Community License Agreement
@@ -50,6 +51,9 @@ This project includes:
   zilla::config::catalog-inline.conf under Aklivity Community License Agreement
   zilla::config::catalog-karapace.conf under Aklivity Community License Agreement
   zilla::config::catalog-schema-registry.conf under Aklivity Community License Agreement
+  zilla::config::classifier-patterns.conf under Aklivity Community License Agreement
+  zilla::config::classifier-presidio.conf under Aklivity Community License Agreement
+  zilla::config::classifier-semantic.conf under Aklivity Community License Agreement
   zilla::config::embedding-openai.conf under Aklivity Community License Agreement
   zilla::config::engine.conf under Aklivity Community License Agreement
   zilla::config::exporter-otlp.conf under Aklivity Community License Agreement
@@ -60,6 +64,7 @@ This project includes:
   zilla::config::guard-x509.conf under Aklivity Community License Agreement
   zilla::config::metrics-grpc.conf under Aklivity Community License Agreement
   zilla::config::metrics-http.conf under Aklivity Community License Agreement
+  zilla::config::metrics-llm.conf under Aklivity Community License Agreement
   zilla::config::metrics-mcp.conf under Aklivity Community License Agreement
   zilla::config::metrics-stream.conf under Aklivity Community License Agreement
   zilla::config::model-avro.conf under Aklivity Community License Agreement
@@ -74,5 +79,6 @@ This project includes:
   zilla::runtime::common-json under Aklivity Community License Agreement
   zilla::runtime::common-lang under Aklivity Community License Agreement
   zilla::runtime::common-openapi under Aklivity Community License Agreement
+  zilla::runtime::common-vector under Aklivity Community License Agreement
   zilla::runtime::common-yaml under Aklivity Community License Agreement
 

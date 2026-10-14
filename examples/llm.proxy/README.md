@@ -171,18 +171,18 @@ north_llm_proxy:
               maxLength: 200
 ```
 
-The [`classify`](../../incubator/model-classify) model rejects a value that any of its classifiers labels with
+The [`classify`](../../runtime/model-classify) model rejects a value that any of its classifiers labels with
 one of the labels listed under `reject`. The classifiers are declared at the top of
 [`zilla.yaml`](etc/zilla.yaml):
 
-- [`semantic`](../../incubator/classifier-semantic) (`moderator0`) labels a prompt that means the same as one
+- [`semantic`](../../runtime/classifier-semantic) (`moderator0`) labels a prompt that means the same as one
   of a set of exemplar phrases, whatever words it uses. Here `jailbreak` covers prompts that tell the model to
   ignore its instructions. The embeddings come from a local
   [text-embeddings-inference](https://github.com/huggingface/text-embeddings-inference) service (`tei`)
   hosting `sentence-transformers/all-MiniLM-L6-v2`, so no vendor account is needed.
-- [`patterns`](../../incubator/classifier-patterns) (`secrets0`) labels a value matching a regular expression,
+- [`patterns`](../../runtime/classifier-patterns) (`secrets0`) labels a value matching a regular expression,
   such as an AWS access key, a GitHub token or a private key header.
-- [`presidio`](../../incubator/classifier-presidio) (`presidio0`) labels personal data, such as an email
+- [`presidio`](../../runtime/classifier-presidio) (`presidio0`) labels personal data, such as an email
   address or a person's name, as reported by a [Presidio](https://microsoft.github.io/presidio/) analyzer
   running as the `presidio-analyzer` service.
 
