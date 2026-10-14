@@ -145,6 +145,7 @@
 - fix\(common-json\): keep the pending separator trim across consecutive leading skips [\#2713](https://github.com/aklivity/zilla/pull/2713) ([jfallows](https://github.com/jfallows))
 - chore\(docker-image\): sort zpm.json.template dependencies [\#2714](https://github.com/aklivity/zilla/pull/2714) ([jfallows](https://github.com/jfallows))
 - feat\(classifier-presidio\): anonymize and deanonymize with scoped surrogates [\#2720](https://github.com/aklivity/zilla/pull/2720) ([jfallows](https://github.com/jfallows))
+- feat: promote binding-llm, metrics-llm, model-classify and classifiers out of incubator [\#2721](https://github.com/aklivity/zilla/pull/2721) ([jfallows](https://github.com/jfallows))
 - feat\(binding-llm\): carry max output tokens across dialects [\#2724](https://github.com/aklivity/zilla/pull/2724) ([jfallows](https://github.com/jfallows))
 - fix\(engine\): record exact histogram sum instead of deriving it from bucket limits [\#2725](https://github.com/aklivity/zilla/pull/2725) ([jfallows](https://github.com/jfallows))
 - feat\(binding-llm\): request usage upstream for openai streaming and honor the caller's choice [\#2726](https://github.com/aklivity/zilla/pull/2726) ([jfallows](https://github.com/jfallows))
