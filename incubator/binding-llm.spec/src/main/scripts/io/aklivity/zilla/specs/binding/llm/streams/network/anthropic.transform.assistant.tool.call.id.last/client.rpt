@@ -36,7 +36,7 @@ write flush
 
 write await FIRST_FRAME_READ
 
-write ",\"id\":\"call_1\"}]}]}"
+write ",\"id\":\"call_1\"}]}],\"max_tokens\":4096}"
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()
