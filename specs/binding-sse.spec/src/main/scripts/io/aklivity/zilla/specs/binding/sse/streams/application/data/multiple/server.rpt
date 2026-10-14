@@ -34,3 +34,5 @@ write flush
 
 write "Hello, again"
 write flush
+
+write close

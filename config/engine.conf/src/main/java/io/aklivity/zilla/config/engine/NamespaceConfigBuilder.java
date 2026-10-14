@@ -26,6 +26,7 @@ public final class NamespaceConfigBuilder<T> extends ConfigBuilder<T, NamespaceC
     public static final List<BindingConfig> BINDINGS_DEFAULT = emptyList();
     public static final List<CatalogConfig> CATALOGS_DEFAULT = emptyList();
     public static final List<EmbeddingConfig> EMBEDDINGS_DEFAULT = emptyList();
+    public static final List<ClassifierConfig> CLASSIFIERS_DEFAULT = emptyList();
     public static final List<GuardConfig> GUARDS_DEFAULT = emptyList();
     public static final List<VaultConfig> VAULTS_DEFAULT = emptyList();
     public static final List<StoreConfig> STORES_DEFAULT = emptyList();
@@ -38,6 +39,7 @@ public final class NamespaceConfigBuilder<T> extends ConfigBuilder<T, NamespaceC
     private List<BindingConfig> bindings;
     private List<CatalogConfig> catalogs;
     private List<EmbeddingConfig> embeddings;
+    private List<ClassifierConfig> classifiers;
     private List<GuardConfig> guards;
     private List<VaultConfig> vaults;
     private List<StoreConfig> stores;
@@ -161,6 +163,35 @@ public final class NamespaceConfigBuilder<T> extends ConfigBuilder<T, NamespaceC
         return this;
     }
 
+    public GenericClassifierConfigBuilder<NamespaceConfigBuilder<T>> classifier()
+    {
+        return new GenericClassifierConfigBuilder<>(this::classifier).namespace(name);
+    }
+
+    public <B extends ClassifierConfigBuilder<NamespaceConfigBuilder<T>, B>> B classifier(
+        Function<Function<ClassifierConfig, NamespaceConfigBuilder<T>>, B> classifier)
+    {
+        return classifier.apply(this::classifier).namespace(name);
+    }
+
+    public NamespaceConfigBuilder<T> classifier(
+        ClassifierConfig classifier)
+    {
+        if (classifiers == null)
+        {
+            classifiers = new LinkedList<>();
+        }
+        classifiers.add(classifier);
+        return this;
+    }
+
+    public NamespaceConfigBuilder<T> classifiers(
+        List<ClassifierConfig> classifiers)
+    {
+        this.classifiers = classifiers;
+        return this;
+    }
+
     public GenericGuardConfigBuilder<NamespaceConfigBuilder<T>> guard()
     {
         return new GenericGuardConfigBuilder<>(this::guard).namespace(name);
@@ -258,6 +289,7 @@ public final class NamespaceConfigBuilder<T> extends ConfigBuilder<T, NamespaceC
             Optional.ofNullable(vaults).orElse(VAULTS_DEFAULT),
             Optional.ofNullable(catalogs).orElse(CATALOGS_DEFAULT),
             Optional.ofNullable(embeddings).orElse(EMBEDDINGS_DEFAULT),
+            Optional.ofNullable(classifiers).orElse(CLASSIFIERS_DEFAULT),
             Optional.ofNullable(stores).orElse(STORES_DEFAULT)));
     }
 }

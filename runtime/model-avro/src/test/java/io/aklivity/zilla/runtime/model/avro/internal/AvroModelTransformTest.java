@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.model.avro.internal;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -59,9 +61,6 @@ import io.aklivity.zilla.runtime.model.avro.ext.AvroModelExtHandler;
 
 public class AvroModelTransformTest
 {
-    private static final int FLAGS_FIN = 0x01;
-    private static final int FLAGS_COMPLETE = 0x03;
-
     private static final String SCHEMA = """
         {
             "fields":
@@ -362,36 +361,48 @@ public class AvroModelTransformTest
         ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, new Rejecting("$.status"), ModelCache.NONE);
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
     }
 
     @Test
-    public void shouldNotReportIdentityWhenMediating()
+    public void shouldNotReportIdentityButDeriveDeterminismWhenMediating()
     {
         AvroModelHandlerImpl handler = newHandler(SCHEMA, null);
         ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, new Rewriting("$.id", "replaced"), ModelCache.NONE);
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
 
         assertFalse(pipeline.identity());
+        assertTrue(pipeline.deterministic());
     }
 
     @Test
-    public void shouldReportIdentityWhenObserving()
+    public void shouldReportIdentityAndDeterministicWhenObserving()
     {
         AvroModelHandlerImpl handler = newHandler(SCHEMA, null);
         ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, new Observing(), ModelCache.NONE);
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
 
         assertTrue(pipeline.identity());
+        assertTrue(pipeline.deterministic());
+    }
+
+    @Test
+    public void shouldNotReportDeterministicWhenTransformIsNondeterministic()
+    {
+        AvroModelHandlerImpl handler = newHandler(SCHEMA, null);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, new Unstable(), ModelCache.NONE);
+
+        assertTrue(pipeline.identity());
+        assertFalse(pipeline.deterministic());
     }
 
     @Test
@@ -402,7 +413,7 @@ public class AvroModelTransformTest
 
         byte[] json = "{\"id\":\"id0\",\"status\":\"positive\"}".getBytes(UTF_8);
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(json), 0, json.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -421,7 +432,7 @@ public class AvroModelTransformTest
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[window]);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         int srcAt = 0;
-        int flags = FLAGS_COMPLETE;
+        int flags = COMPLETE;
         ModelStatus status = ModelStatus.OK;
         for (int rounds = 0; rounds < 64 && status != ModelStatus.COMPLETE && status != ModelStatus.REJECTED; rounds++)
         {
@@ -435,7 +446,7 @@ public class AvroModelTransformTest
                 out.writeBytes(chunk);
             }
             srcAt += result.consumed();
-            flags = FLAGS_FIN;
+            flags = FIN;
         }
         assertEquals(ModelStatus.COMPLETE, status);
         return out.toByteArray();
@@ -446,7 +457,7 @@ public class AvroModelTransformTest
         byte[] avro)
     {
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[512]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(avro), 0, avro.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -507,6 +518,12 @@ public class AvroModelTransformTest
     // substitutes a fixed value for one path, exercising the mediating (withhold and re-emit) mode
     private static final class Rewriting implements ModelTransform
     {
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
         private final String path;
         private final Substitute substitute;
 
@@ -533,6 +550,12 @@ public class AvroModelTransformTest
 
     private static final class Declining implements ModelTransform
     {
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
         private final String[] paths;
 
         private Declining(
@@ -558,6 +581,12 @@ public class AvroModelTransformTest
     // reproduce the input byte for byte
     private static final class Echoing implements ModelTransform
     {
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
         private final Substitute substitute;
 
         private Echoing()
@@ -581,6 +610,12 @@ public class AvroModelTransformTest
     // records the field run exactly as the adapter delivers it, framing included
     private static final class Recording implements ModelTransform
     {
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
         private final List<String> events;
         private final boolean identity;
 
@@ -624,6 +659,12 @@ public class AvroModelTransformTest
 
     private static final class Rejecting implements ModelTransform
     {
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
         private final String path;
 
         private Rejecting(
@@ -655,6 +696,12 @@ public class AvroModelTransformTest
 
     private static final class Observing implements ModelTransform
     {
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
         @Override
         public ModelStatus transform(
             ModelController control,
@@ -717,6 +764,31 @@ public class AvroModelTransformTest
             this.path = source.getPath();
             this.value = view;
             return this;
+        }
+    }
+
+    private static final class Unstable implements ModelTransform
+    {
+        @Override
+        public boolean deterministic()
+        {
+            return false;
+        }
+
+        @Override
+        public boolean identity()
+        {
+            return true;
+        }
+
+        @Override
+        public ModelStatus transform(
+            ModelController control,
+            ModelSource source,
+            ModelEvent event,
+            ModelSink sink)
+        {
+            return sink.transform(control, source, event);
         }
     }
 }

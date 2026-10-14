@@ -45,6 +45,12 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>common-jwt</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>common-protobuf</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
@@ -130,6 +136,12 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>binding-kafka-grpc</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>binding-llm</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>
@@ -279,13 +291,31 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>embedding-glove</artifactId>
+      <artifactId>embedding-openai</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>model-vector</artifactId>
+      <artifactId>classifier-semantic</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>classifier-patterns</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>classifier-presidio</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>model-classify</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>
@@ -412,6 +442,12 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>metrics-mcp</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>metrics-llm</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>

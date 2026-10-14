@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
@@ -1889,7 +1890,7 @@ abstract class McpProxyListFactory implements BindingHandler
                 if (length > 0)
                 {
                     doData(sender, lifecycle.originId, lifecycle.routedId, replyId, replySeq, replyAck, replyMax,
-                        traceId, authorization, 0x03, 0L, length, buffer, offset, length);
+                        traceId, authorization, COMPLETE, 0L, length, buffer, offset, length);
                     replySeq += length;
                     if (hydration)
                     {
@@ -1937,7 +1938,7 @@ abstract class McpProxyListFactory implements BindingHandler
                 if (length > 0)
                 {
                     doData(sender, lifecycle.originId, lifecycle.routedId, replyId, replySeq, replyAck, replyMax,
-                        traceId, authorization, 0x03, 0L, length, slot, 0, length);
+                        traceId, authorization, COMPLETE, 0L, length, slot, 0, length);
                     replySeq += length;
                     final int remaining = encodeSlotOffset - length;
                     if (remaining > 0)
@@ -2358,7 +2359,7 @@ abstract class McpProxyListFactory implements BindingHandler
                     return;
                 }
                 final int chunkLen = Math.min(replyWin, cachedLen - emitOffset);
-                doServerData(traceId, 0L, 0x03, chunkLen, cachedBuf, emitOffset, chunkLen);
+                doServerData(traceId, 0L, COMPLETE, chunkLen, cachedBuf, emitOffset, chunkLen);
                 emitOffset += chunkLen;
             }
 

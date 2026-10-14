@@ -39,15 +39,6 @@ public class DataIT
 
     @Test
     @Specification({
-        "${app}/name.only/client",
-        "${app}/name.only/server" })
-    public void shouldReceiveDataNameOnly() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/empty/client",
         "${app}/empty/server" })
     public void shouldReceiveEmptyData() throws Exception
@@ -111,27 +102,18 @@ public class DataIT
 
     @Test
     @Specification({
-        "${app}/invalid.utf8/client",
-        "${app}/invalid.utf8/server" })
-    public void shouldRejectDataWithInvalidUTF8() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/initial.whitespace/client",
-        "${app}/initial.whitespace/server" })
-    public void shouldReceiveDataWithInitialWhitespace() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/multi.line/client",
         "${app}/multi.line/server" })
     public void shouldReceiveMultiLineData() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/window.before.begin/client",
+        "${app}/window.before.begin/server" })
+    public void shouldReceiveDataWithWindowBeforeBegin() throws Exception
     {
         k3po.finish();
     }

@@ -17,6 +17,13 @@ package io.aklivity.zilla.runtime.binding.http.kafka.internal.stream;
 import static io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaCapabilities.FETCH_ONLY;
 import static io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaCapabilities.PRODUCE_ONLY;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INCOMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
+import static io.aklivity.zilla.runtime.engine.util.Flags.init;
 import static java.time.Instant.now;
 
 import java.util.function.LongUnaryOperator;
@@ -63,10 +70,6 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 {
     private static final String HTTP_TYPE_NAME = "http";
     private static final String KAFKA_TYPE_NAME = "kafka";
-
-    private static final int DATA_FLAG_INIT = 0x02;
-    private static final int DATA_FLAG_FIN = 0x01;
-    private static final int DATA_FLAG_INCOMPLETE = 0x04;
 
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBufferEx(0L, 0), 0, 0);
 
@@ -639,7 +642,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             }
             else
             {
-                if ((flags & 0x02) != 0x00) // INIT
+                if (hasInit(flags))
                 {
                     Flyweight httpBeginEx = emptyRO;
 
@@ -713,7 +716,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                     doHttpData(traceId, authorization, budgetId, reserved, flags, payload);
                 }
 
-                if ((flags & 0x01) != 0x00) // FIN
+                if (hasFin(flags))
                 {
                     fetcher.doKafkaEnd(traceId, authorization);
                     state = HttpKafkaState.closingReply(state);
@@ -1185,15 +1188,15 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 {
                     OctetsFW preamble = fetcher.resolved.header();
                     int reservedPre = preamble.sizeof();
-                    doHttpData(traceId, authorization, replyBud, reservedPre, 0x03, preamble);
+                    doHttpData(traceId, authorization, replyBud, reservedPre, COMPLETE, preamble);
 
                     replyPadAdjust = reservedPre;
                 }
-                else if ((flags & DATA_FLAG_INIT) != 0x00 && replyMsgs > 0)
+                else if (hasInit(flags) && replyMsgs > 0)
                 {
                     OctetsFW preamble = fetcher.resolved.separator();
                     int reservedSep = preamble.sizeof();
-                    doHttpData(traceId, authorization, replyBud, reservedSep, 0x03, preamble);
+                    doHttpData(traceId, authorization, replyBud, reservedSep, COMPLETE, preamble);
 
                     replyPadAdjust = reservedSep;
                 }
@@ -1222,12 +1225,12 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 {
                     OctetsFW preamble = fetcher.resolved.header();
                     int reservedPre = preamble.sizeof();
-                    doHttpData(traceId, authorization, replyBud, reservedPre, 0x03, preamble);
+                    doHttpData(traceId, authorization, replyBud, reservedPre, COMPLETE, preamble);
                 }
 
                 OctetsFW postamble = fetcher.resolved.trailer();
                 final int reservedPost = postamble.sizeof();
-                doHttpData(traceId, authorization, replyBud, reservedPost, 0x03, postamble);
+                doHttpData(traceId, authorization, replyBud, reservedPost, COMPLETE, postamble);
 
                 doHttpEnd(traceId, authorization);
             }
@@ -1804,8 +1807,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                             .headers(hs -> producer.resolved.headers(headers, hs))))
                         .build();
 
-                producer.doKafkaData(traceId, authorization, 0L, 0, DATA_FLAG_INIT, emptyRO, kafkaDataEx);
-                this.producedFlags |= DATA_FLAG_INIT;
+                producer.doKafkaData(traceId, authorization, 0L, 0, INIT, emptyRO, kafkaDataEx);
+                this.producedFlags = init(producedFlags);
             }
         }
 
@@ -1990,7 +1993,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                             .headers(producer.resolved::trailers)))
                         .build();
 
-                producer.doKafkaData(traceId, authorization, 0L, 0, DATA_FLAG_INCOMPLETE, emptyRO, kafkaDataEx);
+                producer.doKafkaData(traceId, authorization, 0L, 0, INCOMPLETE, emptyRO, kafkaDataEx);
 
                 producer.doKafkaEndDeferred(traceId, authorization);
             }
@@ -2013,7 +2016,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                             .headers(producer.resolved::trailers)))
                         .build();
 
-                producer.doKafkaData(traceId, authorization, 0L, 0, DATA_FLAG_FIN, emptyRO, kafkaDataEx);
+                producer.doKafkaData(traceId, authorization, 0L, 0, FIN, emptyRO, kafkaDataEx);
 
                 producer.doKafkaEndDeferred(traceId, authorization);
             }
@@ -2248,7 +2251,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                             .headers(hs -> delegate.resolved.headers(contentType, hs))))
                         .build();
 
-                final int flags = produceNull ? DATA_FLAG_INIT | DATA_FLAG_FIN : DATA_FLAG_INIT;
+                final int flags = produceNull ? COMPLETE : INIT;
                 final OctetsFW payload = produceNull ? null : emptyRO;
 
                 delegate.doKafkaData(traceId, authorization, 0L, 0, flags, payload, kafkaDataEx);
@@ -2295,9 +2298,9 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
             assert initialAck <= initialSeq;
 
-            if ((producedFlags & DATA_FLAG_FIN) == 0x00)
+            if (!hasFin(producedFlags))
             {
-                delegate.doKafkaData(traceId, authorization, 0L, 0, DATA_FLAG_FIN, emptyRO, emptyRO);
+                delegate.doKafkaData(traceId, authorization, 0L, 0, FIN, emptyRO, emptyRO);
             }
 
             delegate.doKafkaEndDeferred(traceId, authorization);
@@ -2600,7 +2603,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             if (!HttpKafkaState.initialOpened(state))
             {
                 assert payload == null || payload.sizeof() == 0;
-                assert (flags & 0x02) != 0;
+                assert hasInit(flags);
 
                 if (extension.sizeof() > 0)
                 {
@@ -2616,12 +2619,12 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             {
                 if (!HttpKafkaState.initialClosed(delegate.state) & payload != null)
                 {
-                    flags &= ~0x01;
+                    flags &= ~FIN;
                 }
 
                 if (deferredDataEx != null)
                 {
-                    flags &= ~0x02;
+                    flags &= ~INIT;
                     deferredDataEx = null;
                 }
 
@@ -3118,7 +3121,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         {
             if (!HttpKafkaState.replyClosing(state))
             {
-                if ((flags & 0x02) != 0x00) // INIT
+                if (hasInit(flags))
                 {
                     Flyweight httpBeginEx = emptyRO;
 
@@ -3148,7 +3151,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                     doHttpData(traceId, authorization, budgetId, reserved, flags, payload);
                 }
 
-                if ((flags & 0x01) != 0x00) // FIN
+                if (hasFin(flags))
                 {
                     delegate.doKafkaEnd(traceId, authorization);
                     state = HttpKafkaState.closingReply(state);
@@ -3767,8 +3770,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                             .headers(hs -> producer.resolved.headers(headers, hs))))
                         .build();
 
-                producer.doKafkaData(traceId, authorization, 0L, 0, DATA_FLAG_INIT, emptyRO, kafkaDataEx);
-                this.producedFlags |= DATA_FLAG_INIT;
+                producer.doKafkaData(traceId, authorization, 0L, 0, INIT, emptyRO, kafkaDataEx);
+                this.producedFlags = init(producedFlags);
             }
         }
 
@@ -3951,7 +3954,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             }
             else
             {
-                if ((flags & 0x02) != 0x00) // INIT
+                if (hasInit(flags))
                 {
                     Flyweight httpBeginEx = emptyRO;
 
@@ -3991,12 +3994,12 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                                 .headers(producer.resolved::trailers)))
                             .build();
 
-                    producer.doKafkaData(traceId, authorization, 0L, 0, DATA_FLAG_INCOMPLETE, emptyRO, kafkaDataEx);
+                    producer.doKafkaData(traceId, authorization, 0L, 0, INCOMPLETE, emptyRO, kafkaDataEx);
 
                     producer.doKafkaEndDeferred(traceId, authorization);
                 }
 
-                if ((flags & 0x01) != 0x00) // FIN
+                if (hasFin(flags))
                 {
                     correlater.doKafkaEnd(traceId, authorization);
                     state = HttpKafkaState.closingReply(state);
@@ -4043,7 +4046,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                             .headers(producer.resolved::trailers)))
                         .build();
 
-                producer.doKafkaData(traceId, authorization, 0L, 0, DATA_FLAG_FIN, emptyRO, kafkaDataEx);
+                producer.doKafkaData(traceId, authorization, 0L, 0, FIN, emptyRO, kafkaDataEx);
 
                 producer.doKafkaEndDeferred(traceId, authorization);
             }

@@ -28,6 +28,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufController;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufGenerator;
@@ -36,6 +37,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufParser;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSink;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufSource;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufTransform;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufType;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
@@ -256,10 +258,24 @@ public class ProtobufChunkingTest
         MutableDirectBufferEx out = new UnsafeBufferEx(new byte[4096]);
         ProtobufGenerator generator = Protobuf.generator().wrap(out, 0, limit);
         List<ProtobufEvent> events = new ArrayList<>();
-        ProtobufTransform recorder = (control, source, event, sink) ->
+        ProtobufTransform recorder = new ProtobufTransform()
         {
-            events.add(event);
-            return sink.transform(control, source, event);
+            @Override
+            public ProtobufPipeline.Status transform(
+                ProtobufController control,
+                ProtobufSource source,
+                ProtobufEvent event,
+                ProtobufSink sink)
+            {
+                events.add(event);
+                return sink.transform(control, source, event);
+            }
+
+            @Override
+            public boolean deterministic()
+            {
+                return true;
+            }
         };
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "Person"))
             .transform(recorder)

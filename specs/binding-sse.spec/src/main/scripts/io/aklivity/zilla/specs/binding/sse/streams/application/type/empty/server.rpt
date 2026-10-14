@@ -36,3 +36,5 @@ write zilla:data.ext ${sse:dataEx()
                           .type("")
                           .build()}
 write "Hello, world"
+
+write close

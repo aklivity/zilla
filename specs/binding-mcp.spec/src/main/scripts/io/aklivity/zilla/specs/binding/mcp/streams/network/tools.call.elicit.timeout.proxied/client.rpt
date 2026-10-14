@@ -103,8 +103,11 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("content-type", "text/event-stream")
                            .build()}
 
-read 'id: 2:1\n'
-read 'data: {'
+read zilla:data.ext ${http:matchDataEx()
+                            .typeId(zilla:id("http"))
+                            .header("id", "2:1")
+                            .build()}
+read '{'
        '"jsonrpc":"2.0",'
        '"method":"elicitation/create",'
        '"params":'
@@ -115,17 +118,15 @@ read 'data: {'
          ${http:encodeQuery("http://localhost:8080/mcp/auth/callback")}
          '"'
        '}'
-     '}\n'
-read '\n'
+     '}'
 
-read 'data: {'
+read '{'
        '"jsonrpc":"2.0",'
        '"method":"notifications/elicitation/complete",'
        '"params":'
        '{'
          '"elicitationId":"elicit-1"'
        '}'
-     '}\n'
-read '\n'
+     '}'
 
 read aborted

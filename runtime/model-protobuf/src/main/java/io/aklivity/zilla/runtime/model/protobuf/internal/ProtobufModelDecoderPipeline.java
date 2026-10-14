@@ -15,6 +15,8 @@
 package io.aklivity.zilla.runtime.model.protobuf.internal;
 
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -42,9 +44,6 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 // observation-only, through ModelFieldBridge, until model-protobuf grows a native ModelTransform adapter.
 final class ProtobufModelDecoderPipeline implements ModelPipeline
 {
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_FIN = 0x01;
-
     private final ProtobufModelHandlerImpl handler;
     private final ModelFieldBridge bridge;
     private final ProtobufExtractor extractor;
@@ -52,6 +51,8 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
     private final ProtobufEnvelope envelope;
     private final ModelPipelineResult result;
     private final ModelCache cache;
+    private final boolean deterministic;
+    private final boolean identity;
 
     private ProtobufPipeline active;
     private String diagnostic;
@@ -73,6 +74,8 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
         this.pipelines = new HashMap<>();
         this.result = new ModelPipelineResult();
         this.cache = cache;
+        this.deterministic = transform.deterministic() && handler.decodeDeterministic(cache);
+        this.identity = handler.decodeIdentity(cache) && (extractor == null || extractor.identity());
     }
 
     @Override
@@ -92,7 +95,7 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
         int dstLength = dstLimit - dstIndex;
         int prefix = 0;
         int framing = 0;
-        if ((flags & FLAGS_INIT) != 0)
+        if (hasInit(flags))
         {
             // the catalog framing then the message-index prefix sit at the value start; strip both once on the
             // first fragment and select the schema-bound pipeline, then later fragments stream straight through.
@@ -139,7 +142,7 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
         else
         {
             active.authorization(authorization);
-            boolean last = (flags & FLAGS_FIN) != 0;
+            boolean last = hasFin(flags);
             ProtobufPipelineResult proto = active.transform(src, srcIndex + prefix, srcIndex + srcLength, last,
                 dst, dstIndex + framing, dstIndex + dstLength);
             status = map(proto.status());
@@ -177,7 +180,13 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
     @Override
     public boolean identity()
     {
-        return active != null && active.identity();
+        return identity;
+    }
+
+    @Override
+    public boolean deterministic()
+    {
+        return deterministic;
     }
 
     @Override

@@ -19,6 +19,10 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheP
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetFW.Builder.DEFAULT_LATEST_OFFSET;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_CREDITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasIncomplete;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 import static java.lang.System.currentTimeMillis;
 import static java.lang.Thread.currentThread;
 import static java.time.Instant.now;
@@ -115,10 +119,6 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
     private static final Array32FW<KafkaFilterFW> EMPTY_FILTER =
         new Array32FW.Builder<>(new KafkaFilterFW.Builder(), new KafkaFilterFW())
             .wrap(new UnsafeBufferEx(new byte[64]), 0, 64).build();
-
-    private static final int FLAGS_FIN = 0x01;
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_INCOMPLETE = 0x04;
 
     private static final int SIZE_OF_FLUSH_WITH_EXTENSION = 64;
 
@@ -697,7 +697,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             int error = NO_ERROR;
 
             init:
-            if ((flags & FLAGS_INIT) != 0x00)
+            if (hasInit(flags))
             {
                 stream.transformValueEnvelope.reset();
 
@@ -771,11 +771,11 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 }
             }
 
-            if ((flags & FLAGS_FIN) != 0x00 && error == NO_ERROR)
+            if (hasFin(flags) && error == NO_ERROR)
             {
                 Array32FW<KafkaHeaderFW> trailers = EMPTY_TRAILERS;
 
-                if ((flags & FLAGS_INIT) == 0x00)
+                if (!hasInit(flags))
                 {
                     final OctetsFW extension = data.extension();
                     final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
@@ -806,7 +806,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 flushClientFanInitialIfNecessary(traceId);
             }
 
-            if ((flags & FLAGS_INCOMPLETE) != 0x00 || error == ERROR_INVALID_RECORD)
+            if (hasIncomplete(flags) || error == ERROR_INVALID_RECORD)
             {
                 markEntryDirty(traceId, stream.partitionOffset);
             }
@@ -1291,7 +1291,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
         private KafkaCachePartition.Node segment;
 
-        private int dataFlags = FLAGS_FIN;
+        private int dataFlags = FIN;
         private int valuePaddingMax;
 
         private int state;
@@ -1432,7 +1432,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             }
 
             // TODO: defer initialAck until previous DATA frames acked
-            final boolean incomplete = (dataFlags & FLAGS_INCOMPLETE) != 0x00;
+            final boolean incomplete = hasIncomplete(dataFlags);
             final int noAck = incomplete ? 0 : (int) (initialSeq - initialAck);
             final int initialMax = incomplete ? initialBudgetMax : noAck + initialBudgetMax;
             doClientInitialWindow(traceId, noAck, initialMax);
@@ -1493,7 +1493,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             state = KafkaState.closedInitial(state);
 
-            if (partitionOffset != DEFAULT_LATEST_OFFSET && dataFlags != FLAGS_FIN)
+            if (partitionOffset != DEFAULT_LATEST_OFFSET && dataFlags != FIN)
             {
                 fan.markEntryDirty(traceId, partitionOffset);
             }

@@ -109,6 +109,19 @@
             },
             "additionalProperties": false
         },
+        "classifiers":
+        {
+            "title": "Classifiers",
+            "type": "object",
+            "patternProperties":
+            {
+                "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                {
+                    "$ref": "#/$defs/classifier"
+                }
+            },
+            "additionalProperties": false
+        },
         "bindings":
         {
             "title": "Bindings",
@@ -310,6 +323,43 @@
                 "vault":
                 {
                     "title": "Vault",
+                    "type": "string"
+                },
+                "options":
+                {
+                    "title": "Options",
+                    "type": "object"
+                }
+            },
+            "additionalProperties": false,
+            "required":
+            [
+                "type"
+            ],
+            "allOf":
+            [
+            ]
+        },
+        "classifier":
+        {
+            "title": "Classifier",
+            "type": "object",
+            "properties":
+            {
+                "type":
+                {
+                    "title": "Type",
+                    "type": "string",
+                    "enum": []
+                },
+                "embedding":
+                {
+                    "title": "Embedding",
+                    "type": "string"
+                },
+                "store":
+                {
+                    "title": "Store",
                     "type": "string"
                 },
                 "options":

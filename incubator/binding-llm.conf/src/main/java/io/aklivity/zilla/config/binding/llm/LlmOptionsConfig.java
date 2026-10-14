@@ -14,14 +14,18 @@
  */
 package io.aklivity.zilla.config.binding.llm;
 
+import java.util.List;
 import java.util.function.Function;
 
+import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class LlmOptionsConfig extends OptionsConfig
 {
     public final String dialect;
+    public final LlmAuthorizationConfig authorization;
     public final LlmServerConfig server;
+    public final List<LlmGuardrailConfig> guardrails;
 
     public static LlmOptionsConfigBuilder<LlmOptionsConfig> builder()
     {
@@ -36,10 +40,15 @@ public final class LlmOptionsConfig extends OptionsConfig
 
     LlmOptionsConfig(
         String dialect,
-        LlmServerConfig server)
+        LlmAuthorizationConfig authorization,
+        LlmServerConfig server,
+        List<LlmGuardrailConfig> guardrails,
+        List<Config.Reference> refs)
     {
-        super(null, null);
+        super(null, refs);
         this.dialect = dialect;
+        this.authorization = authorization;
         this.server = server;
+        this.guardrails = guardrails;
     }
 }

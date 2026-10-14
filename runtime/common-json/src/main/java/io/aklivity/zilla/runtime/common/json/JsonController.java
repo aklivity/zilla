@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.common.json;
 
+import jakarta.json.JsonException;
+
 /**
  * The per-edge control handle a {@link JsonStream} stage uses to steer its immediate upstream. A stage
  * calls {@link #segmentable()} at a value boundary to opt in to receiving the current value (and its
@@ -53,6 +55,24 @@ public interface JsonController
     default JsonEnvelope envelope()
     {
         return JsonEnvelope.NONE;
+    }
+
+    /**
+     * Asks the upstream to treat the string value that follows the current {@link JsonEvent#KEY_NAME} as a
+     * stringified JSON document: the upstream parses the decoded content of the string and delivers
+     * {@link JsonEvent#START_ESCAPED}, the events of that document, and {@link JsonEvent#END_ESCAPED} once the
+     * string completes, in place of the string value. A stage that does not forward the two markers shows its
+     * downstream the document directly, which unescapes it.
+     * <p>
+     * The content must be exactly one complete JSON value, with optional surrounding whitespace; an empty
+     * string delivers the two markers with no events between. A value that is not a string, or content that is
+     * malformed or incomplete, rejects the pipeline. A stage asks while the key is the current event and
+     * complete, once it has decided from the whole key. The default rejects, for an upstream that cannot parse
+     * a string as a document.
+     */
+    default void escaped()
+    {
+        throw new JsonException("escaped scope not supported");
     }
 
     /**

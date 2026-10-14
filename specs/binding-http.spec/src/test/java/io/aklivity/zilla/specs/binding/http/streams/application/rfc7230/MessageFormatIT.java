@@ -189,4 +189,31 @@ public class MessageFormatIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/response.start.line.invalid/client",
+        "${app}/response.start.line.invalid/server" })
+    public void shouldRejectResponseWithInvalidStartLine() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/response.header.line.invalid/client",
+        "${app}/response.header.line.invalid/server" })
+    public void shouldRejectResponseWithInvalidHeaderLine() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/response.chunk.header.invalid/client",
+        "${app}/response.chunk.header.invalid/server" })
+    public void shouldRejectResponseWithInvalidChunkHeader() throws Exception
+    {
+        k3po.finish();
+    }
 }

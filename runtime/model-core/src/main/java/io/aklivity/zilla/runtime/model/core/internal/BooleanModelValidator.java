@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 final class BooleanModelValidator implements CoreModelValidator
@@ -30,7 +32,7 @@ final class BooleanModelValidator implements CoreModelValidator
     {
         boolean valid = false;
 
-        if (length == 1 && (flags & FLAGS_COMPLETE) != 0x00)
+        if (length == 1 && (flags & COMPLETE) != 0x00)
         {
             byte value = data.getByte(index);
             valid = value == TRUE || value == FALSE;

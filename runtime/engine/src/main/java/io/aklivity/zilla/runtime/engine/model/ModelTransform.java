@@ -71,6 +71,12 @@ public interface ModelTransform
         {
             return true;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     };
 
     /**
@@ -195,6 +201,12 @@ public interface ModelTransform
             {
                 return previous.identity() && next.identity();
             }
+
+            @Override
+            public boolean deterministic()
+            {
+                return previous.deterministic() && next.deterministic();
+            }
         };
     }
 
@@ -257,4 +269,19 @@ public interface ModelTransform
     {
         return false;
     }
+
+    /**
+     * Whether this stage is a pure function of the field events it is fed, the configuration it was built
+     * from, and the authorization in effect. A stage whose answer may also depend on randomness, time or
+     * external state is not deterministic.
+     * <p>
+     * A pipeline that wires a stage reads this to declare its own {@link ModelPipeline#deterministic()}
+     * when it is supplied, before any value is transformed. The declaration has no default so every
+     * implementation makes a deliberate choice; {@link #NONE} is deterministic.
+     * </p>
+     *
+     * @return {@code true} if the stage always yields the same output for the same input, configuration and
+     *         authorization; {@code false} otherwise
+     */
+    boolean deterministic();
 }

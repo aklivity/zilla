@@ -160,6 +160,12 @@ public final class TestUppercaseAvroModelExtFactorySpi implements AvroModelExtFa
             captured.setLength(0);
         }
 
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
         // mirrors AvroSource#deferredBytes(): a STRING value larger than the input window arrives over
         // several chunks, so the complete original text is accumulated until the final chunk before the
         // uppercased (or rejected) substitute can be computed

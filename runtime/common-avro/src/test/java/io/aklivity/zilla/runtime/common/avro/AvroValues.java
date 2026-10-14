@@ -168,6 +168,12 @@ public final class AvroValues
         }
 
         @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
+        @Override
         public void reset()
         {
             events.clear();

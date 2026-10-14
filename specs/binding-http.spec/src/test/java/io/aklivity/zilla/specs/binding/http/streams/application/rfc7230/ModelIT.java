@@ -81,4 +81,40 @@ public class ModelIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/response.valid/client",
+        "${app}/response.valid/server" })
+    public void shouldPassValidResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/response.invalid.header/client",
+        "${app}/response.invalid.header/server" })
+    public void shouldRejectInvalidResponseHeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/response.invalid.content/client",
+        "${app}/response.invalid.content/server" })
+    public void shouldAbortInvalidResponseContent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/response.valid.fragmented/client",
+        "${app}/response.valid.fragmented/server" })
+    public void shouldPassValidFragmentedResponse() throws Exception
+    {
+        k3po.finish();
+    }
 }

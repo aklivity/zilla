@@ -98,7 +98,19 @@
                             "type": "string"
                         }
                     },
+                    "withhold":
+                    {
+                        "type": "array",
+                        "items":
+                        {
+                            "type": "string"
+                        }
+                    },
                     "suspend":
+                    {
+                        "type": "boolean"
+                    },
+                    "deterministic":
                     {
                         "type": "boolean"
                     },

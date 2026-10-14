@@ -77,6 +77,12 @@ public class AvroSchemaTest
             {
                 return false;
             }
+
+            @Override
+            public boolean deterministic()
+            {
+                return true;
+            }
         };
     }
 

@@ -278,6 +278,12 @@ class JsonValidatorChainTest
         {
             depth = 0;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     }
 
     // Supplies a fixed injected scalar value with no real source bytes to advance.
@@ -363,7 +369,24 @@ class JsonValidatorChainTest
     void shouldForwardThroughDefaultResetTransform()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
-        JsonTransform passthrough = (control, source, event, sink) -> sink.transform(control, source, event);
+        JsonTransform passthrough = new JsonTransform()
+        {
+            @Override
+            public Status transform(
+                JsonController control,
+                JsonSource source,
+                JsonEvent event,
+                JsonSink sink)
+            {
+                return sink.transform(control, source, event);
+            }
+
+            @Override
+            public boolean deterministic()
+            {
+                return true;
+            }
+        };
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(passthrough)
             .into(JsonEx.createSink(gen));

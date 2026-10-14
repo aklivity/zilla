@@ -1,0 +1,10 @@
+{
+  "name": "mock-anthropic",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Minimal mock Anthropic messages API backing the anthropic-facing and openai-facing llm(client) routes",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}

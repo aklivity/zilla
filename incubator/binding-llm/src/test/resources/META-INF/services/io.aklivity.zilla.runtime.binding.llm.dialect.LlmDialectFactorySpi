@@ -1,6 +1,0 @@
-io.aklivity.zilla.runtime.binding.llm.dialect.LlmTestConditionalDialectFactorySpi
-io.aklivity.zilla.runtime.binding.llm.dialect.LlmTestPermissiveDialectFactorySpi
-io.aklivity.zilla.runtime.binding.llm.dialect.LlmTestStrictDialectFactorySpi
-io.aklivity.zilla.runtime.binding.llm.dialect.LlmTestClientDialectFactorySpi
-io.aklivity.zilla.runtime.binding.llm.dialect.LlmTestClientSseDialectFactorySpi
-io.aklivity.zilla.runtime.binding.llm.dialect.LlmTestClientSseAltDialectFactorySpi

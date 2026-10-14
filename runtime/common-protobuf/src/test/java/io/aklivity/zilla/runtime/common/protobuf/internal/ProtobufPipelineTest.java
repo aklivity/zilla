@@ -365,7 +365,24 @@ public class ProtobufPipelineTest
     @Test
     public void shouldForwardThroughDefaultResetTransform()
     {
-        ProtobufTransform passthrough = (control, source, event, sink) -> sink.transform(control, source, event);
+        ProtobufTransform passthrough = new ProtobufTransform()
+        {
+            @Override
+            public Status transform(
+                ProtobufController control,
+                ProtobufSource source,
+                ProtobufEvent event,
+                ProtobufSink sink)
+            {
+                return sink.transform(control, source, event);
+            }
+
+            @Override
+            public boolean deterministic()
+            {
+                return true;
+            }
+        };
         ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser(schema, "P"))
             .transform(passthrough)
             .into(new ProtobufDiscardSinkImpl());
@@ -1102,6 +1119,12 @@ public class ProtobufPipelineTest
         public boolean identity()
         {
             return false;
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
         }
 
         private static String value(

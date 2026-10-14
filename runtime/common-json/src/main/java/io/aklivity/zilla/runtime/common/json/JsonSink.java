@@ -93,4 +93,10 @@ public interface JsonSink
      * Whether this sink, together with everything downstream of it, leaves the bytes unchanged.
      */
     boolean identity();
+
+    /**
+     * Whether this sink, together with everything downstream of it, always produces the same output for the
+     * same events.
+     */
+    boolean deterministic();
 }

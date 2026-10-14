@@ -108,6 +108,12 @@ public final class ProtobufValidatorImpl implements ProtobufTransform
         return true;
     }
 
+    @Override
+    public boolean deterministic()
+    {
+        return true;
+    }
+
     private Scope scope(
         int depth)
     {

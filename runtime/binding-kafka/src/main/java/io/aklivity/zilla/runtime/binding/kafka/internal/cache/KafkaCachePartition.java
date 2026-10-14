@@ -33,6 +33,7 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.Kafka
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_PRODUCER_ID;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_SEQUENCE;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_TIMESTAMP;
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.util.Objects.requireNonNull;
 import static org.agrona.BitUtil.SIZE_OF_INT;
@@ -99,9 +100,6 @@ public final class KafkaCachePartition
 
     private static final String FORMAT_FETCH_PARTITION_DIRECTORY = "%s-%d";
     private static final String FORMAT_PRODUCE_PARTITION_DIRECTORY = "%s-%d-%d";
-
-    private static final int FLAGS_COMPLETE = 0x03;
-    private static final int FLAGS_FIN = 0x01;
 
     private static final long OFFSET_HISTORICAL = KafkaOffsetType.HISTORICAL.value();
 
@@ -380,7 +378,7 @@ public final class KafkaCachePartition
             verbose);
         if (value != null)
         {
-            writeEntryContinue(traceId, bindingId, authorization, FLAGS_COMPLETE, entryMark, valueMark, entryValueLimit,
+            writeEntryContinue(traceId, bindingId, authorization, COMPLETE, entryMark, valueMark, entryValueLimit,
                 value, transformValue, valuePaddingMax);
         }
         writeEntryFinish(headers, deltaType, entryMark, valueMark, entryHeadersMark, headersMax, transformValue,

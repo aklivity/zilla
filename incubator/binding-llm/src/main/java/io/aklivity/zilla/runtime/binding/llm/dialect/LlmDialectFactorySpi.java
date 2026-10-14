@@ -14,10 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
-import java.net.URL;
+import io.aklivity.zilla.runtime.engine.Configuration;
 
 /**
- * Service provider interface for a pluggable {@link LlmDialect} implementation.
+ * Service provider interface for a pluggable {@link LlmDialect}.
  * <p>
  * Each supported dialect provides an implementation, registered via {@link java.util.ServiceLoader} in
  * {@code META-INF/services/io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectFactorySpi}.
@@ -33,27 +33,11 @@ public interface LlmDialectFactorySpi
     String name();
 
     /**
-     * Creates a new {@link LlmDialect} instance.
+     * Creates the {@link LlmDialect}, once per engine.
      *
+     * @param config  the engine configuration
      * @return a new dialect
      */
-    LlmDialect create();
-
-    /**
-     * Returns a URL to this dialect's own JSON schema for the given direction, so a caller can enforce it
-     * without the dialect needing to know anything about how or where that enforcement happens.
-     * <p>
-     * Resolved once, from the factory, so every registered dialect's schema is discoverable without
-     * constructing an {@link LlmDialect} instance. A dialect with nothing to contribute for a direction
-     * (e.g. a fixed request shape needs no schema of its own) returns {@code null} for it.
-     * </p>
-     *
-     * @param kind  the request or response direction
-     * @return the schema URL, or {@code null} if this dialect contributes none for that direction
-     */
-    default URL schema(
-        LlmDialect.Kind kind)
-    {
-        return null;
-    }
+    LlmDialect create(
+        Configuration config);
 }

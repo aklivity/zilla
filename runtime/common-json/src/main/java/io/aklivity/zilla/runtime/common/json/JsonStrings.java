@@ -28,12 +28,28 @@ import jakarta.json.JsonValue;
 /**
  * Reads and writes a {@code string | string[]} shorthand-permissive JSON property as a
  * {@code List<String>}, for config adapters whose field accepts either a bare string or an
- * array of strings.
+ * array of strings, and renders a {@link JsonValue} as text for callers that need a string form.
  */
 public final class JsonStrings
 {
     private JsonStrings()
     {
+    }
+
+    /**
+     * Returns {@code null} when {@code value} is {@code null}, the raw string without surrounding
+     * quotes when it is a {@link JsonString}, and its JSON text otherwise. A plain
+     * {@link JsonValue#toString()} cannot be used for this because a {@link JsonString} renders with
+     * its surrounding quotes.
+     */
+    public static String asString(
+        JsonValue value)
+    {
+        return value == null
+            ? null
+            : value instanceof JsonString string
+                ? string.getString()
+                : value.toString();
     }
 
     /**
@@ -44,11 +60,22 @@ public final class JsonStrings
         JsonObject object,
         String name)
     {
+        return object.containsKey(name)
+            ? asStringOrArray(object.get(name))
+            : null;
+    }
+
+    /**
+     * Returns {@code null} when {@code value} is {@code null}, a singleton list when it is a bare
+     * string, or the mapped list of elements when it is an array.
+     */
+    public static List<String> asStringOrArray(
+        JsonValue value)
+    {
         List<String> result = null;
 
-        if (object.containsKey(name))
+        if (value != null)
         {
-            JsonValue value = object.get(name);
             result = value.getValueType() == JsonValue.ValueType.ARRAY
                 ? value.asJsonArray().stream()
                     .map(JsonString.class::cast)

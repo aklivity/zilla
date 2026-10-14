@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
@@ -58,8 +60,6 @@ import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 
 public final class KafkaCacheClientConsumerFactory implements BindingHandler
 {
-    private static final int FLAGS_INIT_FIN = 3;
-
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
     private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
@@ -1067,7 +1067,7 @@ public final class KafkaCacheClientConsumerFactory implements BindingHandler
             final int reserved = replyPad;
 
             doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, 0, FLAGS_INIT_FIN, reserved, EMPTY_OCTETS, extension);
+                traceId, authorization, 0, COMPLETE, reserved, EMPTY_OCTETS, extension);
 
             replySeq += reserved;
         }

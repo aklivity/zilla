@@ -94,14 +94,18 @@ write zilla:begin.ext ${http:beginEx()
                             .build()}
 write flush
 
-write 'id: :0\n'
-write '\n'
+write zilla:data.ext ${http:dataEx()
+                             .typeId(zilla:id("http"))
+                             .header("id", ":0")
+                             .build()}
 write flush
 
 # regression for an unrecognized params key preceding a recognized one: the decoder must skip
 # the unrecognized key's own value (here "level") before resuming, rather than looping back to
 # itself without consuming it, which stalls decodeNet's progress check and wedges the stream
-write 'id: :1\n'
-write 'data: {"jsonrpc":"2.0","method":"notifications/resources/updated","params":{"level":"info","uri":"file:///data/readme.txt"}}\n'
-write '\n'
+write zilla:data.ext ${http:dataEx()
+                             .typeId(zilla:id("http"))
+                             .header("id", ":1")
+                             .build()}
+write '{"jsonrpc":"2.0","method":"notifications/resources/updated","params":{"level":"info","uri":"file:///data/readme.txt"}}'
 write flush

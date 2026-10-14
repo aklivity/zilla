@@ -119,10 +119,26 @@ public class ProtobufRawPipelineTest
             w.writeFixed32(7);
         });
 
-        ProtobufTransform redact = (control, source, event, sink) ->
-            (event == ProtobufEvent.FIELD || event == ProtobufEvent.VALUE) && source.fieldNumber() == 2
-                ? Status.ADVANCED
-                : sink.transform(control, source, event);
+        ProtobufTransform redact = new ProtobufTransform()
+        {
+            @Override
+            public Status transform(
+                ProtobufController control,
+                ProtobufSource source,
+                ProtobufEvent event,
+                ProtobufSink sink)
+            {
+                return (event == ProtobufEvent.FIELD || event == ProtobufEvent.VALUE) && source.fieldNumber() == 2
+                    ? Status.ADVANCED
+                    : sink.transform(control, source, event);
+            }
+
+            @Override
+            public boolean deterministic()
+            {
+                return true;
+            }
+        };
 
         assertArrayEquals(expected, copy(message, redact));
     }
@@ -217,6 +233,12 @@ public class ProtobufRawPipelineTest
         public boolean identity()
         {
             return false;
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
         }
     }
 }

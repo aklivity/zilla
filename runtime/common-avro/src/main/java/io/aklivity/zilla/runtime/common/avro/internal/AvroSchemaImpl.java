@@ -69,5 +69,11 @@ public final class AvroSchemaImpl implements AvroSchema
         {
             return true;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     }
 }

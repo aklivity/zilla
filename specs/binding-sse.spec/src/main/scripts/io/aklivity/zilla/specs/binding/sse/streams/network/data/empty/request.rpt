@@ -37,5 +37,6 @@ read zilla:begin.ext ${http:beginEx()
                              .header("content-type", "text/event-stream")
                              .build()}
 
-read "data:\n"
-read "\n"
+read zilla:data.empty
+
+read closed

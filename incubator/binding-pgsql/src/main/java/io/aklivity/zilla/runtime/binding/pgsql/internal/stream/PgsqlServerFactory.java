@@ -15,6 +15,10 @@
 package io.aklivity.zilla.runtime.binding.pgsql.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.util.Objects.requireNonNull;
 
@@ -84,11 +88,6 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
     private static final int GSS_ENCRYPT_REQUEST_CODE = 80877104;
     private static final int CANCEL_REQUEST_CODE = 80877102;
     private static final int END_OF_FIELD = 0x00;
-
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_CONT = 0x00;
-    private static final int FLAGS_FIN = 0x01;
-    private static final int FLAGS_COMP = 0x03;
 
     private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx(new byte[0]);
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
@@ -608,7 +607,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             long authorization)
         {
             PgsqlSslResponseFW sslResponse = sslResponseRW.wrap(messageBuffer, 0, messageBuffer.capacity()).build();
-            doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, sslResponse.limit());
+            doNetworkData(traceId, authorization, COMPLETE, 0L, messageBuffer, 0, sslResponse.limit());
         }
 
         public void onDecodeGssEncryptRequest(
@@ -616,7 +615,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             long authorization)
         {
             PgsqlGssEncryptResponseFW gssResponse = gssResponseRW.wrap(messageBuffer, 0, messageBuffer.capacity()).build();
-            doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, gssResponse.limit());
+            doNetworkData(traceId, authorization, COMPLETE, 0L, messageBuffer, 0, gssResponse.limit());
         }
 
         public void onDecodeCancelRequest(
@@ -650,11 +649,11 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
 
             PgsqlAuthenticationMessageFW authMessage = authMessageRW.wrap(messageBuffer, 0, messageBuffer.capacity())
                 .build();
-            doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, authMessage.limit());
+            doNetworkData(traceId, authorization, COMPLETE, 0L, messageBuffer, 0, authMessage.limit());
 
             PgsqlBackendKeyMessageFW backendKeyMessage =
                 backendKeyMessageRW.wrap(messageBuffer, 0, messageBuffer.capacity()).build();
-            doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, backendKeyMessage.limit());
+            doNetworkData(traceId, authorization, COMPLETE, 0L, messageBuffer, 0, backendKeyMessage.limit());
 
             doEncodeParamStatus(traceId, "client_encoding", "UTF8");
             doEncodeParamStatus(traceId, "standard_conforming_strings", "on");
@@ -671,7 +670,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             messageBuffer.putByte(progress, (byte) PgsqlStatus.IDLE.value());
             progress += Byte.BYTES;
 
-            doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, progress);
+            doNetworkData(traceId, authorization, COMPLETE, 0L, messageBuffer, 0, progress);
         }
 
         private void doEncodeParamStatus(
@@ -699,7 +698,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
 
             messageBuffer.putInt(Byte.BYTES, statusOffset - Byte.BYTES, BIG_ENDIAN);
 
-            doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, statusOffset);
+            doNetworkData(traceId, authorization, COMPLETE, 0L, messageBuffer, 0, statusOffset);
         }
 
         private void onDecodeMessageQuery(
@@ -1159,7 +1158,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
                 .length(typeOffset.get() - Byte.BYTES)
                 .build();
 
-            server.doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, typeOffset.value);
+            server.doNetworkData(traceId, authorization, COMPLETE, 0L, messageBuffer, 0, typeOffset.value);
         }
 
         private void doEncodeRow(
@@ -1181,7 +1180,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             messageBuffer.putBytes(rowOffset, rowBuffer, 0, rowSize);
             rowOffset += rowSize;
 
-            server.doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, rowOffset);
+            server.doNetworkData(traceId, authorization, COMPLETE, 0L, messageBuffer, 0, rowOffset);
         }
 
         private void doEncodeCompletion(
@@ -1203,7 +1202,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             messageBuffer.putBytes(completionOffset, tagBuffer, 0, tagSize);
             completionOffset += tagSize;
 
-            server.doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, completionOffset);
+            server.doNetworkData(traceId, authorization, COMPLETE, 0L, messageBuffer, 0, completionOffset);
         }
 
         private void doEncodeError(
@@ -1229,7 +1228,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             messageBuffer.putBytes(errorOffset, error.message().value(), 0, messageLength);
             errorOffset += messageLength;
 
-            server.doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, errorOffset);
+            server.doNetworkData(traceId, authorization, COMPLETE, 0L, messageBuffer, 0, errorOffset);
         }
 
         private void doEncodeNotice(
@@ -1255,7 +1254,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             messageBuffer.putBytes(errorOffset, notice.message().value(), 0, messageLength);
             errorOffset += messageLength;
 
-            server.doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, errorOffset);
+            server.doNetworkData(traceId, authorization, COMPLETE, 0L, messageBuffer, 0, errorOffset);
         }
 
         private void doEncodeReady(
@@ -1274,7 +1273,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
             messageBuffer.putByte(messageReady.limit(), (byte) ready.status().get().value());
             readyOffset += Byte.BYTES;
 
-            server.doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, readyOffset);
+            server.doNetworkData(traceId, authorization, COMPLETE, 0L, messageBuffer, 0, readyOffset);
         }
 
         private void doEncodeTerminate(
@@ -1286,7 +1285,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
                 .length(Integer.BYTES)
                 .build();
 
-            server.doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, messageReady.limit());
+            server.doNetworkData(traceId, authorization, COMPLETE, 0L, messageBuffer, 0, messageReady.limit());
         }
     }
 
@@ -1681,7 +1680,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
 
             if (length > 0)
             {
-                final int flags = querySize == length ? FLAGS_COMP : FLAGS_INIT;
+                final int flags = querySize == length ? COMPLETE : INIT;
                 final int deferred = querySize - length;
 
                 server.onDecodeMessageQuery(traceId, authorization, flags, deferred,
@@ -1712,7 +1711,7 @@ public final class PgsqlServerFactory implements PgsqlStreamFactory
         final int payloadSize = payloadRemaining.get();
         final int length = Math.min(payloadSize, limit - offset);
 
-        final int flags = payloadSize == length ? FLAGS_FIN : FLAGS_CONT;
+        final int flags = payloadSize == length ? FIN : NONE;
 
         final int maxLimit = offset + length;
         server.stream.doApplicationData(traceId, authorization, flags, buffer, offset, maxLimit, EMPTY_EXTENSION);

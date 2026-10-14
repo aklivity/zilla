@@ -111,4 +111,48 @@ public class ProtobufModelIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("value.binary.pipeline.yaml")
+    @Specification({
+        "${net}/client.sent.protobuf.binary.valid/client",
+        "${app}/client.sent.protobuf.binary.valid/server"
+    })
+    public void shouldDeclareExtendedPipelineWhenSentProtobufBinary() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("value.binary.pipeline.yaml")
+    @Specification({
+        "${net}/client.received.protobuf.binary.ext.uppercase/client",
+        "${app}/client.received.protobuf.binary.ext.uppercase/server"
+    })
+    public void shouldDeclareExtendedPipelineWhenReceivedProtobufBinary() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("value.view.json.pipeline.yaml")
+    @Specification({
+        "${net}/client.sent.protobuf.json.valid/client",
+        "${app}/client.sent.protobuf.json.valid/server"
+    })
+    public void shouldDeclareExtendedPipelineWhenSentProtobufJson() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("value.view.json.pipeline.yaml")
+    @Specification({
+        "${net}/client.received.protobuf.json.ext.uppercase/client",
+        "${app}/client.received.protobuf.json.ext.uppercase/server"
+    })
+    public void shouldDeclareExtendedPipelineWhenReceivedProtobufJson() throws Exception
+    {
+        k3po.finish();
+    }
 }

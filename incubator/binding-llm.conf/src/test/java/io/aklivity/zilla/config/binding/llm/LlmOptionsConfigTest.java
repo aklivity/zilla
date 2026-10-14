@@ -15,10 +15,16 @@
 package io.aklivity.zilla.config.binding.llm;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.sameInstance;
 
+import java.util.List;
+
 import org.junit.Test;
+
+import io.aklivity.zilla.config.engine.test.internal.model.config.TestModelConfig;
 
 public class LlmOptionsConfigTest
 {
@@ -31,6 +37,44 @@ public class LlmOptionsConfigTest
             .build();
 
         assertThat(dialect, equalTo("openai"));
+    }
+
+    @Test
+    public void shouldBuildGuardrailsViaNestedBuilder()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .guardrail()
+                .name("gpt-4o")
+                .request()
+                    .sections(List.of("user-text"))
+                    .value(TestModelConfig.builder().length(0).build())
+                    .build()
+                .build()
+            .build();
+
+        assertThat(options.guardrails, hasSize(1));
+        assertThat(options.guardrails.get(0).name, equalTo("gpt-4o"));
+        assertThat(options.guardrails.get(0).request.get(0).sections, contains("user-text"));
+    }
+
+    @Test
+    public void shouldInjectGuardrailBuilder()
+    {
+        LlmGuardrailConfigBuilder<LlmGuardrailConfig> builder = LlmGuardrailConfig.builder();
+
+        LlmGuardrailConfigBuilder<LlmGuardrailConfig> injected = builder.inject(identity -> identity);
+
+        assertThat(injected, sameInstance(builder));
+    }
+
+    @Test
+    public void shouldInjectGuardrailStageBuilder()
+    {
+        LlmGuardrailStageConfigBuilder<LlmGuardrailStageConfig> builder = LlmGuardrailStageConfig.builder();
+
+        LlmGuardrailStageConfigBuilder<LlmGuardrailStageConfig> injected = builder.inject(identity -> identity);
+
+        assertThat(injected, sameInstance(builder));
     }
 
     @Test
@@ -48,21 +92,26 @@ public class LlmOptionsConfigTest
     {
         LlmOptionsConfig options = LlmOptionsConfig.builder()
             .server()
+                .scheme("http")
                 .host("localhost")
                 .port(11434)
+                .path("/v1")
                 .build()
             .build();
 
         assertThat(options.server.host, equalTo("localhost"));
         assertThat(options.server.port, equalTo(11434));
+        assertThat(options.server.path, equalTo("/v1"));
     }
 
     @Test
     public void shouldBuildServerViaSetter()
     {
         LlmServerConfig server = LlmServerConfig.builder()
+            .scheme("http")
             .host("localhost")
             .port(11434)
+            .path("/v1")
             .build();
 
         LlmOptionsConfig options = LlmOptionsConfig.builder()
@@ -76,11 +125,13 @@ public class LlmOptionsConfigTest
     public void shouldConvertServerToString()
     {
         LlmServerConfig server = LlmServerConfig.builder()
+            .scheme("http")
             .host("localhost")
             .port(11434)
+            .path("/v1")
             .build();
 
-        assertThat(server.toString(), equalTo("localhost:11434"));
+        assertThat(server.toString(), equalTo("http://localhost:11434/v1"));
     }
 
     @Test
@@ -89,6 +140,28 @@ public class LlmOptionsConfigTest
         LlmServerConfigBuilder<LlmServerConfig> builder = LlmServerConfig.builder();
 
         LlmServerConfigBuilder<LlmServerConfig> injected = builder.inject(identity -> identity);
+
+        assertThat(injected, sameInstance(builder));
+    }
+
+    @Test
+    public void shouldBuildAuthorizationViaCustomMapper()
+    {
+        String name = LlmAuthorizationConfig
+            .builder(authorization -> ((LlmAuthorizationConfig) authorization).name)
+            .name("test0")
+            .credentials("Bearer {credentials}")
+            .build();
+
+        assertThat(name, equalTo("test0"));
+    }
+
+    @Test
+    public void shouldInjectAuthorizationBuilder()
+    {
+        LlmAuthorizationConfigBuilder<LlmAuthorizationConfig> builder = LlmAuthorizationConfig.builder();
+
+        LlmAuthorizationConfigBuilder<LlmAuthorizationConfig> injected = builder.inject(identity -> identity);
 
         assertThat(injected, sameInstance(builder));
     }

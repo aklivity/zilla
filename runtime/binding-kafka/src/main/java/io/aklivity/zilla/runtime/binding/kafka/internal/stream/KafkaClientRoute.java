@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import java.util.function.LongConsumer;
 
+import org.agrona.collections.ArrayUtil;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
@@ -25,14 +26,14 @@ import io.aklivity.zilla.config.binding.kafka.KafkaServerConfig;
 
 public final class KafkaClientRoute
 {
+    private static final LongConsumer[] NO_META_FLUSHES = new LongConsumer[0];
+
     public final long resolvedId;
     public final Long2ObjectHashMap<KafkaServerConfig> servers;
     public final Int2ObjectHashMap<Int2IntHashMap> partitions;
+    public final LongConsumer metaFlush = this::flushMeta;
 
-    public static final LongConsumer NOOP = t -> {};
-
-    public volatile long metaInitialId;
-    public LongConsumer metaFlush = NOOP;
+    private LongConsumer[] metaFlushes = NO_META_FLUSHES;
 
     public KafkaClientRoute(
         long resolvedId)
@@ -40,6 +41,27 @@ public final class KafkaClientRoute
         this.resolvedId = resolvedId;
         this.servers = new Long2ObjectHashMap<>();
         this.partitions = new Int2ObjectHashMap<>();
+    }
+
+    public void registerMetaFlush(
+        LongConsumer flush)
+    {
+        metaFlushes = ArrayUtil.add(metaFlushes, flush);
+    }
+
+    public void unregisterMetaFlush(
+        LongConsumer flush)
+    {
+        metaFlushes = ArrayUtil.remove(metaFlushes, flush);
+    }
+
+    private void flushMeta(
+        long traceId)
+    {
+        for (LongConsumer flush : metaFlushes)
+        {
+            flush.accept(traceId);
+        }
     }
 
     public Int2IntHashMap supplyPartitions(

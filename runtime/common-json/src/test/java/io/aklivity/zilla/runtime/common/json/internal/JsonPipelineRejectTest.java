@@ -25,13 +25,17 @@ import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonDiagnostic.Category;
+import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonReporter;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
+import io.aklivity.zilla.runtime.common.json.JsonSink;
+import io.aklivity.zilla.runtime.common.json.JsonSource;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 class JsonPipelineRejectTest
@@ -129,9 +133,23 @@ class JsonPipelineRejectTest
     @Test
     void shouldReportTransformFailure()
     {
-        JsonTransform failing = (control, source, event, sink) ->
+        JsonTransform failing = new JsonTransform()
         {
-            throw new JsonException("extension failure");
+            @Override
+            public Status transform(
+                JsonController control,
+                JsonSource source,
+                JsonEvent event,
+                JsonSink sink)
+            {
+                throw new JsonException("extension failure");
+            }
+
+            @Override
+            public boolean deterministic()
+            {
+                return true;
+            }
         };
         JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBufferEx output = new UnsafeBufferEx(new byte[128]);

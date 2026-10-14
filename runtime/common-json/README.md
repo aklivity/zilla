@@ -172,6 +172,49 @@ generator.writeStartObject()
 int length = generator.length();
 ```
 
+### Stringified JSON
+
+A JSON string value can itself hold a JSON document. Two paired events, `START_ESCAPED` and
+`END_ESCAPED`, delimit a **scope** within the event stream whose content is escaped on the way out and
+parsed on the way in; they never appear unless a stage asked for them.
+
+- **Unescape** — a stage that has just seen a `KEY_NAME` calls `JsonController.escaped()` to ask the parser to
+  treat the string value that follows as a document. The parser decodes the string and delivers
+  `START_ESCAPED`, the events of the document, and `END_ESCAPED` once the string completes. A stage that does
+  not forward the two markers shows its downstream the document directly. The content must be exactly one
+  complete JSON value with optional surrounding whitespace, so a value that is not a string, or content that
+  is malformed or incomplete, is `REJECTED`; an empty string delivers the two markers with nothing between.
+  The document is parsed as the string arrives, so it may be larger than the input window and may be split
+  across windows anywhere, including in the middle of an escape sequence. Inside the scope the events are
+  always structured, never segments or verbatim bytes, because the source bytes are the escaped form, and
+  `getLocation()` reports the position within the decoded text of the document.
+- **Escape** — a stage sends `START_ESCAPED` to its sink in a value position, the events of a value, and
+  `END_ESCAPED`. The generator writes the opening quote, escapes everything written inside the scope, and
+  writes the closing quote, so the value is escaped as a string. Scopes nest: a document stringified twice
+  is escaped twice, the same way `GENERATE_ESCAPED` is the level of a document that starts already inside
+  a string. A start without a matching end, an end without a start, or a start in a key position is rejected.
+
+The markers do not nest the path: a projection pointer, a schema, or a flattened path sees the stringified
+document as the value of its key. The validator, projector and flattener forward the markers untouched, a
+stage between two of them forwards them too. A projector that defers a key until its value has been read
+cannot be asked for a scope on that key, so the stage that asks sits upstream of it.
+
+```java
+JsonTransform unescape = (control, source, event, sink) ->
+{
+    // read the key before it is forwarded, which consumes it
+    final boolean stringified = event == JsonEvent.KEY_NAME && "payload".contentEquals(source.getStringView());
+    // a stage that matches on keys declines segmentable() in the controller it gives its downstream, which
+    // relays consumed() and escaped() to the control it was given
+    final Status status = event.isEscaped() ? Status.ADVANCED : sink.transform(mediating(control), source, event);
+    if (stringified)
+    {
+        control.escaped();
+    }
+    return status;
+};
+```
+
 ### Bounded-buffer contract
 
 The pipeline operates on a single buffered frame and is bounded by the value size and, for structured

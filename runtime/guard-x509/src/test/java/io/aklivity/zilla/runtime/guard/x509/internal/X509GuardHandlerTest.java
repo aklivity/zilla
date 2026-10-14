@@ -34,6 +34,8 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 
+import jakarta.json.Json;
+
 import org.agrona.collections.MutableLong;
 import org.junit.Before;
 import org.junit.Test;
@@ -106,11 +108,12 @@ public class X509GuardHandlerTest
 
         long sessionId = guard.reauthorize(0L, 0L, 101L, PLATFORM_CHAIN);
 
-        assertThat(guard.attribute(sessionId, "organization"), equalTo("Example Inc"));
-        assertThat(guard.attribute(sessionId, "tenant"), equalTo("spiffe://example.com/ns/prod/sa/platform"));
-        assertThat(guard.attribute(sessionId, "mail"), equalTo("platform@example.com"));
-        assertThat(guard.attribute(sessionId, "thumbprint"), equalTo("iFZQBQX3Dn3aMFZDLDgrYWIWKJz-_yqy9YLGLcxkUO8"));
-        assertThat(guard.attribute(sessionId, "issuer"), equalTo("Internal CA"));
+        assertThat(guard.attribute(sessionId, "organization"), equalTo(Json.createValue("Example Inc")));
+        assertThat(guard.attribute(sessionId, "tenant"), equalTo(Json.createValue("spiffe://example.com/ns/prod/sa/platform")));
+        assertThat(guard.attribute(sessionId, "mail"), equalTo(Json.createValue("platform@example.com")));
+        assertThat(guard.attribute(sessionId, "thumbprint"),
+            equalTo(Json.createValue("iFZQBQX3Dn3aMFZDLDgrYWIWKJz-_yqy9YLGLcxkUO8")));
+        assertThat(guard.attribute(sessionId, "issuer"), equalTo(Json.createValue("Internal CA")));
         assertThat(guard.attribute(sessionId, "missing"), nullValue());
         assertThat(guard.attribute(sessionId, "unconfigured"), nullValue());
     }

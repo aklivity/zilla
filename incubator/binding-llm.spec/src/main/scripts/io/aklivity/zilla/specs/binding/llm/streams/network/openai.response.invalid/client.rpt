@@ -22,13 +22,13 @@ write zilla:begin.ext ${http:beginEx()
                             .header(":method", "POST")
                             .header(":scheme", "http")
                             .header(":authority", "example.com:8080")
-                            .header(":path", "/")
+                            .header(":path", "/v1/chat/completions")
                             .header("content-type", "application/json")
                             .build()}
 
 connected
 
-write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"stream\":false}"
+write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}"
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()

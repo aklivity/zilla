@@ -1,0 +1,76 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/embedding/properties/type/enum/-",
+        "value": "openai"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/embedding/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "openai"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "openai"
+                    },
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "model":
+                            {
+                                "title": "Model",
+                                "type": "string"
+                            },
+                            "endpoint":
+                            {
+                                "title": "Endpoint",
+                                "type": "string",
+                                "default": "https://api.openai.com/v1/embeddings"
+                            },
+                            "credentials":
+                            {
+                                "title": "Credentials",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "api-key":
+                                    {
+                                        "title": "API Key",
+                                        "type": "string"
+                                    }
+                                },
+                                "required":
+                                [
+                                    "api-key"
+                                ],
+                                "additionalProperties": false
+                            }
+                        },
+                        "required":
+                        [
+                            "model",
+                            "credentials"
+                        ],
+                        "additionalProperties": false
+                    }
+                },
+                "additionalProperties": false
+            }
+        }
+    }
+]

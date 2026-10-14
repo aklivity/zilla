@@ -94,7 +94,10 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("mcp-session-id", "5ca1ab1e-c0de-4a11-b0a7-000100000000")
                            .build()}
 
-read 'retry: 60000\n'
-read '\n'
+read zilla:data.ext ${http:matchDataEx()
+                            .typeId(zilla:id("http"))
+                            .header("retry", "60000")
+                            .build()}
+read zilla:data.null
 
 read closed

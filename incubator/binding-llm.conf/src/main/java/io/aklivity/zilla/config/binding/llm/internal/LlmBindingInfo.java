@@ -19,8 +19,10 @@ import java.net.URL;
 import jakarta.json.JsonObject;
 
 import io.aklivity.zilla.config.engine.BindingInfo;
+import io.aklivity.zilla.config.engine.ConditionConfig;
 import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
+import io.aklivity.zilla.config.engine.WithConfig;
 import io.aklivity.zilla.runtime.common.feature.Incubating;
 
 @Incubating
@@ -44,5 +46,17 @@ public final class LlmBindingInfo implements BindingInfo
     public ConfigAdapter<OptionsConfig, JsonObject> options()
     {
         return new LlmOptionsConfigAdapter();
+    }
+
+    @Override
+    public ConfigAdapter<ConditionConfig, JsonObject> condition()
+    {
+        return new LlmConditionConfigAdapter();
+    }
+
+    @Override
+    public ConfigAdapter<WithConfig, JsonObject> with()
+    {
+        return new LlmWithConfigAdapter();
     }
 }

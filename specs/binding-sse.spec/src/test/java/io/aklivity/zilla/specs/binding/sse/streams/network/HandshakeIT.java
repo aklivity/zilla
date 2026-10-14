@@ -120,15 +120,6 @@ public class HandshakeIT
 
     @Test
     @Specification({
-        "${net}/initial.comment/request",
-        "${net}/initial.comment/response" })
-    public void shouldSendInitialComment() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/request.parameter.last.event.id/request",
         "${net}/request.parameter.last.event.id/response" })
     public void shouldHandshakeWithRequestParameterLastEventId() throws Exception

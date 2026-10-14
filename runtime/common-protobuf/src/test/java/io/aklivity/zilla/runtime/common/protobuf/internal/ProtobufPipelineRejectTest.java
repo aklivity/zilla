@@ -144,6 +144,12 @@ class ProtobufPipelineRejectTest
             {
                 throw failure;
             }
+
+            @Override
+            public boolean deterministic()
+            {
+                return true;
+            }
         };
     }
 }

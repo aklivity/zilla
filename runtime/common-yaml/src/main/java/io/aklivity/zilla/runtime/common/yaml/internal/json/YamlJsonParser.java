@@ -34,6 +34,7 @@ import java.util.TreeMap;
 
 import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
+import jakarta.json.JsonConfig;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
@@ -41,7 +42,6 @@ import jakarta.json.stream.JsonLocation;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParsingException;
 
-import io.aklivity.zilla.runtime.common.yaml.YamlConfig;
 import io.aklivity.zilla.runtime.common.yaml.internal.YamlEvent;
 import io.aklivity.zilla.runtime.common.yaml.internal.YamlLocation;
 import io.aklivity.zilla.runtime.common.yaml.internal.YamlParseException;
@@ -109,7 +109,7 @@ public final class YamlJsonParser implements JsonParser
         String text,
         Map<String, ?> config)
     {
-        this.uniqueKeys = config != null && Boolean.TRUE.equals(config.get(YamlConfig.FEATURE_UNIQUE_KEYS));
+        this.uniqueKeys = uniqueKeys(config);
         this.anchors = new HashMap<>();
         this.steps = new ArrayList<>();
         this.current = -1;
@@ -444,6 +444,17 @@ public final class YamlJsonParser implements JsonParser
         {
             range[1] = steps.size();
         }
+    }
+
+    static boolean uniqueKeys(
+        Map<String, ?> config)
+    {
+        final Object strategy = config != null ? config.get(JsonConfig.KEY_STRATEGY) : null;
+        if (strategy == JsonConfig.KeyStrategy.FIRST)
+        {
+            throw new IllegalArgumentException("Unsupported key strategy: " + strategy);
+        }
+        return strategy == JsonConfig.KeyStrategy.NONE;
     }
 
     private void projectKey(

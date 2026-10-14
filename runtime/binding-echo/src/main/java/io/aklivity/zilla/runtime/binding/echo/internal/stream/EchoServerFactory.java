@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.echo.internal.stream;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
@@ -52,8 +53,6 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 public final class EchoServerFactory implements BindingHandler
 {
-    private static final int FLAGS_COMPLETE = 0x03;
-
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
     private static final DirectBufferEx EMPTY_SRC = new UnsafeBufferEx(new byte[0]);
 
@@ -269,7 +268,7 @@ public final class EchoServerFactory implements BindingHandler
             final byte[] bytes = message.text.getBytes(UTF_8);
             final DirectBufferEx src = new UnsafeBufferEx(bytes);
 
-            advance(pipeline.transform(message.traceId, message.routedId, message.authorization, FLAGS_COMPLETE,
+            advance(pipeline.transform(message.traceId, message.routedId, message.authorization, COMPLETE,
                     src, 0, bytes.length, modelBuffer, 0, modelBuffer.capacity()));
         }
 
@@ -310,7 +309,7 @@ public final class EchoServerFactory implements BindingHandler
                         EMPTY_SRC, 0, 0, modelBuffer, 0, modelBuffer.capacity()));
             }
             // SUSPENDED and UNDERFLOW both wait: SUSPENDED resumes via the model's resume callback,
-            // UNDERFLOW never resolves since FLAGS_COMPLETE already offered every available byte
+            // UNDERFLOW never resolves since COMPLETE already offered every available byte
         }
 
         private void processNext()
