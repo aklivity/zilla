@@ -559,6 +559,7 @@ public final class LlmFunctions
         private final Map<String, String> attributes;
 
         private boolean complete;
+        private boolean usageOnly;
 
         private LlmDialectDataExBuilder()
         {
@@ -581,6 +582,13 @@ public final class LlmFunctions
             return this;
         }
 
+        public LlmDialectDataExBuilder usageOnly(
+            boolean usageOnly)
+        {
+            this.usageOnly = usageOnly;
+            return this;
+        }
+
         public LlmDialectDataExBuilder attribute(
             String name,
             String value)
@@ -594,6 +602,7 @@ public final class LlmFunctions
             final LlmDataExFW dataEx = dataExRW.dialect(d ->
             {
                 d.complete(complete ? 1 : 0);
+                d.usageOnly(usageOnly ? 1 : 0);
                 attributes.forEach((name, value) -> d.attributesItem(a -> a.name(name).value(value)));
             }).build();
             final byte[] array = new byte[dataEx.sizeof()];
@@ -610,6 +619,7 @@ public final class LlmFunctions
 
         private Integer typeId;
         private Boolean complete;
+        private Boolean usageOnly;
         private Map<String, String> attributes;
 
         public LlmDialectDataExMatcherBuilder typeId(
@@ -623,6 +633,13 @@ public final class LlmFunctions
             boolean complete)
         {
             this.complete = complete;
+            return this;
+        }
+
+        public LlmDialectDataExMatcherBuilder usageOnly(
+            boolean usageOnly)
+        {
+            this.usageOnly = usageOnly;
             return this;
         }
 
@@ -659,6 +676,7 @@ public final class LlmFunctions
                 dataEx.kind() == LlmDataExFW.KIND_DIALECT &&
                 (typeId == null || typeId == dataEx.typeId()) &&
                 (complete == null || complete == (dataEx.dialect().complete() != 0)) &&
+                (usageOnly == null || usageOnly == (dataEx.dialect().usageOnly() != 0)) &&
                 matchAttributes(dataEx))
             {
                 byteBuf.position(byteBuf.position() + dataEx.sizeof());
