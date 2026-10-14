@@ -23,18 +23,18 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 
+import jakarta.json.JsonConfig;
 import jakarta.json.JsonObject;
 import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
-import io.aklivity.zilla.runtime.common.yaml.YamlConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
 public final class EngineConfigReader
 {
     private static final JsonProvider CONFIG_PROVIDER =
-        YamlJson.provider(Map.of(YamlConfig.FEATURE_UNIQUE_KEYS, true));
+        YamlJson.provider(Map.of(JsonConfig.KEY_STRATEGY, JsonConfig.KeyStrategy.NONE));
 
     private final UnaryOperator<String> resolver;
     private final EngineInfo info;

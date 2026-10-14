@@ -174,6 +174,20 @@ public class CoreFunctionsTest
     }
 
     @Test
+    public void shouldMaskFramingCapability()
+    {
+        final byte framingMask = CoreFunctions.capabilities("FRAMING");
+        assertEquals(0x02, framingMask);
+    }
+
+    @Test
+    public void shouldMaskChallengeAndFramingCapabilities()
+    {
+        final byte mask = CoreFunctions.capabilities("CHALLENGE", "FRAMING");
+        assertEquals(0x03, mask);
+    }
+
+    @Test
     public void shouldComputeVarintTenBytesMax() throws Exception
     {
         byte[] actuals = CoreFunctions.varint(Long.MAX_VALUE);

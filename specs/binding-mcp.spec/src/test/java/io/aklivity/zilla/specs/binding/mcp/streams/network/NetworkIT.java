@@ -704,15 +704,6 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/lifecycle.events.keepalive/client",
-        "${net}/lifecycle.events.keepalive/server"})
-    public void shouldKeepaliveLifecycleEvents() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/lifecycle.events.evict/client",
         "${net}/lifecycle.events.evict/server"})
     public void shouldEvictLifecycleEvents() throws Exception

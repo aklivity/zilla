@@ -21,6 +21,9 @@ import static io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.M
 import static io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.McpBeginExFW.KIND_TOOLS_CALL;
 import static io.aklivity.zilla.runtime.binding.mcp.http.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.StringReader;
@@ -104,9 +107,6 @@ public final class McpHttpProxyFactory implements BindingHandler
     private static final String HEADER_COOKIE = "cookie";
     private static final String DEFAULT_CONTENT_TYPE = "application/json";
 
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_FIN = 0x01;
-    private static final int FLAGS_COMPLETE = 0x03;
     private static final int WINDOW_MAX = 65536;
     private static final int JSON_RPC_INVALID_PARAMS = -32602;
     private static final int JSON_RPC_INTERNAL_ERROR = -32603;
@@ -558,7 +558,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                     final int length = Math.min(maxPayload, encodeSlotOffset);
                     final int reserved = length + replyPad;
                     final boolean fin = McpHttpState.replyClosing(state) && length == encodeSlotOffset;
-                    final int flags = (replyDataStarted ? 0 : FLAGS_INIT) | (fin ? FLAGS_FIN : 0);
+                    final int flags = (replyDataStarted ? NONE : INIT) | (fin ? FIN : NONE);
                     doMcpData(traceId, flags, reserved, slot, 0, length);
                     replyDataStarted = true;
                     final int remaining = encodeSlotOffset - length;
@@ -2031,7 +2031,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                         final int length = Math.min(maxPayload, encodeSlotOffset);
                         final int reserved = length + initialPad;
                         final boolean fin = McpHttpState.initialClosing(state) && length == encodeSlotOffset;
-                        final int flags = (requestDataStarted ? 0 : FLAGS_INIT) | (fin ? FLAGS_FIN : 0);
+                        final int flags = (requestDataStarted ? NONE : INIT) | (fin ? FIN : NONE);
                         doData(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                             traceId, mcp.authorization, flags, 0L, reserved, slot, 0, length);
                         initialSeq += reserved;

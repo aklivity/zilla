@@ -16,6 +16,7 @@
 connect "zilla://streams/net0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
+        option zilla:authorization 1L
 
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
@@ -29,7 +30,7 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"stream\":false}"
+write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}"
 write flush
 
 write close

@@ -98,6 +98,12 @@ public final class McpSchemeInjector implements JsonTransform
             : sink.transform(control, source, event);
     }
 
+    @Override
+    public boolean deterministic()
+    {
+        return true;
+    }
+
     // outside the target array: pass everything through, arming when the target array key is seen
     private Status onOuter(
         JsonSource source,

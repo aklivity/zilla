@@ -109,6 +109,12 @@ public final class McpKafkaArguments implements JsonSink
     }
 
     @Override
+    public boolean deterministic()
+    {
+        return true;
+    }
+
+    @Override
     public Status transform(
         JsonController control,
         JsonSource source,

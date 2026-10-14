@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.common.json;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
@@ -60,15 +62,58 @@ class JsonSkipTest
         assertEquals("{} ", skip("a", "{ \"a\" : 1 }"));
     }
 
+    @Test
+    void shouldDropConsecutiveLeadingFields()
+    {
+        assertEquals("{ \"c\" : 3 } ", skip(List.of("a", "b"), "{ \"a\" : 1, \"b\" : 2, \"c\" : 3 }"));
+    }
+
+    @Test
+    void shouldDropConsecutiveLeadingFieldsWithoutWhitespace()
+    {
+        assertEquals("{\"c\":3} ", skip(List.of("a", "b"), "{\"a\":1,\"b\":2,\"c\":3}"));
+    }
+
+    @Test
+    void shouldDropThreeConsecutiveLeadingFields()
+    {
+        assertEquals("{\"d\":4} ", skip(List.of("a", "b", "c"), "{\"a\":1,\"b\":2,\"c\":3,\"d\":4}"));
+    }
+
+    @Test
+    void shouldDropConsecutiveLeadingFieldsWithObjectValues()
+    {
+        assertEquals("{\"c\":3} ", skip(List.of("a", "b"), "{\"a\":{\"x\":[1,2]},\"b\":[3],\"c\":3}"));
+    }
+
+    @Test
+    void shouldDropAllFields()
+    {
+        assertEquals("{} ", skip(List.of("a", "b"), "{\"a\":1,\"b\":2}"));
+    }
+
+    @Test
+    void shouldDropLeadingFieldAndLaterFieldKeepingSeparators()
+    {
+        assertEquals("{\"b\":2,\"d\":4} ", skip(List.of("a", "c"), "{\"a\":1,\"b\":2,\"c\":3,\"d\":4}"));
+    }
+
     private static String skip(
         String dropKey,
+        String json)
+    {
+        return skip(List.of(dropKey), json);
+    }
+
+    private static String skip(
+        List<String> dropKeys,
         String json)
     {
         JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBufferEx output = new UnsafeBufferEx(new byte[1024]);
         generator.wrap(output, 0, output.capacity());
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .transform(new Skip(dropKey))
+            .transform(new Skip(dropKeys))
             .into(JsonEx.createSink(generator));
 
         byte[] bytes = (json + " ").getBytes(UTF_8);
@@ -87,7 +132,7 @@ class JsonSkipTest
     // KEY_NAME — the parser consumes the whole member's sub-events, so the transform never sees them.
     private static final class Skip implements JsonTransform
     {
-        private final String dropKey;
+        private final List<String> dropKeys;
 
         private JsonController upstream;
         private boolean downstreamVerbatim;
@@ -115,9 +160,9 @@ class JsonSkipTest
         };
 
         private Skip(
-            String dropKey)
+            List<String> dropKeys)
         {
-            this.dropKey = dropKey;
+            this.dropKeys = dropKeys;
         }
 
         @Override
@@ -145,7 +190,7 @@ class JsonSkipTest
                     : downstream;
                 break;
             case KEY_NAME:
-                if (depth == 1 && contentEquals(dropKey, source.getStringView()))
+                if (depth == 1 && dropped(source.getStringView()))
                 {
                     // drop the matched member: the source advances past its key, separator, and value and folds
                     // in the leading-separator trim, so no sub-event reaches this transform or the sink
@@ -181,6 +226,17 @@ class JsonSkipTest
             depth = 0;
         }
 
+        private boolean dropped(
+            CharSequence view)
+        {
+            boolean dropped = false;
+            for (String dropKey : dropKeys)
+            {
+                dropped |= contentEquals(dropKey, view);
+            }
+            return dropped;
+        }
+
         private static boolean contentEquals(
             String name,
             CharSequence view)
@@ -191,6 +247,12 @@ class JsonSkipTest
                 matches = name.charAt(i) == view.charAt(i);
             }
             return matches;
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
         }
     }
 }

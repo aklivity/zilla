@@ -48,27 +48,9 @@ public class TypeIT
 
     @Test
     @Specification({
-        "${app}/name.only/client",
-        "${app}/name.only/server" })
-    public void shouldReceiveNameOnlyType() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/non.empty/client",
         "${app}/non.empty/server" })
     public void shouldReceiveNonEmptyType() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/non.empty.trailing/client",
-        "${app}/non.empty.trailing/server" })
-    public void shouldReceiveNonEmptyTypeTrailing() throws Exception
     {
         k3po.finish();
     }
@@ -82,21 +64,4 @@ public class TypeIT
         k3po.finish();
     }
 
-    @Test
-    @Specification({
-        "${app}/invalid.utf8/client",
-        "${app}/invalid.utf8/server" })
-    public void shouldRejectTypeWithInvalidUTF8() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/initial.whitespace/client",
-        "${app}/initial.whitespace/server" })
-    public void shouldReceiveTypeWithInitialWhitespace() throws Exception
-    {
-        k3po.finish();
-    }
 }

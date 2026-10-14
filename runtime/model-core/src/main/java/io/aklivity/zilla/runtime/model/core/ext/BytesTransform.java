@@ -62,6 +62,12 @@ public interface BytesTransform
         {
             return true;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     };
 
     /**
@@ -117,4 +123,13 @@ public interface BytesTransform
     {
         return false;
     }
+
+    /**
+     * Whether this stage always produces the same output for the same input, configuration, and
+     * authorization. A stage that consults a clock, a random source, or any other state outside those
+     * inputs is not deterministic.
+     *
+     * @return {@code true} if the same input always produces the same output; {@code false} otherwise
+     */
+    boolean deterministic();
 }

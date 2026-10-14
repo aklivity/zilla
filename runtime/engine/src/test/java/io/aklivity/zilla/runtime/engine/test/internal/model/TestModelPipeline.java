@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.model;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.List;
@@ -28,6 +30,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelFieldBridge;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
+import io.aklivity.zilla.runtime.engine.model.ModelRejection;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
@@ -73,8 +76,6 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 // path always constructs its pipeline with `null` here too.
 final class TestModelPipeline implements ModelPipeline
 {
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_FIN = 0x01;
     private static final DirectBufferEx EMPTY_SRC = new UnsafeBufferEx(new byte[0]);
 
     private final DirectBufferEx extractedValue = new UnsafeBufferEx("1234".getBytes(UTF_8));
@@ -88,6 +89,7 @@ final class TestModelPipeline implements ModelPipeline
     private final ModelPipelineResult result;
     private final TestModelHandler handler;
     private final List<String> reject;
+    private final List<String> withhold;
     private final boolean suspend;
     private final Runnable resumed;
     private final EngineContext context;
@@ -95,12 +97,14 @@ final class TestModelPipeline implements ModelPipeline
     private final List<Long> discloseAuthorized;
     private final DirectBufferEx discloseRedacted;
     private final String envelopeDiscloseName;
+    private final boolean deterministic;
 
     private int processed;
     private int contentLength;
     private int contentDrained;
     private boolean awaiting;
     private ModelStatus resolved;
+    private boolean resolvedWithheld;
 
     TestModelPipeline(
         int length,
@@ -111,12 +115,14 @@ final class TestModelPipeline implements ModelPipeline
         ModelTransform transform,
         TestModelHandler handler,
         List<String> reject,
+        List<String> withhold,
         boolean suspend,
         Runnable resumed,
         EngineContext context,
         List<Long> discloseAuthorized,
         DirectBufferEx discloseRedacted,
-        String envelopeDiscloseName)
+        String envelopeDiscloseName,
+        boolean deterministic)
     {
         this.length = length;
         this.transformLength = transformLength;
@@ -127,13 +133,15 @@ final class TestModelPipeline implements ModelPipeline
         this.result = new ModelPipelineResult();
         this.handler = handler;
         this.reject = reject;
+        this.withhold = withhold;
         this.suspend = suspend;
         this.resumed = resumed;
         this.context = context;
-        this.buffer = reject != null ? new ExpandableArrayBufferEx() : null;
+        this.buffer = reject != null || withhold != null ? new ExpandableArrayBufferEx() : null;
         this.discloseAuthorized = discloseAuthorized;
         this.discloseRedacted = discloseRedacted;
         this.envelopeDiscloseName = envelopeDiscloseName;
+        this.deterministic = deterministic && transform.deterministic();
     }
 
     @Override
@@ -149,7 +157,7 @@ final class TestModelPipeline implements ModelPipeline
         int dstIndex,
         int dstLimit)
     {
-        return reject != null
+        return reject != null || withhold != null
             ? transformReject(src, srcIndex, srcLimit, dst, dstIndex, dstLimit, flags)
             : transformLength(traceId, bindingId, authorization, flags, src, srcIndex, srcLimit, dst, dstIndex, dstLimit);
     }
@@ -174,6 +182,17 @@ final class TestModelPipeline implements ModelPipeline
         else if (resolved == ModelStatus.OK)
         {
             int remaining = contentLength - contentDrained;
+
+            if (dst.isExpandable())
+            {
+                final int required = dstIndex + remaining;
+                if (required > dst.capacity())
+                {
+                    dst.checkLimit(required);
+                }
+                dstLimit = Math.max(dstLimit, dst.capacity());
+            }
+
             int available = Math.min(remaining, dstLimit - dstIndex);
             dst.putBytes(dstIndex, buffer, contentDrained, available);
             contentDrained += available;
@@ -191,24 +210,26 @@ final class TestModelPipeline implements ModelPipeline
             contentLength += available;
             consumed = available;
 
-            if ((flags & FLAGS_FIN) != 0)
+            if (hasFin(flags))
             {
                 String text = buffer.getStringWithoutLengthUtf8(0, contentLength);
-                boolean matched = reject.contains(text);
+                List<String> matchAgainst = reject != null ? reject : withhold;
+                boolean matched = matchAgainst.contains(text);
+                boolean asWithheld = reject == null;
 
                 if (suspend)
                 {
                     awaiting = true;
                     context.dispatch(() ->
                     {
-                        resolve(matched);
+                        resolve(matched, asWithheld);
                         resumed.run();
                     });
                     status = ModelStatus.SUSPENDED;
                 }
                 else
                 {
-                    resolve(matched);
+                    resolve(matched, asWithheld);
                     ModelPipelineResult inner = transformReject(EMPTY_SRC, 0, 0, dst, dstIndex, dstLimit, 0x00);
                     status = inner.status();
                     produced = inner.produced();
@@ -220,13 +241,17 @@ final class TestModelPipeline implements ModelPipeline
             }
         }
 
-        return result.set(status, consumed, produced);
+        return result.set(status, consumed, produced, status == ModelStatus.REJECTED && resolvedWithheld
+            ? ModelRejection.WITHHELD
+            : null);
     }
 
     private void resolve(
-        boolean matched)
+        boolean matched,
+        boolean asWithheld)
     {
         resolved = matched ? ModelStatus.REJECTED : ModelStatus.OK;
+        resolvedWithheld = matched && asWithheld;
         awaiting = false;
     }
 
@@ -242,7 +267,7 @@ final class TestModelPipeline implements ModelPipeline
         int dstIndex,
         int dstLimit)
     {
-        if ((flags & FLAGS_INIT) != 0)
+        if (hasInit(flags))
         {
             processed = 0;
         }
@@ -250,7 +275,7 @@ final class TestModelPipeline implements ModelPipeline
         int srcLength = srcLimit - srcIndex;
         int dstLength = dstLimit - dstIndex;
         int available = Math.min(srcLength, dstLength);
-        boolean tail = (flags & FLAGS_FIN) != 0 && available == srcLength;
+        boolean tail = hasFin(flags) && available == srcLength;
         int total = processed + available;
         boolean lengthValid = tail ? total == length : total <= length;
 
@@ -353,6 +378,12 @@ final class TestModelPipeline implements ModelPipeline
     public boolean identity()
     {
         return transformLength < 0 && discloseAuthorized == null && envelopeDiscloseName == null;
+    }
+
+    @Override
+    public boolean deterministic()
+    {
+        return deterministic;
     }
 
     @Override

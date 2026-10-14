@@ -1493,7 +1493,7 @@ public final class SafeBuffer implements AtomicBufferEx
             ? value.getBytes(java.nio.charset.StandardCharsets.UTF_8)
             : new byte[0];
         MemorySegment.copy(MemorySegment.ofArray(bytes), BYTE_LAYOUT, 0,
-            segment, BYTE_LAYOUT, index, bytes.length);
+            segment, BYTE_LAYOUT, wrapAdjustment + index, bytes.length);
         return bytes.length;
     }
 

@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
+
 import java.util.function.LongPredicate;
 import java.util.function.Supplier;
 
@@ -55,14 +58,14 @@ final class Int64ModelValidator implements CoreModelValidator
         int index,
         int length)
     {
-        if ((flags & FLAGS_INIT) != 0x00)
+        if (hasInit(flags))
         {
             state.decoded = 0;
             state.processed = 0;
         }
         int progress = format.decode(state, flags, data, index, length);
         Validity validity = progress != Int64Format.INVALID_INDEX ? Validity.VALID : Validity.MALFORMED;
-        if ((flags & FLAGS_FIN) != 0x00 && validity == Validity.VALID)
+        if (hasFin(flags) && validity == Validity.VALID)
         {
             validity = !format.valid(state) ? Validity.MALFORMED
                 : !check.test(state.decoded) ? Validity.INVALID

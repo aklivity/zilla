@@ -55,6 +55,7 @@
     <module>common-avro</module>
     <module>common-feature</module>
     <module>common-json</module>
+    <module>common-jwt</module>
     <module>common-lang</module>
     <module>common-openapi</module>
     <module>common-protobuf</module>
@@ -67,6 +68,7 @@
     <module>command-start</module>
     <module>command-stop</module>
     <module>command-version</module>
+    <module>embedding-openai</module>
     <module>exporter-otlp</module>
     <module>exporter-prometheus</module>
     <module>exporter-stdout</module>
@@ -227,6 +229,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>catalog-inline.conf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>embedding-openai.conf</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -481,6 +488,11 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>common-jwt</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>common-lang</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -537,6 +549,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>command-version</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>embedding-openai</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

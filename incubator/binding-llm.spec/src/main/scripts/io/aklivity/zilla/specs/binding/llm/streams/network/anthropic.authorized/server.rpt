@@ -26,13 +26,14 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header(":scheme", "http")
                            .header(":authority", "example.com:8080")
                            .header(":path", "/v1/messages")
+                           .header("anthropic-version", "2023-06-01")
                            .header("content-type", "application/json")
                            .header("x-api-key", "Bearer test-token")
                            .build()}
 
 connected
 
-read "{\"model\":\"claude-3-opus-20240229\",\"max_tokens\":1024,\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"stream\":false}"
+read "{\"model\":\"claude-3-opus-20240229\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Hello\"}]}]}"
 
 read closed
 

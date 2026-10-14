@@ -23,24 +23,80 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("anthropic")
+                           .model("claude-3-opus-20240229")
                            .build()}
 
 connected
 
-write "{\"model\":\"claude-3-opus-20240229\",\"max_tokens\":1024,\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"stream\":false}"
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "{\"model\":\"claude-3-opus-20240229\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\""
+write flush
 
-write close
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("USER_TEXT")
+                          .message(0)
+                          .build()}
+write "Hello"
+write flush
+
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .complete(true)
+                          .build()}
+write "\"}]}]}"
+write flush
+
+write advise zilla:flush
 
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("anthropic")
-                           .contentType("application/json")
+                           .model("claude-3-opus-20240229")
+                           .id("msg_01")
                            .build()}
+
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+read "{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3-opus-20240229\",\"content\":[{\"type\":\"text\",\"text\":\""
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .typeNull()
+                          .type("ASSISTANT_TEXT")
+                          .message(0)
                           .build()}
-read "{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3-opus-20240229\",\"content\":[{\"type\":\"text\",\"text\":\"Hello! How can I help you today?\"},{\"type\":\"tool_use\",\"id\":\"toolu_01\",\"name\":\"get_weather\",\"input\":{\"city\":\"San Francisco\"}}],\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"usage\":{\"input_tokens\":25,\"output_tokens\":15}}"
+read "Hello! How can I help you today?"
+
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+read "\"},{\"type\":\"tool_use\",\"id\":\"toolu_01\",\"name\":\"get_weather\",\"input\":"
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("TOOL_CALL")
+                          .message(0)
+                          .attribute("tool-name", "get_weather")
+                          .attribute("tool-call-id", "toolu_01")
+                          .build()}
+read "{\"city\":\"San Francisco\"}"
+
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .complete(true)
+                          .build()}
+read "}],\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"usage\":{\"input_tokens\":25,\"output_tokens\":15}}"
+
+read zilla:end.ext ${llm:matchEndEx()
+                            .typeId(zilla:id("llm"))
+                            .inputTokens(25)
+                            .outputTokens(15)
+                            .finishReason("tool-call")
+                            .build()}
 
 read closed
+
+write close

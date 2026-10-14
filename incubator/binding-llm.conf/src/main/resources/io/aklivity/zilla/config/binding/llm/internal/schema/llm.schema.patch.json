@@ -30,7 +30,9 @@
                     "kind":
                     {
                         "enum": [ "client", "server", "proxy" ]
-                    }
+                    },
+                    "catalog": false,
+                    "vault": false
                 },
                 "allOf":
                 [
@@ -63,30 +65,24 @@
                                         {
                                             "title": "Authorization",
                                             "description": "Guard used to validate inbound request credentials, keyed by guard name. Credentials is a template matched against the request header the resolved dialect expects credentials in (for example Authorization for openai, x-api-key for anthropic), with {credentials} standing in for the extracted token.",
-                                            "type": "object",
-                                            "patternProperties":
-                                            {
-                                                "^[A-Za-z0-9_-]+$":
-                                                {
-                                                    "type": "object",
-                                                    "properties":
-                                                    {
-                                                        "credentials":
-                                                        {
-                                                            "title": "Credentials",
-                                                            "type": "string",
-                                                            "pattern": ".*\\{credentials\\}.*",
-                                                            "default": "Bearer {credentials}"
-                                                        }
-                                                    },
-                                                    "additionalProperties": false
-                                                }
-                                            },
-                                            "additionalProperties": false,
-                                            "maxProperties": 1
+                                            "$ref": "#/$defs/binding-ext/llm/authorization"
                                         }
                                     },
                                     "additionalProperties": false
+                                },
+                                "routes":
+                                {
+                                    "title": "Routes",
+                                    "type": "array",
+                                    "items":
+                                    {
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "when": false,
+                                            "with": false
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -128,33 +124,28 @@
                                         {
                                             "title": "Authorization",
                                             "description": "Guard used to resolve outbound request credentials, keyed by guard name. Credentials is a template used to build the request header the resolved dialect sends credentials in (for example Authorization for openai, x-api-key for anthropic), with {credentials} standing in for the resolved token. When {credentials} resolves to the authorization already granted to the inbound request, the caller's own credentials are forwarded upstream unchanged.",
-                                            "type": "object",
-                                            "patternProperties":
-                                            {
-                                                "^[A-Za-z0-9_-]+$":
-                                                {
-                                                    "type": "object",
-                                                    "properties":
-                                                    {
-                                                        "credentials":
-                                                        {
-                                                            "title": "Credentials",
-                                                            "type": "string",
-                                                            "pattern": ".*\\{credentials\\}.*",
-                                                            "default": "Bearer {credentials}"
-                                                        }
-                                                    },
-                                                    "additionalProperties": false
-                                                }
-                                            },
-                                            "additionalProperties": false,
-                                            "maxProperties": 1
+                                            "$ref": "#/$defs/binding-ext/llm/authorization"
                                         }
                                     },
                                     "required": [ "dialect", "server" ],
                                     "additionalProperties": false
+                                },
+                                "routes":
+                                {
+                                    "title": "Routes",
+                                    "type": "array",
+                                    "items":
+                                    {
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "when": false,
+                                            "with": false
+                                        }
+                                    }
                                 }
-                            }
+                            },
+                            "required": [ "options" ]
                         }
                     },
                     {
@@ -172,6 +163,19 @@
                         {
                             "properties":
                             {
+                                "options":
+                                {
+                                    "properties":
+                                    {
+                                        "guardrails":
+                                        {
+                                            "title": "Guardrails",
+                                            "description": "Models applied to the payload of each request or response section, keyed by the model name the request resolves to. The stages for the resolved model apply in order to each matching section, and a fallback model's stages apply after the requested model's stages.",
+                                            "$ref": "#/$defs/binding-ext/llm/guardrails"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
                                 "routes":
                                 {
                                     "title": "Routes",
@@ -209,6 +213,27 @@
                                                     },
                                                     "additionalProperties": false
                                                 }
+                                            },
+                                            "with":
+                                            {
+                                                "title": "With",
+                                                "type": "object",
+                                                "properties":
+                                                {
+                                                    "fallback":
+                                                    {
+                                                        "title": "Fallback",
+                                                        "description": "Ordered models to try when the route's exit resets the stream before sending a window. Each model is routed through this binding's routes, and a model that matches no authorized route is skipped. The path is resolved at the start of the stream and locks once the exit sends a window.",
+                                                        "type": "array",
+                                                        "minItems": 1,
+                                                        "items":
+                                                        {
+                                                            "type": "string",
+                                                            "pattern": "^[^*]+$"
+                                                        }
+                                                    }
+                                                },
+                                                "additionalProperties": false
                                             }
                                         }
                                     }
@@ -230,6 +255,119 @@
                 "title": "Dialect",
                 "type": "string",
                 "enum": [ "openai", "anthropic" ]
+            },
+            "section":
+            {
+                "title": "Section",
+                "type": "string",
+                "enum":
+                [
+                    "system-instruction",
+                    "user-text",
+                    "user-image",
+                    "user-document",
+                    "user-audio",
+                    "user-video",
+                    "assistant-text",
+                    "assistant-reasoning",
+                    "assistant-refusal",
+                    "tool-definition",
+                    "tool-call",
+                    "tool-result",
+                    "server-tool-result",
+                    "citations"
+                ]
+            },
+            "guardrail-stages":
+            {
+                "title": "Stages",
+                "type": "array",
+                "items":
+                {
+                    "type": "object",
+                    "properties":
+                    {
+                        "section":
+                        {
+                            "title": "Section",
+                            "description": "The section type, or section types, this stage applies to.",
+                            "oneOf":
+                            [
+                                {
+                                    "$ref": "#/$defs/binding-ext/llm/section"
+                                },
+                                {
+                                    "type": "array",
+                                    "minItems": 1,
+                                    "items":
+                                    {
+                                        "$ref": "#/$defs/binding-ext/llm/section"
+                                    }
+                                }
+                            ]
+                        },
+                        "value":
+                        {
+                            "title": "Value",
+                            "description": "The model the section payload is passed through.",
+                            "$ref": "#/$defs/models"
+                        }
+                    },
+                    "required": [ "section", "value" ],
+                    "additionalProperties": false
+                }
+            },
+            "guardrails":
+            {
+                "type": "object",
+                "patternProperties":
+                {
+                    "^[^*]+$":
+                    {
+                        "type": "object",
+                        "properties":
+                        {
+                            "request":
+                            {
+                                "title": "Request",
+                                "description": "Stages applied, in order, to the sections of a request.",
+                                "$ref": "#/$defs/binding-ext/llm/guardrail-stages"
+                            },
+                            "response":
+                            {
+                                "title": "Response",
+                                "description": "Stages applied, in order, to the sections of a response.",
+                                "$ref": "#/$defs/binding-ext/llm/guardrail-stages"
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                },
+                "additionalProperties": false
+            },
+            "authorization":
+            {
+                "type": "object",
+                "patternProperties":
+                {
+                    "^[A-Za-z0-9_-]+$":
+                    {
+                        "type": "object",
+                        "properties":
+                        {
+                            "credentials":
+                            {
+                                "title": "Credentials",
+                                "type": "string",
+                                "pattern": ".*\\{credentials\\}.*",
+                                "default": "Bearer {credentials}"
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                },
+                "additionalProperties": false,
+                "maxProperties": 1
             }
         }
     }

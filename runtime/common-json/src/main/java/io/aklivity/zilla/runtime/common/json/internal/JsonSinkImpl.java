@@ -81,6 +81,8 @@ public final class JsonSinkImpl implements JsonSink
         case START_ARRAY:
         case END_OBJECT:
         case END_ARRAY:
+        case START_ESCAPED:
+        case END_ESCAPED:
         case VALUE_TRUE:
         case VALUE_FALSE:
         case VALUE_NULL:
@@ -181,6 +183,12 @@ public final class JsonSinkImpl implements JsonSink
         return generator.identity();
     }
 
+    @Override
+    public boolean deterministic()
+    {
+        return generator.deterministic();
+    }
+
     // Writes one atomic event (a brace/bracket, or a boolean/null literal) whose generator call has no
     // partial-write contract: it either fully happens or, on insufficient room, leaves no trace (state and
     // output both unchanged). The generator's own boolean Ex() return — rather than a length() delta or a
@@ -220,6 +228,12 @@ public final class JsonSinkImpl implements JsonSink
         case END_ARRAY:
             written = generator.writeEndEx();
             break;
+        case START_ESCAPED:
+            written = generator.writeStartEscapedEx();
+            break;
+        case END_ESCAPED:
+            written = generator.writeEndEscapedEx();
+            break;
         case VALUE_TRUE:
             written = generator.writeEx(true);
             break;
@@ -243,11 +257,13 @@ public final class JsonSinkImpl implements JsonSink
         {
         case START_OBJECT:
         case START_ARRAY:
+        case START_ESCAPED:
             depth++;
             status = Status.ADVANCED;
             break;
         case END_OBJECT:
         case END_ARRAY:
+        case END_ESCAPED:
             depth--;
             status = depth == 0 ? Status.COMPLETED : Status.ADVANCED;
             break;
@@ -268,6 +284,8 @@ public final class JsonSinkImpl implements JsonSink
         case START_ARRAY:
         case END_OBJECT:
         case END_ARRAY:
+        case START_ESCAPED:
+        case END_ESCAPED:
         case VALUE_TRUE:
         case VALUE_FALSE:
         case VALUE_NULL:

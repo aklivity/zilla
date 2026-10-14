@@ -27,6 +27,9 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffset
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType.LIVE;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaTimestampType.AUTHORITATIVE;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasSkip;
 import static java.lang.System.currentTimeMillis;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -122,10 +125,6 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
     private static final KafkaKeyFW EMPTY_KEY =
             new OctetsFW().wrap(new UnsafeBufferEx(ByteBuffer.wrap(new byte[] { 0x00 })), 0, 1)
                 .get(new KafkaKeyFW()::wrap);
-
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_FIN = 0x01;
-    private static final int FLAGS_SKIP = 0x08;
 
     private static final int SIGNAL_RECONNECT = 1;
     private static final int SIGNAL_SEGMENT_RETAIN = 2;
@@ -912,7 +911,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             assert replySeq <= replyAck + replyMax;
 
             KafkaFetchDataExFW kafkaFetchDataEx = null;
-            if ((flags & (FLAGS_INIT | FLAGS_FIN)) != 0x00)
+            if (hasInit(flags) || hasFin(flags))
             {
                 final OctetsFW extension = data.extension();
                 final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
@@ -922,7 +921,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 kafkaFetchDataEx = kafkaDataEx.fetch();
             }
 
-            if ((flags & FLAGS_INIT) != 0x00)
+            if (hasInit(flags))
             {
                 assert kafkaFetchDataEx != null;
                 final int deferred = kafkaFetchDataEx.deferred();
@@ -988,7 +987,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 IntFunction<KafkaCacheEntryFW> findAncestor =
                     kh -> findAndMarkAncestor(key, nextHead, kh, partitionOffset);
                 final int entryFlags =
-                    ((flags & FLAGS_SKIP) != 0x00 ? CACHE_ENTRY_FLAGS_ABORTED : 0x00) |
+                    (hasSkip(flags) ? CACHE_ENTRY_FLAGS_ABORTED : 0x00) |
                     (timestampType == AUTHORITATIVE ? CACHE_ENTRY_FLAGS_AUTHORITATIVE : 0x00);
                 partition.writeEntryStart(context, traceId, routedId, NO_AUTHORIZATION, partitionOffset, entryMark, valueMark,
                     valueLimit, headersMark, timestamp, timestampType, producerId, key, valueLength, valuePaddingMax,
@@ -1002,7 +1001,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                     valueFragment, transformValue, valuePaddingMax);
             }
 
-            if ((flags & FLAGS_FIN) != 0x00)
+            if (hasFin(flags))
             {
                 assert kafkaFetchDataEx != null;
                 final KafkaOffsetFW progress = kafkaFetchDataEx.partition();

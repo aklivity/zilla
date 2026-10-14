@@ -18,10 +18,13 @@ import static io.aklivity.zilla.config.engine.KindConfig.CLIENT;
 import static io.aklivity.zilla.config.engine.KindConfig.PROXY;
 import static io.aklivity.zilla.config.engine.KindConfig.SERVER;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectContext;
 import io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmClientFactory;
 import io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmProxyFactory;
 import io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmServerFactory;
@@ -36,11 +39,15 @@ final class LlmBindingContext implements BindingContext
 
     LlmBindingContext(
         LlmConfiguration config,
-        EngineContext context)
+        EngineContext context,
+        Map<String, LlmDialect> dialects)
     {
+        final Map<String, LlmDialectContext> dialectContexts = new LinkedHashMap<>();
+        dialects.forEach((name, dialect) -> dialectContexts.put(name, dialect.supply(context)));
+
         this.factories = Map.of(
-            SERVER, new LlmServerFactory(config, context),
-            CLIENT, new LlmClientFactory(config, context),
+            SERVER, new LlmServerFactory(context, dialectContexts),
+            CLIENT, new LlmClientFactory(context, dialectContexts),
             PROXY, new LlmProxyFactory(config, context));
     }
 

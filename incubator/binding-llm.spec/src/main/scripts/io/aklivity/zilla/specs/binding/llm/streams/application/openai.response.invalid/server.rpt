@@ -22,12 +22,34 @@ accepted
 read zilla:begin.ext ${llm:matchBeginEx()
                           .typeId(zilla:id("llm"))
                           .dialect("openai")
+                          .model("gpt-4")
                           .build()}
 
 connected
 
-read "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"stream\":false}"
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+read "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\""
 
-read closed
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("USER_TEXT")
+                          .message(0)
+                          .build()}
+read "Hello"
 
-write abort
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .complete(true)
+                          .build()}
+read "\"}]}"
+
+read advised zilla:flush
+
+write zilla:reset.ext ${llm:resetEx()
+                            .typeId(zilla:id("llm"))
+                            .status(502)
+                            .build()}
+
+read abort

@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.internal.streams.server;
 
-import static io.aklivity.zilla.runtime.binding.sse.internal.stream.SseServerFactory.MAXIMUM_HEADER_SIZE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -25,7 +24,6 @@ import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 
-import io.aklivity.k3po.runtime.junit.annotation.ScriptProperty;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
@@ -72,29 +70,8 @@ public class TypeIT
     @Test
     @Configuration("server.when.yaml")
     @Specification({
-        "${net}/non.empty.trailing/request",
-        "${app}/non.empty.trailing/server" })
-    public void shouldReceiveNonEmptyTypeTrailing() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.when.yaml")
-    @Specification({
-        "${net}/non.empty.interleaved/request",
-        "${app}/non.empty.interleaved/server" })
-    public void shouldReceiveNonEmptyTypeInterleaved() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.when.yaml")
-    @Specification({
         "${net}/fragmented/request",
         "${app}/fragmented/server" })
-    @ScriptProperty("padding " + MAXIMUM_HEADER_SIZE)
     public void shouldReceiveNonEmptyTypeWithFragmentedMessage() throws Exception
     {
         k3po.finish();

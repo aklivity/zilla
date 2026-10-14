@@ -128,6 +128,12 @@ final class McpExecuteArgsTransform implements JsonTransform
         return status;
     }
 
+    @Override
+    public boolean deterministic()
+    {
+        return true;
+    }
+
     private Status resolveStatus(
         Status downstream)
     {

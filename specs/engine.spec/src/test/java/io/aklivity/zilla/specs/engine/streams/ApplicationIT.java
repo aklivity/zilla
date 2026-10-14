@@ -156,4 +156,166 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/exchange.value.pipeline.identity.identity/client",
+        "${app}/exchange.value.pipeline.identity.identity/server" })
+    public void shouldExchangeValuePipelineIdentityIdentity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/exchange.value.pipeline.transform.identity/client",
+        "${app}/exchange.value.pipeline.transform.identity/server" })
+    public void shouldExchangeValuePipelineTransformIdentity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/exchange.value.pipeline.identity.transform/client",
+        "${app}/exchange.value.pipeline.identity.transform/server" })
+    public void shouldExchangeValuePipelineIdentityTransform() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/exchange.value.pipeline.transform.transform/client",
+        "${app}/exchange.value.pipeline.transform.transform/server" })
+    public void shouldExchangeValuePipelineTransformTransform() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/exchange.value.pipeline.transform.transform.shrink.grow/client",
+        "${app}/exchange.value.pipeline.transform.transform.shrink.grow/server" })
+    public void shouldExchangeValuePipelineTransformTransformShrinkGrow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/exchange.value.pipeline.fragmented.identity/client",
+        "${app}/exchange.value.pipeline.fragmented.identity/server" })
+    public void shouldExchangeValuePipelineFragmentedIdentity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/exchange.value.pipeline.fragmented.transform.identity/client",
+        "${app}/exchange.value.pipeline.fragmented.transform.identity/server" })
+    public void shouldExchangeValuePipelineFragmentedTransformIdentity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/exchange.value.pipeline.fragmented.identity.transform/client",
+        "${app}/exchange.value.pipeline.fragmented.identity.transform/server" })
+    public void shouldExchangeValuePipelineFragmentedIdentityTransform() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/exchange.value.pipeline.fragmented.reject/client",
+        "${app}/exchange.value.pipeline.fragmented.reject/server" })
+    public void shouldExchangeValuePipelineFragmentedReject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/exchange.value.pipeline.overflow.identity/client",
+        "${app}/exchange.value.pipeline.overflow.identity/server" })
+    public void shouldExchangeValuePipelineOverflowIdentity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/exchange.value.pipeline.overflow.transform/client",
+        "${app}/exchange.value.pipeline.overflow.transform/server" })
+    public void shouldExchangeValuePipelineOverflowTransform() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/exchange.value.pipeline.suspend.second/client",
+        "${app}/exchange.value.pipeline.suspend.second/server" })
+    public void shouldExchangeValuePipelineSuspendSecond() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/exchange.value.pipeline.suspend.first/client",
+        "${app}/exchange.value.pipeline.suspend.first/server" })
+    public void shouldExchangeValuePipelineSuspendFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/exchange.value.pipeline.nondeterministic/client",
+        "${app}/exchange.value.pipeline.nondeterministic/server" })
+    public void shouldExchangeValuePipelineNondeterministic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/exchange.value.pipeline.identity.run/client",
+        "${app}/exchange.value.pipeline.identity.run/server" })
+    public void shouldExchangeValuePipelineIdentityRun() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/reject.value.pipeline.first/client",
+        "${app}/reject.value.pipeline.first/server" })
+    public void shouldRejectValuePipelineFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/reject.value.pipeline.second/client",
+        "${app}/reject.value.pipeline.second/server" })
+    public void shouldRejectValuePipelineSecond() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/reject.value.pipeline.assertion/client",
+        "${app}/reject.value.pipeline.assertion/server" })
+    public void shouldRejectValuePipelineAssertion() throws Exception
+    {
+        k3po.finish();
+    }
 }

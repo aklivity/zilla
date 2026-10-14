@@ -43,13 +43,16 @@ import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonPatch;
 import jakarta.json.JsonReader;
+import jakarta.json.JsonValue;
 import jakarta.json.spi.JsonProvider;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.CatalogConfig;
 import io.aklivity.zilla.config.engine.CatalogedConfig;
+import io.aklivity.zilla.config.engine.ClassifierConfig;
 import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ConfigException;
+import io.aklivity.zilla.config.engine.EmbeddingConfig;
 import io.aklivity.zilla.config.engine.EngineConfig;
 import io.aklivity.zilla.config.engine.EngineConfigReader;
 import io.aklivity.zilla.config.engine.EngineConfigWriter;
@@ -380,6 +383,26 @@ public class EngineManager
             store.id = resolver.resolve(store.name);
         }
 
+        for (EmbeddingConfig embedding : namespace.embeddings)
+        {
+            embedding.id = resolver.resolve(embedding.name);
+        }
+
+        for (ClassifierConfig classifier : namespace.classifiers)
+        {
+            classifier.id = resolver.resolve(classifier.name);
+            if (classifier.embedding != null)
+            {
+                classifier.embeddingId = resolver.resolve(classifier.embedding);
+                classifier.qembedding = resolver.format(classifier.embeddingId);
+            }
+            if (classifier.store != null)
+            {
+                classifier.storeId = resolver.resolve(classifier.store);
+                classifier.qstore = resolver.format(classifier.storeId);
+            }
+        }
+
         for (VaultConfig vault : namespace.vaults)
         {
             vault.id = resolver.resolve(vault.name);
@@ -481,7 +504,7 @@ public class EngineManager
 
                         guarded.identity = identifier;
 
-                        LongObjectBiFunction<String, String> attributor = guards.stream()
+                        LongObjectBiFunction<String, JsonValue> attributor = guards.stream()
                             .filter(g -> g.id == guarded.id)
                             .findFirst()
                             .map(g -> guardByType.apply(g.type))

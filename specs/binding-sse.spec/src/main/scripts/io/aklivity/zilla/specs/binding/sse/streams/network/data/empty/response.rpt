@@ -39,5 +39,6 @@ write zilla:begin.ext ${http:beginEx()
                               .build()}
 write flush
 
-write "data:\n"
-write "\n"
+write zilla:data.empty
+
+write close

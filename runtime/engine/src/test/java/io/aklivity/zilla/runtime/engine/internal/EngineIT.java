@@ -103,6 +103,16 @@ public class EngineIT
     }
 
     @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/handshake/client",
+        "${app}/handshake.authorized/server"})
+    public void shouldSupplyClassifier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.metrics.yaml")
     @Specification({
         "${net}/handshake/client",
@@ -258,6 +268,207 @@ public class EngineIT
         "${net}/vault.options.delegate/client",
         "${app}/vault.options.delegate/server"})
     public void shouldResolveVaultReferencedByAnotherVaultsOptions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.value.pipeline.identity.identity.yaml")
+    @Specification({
+        "${net}/exchange.value.pipeline.identity.identity/client",
+        "${app}/exchange.value.pipeline.identity.identity/server" })
+    public void shouldExchangeValuePipelineIdentityIdentity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.value.pipeline.transform.identity.yaml")
+    @Specification({
+        "${net}/exchange.value.pipeline.transform.identity/client",
+        "${app}/exchange.value.pipeline.transform.identity/server" })
+    public void shouldExchangeValuePipelineTransformIdentity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.value.pipeline.identity.transform.yaml")
+    @Specification({
+        "${net}/exchange.value.pipeline.identity.transform/client",
+        "${app}/exchange.value.pipeline.identity.transform/server" })
+    public void shouldExchangeValuePipelineIdentityTransform() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.value.pipeline.transform.transform.yaml")
+    @Specification({
+        "${net}/exchange.value.pipeline.transform.transform/client",
+        "${app}/exchange.value.pipeline.transform.transform/server" })
+    public void shouldExchangeValuePipelineTransformTransform() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.value.pipeline.transform.transform.shrink.grow.yaml")
+    @Specification({
+        "${net}/exchange.value.pipeline.transform.transform.shrink.grow/client",
+        "${app}/exchange.value.pipeline.transform.transform.shrink.grow/server" })
+    public void shouldExchangeValuePipelineTransformTransformShrinkGrow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.value.pipeline.fragmented.identity.yaml")
+    @Specification({
+        "${net}/exchange.value.pipeline.fragmented.identity/client",
+        "${app}/exchange.value.pipeline.fragmented.identity/server" })
+    public void shouldExchangeValuePipelineFragmentedIdentity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.value.pipeline.fragmented.transform.identity.yaml")
+    @Specification({
+        "${net}/exchange.value.pipeline.fragmented.transform.identity/client",
+        "${app}/exchange.value.pipeline.fragmented.transform.identity/server" })
+    public void shouldExchangeValuePipelineFragmentedTransformIdentity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.value.pipeline.fragmented.identity.transform.yaml")
+    @Specification({
+        "${net}/exchange.value.pipeline.fragmented.identity.transform/client",
+        "${app}/exchange.value.pipeline.fragmented.identity.transform/server" })
+    public void shouldExchangeValuePipelineFragmentedIdentityTransform() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.value.pipeline.fragmented.reject.yaml")
+    @Specification({
+        "${net}/exchange.value.pipeline.fragmented.reject/client",
+        "${app}/exchange.value.pipeline.fragmented.reject/server" })
+    public void shouldExchangeValuePipelineFragmentedReject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.value.pipeline.overflow.identity.yaml")
+    @Specification({
+        "${net}/exchange.value.pipeline.overflow.identity/client",
+        "${app}/exchange.value.pipeline.overflow.identity/server" })
+    public void shouldExchangeValuePipelineOverflowIdentity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.value.pipeline.overflow.transform.yaml")
+    @Configure(name = "zilla.engine.buffer.slot.capacity", value = "1024")
+    @Specification({
+        "${net}/exchange.value.pipeline.overflow.transform/client",
+        "${app}/exchange.value.pipeline.overflow.transform/server" })
+    public void shouldExchangeValuePipelineOverflowTransform() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.value.pipeline.suspend.second.yaml")
+    @Specification({
+        "${net}/exchange.value.pipeline.suspend.second/client",
+        "${app}/exchange.value.pipeline.suspend.second/server" })
+    public void shouldExchangeValuePipelineSuspendSecond() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.value.pipeline.suspend.first.yaml")
+    @Specification({
+        "${net}/exchange.value.pipeline.suspend.first/client",
+        "${app}/exchange.value.pipeline.suspend.first/server" })
+    public void shouldExchangeValuePipelineSuspendFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.value.pipeline.nondeterministic.yaml")
+    @Specification({
+        "${net}/exchange.value.pipeline.nondeterministic/client",
+        "${app}/exchange.value.pipeline.nondeterministic/server" })
+    public void shouldExchangeValuePipelineNondeterministic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.value.pipeline.identity.run.yaml")
+    @Specification({
+        "${net}/exchange.value.pipeline.identity.run/client",
+        "${app}/exchange.value.pipeline.identity.run/server" })
+    public void shouldExchangeValuePipelineIdentityRun() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.value.pipeline.identity.run.permuted.yaml")
+    @Specification({
+        "${net}/exchange.value.pipeline.identity.run/client",
+        "${app}/exchange.value.pipeline.identity.run/server" })
+    public void shouldExchangeValuePipelineIdentityRunPermuted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.value.pipeline.reject.first.yaml")
+    @Specification({
+        "${net}/reject.value.pipeline.first/client",
+        "${app}/reject.value.pipeline.first/server" })
+    public void shouldRejectValuePipelineFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.value.pipeline.reject.second.yaml")
+    @Specification({
+        "${net}/reject.value.pipeline.second/client",
+        "${app}/reject.value.pipeline.second/server" })
+    public void shouldRejectValuePipelineSecond() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.value.pipeline.assertion.identity.yaml")
+    @Specification({
+        "${net}/reject.value.pipeline.assertion/client",
+        "${app}/reject.value.pipeline.assertion/server" })
+    public void shouldRejectValuePipelineAssertionIdentity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.value.pipeline.assertion.deterministic.yaml")
+    @Specification({
+        "${net}/reject.value.pipeline.assertion/client",
+        "${app}/reject.value.pipeline.assertion/server" })
+    public void shouldRejectValuePipelineAssertionDeterministic() throws Exception
     {
         k3po.finish();
     }

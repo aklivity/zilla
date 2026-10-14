@@ -208,6 +208,12 @@ final class AvroModelTransform implements AvroTransform
         return transform.identity();
     }
 
+    @Override
+    public boolean deterministic()
+    {
+        return transform.deterministic();
+    }
+
     // stored on the shared Control so every transform.transform(...) call this adapter drives during the
     // current message sees the authorization the owning pipeline received for it
     void authorization(

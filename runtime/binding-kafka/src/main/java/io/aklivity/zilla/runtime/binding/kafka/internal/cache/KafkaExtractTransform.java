@@ -65,4 +65,10 @@ public final class KafkaExtractTransform implements ModelTransform
     {
         return true;
     }
+
+    @Override
+    public boolean deterministic()
+    {
+        return true;
+    }
 }

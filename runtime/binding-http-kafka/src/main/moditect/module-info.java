@@ -14,6 +14,7 @@
  */
 module io.aklivity.zilla.runtime.binding.http.kafka
 {
+    requires io.aklivity.zilla.runtime.common.json;
     requires io.aklivity.zilla.runtime.engine;
     requires io.aklivity.zilla.config.binding.http.kafka;
 

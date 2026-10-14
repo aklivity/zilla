@@ -22,6 +22,10 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.Reque
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.message.RecordBatchFW.FIELD_OFFSET_LENGTH;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.message.RecordBatchFW.FIELD_OFFSET_RECORD_COUNT;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
 import static java.lang.System.currentTimeMillis;
 import static java.lang.Thread.currentThread;
 import static java.nio.ByteOrder.BIG_ENDIAN;
@@ -89,10 +93,6 @@ import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker implements BindingHandler
 {
     private static final int PRODUCE_REQUEST_RECORDS_OFFSET_MAX = 512;
-
-    private static final int FLAGS_CON = 0x00;
-    private static final int FLAGS_FIN = 0x01;
-    private static final int FLAGS_INIT = 0x02;
 
     private static final long RECORD_BATCH_PRODUCER_ID_NONE = -1;
     private static final int RECORD_BATCH_BASE_SEQUENCE_NONE = -1;
@@ -552,7 +552,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         int progress,
         int limit)
     {
-        if (client.flushFlags == FLAGS_INIT)
+        if (client.flushFlags == INIT)
         {
             client.flusher = flushRecordInit;
         }
@@ -644,7 +644,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         Array32FW<KafkaHeaderFW> headers = EMPTY_HEADERS;
         int trailerSize = 0;
 
-        if ((flags & FLAGS_FIN) == FLAGS_FIN)
+        if (hasFin(flags))
         {
             final KafkaDataExFW kafkaDataEx = extension.get(kafkaDataExRO::tryWrap);
             if (kafkaDataEx != null)
@@ -671,16 +671,16 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         else
         {
             client.doEncodeRecordCont(traceId, budgetId, payload, flags);
-            client.flushFlags = FLAGS_CON;
+            client.flushFlags = NONE;
 
             progress += length;
 
-            if ((flags & FLAGS_FIN) == FLAGS_FIN)
+            if (hasFin(flags))
             {
                 client.doEncodeRecordFin(traceId, budgetId, headers);
                 assert progress == limit;
                 client.flusher = flushRecord;
-                client.flushFlags = FLAGS_FIN;
+                client.flushFlags = FIN;
                 client.encodeableRecordBytesDeferred = 0;
             }
         }
@@ -1745,7 +1745,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 }
 
                 KafkaProduceClientFlusher previous = null;
-                flushFlags = flags & FLAGS_INIT;
+                flushFlags = flags & INIT;
 
                 while (progress <= limit && previous != flusher)
                 {
@@ -1890,7 +1890,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                     encodeSlotBuffer.putBytes(encodeSlotLimit,  value.buffer(), value.offset(), length);
                     encodeSlotLimit += length;
 
-                    if ((flags & FLAGS_FIN) == 0)
+                    if (!hasFin(flags))
                     {
                         doNetworkData(traceId, budgetId, EMPTY_BUFFER, 0, 0);
                     }

@@ -27,6 +27,7 @@ import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 
+import io.aklivity.k3po.runtime.junit.annotation.ScriptProperty;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
@@ -112,6 +113,7 @@ public class KafkaCreateTopicsIT
     @Test
     @Configuration("client.guard.yaml")
     @Configure(name = KAFKA_CLIENT_API_VERSIONS_NAME, value = "true")
+    @ScriptProperty("authorization 1L")
     @Specification({
         "${app}/api.versions.v0.authorized/client",
         "${app}/create.topics.v7/client",

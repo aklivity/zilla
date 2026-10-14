@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.StringReader;
@@ -36,6 +37,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
+import jakarta.json.JsonConfig;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
 import jakarta.json.JsonReaderFactory;
@@ -1008,24 +1010,24 @@ class YamlJsonParserTest
     }
 
     @Test
-    void shouldRejectDuplicateKeysWhenUniqueKeysEnabled()
+    void shouldRejectDuplicateKeysWithNoneKeyStrategy()
     {
-        JsonParserFactory uniqueKeysEnabled = YamlJson.createParserFactory(Map.of(
-            YamlConfig.FEATURE_UNIQUE_KEYS, true));
+        JsonParserFactory noDuplicates = YamlJson.createParserFactory(Map.of(
+            JsonConfig.KEY_STRATEGY, JsonConfig.KeyStrategy.NONE));
         assertThrows(JsonParsingException.class, () ->
-            uniqueKeysEnabled.createParser(new StringReader("""
+            noDuplicates.createParser(new StringReader("""
                 name: first
                 name: second
                 """)));
     }
 
     @Test
-    void shouldRejectNestedDuplicateKeysWhenUniqueKeysEnabled()
+    void shouldRejectNestedDuplicateKeysWithNoneKeyStrategy()
     {
-        JsonReaderFactory uniqueKeysEnabled = YamlJson.createReaderFactory(Map.of(
-            YamlConfig.FEATURE_UNIQUE_KEYS, true));
+        JsonReaderFactory noDuplicates = YamlJson.createReaderFactory(Map.of(
+            JsonConfig.KEY_STRATEGY, JsonConfig.KeyStrategy.NONE));
         assertThrows(JsonParsingException.class, () ->
-            uniqueKeysEnabled.createReader(new StringReader("""
+            noDuplicates.createReader(new StringReader("""
                 parent:
                   child: 1
                   child: 2
@@ -1033,12 +1035,12 @@ class YamlJsonParserTest
     }
 
     @Test
-    void shouldAcceptUniqueKeysWhenUniqueKeysEnabled()
+    void shouldAcceptUniqueKeysWithNoneKeyStrategy()
     {
-        JsonReaderFactory uniqueKeysEnabled = YamlJson.createReaderFactory(Map.of(
-            YamlConfig.FEATURE_UNIQUE_KEYS, true));
+        JsonReaderFactory noDuplicates = YamlJson.createReaderFactory(Map.of(
+            JsonConfig.KEY_STRATEGY, JsonConfig.KeyStrategy.NONE));
 
-        JsonObject object = uniqueKeysEnabled.createReader(new StringReader("""
+        JsonObject object = noDuplicates.createReader(new StringReader("""
             name: test
             kind: server
             """)).readObject();
@@ -1049,12 +1051,49 @@ class YamlJsonParserTest
     @Test
     void shouldRejectDuplicateKeysViaConfiguredProvider()
     {
-        JsonProvider provider = YamlJson.provider(Map.of(YamlConfig.FEATURE_UNIQUE_KEYS, true));
+        JsonProvider provider = YamlJson.provider(Map.of(JsonConfig.KEY_STRATEGY, JsonConfig.KeyStrategy.NONE));
         assertThrows(JsonParsingException.class, () ->
             provider.createReader(new StringReader("""
                 name: first
                 name: second
                 """)).readObject());
+    }
+
+    @Test
+    void shouldNameDuplicateKeyInErrorMessage()
+    {
+        JsonParserFactory noDuplicates = YamlJson.createParserFactory(Map.of(
+            JsonConfig.KEY_STRATEGY, JsonConfig.KeyStrategy.NONE));
+
+        JsonParsingException ex = assertThrows(JsonParsingException.class, () ->
+            noDuplicates.createParser(new StringReader("""
+                name: first
+                name: second
+                """)));
+        assertTrue(ex.getMessage().contains("Duplicate YAML mapping key: name"));
+    }
+
+    @Test
+    void shouldKeepLastValueWithLastKeyStrategy()
+    {
+        JsonReaderFactory last = YamlJson.createReaderFactory(Map.of(
+            JsonConfig.KEY_STRATEGY, JsonConfig.KeyStrategy.LAST));
+
+        JsonObject object = last.createReader(new StringReader("""
+            name: first
+            name: second
+            """)).readObject();
+        assertEquals("second", object.getString("name"));
+    }
+
+    @Test
+    void shouldRejectFirstKeyStrategyAsUnsupported()
+    {
+        Map<String, ?> config = Map.of(JsonConfig.KEY_STRATEGY, JsonConfig.KeyStrategy.FIRST);
+
+        assertThrows(IllegalArgumentException.class, () -> YamlJson.createParserFactory(config));
+        assertThrows(IllegalArgumentException.class, () -> YamlJson.createReaderFactory(config));
+        assertThrows(IllegalArgumentException.class, () -> YamlJson.provider(config));
     }
 
     private static JsonParser parserFor(

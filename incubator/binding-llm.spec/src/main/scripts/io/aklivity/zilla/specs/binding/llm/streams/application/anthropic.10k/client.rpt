@@ -14,7 +14,6 @@
 #
 
 property clientAddress "zilla://streams/app0"
-property model "gpt-b"
 
 connect ${clientAddress}
         option zilla:window 8192
@@ -23,29 +22,66 @@ connect ${clientAddress}
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("anthropic")
-                           .model(model)
+                           .model("gpt-b")
                            .build()}
 
 connected
 
-write '{"model":"claude-3-opus-20240229","max_tokens":1024,"messages":[{"role":"user","content":"'
-      ${core:randomBase64(10000)}
-      '"}],"stream":false}'
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "{\"model\":\"gpt-b\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\""
+write flush
 
-write close
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("USER_TEXT")
+                          .message(0)
+                          .build()}
+write ${core:randomBase64(10000)}
+write flush
+
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .complete(true)
+                          .build()}
+write "\"}]}]}"
+write flush
+
+write advise zilla:flush
 
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("anthropic")
-                           .contentType("application/json")
+                           .model("claude-3-opus-20240229")
+                           .id("msg_01")
                            .build()}
+
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+read "{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3-opus-20240229\",\"content\":[{\"type\":\"text\",\"text\":\""
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .typeNull()
+                          .type("ASSISTANT_TEXT")
+                          .message(0)
                           .build()}
-read '{"id":"msg_01","type":"message","role":"assistant","model":"claude-3-opus-20240229","content":[{"type":"text","text":"'
 read ${core:randomBase64(10000)}
-read '"}],"stop_reason":"end_turn","stop_sequence":null,"usage":{"input_tokens":25,"output_tokens":15}}'
+
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .complete(true)
+                          .build()}
+read "\"}],\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"usage\":{\"input_tokens\":25,\"output_tokens\":15}}"
+
+read zilla:end.ext ${llm:matchEndEx()
+                            .typeId(zilla:id("llm"))
+                            .inputTokens(25)
+                            .outputTokens(15)
+                            .finishReason("stop")
+                            .build()}
 
 read closed
+
+write close

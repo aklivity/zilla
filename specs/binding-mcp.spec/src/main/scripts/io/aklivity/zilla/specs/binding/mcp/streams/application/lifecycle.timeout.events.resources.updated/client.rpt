@@ -52,8 +52,8 @@ read advised zilla:flush ${mcp:matchFlushEx()
                                .build()}
 
 # this peer-to-peer check has no live engine or real elapsed time behind it,
-# so FLUSH_NOW is signaled immediately -- only the network client script's
-# copy of this barrier is timing-gated behind a real keepalive interval
+# so the barriers are signaled immediately -- only the runtime test gates them
+# behind real elapsed time
 write notify FLUSH_NOW
 
 read advised zilla:flush ${mcp:matchFlushEx()
@@ -61,5 +61,14 @@ read advised zilla:flush ${mcp:matchFlushEx()
                                .resourcesUpdated()
                                    .id("1")
                                    .uri("file:///data/readme.txt")
+                                   .build()
+                               .build()}
+
+write notify ALIVE_CHECK
+
+read advised zilla:flush ${mcp:matchFlushEx()
+                               .typeId(zilla:id("mcp"))
+                               .resumable()
+                                   .id("2")
                                    .build()
                                .build()}

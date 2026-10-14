@@ -14,6 +14,12 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.internal.stream;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
+
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 
@@ -57,9 +63,6 @@ import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 public class GrpcClientFactory implements GrpcStreamFactory
 {
     private static final int GRPC_MESSAGE_PADDING = 5;
-    private static final int DATA_FLAG_INIT = 0x02;
-    private static final int DATA_FLAG_CONT = 0x00;
-    private static final int DATA_FLAG_FIN = 0x01;
     private final MutableInteger headerOffsetRW = new MutableInteger();
     private static final String HTTP_TYPE_NAME = "http";
     private static final String8FW HTTP_HEADER_METHOD = new String8FW(":method");
@@ -654,7 +657,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
             int encodeProgress = encodeOffset;
 
-            if ((flags & DATA_FLAG_INIT) != 0x00)
+            if (hasInit(flags))
             {
                 GrpcMessageFW message = grpcMessageRW
                     .wrap(encodeBuffer, encodeOffset, encodeLimit)
@@ -854,7 +857,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
                         .deferred(messageDeferred)
                         .build() : EMPTY_OCTETS;
 
-                int flags = messageDeferred > 0 ? DATA_FLAG_INIT : DATA_FLAG_INIT | DATA_FLAG_FIN;
+                int flags = messageDeferred > 0 ? INIT : COMPLETE;
                 delegate.doAppData(traceId, authorization, budgetId, reserved, flags,
                     buffer, offset + GRPC_MESSAGE_PADDING, payloadSize, dataEx);
             }
@@ -863,7 +866,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
                 messageDeferred -= size;
                 assert messageDeferred >= 0;
 
-                int flags = messageDeferred > 0 ? DATA_FLAG_CONT : DATA_FLAG_FIN;
+                int flags = messageDeferred > 0 ? NONE : FIN;
 
                 delegate.doAppData(traceId, authorization, budgetId, reserved, flags,
                     buffer, offset, size, EMPTY_OCTETS);

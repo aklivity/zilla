@@ -180,6 +180,12 @@ public class ModelEnvelopeTest
     // when the value completes
     private static final class Carrying implements ModelTransform
     {
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
         private final ModelEnvelope envelope;
         private final String name;
         private final List<String> read = new ArrayList<>();

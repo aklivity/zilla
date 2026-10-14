@@ -15,6 +15,9 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.config;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertEquals;
@@ -29,10 +32,6 @@ import io.aklivity.zilla.runtime.engine.test.internal.model.TestModelHandler;
 
 public class HttpModelTest
 {
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_FIN = 0x01;
-    private static final int FLAGS_COMPLETE = 0x03;
-
     private final MutableDirectBufferEx value = new UnsafeBufferEx(new byte[256]);
 
     @Test
@@ -87,7 +86,7 @@ public class HttpModelTest
     {
         HttpModel model = HttpModel.decoder(handler(5), new UnsafeBufferEx(new byte[256]));
 
-        int consumed = model.transform(0L, 0L, 0L, FLAGS_COMPLETE, value("hello"), 0, 5, 256);
+        int consumed = model.transform(0L, 0L, 0L, COMPLETE, value("hello"), 0, 5, 256);
 
         assertEquals(5, consumed);
         assertEquals(5, model.produced());
@@ -99,7 +98,7 @@ public class HttpModelTest
     {
         HttpModel model = HttpModel.decoder(handler(5), new UnsafeBufferEx(new byte[256]));
 
-        int consumed = model.transform(0L, 0L, 0L, FLAGS_COMPLETE, value("nope"), 0, 4, 256);
+        int consumed = model.transform(0L, 0L, 0L, COMPLETE, value("nope"), 0, 4, 256);
 
         assertEquals(-1, consumed);
     }
@@ -109,12 +108,12 @@ public class HttpModelTest
     {
         HttpModel model = HttpModel.decoder(handler(10), new UnsafeBufferEx(new byte[256]));
 
-        int consumed1 = model.transform(0L, 0L, 0L, FLAGS_INIT, value("hello"), 0, 5, 256);
+        int consumed1 = model.transform(0L, 0L, 0L, INIT, value("hello"), 0, 5, 256);
         assertEquals(5, consumed1);
         assertEquals(5, model.produced());
         assertOutput(model, "hello");
 
-        int consumed2 = model.transform(0L, 0L, 0L, FLAGS_FIN, value("world"), 0, 5, 256);
+        int consumed2 = model.transform(0L, 0L, 0L, FIN, value("world"), 0, 5, 256);
         assertEquals(5, consumed2);
         assertEquals(5, model.produced());
         assertOutput(model, "world");
@@ -125,12 +124,12 @@ public class HttpModelTest
     {
         HttpModel model = HttpModel.decoder(handler(5), new UnsafeBufferEx(new byte[256]));
 
-        int consumed1 = model.transform(0L, 0L, 0L, FLAGS_COMPLETE, value("hello"), 0, 5, 2);
+        int consumed1 = model.transform(0L, 0L, 0L, COMPLETE, value("hello"), 0, 5, 2);
         assertEquals(2, consumed1);
         assertEquals(2, model.produced());
         assertOutput(model, "he");
 
-        int consumed2 = model.transform(0L, 0L, 0L, FLAGS_FIN, value("hello"), 2, 5, 256);
+        int consumed2 = model.transform(0L, 0L, 0L, FIN, value("hello"), 2, 5, 256);
         assertEquals(3, consumed2);
         assertEquals(3, model.produced());
         assertOutput(model, "llo");

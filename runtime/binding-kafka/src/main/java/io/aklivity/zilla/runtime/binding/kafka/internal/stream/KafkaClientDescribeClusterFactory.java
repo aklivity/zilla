@@ -1106,6 +1106,7 @@ public final class KafkaClientDescribeClusterFactory extends KafkaClientSaslHand
             long authorization,
             long affinity)
         {
+            saslAuthorization = authorization;
             state = KafkaState.openingInitial(state);
 
             Consumer<OctetsFW.Builder> extension = EMPTY_EXTENSION;

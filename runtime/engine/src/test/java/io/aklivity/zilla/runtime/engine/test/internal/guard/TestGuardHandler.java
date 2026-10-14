@@ -19,6 +19,7 @@ import static io.aklivity.zilla.config.engine.test.internal.guard.config.TestGua
 import static io.aklivity.zilla.config.engine.test.internal.guard.config.TestGuardOptionsConfigBuilder.DEFAULT_IDENTITY;
 import static io.aklivity.zilla.config.engine.test.internal.guard.config.TestGuardOptionsConfigBuilder.DEFAULT_LIFETIME_FOREVER;
 import static io.aklivity.zilla.config.engine.test.internal.guard.config.TestGuardOptionsConfigBuilder.DEFAULT_MAX_SESSIONS_UNLIMITED;
+import static java.util.stream.Collectors.toMap;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -30,6 +31,9 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import jakarta.json.Json;
+import jakarta.json.JsonValue;
+
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.MutableLong;
 
@@ -37,6 +41,7 @@ import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class TestGuardHandler implements GuardHandler
 {
+    private static final long NO_AUTHORIZATION = 0L;
     private static final String REDIRECT_URI_PLACEHOLDER = "replace.me";
     private static final Pattern REDIRECT_URI_PARAM_PATTERN = Pattern.compile("redirect_uri=[^&]*");
 
@@ -49,10 +54,12 @@ public final class TestGuardHandler implements GuardHandler
     private final Duration lifetime;
     private final String identity;
     private final List<String> roles;
-    private final Map<String, String> attributes;
+    private final Map<String, JsonValue> attributes;
     private final String preauthorize;
     private final boolean deferAcquire;
     private final int maxSessions;
+    private final String injectIdentity;
+    private final String injectCredentials;
     private final Consumer<Runnable> dispatcher;
 
     private final Long2LongHashMap sessions;
@@ -73,7 +80,16 @@ public final class TestGuardHandler implements GuardHandler
         this.maxSessions = config.options != null ? config.options.maxSessions : DEFAULT_MAX_SESSIONS_UNLIMITED;
         this.sessions = new Long2LongHashMap(-1L);
         this.nextSessionId = new MutableLong(1L);
-        this.attributes = config.options != null ? config.options.attributes : null;
+        this.attributes = config.options != null && config.options.attributes != null
+            ? config.options.attributes.entrySet().stream()
+                .collect(toMap(Map.Entry::getKey, e -> Json.createValue(e.getValue())))
+            : null;
+        this.injectIdentity = config.options != null && config.options.inject != null
+            ? config.options.inject.identity
+            : null;
+        this.injectCredentials = config.options != null && config.options.inject != null
+            ? config.options.inject.credentials
+            : null;
     }
 
     @Override
@@ -202,15 +218,17 @@ public final class TestGuardHandler implements GuardHandler
     public String identity(
         long sessionId)
     {
-        return identity;
+        return sessionId == NO_AUTHORIZATION && injectIdentity != null
+            ? injectIdentity
+            : authorized(sessionId) ? identity : null;
     }
 
     @Override
-    public String attribute(
+    public JsonValue attribute(
         long sessionId,
         String name)
     {
-        return attributes != null ? attributes.get(name) : null;
+        return authorized(sessionId) && attributes != null ? attributes.get(name) : null;
     }
 
     @Override
@@ -219,7 +237,9 @@ public final class TestGuardHandler implements GuardHandler
     {
         // a deferring guard is cache-only until it has actually acquired, so an
         // unknown session yields nothing; the default behaviour is unchanged
-        return !deferAcquire || sessions.containsKey(sessionId) ? credentials : null;
+        return sessionId == NO_AUTHORIZATION
+            ? injectCredentials
+            : !deferAcquire || sessions.containsKey(sessionId) ? credentials : null;
     }
 
     @Override
@@ -245,6 +265,12 @@ public final class TestGuardHandler implements GuardHandler
         final long expiresAt = expiresAt(sessionId);
         final long challengeAt = expiresAt - challenge.toMillis();
         return expiresAt != 0L && challengeAt <= now && now < expiresAt;
+    }
+
+    private boolean authorized(
+        long sessionId)
+    {
+        return sessionId != NO_AUTHORIZATION || credentials == null;
     }
 
     @Override

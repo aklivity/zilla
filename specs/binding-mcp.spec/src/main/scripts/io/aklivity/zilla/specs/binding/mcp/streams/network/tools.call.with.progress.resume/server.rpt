@@ -97,13 +97,17 @@ write zilla:begin.ext ${http:beginEx()
                             .build()}
 write flush
 
-write 'id: 2:0\n'
-write '\n'
+write zilla:data.ext ${http:dataEx()
+                             .typeId(zilla:id("http"))
+                             .header("id", "2:0")
+                             .build()}
 write flush
 
-write 'id: 2:1\n'
-write 'data: {"jsonrpc":"2.0","method":"notifications/progress","params":{"progressToken":"abc123","progress":50,"total":100,"message":"Checking if Lady Liberty needs an umbrella..."}}\n'
-write '\n'
+write zilla:data.ext ${http:dataEx()
+                             .typeId(zilla:id("http"))
+                             .header("id", "2:1")
+                             .build()}
+write '{"jsonrpc":"2.0","method":"notifications/progress","params":{"progressToken":"abc123","progress":50,"total":100,"message":"Checking if Lady Liberty needs an umbrella..."}}'
 write flush
 
 write abort
@@ -131,13 +135,14 @@ write zilla:begin.ext ${http:beginEx()
                             .build()}
 write flush
 
-write 'id: 2:2\n'
-write 'data: {"jsonrpc":"2.0","method":"notifications/progress","params":{"progressToken":"abc123","progress":75,"total":100,"message":"Found a fancy little hat for Lady Liberty..."}}\n'
-write '\n'
+write zilla:data.ext ${http:dataEx()
+                             .typeId(zilla:id("http"))
+                             .header("id", "2:2")
+                             .build()}
+write '{"jsonrpc":"2.0","method":"notifications/progress","params":{"progressToken":"abc123","progress":75,"total":100,"message":"Found a fancy little hat for Lady Liberty..."}}'
 write flush
 
-write 'data: {"jsonrpc":"2.0","id":2,"result":{"content":[{"type":"text","text":"Sunny, no umbrella needed"}],"isError":false}}\n'
-write '\n'
+write '{"jsonrpc":"2.0","id":2,"result":{"content":[{"type":"text","text":"Sunny, no umbrella needed"}],"isError":false}}'
 write flush
 
 write close

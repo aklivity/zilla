@@ -117,6 +117,12 @@ public final class TestUppercaseJsonModelExtFactorySpi implements JsonModelExtFa
         }
 
         @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
+        @Override
         public Status transform(
             JsonController control,
             JsonSource source,

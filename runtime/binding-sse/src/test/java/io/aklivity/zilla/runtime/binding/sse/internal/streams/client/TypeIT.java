@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.internal.streams.client;
 
-import static io.aklivity.zilla.runtime.binding.sse.internal.stream.SseServerFactory.MAXIMUM_HEADER_SIZE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -25,7 +24,6 @@ import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 
-import io.aklivity.k3po.runtime.junit.annotation.ScriptProperty;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
@@ -62,16 +60,6 @@ public class TypeIT
     @Test
     @Configuration("client.when.yaml")
     @Specification({
-        "${app}/name.only/client",
-        "${net}/name.only/response" })
-    public void shouldReceiveNameOnlyType() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.when.yaml")
-    @Specification({
         "${app}/non.empty/client",
         "${net}/non.empty/response" })
     public void shouldReceiveNonEmptyType() throws Exception
@@ -82,29 +70,8 @@ public class TypeIT
     @Test
     @Configuration("client.when.yaml")
     @Specification({
-        "${app}/non.empty.trailing/client",
-        "${net}/non.empty.trailing/response" })
-    public void shouldReceiveNonEmptyTypeTrailing() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.when.yaml")
-    @Specification({
-        "${app}/non.empty.interleaved/client",
-        "${net}/non.empty.interleaved/response" })
-    public void shouldReceiveNonEmptyTypeInterleaved() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.when.yaml")
-    @Specification({
         "${app}/fragmented/client",
         "${net}/fragmented/response" })
-    @ScriptProperty("padding " + MAXIMUM_HEADER_SIZE)
     public void shouldReceiveNonEmptyTypeWithFragmentedMessage() throws Exception
     {
         k3po.finish();

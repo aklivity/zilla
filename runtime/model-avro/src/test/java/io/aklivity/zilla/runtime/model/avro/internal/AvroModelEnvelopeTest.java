@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.model.avro.internal;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
@@ -61,8 +62,6 @@ import io.aklivity.zilla.runtime.model.avro.ext.AvroModelExtHandler;
 
 public class AvroModelEnvelopeTest
 {
-    private static final int FLAGS_COMPLETE = 0x03;
-
     private static final String SCHEMA = """
         {
             "fields":
@@ -154,7 +153,7 @@ public class AvroModelEnvelopeTest
         ModelPipeline pipeline)
     {
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
     }
 
@@ -343,6 +342,12 @@ public class AvroModelEnvelopeTest
         {
             return true;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     }
 
     // format-native stage: writes each string value it observes into the envelope under one name
@@ -375,6 +380,12 @@ public class AvroModelEnvelopeTest
         {
             return true;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     }
 
     // format-native stage: captures the envelope the pipeline supplies, without touching its contents
@@ -398,11 +409,23 @@ public class AvroModelEnvelopeTest
         {
             return true;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     }
 
     // a generic stage the caller composes over the same envelope it supplies to the pipeline
     private static final class Reading implements ModelTransform
     {
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
         private final ModelEnvelope envelope;
         private final String name;
         private final List<String> read = new ArrayList<>();

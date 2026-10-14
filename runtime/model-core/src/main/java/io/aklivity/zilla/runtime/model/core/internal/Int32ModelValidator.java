@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
+
 import java.util.function.IntPredicate;
 import java.util.function.Supplier;
 
@@ -55,14 +58,14 @@ final class Int32ModelValidator implements CoreModelValidator
         int index,
         int length)
     {
-        if ((flags & FLAGS_INIT) != 0x00)
+        if (hasInit(flags))
         {
             state.decoded = 0;
             state.processed = 0;
         }
         int progress = format.decode(state, data, index, length);
         Validity validity = progress != Int32Format.INVALID_INDEX ? Validity.VALID : Validity.MALFORMED;
-        if ((flags & FLAGS_FIN) != 0x00 && validity == Validity.VALID)
+        if (hasFin(flags) && validity == Validity.VALID)
         {
             // a fully-decoded value that fails the format's structural check is MALFORMED; one that decodes
             // cleanly but violates a range/multiple constraint is INVALID (relaxable under LENIENT)
