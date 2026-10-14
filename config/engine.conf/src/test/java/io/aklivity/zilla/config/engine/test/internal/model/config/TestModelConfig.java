@@ -29,6 +29,7 @@ public class TestModelConfig extends ModelConfig
     public final List<String> fields;
     public final List<Long> transformAuthorizations;
     public final List<String> reject;
+    public final List<String> withhold;
     public final boolean suspend;
     public final List<Long> discloseAuthorized;
     public final String discloseRedacted;
@@ -117,7 +118,7 @@ public class TestModelConfig extends ModelConfig
         String envelopeDiscloseName)
     {
         this(length, cataloged, read, transformLength, fields, validate, transformAuthorizations,
-            reject, suspend, discloseAuthorized, discloseRedacted, envelopeDiscloseName, true);
+            reject, null, suspend, discloseAuthorized, discloseRedacted, envelopeDiscloseName, true);
     }
 
     public TestModelConfig(
@@ -129,6 +130,7 @@ public class TestModelConfig extends ModelConfig
         ValidateConfig validate,
         List<Long> transformAuthorizations,
         List<String> reject,
+        List<String> withhold,
         boolean suspend,
         List<Long> discloseAuthorized,
         String discloseRedacted,
@@ -142,6 +144,7 @@ public class TestModelConfig extends ModelConfig
         this.fields = fields;
         this.transformAuthorizations = transformAuthorizations;
         this.reject = reject;
+        this.withhold = withhold;
         this.suspend = suspend;
         this.discloseAuthorized = discloseAuthorized;
         this.discloseRedacted = discloseRedacted;

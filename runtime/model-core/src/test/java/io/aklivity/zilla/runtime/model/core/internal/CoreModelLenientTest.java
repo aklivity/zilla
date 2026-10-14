@@ -38,6 +38,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
+import io.aklivity.zilla.runtime.engine.model.ModelRejection;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
@@ -74,6 +75,7 @@ public class CoreModelLenientTest
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
+        assertEquals(ModelRejection.INVALID, result.rejection());
     }
 
     @Test
@@ -89,6 +91,7 @@ public class CoreModelLenientTest
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
+        assertEquals(ModelRejection.INVALID, result.rejection());
     }
 
     // decode vs encode independence: {decode: lenient, encode: strict} relaxes only the read side.
@@ -111,6 +114,7 @@ public class CoreModelLenientTest
         ModelPipelineResult encoded = encoder.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, encodeDst, 0, encodeDst.capacity());
         assertEquals(ModelStatus.REJECTED, encoded.status());
+        assertEquals(ModelRejection.INVALID, encoded.rejection());
     }
 
     // String constraint (maxLength) violation: rejected STRICT, passed through LENIENT; the encoding itself
@@ -128,6 +132,7 @@ public class CoreModelLenientTest
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
+        assertEquals(ModelRejection.INVALID, result.rejection());
     }
 
     @Test

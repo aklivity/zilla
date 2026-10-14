@@ -47,7 +47,12 @@ app.post("/v1/chat/completions", (req, res) =>
     // verify.py can confirm it arrived unchanged.
     console.log(`authorization: ${req.headers["authorization"] ?? "(none)"}`);
 
-    const { model, tools, stream } = req.body ?? {};
+    const { model, tools, stream, messages } = req.body ?? {};
+
+    // a request that asks for the private key is answered with one, so the
+    // response guardrail on gpt-4o has something to reject
+    const lastUser = [...(messages ?? [])].reverse().find(m => m.role === "user");
+    const askedForKey = typeof lastUser?.content === "string" && lastUser.content.includes("private key");
 
     const message = Array.isArray(tools) && tools.length > 0
         ? {
@@ -66,7 +71,9 @@ app.post("/v1/chat/completions", (req, res) =>
         }
         : {
             role: "assistant",
-            content: "Hello from the secondary openai-dialect deployment!"
+            content: askedForKey
+                ? "-----BEGIN PRIVATE KEY-----"
+                : "Hello from the secondary openai-dialect deployment!"
         };
 
     if (stream && typeof message.content === "string")

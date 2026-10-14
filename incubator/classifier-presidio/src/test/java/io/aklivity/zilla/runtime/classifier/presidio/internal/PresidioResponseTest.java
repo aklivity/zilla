@@ -15,7 +15,11 @@
 package io.aklivity.zilla.runtime.classifier.presidio.internal;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
+
+import java.util.List;
 
 import jakarta.json.JsonException;
 
@@ -78,5 +82,51 @@ public class PresidioResponseTest
     public void shouldRejectFindingWithoutEnd()
     {
         PresidioResponse.detected("[{\"entity_type\":\"PERSON\",\"start\":0}]");
+    }
+
+    @Test
+    public void shouldParseNoFindings()
+    {
+        assertThat(PresidioResponse.findings("[]"), empty());
+    }
+
+    @Test
+    public void shouldParseFindingsInOrder()
+    {
+        String body =
+            "[{\"analysis_explanation\":null,\"end\":33,\"entity_type\":\"EMAIL_ADDRESS\",\"score\":0.99,\"start\":13}," +
+            "{\"end\":4,\"entity_type\":\"PERSON\",\"score\":0.85,\"start\":0}]";
+
+        List<PresidioFinding> findings = PresidioResponse.findings(body);
+
+        assertThat(findings, contains(
+            new PresidioFinding("EMAIL_ADDRESS", 13, 33, 0.99),
+            new PresidioFinding("PERSON", 0, 4, 0.85)));
+    }
+
+    @Test
+    public void shouldParseFindingWithoutScore()
+    {
+        List<PresidioFinding> findings = PresidioResponse.findings("[{\"entity_type\":\"PERSON\",\"start\":0,\"end\":4}]");
+
+        assertThat(findings, contains(new PresidioFinding("PERSON", 0, 4, 0.0)));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectInvalidJsonFindings()
+    {
+        PresidioResponse.findings("not json");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldRejectObjectBodyFindings()
+    {
+        PresidioResponse.findings("{\"error\":\"No text provided\"}");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldRejectFindingWithoutLocation()
+    {
+        PresidioResponse.findings("[{\"entity_type\":\"PERSON\",\"start\":0}]");
     }
 }

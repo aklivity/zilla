@@ -14,8 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
+import io.aklivity.zilla.runtime.engine.Configuration;
+
 /**
- * Service provider interface for a pluggable {@link LlmDialect} implementation.
+ * Service provider interface for a pluggable {@link LlmDialect}.
  * <p>
  * Each supported dialect provides an implementation, registered via {@link java.util.ServiceLoader} in
  * {@code META-INF/services/io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectFactorySpi}.
@@ -31,11 +33,11 @@ public interface LlmDialectFactorySpi
     String name();
 
     /**
-     * Creates a new {@link LlmDialect} instance.
+     * Creates the {@link LlmDialect}, once per engine.
      *
-     * @param context  the context giving access to engine services this dialect may need
+     * @param config  the engine configuration
      * @return a new dialect
      */
     LlmDialect create(
-        LlmDialectContext context);
+        Configuration config);
 }

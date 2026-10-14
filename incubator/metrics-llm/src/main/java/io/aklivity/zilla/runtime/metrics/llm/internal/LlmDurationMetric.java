@@ -53,6 +53,6 @@ public final class LlmDurationMetric implements Metric
     public MetricContext supply(
         EngineContext context)
     {
-        return new LlmDurationMetricContext(GROUP, kind(), context.supplyTypeId(GROUP));
+        return new LlmDurationMetricContext(GROUP, kind(), context);
     }
 }

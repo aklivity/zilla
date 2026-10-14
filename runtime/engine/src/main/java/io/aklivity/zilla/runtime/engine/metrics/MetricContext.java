@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.engine.metrics;
 import java.util.List;
 import java.util.function.IntFunction;
 import java.util.function.LongConsumer;
+import java.util.function.ToLongFunction;
 
 import io.aklivity.zilla.config.engine.AttributeConfig;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -104,5 +105,31 @@ public interface MetricContext
         List<AttributeConfig> attributes)
     {
         return supply(recorder.apply(0));
+    }
+
+    /**
+     * Returns a {@link MessageConsumer} interceptor that records values for this metric,
+     * resolving per-request attributes that reference other named configuration.
+     * <p>
+     * Attribute expressions may refer to configuration by name, for example a guard.
+     * The {@code resolveId} function resolves such a name, relative to the namespace of the
+     * binding the metric is attached to, to the namespaced identifier of that configuration,
+     * which can then be supplied by the engine context captured at construction time.
+     * </p>
+     * <p>
+     * By default, this delegates to {@link #supply(IntFunction, List)}.
+     * </p>
+     *
+     * @param recorder       function mapping {@code attributesId} to a metric value recorder
+     * @param attributes     the configured attribute expressions to resolve from stream data
+     * @param resolveId      function resolving a configuration name to its namespaced identifier
+     * @return a {@link MessageConsumer} to interpose on the stream pipeline
+     */
+    default MessageConsumer supply(
+        IntFunction<LongConsumer> recorder,
+        List<AttributeConfig> attributes,
+        ToLongFunction<String> resolveId)
+    {
+        return supply(recorder, attributes);
     }
 }

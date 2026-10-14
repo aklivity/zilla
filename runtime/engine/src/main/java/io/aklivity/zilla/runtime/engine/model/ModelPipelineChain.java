@@ -60,6 +60,7 @@ final class ModelPipelineChain implements ModelPipeline
     private int dstIndex;
     private int dstLimit;
     private int produced;
+    private ModelRejection rejection;
 
     private DirectBufferEx window;
     private int windowAt;
@@ -102,6 +103,7 @@ final class ModelPipelineChain implements ModelPipeline
         this.dstIndex = dstIndex;
         this.dstLimit = dstLimit;
         this.produced = 0;
+        this.rejection = null;
         this.inputFin |= hasFin(flags);
         this.forwardBuffer = null;
         this.firstStarved = false;
@@ -167,7 +169,7 @@ final class ModelPipelineChain implements ModelPipeline
             break;
         }
 
-        return result.set(status, consumed, produced);
+        return result.set(status, consumed, produced, rejection);
     }
 
     @Override
@@ -260,6 +262,7 @@ final class ModelPipelineChain implements ModelPipeline
         if (outcome == ModelStatus.REJECTED)
         {
             status = ModelStatus.REJECTED;
+            rejection = stage.rejection();
         }
         else
         {
@@ -368,6 +371,9 @@ final class ModelPipelineChain implements ModelPipeline
             switch (outcome)
             {
             case REJECTED:
+                rejection = stage.rejection();
+                status = outcome;
+                break;
             case COMPLETE:
             case OVERFLOW:
                 status = outcome;

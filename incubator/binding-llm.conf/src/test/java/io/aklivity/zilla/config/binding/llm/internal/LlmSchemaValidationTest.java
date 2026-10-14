@@ -441,6 +441,30 @@ public class LlmSchemaValidationTest
     }
 
     @Test
+    public void shouldAcceptProxyWithRoutesWhenModelGlobAnyDialect()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                routes:
+                - when:
+                  - model: [ "claude-*" ]
+                  exit: app0
+                - when:
+                  - model: [ "gpt-*" ]
+                  exit: app1
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
     public void shouldAcceptProxyWithBareExitAndNoRoutes()
     {
         String text =
@@ -658,6 +682,86 @@ public class LlmSchemaValidationTest
                   - with:
                       unknown: value
                     exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test
+    public void shouldAcceptProxyRouteWithFallback()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: proxy
+                routes:
+                  - when:
+                      - model: [ claude-sonnet-4-6 ]
+                    exit: app0
+                    with:
+                      fallback: [ claude-opus-4-1, claude-haiku-4-5 ]
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test(expected = ConfigException.class)
+    public void shouldRejectProxyRouteWithEmptyFallback()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: proxy
+                routes:
+                  - exit: app0
+                    with:
+                      fallback: []
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = ConfigException.class)
+    public void shouldRejectProxyRouteWithFallbackNotArray()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: proxy
+                routes:
+                  - exit: app0
+                    with:
+                      fallback: claude-opus-4-1
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = ConfigException.class)
+    public void shouldRejectProxyRouteWithFallbackPattern()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: proxy
+                routes:
+                  - exit: app0
+                    with:
+                      fallback: [ "claude-*" ]
             """;
 
         reader.read(text);
@@ -985,6 +1089,166 @@ public class LlmSchemaValidationTest
                 kind: proxy
                 options:
                   dialect: openai
+                exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test
+    public void shouldAcceptProxyWithGuardrails()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                options:
+                  guardrails:
+                    gpt-4o:
+                      request:
+                        - section: [ user-text, tool-result ]
+                          value: test
+                exit: app0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptProxyWithGuardrailsSectionAsString()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                options:
+                  guardrails:
+                    gpt-4o:
+                      request:
+                        - section: user-text
+                          value: test
+                      response:
+                        - section: assistant-text
+                          value: test
+                exit: app0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectProxyGuardrailsWithUnknownSection()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                options:
+                  guardrails:
+                    gpt-4o:
+                      request:
+                        - section: user-poem
+                          value: test
+                exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectProxyGuardrailsWithoutValue()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                options:
+                  guardrails:
+                    gpt-4o:
+                      request:
+                        - section: user-text
+                exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectProxyGuardrailsWithoutSection()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                options:
+                  guardrails:
+                    gpt-4o:
+                      request:
+                        - value: test
+                exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectProxyGuardrailsWithUnknownProperty()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                options:
+                  guardrails:
+                    gpt-4o:
+                      request:
+                        - section: user-text
+                          value: test
+                      other: []
+                exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectServerWithGuardrails()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: server
+                options:
+                  guardrails:
+                    gpt-4o:
+                      request:
+                        - section: user-text
+                          value: test
                 exit: app0
             """;
 

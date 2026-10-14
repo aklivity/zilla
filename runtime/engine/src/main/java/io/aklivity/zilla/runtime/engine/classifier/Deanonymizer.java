@@ -22,8 +22,10 @@ import org.agrona.DirectBuffer;
  * <p>
  * Synchronous and streaming: it never calls a classifier, restoring surrogates by lookup
  * in the scope identified by {@code scopeId}. A surrogate absent from the scope is
- * written as it appears. Bytes it does not consume remain with the caller, which presents
- * them again with the next fragment, so an implementation holds no state between calls.
+ * written as it appears and counted in {@link Result#unresolved()}, because the written bytes
+ * alone cannot distinguish it from text that merely resembles a surrogate. Bytes it does not
+ * consume remain with the caller, which presents them again with the next fragment, so an
+ * implementation holds no state between calls.
  * </p>
  *
  * @see ClassifierHandler#initDeanonymizer
@@ -95,6 +97,7 @@ public interface Deanonymizer
         private Status status;
         private int consumed;
         private int produced;
+        private int unresolved;
 
         public Status status()
         {
@@ -112,21 +115,55 @@ public interface Deanonymizer
         }
 
         /**
+         * The number of surrogate-shaped tokens in the consumed bytes of this call that did
+         * not resolve in the scope, each written through unchanged.
+         * <p>
+         * The count is per call and covers consumed bytes only. An implementation holds no
+         * state between calls, so a token in the unconsumed tail is not counted here; the
+         * caller presents those bytes again and the next call counts it. The caller sums the
+         * counts across the calls that make up a value.
+         * </p>
+         * <p>
+         * A trailing partial token is counted only under {@link Completion#COMPLETE}. Under
+         * {@link Completion#INCOMPLETE} it is a fragment boundary, not a miss, and is counted
+         * once it completes after the caller presents it again.
+         * </p>
+         * <p>
+         * The count covers tokens that have the surrogate form but do not resolve in the
+         * scope. It does not claim each was minted by an {@link Anonymizer}: a surrogate
+         * from another scope, and text that happens to match the form, are both counted.
+         * The form of a surrogate is implementation-specific.
+         * </p>
+         * <p>
+         * It is a count and not a collection, so a call allocates nothing to report it.
+         * </p>
+         *
+         * @return the number of unresolved surrogate-shaped tokens in the consumed bytes
+         */
+        public int unresolved()
+        {
+            return unresolved;
+        }
+
+        /**
          * Updates this result in place and returns it.
          *
-         * @param status    the outcome
-         * @param consumed  the number of input bytes consumed
-         * @param produced  the number of output bytes produced
+         * @param status      the outcome
+         * @param consumed    the number of input bytes consumed
+         * @param produced    the number of output bytes produced
+         * @param unresolved  the number of unresolved surrogate-shaped tokens in the consumed bytes
          * @return this result
          */
         public Result set(
             Status status,
             int consumed,
-            int produced)
+            int produced,
+            int unresolved)
         {
             this.status = status;
             this.consumed = consumed;
             this.produced = produced;
+            this.unresolved = unresolved;
             return this;
         }
     }

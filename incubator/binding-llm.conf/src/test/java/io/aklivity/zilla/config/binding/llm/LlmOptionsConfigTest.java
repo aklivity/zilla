@@ -15,10 +15,16 @@
 package io.aklivity.zilla.config.binding.llm;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.sameInstance;
 
+import java.util.List;
+
 import org.junit.Test;
+
+import io.aklivity.zilla.config.engine.test.internal.model.config.TestModelConfig;
 
 public class LlmOptionsConfigTest
 {
@@ -31,6 +37,44 @@ public class LlmOptionsConfigTest
             .build();
 
         assertThat(dialect, equalTo("openai"));
+    }
+
+    @Test
+    public void shouldBuildGuardrailsViaNestedBuilder()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .guardrail()
+                .name("gpt-4o")
+                .request()
+                    .sections(List.of("user-text"))
+                    .value(TestModelConfig.builder().length(0).build())
+                    .build()
+                .build()
+            .build();
+
+        assertThat(options.guardrails, hasSize(1));
+        assertThat(options.guardrails.get(0).name, equalTo("gpt-4o"));
+        assertThat(options.guardrails.get(0).request.get(0).sections, contains("user-text"));
+    }
+
+    @Test
+    public void shouldInjectGuardrailBuilder()
+    {
+        LlmGuardrailConfigBuilder<LlmGuardrailConfig> builder = LlmGuardrailConfig.builder();
+
+        LlmGuardrailConfigBuilder<LlmGuardrailConfig> injected = builder.inject(identity -> identity);
+
+        assertThat(injected, sameInstance(builder));
+    }
+
+    @Test
+    public void shouldInjectGuardrailStageBuilder()
+    {
+        LlmGuardrailStageConfigBuilder<LlmGuardrailStageConfig> builder = LlmGuardrailStageConfig.builder();
+
+        LlmGuardrailStageConfigBuilder<LlmGuardrailStageConfig> injected = builder.inject(identity -> identity);
+
+        assertThat(injected, sameInstance(builder));
     }
 
     @Test

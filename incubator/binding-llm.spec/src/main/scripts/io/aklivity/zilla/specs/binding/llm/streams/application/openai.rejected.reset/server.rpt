@@ -22,9 +22,11 @@ accepted
 read zilla:begin.ext ${llm:matchBeginEx()
                           .typeId(zilla:id("llm"))
                           .dialect("openai")
+                          .model("gpt-4")
                           .build()}
 
 connected
+
 
 write zilla:reset.ext ${llm:resetEx()
                             .typeId(zilla:id("llm"))

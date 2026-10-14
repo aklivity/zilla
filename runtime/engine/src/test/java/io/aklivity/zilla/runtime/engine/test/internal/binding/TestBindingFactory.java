@@ -1749,7 +1749,8 @@ final class TestBindingFactory implements BindingHandler
             int reserved,
             OctetsFW extension)
         {
-            doFlush(source, originId, routedId, replyId, replySeq, replyAck, replyPad, traceId, replyBud, reserved, extension);
+            doFlush(source, originId, routedId, replyId, replySeq, replyAck, replyPad, traceId, authorization, replyBud, reserved,
+                extension);
         }
 
         private void cleanupDecodeSlot()
@@ -2274,8 +2275,8 @@ final class TestBindingFactory implements BindingHandler
                 int reserved,
                 OctetsFW extension)
             {
-                doFlush(target, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, initialBud, reserved,
-                        extension);
+                doFlush(target, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
+                        initialBud, reserved, extension);
             }
 
             private void doReplyReset(
@@ -2530,6 +2531,7 @@ final class TestBindingFactory implements BindingHandler
         long acknowledge,
         int maximum,
         long traceId,
+        long authorization,
         long budgetId,
         int reserved,
         OctetsFW extension)
@@ -2544,6 +2546,7 @@ final class TestBindingFactory implements BindingHandler
                 .acknowledge(acknowledge)
                 .maximum(maximum)
                 .traceId(traceId)
+                .authorization(authorization)
                 .budgetId(budgetId)
                 .reserved(reserved);
 
