@@ -35,7 +35,7 @@ read "{\"model\":\"model\",\"tools\":[{\"description\":\"xxxxxxxxxxxxxxxxxxxxxxx
 
 read notify FIRST_FRAME_READ
 
-read ",\"name\":\"get_weather\",\"input_schema\":{\"type\":\"object\"}}]}"
+read ",\"name\":\"get_weather\",\"input_schema\":{\"type\":\"object\"}}],\"max_tokens\":4096}"
 
 read closed
 

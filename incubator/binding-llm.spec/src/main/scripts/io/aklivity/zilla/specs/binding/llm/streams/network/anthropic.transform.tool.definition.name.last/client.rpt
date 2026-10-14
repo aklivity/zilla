@@ -34,7 +34,7 @@ write flush
 
 write await FIRST_FRAME_READ
 
-write ",\"name\":\"get_weather\",\"input_schema\":{\"type\":\"object\"}}]}"
+write ",\"name\":\"get_weather\",\"input_schema\":{\"type\":\"object\"}}],\"max_tokens\":4096}"
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()

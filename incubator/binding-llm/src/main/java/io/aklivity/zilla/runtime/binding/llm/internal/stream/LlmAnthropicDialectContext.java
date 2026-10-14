@@ -19,18 +19,22 @@ import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmAnthropic
 import io.aklivity.zilla.runtime.binding.llm.config.LlmBindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectContext;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectHandler;
+import io.aklivity.zilla.runtime.binding.llm.internal.LlmConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 
 final class LlmAnthropicDialectContext implements LlmDialectContext
 {
+    private final LlmConfiguration config;
     private final EngineContext context;
 
     private LlmAnthropicServerFactory server;
     private LlmAnthropicClientFactory client;
 
     LlmAnthropicDialectContext(
+        LlmConfiguration config,
         EngineContext context)
     {
+        this.config = config;
         this.context = context;
     }
 
@@ -93,7 +97,7 @@ final class LlmAnthropicDialectContext implements LlmDialectContext
     {
         if (client == null)
         {
-            client = new LlmAnthropicClientFactory(context);
+            client = new LlmAnthropicClientFactory(config, context);
         }
         return client;
     }

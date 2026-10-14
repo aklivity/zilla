@@ -57,6 +57,7 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmChallengeE
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmEndExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmErrorFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmFlushExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmResetExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionType;
@@ -151,12 +152,15 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private static final int ESCAPE_EXPANSION = 6;
     private static final int ENCODE_SLACK = 256;
     private static final int ENCODE_STRUCTURE = 128;
+    private static final int ENCODE_MAX_COMPLETION_TOKENS = 48;
+    private static final int NO_MAX_OUTPUT_TOKENS = -1;
 
     private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx(new byte[0]);
     private static final DirectBufferEx DATA_URL_PREFIX = new UnsafeBufferEx("data:".getBytes(UTF_8));
     private static final DirectBufferEx BASE64_MARKER = new UnsafeBufferEx(";base64,".getBytes(UTF_8));
 
     private static final String MEMBER_MODEL = "model";
+    private static final String MEMBER_MAX_COMPLETION_TOKENS = "max_completion_tokens";
     private static final String MEMBER_MESSAGES = "messages";
     private static final String MEMBER_TOOLS = "tools";
     private static final String MEMBER_TOOL_CALL_ID = "tool_call_id";
@@ -198,6 +202,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
     private final LlmBeginExFW.Builder llmBeginExRW = new LlmBeginExFW.Builder();
     private final LlmChallengeExFW.Builder llmChallengeExRW = new LlmChallengeExFW.Builder();
+    private final LlmFlushExFW llmFlushExRO = new LlmFlushExFW();
     private final LlmDataExFW.Builder llmDataExRW = new LlmDataExFW.Builder();
     private final LlmResetExFW.Builder llmResetExRW = new LlmResetExFW.Builder();
     private final LlmEndExFW.Builder llmEndExRW = new LlmEndExFW.Builder();
@@ -788,7 +793,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             initialSeq = end.sequence();
             state = LlmState.closingInitial(state);
 
-            http.doEncodeRequestEnd();
+            http.doEncodeRequestEnd(NO_MAX_OUTPUT_TOKENS);
             http.flushEncode(traceId);
         }
 
@@ -796,8 +801,12 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             FlushFW flush)
         {
             final long traceId = flush.traceId();
+            final LlmFlushExFW llmFlushEx = flush.extension().get(llmFlushExRO::tryWrap);
+            final int maxOutputTokens = llmFlushEx != null && llmFlushEx.typeId() == llmTypeId
+                ? llmFlushEx.maxOutputTokens()
+                : NO_MAX_OUTPUT_TOKENS;
 
-            http.doEncodeRequestEnd();
+            http.doEncodeRequestEnd(maxOutputTokens);
             http.flushEncode(traceId);
         }
 
@@ -3763,11 +3772,12 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             mediaScope = MEDIA_NONE;
         }
 
-        private void doEncodeRequestEnd()
+        private void doEncodeRequestEnd(
+            int maxOutputTokens)
         {
             if (!LlmState.initialClosing(state) && !LlmState.initialClosed(state))
             {
-                if (!stream.replay && beginEncode(ENCODE_STRUCTURE))
+                if (!stream.replay && beginEncode(ENCODE_STRUCTURE + ENCODE_MAX_COMPLETION_TOKENS))
                 {
                     closeMessage();
                     closeRegions();
@@ -3775,6 +3785,11 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                     if (!messagesOpened)
                     {
                         generator.writeStartArray(MEMBER_MESSAGES).writeEnd();
+                    }
+
+                    if (maxOutputTokens != NO_MAX_OUTPUT_TOKENS)
+                    {
+                        generator.write(MEMBER_MAX_COMPLETION_TOKENS, maxOutputTokens);
                     }
 
                     generator.writeEnd();
