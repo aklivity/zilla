@@ -28,7 +28,7 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-write "{\"model\":\"gpt-4\",\"stream\":true,\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}"
+write "{\"model\":\"gpt-4\",\"stream\":true,\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"stream_options\":{\"include_usage\":true}}"
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()
