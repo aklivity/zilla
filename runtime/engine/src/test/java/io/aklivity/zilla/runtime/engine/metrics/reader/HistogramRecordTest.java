@@ -40,7 +40,7 @@ public class HistogramRecordTest
         () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L,
         () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L,
         () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L,
-        () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L
+        () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 1_234_567L
     };
     public static final LongSupplier[] READER_HISTOGRAM_MS = new LongSupplier[]
     {
@@ -51,7 +51,7 @@ public class HistogramRecordTest
         () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 2L, () -> 0L, () -> 0L,
         () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L,
         () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L,
-        () -> 0L, () -> 3L, () -> 0L, () -> 0L, () -> 1L, () -> 0L, () -> 0L
+        () -> 0L, () -> 3L, () -> 0L, () -> 0L, () -> 1L, () -> 0L, () -> 0L, () -> 9_876_543_210_000L
     };
 
     @Test
@@ -85,9 +85,9 @@ public class HistogramRecordTest
         assertThat(value[15], equalTo(77L));
         assertThat(stats[0], equalTo(3L)); // min
         assertThat(stats[1], equalTo(65_535L)); // max
-        assertThat(stats[2], equalTo(5_051_808L)); // sum
+        assertThat(stats[2], equalTo(1_234_567L)); // sum
         assertThat(stats[3], equalTo(100L)); // cnt
-        assertThat(stats[4], equalTo(50_518L)); // avg
+        assertThat(stats[4], equalTo(12_345L)); // avg
     }
 
     @Test
@@ -115,9 +115,9 @@ public class HistogramRecordTest
         assertThat(value[41], equalTo(1L));
         assertThat(stats[0], equalTo(1L)); // min
         assertThat(stats[1], equalTo(4_398_046_511_103L)); // max
-        assertThat(stats[2], equalTo(6_047_315_001_856L)); // sum
+        assertThat(stats[2], equalTo(9_876_543L)); // sum
         assertThat(stats[3], equalTo(20L)); // cnt
-        assertThat(stats[4], equalTo(302_365_750_092L)); // avg
+        assertThat(stats[4], equalTo(493_827L)); // avg
     }
 
     @Test
