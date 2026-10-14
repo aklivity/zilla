@@ -1439,7 +1439,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             parser.wrap(buffer, offset, limit, true);
 
             int scanDepth = 0;
-            String scanKey = null;
+            boolean choicesKey = false;
+            boolean usageKey = false;
             boolean choicesOpened = false;
             boolean choicesEmpty = false;
             boolean usageObject = false;
@@ -1460,18 +1461,24 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                     {
                     case START_OBJECT:
                         scanDepth++;
-                        usageObject |= scanDepth == 2 && USAGE.equals(scanKey);
+                        usageObject |= scanDepth == 2 && usageKey;
                         break;
                     case START_ARRAY:
                         scanDepth++;
-                        choicesOpened = scanDepth == 2 && MEMBER_CHOICES.equals(scanKey);
+                        choicesOpened = scanDepth == 2 && choicesKey;
                         break;
                     case END_OBJECT:
                     case END_ARRAY:
                         scanDepth--;
                         break;
                     case KEY_NAME:
-                        scanKey = scanDepth == 1 ? parser.getString() : scanKey;
+                        if (scanDepth == 1)
+                        {
+                            final CharSequence name = parser.getStringView();
+
+                            choicesKey = MEMBER_CHOICES.contentEquals(name);
+                            usageKey = USAGE.contentEquals(name);
+                        }
                         break;
                     default:
                         break;
