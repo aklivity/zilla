@@ -62,6 +62,7 @@ scope llm
         struct LlmDialectDataEx
         {
             uint8 complete = 0;
+            uint8 usageOnly = 0;
             LlmAttribute[] attributes;
         }
 

@@ -523,6 +523,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private boolean scanError;
         private boolean parseRejected;
         private boolean draining;
+        private boolean documentUsageOnly;
 
         private int documentInputTokens = NONE;
         private int documentOutputTokens = NONE;
@@ -958,9 +959,12 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 {
                     final Array32FW<LlmAttributeFW> eventAttributes = Flags.hasInit(flags) ? http.eventAttributes() : null;
 
+                    final boolean usageOnly = documentUsageOnly;
+
                     dataExBuilder.dialect(d ->
                     {
                         d.complete(complete ? 1 : 0);
+                        d.usageOnly(usageOnly ? 1 : 0);
 
                         if (eventAttributes != null)
                         {
@@ -1297,6 +1301,11 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             decodeInput = buffer;
             dialectFrom = offset;
 
+            if (replay && http.framing && decoder == decodeStart && windowLast)
+            {
+                documentUsageOnly = scanUsageOnly(buffer, offset, windowLimit);
+            }
+
             parser.wrap(buffer, offset, windowLimit, windowLast);
 
             LlmOpenaiResponseDecoder previous = null;
@@ -1419,6 +1428,67 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             parser.reset();
 
             return found;
+        }
+
+        private boolean scanUsageOnly(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            parser.reset();
+            parser.wrap(buffer, offset, limit, true);
+
+            int scanDepth = 0;
+            boolean choicesKey = false;
+            boolean usageKey = false;
+            boolean choicesOpened = false;
+            boolean choicesEmpty = false;
+            boolean usageObject = false;
+            boolean aborted = false;
+
+            while (!aborted && parser.hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                aborted = parser.deferredBytes();
+
+                if (!aborted)
+                {
+                    choicesEmpty |= choicesOpened && event == JsonEvent.END_ARRAY;
+                    choicesOpened = false;
+
+                    switch (event)
+                    {
+                    case START_OBJECT:
+                        scanDepth++;
+                        usageObject |= scanDepth == 2 && usageKey;
+                        break;
+                    case START_ARRAY:
+                        scanDepth++;
+                        choicesOpened = scanDepth == 2 && choicesKey;
+                        break;
+                    case END_OBJECT:
+                    case END_ARRAY:
+                        scanDepth--;
+                        break;
+                    case KEY_NAME:
+                        if (scanDepth == 1)
+                        {
+                            final CharSequence name = parser.getStringView();
+
+                            choicesKey = MEMBER_CHOICES.contentEquals(name);
+                            usageKey = USAGE.contentEquals(name);
+                        }
+                        break;
+                    default:
+                        break;
+                    }
+                }
+            }
+
+            parser.reset();
+
+            return !aborted && choicesEmpty && usageObject;
         }
 
         private int decodeStart(
@@ -2806,6 +2876,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             documentId = null;
             documentServedModel = null;
             documentFinishReason = null;
+            documentUsageOnly = false;
         }
 
         private int encodeText(
