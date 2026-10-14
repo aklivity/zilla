@@ -48,7 +48,7 @@ write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
                           .build()}
-write "\"}],\"logprobs\":true,\"stream\":true}"
+write "\"}],\"logprobs\":true,\"stream\":true,\"stream_options\":{\"include_usage\":true}}"
 write flush
 
 write advise zilla:flush

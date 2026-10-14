@@ -120,8 +120,15 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
     private static final DirectBufferEx DONE_BUFFER = new UnsafeBufferEx("[DONE]".getBytes(UTF_8));
+    private static final DirectBufferEx STREAM_OPTIONS_APPEND =
+        new UnsafeBufferEx(",\"stream_options\":{\"include_usage\":true}".getBytes(UTF_8));
+    private static final DirectBufferEx STREAM_OPTIONS_OBJECT = new UnsafeBufferEx("{\"include_usage\":true}".getBytes(UTF_8));
+    private static final DirectBufferEx INCLUDE_USAGE_FIRST = new UnsafeBufferEx("\"include_usage\":true".getBytes(UTF_8));
+    private static final DirectBufferEx INCLUDE_USAGE_NEXT = new UnsafeBufferEx(",\"include_usage\":true".getBytes(UTF_8));
+    private static final DirectBufferEx TRUE_BUFFER = new UnsafeBufferEx("true".getBytes(UTF_8));
 
     private static final int MIN_WINDOW = 64;
+    private static final int INJECT_ROOM = STREAM_OPTIONS_APPEND.capacity();
     private static final int HOLD_MAX = 1024;
     private static final int REPLACEMENT_CHARACTER = 0xFFFD;
 
@@ -203,6 +210,9 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final LlmOpenaiServerDecoder decodeSkip = this::decodeSkip;
     private final LlmOpenaiServerDecoder decodeModelOverride = this::decodeModelOverride;
     private final LlmOpenaiServerDecoder decodeStreamValue = this::decodeStreamValue;
+    private final LlmOpenaiServerDecoder decodeStreamOptionsValue = this::decodeStreamOptionsValue;
+    private final LlmOpenaiServerDecoder decodeStreamOptions = this::decodeStreamOptions;
+    private final LlmOpenaiServerDecoder decodeIncludeUsageValue = this::decodeIncludeUsageValue;
     private final LlmOpenaiServerDecoder decodeMaxOutputTokensValue = this::decodeMaxOutputTokensValue;
     private final LlmOpenaiServerDecoder decodeEnd = this::decodeEnd;
     private final LlmOpenaiServerDecoder decodeIgnore = this::decodeIgnore;
@@ -580,6 +590,10 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 else if (matches(key, "stream"))
                 {
                     server.decoder = decodeStreamValue;
+                }
+                else if (matches(key, "stream_options"))
+                {
+                    server.decoder = decodeStreamOptionsValue;
                 }
                 else if (matches(key, "max_completion_tokens") || matches(key, "max_tokens"))
                 {
@@ -1460,6 +1474,168 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         return server.position();
     }
 
+    private int decodeStreamOptionsValue(
+        LlmOpenaiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        final int eventFrom = server.position();
+
+        if (parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+
+            server.streamOptions = true;
+
+            switch (event)
+            {
+            case START_OBJECT:
+                server.usageSeen = false;
+                server.optionMembers = 0;
+                server.decoder = decodeStreamOptions;
+                break;
+            case VALUE_NULL:
+                server.onDecodeInject(server.valueFrom(eventFrom), STREAM_OPTIONS_OBJECT, server.position());
+                server.decoder = decodeRoot;
+                break;
+            case START_ARRAY:
+                server.skipThen = decodeRoot;
+                server.skipDepth = 1;
+                server.decoder = decodeSkip;
+                break;
+            case VALUE_STRING:
+                if (parser.deferredBytes())
+                {
+                    parser.consumed(parser.getStringView().length());
+                }
+                else
+                {
+                    server.decoder = decodeRoot;
+                }
+                break;
+            case VALUE_NUMBER:
+                if (parser.deferredBytes())
+                {
+                    parser.consumed(0);
+                }
+                else
+                {
+                    server.decoder = decodeRoot;
+                }
+                break;
+            default:
+                server.decoder = decodeRoot;
+                break;
+            }
+        }
+
+        return server.position();
+    }
+
+    private int decodeStreamOptions(
+        LlmOpenaiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        decode:
+        if (parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            switch (event)
+            {
+            case KEY_NAME:
+                if (parser.deferredBytes())
+                {
+                    break;
+                }
+                if (matches(parser.getStringView(), "include_usage"))
+                {
+                    server.decoder = decodeIncludeUsageValue;
+                }
+                else
+                {
+                    server.optionMembers++;
+                    server.skip(decodeStreamOptions);
+                    server.decoder = decodeSkip;
+                }
+                break;
+            case END_OBJECT:
+                if (!server.usageSeen)
+                {
+                    server.usageRequested = false;
+                    server.onDecodeInject(server.position() - 1,
+                        server.optionMembers == 0 ? INCLUDE_USAGE_FIRST : INCLUDE_USAGE_NEXT, server.position() - 1);
+                }
+                server.decoder = decodeRoot;
+                break;
+            default:
+                server.onDecodeParseError(traceId);
+                break decode;
+            }
+        }
+
+        return server.position();
+    }
+
+    private int decodeIncludeUsageValue(
+        LlmOpenaiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        final int eventFrom = server.position();
+
+        if (parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+
+            server.usageSeen = true;
+            server.usageRequested = event == JsonEvent.VALUE_TRUE;
+
+            switch (event)
+            {
+            case VALUE_TRUE:
+                server.optionMembers++;
+                server.decoder = decodeStreamOptions;
+                break;
+            case VALUE_FALSE:
+            case VALUE_NULL:
+                server.optionMembers++;
+                server.onDecodeInject(server.valueFrom(eventFrom), TRUE_BUFFER, server.position());
+                server.decoder = decodeStreamOptions;
+                break;
+            default:
+                server.onDecodeParseError(traceId);
+                break;
+            }
+        }
+
+        return server.position();
+    }
+
     private int decodeMaxOutputTokensValue(
         LlmOpenaiServer server,
         long traceId,
@@ -1837,6 +2013,10 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private int skipDepth;
 
         private boolean streaming;
+        private boolean streamOptions;
+        private boolean usageSeen;
+        private boolean usageRequested;
+        private int optionMembers;
         private int maxOutputTokens = NO_MAX_OUTPUT_TOKENS;
 
         private LlmOpenaiServerDecoder textThen;
@@ -2183,9 +2363,10 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private int available()
         {
             final int available = stream != null ? (int) Math.max(stream.initialAvailable(), 0L) : 0;
-            final int room = modelOverride != null ? Math.min(modelOverride.capacity(), available >> 1) : 0;
+            final int overrideRoom = modelOverride != null ? Math.min(modelOverride.capacity(), available >> 1) : 0;
+            final int injectRoom = Math.min(INJECT_ROOM, (available - overrideRoom) >> 1);
 
-            return available - room;
+            return available - overrideRoom - injectRoom;
         }
 
         private void onModelOverride(
@@ -2210,6 +2391,33 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             }
 
             this.modelOverride = new UnsafeBufferEx(escaped.toString().getBytes(UTF_8));
+        }
+
+        private void onDecodeInject(
+            int from,
+            DirectBufferEx injection,
+            int resume)
+        {
+            flushDialect(from, false, false);
+
+            stream.doAppData(decodeTraceId, decodeAuthorization, dialectOpen ? Flags.NONE : Flags.INIT,
+                true, false, null, -1, null, injection, 0, injection.capacity());
+
+            this.dialectOpen = true;
+            dialectResume(resume);
+        }
+
+        private int valueFrom(
+            int eventFrom)
+        {
+            int from = eventFrom;
+
+            while (isWhitespace(decodedInput.getByte(from)) || decodedInput.getByte(from) == ':')
+            {
+                from++;
+            }
+
+            return from;
         }
 
         private void onDecodeModelOverride(
@@ -2442,6 +2650,11 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private void onDecodeRootEnd(
             long traceId)
         {
+            if (streaming && !streamOptions)
+            {
+                onDecodeInject(position() - 1, STREAM_OPTIONS_APPEND, position() - 1);
+            }
+
             flushDialect(position(), true, true);
             decoder = decodeEnd;
         }
@@ -3728,6 +3941,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private int eventAttributeLength;
         private int eventCount;
         private boolean eventOpen;
+        private boolean eventSkipped;
         private boolean eventStarted;
         private int eventStart;
 
@@ -3845,7 +4059,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                     .write("finish_reason", reason)
                     .writeEnd();
 
-                final boolean usage = inputTokens != NONE || outputTokens != NONE || totalTokens != NONE;
+                final boolean usage = server.usageRequested &&
+                    (inputTokens != NONE || outputTokens != NONE || totalTokens != NONE);
 
                 chunkEnd();
 
@@ -3932,7 +4147,11 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         {
             replayEscaped = false;
 
-            if (server.streaming && !eventOpen)
+            if (server.streaming && !server.usageRequested && dialect.usageOnly() != 0)
+            {
+                eventSkipped = true;
+            }
+            else if (server.streaming && !eventOpen)
             {
                 final Array32FW<LlmAttributeFW> attributes = dialect.attributes();
 
@@ -3953,7 +4172,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             int length,
             boolean fin)
         {
-            if (length > 0)
+            if (length > 0 && !eventSkipped)
             {
                 if (replayEscaped)
                 {
@@ -3971,6 +4190,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             if (fin && replyComplete && replyKind == LlmDataExFW.KIND_DIALECT)
             {
                 replyComplete = false;
+                eventSkipped = false;
                 eventEnd(replayPosition);
             }
         }

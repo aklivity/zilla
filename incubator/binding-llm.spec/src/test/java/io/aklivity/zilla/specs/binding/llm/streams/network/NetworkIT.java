@@ -2315,6 +2315,51 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.stream.options.absent/client",
+        "${net}/openai.stream.options.absent/server"})
+    public void shouldRelayOpenaiStreamOptionsAbsent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.stream.options.requested/client",
+        "${net}/openai.stream.options.requested/server"})
+    public void shouldRelayOpenaiStreamOptionsRequested() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.stream.options.disabled/client",
+        "${net}/openai.stream.options.disabled/server"})
+    public void shouldRelayOpenaiStreamOptionsDisabled() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.stream.options.members/client",
+        "${net}/openai.stream.options.members/server"})
+    public void shouldRelayOpenaiStreamOptionsMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.stream.options.null/client",
+        "${net}/openai.stream.options.null/server"})
+    public void shouldRelayOpenaiStreamOptionsNull() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/anthropic.streaming.complete/client",
         "${net}/anthropic.streaming.complete/server"})
     public void shouldCompleteEachAnthropicStreamingEvent() throws Exception
