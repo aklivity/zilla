@@ -111,6 +111,32 @@ public class ModelPipelineChainTest
     }
 
     @Test
+    public void shouldReportFirstStageRejectionReason()
+    {
+        ModelPipeline chain = new BlockPipeline(1, 0, true).rejecting('x', ModelRejection.WITHHELD)
+            .andThen(new BlockPipeline(1, 0, true));
+
+        Drive drive = new Drive(chain, 64);
+        ModelPipelineResult result = drive.feed("abxd", INIT | FIN);
+
+        assertEquals(ModelStatus.REJECTED, result.status());
+        assertEquals(ModelRejection.WITHHELD, result.rejection());
+    }
+
+    @Test
+    public void shouldReportSecondStageRejectionReason()
+    {
+        ModelPipeline chain = new BlockPipeline(1, 1, true)
+            .andThen(new BlockPipeline(1, 0, true).rejecting('y', ModelRejection.INVALID));
+
+        Drive drive = new Drive(chain, 64);
+        ModelPipelineResult result = drive.feed("abxd", INIT | FIN);
+
+        assertEquals(ModelStatus.REJECTED, result.status());
+        assertEquals(ModelRejection.INVALID, result.rejection());
+    }
+
+    @Test
     public void shouldResetEveryStage()
     {
         BlockPipeline first = new BlockPipeline(1, 0, true);
@@ -214,6 +240,7 @@ public class ModelPipelineChainTest
         private int fins;
         private int resets;
         private int rejected = -1;
+        private ModelRejection rejection;
         private boolean finAfterAllInput;
         private int received;
 
@@ -245,6 +272,14 @@ public class ModelPipelineChainTest
             return this;
         }
 
+        private BlockPipeline rejecting(
+            char value,
+            ModelRejection rejection)
+        {
+            this.rejection = rejection;
+            return rejecting(value);
+        }
+
         @Override
         public ModelPipelineResult transform(
             long traceId,
@@ -273,7 +308,7 @@ public class ModelPipelineChainTest
                 if (value == rejected)
                 {
                     status = ModelStatus.REJECTED;
-                    return result.set(status, 0, 0);
+                    return result.set(status, 0, 0, rejection);
                 }
                 dst.putByte(dstIndex + index, (byte) (value + delta));
                 produced++;
