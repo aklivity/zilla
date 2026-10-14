@@ -36,6 +36,7 @@ import io.aklivity.zilla.runtime.binding.llm.config.LlmBindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmRouteConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectHandler;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmBinding;
+import io.aklivity.zilla.runtime.binding.llm.internal.LlmConfiguration;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.OctetsFW;
@@ -56,6 +57,7 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmChallengeE
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmEndExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmErrorFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmFlushExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmResetExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionType;
@@ -141,6 +143,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final int ESCAPE_EXPANSION = 6;
     private static final int ENCODE_SLACK = 256;
     private static final int ENCODE_STRUCTURE = 128;
+    private static final int ENCODE_MAX_TOKENS = 32;
+    private static final int NO_MAX_OUTPUT_TOKENS = -1;
 
     private static final int NONE = -1;
     private static final int REPLACEMENT_CHARACTER = 0xFFFD;
@@ -182,6 +186,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
     private static final String MEMBER_MESSAGES = "messages";
     private static final String MEMBER_SYSTEM = "system";
+    private static final String MEMBER_MAX_TOKENS = "max_tokens";
     private static final String MEMBER_TOOLS = "tools";
     private static final String MEMBER_SOURCE = "source";
     private static final String MEMBER_MEDIA_TYPE = "media_type";
@@ -227,6 +232,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
     private final LlmBeginExFW.Builder llmBeginExRW = new LlmBeginExFW.Builder();
     private final LlmChallengeExFW.Builder llmChallengeExRW = new LlmChallengeExFW.Builder();
+    private final LlmFlushExFW llmFlushExRO = new LlmFlushExFW();
     private final LlmDataExFW.Builder llmDataExRW = new LlmDataExFW.Builder();
     private final LlmResetExFW.Builder llmResetExRW = new LlmResetExFW.Builder();
     private final LlmEndExFW.Builder llmEndExRW = new LlmEndExFW.Builder();
@@ -249,10 +255,13 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private final int encodeMax;
     private final int llmTypeId;
     private final int httpTypeId;
+    private final int defaultMaxTokens;
 
     public LlmAnthropicClientFactory(
+        LlmConfiguration config,
         EngineContext context)
     {
+        this.defaultMaxTokens = config.anthropicMaxTokens();
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.contentTypeMatcher = CONTENT_TYPE.matcher("");
@@ -826,7 +835,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             initialSeq = end.sequence();
             state = LlmState.closingInitial(state);
 
-            http.doEncodeRequestEnd();
+            http.doEncodeRequestEnd(NO_MAX_OUTPUT_TOKENS);
 
             if (http.encodeFailed)
             {
@@ -844,7 +853,12 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             final long traceId = flush.traceId();
 
-            http.doEncodeRequestEnd();
+            final LlmFlushExFW llmFlushEx = flush.extension().get(llmFlushExRO::tryWrap);
+            final int maxOutputTokens = llmFlushEx != null && llmFlushEx.typeId() == llmTypeId
+                ? llmFlushEx.maxOutputTokens()
+                : NO_MAX_OUTPUT_TOKENS;
+
+            http.doEncodeRequestEnd(maxOutputTokens);
             http.flushEncode(traceId);
         }
 
@@ -3934,13 +3948,17 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             sectionKind = 0;
         }
 
-        private void doEncodeRequestEnd()
+        private void doEncodeRequestEnd(
+            int maxOutputTokens)
         {
             if (!LlmState.initialClosing(state) && !LlmState.initialClosed(state))
             {
-                if (!stream.replay && beginEncode(ENCODE_STRUCTURE))
+                if (!stream.replay && beginEncode(ENCODE_STRUCTURE + ENCODE_MAX_TOKENS))
                 {
                     closeRegion();
+                    final int maxTokens = maxOutputTokens != NO_MAX_OUTPUT_TOKENS ? maxOutputTokens : defaultMaxTokens;
+
+                    generator.write(MEMBER_MAX_TOKENS, maxTokens);
                     generator.writeEnd();
                     endEncode();
                 }

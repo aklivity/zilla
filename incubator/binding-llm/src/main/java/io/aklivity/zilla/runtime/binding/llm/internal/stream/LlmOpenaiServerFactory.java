@@ -56,6 +56,7 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDialectDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmEndExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmErrorFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmFlushExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmResetExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionType;
@@ -92,6 +93,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private static final String PATH_COMPLETIONS = "/v1/completions";
     private static final String STATUS_OK = "200";
     private static final String STATUS_UNAUTHORIZED = "401";
+    private static final int NO_MAX_OUTPUT_TOKENS = -1;
     private static final int STATUS_BAD_REQUEST = 400;
     private static final int STATUS_UNSUPPORTED_MEDIA_TYPE = 415;
     private static final int STATUS_INTERNAL_SERVER_ERROR = 500;
@@ -155,6 +157,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final LlmDataExFW llmDataExRO = new LlmDataExFW();
     private final LlmSectionAttributes replyAttributes = new LlmSectionAttributes();
     private final LlmDataExFW.Builder llmDataExRW = new LlmDataExFW.Builder();
+    private final LlmFlushExFW.Builder llmFlushExRW = new LlmFlushExFW.Builder();
     private final LlmResetExFW llmResetExRO = new LlmResetExFW();
     private final LlmEndExFW llmEndExRO = new LlmEndExFW();
     private final LlmAbortExFW llmAbortExRO = new LlmAbortExFW();
@@ -200,6 +203,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final LlmOpenaiServerDecoder decodeSkip = this::decodeSkip;
     private final LlmOpenaiServerDecoder decodeModelOverride = this::decodeModelOverride;
     private final LlmOpenaiServerDecoder decodeStreamValue = this::decodeStreamValue;
+    private final LlmOpenaiServerDecoder decodeMaxOutputTokensValue = this::decodeMaxOutputTokensValue;
     private final LlmOpenaiServerDecoder decodeEnd = this::decodeEnd;
     private final LlmOpenaiServerDecoder decodeIgnore = this::decodeIgnore;
 
@@ -576,6 +580,10 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 else if (matches(key, "stream"))
                 {
                     server.decoder = decodeStreamValue;
+                }
+                else if (matches(key, "max_completion_tokens") || matches(key, "max_tokens"))
+                {
+                    server.decoder = decodeMaxOutputTokensValue;
                 }
                 else if (server.modelOverride != null && matches(key, "model"))
                 {
@@ -1452,6 +1460,60 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         return server.position();
     }
 
+    private int decodeMaxOutputTokensValue(
+        LlmOpenaiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        if (parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            switch (event)
+            {
+            case VALUE_NUMBER:
+                if (parser.deferredBytes())
+                {
+                    parser.consumed(0);
+                }
+                else
+                {
+                    server.maxOutputTokens = parser.getInt();
+                    server.decoder = decodeRoot;
+                }
+                break;
+            case START_OBJECT:
+            case START_ARRAY:
+                server.skipThen = decodeRoot;
+                server.skipDepth = 1;
+                server.decoder = decodeSkip;
+                break;
+            case VALUE_STRING:
+                if (parser.deferredBytes())
+                {
+                    parser.consumed(parser.getStringView().length());
+                }
+                else
+                {
+                    server.decoder = decodeRoot;
+                }
+                break;
+            default:
+                server.decoder = decodeRoot;
+                break;
+            }
+        }
+
+        return server.position();
+    }
+
     private int decodeSkip(
         LlmOpenaiServer server,
         long traceId,
@@ -1775,6 +1837,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private int skipDepth;
 
         private boolean streaming;
+        private int maxOutputTokens = NO_MAX_OUTPUT_TOKENS;
 
         private LlmOpenaiServerDecoder textThen;
         private LlmSectionType textType;
@@ -2396,7 +2459,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             }
             else
             {
-                stream.doAppFlush(traceId, initialAuthorization);
+                stream.doAppFlush(traceId, initialAuthorization, maxOutputTokens);
 
                 if (LlmState.replyClosed(stream.state))
                 {
@@ -3364,13 +3427,14 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
         private void doAppFlush(
             long traceId,
-            long authorization)
+            long authorization,
+            int maxOutputTokens)
         {
             if (!flushed && !LlmState.initialClosed(state))
             {
                 flushed = true;
 
-                final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                final FlushFW.Builder builder = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                     .originId(server.routedId)
                     .routedId(server.exitId)
                     .streamId(initialId)
@@ -3380,8 +3444,19 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                     .traceId(traceId)
                     .authorization(authorization)
                     .budgetId(0L)
-                    .reserved(0)
-                    .build();
+                    .reserved(0);
+
+                if (maxOutputTokens != NO_MAX_OUTPUT_TOKENS)
+                {
+                    final LlmFlushExFW llmFlushEx = llmFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                        .typeId(llmTypeId)
+                        .maxOutputTokens(maxOutputTokens)
+                        .build();
+
+                    builder.extension(llmFlushEx.buffer(), llmFlushEx.offset(), llmFlushEx.sizeof());
+                }
+
+                final FlushFW flush = builder.build();
 
                 app.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
             }
