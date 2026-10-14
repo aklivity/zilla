@@ -1774,6 +1774,51 @@ public class LlmFunctionsTest
     }
 
     @Test
+    public void shouldDefaultDialectDataExUsageOnlyToFalse() throws Exception
+    {
+        final byte[] dataEx = LlmFunctions.dialectDataEx()
+            .typeId(0)
+            .build();
+
+        final LlmDataExFW decoded = new LlmDataExFW().wrap(new UnsafeBufferEx(dataEx), 0, dataEx.length);
+
+        assertEquals(0, decoded.dialect().usageOnly());
+        assertNotNull(LlmFunctions.matchDialectDataEx().typeId(0).usageOnly(false).build().match(ByteBuffer.wrap(dataEx)));
+    }
+
+    @Test
+    public void shouldGenerateAndMatchDialectDataExUsageOnly() throws Exception
+    {
+        final byte[] dataEx = LlmFunctions.dialectDataEx()
+            .typeId(0)
+            .complete(true)
+            .usageOnly(true)
+            .build();
+
+        final LlmDataExFW decoded = new LlmDataExFW().wrap(new UnsafeBufferEx(dataEx), 0, dataEx.length);
+
+        assertEquals(1, decoded.dialect().usageOnly());
+        assertNotNull(LlmFunctions.matchDialectDataEx().typeId(0).usageOnly(true).build().match(ByteBuffer.wrap(dataEx)));
+        assertNotNull(LlmFunctions.matchDialectDataEx().typeId(0).build().match(ByteBuffer.wrap(dataEx)));
+    }
+
+    @Test
+    public void shouldFailMatchDialectDataExUsageOnlyMismatch() throws Exception
+    {
+        final byte[] dataEx = LlmFunctions.dialectDataEx()
+            .typeId(0)
+            .usageOnly(true)
+            .build();
+
+        final BytesMatcher matcher = LlmFunctions.matchDialectDataEx()
+            .typeId(0)
+            .usageOnly(false)
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(dataEx)));
+    }
+
+    @Test
     public void shouldFailMatchDialectDataExCompleteMismatch() throws Exception
     {
         final byte[] dataEx = LlmFunctions.dialectDataEx()

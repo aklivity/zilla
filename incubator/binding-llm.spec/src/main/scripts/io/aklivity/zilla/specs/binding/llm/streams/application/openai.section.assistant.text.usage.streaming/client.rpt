@@ -88,6 +88,7 @@ read "{\"id\":\"chatcmpl-EQNL5kPFWGuGSBO2lca3rDUj9mrfi\",\"object\":\"chat.compl
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
+                          .usageOnly(true)
                           .build()}
 read "{\"id\":\"chatcmpl-EQNL5kPFWGuGSBO2lca3rDUj9mrfi\",\"object\":\"chat.completion.chunk\",\"created\":1789954951,\"model\":\"gpt-4o-mini-2024-07-18\",\"service_tier\":\"default\",\"system_fingerprint\":\"fp_c28ee603a6\",\"choices\":[],\"usage\":{\"prompt_tokens\":13,\"completion_tokens\":9,\"total_tokens\":22,\"prompt_tokens_details\":{\"cached_tokens\":0,\"audio_tokens\":0},\"completion_tokens_details\":{\"reasoning_tokens\":0,\"audio_tokens\":0,\"accepted_prediction_tokens\":0,\"rejected_prediction_tokens\":0}},\"obfuscation\":\"TM5m3oG3ttJ\"}"
 
