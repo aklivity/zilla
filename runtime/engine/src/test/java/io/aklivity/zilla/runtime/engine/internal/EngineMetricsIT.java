@@ -166,4 +166,23 @@ public class EngineMetricsIT
         // values 16..31 (2^4..2^5-1) go to bucket no #4; all 3 values should go to bucket #4
         assertThat(histogram[4].getAsLong(), equalTo(3L));
     }
+
+    @Test
+    @Configuration("server.yaml")
+    public void shouldAggregateHistogramSum()
+    {
+        // GIVEN
+        LongConsumer writer0 = engine.histogramWriter(3L, 7, 0, 0);
+        LongConsumer writer1 = engine.histogramWriter(3L, 7, 0, 1);
+        LongConsumer writer2 = engine.histogramWriter(3L, 7, 0, 2);
+        writer0.accept(16L);
+        writer1.accept(17L);
+        writer2.accept(18L);
+
+        // WHEN
+        LongSupplier[] histogram = engine.histogram(3L, 7, 0);
+
+        // THEN
+        assertThat(histogram[63].getAsLong(), equalTo(51L));
+    }
 }

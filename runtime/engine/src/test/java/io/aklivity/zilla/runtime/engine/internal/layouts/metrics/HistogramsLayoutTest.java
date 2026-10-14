@@ -175,13 +175,48 @@ public class HistogramsLayoutTest
     }
 
     @Test
+    public void shouldAccumulateExactSum() throws Exception
+    {
+        String fileName = "target/zilla-itests/histograms4";
+        Path path = Paths.get(fileName);
+        HistogramsLayout histogramsLayout = new HistogramsLayout.Builder()
+                .path(path)
+                .capacity(8192)
+                .readonly(false)
+                .build();
+
+        LongConsumer writer0 = histogramsLayout.supplyWriter(11L, 42, 0);
+        LongConsumer writer1 = histogramsLayout.supplyWriter(22L, 77, 0);
+        LongSupplier[] readers0 = histogramsLayout.supplyReaders(11L, 42, 0);
+        LongSupplier[] readers1 = histogramsLayout.supplyReaders(22L, 77, 0);
+        LongSupplier[] readersAbsent = histogramsLayout.supplyReaders(99999L, 99999, 0);
+
+        assertThat(readers0.length, equalTo(64));
+        assertThat(readers0[63].getAsLong(), equalTo(0L));
+        assertThat(readersAbsent.length, equalTo(64));
+        assertThat(readersAbsent[63].getAsLong(), equalTo(0L));
+
+        writer0.accept(0L);
+        writer0.accept(17L);
+        writer0.accept(1_025L);
+        writer1.accept(300L);
+
+        assertThat(readers0[63].getAsLong(), equalTo(1_042L));
+        assertThat(readers1[63].getAsLong(), equalTo(300L));
+
+        histogramsLayout.close();
+        assertTrue(Files.exists(path));
+        Files.delete(path);
+    }
+
+    @Test
     public void shouldThrowExceptionIfBufferIsTooSmall() throws Exception
     {
         String fileName = "target/zilla-itests/histograms2";
         Path path = Paths.get(fileName);
         HistogramsLayout histogramsLayout = new HistogramsLayout.Builder()
                 .path(path)
-                .capacity(1559) // we'd need 1560 bytes here for the0 3 records
+                .capacity(1559) // we'd need 1608 bytes here for the 3 records
                 .readonly(false)
                 .build();
 
