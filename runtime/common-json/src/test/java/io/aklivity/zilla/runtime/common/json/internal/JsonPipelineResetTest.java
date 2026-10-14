@@ -133,5 +133,11 @@ class JsonPipelineResetTest
         {
             documentsStarted = 0;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     }
 }

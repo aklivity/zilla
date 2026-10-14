@@ -226,6 +226,12 @@ public class BytesModelContextTest
             }
             return status;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     }
 
     // forwards every segment, then emits its own suffix once, at value end
@@ -262,6 +268,12 @@ public class BytesModelContextTest
                 status = sink.transform(control, source, event);
             }
             return status;
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
         }
     }
 }

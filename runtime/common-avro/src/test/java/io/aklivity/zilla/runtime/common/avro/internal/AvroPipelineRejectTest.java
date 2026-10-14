@@ -157,6 +157,12 @@ class AvroPipelineRejectTest
             {
                 throw failure;
             }
+
+            @Override
+            public boolean deterministic()
+            {
+                return true;
+            }
         };
     }
 }

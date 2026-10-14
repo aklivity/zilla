@@ -38,19 +38,33 @@ class JsonSourceTest
 
         // a stage reads the new JsonSource accessors off the value it is handed, then forwards
         // the event to the terminal sink so the pipeline still completes the document
-        JsonTransform capture = (control, source, event, sink) ->
+        JsonTransform capture = new JsonTransform()
         {
-            if (event == JsonEvent.VALUE_NUMBER && !source.deferredBytes())
+            @Override
+            public Status transform(
+                JsonController control,
+                JsonSource source,
+                JsonEvent event,
+                JsonSink sink)
             {
-                views.add(source.getStringView().toString());
-                ints.add(source.getInt());
-                longs.add(source.getLong());
+                if (event == JsonEvent.VALUE_NUMBER && !source.deferredBytes())
+                {
+                    views.add(source.getStringView().toString());
+                    ints.add(source.getInt());
+                    longs.add(source.getLong());
+                }
+                else if (event == JsonEvent.VALUE_STRING && !source.deferredBytes())
+                {
+                    views.add(source.getStringView().toString());
+                }
+                return sink.transform(control, source, event);
             }
-            else if (event == JsonEvent.VALUE_STRING && !source.deferredBytes())
+
+            @Override
+            public boolean deterministic()
             {
-                views.add(source.getStringView().toString());
+                return true;
             }
-            return sink.transform(control, source, event);
         };
 
         JsonGeneratorEx gen = JsonEx.createGenerator();

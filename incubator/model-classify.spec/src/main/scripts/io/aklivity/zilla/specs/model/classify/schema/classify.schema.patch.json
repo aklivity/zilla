@@ -1,0 +1,54 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/models/types/enum/-",
+        "value": "classify"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/models/model/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "classify"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "classify"
+                    },
+                    "reject":
+                    {
+                        "title": "Reject",
+                        "type": "object",
+                        "minProperties": 1,
+                        "additionalProperties":
+                        {
+                            "type": "array",
+                            "items":
+                            {
+                                "type": "string"
+                            },
+                            "minItems": 1
+                        }
+                    }
+                },
+                "required":
+                [
+                    "reject"
+                ],
+                "additionalProperties": false
+            }
+        }
+    }
+]

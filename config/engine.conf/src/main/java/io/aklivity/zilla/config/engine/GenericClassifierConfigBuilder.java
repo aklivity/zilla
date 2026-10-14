@@ -1,0 +1,59 @@
+/*
+ * Copyright 2021-2026 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+package io.aklivity.zilla.config.engine;
+
+import java.util.function.Function;
+
+public final class GenericClassifierConfigBuilder<T> extends ClassifierConfigBuilder<T, GenericClassifierConfigBuilder<T>>
+{
+    GenericClassifierConfigBuilder(
+        Function<ClassifierConfig, T> mapper)
+    {
+        super(mapper);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Class<GenericClassifierConfigBuilder<T>> thisType()
+    {
+        return (Class<GenericClassifierConfigBuilder<T>>) getClass();
+    }
+
+    @Override
+    public GenericClassifierConfigBuilder<T> type(
+        String type)
+    {
+        return super.type(type);
+    }
+
+    @Override
+    public <C extends ConfigBuilder<GenericClassifierConfigBuilder<T>, C>> C options(
+        Function<Function<OptionsConfig, GenericClassifierConfigBuilder<T>>, C> options)
+    {
+        return super.options(options);
+    }
+
+    @Override
+    protected ClassifierConfig newClassifier(
+        String namespace,
+        String name,
+        String type,
+        String embedding,
+        String store,
+        OptionsConfig options)
+    {
+        return new GenericClassifierConfig(namespace, name, type, embedding, store, options);
+    }
+}

@@ -28,6 +28,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.model.core.StringModelConfig;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -50,6 +51,26 @@ public class StringModelPipelineTest
         context = mock(EngineContext.class);
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+    }
+
+    @Test
+    public void shouldGrowExpandableDestinationRatherThanOverflow()
+    {
+        ModelHandler handler = handler(StringModelConfig.builder().encoding("utf_8").build());
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+
+        byte[] bytes = "Valid String that outgrows its destination".getBytes();
+        MutableDirectBufferEx src = new UnsafeBufferEx(bytes);
+        ExpandableArrayBufferEx dst = new ExpandableArrayBufferEx(8);
+
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
+            src, 0, bytes.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.COMPLETE, result.status());
+        assertEquals(bytes.length, result.consumed());
+        assertEquals(bytes.length, result.produced());
+        assertEquals("Valid String that outgrows its destination",
+            dst.getStringWithoutLengthUtf8(0, result.produced()));
     }
 
     @Test

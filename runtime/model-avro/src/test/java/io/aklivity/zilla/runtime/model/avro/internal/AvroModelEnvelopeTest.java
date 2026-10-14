@@ -342,6 +342,12 @@ public class AvroModelEnvelopeTest
         {
             return true;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     }
 
     // format-native stage: writes each string value it observes into the envelope under one name
@@ -374,6 +380,12 @@ public class AvroModelEnvelopeTest
         {
             return true;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     }
 
     // format-native stage: captures the envelope the pipeline supplies, without touching its contents
@@ -397,11 +409,23 @@ public class AvroModelEnvelopeTest
         {
             return true;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     }
 
     // a generic stage the caller composes over the same envelope it supplies to the pipeline
     private static final class Reading implements ModelTransform
     {
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
         private final ModelEnvelope envelope;
         private final String name;
         private final List<String> read = new ArrayList<>();

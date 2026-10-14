@@ -26,6 +26,7 @@ import io.aklivity.zilla.runtime.common.json.JsonDiagnostic;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
@@ -51,6 +52,8 @@ final class JsonModelDecoderPipeline implements ModelPipeline
     private final JsonEnvelope envelope;
     private final ModelPipelineResult result;
     private final ModelCache cache;
+    private final boolean deterministic;
+    private final boolean identity;
 
     private JsonPipeline active;
     private String diagnostic;
@@ -73,6 +76,12 @@ final class JsonModelDecoderPipeline implements ModelPipeline
         this.pipelines = new Int2ObjectCache<>(1, 16, p -> {});
         this.result = new ModelPipelineResult();
         this.cache = cache;
+        JsonParserEx parser = JsonEx.createParser();
+        this.deterministic = transform.deterministic() &&
+            !handler.extended() &&
+            parser.deterministic() &&
+            generator.deterministic();
+        this.identity = fieldTransform == null && handler.decodeIdentity();
     }
 
     @Override
@@ -137,7 +146,13 @@ final class JsonModelDecoderPipeline implements ModelPipeline
     @Override
     public boolean identity()
     {
-        return active != null && active.identity();
+        return identity;
+    }
+
+    @Override
+    public boolean deterministic()
+    {
+        return deterministic;
     }
 
     @Override

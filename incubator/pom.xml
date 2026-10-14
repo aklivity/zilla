@@ -29,10 +29,14 @@
     <module>binding-risingwave.conf</module>
     <module>metrics-llm.spec</module>
     <module>metrics-llm.conf</module>
-    <module>embedding-glove.spec</module>
-    <module>embedding-glove.conf</module>
-    <module>model-vector.spec</module>
-    <module>model-vector.conf</module>
+    <module>model-classify.spec</module>
+    <module>model-classify.conf</module>
+    <module>classifier-semantic.spec</module>
+    <module>classifier-semantic.conf</module>
+    <module>classifier-patterns.spec</module>
+    <module>classifier-patterns.conf</module>
+    <module>classifier-presidio.spec</module>
+    <module>classifier-presidio.conf</module>
 
     <module>binding-amqp</module>
     <module>binding-llm</module>
@@ -40,8 +44,10 @@
     <module>binding-pgsql-kafka</module>
     <module>binding-risingwave</module>
     <module>metrics-llm</module>
-    <module>embedding-glove</module>
-    <module>model-vector</module>
+    <module>model-classify</module>
+    <module>classifier-semantic</module>
+    <module>classifier-patterns</module>
+    <module>classifier-presidio</module>
 
     <module>command-log</module>
     <module>command-dump</module>
@@ -58,22 +64,42 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>embedding-glove</artifactId>
+        <artifactId>model-classify</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>embedding-glove.conf</artifactId>
+        <artifactId>model-classify.conf</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>model-vector</artifactId>
+        <artifactId>classifier-semantic</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>model-vector.conf</artifactId>
+        <artifactId>classifier-semantic.conf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>classifier-patterns</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>classifier-patterns.conf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>classifier-presidio</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>classifier-presidio.conf</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

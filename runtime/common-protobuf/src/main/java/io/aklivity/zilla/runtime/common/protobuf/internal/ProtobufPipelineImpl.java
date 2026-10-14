@@ -110,6 +110,12 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
     }
 
     @Override
+    public boolean deterministic()
+    {
+        return parser.deterministic() && head.deterministic();
+    }
+
+    @Override
     public void authorization(
         long authorization)
     {
@@ -270,6 +276,12 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         public boolean identity()
         {
             return transform.identity() && downstream.identity();
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return transform.deterministic() && downstream.deterministic();
         }
     }
 

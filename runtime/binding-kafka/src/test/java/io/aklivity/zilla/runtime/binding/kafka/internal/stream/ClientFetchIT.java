@@ -101,6 +101,16 @@ public class ClientFetchIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/partition.not.leader.refresh.meta.topics/client",
+        "${net}/partition.not.leader.refresh.meta.topics/server"})
+    public void shouldRefreshMetaForAllTopicsWhenPartitionNotLeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/partition.not.leader/client",
         "${net}/storage.error/server"})
     public void shouldRejectStorageError() throws Exception

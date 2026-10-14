@@ -31,3 +31,5 @@ connected
 
 write "Hello\nworld\n"
 write flush
+
+write close

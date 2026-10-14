@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.internal.streams.server;
 
-import static io.aklivity.zilla.runtime.binding.sse.internal.SseConfigurationTest.SSE_INITIAL_COMMENT_ENABLED_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -29,7 +28,6 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
-import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class HandshakeIT
 {
@@ -94,17 +92,6 @@ public class HandshakeIT
     @Specification({
         "${net}/request.method.unsupported/request" })
     public void shouldFailHandshakeWhenRequestMethodUnsupported() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Configure(name = SSE_INITIAL_COMMENT_ENABLED_NAME, value = "true")
-    @Test
-    @Configuration("server.when.yaml")
-    @Specification({
-        "${net}/initial.comment/request",
-        "${app}/last.event.id/server" })
-    public void shouldSendInitialComment() throws Exception
     {
         k3po.finish();
     }

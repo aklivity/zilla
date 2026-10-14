@@ -188,4 +188,9 @@ public interface ProtobufParser
      * cursor over the native Protobuf wire form is identity; one that parses a foreign representation is not.
      */
     boolean identity();
+
+    /**
+     * Whether this cursor always yields the same events for the same input, configuration and authorization.
+     */
+    boolean deterministic();
 }

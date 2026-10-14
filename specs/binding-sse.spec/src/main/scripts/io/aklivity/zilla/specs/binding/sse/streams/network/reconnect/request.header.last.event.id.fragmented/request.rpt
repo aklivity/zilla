@@ -14,10 +14,8 @@
 # under the License.
 #
 
-property padding 288
-
 connect "zilla://streams/net0"
-  option zilla:window ${18 + padding}
+  option zilla:window 18
   option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${http:beginEx()
@@ -38,17 +36,15 @@ read zilla:begin.ext ${http:beginEx()
                            .header(":status", "200")
                            .header("content-type", "text/event-stream")
                            .build()}
-          
-read "id:" 
-read [0..254] 
-read "\n" "event:" 
-read [0..16] 
-read "\n"                   
-read "data:Hello, world\n"
-read "\n"
 
-read "id:105\n"
-read "\n"
+read zilla:data.ext 0L ${zilla:id("http")} [0x1e 0x01 0x00 0x00] [0x02 0x00 0x00 0x00] [0x02] "id" [0xfe 0x00] [0..254] [0x04] "type" [0x10 0x00] [0..16]
+read "Hello, world"
+
+read zilla:data.ext ${http:matchDataEx()
+                            .typeId(zilla:id("http"))
+                            .header("id", "105")
+                            .build()}
+read zilla:data.empty
 
 read notify RECONNECT_EVENT_STREAM
 read closed

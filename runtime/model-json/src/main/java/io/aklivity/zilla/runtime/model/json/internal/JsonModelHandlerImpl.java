@@ -69,6 +69,11 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
         this.exts = exts;
     }
 
+    boolean extended()
+    {
+        return !exts.isEmpty();
+    }
+
     @Override
     public ModelPipeline supplyDecoder(
         ModelEnvelope envelope,
@@ -85,6 +90,12 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
         ModelTransform transform)
     {
         return new JsonModelEncoderPipeline(this, JsonModelEnvelope.of(requireNonNull(envelope)), requireNonNull(transform));
+    }
+
+    // a catalog that frames values is stripped of it on decode (and re-emits it on WRITE), so the bytes change
+    boolean decodeIdentity()
+    {
+        return exts.isEmpty() && handler.encodePadding(0) == 0;
     }
 
     int decodePadding(

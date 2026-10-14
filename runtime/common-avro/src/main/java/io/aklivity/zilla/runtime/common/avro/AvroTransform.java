@@ -47,6 +47,12 @@ public interface AvroTransform
         {
             return true;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     };
 
     AvroPipeline.Status transform(
@@ -82,4 +88,9 @@ public interface AvroTransform
     {
         return false;
     }
+
+    /**
+     * Whether this stage produces the same output for the same input, configuration and authorization.
+     */
+    boolean deterministic();
 }

@@ -51,6 +51,12 @@ public class McpToolCallArgsTransformTest
         {
             return true;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     };
 
     private static final String LOCATION_SCHEMA =

@@ -32,16 +32,19 @@ import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
 import static io.aklivity.zilla.runtime.engine.util.Flags.fin;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
+import static io.aklivity.zilla.runtime.engine.util.Flags.init;
 import static java.lang.Character.toLowerCase;
 import static java.lang.Character.toUpperCase;
 import static java.lang.Integer.parseInt;
 import static java.nio.charset.StandardCharsets.US_ASCII;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyMap;
 
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -54,6 +57,7 @@ import java.util.SortedSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.IntPredicate;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
@@ -106,11 +110,13 @@ import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.queue.HttpQueueEntryFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.BeginFW;
+import io.aklivity.zilla.runtime.binding.http.internal.types.stream.Capability;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpDataExFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpEndExFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpFlushExFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.ProxyBeginExFW;
@@ -120,6 +126,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.lang.MemorySegments;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -173,6 +180,12 @@ public final class HttpClientFactory implements HttpStreamFactory
                     .item(h -> h.name("retry-after").value("0"))
                     .build();
 
+    private static final Array32FW<HttpHeaderFW> HEADERS_502 =
+            new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
+                    .wrap(new UnsafeBufferEx(new byte[64]), 0, 64)
+                    .item(h -> h.name(":status").value("502"))
+                    .build();
+
     private static final String GET_METHOD = "GET";
     private static final String HEAD_METHOD = "HEAD";
     private static final String CONTENT_LENGTH = "content-length";
@@ -185,6 +198,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private static final String8FW HEADER_SCHEME = new String8FW(":scheme");
     private static final String8FW HEADER_USER_AGENT = new String8FW("user-agent");
     private static final String8FW HEADER_CONNECTION = new String8FW("connection");
+    private static final String8FW HEADER_CONTENT_TYPE = new String8FW("content-type");
     private static final String8FW HEADER_CONTENT_LENGTH = new String8FW("content-length");
     private static final String8FW HEADER_COOKIE = new String8FW("cookie");
     private static final String8FW HEADER_HTTP2_SETTINGS = new String8FW("HTTP2-Settings");
@@ -193,6 +207,9 @@ public final class HttpClientFactory implements HttpStreamFactory
     private static final String8FW HEADER_STATUS = new String8FW(":status");
     private static final String8FW HEADER_TRANSFER_ENCODING = new String8FW("transfer-encoding");
     private static final String8FW HEADER_UPGRADE = new String8FW("upgrade");
+    private static final String8FW HEADER_EVENT_TYPE = new String8FW("type");
+    private static final String8FW HEADER_EVENT_ID = new String8FW("id");
+    private static final String8FW HEADER_EVENT_RETRY = new String8FW("retry");
 
     private static final String8FW PROXY_ALPN_H2 = new String8FW("h2");
     private static final String16FW METHOD_HEAD = new String16FW("HEAD");
@@ -200,9 +217,33 @@ public final class HttpClientFactory implements HttpStreamFactory
     private static final String16FW METHOD_DELETE = new String16FW("DELETE");
     private static final String16FW PATH_SLASH = new String16FW("/");
     private static final String16FW STATUS_101 = new String16FW("101");
+    private static final String16FW STATUS_200 = new String16FW("200");
     private static final String16FW UPGRADE_H2C = new String16FW("h2c");
     private static final String16FW CONNECTION_UPGRADE_HTTP2_SETTINGS = new String16FW("Upgrade, HTTP2-Settings");
     private static final String16FW TRANSFER_ENCODING_CHUNKED = new String16FW("chunked");
+
+    private static final int CAPABILITY_FRAMING_MASK = 1 << Capability.FRAMING.ordinal();
+
+    private static final byte[] CONTENT_TYPE_EVENT_STREAM = "text/event-stream".getBytes(UTF_8);
+    private static final byte[] EVENT_STREAM_BOM = "\ufeff".getBytes(UTF_8);
+
+    private static final int EVENT_LINE_CR = 0x0d;
+    private static final int EVENT_LINE_LF = 0x0a;
+    private static final int EVENT_LINE_COLON = 0x3a;
+    private static final int EVENT_LINE_SPACE = 0x20;
+
+    private static final DirectBufferEx EVENT_FIELD_NAME_TYPE = new UnsafeBufferEx("event".getBytes(UTF_8));
+    private static final DirectBufferEx EVENT_FIELD_NAME_ID = new UnsafeBufferEx("id".getBytes(UTF_8));
+    private static final DirectBufferEx EVENT_FIELD_NAME_DATA = new UnsafeBufferEx("data".getBytes(UTF_8));
+    private static final DirectBufferEx EVENT_FIELD_NAME_RETRY = new UnsafeBufferEx("retry".getBytes(UTF_8));
+
+    private static final IntPredicate EVENT_EOL_MATCHER = v -> v == EVENT_LINE_CR || v == EVENT_LINE_LF;
+    private static final IntPredicate EVENT_COLON_MATCHER = v -> v == EVENT_LINE_COLON;
+    private static final IntPredicate EVENT_EOF_MATCHER = EVENT_COLON_MATCHER.or(EVENT_EOL_MATCHER);
+
+    private static final int EVENT_RETRY_DIGITS_MAX = 18;
+    private static final String8FW EVENT_FIELD_VALUE_NULL = new String8FW(null);
+    private static final String8FW EVENT_FIELD_VALUE_EMPTY = new String8FW("");
 
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
     private static final Array32FW<HttpHeaderFW> DEFAULT_HEADERS =
@@ -239,6 +280,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final HttpBeginExFW.Builder beginExRW = new HttpBeginExFW.Builder();
     private final HttpBeginExFW.Builder modelBeginExRW = new HttpBeginExFW.Builder();
     private final HttpFlushExFW.Builder flushExRW = new HttpFlushExFW.Builder();
+    private final HttpDataExFW.Builder dataExRW = new HttpDataExFW.Builder();
     private final HttpEndExFW.Builder endExRW = new HttpEndExFW.Builder();
 
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
@@ -247,6 +289,41 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final HttpQueueEntryFW.Builder queueEntryRW = new HttpQueueEntryFW.Builder();
 
     private final AsciiSequenceView asciiRO = new AsciiSequenceView();
+
+    private final DirectBufferEx eventNameRO = new UnsafeBufferEx(0L, 0);
+    private final OctetsFW eventDataRO = new OctetsFW();
+    private final OctetsFW eventLineDataRO = new OctetsFW();
+    private final OctetsFW eventModelRO = new OctetsFW();
+    private final OctetsFW eventFrameExtensionRO = new OctetsFW();
+    private final String8FW.Builder eventIdRW = new String8FW.Builder().wrap(new UnsafeBufferEx(new byte[256]), 0, 256);
+    private final String8FW.Builder eventTypeRW = new String8FW.Builder().wrap(new UnsafeBufferEx(new byte[256]), 0, 256);
+    private final String8FW.Builder eventRetryRW = new String8FW.Builder().wrap(new UnsafeBufferEx(new byte[256]), 0, 256);
+
+    private final Map<DirectBufferEx, HttpEventFieldName> eventFieldNames;
+    {
+        final Map<DirectBufferEx, HttpEventFieldName> fieldNames = new HashMap<>();
+        fieldNames.put(EVENT_FIELD_NAME_DATA, HttpEventFieldName.DATA);
+        fieldNames.put(EVENT_FIELD_NAME_ID, HttpEventFieldName.ID);
+        fieldNames.put(EVENT_FIELD_NAME_TYPE, HttpEventFieldName.TYPE);
+        fieldNames.put(EVENT_FIELD_NAME_RETRY, HttpEventFieldName.RETRY);
+        eventFieldNames = Collections.unmodifiableMap(fieldNames);
+    }
+
+    private final HttpEventDecoder decodeEventBom = this::decodeEventBom;
+    private final HttpEventDecoder decodeEventStart = this::decodeEventStart;
+    private final HttpEventDecoder decodeEventLine = this::decodeEventLine;
+    private final HttpEventDecoder decodeEventLineEnding = this::decodeEventLineEnding;
+    private final HttpEventDecoder decodeEventLineEndingAfterCR = this::decodeEventLineEndingAfterCR;
+    private final HttpEventDecoder decodeEventLineEnded = this::decodeEventLineEnded;
+    private final HttpEventDecoder decodeEventIgnoreLine = this::decodeEventIgnoreLine;
+    private final HttpEventDecoder decodeEventIgnore = this::decodeEventIgnore;
+    private final HttpEventDecoder decodeEventReject = this::decodeEventReject;
+    private final HttpEventDecoder decodeEventFieldName = this::decodeEventFieldName;
+    private final HttpEventDecoder decodeEventFieldColon = this::decodeEventFieldColon;
+    private final HttpEventDecoder decodeEventFieldSpace = this::decodeEventFieldSpace;
+    private final HttpEventDecoder decodeEventFieldValue = this::decodeEventFieldValue;
+    private final HttpEventDecoder decodeEventFieldDataValue = this::decodeEventFieldDataValue;
+    private final HttpEventDecoder decodeEventEnding = this::decodeEventEnding;
 
     private final HttpClientDecoder decodeHttp11Headers = this::decodeHttp11Headers;
     private final HttpClientDecoder decodeHttp11HeadersOnly = this::decodeHttp11HeadersOnly;
@@ -332,7 +409,9 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final MutableDirectBufferEx codecBuffer;
     private final BufferPool bufferPool;
     private final BufferPool headersPool;
+    private final BufferPool eventPool;
     private final MutableDirectBufferEx extBuffer;
+    private final MutableDirectBufferEx eventLineBuffer;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -367,10 +446,12 @@ public final class HttpClientFactory implements HttpStreamFactory
         this.codecBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.frameBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.eventLineBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.modelBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.modelBeginExBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
         this.headersPool = bufferPool.duplicate();
+        this.eventPool = bufferPool.duplicate();
         this.initialSettings = new Http2Settings(config, headersPool);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
@@ -610,7 +691,29 @@ public final class HttpClientFactory implements HttpStreamFactory
         int length,
         Flyweight extension)
     {
-        final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+        doData(receiver, originId, routedId, streamId, sequence, acknowledge, maximum,
+            traceId, authorization, budgetId, COMPLETE, reserved, buffer, index, length, extension);
+    }
+
+    private void doData(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int flags,
+        int reserved,
+        DirectBufferEx buffer,
+        int index,
+        int length,
+        Flyweight extension)
+    {
+        final DataFW.Builder builder = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(streamId)
@@ -619,9 +722,11 @@ public final class HttpClientFactory implements HttpStreamFactory
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
+                .flags(flags)
                 .budgetId(budgetId)
-                .reserved(reserved)
-                .payload(buffer, index, length)
+                .reserved(reserved);
+
+        final DataFW data = (buffer != null ? builder.payload(buffer, index, length) : builder.payload((OctetsFW) null))
                 .extension(extension.buffer(), extension.offset(), extension.sizeof())
                 .build();
 
@@ -720,6 +825,24 @@ public final class HttpClientFactory implements HttpStreamFactory
         long budgetId,
         int padding)
     {
+        doWindow(receiver, originId, routedId, streamId, sequence, acknowledge, maximum,
+            traceId, authorization, budgetId, padding, 0);
+    }
+
+    private void doWindow(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int padding,
+        int capabilities)
+    {
         final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
@@ -731,6 +854,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 .authorization(authorization)
                 .budgetId(budgetId)
                 .padding(padding)
+                .capabilities(capabilities)
                 .build();
 
         receiver.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
@@ -764,7 +888,6 @@ public final class HttpClientFactory implements HttpStreamFactory
                 final String status = decodeHttp1StartLine(buffer, offset, endOfStartAt);
                 if (status == null)
                 {
-                    client.onDecodeHttp11HeadersError(traceId, authorization);
                     client.decoder = decodeHttp11Ignore;
                     break decode;
                 }
@@ -785,7 +908,6 @@ public final class HttpClientFactory implements HttpStreamFactory
                         .wrap(buffer, startOfLineAt, endOfLineAt - startOfLineAt);
                     if (!headerLine.reset(ascii).matches())
                     {
-                        client.onDecodeHttp11HeadersError(traceId, authorization);
                         client.decoder = decodeHttp11Ignore;
                         break decode;
                     }
@@ -918,7 +1040,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
             catch (NumberFormatException ex)
             {
-                client.onDecodeHttp11HeadersError(traceId, authorization);
                 client.decoder = decodeHttp11Ignore;
             }
         }
@@ -970,7 +1091,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             if (buffer.getByte(offset) != '\r' ||
                 buffer.getByte(offset + 1) != '\n')
             {
-                client.onDecodeHttp11BodyError(traceId, authorization);
                 client.decoder = decodeHttp11Ignore;
             }
             else
@@ -2877,7 +2997,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             {
                 cleanupDecodeSlotIfNecessary();
 
-                if (decoder == decodeHttp11Ignore)
+                if (decoder == decodeHttp11Ignore && cleanupHandler == null)
                 {
                     cleanupNetwork(traceId, authorization);
                 }
@@ -2899,20 +3019,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
         }
 
-        private void onDecodeHttp11HeadersError(
-            long traceId,
-            long authorization)
-        {
-            cleanupNetwork(traceId, authorization);
-        }
-
-        private void onDecodeHttp11BodyError(
-            long traceId,
-            long authorization)
-        {
-            cleanupNetwork(traceId, authorization);
-        }
-
         private void onDecodeHttp11Headers(
             long traceId,
             long authorization,
@@ -2921,7 +3027,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             if (exchange == null)
             {
                 decoder = decodeHttp11Ignore;
-                cleanupNetwork(traceId, authorization);
             }
             else
             {
@@ -4681,6 +4786,30 @@ public final class HttpClientFactory implements HttpStreamFactory
         private HttpModel content;
         private boolean responseContentInited;
 
+        private boolean responseEventStream;
+        private boolean responseWindowed;
+        private boolean responseFramingDecided;
+        private boolean responseFraming;
+        private boolean responseEndPending;
+        private boolean responseEventInvalid;
+        private int responseCapabilities;
+
+        private int eventSlot = NO_SLOT;
+        private int eventSlotOffset;
+        private int eventFrameSlot = NO_SLOT;
+        private int eventFrameFlags;
+        private int eventFramePayloadLength;
+        private int eventFrameExtensionLength;
+        private HttpEventDecoder eventDecoder;
+        private boolean decodedLineEmpty;
+        private HttpEventFieldName decodedFieldName;
+        private int decodedDataLines;
+        private int decodedDataFlags;
+        private String8FW decodedId = EVENT_FIELD_VALUE_NULL;
+        private String8FW decodedType = EVENT_FIELD_VALUE_NULL;
+        private String8FW decodedRetry = EVENT_FIELD_VALUE_NULL;
+        private OctetsFW decodedData;
+
         private HttpExchange(
             HttpClient client,
             MessageConsumer application,
@@ -4702,6 +4831,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             this.streamId = streamId;
             this.localBudget = client.localSettings.initialWindowSize;
             this.binding = bindings.get(client.pool.bindingId);
+            this.eventDecoder = decodeEventBom;
         }
 
         private int initialWindow()
@@ -5077,19 +5207,32 @@ public final class HttpClientFactory implements HttpStreamFactory
                 state = HttpState.openInitial(state);
 
                 doWindow(application, originId, routedId, requestId, requestSeq, requestAck, requestMax,
-                    traceId, requestAuth, client.initialBudgetId, client.initialPad);
+                    traceId, requestAuth, client.initialBudgetId, client.initialPad, CAPABILITY_FRAMING_MASK);
             }
         }
 
         private void doResponseBegin(
             long traceId,
             long authorization,
-            Flyweight extension)
+            HttpBeginExFW beginEx)
         {
             state = HttpState.openingReply(state);
 
+            responseEventStream = isEventStream(beginEx);
+
             doBegin(application, originId, routedId, responseId, responseSeq, responseAck, responseMax,
-                    traceId, authorization, 0, extension);
+                    traceId, authorization, 0, beginEx);
+
+            if (responseEventStream && responseWindowed)
+            {
+                decideResponseFraming();
+            }
+        }
+
+        private void decideResponseFraming()
+        {
+            responseFramingDecided = true;
+            responseFraming = (responseCapabilities & CAPABILITY_FRAMING_MASK) != 0;
         }
 
         private int doResponseData(
@@ -5103,7 +5246,15 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             int progress;
 
-            if (content == HttpModel.NONE)
+            if (responseEventStream && !responseFramingDecided)
+            {
+                progress = offset;
+            }
+            else if (responseFraming)
+            {
+                progress = doResponseEvents(traceId, authorization, buffer, offset, limit);
+            }
+            else if (content == HttpModel.NONE)
             {
                 int responseNoAck = (int)(responseSeq - responseAck);
                 int length = Math.min(responseMax - responseNoAck - responsePad, limit - offset);
@@ -5187,8 +5338,26 @@ public final class HttpClientFactory implements HttpStreamFactory
             long authorization,
             Flyweight extension)
         {
+            if (responseFraming && (eventSlot != NO_SLOT || eventFrameSlot != NO_SLOT))
+            {
+                responseEndPending = true;
+                decodeEvents(traceId, authorization);
+            }
+            else
+            {
+                closeResponse(traceId, authorization, extension);
+            }
+        }
+
+        private void closeResponse(
+            long traceId,
+            long authorization,
+            Flyweight extension)
+        {
             if (!HttpState.replyClosed(state))
             {
+                cleanupEventSlot();
+
                 if (HttpState.replyClosing(client.state))
                 {
                     client.doNetworkEnd(traceId, authorization);
@@ -5210,8 +5379,19 @@ public final class HttpClientFactory implements HttpStreamFactory
             long authorization,
             Flyweight extension)
         {
+            doResponseAbort(traceId, authorization, extension, HEADERS_503_RETRY_AFTER);
+        }
+
+        private void doResponseAbort(
+            long traceId,
+            long authorization,
+            Flyweight extension,
+            Array32FW<HttpHeaderFW> unopenedHeaders)
+        {
             if (!HttpState.replyClosed(state))
             {
+                cleanupEventSlot();
+
                 if (HttpState.replyOpening(state))
                 {
                     state = HttpState.closeReply(state);
@@ -5222,7 +5402,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 {
                     HttpBeginExFW beginEx = beginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
                             .typeId(httpTypeId)
-                            .headers(HEADERS_503_RETRY_AFTER)
+                            .headers(unopenedHeaders)
                             .build();
                     doResponseBegin(traceId, authorization, beginEx);
                     doResponseEnd(traceId, authorization, EMPTY_OCTETS);
@@ -5237,6 +5417,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             final long authorization = reset.authorization();
 
             state = HttpState.closeReply(state);
+            cleanupEventSlot();
             if (HttpState.closed(state))
             {
                 onExchangeClosed();
@@ -5264,6 +5445,8 @@ public final class HttpClientFactory implements HttpStreamFactory
             responseAuth = authorization;
             responseBud = budgetId;
             responsePad = padding;
+            responseCapabilities = window.capabilities();
+            responseWindowed = true;
 
             client.replyPad = Math.max(responsePad, client.replyPad);
 
@@ -5277,6 +5460,13 @@ public final class HttpClientFactory implements HttpStreamFactory
                 responseDebit.declare(traceId, 0, 0);
             }
 
+            if (responseEventStream && !responseFramingDecided)
+            {
+                decideResponseFraming();
+            }
+
+            decodeEvents(traceId, authorization);
+
             client.decodeNetworkIfBuffered(traceId, authorization);
 
             client.encoder.onApplicationWindow(client, this, traceId, authorization);
@@ -5285,6 +5475,8 @@ public final class HttpClientFactory implements HttpStreamFactory
         private void onResponseFlush(
             long traceId)
         {
+            decodeEvents(traceId, responseAuth);
+
             client.decodeNetworkIfBuffered(traceId, responseAuth);
         }
 
@@ -5342,7 +5534,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                     assert requestMax >= 0;
 
                     doWindow(application, originId, routedId, requestId, requestSeq, requestAck, requestMax, traceId, sessionId,
-                            client.initialBudgetId, requestPad);
+                            client.initialBudgetId, requestPad, CAPABILITY_FRAMING_MASK);
                 }
             }
         }
@@ -5366,6 +5558,364 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             doRequestReset(traceId, authorization);
             doResponseAbort(traceId, authorization, EMPTY_OCTETS);
+        }
+
+        private int doResponseEvents(
+            long traceId,
+            long authorization,
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            int progress = -1;
+
+            if (eventSlot == NO_SLOT)
+            {
+                final int decoded = decodeEventBytes(traceId, authorization, buffer, offset, limit);
+                final int remaining = limit - decoded;
+
+                progress = limit;
+
+                if (remaining > 0)
+                {
+                    eventSlot = eventPool.acquire(responseId);
+
+                    if (eventSlot != NO_SLOT)
+                    {
+                        final int length = Math.min(remaining, eventPool.slotCapacity());
+
+                        eventPool.buffer(eventSlot).putBytes(0, buffer, decoded, length);
+                        eventSlotOffset = length;
+
+                        final boolean stalled = length == eventPool.slotCapacity() && decoded == offset && eventCredit() > 0;
+
+                        progress = stalled ? -1 : decoded + length;
+                    }
+                    else
+                    {
+                        progress = -1;
+                    }
+                }
+
+                if (progress >= 0)
+                {
+                    localBudget -= progress - offset;
+                }
+            }
+            else
+            {
+                final MutableDirectBufferEx slotBuffer = eventPool.buffer(eventSlot);
+                final int length = Math.min(limit - offset, eventPool.slotCapacity() - eventSlotOffset);
+                final int slotOffsetBefore = eventSlotOffset;
+
+                slotBuffer.putBytes(eventSlotOffset, buffer, offset, length);
+                eventSlotOffset += length;
+                localBudget -= length;
+
+                decodeEvents(traceId, authorization);
+
+                final boolean stalled = eventSlot != NO_SLOT &&
+                    eventSlotOffset == eventPool.slotCapacity() &&
+                    eventSlotOffset >= slotOffsetBefore + length &&
+                    eventCredit() > 0;
+
+                progress = stalled ? -1 : offset + length;
+            }
+
+            return responseEventInvalid ? -1 : progress;
+        }
+
+        private void decodeEvents(
+            long traceId,
+            long authorization)
+        {
+            flushEventFrame(traceId, authorization);
+
+            if (responseFraming && eventSlot != NO_SLOT && eventFrameSlot == NO_SLOT)
+            {
+                final MutableDirectBufferEx slotBuffer = eventPool.buffer(eventSlot);
+                final int limit = eventSlotOffset;
+                final int progress = decodeEventBytes(traceId, authorization, slotBuffer, 0, limit);
+
+                if (progress < limit)
+                {
+                    slotBuffer.putBytes(0, slotBuffer, progress, limit - progress);
+                    eventSlotOffset = limit - progress;
+                }
+                else
+                {
+                    cleanupEventSlot();
+                }
+            }
+
+            if (responseEndPending && eventFrameSlot == NO_SLOT && (eventSlot == NO_SLOT || eventCredit() > 0))
+            {
+                responseEndPending = false;
+                closeResponse(traceId, authorization, EMPTY_OCTETS);
+            }
+        }
+
+        private int decodeEventBytes(
+            long traceId,
+            long authorization,
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            HttpEventDecoder previous = null;
+            int progress = offset;
+            while (progress <= limit && previous != eventDecoder && eventFrameSlot == NO_SLOT)
+            {
+                previous = eventDecoder;
+                progress = eventDecoder.decode(this, traceId, authorization, buffer, progress, limit);
+            }
+
+            if (eventFrameSlot == NO_SLOT)
+            {
+                doEncodeEventFragment(traceId, authorization);
+            }
+
+            return progress;
+        }
+
+        private int eventCredit()
+        {
+            return eventFrameSlot == NO_SLOT ? responseMax - (int)(responseSeq - responseAck) - responsePad : 0;
+        }
+
+        private void onDecodedEventFragment(
+            long traceId,
+            long authorization,
+            int flags,
+            String8FW id,
+            String8FW type,
+            String8FW retry,
+            OctetsFW data)
+        {
+            final Flyweight dataEx =
+                id != EVENT_FIELD_VALUE_NULL ||
+                type != EVENT_FIELD_VALUE_NULL ||
+                retry != EVENT_FIELD_VALUE_NULL
+                    ? eventDataEx(id, type, retry)
+                    : EMPTY_OCTETS;
+
+            OctetsFW payload = data;
+
+            if (decodedDataLines > 1 && decodedData != null)
+            {
+                eventLineBuffer.putByte(0, (byte) EVENT_LINE_LF);
+                eventLineBuffer.putBytes(1, data.buffer(), data.offset(), data.sizeof());
+                payload = eventLineDataRO.wrap(eventLineBuffer, 0, 1 + data.sizeof());
+            }
+
+            doResponseEventData(traceId, authorization, flags, payload, dataEx);
+        }
+
+        private Flyweight eventDataEx(
+            String8FW id,
+            String8FW type,
+            String8FW retry)
+        {
+            dataExRW.wrap(extBuffer, 0, extBuffer.capacity()).typeId(httpTypeId);
+
+            if (type != EVENT_FIELD_VALUE_NULL)
+            {
+                final DirectBufferEx value = type.value();
+
+                dataExRW.headersItem(h -> h.name(HEADER_EVENT_TYPE).value(value, 0, value != null ? value.capacity() : 0));
+            }
+
+            if (id != EVENT_FIELD_VALUE_NULL)
+            {
+                final DirectBufferEx value = id.value();
+
+                dataExRW.headersItem(h -> h.name(HEADER_EVENT_ID).value(value, 0, value != null ? value.capacity() : 0));
+            }
+
+            if (retry != EVENT_FIELD_VALUE_NULL)
+            {
+                final DirectBufferEx value = retry.value();
+
+                dataExRW.headersItem(h -> h.name(HEADER_EVENT_RETRY).value(value, 0, value != null ? value.capacity() : 0));
+            }
+
+            return dataExRW.build();
+        }
+
+        private void doResponseEventData(
+            long traceId,
+            long authorization,
+            int flags,
+            OctetsFW payload,
+            Flyweight extension)
+        {
+            OctetsFW validated = payload;
+
+            if (content != HttpModel.NONE && payload != null)
+            {
+                final int consumed = content.transform(traceId, routedId, authorization, flags,
+                    payload.buffer(), payload.offset(), payload.limit(), modelBuffer.capacity());
+
+                validated = consumed >= 0 ? eventModelRO.wrap(content.buffer(), 0, content.produced()) : null;
+
+                responseEventInvalid |= validated == null;
+            }
+
+            if (!responseEventInvalid && (validated != null || payload == null))
+            {
+                doResponseEventFrame(traceId, authorization, flags, validated, extension);
+            }
+        }
+
+        private void doResponseEventFrame(
+            long traceId,
+            long authorization,
+            int flags,
+            OctetsFW payload,
+            Flyweight extension)
+        {
+            final int length = payload != null ? payload.sizeof() : 0;
+            final int reserved = length + responsePad;
+
+            if (responseDebit == null || responseDebit.claim(traceId, reserved, reserved) == reserved)
+            {
+                doData(application, originId, routedId, responseId, responseSeq, responseAck, responseMax,
+                    traceId, authorization, responseBud, flags, reserved,
+                    payload != null ? payload.buffer() : null, payload != null ? payload.offset() : 0, length, extension);
+
+                responseSeq += reserved;
+
+                assert responseSeq <= responseAck + responseMax;
+            }
+            else
+            {
+                holdEventFrame(flags, payload, extension);
+            }
+        }
+
+        private void holdEventFrame(
+            int flags,
+            OctetsFW payload,
+            Flyweight extension)
+        {
+            final int payloadLength = payload != null ? payload.sizeof() : -1;
+            final int extensionLength = extension.sizeof();
+
+            eventFrameSlot = eventPool.acquire(responseId);
+
+            if (eventFrameSlot != NO_SLOT && Math.max(payloadLength, 0) + extensionLength <= eventPool.slotCapacity())
+            {
+                final MutableDirectBufferEx frameBuffer = eventPool.buffer(eventFrameSlot);
+
+                if (payloadLength > 0)
+                {
+                    frameBuffer.putBytes(0, payload.buffer(), payload.offset(), payloadLength);
+                }
+
+                frameBuffer.putBytes(Math.max(payloadLength, 0), extension.buffer(), extension.offset(), extensionLength);
+
+                eventFrameFlags = flags;
+                eventFramePayloadLength = payloadLength;
+                eventFrameExtensionLength = extensionLength;
+            }
+            else
+            {
+                cleanupEventFrame();
+                responseEventInvalid = true;
+            }
+        }
+
+        private void flushEventFrame(
+            long traceId,
+            long authorization)
+        {
+            if (eventFrameSlot != NO_SLOT)
+            {
+                final int length = Math.max(eventFramePayloadLength, 0);
+                final int reserved = length + responsePad;
+
+                if (responseDebit == null || responseDebit.claim(traceId, reserved, reserved) == reserved)
+                {
+                    final MutableDirectBufferEx frameBuffer = eventPool.buffer(eventFrameSlot);
+                    final int extensionLimit = length + eventFrameExtensionLength;
+                    final OctetsFW extension = eventFrameExtensionRO.wrap(frameBuffer, length, extensionLimit);
+
+                    doData(application, originId, routedId, responseId, responseSeq, responseAck, responseMax,
+                        traceId, authorization, responseBud, eventFrameFlags, reserved,
+                        eventFramePayloadLength >= 0 ? frameBuffer : null, 0, length, extension);
+
+                    responseSeq += reserved;
+
+                    assert responseSeq <= responseAck + responseMax;
+
+                    cleanupEventFrame();
+                }
+            }
+        }
+
+        private void cleanupEventFrame()
+        {
+            if (eventFrameSlot != NO_SLOT)
+            {
+                eventPool.release(eventFrameSlot);
+                eventFrameSlot = NO_SLOT;
+            }
+        }
+
+        private void doEncodeEventFragment(
+            long traceId,
+            long authorization)
+        {
+            final String8FW id = decodedId;
+            final String8FW type = decodedType;
+            final String8FW retry = decodedRetry;
+            final OctetsFW data = decodedData;
+
+            if (id != EVENT_FIELD_VALUE_NULL ||
+                type != EVENT_FIELD_VALUE_NULL ||
+                retry != EVENT_FIELD_VALUE_NULL ||
+                data != null)
+            {
+                if (data != null)
+                {
+                    final int flags = INIT & ~decodedDataFlags;
+
+                    onDecodedEventFragment(traceId, authorization, flags, id, type, retry, data);
+
+                    decodedType = EVENT_FIELD_VALUE_NULL;
+                    decodedId = EVENT_FIELD_VALUE_NULL;
+                    decodedRetry = EVENT_FIELD_VALUE_NULL;
+                    decodedData = null;
+                    decodedDataFlags = init(decodedDataFlags);
+                }
+                else
+                {
+                    if (decodedId == eventIdRW.flyweight())
+                    {
+                        decodedId = new String8FW(decodedId.asString());
+                    }
+                    if (decodedType == eventTypeRW.flyweight())
+                    {
+                        decodedType = new String8FW(decodedType.asString());
+                    }
+                    if (decodedRetry == eventRetryRW.flyweight())
+                    {
+                        decodedRetry = new String8FW(decodedRetry.asString());
+                    }
+                }
+            }
+        }
+
+        private void cleanupEventSlot()
+        {
+            if (eventSlot != NO_SLOT)
+            {
+                eventPool.release(eventSlot);
+                eventSlot = NO_SLOT;
+                eventSlotOffset = 0;
+            }
+
+            cleanupEventFrame();
         }
 
         public void resolveResponse(
@@ -5433,7 +5983,8 @@ public final class HttpClientFactory implements HttpStreamFactory
                     System.currentTimeMillis(), context.supplyNamespace(routedId),
                     context.supplyLocalName(routedId), requestType.method, requestType.path);
             }
-            cleanup(traceId, authorization);
+            doRequestReset(traceId, authorization);
+            doResponseAbort(traceId, authorization, EMPTY_OCTETS, HEADERS_502);
         }
     }
 
@@ -5944,5 +6495,591 @@ public final class HttpClientFactory implements HttpStreamFactory
         String8FW nameB)
     {
         return nameA.asString().equalsIgnoreCase(nameB.asString());
+    }
+
+    @FunctionalInterface
+    private interface HttpEventDecoder
+    {
+        int decode(
+            HttpExchange exchange,
+            long traceId,
+            long authorization,
+            DirectBufferEx buffer,
+            int progress,
+            int limit);
+    }
+
+    private int decodeEventBom(
+        HttpExchange exchange,
+        long traceId,
+        long authorization,
+        DirectBufferEx buffer,
+        int progress,
+        int limit)
+    {
+        final int length = limit - progress;
+
+        if (length >= EVENT_STREAM_BOM.length)
+        {
+            if (matchEventBytes(buffer, progress, limit, EVENT_STREAM_BOM))
+            {
+                progress += EVENT_STREAM_BOM.length;
+            }
+
+            exchange.eventDecoder = decodeEventStart;
+        }
+
+        return progress;
+    }
+
+    private int decodeEventStart(
+        HttpExchange exchange,
+        long traceId,
+        long authorization,
+        DirectBufferEx buffer,
+        int progress,
+        int limit)
+    {
+        exchange.decodedType = EVENT_FIELD_VALUE_NULL;
+        exchange.decodedId = EVENT_FIELD_VALUE_NULL;
+        exchange.decodedRetry = EVENT_FIELD_VALUE_NULL;
+        exchange.decodedData = null;
+        exchange.decodedDataLines = 0;
+        exchange.decodedDataFlags = 0;
+
+        exchange.eventDecoder = decodeEventLine;
+
+        return progress;
+    }
+
+    private int decodeEventLine(
+        HttpExchange exchange,
+        long traceId,
+        long authorization,
+        DirectBufferEx buffer,
+        int progress,
+        int limit)
+    {
+        final int length = limit - progress;
+
+        if (length != 0)
+        {
+            final int lineStart = buffer.getByte(progress);
+
+            exchange.decodedLineEmpty = lineStart == EVENT_LINE_CR || lineStart == EVENT_LINE_LF;
+
+            switch (lineStart)
+            {
+            case EVENT_LINE_COLON:
+                exchange.eventDecoder = decodeEventIgnoreLine;
+                break;
+            case EVENT_LINE_CR:
+            case EVENT_LINE_LF:
+                exchange.eventDecoder = decodeEventEnding;
+                break;
+            default:
+                exchange.eventDecoder = decodeEventFieldName;
+                break;
+            }
+        }
+
+        return progress;
+    }
+
+    private int decodeEventEnding(
+        HttpExchange exchange,
+        long traceId,
+        long authorization,
+        DirectBufferEx buffer,
+        int progress,
+        int limit)
+    {
+        final int length = limit - progress;
+
+        if (length != 0)
+        {
+            final String8FW id = exchange.decodedId;
+            final String8FW type = exchange.decodedType;
+            final String8FW retry = exchange.decodedRetry;
+            final OctetsFW data =
+                exchange.decodedData == null &&
+                exchange.decodedDataFlags != COMPLETE &&
+                exchange.decodedDataFlags != NONE
+                    ? EMPTY_OCTETS
+                    : exchange.decodedData;
+
+            if (id != EVENT_FIELD_VALUE_NULL ||
+                type != EVENT_FIELD_VALUE_NULL ||
+                retry != EVENT_FIELD_VALUE_NULL ||
+                data != null)
+            {
+                final int flags = COMPLETE & ~exchange.decodedDataFlags;
+
+                exchange.onDecodedEventFragment(traceId, authorization, flags, id, type, retry, data);
+
+                exchange.decodedType = EVENT_FIELD_VALUE_NULL;
+                exchange.decodedId = EVENT_FIELD_VALUE_NULL;
+                exchange.decodedRetry = EVENT_FIELD_VALUE_NULL;
+                exchange.decodedData = null;
+                exchange.decodedDataLines = 0;
+                exchange.decodedDataFlags = fin(exchange.decodedDataFlags);
+            }
+
+            exchange.eventDecoder = decodeEventLineEnding;
+        }
+
+        return progress;
+    }
+
+    private int decodeEventLineEnding(
+        HttpExchange exchange,
+        long traceId,
+        long authorization,
+        DirectBufferEx buffer,
+        int progress,
+        int limit)
+    {
+        final int length = limit - progress;
+
+        if (length != 0)
+        {
+            int endOfLineAt = indexOfEventEndOfLine(buffer, progress, progress + 1);
+
+            if (endOfLineAt != -1)
+            {
+                final byte endOfLine = buffer.getByte(progress);
+
+                progress++;
+
+                exchange.eventDecoder = endOfLine == EVENT_LINE_CR ? decodeEventLineEndingAfterCR : decodeEventLineEnded;
+            }
+        }
+
+        return progress;
+    }
+
+    private int decodeEventLineEndingAfterCR(
+        HttpExchange exchange,
+        long traceId,
+        long authorization,
+        DirectBufferEx buffer,
+        int progress,
+        int limit)
+    {
+        final int length = limit - progress;
+
+        if (length != 0)
+        {
+            if (buffer.getByte(progress) == EVENT_LINE_LF)
+            {
+                progress++;
+            }
+
+            exchange.eventDecoder = decodeEventLineEnded;
+        }
+
+        return progress;
+    }
+
+    private int decodeEventLineEnded(
+        HttpExchange exchange,
+        long traceId,
+        long authorization,
+        DirectBufferEx buffer,
+        int progress,
+        int limit)
+    {
+        exchange.eventDecoder = exchange.decodedLineEmpty ? decodeEventStart : decodeEventLine;
+
+        return progress;
+    }
+
+    private int decodeEventFieldName(
+        HttpExchange exchange,
+        long traceId,
+        long authorization,
+        DirectBufferEx buffer,
+        int progress,
+        int limit)
+    {
+        final int length = limit - progress;
+
+        if (length != 0)
+        {
+            int limitOfEventFieldName = limitOfEventFieldName(buffer, progress, limit);
+
+            if (limitOfEventFieldName != -1)
+            {
+                DirectBufferEx name = eventNameRO;
+                name.wrap(buffer, progress, limitOfEventFieldName - progress);
+
+                final HttpEventFieldName fieldName = eventFieldNames.getOrDefault(name, HttpEventFieldName.IGNORE);
+
+                progress = limitOfEventFieldName;
+
+                switch (fieldName)
+                {
+                case ID:
+                    exchange.decodedId = EVENT_FIELD_VALUE_EMPTY;
+                    break;
+                case TYPE:
+                    exchange.decodedType = EVENT_FIELD_VALUE_EMPTY;
+                    break;
+                case DATA:
+                    exchange.doEncodeEventFragment(traceId, authorization);
+                    exchange.decodedData = EMPTY_OCTETS;
+                    break;
+                default:
+                    break;
+                }
+
+                exchange.decodedFieldName = fieldName;
+                exchange.eventDecoder = decodeEventFieldColon;
+            }
+        }
+
+        return progress;
+    }
+
+    private int decodeEventFieldColon(
+        HttpExchange exchange,
+        long traceId,
+        long authorization,
+        DirectBufferEx buffer,
+        int progress,
+        int limit)
+    {
+        final int length = limit - progress;
+
+        if (length > 0)
+        {
+            if (buffer.getByte(progress) == EVENT_LINE_COLON)
+            {
+                progress++;
+
+                exchange.eventDecoder = decodeEventFieldSpace;
+            }
+            else
+            {
+                exchange.eventDecoder = decodeEventLineEnding;
+            }
+        }
+
+        return progress;
+    }
+
+    private int decodeEventFieldSpace(
+        HttpExchange exchange,
+        long traceId,
+        long authorization,
+        DirectBufferEx buffer,
+        int progress,
+        int limit)
+    {
+        final int length = limit - progress;
+
+        if (length > 0)
+        {
+            if (buffer.getByte(progress) == EVENT_LINE_SPACE)
+            {
+                progress++;
+            }
+
+            switch (exchange.decodedFieldName)
+            {
+            case DATA:
+                exchange.eventDecoder = decodeEventFieldDataValue;
+                break;
+            case ID:
+            case TYPE:
+            case RETRY:
+                exchange.eventDecoder = decodeEventFieldValue;
+                break;
+            case IGNORE:
+                exchange.eventDecoder = decodeEventIgnoreLine;
+                break;
+            }
+        }
+
+        return progress;
+    }
+
+    private int decodeEventFieldValue(
+        HttpExchange exchange,
+        long traceId,
+        long authorization,
+        DirectBufferEx buffer,
+        int progress,
+        int limit)
+    {
+        final int length = limit - progress;
+
+        if (length != 0)
+        {
+            int limitOfField = indexOfEventEndOfLine(buffer, progress, limit);
+
+            if (limitOfField != -1)
+            {
+                boolean valid = true;
+
+                switch (exchange.decodedFieldName)
+                {
+                case ID:
+                    valid = isEventUtf8(buffer, progress, limitOfField);
+                    if (valid)
+                    {
+                        exchange.decodedId = eventIdRW
+                            .set(buffer, progress, limitOfField - progress)
+                            .build();
+                    }
+                    break;
+                case TYPE:
+                    valid = isEventUtf8(buffer, progress, limitOfField);
+                    if (valid)
+                    {
+                        exchange.decodedType = eventTypeRW
+                            .set(buffer, progress, limitOfField - progress)
+                            .build();
+                    }
+                    break;
+                case RETRY:
+                    valid = isEventUtf8(buffer, progress, limitOfField);
+                    if (valid && isEventRetry(buffer, progress, limitOfField))
+                    {
+                        exchange.decodedRetry = eventRetryRW
+                            .set(buffer, progress, limitOfField - progress)
+                            .build();
+                    }
+                    break;
+                default:
+                    break;
+                }
+
+                progress = limitOfField;
+
+                exchange.eventDecoder = valid ? decodeEventLineEnding : decodeEventReject;
+            }
+        }
+
+        return progress;
+    }
+
+    private int decodeEventReject(
+        HttpExchange exchange,
+        long traceId,
+        long authorization,
+        DirectBufferEx buffer,
+        int progress,
+        int limit)
+    {
+        exchange.decodedId = EVENT_FIELD_VALUE_NULL;
+        exchange.decodedType = EVENT_FIELD_VALUE_NULL;
+        exchange.decodedRetry = EVENT_FIELD_VALUE_NULL;
+        exchange.decodedData = null;
+        exchange.decodedDataLines = 0;
+
+        exchange.eventDecoder = decodeEventIgnore;
+        exchange.onResponseInvalid(traceId, authorization);
+
+        return progress;
+    }
+
+    private int decodeEventIgnore(
+        HttpExchange exchange,
+        long traceId,
+        long authorization,
+        DirectBufferEx buffer,
+        int progress,
+        int limit)
+    {
+        return limit;
+    }
+
+    private int decodeEventFieldDataValue(
+        HttpExchange exchange,
+        long traceId,
+        long authorization,
+        DirectBufferEx buffer,
+        int progress,
+        int limit)
+    {
+        final int length = limit - progress;
+
+        if (length != 0)
+        {
+            final int lengthMax = exchange.eventCredit();
+
+            if (lengthMax > 0)
+            {
+                int limitMax = Math.min(progress + lengthMax, limit);
+                int endOfLineAt = indexOfEventEndOfLine(buffer, progress, limitMax);
+                int limitOfData = endOfLineAt != -1 ? endOfLineAt : limitMax;
+
+                final int dataBytes = MemorySegments.utf8Bytes(buffer.segment(),
+                    buffer.wrapAdjustment() + progress, limitOfData - progress);
+
+                if (dataBytes < 0 || endOfLineAt != -1 && dataBytes != limitOfData - progress)
+                {
+                    exchange.eventDecoder = decodeEventReject;
+                }
+                else if (dataBytes > 0 || endOfLineAt != -1)
+                {
+                    limitOfData = progress + dataBytes;
+
+                    exchange.decodedDataLines += Math.min(endOfLineAt, 0) + 1;
+                    exchange.decodedData = eventDataRO.wrap(buffer, progress, limitOfData);
+
+                    progress = limitOfData;
+
+                    if (endOfLineAt == -1)
+                    {
+                        exchange.doEncodeEventFragment(traceId, authorization);
+                    }
+                    else
+                    {
+                        exchange.eventDecoder = decodeEventLineEnding;
+                    }
+                }
+            }
+        }
+
+        return progress;
+    }
+
+    private int decodeEventIgnoreLine(
+        HttpExchange exchange,
+        long traceId,
+        long authorization,
+        DirectBufferEx buffer,
+        int progress,
+        int limit)
+    {
+        final int length = limit - progress;
+
+        if (length != 0)
+        {
+            final int endOfLineAt = indexOfEventEndOfLine(buffer, progress, limit);
+
+            if (endOfLineAt != -1)
+            {
+                progress = endOfLineAt;
+                exchange.eventDecoder = decodeEventLineEnding;
+            }
+            else
+            {
+                progress = limit;
+            }
+        }
+
+        return progress;
+    }
+
+    private static int indexOfEventEndOfLine(
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        return indexOfEventByte(buffer, offset, limit, EVENT_EOL_MATCHER);
+    }
+
+    private static int limitOfEventFieldName(
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        return indexOfEventByte(buffer, offset, limit, EVENT_EOF_MATCHER);
+    }
+
+    private static int indexOfEventByte(
+        DirectBufferEx buffer,
+        int offset,
+        int limit,
+        IntPredicate matcher)
+    {
+        for (int cursor = offset; cursor < limit; cursor++)
+        {
+            final int ch = buffer.getByte(cursor);
+
+            if (matcher.test(ch))
+            {
+                return cursor;
+            }
+        }
+
+        return -1;
+    }
+
+    private static boolean matchEventBytes(
+        DirectBufferEx buffer,
+        int offset,
+        int limit,
+        byte[] bytes)
+    {
+        boolean matchAll = true;
+
+        for (int cursor = offset; matchAll && cursor < limit; cursor++)
+        {
+            matchAll &= buffer.getByte(cursor) == bytes[cursor - offset];
+        }
+
+        return matchAll;
+    }
+
+    private static boolean isEventUtf8(
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        final int length = limit - offset;
+
+        return MemorySegments.utf8Bytes(buffer.segment(), buffer.wrapAdjustment() + offset, length) == length;
+    }
+
+    private static boolean isEventRetry(
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        boolean digits = limit > offset && limit - offset <= EVENT_RETRY_DIGITS_MAX;
+
+        for (int index = offset; digits && index < limit; index++)
+        {
+            final byte digit = buffer.getByte(index);
+            digits = digit >= '0' && digit <= '9';
+        }
+
+        return digits;
+    }
+
+    private enum HttpEventFieldName
+    {
+        DATA,
+        ID,
+        TYPE,
+        RETRY,
+        IGNORE
+    }
+
+    private static boolean isEventStream(
+        HttpBeginExFW beginEx)
+    {
+        final HttpHeaderFW status = beginEx.headers().matchFirst(h -> HEADER_STATUS.equals(h.name()));
+
+        boolean eventStream = status != null && STATUS_200.equals(status.value());
+
+        if (eventStream)
+        {
+            final HttpHeaderFW contentType = beginEx.headers().matchFirst(h -> HEADER_CONTENT_TYPE.equals(h.name()));
+            final DirectBufferEx value = contentType != null ? contentType.value().value() : null;
+
+            eventStream = value != null && value.capacity() >= CONTENT_TYPE_EVENT_STREAM.length;
+
+            for (int i = 0; eventStream && i < CONTENT_TYPE_EVENT_STREAM.length; i++)
+            {
+                eventStream = value.getByte(i) == CONTENT_TYPE_EVENT_STREAM[i];
+            }
+        }
+
+        return eventStream;
     }
 }

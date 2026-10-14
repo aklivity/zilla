@@ -115,6 +115,12 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
     }
 
     @Override
+    public boolean deterministic()
+    {
+        return json.deterministic();
+    }
+
+    @Override
     public ProtobufGenerator wrap(
         MutableDirectBufferEx buffer,
         int offset,

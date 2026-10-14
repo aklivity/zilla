@@ -99,10 +99,24 @@ public class AvroChunkingTest
         }
 
         int[] feeds = { 0 };
-        AvroTransform counting = (control, source, event, sink) ->
+        AvroTransform counting = new AvroTransform()
         {
-            feeds[0]++;
-            return sink.transform(control, source, event);
+            @Override
+            public Status transform(
+                AvroController control,
+                AvroSource source,
+                AvroEvent event,
+                AvroSink sink)
+            {
+                feeds[0]++;
+                return sink.transform(control, source, event);
+            }
+
+            @Override
+            public boolean deterministic()
+            {
+                return true;
+            }
         };
 
         int limit = 8;

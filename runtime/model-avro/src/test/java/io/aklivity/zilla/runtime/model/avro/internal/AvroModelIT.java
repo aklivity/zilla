@@ -155,4 +155,26 @@ public class AvroModelIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("value.binary.ext.pipeline.assertion.yaml")
+    @Specification({
+        "${net}/client.sent.avro.binary.valid/client",
+        "${app}/client.sent.avro.binary.valid/server"
+    })
+    public void shouldReportPipelineNotIdentityNotDeterministicWithExtensionInstalled() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("value.view.json.ext.pipeline.assertion.yaml")
+    @Specification({
+        "${net}/client.sent.avro.json.valid/client",
+        "${app}/client.sent.avro.json.valid/server"
+    })
+    public void shouldReportPipelineNotIdentityNotDeterministicWithExtensionInstalledOnJsonView() throws Exception
+    {
+        k3po.finish();
+    }
 }

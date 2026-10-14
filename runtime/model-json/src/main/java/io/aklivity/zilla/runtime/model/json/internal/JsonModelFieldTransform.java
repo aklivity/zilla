@@ -101,6 +101,12 @@ final class JsonModelFieldTransform implements JsonTransform
     }
 
     @Override
+    public boolean deterministic()
+    {
+        return transform.deterministic();
+    }
+
+    @Override
     public Status transform(
         JsonController control,
         JsonSource source,

@@ -16,21 +16,17 @@
 package io.aklivity.zilla.runtime.binding.sse.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
-import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.agrona.BitUtil.SIZE_OF_BYTE;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
-import java.time.Clock;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
-import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -52,7 +48,6 @@ import io.aklivity.zilla.runtime.binding.sse.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.String8FW;
-import io.aklivity.zilla.runtime.binding.sse.internal.types.codec.SseEventFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.Capability;
@@ -62,8 +57,8 @@ import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.HttpChallengeExFW;
+import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.HttpDataExFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.ResetFW;
-import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.SseBeginExFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.SseDataExFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.SseEndExFW;
@@ -76,13 +71,13 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
-import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 
 public final class SseServerFactory implements SseStreamFactory
 {
     private static final String HTTP_TYPE_NAME = "http";
-    private static final int HTTP_IDLE_TIMEOUT_SIGNAL = 0;
+
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
 
     private static final String8FW HEADER_NAME_METHOD = new String8FW(":method");
     private static final String8FW HEADER_NAME_SCHEME = new String8FW(":scheme");
@@ -92,6 +87,8 @@ public final class SseServerFactory implements SseStreamFactory
     private static final String8FW HEADER_NAME_ACCEPT = new String8FW("accept");
     private static final String8FW HEADER_NAME_LAST_EVENT_ID = new String8FW("last-event-id");
     private static final String8FW HEADER_NAME_CONTENT_LENGTH = new String8FW("content-length");
+    private static final String8FW HEADER_NAME_EVENT_ID = new String8FW("id");
+    private static final String8FW HEADER_NAME_EVENT_TYPE = new String8FW("type");
 
     private static final String16FW HEADER_VALUE_STATUS_405 = new String16FW("405");
     private static final String16FW HEADER_VALUE_STATUS_400 = new String16FW("400");
@@ -103,23 +100,14 @@ public final class SseServerFactory implements SseStreamFactory
 
     private static final String8FW LAST_EVENT_ID_NULL = new String8FW(null);
 
-    private static final DirectBufferEx EMPTY_COMMENT = new UnsafeBufferEx(new byte[0]);
-
     private static final byte ASCII_COLON = 0x3a;
     private static final String METHOD_PROPERTY = "method";
     private static final String HEADERS_PROPERTY = "headers";
 
     private static final int MAXIMUM_LAST_EVENT_ID_SIZE = 254;
 
-    public static final int MAXIMUM_HEADER_SIZE =
-            5 +         // data:
-            3 +         // id:
-            255 +       // id string
-            6 +         // event:
-            16 +        // event string
-            3;          // \n for data:, id:, event
-
     private static final int CHALLENGE_CAPABILITIES_MASK = 1 << Capability.CHALLENGE.ordinal();
+    private static final int FRAMING_CAPABILITIES_MASK = 1 << Capability.FRAMING.ordinal();
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -134,11 +122,11 @@ public final class SseServerFactory implements SseStreamFactory
     private final FlushFW.Builder flushRW = new FlushFW.Builder();
 
     private final ChallengeFW challengeRO = new ChallengeFW();
-    private final SignalFW signalRO = new SignalFW();
     private final WindowFW windowRO = new WindowFW();
     private final ResetFW resetRO = new ResetFW();
 
     private final SseBeginExFW.Builder sseBeginExRW = new SseBeginExFW.Builder();
+    private final HttpDataExFW.Builder httpDataExRW = new HttpDataExFW.Builder();
 
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
@@ -151,8 +139,6 @@ public final class SseServerFactory implements SseStreamFactory
     private final SseDataExFW sseDataExRO = new SseDataExFW();
     private final SseEndExFW sseEndExRO = new SseEndExFW();
 
-    private final SseEventFW.Builder sseEventRW = new SseEventFW.Builder();
-
     private final HttpDecodeHelper httpHelper = new HttpDecodeHelper();
 
     private final String8FW challengeEventType;
@@ -160,25 +146,21 @@ public final class SseServerFactory implements SseStreamFactory
 
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx challengeBuffer;
+    private final MutableDirectBufferEx extBuffer;
     private final BufferPool bufferPool;
     private final BindingHandler streamFactory;
-    private final Signaler signaler;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
     private final EngineContext context;
-    private final boolean initialCommentEnabled;
     private final int httpTypeId;
     private final int sseTypeId;
 
     private final Long2ObjectHashMap<SseBindingConfig> bindings;
     private final Consumer<Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW>> setHttpResponseHeaders;
-    private final Consumer<Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW>> setHttpResponseHeadersWithTimestampExt;
     private final Function<ModelConfig, ModelHandler> supplyModel;
     private final MutableDirectBufferEx modelBuffer;
     private final OctetsFW contentRO = new OctetsFW();
-    private final Clock clock;
-    private final long maxIdleMillis;
 
     public SseServerFactory(
         SseConfiguration config,
@@ -186,24 +168,20 @@ public final class SseServerFactory implements SseStreamFactory
     {
         this.writeBuffer = context.writeBuffer();
         this.challengeBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
         this.streamFactory = context.streamFactory();
-        this.signaler = context.signaler();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.supplyTraceId = context::supplyTraceId;
         this.context = context;
         this.bindings = new Long2ObjectHashMap<>();
-        this.initialCommentEnabled = config.initialCommentEnabled();
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
         this.sseTypeId = context.supplyTypeId(SseBinding.NAME);
         this.setHttpResponseHeaders = this::setHttpResponseHeaders;
-        this.setHttpResponseHeadersWithTimestampExt = this::setHttpResponseHeadersWithTimestampExt;
         this.challengeEventType = new String8FW(config.challengeEventType());
         this.supplyModel = context::supplyModel;
         this.modelBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.clock = context.clock();
-        this.maxIdleMillis = SECONDS.toMillis(config.maximumIdleTime());
     }
 
     @Override
@@ -309,10 +287,6 @@ public final class SseServerFactory implements SseStreamFactory
             if (resolved != null)
             {
                 final long compositeId = resolved.compositeId();
-                final boolean timestampRequested = httpBeginEx.headers().anyMatch(header ->
-                    HEADER_NAME_ACCEPT.equals(header.name()) &&
-                    header.value().asString().contains("ext=timestamp"));
-
                 final String8FW lastId8 = httpHelper.asLastId(lastId);
 
                 final SseServer server = new SseServer(
@@ -321,7 +295,6 @@ public final class SseServerFactory implements SseStreamFactory
                     routedId,
                     initialId,
                     resolved.id,
-                    timestampRequested,
                     binding.supplyModelConfig(path.asString()));
 
                 server.onNetBegin(begin);
@@ -347,7 +320,6 @@ public final class SseServerFactory implements SseStreamFactory
         private final long routedId;
         private final long initialId;
         private final long replyId;
-        private final Consumer<Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW>> setHttpHeaders;
         private final SseStream stream;
         private final SseModel contentType;
 
@@ -363,7 +335,6 @@ public final class SseServerFactory implements SseStreamFactory
         private int networkSlot = NO_SLOT;
         private int networkSlotOffset;
 
-        private boolean commentPending;
         private int deferredClaim;
         private boolean deferredEnd;
 
@@ -371,8 +342,7 @@ public final class SseServerFactory implements SseStreamFactory
         private int httpReplyPad;
         private long httpReplyAuth;
         private BudgetDebit httpReplyDebit;
-        private long httpReplyAt;
-        private long httpReplyIdleAt = NO_CANCEL_ID;
+        private boolean windowed;
 
         private SseServer(
             MessageConsumer network,
@@ -380,7 +350,6 @@ public final class SseServerFactory implements SseStreamFactory
             long routedId,
             long initialId,
             long resolvedId,
-            boolean timestampRequested,
             ModelConfig config)
         {
             this.network = network;
@@ -388,9 +357,7 @@ public final class SseServerFactory implements SseStreamFactory
             this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.setHttpHeaders = timestampRequested ? setHttpResponseHeadersWithTimestampExt : setHttpResponseHeaders;
-            this.commentPending = initialCommentEnabled;
-            this.stream = new SseStream(routedId, resolvedId, timestampRequested ? SseDataExFW::timestamp : ex -> 0L);
+            this.stream = new SseStream(routedId, resolvedId);
             this.contentType = SseModel.decoder(config != null ? supplyModel.apply(config) : null, modelBuffer);
         }
 
@@ -425,10 +392,6 @@ public final class SseServerFactory implements SseStreamFactory
             case ChallengeFW.TYPE_ID:
                 final ChallengeFW challenge = challengeRO.wrap(buffer, index, index + length);
                 onNetChallenge(challenge);
-                break;
-            case SignalFW.TYPE_ID:
-                final SignalFW signal = signalRO.wrap(buffer, index, index + length);
-                onNetSignal(signal);
                 break;
             }
         }
@@ -614,11 +577,7 @@ public final class SseServerFactory implements SseStreamFactory
                 final int challengeBytes = challengeBuffer.putStringWithoutLengthUtf8(0, challengeJson);
                 final OctetsFW challengeEvent = challengeEventRO.wrap(challengeBuffer, 0, challengeBytes);
 
-                final SseEventFW sseEvent = sseEventRW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
-                        .flags(COMPLETE)
-                        .type(challengeEventType.value())
-                        .data(challengeEvent)
-                        .build();
+                final Flyweight challengeEx = eventEx(null, challengeEventType.value());
 
                 final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                         .originId(originId)
@@ -629,9 +588,11 @@ public final class SseServerFactory implements SseStreamFactory
                         .maximum(httpReplyMax)
                         .traceId(challenge.traceId())
                         .authorization(0)
+                        .flags(COMPLETE)
                         .budgetId(httpReplyBud)
-                        .reserved(sseEvent.sizeof() + httpReplyPad)
-                        .payload(sseEvent.buffer(), sseEvent.offset(), sseEvent.sizeof())
+                        .reserved(challengeEvent.sizeof() + httpReplyPad)
+                        .payload(challengeEvent)
+                        .extension(challengeEx.buffer(), challengeEx.offset(), challengeEx.sizeof())
                         .build();
 
                 if (networkSlot == NO_SLOT)
@@ -655,57 +616,22 @@ public final class SseServerFactory implements SseStreamFactory
             }
         }
 
-        private void onNetSignal(
-            SignalFW signal)
-        {
-            final long traceId = signal.traceId();
-            final int signalId = signal.signalId();
-
-            switch (signalId)
-            {
-            case HTTP_IDLE_TIMEOUT_SIGNAL:
-                onNetIdleTimeout(traceId);
-                break;
-            }
-        }
-
-        private void onNetIdleTimeout(
-            long traceId)
-        {
-            final long now = clock.millis();
-            final long idleAtMillis = httpReplyAt + maxIdleMillis;
-
-            httpReplyIdleAt = NO_CANCEL_ID;
-
-            if (now > idleAtMillis)
-            {
-                commentPending = true;
-                encodeNetwork(traceId);
-            }
-
-            scheduleNetwork(traceId);
-        }
-
         private void doNetBegin(
-            long replySeq,
-            long replyAck,
-            int replyMax,
             long traceId,
             long authorization,
             long affinity)
         {
-            this.httpReplySeq = replySeq;
-            this.httpReplyAck = replyAck;
-            this.httpReplyMax = replyMax;
+            if (!windowed)
+            {
+                doNetWindow(authorization, traceId, 0L, 0, CHALLENGE_CAPABILITIES_MASK | FRAMING_CAPABILITIES_MASK);
+            }
 
             doHttpBegin(network, originId, routedId, replyId,
-                    replySeq, replyAck, replyMax, traceId, authorization, affinity,
-                    setHttpHeaders);
+                    httpReplySeq, httpReplyAck, httpReplyMax, traceId, authorization, affinity,
+                    setHttpResponseHeaders);
 
             state = SseState.openingReply(state);
-            httpReplyAt = clock.millis();
 
-            scheduleNetwork(traceId);
             encodeNetwork(traceId);
         }
 
@@ -715,17 +641,15 @@ public final class SseServerFactory implements SseStreamFactory
             long budgetId,
             int reserved,
             int flags,
-            Flyweight payload)
+            OctetsFW payload,
+            Flyweight extension)
         {
             doHttpData(network, originId, routedId, replyId, httpReplySeq, httpReplyAck, httpReplyMax,
-                    traceId, authorization, budgetId, flags, reserved, payload);
+                    traceId, authorization, budgetId, flags, reserved, payload, extension);
 
             httpReplySeq += reserved;
-            httpReplyAt = clock.millis();
 
             assert httpReplySeq <= httpReplyAck + httpReplyMax;
-
-            scheduleNetwork(traceId);
         }
 
         private void doNetFlush(
@@ -775,6 +699,8 @@ public final class SseServerFactory implements SseStreamFactory
             int padding,
             int capabilities)
         {
+            windowed = true;
+
             doWindow(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, budgetId, padding, capabilities);
         }
@@ -798,20 +724,9 @@ public final class SseServerFactory implements SseStreamFactory
             int flags,
             OctetsFW payload,
             DirectBufferEx id,
-            DirectBufferEx type,
-            long timestamp)
+            DirectBufferEx type)
         {
-            final SseEventFW sseEvent = sseEventRW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
-                    .flags(flags)
-                    .timestamp(timestamp)
-                    .id(id)
-                    .type(type)
-                    .data(payload)
-                    .build();
-
-            doNetData(traceId, authorization, budgetId, reserved, flags, sseEvent);
-
-            commentPending = false;
+            doNetData(traceId, authorization, budgetId, reserved, flags, payload, eventEx(id, type));
         }
 
         private void flushNetwork(
@@ -825,60 +740,9 @@ public final class SseServerFactory implements SseStreamFactory
             stream.flushAppWindow(traceId);
         }
 
-        private void scheduleNetwork(
-            long traceId)
-        {
-            if (httpReplyIdleAt == NO_CANCEL_ID && maxIdleMillis > 0)
-            {
-                long idleAtMillis = httpReplyAt + maxIdleMillis;
-
-                httpReplyIdleAt = signaler.signalAt(idleAtMillis, originId, routedId, replyId, traceId,
-                    HTTP_IDLE_TIMEOUT_SIGNAL, 0);
-            }
-        }
-
         private void encodeNetwork(
             long traceId)
         {
-            comment:
-            if (commentPending)
-            {
-                final int flags = COMPLETE;
-                final SseEventFW sseEvent =
-                        sseEventRW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
-                                  .flags(flags)
-                                  .comment(EMPTY_COMMENT)
-                                  .build();
-
-                final int reserved = sseEvent.sizeof() + httpReplyPad;
-
-                if (reserved > (int)(httpReplySeq - httpReplyAck + httpReplyMax))
-                {
-                    break comment;
-                }
-
-                int claimed = reserved;
-                if (httpReplyDebit != null)
-                {
-                    claimed = httpReplyDebit.claim(traceId, reserved, reserved);
-                }
-
-                if (claimed == reserved)
-                {
-                    doHttpData(network, originId, routedId, replyId, httpReplySeq, httpReplyAck, httpReplyMax,
-                            traceId, httpReplyAuth, httpReplyBud, flags, reserved, sseEvent);
-
-                    httpReplySeq += reserved;
-                    httpReplyAt = clock.millis();
-
-                    assert httpReplySeq <= httpReplyAck + httpReplyMax;
-
-                    commentPending = false;
-
-                    scheduleNetwork(traceId);
-                }
-            }
-
             if (deferredClaim > 0)
             {
                 assert httpReplyDebit != null;
@@ -908,10 +772,6 @@ public final class SseServerFactory implements SseStreamFactory
                         bufferPool.release(networkSlot);
                         networkSlot = NO_SLOT;
 
-                        httpReplyAt = clock.millis();
-
-                        scheduleNetwork(traceId);
-
                         if (deferredEnd)
                         {
                             final long authorization = data.authorization();
@@ -931,12 +791,6 @@ public final class SseServerFactory implements SseStreamFactory
         private void cleanupNet()
         {
             httpReplyDebit = null;
-
-            if (httpReplyIdleAt != NO_CANCEL_ID)
-            {
-                signaler.cancel(httpReplyIdleAt);
-                httpReplyIdleAt = NO_CANCEL_ID;
-            }
         }
 
         final class SseStream
@@ -946,7 +800,6 @@ public final class SseServerFactory implements SseStreamFactory
             private final long routedId;
             private final long initialId;
             private final long replyId;
-            private final ToLongFunction<SseDataExFW> supplyTimestamp;
 
             private int state;
 
@@ -956,14 +809,12 @@ public final class SseServerFactory implements SseStreamFactory
 
             private SseStream(
                 long originId,
-                long routedId,
-                ToLongFunction<SseDataExFW> supplyTimestamp)
+                long routedId)
             {
                 this.originId = originId;
                 this.routedId = routedId;
                 this.initialId = supplyInitialId.applyAsLong(routedId);
                 this.replyId = supplyReplyId.applyAsLong(initialId);
-                this.supplyTimestamp = supplyTimestamp;
             }
 
             private void doAppBegin(
@@ -1062,24 +913,20 @@ public final class SseServerFactory implements SseStreamFactory
             {
                 final long sequence = begin.sequence();
                 final long acknowledge = begin.acknowledge();
-                final int maximum = begin.maximum();
                 final long traceId = begin.traceId();
                 final long authorization = begin.authorization();
                 final long affinity = begin.affinity();
 
                 assert acknowledge <= sequence;
                 assert sequence >= sseReplySeq;
-                assert acknowledge >= sseReplyAck;
+                assert acknowledge <= sseReplyAck;
 
                 sseReplySeq = sequence;
-                sseReplyAck = acknowledge;
-                sseReplyMax = maximum;
                 state = SseState.openingReply(state);
 
                 assert sseReplyAck <= sseReplySeq;
 
-                doNetBegin(sseReplySeq, sseReplyAck, sseReplyMax,
-                        traceId, authorization, affinity);
+                doNetBegin(traceId, authorization, affinity);
             }
 
             private void onAppData(
@@ -1113,13 +960,11 @@ public final class SseServerFactory implements SseStreamFactory
 
                     DirectBufferEx id = null;
                     DirectBufferEx type = null;
-                    long timestamp = 0L;
                     if (extension.sizeof() > 0)
                     {
                         final SseDataExFW sseDataEx = extension.get(sseDataExRO::wrap);
                         id = sseDataEx.id().value();
                         type = sseDataEx.type().value();
-                        timestamp = supplyTimestamp.applyAsLong(sseDataEx);
                     }
 
                     OctetsFW content = payload;
@@ -1142,7 +987,7 @@ public final class SseServerFactory implements SseStreamFactory
 
                     if (encode)
                     {
-                        doEncodeEvent(traceId, authorization, budgetId, reserved, flags, content, id, type, timestamp);
+                        doEncodeEvent(traceId, authorization, budgetId, reserved, flags, content, id, type);
                     }
                 }
             }
@@ -1171,10 +1016,7 @@ public final class SseServerFactory implements SseStreamFactory
 
                     int flags = COMPLETE;
 
-                    final SseEventFW sseEvent = sseEventRW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
-                            .flags(flags)
-                            .id(id)
-                            .build();
+                    final Flyweight endEx = eventEx(id, null);
 
                     final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                         .originId(SseServer.this.originId)
@@ -1187,8 +1029,9 @@ public final class SseServerFactory implements SseStreamFactory
                         .authorization(authorization)
                         .flags(flags)
                         .budgetId(httpReplyBud)
-                        .reserved(sseEvent.sizeof() + httpReplyPad)
-                        .payload(sseEvent.buffer(), sseEvent.offset(), sseEvent.sizeof())
+                        .reserved(httpReplyPad)
+                        .payload(EMPTY_OCTETS)
+                        .extension(endEx.buffer(), endEx.offset(), endEx.sizeof())
                         .build();
 
                     if (networkSlot == NO_SLOT)
@@ -1274,7 +1117,7 @@ public final class SseServerFactory implements SseStreamFactory
                 final long traceId = window.traceId();
                 final long budgetId = window.budgetId();
                 final int padding = window.padding();
-                final int capabilities = window.capabilities() | CHALLENGE_CAPABILITIES_MASK;
+                final int capabilities = window.capabilities() | CHALLENGE_CAPABILITIES_MASK | FRAMING_CAPABILITIES_MASK;
 
                 assert acknowledge <= sequence;
                 assert acknowledge >= initialAck;
@@ -1321,12 +1164,8 @@ public final class SseServerFactory implements SseStreamFactory
                 long traceId)
             {
                 int httpReplyPendingAck = (int)(httpReplySeq - httpReplyAck) + networkSlotOffset;
-                if (commentPending)
-                {
-                    httpReplyPendingAck += EMPTY_COMMENT.capacity() + 3 + httpReplyPad;
-                }
 
-                int sseReplyPad = httpReplyPad + MAXIMUM_HEADER_SIZE;
+                int sseReplyPad = httpReplyPad;
                 int sseReplyAckMax = Math.max((int)(sseReplySeq - httpReplyPendingAck), 0);
                 if (sseReplyAckMax > sseReplyAck || httpReplyMax > sseReplyMax)
                 {
@@ -1406,13 +1245,6 @@ public final class SseServerFactory implements SseStreamFactory
         headers.item(h -> h.name("content-type").value("text/event-stream"));
     }
 
-    private void setHttpResponseHeadersWithTimestampExt(
-        Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> headers)
-    {
-        headers.item(h -> h.name(":status").value("200"));
-        headers.item(h -> h.name("content-type").value("text/event-stream;ext=timestamp"));
-    }
-
     private void doHttpBegin(
         MessageConsumer receiver,
         long originId,
@@ -1453,6 +1285,34 @@ public final class SseServerFactory implements SseStreamFactory
                          .sizeof();
     }
 
+    private Flyweight eventEx(
+        DirectBufferEx id,
+        DirectBufferEx type)
+    {
+        return id != null || type != null
+            ? httpDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                          .typeId(httpTypeId)
+                          .headers(hs -> setEventHeaders(hs, id, type))
+                          .build()
+            : EMPTY_OCTETS;
+    }
+
+    private void setEventHeaders(
+        Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> headers,
+        DirectBufferEx id,
+        DirectBufferEx type)
+    {
+        if (id != null)
+        {
+            headers.item(h -> h.name(HEADER_NAME_EVENT_ID).value(id, 0, id.capacity()));
+        }
+
+        if (type != null)
+        {
+            headers.item(h -> h.name(HEADER_NAME_EVENT_TYPE).value(type, 0, type.capacity()));
+        }
+    }
+
     private void doHttpData(
         MessageConsumer receiver,
         long originId,
@@ -1466,7 +1326,8 @@ public final class SseServerFactory implements SseStreamFactory
         long budgetId,
         int flags,
         int reserved,
-        Flyweight payload)
+        OctetsFW payload,
+        Flyweight extension)
     {
         final DataFW frame = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
@@ -1480,7 +1341,8 @@ public final class SseServerFactory implements SseStreamFactory
                 .flags(flags)
                 .budgetId(budgetId)
                 .reserved(reserved)
-                .payload(payload.buffer(), payload.offset(), payload.sizeof())
+                .payload(payload)
+                .extension(extension.buffer(), extension.offset(), extension.sizeof())
                 .build();
 
         receiver.accept(frame.typeId(), frame.buffer(), frame.offset(), frame.sizeof());

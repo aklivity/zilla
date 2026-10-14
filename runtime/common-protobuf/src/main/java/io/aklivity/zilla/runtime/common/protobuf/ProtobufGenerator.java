@@ -257,4 +257,9 @@ public interface ProtobufGenerator
      * generator that re-encodes into a different representation (e.g. JSON) is not identity.
      */
     boolean identity();
+
+    /**
+     * Whether this generator always writes the same bytes for the same input, configuration and authorization.
+     */
+    boolean deterministic();
 }

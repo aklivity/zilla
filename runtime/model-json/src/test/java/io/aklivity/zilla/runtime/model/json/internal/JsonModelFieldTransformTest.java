@@ -262,6 +262,12 @@ public class JsonModelFieldTransformTest
         return new ModelTransform()
         {
             @Override
+            public boolean deterministic()
+            {
+                return true;
+            }
+
+            @Override
             public ModelStatus transform(
                 ModelController control,
                 ModelSource source,
@@ -291,6 +297,12 @@ public class JsonModelFieldTransformTest
         String prefix = "$." + arrayName + "[";
         return new ModelTransform()
         {
+            @Override
+            public boolean deterministic()
+            {
+                return true;
+            }
+
             @Override
             public ModelStatus transform(
                 ModelController control,
@@ -324,6 +336,12 @@ public class JsonModelFieldTransformTest
         return new ModelTransform()
         {
             @Override
+            public boolean deterministic()
+            {
+                return true;
+            }
+
+            @Override
             public ModelStatus transform(
                 ModelController control,
                 ModelSource source,
@@ -353,6 +371,12 @@ public class JsonModelFieldTransformTest
     {
         return new ModelTransform()
         {
+            @Override
+            public boolean deterministic()
+            {
+                return true;
+            }
+
             @Override
             public ModelStatus transform(
                 ModelController control,

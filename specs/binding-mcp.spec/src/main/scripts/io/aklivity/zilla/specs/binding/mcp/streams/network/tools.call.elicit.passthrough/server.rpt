@@ -97,8 +97,11 @@ write zilla:begin.ext ${http:beginEx()
                             .build()}
 write flush
 
-write 'id: 2:1\n'
-write 'data: {'
+write zilla:data.ext ${http:dataEx()
+                             .typeId(zilla:id("http"))
+                             .header("id", "2:1")
+                             .build()}
+write '{'
         '"jsonrpc":"2.0",'
         '"method":"elicitation/create",'
         '"params":'
@@ -109,8 +112,7 @@ write 'data: {'
          ${http:encodeQuery("https://remote.example.com/callback")}
          '"'
         '}'
-      '}\n'
-write '\n'
+      '}'
 write flush
 
 write close

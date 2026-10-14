@@ -287,4 +287,81 @@ public class CoreModelIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("string.pipeline.yaml")
+    @Specification({
+        "${net}/client.sent.string.valid/client",
+        "${app}/client.sent.string.valid/server"
+    })
+    public void shouldDeclareIdentityAndDeterminismForString() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("int32.pipeline.yaml")
+    @Specification({
+        "${net}/client.sent.int32/client",
+        "${app}/client.sent.int32/server"
+    })
+    public void shouldDeclareIdentityAndDeterminismForInt32() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("int64.pipeline.yaml")
+    @Specification({
+        "${net}/client.sent.int64/client",
+        "${app}/client.sent.int64/server"
+    })
+    public void shouldDeclareIdentityAndDeterminismForInt64() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("float.pipeline.yaml")
+    @Specification({
+        "${net}/client.sent.float/client",
+        "${app}/client.sent.float/server"
+    })
+    public void shouldDeclareIdentityAndDeterminismForFloat() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("double.pipeline.yaml")
+    @Specification({
+        "${net}/client.sent.double/client",
+        "${app}/client.sent.double/server"
+    })
+    public void shouldDeclareIdentityAndDeterminismForDouble() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("boolean.pipeline.yaml")
+    @Specification({
+        "${net}/client.sent.boolean/client",
+        "${app}/client.sent.boolean/server"
+    })
+    public void shouldDeclareIdentityAndDeterminismForBoolean() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("bytes.pipeline.yaml")
+    @Specification({
+        "${net}/client.sent.bytes/client",
+        "${app}/client.sent.bytes/server"
+    })
+    public void shouldDeclareIdentityAndDeterminismForBytes() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -44,6 +44,14 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateModelPipelineAssertion()
+    {
+        JsonObject config = schema.validate("value.binary.ext.pipeline.assertion.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateCatalogWithOverlay()
     {
         JsonObject config = schema.validate("model.overlay.yaml");

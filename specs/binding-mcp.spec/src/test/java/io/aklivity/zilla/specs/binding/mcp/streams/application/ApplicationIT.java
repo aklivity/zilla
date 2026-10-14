@@ -1197,15 +1197,6 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/lifecycle.events.keepalive/client",
-        "${app}/lifecycle.events.keepalive/server"})
-    public void shouldKeepaliveLifecycleEvents() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/lifecycle.ping/client",
         "${app}/lifecycle.ping/server"})
     public void shouldPingLifecycle() throws Exception

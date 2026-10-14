@@ -111,6 +111,7 @@ public class ProtobufModelDecoderPipelineTest
     private static final String JSON = "{\"content\":\"OK\",\"date_time\":\"01012024\"}";
 
     private EngineContext context;
+    private String framing;
 
     @Before
     public void init()
@@ -182,6 +183,7 @@ public class ProtobufModelDecoderPipelineTest
             .type("test")
             .options(TestCatalogOptionsConfig::builder)
                 .id(9)
+                .prefix(framing)
                 .schema(COMPLEX_SCHEMA)
                 .build()
             .build();
@@ -263,29 +265,92 @@ public class ProtobufModelDecoderPipelineTest
     }
 
     @Test
-    public void shouldReportIdentityWhenNoView()
+    public void shouldReportIdentityForCachedReadWhenNoView()
+    {
+        ProtobufModelHandlerImpl handler = newHandler(null);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.READ);
+
+        assertTrue(pipeline.identity());
+        assertTrue(pipeline.deterministic());
+
+        pipeline.reset();
+        assertTrue(pipeline.identity());
+        assertTrue(pipeline.deterministic());
+    }
+
+    @Test
+    public void shouldReportIdentityForCachedReadWhenObservingTransformWired()
+    {
+        ProtobufModelHandlerImpl handler = newHandler(null);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(new HashMap<>()), ModelCache.READ);
+
+        assertTrue(pipeline.identity());
+    }
+
+    @Test
+    public void shouldDeriveDeterminismFromFieldTransformWired()
+    {
+        ProtobufModelHandlerImpl handler = newHandler(null);
+
+        assertTrue(handler.supplyDecoder(ModelEnvelope.NONE, observer(new HashMap<>()), ModelCache.NONE).deterministic());
+        assertFalse(handler.supplyDecoder(ModelEnvelope.NONE, observer(new HashMap<>(), false), ModelCache.NONE)
+            .deterministic());
+    }
+
+    @Test
+    public void shouldNotReportDeterminismWhenExtensionInstalled()
+    {
+        ProtobufModelHandlerImpl handler = newHandler(null, List.of(failing()));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.READ);
+
+        assertFalse(pipeline.deterministic());
+    }
+
+    @Test
+    public void shouldReportDeterminismWhenJsonView()
+    {
+        ProtobufModelHandlerImpl handler = newHandler("json");
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+
+        assertTrue(pipeline.deterministic());
+    }
+
+    @Test
+    public void shouldNotReportIdentityWhenValueCarriesMessageIndex()
     {
         ProtobufModelHandlerImpl handler = newHandler(null);
         ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         assertFalse(pipeline.identity());
 
-        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        pipeline.transform(0L, 0L, 0L, COMPLETE,
-            new UnsafeBufferEx(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
-
-        assertTrue(pipeline.identity());
+        transformValue(pipeline);
+        assertFalse(pipeline.identity());
     }
 
     @Test
     public void shouldNotReportIdentityWhenJsonView()
     {
         ProtobufModelHandlerImpl handler = newHandler("json");
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.READ);
 
-        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        pipeline.transform(0L, 0L, 0L, COMPLETE,
-            new UnsafeBufferEx(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
+        assertFalse(pipeline.identity());
+    }
+
+    @Test
+    public void shouldNotReportIdentityWhenCatalogFramesValues()
+    {
+        framing = "ZL";
+        ProtobufModelHandlerImpl handler = newHandler(null);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.READ);
+
+        assertFalse(pipeline.identity());
+    }
+
+    @Test
+    public void shouldNotReportIdentityWhenExtensionInstalled()
+    {
+        ProtobufModelHandlerImpl handler = newHandler(null, List.of(failing()));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.READ);
 
         assertFalse(pipeline.identity());
     }
@@ -357,6 +422,7 @@ public class ProtobufModelDecoderPipelineTest
             .type("test")
             .options(TestCatalogOptionsConfig::builder)
                 .id(1)
+                .prefix(framing)
                 .schema(SCHEMA)
                 .prefix("XX")
                 .build()
@@ -486,6 +552,12 @@ public class ProtobufModelDecoderPipelineTest
     private static final class Failing implements ProtobufTransform
     {
         @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
+        @Override
         public ProtobufPipeline.Status transform(
             ProtobufController control,
             ProtobufSource source,
@@ -512,6 +584,7 @@ public class ProtobufModelDecoderPipelineTest
             .type("test")
             .options(TestCatalogOptionsConfig::builder)
                 .id(1)
+                .prefix(framing)
                 .schema(SCHEMA)
                 .build()
             .build();
@@ -580,11 +653,32 @@ public class ProtobufModelDecoderPipelineTest
         return new String(chunk, UTF_8);
     }
 
+    private static void transformValue(
+        ModelPipeline pipeline)
+    {
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        pipeline.transform(0L, 0L, 0L, COMPLETE,
+            new UnsafeBufferEx(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
+    }
+
     private static ModelTransform observer(
         Map<String, String> extracted)
     {
+        return observer(extracted, true);
+    }
+
+    private static ModelTransform observer(
+        Map<String, String> extracted,
+        boolean deterministic)
+    {
         return new ModelTransform()
         {
+            @Override
+            public boolean deterministic()
+            {
+                return deterministic;
+            }
+
             @Override
             public ModelStatus transform(
                 ModelController control,

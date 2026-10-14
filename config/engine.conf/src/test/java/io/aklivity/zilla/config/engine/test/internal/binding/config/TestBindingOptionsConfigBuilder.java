@@ -31,6 +31,7 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
     private final Function<OptionsConfig, T> mapper;
 
     private ModelConfig value;
+    private List<ModelConfig> values;
     private String mode;
     private String schema;
     private TestAuthorizationConfig authorization;
@@ -42,8 +43,10 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
     private String store;
     private List<TestBindingOptionsConfig.StoreAssertions> storeAssertions;
     private String embedding;
+    private String classifier;
     private List<TestBindingOptionsConfig.EnvelopeValue> envelope;
     private List<TestBindingOptionsConfig.EnvelopeAssertion> envelopeAssertions;
+    private TestBindingOptionsConfig.PipelineAssertion pipelineAssertion;
     private String originType;
 
     TestBindingOptionsConfigBuilder(
@@ -63,6 +66,21 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
         ModelConfig value)
     {
         this.value = value;
+        return this;
+    }
+
+    public TestBindingOptionsConfigBuilder<T> values(
+        List<ModelConfig> values)
+    {
+        this.values = values;
+        return this;
+    }
+
+    public TestBindingOptionsConfigBuilder<T> pipelineAssertion(
+        TestBindingOptionsConfig.PipelineExpectation encode,
+        TestBindingOptionsConfig.PipelineExpectation decode)
+    {
+        this.pipelineAssertion = new TestBindingOptionsConfig.PipelineAssertion(encode, decode);
         return this;
     }
 
@@ -207,6 +225,13 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
         return this;
     }
 
+    public TestBindingOptionsConfigBuilder<T> classifier(
+        String classifier)
+    {
+        this.classifier = classifier;
+        return this;
+    }
+
     public TestBindingOptionsConfigBuilder<T> envelope(
         String name,
         String value)
@@ -264,9 +289,17 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
     @Override
     public T build()
     {
-        List<Config.Reference> refs = value != null ? value.refs() : List.of();
-        return mapper.apply(new TestBindingOptionsConfig(value, mode, schema, authorization, catalogs, events,
-                metrics, catalogAssertions, vaultAssertion, store, storeAssertions, embedding, envelope, envelopeAssertions,
-                originType, refs));
+        List<Config.Reference> refs = new LinkedList<>();
+        if (value != null)
+        {
+            refs.addAll(value.refs());
+        }
+        if (values != null)
+        {
+            values.forEach(v -> refs.addAll(v.refs()));
+        }
+        return mapper.apply(new TestBindingOptionsConfig(value, values, mode, schema, authorization, catalogs, events,
+                metrics, catalogAssertions, vaultAssertion, store, storeAssertions, embedding, classifier, envelope,
+                envelopeAssertions, pipelineAssertion, originType, refs));
     }
 }

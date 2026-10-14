@@ -69,6 +69,7 @@ import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
+import io.aklivity.zilla.runtime.engine.classifier.Classifier;
 import io.aklivity.zilla.runtime.engine.diagnostic.EngineDiagnosticsTask;
 import io.aklivity.zilla.runtime.engine.embedding.Embedding;
 import io.aklivity.zilla.runtime.engine.event.EventFormatter;
@@ -131,6 +132,7 @@ public final class Engine implements Collector, AutoCloseable
         Collection<Vault> vaults,
         Collection<Catalog> catalogs,
         Collection<Embedding> embeddings,
+        Collection<Classifier> classifiers,
         Collection<Model> models,
         Collection<Store> stores,
         EventFormatterFactory eventFormatterFactory,
@@ -235,8 +237,8 @@ public final class Engine implements Collector, AutoCloseable
         {
             EngineWorker worker =
                 new EngineWorker(config, tasks, diagnoseOnError, tuning::affinity, bindings, exporters,
-                    guards, vaults, catalogs, embeddings, models, metricGroups, stores, router, nodeId, routerConfig, this,
-                    this::supplyEventReader, eventFormatterFactory, workerIndex, readonly, this::process, boss);
+                    guards, vaults, catalogs, embeddings, classifiers, models, metricGroups, stores, router, nodeId, routerConfig,
+                    this, this::supplyEventReader, eventFormatterFactory, workerIndex, readonly, this::process, boss);
             workers.add(worker);
         }
         this.workers = workers;

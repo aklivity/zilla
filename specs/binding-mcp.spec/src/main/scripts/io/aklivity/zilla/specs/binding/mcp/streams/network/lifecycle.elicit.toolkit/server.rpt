@@ -92,7 +92,7 @@ write zilla:begin.ext ${http:beginEx()
                             .build()}
 write flush
 
-write 'data: {'
+write '{'
         '"jsonrpc":"2.0",'
         '"id":"a1b2c3",'
         '"method":"elicitation/create",'
@@ -104,8 +104,7 @@ write 'data: {'
           ${http:encodeQuery("http://localhost:8080/mcp/auth/callback")}
           '"'
         '}'
-      '}\n'
-write '\n'
+      '}'
 write flush
 write notify ELICIT_CREATED
 

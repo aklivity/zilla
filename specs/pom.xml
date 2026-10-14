@@ -50,6 +50,7 @@
     <module>catalog-inline.spec</module>
     <module>catalog-karapace.spec</module>
     <module>catalog-schema-registry.spec</module>
+    <module>embedding-openai.spec</module>
     <module>exporter-otlp.spec</module>
     <module>exporter-prometheus.spec</module>
     <module>exporter-stdout.spec</module>

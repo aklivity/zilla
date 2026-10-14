@@ -99,6 +99,7 @@ public class JsonModelDecoderPipelineTest
         }""";
 
     private EngineContext context;
+    private String framing;
 
     @Before
     public void init()
@@ -246,19 +247,83 @@ public class JsonModelDecoderPipelineTest
     }
 
     @Test
-    public void shouldReportIdentity()
+    public void shouldReportIdentityAndDeterministicBeforeAndAfterFirstValue()
     {
         JsonModelHandlerImpl handler = newHandler();
         ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
-        assertFalse(pipeline.identity());
-
-        byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
-        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        pipeline.transform(0L, 0L, 0L, COMPLETE,
-            new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
-
         assertTrue(pipeline.identity());
+        assertTrue(pipeline.deterministic());
+
+        transformValue(pipeline);
+        assertTrue(pipeline.identity());
+        assertTrue(pipeline.deterministic());
+
+        pipeline.reset();
+        assertTrue(pipeline.identity());
+        assertTrue(pipeline.deterministic());
+    }
+
+    @Test
+    public void shouldDeriveDeterminismFromDeterministicFieldTransformWired()
+    {
+        JsonModelHandlerImpl handler = newHandler();
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(new HashMap<>()), ModelCache.NONE);
+
+        assertFalse(pipeline.identity());
+        assertTrue(pipeline.deterministic());
+
+        transformValue(pipeline);
+        assertFalse(pipeline.identity());
+        assertTrue(pipeline.deterministic());
+
+        pipeline.reset();
+        assertFalse(pipeline.identity());
+        assertTrue(pipeline.deterministic());
+    }
+
+    @Test
+    public void shouldNotReportDeterminismWhenNondeterministicFieldTransformWired()
+    {
+        JsonModelHandlerImpl handler = newHandler();
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(new HashMap<>(), false), ModelCache.NONE);
+
+        assertFalse(pipeline.deterministic());
+
+        transformValue(pipeline);
+        assertFalse(pipeline.deterministic());
+
+        pipeline.reset();
+        assertFalse(pipeline.deterministic());
+    }
+
+    @Test
+    public void shouldNotReportIdentityWhenCatalogFramesValues()
+    {
+        framing = "ZL";
+        JsonModelHandlerImpl handler = newHandler();
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+
+        assertFalse(pipeline.identity());
+        assertTrue(pipeline.deterministic());
+    }
+
+    @Test
+    public void shouldNotReportIdentityNorDeterminismWhenExtensionInstalled()
+    {
+        JsonModelHandlerImpl handler = newHandler(OBJECT_SCHEMA, List.of(dropping("status")));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+
+        assertFalse(pipeline.identity());
+        assertFalse(pipeline.deterministic());
+
+        transformValue(pipeline);
+        assertFalse(pipeline.identity());
+        assertFalse(pipeline.deterministic());
+
+        pipeline.reset();
+        assertFalse(pipeline.identity());
+        assertFalse(pipeline.deterministic());
     }
 
     @Test
@@ -411,6 +476,12 @@ public class JsonModelDecoderPipelineTest
     private static final class Failing implements JsonTransform
     {
         @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
+        @Override
         public Status transform(
             JsonController control,
             JsonSource source,
@@ -471,6 +542,7 @@ public class JsonModelDecoderPipelineTest
             .type("test")
             .options(TestCatalogOptionsConfig::builder)
                 .id(9)
+                .prefix(framing)
                 .schema(schema)
                 .build()
             .build();
@@ -501,6 +573,15 @@ public class JsonModelDecoderPipelineTest
         return result;
     }
 
+    private static void transformValue(
+        ModelPipeline pipeline)
+    {
+        byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        pipeline.transform(0L, 0L, 0L, COMPLETE,
+            new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
+    }
+
     private static void drain(
         MutableDirectBufferEx dst,
         int produced,
@@ -523,8 +604,21 @@ public class JsonModelDecoderPipelineTest
     private static ModelTransform observer(
         Map<String, String> extracted)
     {
+        return observer(extracted, true);
+    }
+
+    private static ModelTransform observer(
+        Map<String, String> extracted,
+        boolean deterministic)
+    {
         return new ModelTransform()
         {
+            @Override
+            public boolean deterministic()
+            {
+                return deterministic;
+            }
+
             @Override
             public ModelStatus transform(
                 ModelController control,
@@ -584,6 +678,12 @@ public class JsonModelDecoderPipelineTest
             String dropKey)
         {
             this.dropKey = dropKey;
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
         }
 
         @Override

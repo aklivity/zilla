@@ -104,6 +104,12 @@ final class AvroPipelineImpl implements AvroPipeline
     }
 
     @Override
+    public boolean deterministic()
+    {
+        return parser.deterministic() && root.deterministic();
+    }
+
+    @Override
     public void authorization(
         long authorization)
     {

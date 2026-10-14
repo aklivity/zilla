@@ -396,6 +396,56 @@ public class NamespaceConfigAdapterTest
     }
 
     @Test
+    public void shouldReadNamespaceWithClassifier()
+    {
+        String text =
+                "{" +
+                    "\"name\": \"test\"," +
+                    "\"classifiers\":" +
+                    "{" +
+                        "\"default\":" +
+                        "{" +
+                            "\"type\": \"test\"," +
+                            "\"embedding\": \"embedding0\"," +
+                            "\"store\": \"store0\"," +
+                            "\"options\": {}" +
+                        "}" +
+                    "}" +
+                "}";
+
+        NamespaceConfig config = jsonb.fromJson(text, NamespaceConfig.class);
+
+        assertThat(config, not(nullValue()));
+        assertThat(config.classifiers, hasSize(1));
+        assertThat(config.classifiers.get(0).name, equalTo("default"));
+        assertThat(config.classifiers.get(0).type, equalTo("test"));
+        assertThat(config.classifiers.get(0).embedding, equalTo("embedding0"));
+        assertThat(config.classifiers.get(0).store, equalTo("store0"));
+        assertThat(config.classifiers.get(0).options, not(nullValue()));
+    }
+
+    @Test
+    public void shouldWriteNamespaceWithClassifier()
+    {
+        NamespaceConfig config = NamespaceConfig.builder()
+                .inject(identity())
+                .name("test")
+                .classifier()
+                    .name("default")
+                    .type("test")
+                    .embedding("embedding0")
+                    .store("store0")
+                    .build()
+                .build();
+
+        String text = jsonb.toJson(config);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"name\":\"test\",\"classifiers\":{\"default\":{" +
+                "\"type\":\"test\",\"embedding\":\"embedding0\",\"store\":\"store0\"}}}"));
+    }
+
+    @Test
     public void shouldReadNamespaceWithGuardAndStore()
     {
         String text =

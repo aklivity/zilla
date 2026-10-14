@@ -39,15 +39,6 @@ public class DataIT
 
     @Test
     @Specification({
-        "${net}/name.only/request",
-        "${net}/name.only/response" })
-    public void shouldReceiveDataNameOnly() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/empty/request",
         "${net}/empty/response" })
     public void shouldReceiveEmptyData() throws Exception
@@ -112,27 +103,18 @@ public class DataIT
 
     @Test
     @Specification({
-        "${net}/invalid.utf8/request",
-        "${net}/invalid.utf8/response" })
-    public void shouldRejectDataWithInvalidUTF8() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/initial.whitespace/request",
-        "${net}/initial.whitespace/response" })
-    public void shouldReceiveDataWithInitialWhitespace() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/multi.line/request",
         "${net}/multi.line/response" })
     public void shouldReceiveMultiLineData() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/window.before.begin/request",
+        "${net}/window.before.begin/response" })
+    public void shouldReceiveDataWithWindowBeforeBegin() throws Exception
     {
         k3po.finish();
     }

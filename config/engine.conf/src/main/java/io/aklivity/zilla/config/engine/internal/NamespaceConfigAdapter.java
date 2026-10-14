@@ -16,6 +16,7 @@ package io.aklivity.zilla.config.engine.internal;
 
 import static io.aklivity.zilla.config.engine.NamespaceConfigBuilder.BINDINGS_DEFAULT;
 import static io.aklivity.zilla.config.engine.NamespaceConfigBuilder.CATALOGS_DEFAULT;
+import static io.aklivity.zilla.config.engine.NamespaceConfigBuilder.CLASSIFIERS_DEFAULT;
 import static io.aklivity.zilla.config.engine.NamespaceConfigBuilder.EMBEDDINGS_DEFAULT;
 import static io.aklivity.zilla.config.engine.NamespaceConfigBuilder.GUARDS_DEFAULT;
 import static io.aklivity.zilla.config.engine.NamespaceConfigBuilder.STORES_DEFAULT;
@@ -34,6 +35,8 @@ import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.BindingInfo;
 import io.aklivity.zilla.config.engine.CatalogConfig;
 import io.aklivity.zilla.config.engine.CatalogInfo;
+import io.aklivity.zilla.config.engine.ClassifierConfig;
+import io.aklivity.zilla.config.engine.ClassifierInfo;
 import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.EmbeddingConfig;
 import io.aklivity.zilla.config.engine.EmbeddingInfo;
@@ -55,6 +58,7 @@ public class NamespaceConfigAdapter extends ConfigAdapter<NamespaceConfig, JsonO
     private static final String BINDINGS_NAME = "bindings";
     private static final String CATALOGS_NAME = "catalogs";
     private static final String EMBEDDINGS_NAME = "embeddings";
+    private static final String CLASSIFIERS_NAME = "classifiers";
     private static final String GUARDS_NAME = "guards";
     private static final String VAULTS_NAME = "vaults";
     private static final String STORES_NAME = "stores";
@@ -65,6 +69,7 @@ public class NamespaceConfigAdapter extends ConfigAdapter<NamespaceConfig, JsonO
     private final Map<String, GuardConfigAdapter> guardsByType;
     private final Map<String, CatalogConfigAdapter> catalogsByType;
     private final Map<String, EmbeddingConfigAdapter> embeddingsByType;
+    private final Map<String, ClassifierConfigAdapter> classifiersByType;
     private final Map<String, StoreConfigAdapter> storesByType;
 
     public NamespaceConfigAdapter(
@@ -76,6 +81,7 @@ public class NamespaceConfigAdapter extends ConfigAdapter<NamespaceConfig, JsonO
         vaultsByType = info.vaults().stream().collect(toMap(VaultInfo::type, VaultConfigAdapter::new));
         catalogsByType = info.catalogs().stream().collect(toMap(CatalogInfo::type, CatalogConfigAdapter::new));
         embeddingsByType = info.embeddings().stream().collect(toMap(EmbeddingInfo::type, EmbeddingConfigAdapter::new));
+        classifiersByType = info.classifiers().stream().collect(toMap(ClassifierInfo::type, ClassifierConfigAdapter::new));
         storesByType = info.stores().stream().collect(toMap(StoreInfo::type, StoreConfigAdapter::new));
     }
 
@@ -145,6 +151,18 @@ public class NamespaceConfigAdapter extends ConfigAdapter<NamespaceConfig, JsonO
                 embeddings.add(e.name, adapter.adaptToJson(e));
             }
             object.add(EMBEDDINGS_NAME, embeddings);
+        }
+
+        if (!CLASSIFIERS_DEFAULT.equals(config.classifiers))
+        {
+            JsonObjectBuilder classifiers = Json.createObjectBuilder();
+            for (ClassifierConfig e : config.classifiers)
+            {
+                ClassifierConfigAdapter adapter = classifiersByType.get(e.type);
+                assert adapter != null : "unrecognized classifier type: " + e.type;
+                classifiers.add(e.name, adapter.adaptToJson(e));
+            }
+            object.add(CLASSIFIERS_NAME, classifiers);
         }
 
         if (!STORES_DEFAULT.equals(config.stores))
@@ -255,6 +273,21 @@ public class NamespaceConfigAdapter extends ConfigAdapter<NamespaceConfig, JsonO
                 assert adapter != null : "unrecognized embedding type: " + type;
 
                 builder.embedding(adapter.adaptFromJson(namespace, name, value));
+            }
+        }
+
+        if (object.containsKey(CLASSIFIERS_NAME))
+        {
+            for (Map.Entry<String, JsonValue> entry : object.getJsonObject(CLASSIFIERS_NAME).entrySet())
+            {
+                String name = entry.getKey();
+                JsonObject value = entry.getValue().asJsonObject();
+
+                String type = value.getString(TYPE_NAME);
+                ClassifierConfigAdapter adapter = classifiersByType.get(type);
+                assert adapter != null : "unrecognized classifier type: " + type;
+
+                builder.classifier(adapter.adaptFromJson(namespace, name, value));
             }
         }
 

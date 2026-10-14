@@ -92,12 +92,17 @@ write zilla:begin.ext ${http:beginEx()
                             .build()}
 write flush
 
-write 'id: :0\n'
-write '\n'
+write zilla:data.ext ${http:dataEx()
+                             .typeId(zilla:id("http"))
+                             .header("id", ":0")
+                             .build()}
 write flush
 
-write 'id: :1\n'
-write 'data: {'
+write zilla:data.ext ${http:dataEx()
+                             .typeId(zilla:id("http"))
+                             .header("id", ":1")
+                             .build()}
+write '{'
         '"jsonrpc":"2.0",'
         '"method":"elicitation/create",'
         '"params":'
@@ -106,20 +111,21 @@ write 'data: {'
           '"elicitationId":"remote-1",'
           '"url":"https://remote.example.com/authorize?state=remote-nonce"'
         '}'
-      '}\n'
-write '\n'
+      '}'
 write flush
 
-write 'id: :2\n'
-write 'data: {'
+write zilla:data.ext ${http:dataEx()
+                             .typeId(zilla:id("http"))
+                             .header("id", ":2")
+                             .build()}
+write '{'
         '"jsonrpc":"2.0",'
         '"method":"notifications/elicitation/complete",'
         '"params":'
         '{'
           '"elicitationId":"remote-1"'
         '}'
-      '}\n'
-write '\n'
+      '}'
 write flush
 
 read closed

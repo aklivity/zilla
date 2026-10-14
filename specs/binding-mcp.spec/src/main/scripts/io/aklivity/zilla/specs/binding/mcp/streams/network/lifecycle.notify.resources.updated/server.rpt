@@ -94,11 +94,15 @@ write zilla:begin.ext ${http:beginEx()
                             .build()}
 write flush
 
-write 'id: :0\n'
-write '\n'
+write zilla:data.ext ${http:dataEx()
+                             .typeId(zilla:id("http"))
+                             .header("id", ":0")
+                             .build()}
 write flush
 
-write 'id: :1\n'
-write 'data: {"jsonrpc":"2.0","method":"notifications/resources/updated","params":{"uri":"file:///data/readme.txt"}}\n'
-write '\n'
+write zilla:data.ext ${http:dataEx()
+                             .typeId(zilla:id("http"))
+                             .header("id", ":1")
+                             .build()}
+write '{"jsonrpc":"2.0","method":"notifications/resources/updated","params":{"uri":"file:///data/readme.txt"}}'
 write flush

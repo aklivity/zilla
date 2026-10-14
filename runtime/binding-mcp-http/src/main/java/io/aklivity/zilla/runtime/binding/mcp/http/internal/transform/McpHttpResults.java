@@ -150,6 +150,12 @@ public final class McpHttpResults implements JsonTransform
     }
 
     @Override
+    public boolean deterministic()
+    {
+        return true;
+    }
+
+    @Override
     public Status transform(
         JsonController control,
         JsonSource source,

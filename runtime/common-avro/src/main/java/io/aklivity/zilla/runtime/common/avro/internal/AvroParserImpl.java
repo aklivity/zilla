@@ -204,6 +204,12 @@ public final class AvroParserImpl implements AvroParser
     }
 
     @Override
+    public boolean deterministic()
+    {
+        return true;
+    }
+
+    @Override
     public int remaining()
     {
         return limit - progress;

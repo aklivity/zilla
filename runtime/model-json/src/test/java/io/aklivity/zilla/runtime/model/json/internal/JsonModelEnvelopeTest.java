@@ -308,6 +308,12 @@ public class JsonModelEnvelopeTest
         }
 
         @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
+        @Override
         public Status transform(
             JsonController control,
             JsonSource avroSource,
@@ -352,6 +358,12 @@ public class JsonModelEnvelopeTest
         }
 
         @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
+        @Override
         public Status transform(
             JsonController control,
             JsonSource source,
@@ -378,6 +390,12 @@ public class JsonModelEnvelopeTest
         private JsonEnvelope envelope;
 
         @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
+        @Override
         public Status transform(
             JsonController control,
             JsonSource source,
@@ -398,6 +416,12 @@ public class JsonModelEnvelopeTest
     // a generic stage the caller composes over the same envelope it supplies to the pipeline
     private static final class Reading implements ModelTransform
     {
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
         private final ModelEnvelope envelope;
         private final String name;
         private final List<String> read = new ArrayList<>();

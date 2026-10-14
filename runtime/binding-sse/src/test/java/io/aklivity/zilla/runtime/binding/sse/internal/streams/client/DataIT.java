@@ -72,6 +72,16 @@ public class DataIT
     @Test
     @Configuration("client.when.yaml")
     @Specification({
+        "${app}/window.before.begin/client",
+        "${net}/non.empty/response" })
+    public void shouldReceiveMessageWithWindowBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.yaml")
+    @Specification({
         "${app}/multiple/client",
         "${net}/multiple/response" })
     public void shouldReceiveMultipleMessages() throws Exception
@@ -95,16 +105,6 @@ public class DataIT
         "${app}/fragmented.100k/client",
         "${net}/fragmented.100k/response" })
     public void shouldReceiveFragmentedMessage100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.when.yaml")
-    @Specification({
-        "${app}/name.only/client",
-        "${net}/name.only/response" })
-    public void shouldReceiveNameOnlyMessage() throws Exception
     {
         k3po.finish();
     }
