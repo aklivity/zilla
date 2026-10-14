@@ -2735,4 +2735,13 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.max.output.tokens/client",
+        "${app}/transform.request.max.output.tokens/server"})
+    public void shouldTransformRequestMaxOutputTokens() throws Exception
+    {
+        k3po.finish();
+    }
 }

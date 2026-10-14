@@ -19,6 +19,7 @@ import io.aklivity.zilla.runtime.engine.Configuration;
 public class LlmConfiguration extends Configuration
 {
     public static final IntPropertyDef LLM_SIGNED_REQUEST_MAX_BYTES;
+    public static final IntPropertyDef LLM_ANTHROPIC_MAX_TOKENS;
 
     private static final ConfigurationDef LLM_CONFIG;
 
@@ -26,6 +27,7 @@ public class LlmConfiguration extends Configuration
     {
         final ConfigurationDef config = new ConfigurationDef(String.format("zilla.binding.%s", LlmBinding.NAME));
         LLM_SIGNED_REQUEST_MAX_BYTES = config.property("signed.request.max.bytes", 10 * 1024 * 1024);
+        LLM_ANTHROPIC_MAX_TOKENS = config.property("anthropic.max.tokens", 4096);
         LLM_CONFIG = config;
     }
 
@@ -38,5 +40,10 @@ public class LlmConfiguration extends Configuration
     public int signedRequestMaxBytes()
     {
         return LLM_SIGNED_REQUEST_MAX_BYTES.get(this);
+    }
+
+    public int anthropicMaxTokens()
+    {
+        return LLM_ANTHROPIC_MAX_TOKENS.get(this);
     }
 }

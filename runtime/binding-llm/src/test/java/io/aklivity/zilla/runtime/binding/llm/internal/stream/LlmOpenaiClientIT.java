@@ -1223,4 +1223,15 @@ public class LlmOpenaiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
+        "${app}/transform.request.max.output.tokens/client",
+        "${net}/openai.transform.request.max.output.tokens/server"})
+    public void shouldTransformRequestMaxOutputTokensAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
 }
