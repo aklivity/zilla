@@ -96,6 +96,11 @@ scope llm
             string16 model = null;
         }
 
+        struct LlmFlushEx extends core::stream::Extension
+        {
+            int32 maxOutputTokens = -1;
+        }
+
         struct LlmEndEx extends core::stream::Extension
         {
             LlmUsage usage;

@@ -28,6 +28,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class LlmAnthropicClientIT
 {
@@ -1239,6 +1240,29 @@ public class LlmAnthropicClientIT
         "${app}/anthropic.section.assistant.text.members.streaming/client",
         "${net}/anthropic.section.assistant.text.members.streaming/server"})
     public void shouldEncodeAnthropicSectionAssistantTextMembersStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.max.output.tokens/client",
+        "${net}/anthropic.transform.request.max.output.tokens/server"})
+    public void shouldTransformRequestMaxOutputTokensAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Configure(name = "zilla.binding.llm.anthropic.max.tokens", value = "8192")
+    @ScriptProperty({"target \"anthropic\""})
+    @Specification({
+        "${app}/transform.user.text/client",
+        "${net}/anthropic.transform.request.max.output.tokens.configured/server"})
+    public void shouldTransformRequestMaxOutputTokensConfiguredAsAnthropic() throws Exception
     {
         k3po.finish();
     }

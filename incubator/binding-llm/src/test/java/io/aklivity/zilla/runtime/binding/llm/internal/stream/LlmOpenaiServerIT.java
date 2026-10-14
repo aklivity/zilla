@@ -1099,4 +1099,15 @@ public class LlmOpenaiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai\""})
+    @Specification({
+        "${net}/openai.transform.request.max.output.tokens/client",
+        "${app}/transform.request.max.output.tokens/server"})
+    public void shouldTransformRequestMaxOutputTokensFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
 }

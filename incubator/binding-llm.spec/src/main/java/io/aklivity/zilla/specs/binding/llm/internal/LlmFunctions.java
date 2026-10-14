@@ -32,6 +32,7 @@ import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmChallengeExF
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmDataExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmEndExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmErrorFW;
+import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmFlushExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmResetExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmSectionType;
 
@@ -59,6 +60,18 @@ public final class LlmFunctions
     public static LlmDataExMatcherBuilder matchDataEx()
     {
         return new LlmDataExMatcherBuilder();
+    }
+
+    @Function
+    public static LlmFlushExBuilder flushEx()
+    {
+        return new LlmFlushExBuilder();
+    }
+
+    @Function
+    public static LlmFlushExMatcherBuilder matchFlushEx()
+    {
+        return new LlmFlushExMatcherBuilder();
     }
 
     @Function
@@ -951,6 +964,102 @@ public final class LlmFunctions
             return finishReasonNull ? actual == null : finishReason == null || finishReason.equals(actual);
         }
 
+    }
+
+    public static final class LlmFlushExBuilder
+    {
+        private final LlmFlushExFW.Builder flushExRW;
+
+        private LlmFlushExBuilder()
+        {
+            MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024]);
+            this.flushExRW = new LlmFlushExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public LlmFlushExBuilder typeId(
+            int typeId)
+        {
+            flushExRW.typeId(typeId);
+            return this;
+        }
+
+        public LlmFlushExBuilder maxOutputTokens(
+            int maxOutputTokens)
+        {
+            flushExRW.maxOutputTokens(maxOutputTokens);
+            return this;
+        }
+
+        public byte[] build()
+        {
+            final LlmFlushExFW flushEx = flushExRW.build();
+            final byte[] array = new byte[flushEx.sizeof()];
+            flushEx.buffer().getBytes(flushEx.offset(), array);
+            return array;
+        }
+    }
+
+    public static final class LlmFlushExMatcherBuilder
+    {
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
+
+        private final LlmFlushExFW flushExRO = new LlmFlushExFW();
+
+        private Integer typeId;
+        private Integer maxOutputTokens;
+
+        public LlmFlushExMatcherBuilder typeId(
+            int typeId)
+        {
+            this.typeId = typeId;
+            return this;
+        }
+
+        public LlmFlushExMatcherBuilder maxOutputTokens(
+            int maxOutputTokens)
+        {
+            this.maxOutputTokens = maxOutputTokens;
+            return this;
+        }
+
+        public BytesMatcher build()
+        {
+            return this::match;
+        }
+
+        private LlmFlushExFW match(
+            ByteBuffer byteBuf) throws Exception
+        {
+            if (!byteBuf.hasRemaining())
+            {
+                return null;
+            }
+
+            bufferRO.wrap(byteBuf);
+            final LlmFlushExFW flushEx = flushExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.limit());
+
+            if (flushEx != null &&
+                matchTypeId(flushEx) &&
+                matchMaxOutputTokens(flushEx))
+            {
+                byteBuf.position(byteBuf.position() + flushEx.sizeof());
+                return flushEx;
+            }
+
+            throw new Exception(flushEx.toString());
+        }
+
+        private boolean matchTypeId(
+            LlmFlushExFW flushEx)
+        {
+            return typeId == null || typeId == flushEx.typeId();
+        }
+
+        private boolean matchMaxOutputTokens(
+            LlmFlushExFW flushEx)
+        {
+            return maxOutputTokens == null || maxOutputTokens == flushEx.maxOutputTokens();
+        }
     }
 
     public static final class LlmChallengeExBuilder

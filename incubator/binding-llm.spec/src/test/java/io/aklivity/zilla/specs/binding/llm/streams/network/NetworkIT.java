@@ -2699,4 +2699,31 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.request.max.output.tokens/client",
+        "${net}/openai.transform.request.max.output.tokens/server"})
+    public void shouldOpenaiTransformRequestMaxOutputTokens() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.request.max.output.tokens/client",
+        "${net}/anthropic.transform.request.max.output.tokens/server"})
+    public void shouldAnthropicTransformRequestMaxOutputTokens() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.request.max.output.tokens.configured/client",
+        "${net}/anthropic.transform.request.max.output.tokens.configured/server"})
+    public void shouldAnthropicTransformRequestMaxOutputTokensConfigured() throws Exception
+    {
+        k3po.finish();
+    }
 }

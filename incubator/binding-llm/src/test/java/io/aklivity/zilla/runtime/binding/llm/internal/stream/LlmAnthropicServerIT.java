@@ -1218,4 +1218,15 @@ public class LlmAnthropicServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
+        "${net}/anthropic.transform.request.max.output.tokens/client",
+        "${app}/transform.request.max.output.tokens/server"})
+    public void shouldTransformRequestMaxOutputTokensFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
 }
