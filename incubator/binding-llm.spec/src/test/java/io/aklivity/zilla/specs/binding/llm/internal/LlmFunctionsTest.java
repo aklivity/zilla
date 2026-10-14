@@ -32,6 +32,7 @@ import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmBeginExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmChallengeExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmDataExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmEndExFW;
+import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmFlushExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmResetExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmSectionDataExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmSectionType;
@@ -159,6 +160,74 @@ public class LlmFunctionsTest
             .build();
 
         assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateFlushEx()
+    {
+        byte[] bytes = LlmFunctions.flushEx()
+            .typeId(0)
+            .maxOutputTokens(2048)
+            .build();
+
+        final LlmFlushExFW flushEx = new LlmFlushExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+
+        assertEquals(2048, flushEx.maxOutputTokens());
+    }
+
+    @Test
+    public void shouldMatchFlushEx() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchFlushEx()
+            .typeId(0)
+            .maxOutputTokens(2048)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new LlmFlushExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .maxOutputTokens(2048)
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchFlushExMismatch() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchFlushEx()
+            .typeId(0)
+            .maxOutputTokens(2048)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new LlmFlushExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .maxOutputTokens(1024)
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchFlushExWithoutMaxOutputTokens() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchFlushEx()
+            .typeId(0)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new LlmFlushExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
     }
 
     @Test

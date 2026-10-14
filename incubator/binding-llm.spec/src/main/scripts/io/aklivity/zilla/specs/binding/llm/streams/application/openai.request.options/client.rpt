@@ -45,7 +45,10 @@ write zilla:data.ext ${llm:dialectDataEx()
                           .build()}
 write "\"}],\"temperature\":0.7,\"top_p\":0.9,\"max_tokens\":100,\"seed\":42,\"stop\":[\"END\"],\"store\":true,\"service_tier\":\"auto\",\"logprobs\":true,\"top_logprobs\":3,\"n\":2,\"audio\":{\"voice\":\"alloy\",\"format\":\"wav\"}}"
 write flush
-write advise zilla:flush
+write advise zilla:flush ${llm:flushEx()
+                               .typeId(zilla:id("llm"))
+                               .maxOutputTokens(100)
+                               .build()}
 
 read zilla:reset.ext ${llm:matchResetEx()
                            .typeId(zilla:id("llm"))

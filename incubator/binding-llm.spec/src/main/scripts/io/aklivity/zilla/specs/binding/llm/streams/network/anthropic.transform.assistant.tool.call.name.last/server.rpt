@@ -37,7 +37,7 @@ read "{\"model\":\"model\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type
 
 read notify FIRST_FRAME_READ
 
-read ",\"name\":\"get_weather\"}]}]}"
+read ",\"name\":\"get_weather\"}]}],\"max_tokens\":4096}"
 
 read closed
 
