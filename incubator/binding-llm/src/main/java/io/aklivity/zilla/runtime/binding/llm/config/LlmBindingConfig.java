@@ -16,18 +16,32 @@ package io.aklivity.zilla.runtime.binding.llm.config;
 
 import static java.util.stream.Collectors.toList;
 
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.aklivity.zilla.config.binding.llm.LlmGuardrailConfig;
+import io.aklivity.zilla.config.binding.llm.LlmGuardrailStageConfig;
 import io.aklivity.zilla.config.binding.llm.LlmOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.ConfigException;
 import io.aklivity.zilla.config.engine.KindConfig;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionType;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
+import io.aklivity.zilla.runtime.engine.model.ModelHandler;
+import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 public class LlmBindingConfig
 {
@@ -46,6 +60,7 @@ public class LlmBindingConfig
     public final List<LlmRouteConfig> routes;
     public final GuardHandler guard;
     public final String credentials;
+    private final Map<String, LlmGuardrail> guardrails;
 
     private final Pattern credentialsPattern;
 
@@ -70,6 +85,8 @@ public class LlmBindingConfig
         this.credentialsPattern = credentials != null
             ? Pattern.compile(credentials.replace(CREDENTIALS_PLACEHOLDER, "(?<credentials>[^\\s]+)"))
             : null;
+        this.guardrails = new LinkedHashMap<>();
+        this.options.guardrails.forEach(guardrail -> guardrails.put(guardrail.name, supplyGuardrail(context, guardrail)));
     }
 
     protected LlmBindingConfig(
@@ -83,6 +100,7 @@ public class LlmBindingConfig
         this.guard = binding.guard;
         this.credentials = binding.credentials;
         this.credentialsPattern = binding.credentialsPattern;
+        this.guardrails = binding.guardrails;
     }
 
     public LlmAuthorizationResult authorize(
@@ -146,5 +164,51 @@ public class LlmBindingConfig
             }
         }
         return resolved;
+    }
+
+    public LlmGuardrail guardrails(
+        String model)
+    {
+        return guardrails.getOrDefault(model, LlmGuardrail.NONE);
+    }
+
+    private static LlmGuardrail supplyGuardrail(
+        EngineContext context,
+        LlmGuardrailConfig guardrail)
+    {
+        return new LlmGuardrail(
+            supplyStages(context, guardrail.name, guardrail.request),
+            supplyStages(context, guardrail.name, guardrail.response));
+    }
+
+    private static List<LlmGuardrailStage> supplyStages(
+        EngineContext context,
+        String name,
+        List<LlmGuardrailStageConfig> configs)
+    {
+        final List<LlmGuardrailStage> stages = new ArrayList<>();
+
+        for (LlmGuardrailStageConfig stage : configs)
+        {
+            final Set<LlmSectionType> sections = EnumSet.noneOf(LlmSectionType.class);
+            stage.sections.forEach(section -> sections.add(LlmSectionType.valueOf(section.replace('-', '_').toUpperCase())));
+
+            final ModelHandler handler = context.supplyModel(stage.value);
+            if (handler == null)
+            {
+                throw new ConfigException(String.format("guardrails %s: unknown model %s", name, stage.value.model));
+            }
+
+            final ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+            if (!pipeline.identity() && !pipeline.deterministic())
+            {
+                throw new ConfigException(String.format(
+                    "guardrails %s: model %s transforms the section non-deterministically", name, stage.value.model));
+            }
+
+            stages.add(new LlmGuardrailStage(sections, handler));
+        }
+
+        return stages;
     }
 }

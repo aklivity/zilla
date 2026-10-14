@@ -281,7 +281,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             {
                 newStream = new LlmOpenaiRejectHandler(network, originId, routedId, initialId,
                     Integer.toString(STATUS_UNSUPPORTED_MEDIA_TYPE),
-                    errorBody(STATUS_UNSUPPORTED_MEDIA_TYPE, null))::onNetMessage;
+                    errorBody(STATUS_UNSUPPORTED_MEDIA_TYPE, null, null, null))::onNetMessage;
             }
             else
             {
@@ -349,12 +349,22 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
     private static String errorBody(
         int status,
+        String type,
+        String param,
         String message)
     {
         final JsonObjectBuilder error = Json.createObjectBuilder()
             .add("message", message != null ? message : reason(status))
-            .add("type", status == 429 ? "requests" : status >= 500 ? "server_error" : "invalid_request_error")
-            .addNull("param");
+            .add("type", type != null ? type : errorType(status));
+
+        if (param != null)
+        {
+            error.add("param", param);
+        }
+        else
+        {
+            error.addNull("param");
+        }
 
         if (status == 429)
         {
@@ -369,6 +379,12 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             .add("error", error)
             .build()
             .toString();
+    }
+
+    private static String errorType(
+        int status)
+    {
+        return status == 429 ? "requests" : status >= 500 ? "server_error" : "invalid_request_error";
     }
 
     @FunctionalInterface
@@ -1729,6 +1745,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private int replyMax;
         private int replyPad;
 
+        private boolean replyBegun;
         private int state;
         private boolean appEndPending;
         private boolean deauthorized;
@@ -2423,7 +2440,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         {
             final int status = error.status() != -1 ? error.status() : STATUS_INTERNAL_SERVER_ERROR;
 
-            doNetError(traceId, authorization, status, error.message().asString());
+            doNetError(traceId, authorization, status, error.type().asString(), error.param().asString(),
+                error.message().asString());
         }
 
         private void doNetError(
@@ -2432,7 +2450,18 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             int status,
             String message)
         {
-            final DirectBufferEx body = asBuffer(errorBody(status, message));
+            doNetError(traceId, authorization, status, null, null, message);
+        }
+
+        private void doNetError(
+            long traceId,
+            long authorization,
+            int status,
+            String type,
+            String param,
+            String message)
+        {
+            final DirectBufferEx body = asBuffer(errorBody(status, type, param, message));
 
             cleanupDecodeSlot();
 
@@ -2807,6 +2836,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 .build();
 
             network.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
+            this.replyBegun = true;
             state = LlmState.openingReply(state);
         }
 
@@ -2984,7 +3014,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             state = LlmState.closeInitial(state);
             server.appEndPending = false;
 
-            if (resetEx != null && !LlmState.replyOpening(server.state))
+            if (resetEx != null && !server.replyBegun)
             {
                 server.doNetError(traceId, authorization, resetEx.error());
             }

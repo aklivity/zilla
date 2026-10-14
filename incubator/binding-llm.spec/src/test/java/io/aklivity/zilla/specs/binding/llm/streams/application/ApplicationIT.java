@@ -308,6 +308,141 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.proxy.guardrail.accepted/client",
+        "${app}/openai.proxy.guardrail.accepted/server"})
+    public void shouldRelayOpenaiGuardedSection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.transform/client",
+        "${app}/openai.proxy.guardrail.transform/server"})
+    public void shouldGuardOpenaiTransformNet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.transform.exit/client",
+        "${app}/openai.proxy.guardrail.transform.exit/server"})
+    public void shouldGuardOpenaiTransformExit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.chain.accepted/client",
+        "${app}/openai.proxy.guardrail.chain.accepted/server"})
+    public void shouldGuardOpenaiChainAcceptedNet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.chain.accepted.exit/client",
+        "${app}/openai.proxy.guardrail.chain.accepted.exit/server"})
+    public void shouldGuardOpenaiChainAcceptedExit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.chain.rejected/client",
+        "${app}/openai.proxy.guardrail.chain.rejected/server"})
+    public void shouldGuardOpenaiChainRejectedNet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.chain.rejected.exit/client",
+        "${app}/openai.proxy.guardrail.chain.rejected.exit/server"})
+    public void shouldGuardOpenaiChainRejectedExit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.fallback/client",
+        "${app}/openai.proxy.guardrail.fallback/server"})
+    public void shouldGuardOpenaiFallbackNet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.fallback.exit/client",
+        "${app}/openai.proxy.guardrail.fallback.exit/server"})
+    public void shouldGuardOpenaiFallbackExit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.rejected/client",
+        "${app}/openai.proxy.guardrail.rejected/server"})
+    public void shouldGuardOpenaiRejectedNet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.rejected.exit/client",
+        "${app}/openai.proxy.guardrail.rejected.exit/server"})
+    public void shouldGuardOpenaiRejectedExit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.rejected/client",
+        "${app}/openai.proxy.guardrail.response.rejected/server"})
+    public void shouldGuardOpenaiResponseRejectedNet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.rejected.exit/client",
+        "${app}/openai.proxy.guardrail.response.rejected.exit/server"})
+    public void shouldGuardOpenaiResponseRejectedExit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.rejected.section/client",
+        "${app}/openai.rejected.section/server"})
+    public void shouldRejectOpenaiSection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.rejected.section/client",
+        "${app}/anthropic.rejected.section/server"})
+    public void shouldRejectAnthropicSection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.rejected.bad.gateway/client",
         "${app}/openai.rejected.bad.gateway/server"})
     public void shouldRejectOpenaiBadGateway() throws Exception

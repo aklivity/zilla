@@ -1096,6 +1096,166 @@ public class LlmSchemaValidationTest
     }
 
     @Test
+    public void shouldAcceptProxyWithGuardrails()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                options:
+                  guardrails:
+                    gpt-4o:
+                      request:
+                        - section: [ user-text, tool-result ]
+                          value: test
+                exit: app0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptProxyWithGuardrailsSectionAsString()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                options:
+                  guardrails:
+                    gpt-4o:
+                      request:
+                        - section: user-text
+                          value: test
+                      response:
+                        - section: assistant-text
+                          value: test
+                exit: app0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectProxyGuardrailsWithUnknownSection()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                options:
+                  guardrails:
+                    gpt-4o:
+                      request:
+                        - section: user-poem
+                          value: test
+                exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectProxyGuardrailsWithoutValue()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                options:
+                  guardrails:
+                    gpt-4o:
+                      request:
+                        - section: user-text
+                exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectProxyGuardrailsWithoutSection()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                options:
+                  guardrails:
+                    gpt-4o:
+                      request:
+                        - value: test
+                exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectProxyGuardrailsWithUnknownProperty()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                options:
+                  guardrails:
+                    gpt-4o:
+                      request:
+                        - section: user-text
+                          value: test
+                      other: []
+                exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectServerWithGuardrails()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: server
+                options:
+                  guardrails:
+                    gpt-4o:
+                      request:
+                        - section: user-text
+                          value: test
+                exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test
     public void shouldAcceptClientWithServerHyphenatedHostAndPath()
     {
         String text =

@@ -15,7 +15,11 @@
 package io.aklivity.zilla.config.binding.llm.internal;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -27,6 +31,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.binding.llm.LlmOptionsConfig;
+import io.aklivity.zilla.config.engine.test.internal.model.config.TestModelConfig;
 
 public class LlmOptionsConfigAdapterTest
 {
@@ -87,6 +92,92 @@ public class LlmOptionsConfigAdapterTest
         String text = jsonb.toJson(options);
 
         assertThat(text, equalTo("{}"));
+    }
+
+    @Test
+    public void shouldReadGuardrails()
+    {
+        String text =
+                "{" +
+                    "\"guardrails\": {" +
+                        "\"gpt-4o\": {" +
+                            "\"request\": [" +
+                                "{ \"section\": [\"user-text\", \"tool-result\"], \"value\": \"test\" }" +
+                            "]" +
+                        "}" +
+                    "}" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.guardrails, hasSize(1));
+        assertThat(options.guardrails.get(0).name, equalTo("gpt-4o"));
+        assertThat(options.guardrails.get(0).request, hasSize(1));
+        assertThat(options.guardrails.get(0).request.get(0).sections, contains("user-text", "tool-result"));
+        assertThat(options.guardrails.get(0).request.get(0).value, instanceOf(TestModelConfig.class));
+        assertThat(options.guardrails.get(0).response, empty());
+    }
+
+    @Test
+    public void shouldReadGuardrailsWithSectionAsString()
+    {
+        String text =
+                "{" +
+                    "\"guardrails\": {" +
+                        "\"gpt-4o\": {" +
+                            "\"response\": [" +
+                                "{ \"section\": \"assistant-text\", \"value\": \"test\" }" +
+                            "]" +
+                        "}" +
+                    "}" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.guardrails.get(0).request, empty());
+        assertThat(options.guardrails.get(0).response, hasSize(1));
+        assertThat(options.guardrails.get(0).response.get(0).sections, contains("assistant-text"));
+    }
+
+    @Test
+    public void shouldWriteGuardrailRequest()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .guardrail()
+                .name("gpt-4o")
+                .request()
+                    .section("user-text")
+                    .section("tool-result")
+                    .value(TestModelConfig.builder().length(0).build())
+                    .build()
+                .build()
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, equalTo("{\"guardrails\":{\"gpt-4o\":{\"request\":" +
+            "[{\"section\":[\"user-text\",\"tool-result\"],\"value\":\"test\"}]}}}"));
+    }
+
+    @Test
+    public void shouldWriteGuardrailResponse()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .guardrail()
+                .name("gpt-4o")
+                .response()
+                    .section("assistant-text")
+                    .value(TestModelConfig.builder().length(0).build())
+                    .build()
+                .build()
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, equalTo("{\"guardrails\":{\"gpt-4o\":{\"response\":" +
+            "[{\"section\":[\"assistant-text\"],\"value\":\"test\"}]}}}"));
     }
 
     @Test
