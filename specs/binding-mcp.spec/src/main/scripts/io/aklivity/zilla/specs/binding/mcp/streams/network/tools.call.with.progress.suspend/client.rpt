@@ -99,14 +99,22 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("content-type", "text/event-stream")
                            .build()}
 
-read 'id: 2:0\n'
-read '\n'
+read zilla:data.ext ${http:matchDataEx()
+                            .typeId(zilla:id("http"))
+                            .header("id", "2:0")
+                            .build()}
+read zilla:data.null
 
-read 'id: 2:1\n'
-read 'data: {"jsonrpc":"2.0","method":"notifications/progress","params":{"progressToken":"abc123","progress":50,"total":100,"message":"Checking if Lady Liberty needs an umbrella..."}}\n'
-read '\n'
+read zilla:data.ext ${http:matchDataEx()
+                            .typeId(zilla:id("http"))
+                            .header("id", "2:1")
+                            .build()}
+read '{"jsonrpc":"2.0","method":"notifications/progress","params":{"progressToken":"abc123","progress":50,"total":100,"message":"Checking if Lady Liberty needs an umbrella..."}}'
 
-read 'retry: 60000\n'
-read '\n'
+read zilla:data.ext ${http:matchDataEx()
+                            .typeId(zilla:id("http"))
+                            .header("retry", "60000")
+                            .build()}
+read zilla:data.null
 
 read closed

@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.engine.guard;
 
 import java.util.List;
 
+import jakarta.json.JsonValue;
+
 /**
  * Manages authorization sessions for streams passing through a guarded binding.
  * <p>
@@ -175,14 +177,19 @@ public interface GuardHandler
         long sessionId);
 
     /**
-     * Returns the value of a named attribute for an authorized session
-     * (e.g., a custom JWT claim).
+     * Returns the value of a named attribute for an authorized session,
+     * preserving the structure of the value.
+     * <p>
+     * A {@code null} result means the attribute is absent, while {@link JsonValue#NULL}
+     * means the attribute is present with an explicit JSON null value. Callers that need a
+     * text form render the value as text, with a string value rendered without surrounding quotes.
+     * </p>
      *
      * @param sessionId  the session identifier
      * @param name       the attribute name
      * @return the attribute value, or {@code null} if not present
      */
-    String attribute(
+    JsonValue attribute(
         long sessionId,
         String name);
 

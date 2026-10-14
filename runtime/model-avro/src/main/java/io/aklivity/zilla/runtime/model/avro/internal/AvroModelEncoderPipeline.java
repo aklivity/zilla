@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.model.avro.internal;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
+
 import org.agrona.collections.Int2ObjectCache;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -35,14 +38,12 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 // after it; the adapter presents each field to the wired ModelTransform inline, as the value flows through.
 final class AvroModelEncoderPipeline implements ModelPipeline
 {
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_FIN = 0x01;
-
     private final AvroModelHandlerImpl handler;
     private final AvroTransform adapter;
     private final AvroEnvelope envelope;
     private final Int2ObjectCache<AvroPipeline> pipelines;
     private final ModelPipelineResult result;
+    private final boolean deterministic;
 
     private AvroPipeline active;
     private String diagnostic;
@@ -59,6 +60,7 @@ final class AvroModelEncoderPipeline implements ModelPipeline
         this.adapter = AvroModelTransform.of(transform);
         this.pipelines = new Int2ObjectCache<>(1, 16, p -> {});
         this.result = new ModelPipelineResult();
+        this.deterministic = adapter.deterministic() && handler.encodeDeterministic();
     }
 
     @Override
@@ -82,7 +84,7 @@ final class AvroModelEncoderPipeline implements ModelPipeline
         int srcLength = srcLimit - srcIndex;
         int dstLength = dstLimit - dstIndex;
         int prefix = 0;
-        if ((flags & FLAGS_INIT) != 0)
+        if (hasInit(flags))
         {
             int schemaId = handler.resolveSchemaId();
             active = supplyPipeline(schemaId);
@@ -108,7 +110,7 @@ final class AvroModelEncoderPipeline implements ModelPipeline
         else
         {
             active.authorization(authorization);
-            boolean last = (flags & FLAGS_FIN) != 0;
+            boolean last = hasFin(flags);
             AvroPipelineResult avro =
                 active.transform(src, srcIndex, srcIndex + srcLength, last, dst, dstIndex + prefix, dstIndex + dstLength);
             status = map(avro.status());
@@ -126,6 +128,12 @@ final class AvroModelEncoderPipeline implements ModelPipeline
     public boolean identity()
     {
         return false;
+    }
+
+    @Override
+    public boolean deterministic()
+    {
+        return deterministic;
     }
 
     @Override

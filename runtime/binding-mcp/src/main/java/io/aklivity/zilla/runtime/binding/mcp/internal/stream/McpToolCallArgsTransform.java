@@ -112,6 +112,12 @@ final class McpToolCallArgsTransform implements JsonTransform
         return status;
     }
 
+    @Override
+    public boolean deterministic()
+    {
+        return true;
+    }
+
     private Status onKey(
         JsonController control,
         JsonSource source,

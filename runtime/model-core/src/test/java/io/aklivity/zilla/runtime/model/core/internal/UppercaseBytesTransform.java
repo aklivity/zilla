@@ -181,4 +181,10 @@ final class UppercaseBytesTransform implements BytesTransform
             ? sink.resume(control, downstream, event)
             : sink.transform(control, downstream, event);
     }
+
+    @Override
+    public boolean deterministic()
+    {
+        return true;
+    }
 }

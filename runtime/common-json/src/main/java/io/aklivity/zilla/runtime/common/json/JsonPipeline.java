@@ -76,6 +76,12 @@ public interface JsonPipeline
     boolean identity();
 
     /**
+     * Whether this pipeline always produces the same output for the same input, configuration and authorization
+     * — the composition of its parser, transform stages, and terminal generator all being deterministic.
+     */
+    boolean deterministic();
+
+    /**
      * Transforms a whole value in one shot (equivalent to {@link #transform(DirectBufferEx, int, int, boolean)} with
      * {@code last == true}), for callers that reassemble the value before feeding it.
      */

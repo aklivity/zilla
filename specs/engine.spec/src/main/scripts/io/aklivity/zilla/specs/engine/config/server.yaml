@@ -22,6 +22,9 @@ stores:
 embeddings:
     test0:
         type: test
+classifiers:
+    test0:
+        type: test
 vaults:
     test0:
         type: test
@@ -58,6 +61,7 @@ bindings:
         options:
             store: test0
             embedding: test0
+            classifier: test0
             authorization:
                 test0:
                     credentials: TOKEN

@@ -23,11 +23,14 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
+import jakarta.json.Json;
+
 import org.agrona.collections.MutableLong;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.engine.GenericGuardConfig;
 import io.aklivity.zilla.config.engine.GuardConfig;
+import io.aklivity.zilla.config.engine.test.internal.guard.config.TestGuardOptionsConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler.LongCompletionCallback;
 import io.aklivity.zilla.runtime.engine.test.internal.guard.TestGuard;
@@ -124,5 +127,104 @@ public final class GuardFactoryTest
         completion.completed(7L, Long.valueOf(123L));
 
         assertThat(primitive.value, equalTo(123L));
+    }
+
+    @Test
+    public void shouldResolveIdentityAndAttributesForAuthorizedSession()
+    {
+        GuardHandler handler = guardWithIdentityAndAttribute(true);
+
+        assertThat(handler.identity(1L), equalTo("alice"));
+        assertThat(handler.attribute(1L, "tenant"), equalTo(Json.createValue("acme")));
+    }
+
+    @Test
+    public void shouldNotResolveIdentityOrAttributesWithoutAuthorizationWhenCredentialsConfigured()
+    {
+        GuardHandler handler = guardWithIdentityAndAttribute(true);
+
+        assertThat(handler.identity(0L), nullValue());
+        assertThat(handler.attribute(0L, "tenant"), nullValue());
+    }
+
+    @Test
+    public void shouldResolveIdentityAndAttributesWithoutAuthorizationWhenCredentialsNotConfigured()
+    {
+        GuardHandler handler = guardWithIdentityAndAttribute(false);
+
+        assertThat(handler.identity(0L), equalTo("alice"));
+        assertThat(handler.attribute(0L, "tenant"), equalTo(Json.createValue("acme")));
+    }
+
+    @Test
+    public void shouldNotResolveCredentialsWithoutAuthorizationWhenNotInjected()
+    {
+        GuardHandler handler = guardWithIdentityAndAttribute(true);
+
+        assertThat(handler.credentials(0L), nullValue());
+        assertThat(handler.credentials(1L), equalTo("token"));
+    }
+
+    @Test
+    public void shouldResolveInjectedIdentityAndCredentialsWithoutAuthorization()
+    {
+        GuardHandler handler = guardWithInject(true);
+
+        assertThat(handler.identity(0L), equalTo("service"));
+        assertThat(handler.credentials(0L), equalTo("service-secret"));
+    }
+
+    @Test
+    public void shouldResolveConfiguredIdentityAndCredentialsForAuthorizedSessionWhenInjectConfigured()
+    {
+        GuardHandler handler = guardWithInject(true);
+
+        assertThat(handler.identity(1L), equalTo("alice"));
+        assertThat(handler.credentials(1L), equalTo("token"));
+    }
+
+    @Test
+    public void shouldResolveInjectedIdentityWithoutAuthorizationWhenCredentialsNotConfigured()
+    {
+        GuardHandler handler = guardWithInject(false);
+
+        assertThat(handler.identity(0L), equalTo("service"));
+        assertThat(handler.credentials(0L), equalTo("service-secret"));
+        assertThat(handler.identity(1L), equalTo("alice"));
+    }
+
+    private static GuardHandler guardWithIdentityAndAttribute(
+        boolean credentials)
+    {
+        GuardConfig config = GenericGuardConfig.builder()
+            .namespace("test")
+            .name("test")
+            .type("test")
+            .options(TestGuardOptionsConfig::builder)
+                .credentials(credentials ? "token" : null)
+                .identity("alice")
+                .attribute("tenant", "acme")
+                .build()
+            .build();
+        return new TestGuardHandler(new TestGuardConfig(config), Runnable::run);
+    }
+
+    private static GuardHandler guardWithInject(
+        boolean credentials)
+    {
+        GuardConfig config = GenericGuardConfig.builder()
+            .namespace("test")
+            .name("test")
+            .type("test")
+            .options(TestGuardOptionsConfig::builder)
+                .credentials(credentials ? "token" : null)
+                .identity("alice")
+                .inject()
+                    .identity("service")
+                    .credentials("service-secret")
+                    .build()
+                .build()
+            .build();
+        return new TestGuardHandler(new TestGuardConfig(config), Runnable::run);
     }
 }

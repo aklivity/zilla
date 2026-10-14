@@ -19,6 +19,11 @@ import static io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaC
 import static io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.GrpcType.BASE64;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 import static java.lang.System.currentTimeMillis;
 import static java.time.Instant.now;
 
@@ -83,11 +88,6 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
 
     private static final int SIGNAL_INITIATE_KAFKA_STREAM = 1;
     private static final int GRPC_QUEUE_MESSAGE_PADDING = 3 * 256 + 33;
-
-    private static final int DATA_FLAG_COMPLETE = 0x03;
-    private static final int DATA_FLAG_INIT = 0x02;
-    private static final int DATA_FLAG_FIN = 0x01;
-    private static final int DATA_FLAG_CON = 0x00;
 
     private static final String16FW HEADER_VALUE_GRPC_OK = new String16FW("0");
     private static final String16FW HEADER_VALUE_GRPC_ABORTED = new String16FW("10");
@@ -419,7 +419,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
 
             int deferred = 0;
 
-            if ((flags & DATA_FLAG_INIT) != 0x00)
+            if (hasInit(flags))
             {
                 final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
                 final KafkaDataExFW kafkaDataEx = dataEx != null && dataEx.typeId() == kafkaTypeId ?
@@ -431,7 +431,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
 
             Array32FW<GrpcMetadataFW> metadata = helper.metadata;
 
-            if ((flags & DATA_FLAG_INIT) != 0x00 && payload != null)
+            if (hasInit(flags) && payload != null)
             {
                 if (helper.resolved())
                 {
@@ -592,7 +592,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             if (remaining > 0 && payload != null ||
                 payload == null && !KafkaGrpcState.initialClosing(grpcClient.state))
             {
-                flags = progress == 0 ? flags : DATA_FLAG_CON;
+                flags = progress == 0 ? flags : NONE;
                 queueGrpcMessage(traceId, authorization, partitionId, partitionOffset,
                     grpcClient.correlationId, service, method, metadata, deferred, flags, reserved, payload, remaining);
             }
@@ -1070,7 +1070,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                     .headers(h -> condition.headersWithStatusCode(delegate.correlationId, status, message, h))))
                 .build();
 
-            doKafkaData(traceId, authorization, delegate.initialBudetId, 0, DATA_FLAG_COMPLETE, null, tombstoneDataEx);
+            doKafkaData(traceId, authorization, delegate.initialBudetId, 0, COMPLETE, null, tombstoneDataEx);
         }
     }
 
@@ -1324,7 +1324,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                         .key(k -> condition.key(c, k))
                         .headers(h -> condition.headersWithStatusCode(c, HEADER_VALUE_GRPC_INTERNAL_ERROR, null, h))))
                     .build();
-                doKafkaData(traceId, authorization, 0, 0, DATA_FLAG_COMPLETE, null, tombstoneDataEx);
+                doKafkaData(traceId, authorization, 0, 0, COMPLETE, null, tombstoneDataEx);
             });
 
             correlationIds.clear();
@@ -1469,7 +1469,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             assert replyAck <= replySeq;
 
             Flyweight kafkaDataEx = emptyRO;
-            if ((flags & DATA_FLAG_INIT) != 0x00)
+            if (hasInit(flags))
             {
                 GrpcDataExFW dataEx = null;
                 if (extension.sizeof() > 0)
@@ -1642,7 +1642,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             final int reservedMin = Math.min(payloadLength, 1024) + initialPad;
             final int reserved = length + initialPad;
 
-            deferred = (flags & DATA_FLAG_INIT) != 0x00 ? deferred : 0;
+            deferred = hasInit(flags) ? deferred : 0;
 
             int claimed = reserved;
             if (length > 0 && initialDebit != null)
@@ -1654,11 +1654,11 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
 
             if (length > 0 && claimed > 0)
             {
-                final int newFlags = payloadLength ==  flushableBytes ? flags : flags & DATA_FLAG_INIT;
+                final int newFlags = payloadLength ==  flushableBytes ? flags : flags & INIT;
                 doGrpcData(traceId, authorization, initialBudetId, reserved,
                     deferred, newFlags, payload.value(), 0, flushableBytes);
 
-                if ((newFlags & DATA_FLAG_FIN) != 0x00) // FIN
+                if (hasFin(newFlags)) // FIN
                 {
                     server.doKafkaCommitOffset(traceId, authorization, partitionId, partitionOffset);
                     state = KafkaGrpcState.closingInitial(state);

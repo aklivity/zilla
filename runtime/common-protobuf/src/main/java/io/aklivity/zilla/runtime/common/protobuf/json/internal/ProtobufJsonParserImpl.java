@@ -173,6 +173,12 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     }
 
     @Override
+    public boolean deterministic()
+    {
+        return parser.deterministic();
+    }
+
+    @Override
     public ProtobufParser wrap(
         DirectBufferEx buffer,
         int offset,

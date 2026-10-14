@@ -21,12 +21,14 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.function.LongFunction;
 
+import jakarta.json.JsonValue;
+
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectBiFunction;
 
 public class GuardedConfig extends NamedConfig
 {
     public transient LongFunction<String> identity;
-    public transient LongObjectBiFunction<String, String> attributes;
+    public transient LongObjectBiFunction<String, JsonValue> attributes;
 
     public final List<String> roles;
 

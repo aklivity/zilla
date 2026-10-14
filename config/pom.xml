@@ -49,6 +49,7 @@
     <module>catalog-filesystem.conf</module>
     <module>catalog-schema-registry.conf</module>
     <module>catalog-karapace.conf</module>
+    <module>embedding-openai.conf</module>
     <module>catalog-inline.conf</module>
     <module>exporter-otlp.conf</module>
     <module>exporter-prometheus.conf</module>

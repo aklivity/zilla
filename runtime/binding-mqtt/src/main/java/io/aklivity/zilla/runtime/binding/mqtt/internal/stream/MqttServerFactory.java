@@ -69,6 +69,12 @@ import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.MASK_AUTHORIZED;
 import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.NOT_AUTHORIZED;
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 import static java.lang.System.currentTimeMillis;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -280,10 +286,6 @@ public final class MqttServerFactory implements MqttStreamFactory
     public static final int QOS2_COMPLETE_OFFSET_STATE = MqttOffsetStateFlags.COMPLETE.value();
     public static final int MAX_CONNACK_REASONCODE_V4 = 5;
 
-    private static final int FLAG_CONT = 0x00;
-    private static final int FLAG_FIN = 0x01;
-    private static final int FLAG_INIT = 0x02;
-    private static final int FLAG_SKIP = 0x08;
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -3595,7 +3597,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 willMessageBuffer.putBytes(headerSize, willPayload.buffer(), willPayload.offset(), willPayload.sizeof());
 
                 final int deferred = willPayloadBytes - payloadSize;
-                final int dataFlags = deferred > 0 ? FLAG_INIT : FLAG_INIT | FLAG_FIN;
+                final int dataFlags = deferred > 0 ? INIT : COMPLETE;
 
                 final MqttDataExFW.Builder sessionDataExBuilder =
                     mqttSessionDataExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
@@ -3656,7 +3658,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             final int payloadSize = Math.min(payloadAvailable, session.initialBudget());
             final OctetsFW willPayload = payloadRO.wrap(buffer, offset, offset + payloadSize);
 
-            final int flags = willPayloadDeferred - payloadSize > 0 ? FLAG_CONT : FLAG_FIN;
+            final int flags = willPayloadDeferred - payloadSize > 0 ? NONE : FIN;
 
             final int publishedWillSize = session.doSessionData(traceId, flags,
                 willPayload.buffer(), willPayload.offset(), willPayload.limit(), 0, EMPTY_OCTETS);
@@ -3793,7 +3795,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                                 }
                             }).build();
 
-                        int dataFlags = publishPayloadDeferred > 0 ? FLAG_INIT : FLAG_INIT | FLAG_FIN;
+                        int dataFlags = publishPayloadDeferred > 0 ? INIT : COMPLETE;
 
                         if (stream != null)
                         {
@@ -3806,7 +3808,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     {
                         publishPayloadDeferred -= length;
                         assert publishPayloadDeferred >= 0;
-                        int dataFlags = publishPayloadDeferred > 0 ? FLAG_CONT : FLAG_FIN;
+                        int dataFlags = publishPayloadDeferred > 0 ? NONE : FIN;
 
                         if (stream != null)
                         {
@@ -4644,7 +4646,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             MqttDataExFW subscribeDataEx,
             int qos)
         {
-            if ((flags & 0x02) != 0)
+            if (hasInit(flags))
             {
                 final int payloadSize = payload.sizeof();
                 final int deferred = subscribeDataEx.subscribe().deferred();
@@ -4706,7 +4708,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             MqttDataExFW subscribeDataEx,
             int qos)
         {
-            if ((flags & 0x02) != 0)
+            if (hasInit(flags))
             {
                 final int payloadSize = payload.sizeof();
                 final int deferred = subscribeDataEx.subscribe().deferred();
@@ -6311,7 +6313,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 initialSeq += reserved;
                 assert initialSeq <= initialAck + initialMax;
 
-                boolean completed = (flags & FLAG_FIN) != 0;
+                boolean completed = hasFin(flags);
                 if (mqttPublishHelper.qos == 1 && completed)
                 {
                     unAckedReceivedQos1PacketIds.put(initialSeq, packetId);
@@ -7010,12 +7012,12 @@ public final class MqttServerFactory implements MqttStreamFactory
                         droppedHandler.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
                     }
 
-                    if ((flags & FLAG_INIT) != 0)
+                    if (hasInit(flags))
                     {
                         packetId = subscribeDataEx.subscribe().packetId();
                     }
 
-                    if (qos == 0 || (flags & FLAG_FIN) == 0)
+                    if (qos == 0 || !hasFin(flags))
                     {
                         doSubscribeWindow(traceId, encodeSlotOffset, encodeBudgetMax);
                     }

@@ -101,6 +101,12 @@ public final class TestUppercaseProtobufModelExtFactorySpi implements ProtobufMo
         }
 
         @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
+        @Override
         public Status transform(
             ProtobufController control,
             ProtobufSource source,

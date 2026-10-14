@@ -96,19 +96,31 @@ write zilla:begin.ext ${http:beginEx()
                             .build()}
 write flush
 
-write 'id: 2:0\n'
-write '\n'
+write zilla:data.ext ${http:dataEx()
+                             .typeId(zilla:id("http"))
+                             .header("id", "2:0")
+                             .build()}
 write flush
 
-write 'id: 2:1\n'
-write 'data: {"jsonrpc":"2.0","method":"notifications/progress","params":{"progressToken":"abc123","progress":50,"total":100,"message":"Composing the prompt..."}}\n'
-write '\n'
+write zilla:data.ext ${http:dataEx()
+                             .typeId(zilla:id("http"))
+                             .header("id", "2:1")
+                             .build()}
+write '{"jsonrpc":"2.0","method":"notifications/progress","params":{"progressToken":"abc123","progress":50,"total":100,"message":"Composing the prompt..."}}'
 write flush
 
-write 'data: {"jsonrpc":"2.0","id":2,"result":{"messages":[{"role":"user","content":{"type":"text","text":"'
+write option zilla:flags "init"
+write '{"jsonrpc":"2.0","id":2,"result":{"messages":[{"role":"user","content":{"type":"text","text":"'
+write flush
+write option zilla:flags "none"
 write ${core:randomBase64(10000)}
-write '"}}]}}\n'
-write '\n'
+write flush
+write option zilla:flags "none"
+write '"}}]}'
+write flush
+
+write option zilla:flags "fin"
+write '}'
 write flush
 
 write close

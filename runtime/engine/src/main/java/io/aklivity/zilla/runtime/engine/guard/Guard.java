@@ -19,6 +19,8 @@ import java.util.function.LongFunction;
 import java.util.function.LongToIntFunction;
 import java.util.function.UnaryOperator;
 
+import jakarta.json.JsonValue;
+
 import io.aklivity.zilla.config.engine.GuardedConfig;
 import io.aklivity.zilla.config.engine.factory.Aliasable;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectBiFunction;
@@ -93,14 +95,16 @@ public interface Guard extends Aliasable
     /**
      * Returns a function that resolves a named attribute value for an authorized session.
      * <p>
-     * Attributes are arbitrary string values extracted from credentials (e.g., custom JWT claims).
+     * Attributes are values extracted from credentials, preserving their structure.
+     * A {@code null} result means the attribute is absent, while {@link JsonValue#NULL}
+     * means the attribute is present with an explicit JSON null value.
      * </p>
      *
      * @param indexOf  function mapping a session id to the index of the engine thread that owns it
      * @param config   the guarded configuration
-     * @return a bi-function from (session id, attribute name) to attribute value string
+     * @return a bi-function from (session id, attribute name) to attribute value
      */
-    LongObjectBiFunction<String, String> attributor(
+    LongObjectBiFunction<String, JsonValue> attributor(
         LongToIntFunction indexOf,
         GuardedConfig config);
 }

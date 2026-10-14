@@ -37,8 +37,11 @@ read zilla:begin.ext ${http:beginEx()
                            .header("content-type", "text/event-stream")
                            .build()}
 
-read "id:105\n"
-read "\n"
+read zilla:data.ext ${http:matchDataEx()
+                            .typeId(zilla:id("http"))
+                            .header("id", "105")
+                            .build()}
+read zilla:data.empty
 
 read notify RECONNECT_EVENT_STREAM
 read closed

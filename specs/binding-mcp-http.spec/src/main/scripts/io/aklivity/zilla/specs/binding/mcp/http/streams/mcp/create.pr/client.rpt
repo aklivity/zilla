@@ -13,7 +13,10 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property authorization 0L
+
 connect "zilla://streams/app0"
+        option zilla:authorization ${authorization}
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 
@@ -36,6 +39,7 @@ read notify LIFECYCLE_INITIALIZED
 
 connect await LIFECYCLE_INITIALIZED
         "zilla://streams/app0"
+        option zilla:authorization ${authorization}
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 

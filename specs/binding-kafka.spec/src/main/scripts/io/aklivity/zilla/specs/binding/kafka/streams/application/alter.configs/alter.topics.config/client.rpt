@@ -14,7 +14,10 @@
 # under the License.
 #
 
+property authorization 0L
+
 connect "zilla://streams/app0"
+    option zilla:authorization ${authorization}
     option zilla:window 8192
     option zilla:transmission "half-duplex"
 

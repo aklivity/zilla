@@ -22,7 +22,9 @@ package io.aklivity.zilla.runtime.common.json;
  * feeding {@code sink} a different {@link JsonSource}. A mediating stage supplies its own
  * {@link JsonController} to {@code sink}; a non-mediating stage passes {@code control} through. Stages
  * compose left-to-right via {@link JsonStream#transform(JsonTransform)}. Third parties may implement this
- * contract (e.g. field masking or encryption).
+ * contract (e.g. field masking or encryption). A stage that does not recognize the
+ * {@link JsonEvent#START_ESCAPED} and {@link JsonEvent#END_ESCAPED} markers of an escaped scope forwards them
+ * untouched, so the scope reaches the sink intact.
  */
 public interface JsonTransform
 {
@@ -78,4 +80,9 @@ public interface JsonTransform
     {
         return false;
     }
+
+    /**
+     * Whether this stage always produces the same output for the same input, configuration and authorization.
+     */
+    boolean deterministic();
 }

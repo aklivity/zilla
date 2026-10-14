@@ -20,25 +20,40 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("anthropic")
+                           .model("claude-3-opus-20240229")
                            .build()}
 
 connected
 
-write "{\"model\":\"claude-3-opus-20240229\",\"max_tokens\":1024,\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"stream\":true}"
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "{\"model\":\"claude-3-opus-20240229\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\""
+write flush
 
-write close
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("USER_TEXT")
+                          .message(0)
+                          .build()}
+write "Hello"
+write flush
+
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .complete(true)
+                          .build()}
+write "\"}]}]}"
+write flush
+
+write advise zilla:flush
 
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("anthropic")
-                           .contentType("text/event-stream")
+                           .model("claude-3-opus-20240229")
+                           .id("msg_01")
                            .build()}
-
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("message_start")
-                          .build()}
-read "{\"type\":\"message_start\",\"message\":{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3-opus-20240229\",\"content\":[],\"usage\":{\"input_tokens\":25,\"cache_creation_input_tokens\":5,\"cache_read_input_tokens\":10,\"output_tokens\":1}}}"
 
 read zilla:abort.ext ${llm:matchAbortEx()
                             .typeId(zilla:id("llm"))
@@ -49,3 +64,5 @@ read zilla:abort.ext ${llm:matchAbortEx()
                             .build()}
 
 read aborted
+
+write close

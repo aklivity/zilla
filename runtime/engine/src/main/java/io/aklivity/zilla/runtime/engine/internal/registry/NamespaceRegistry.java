@@ -36,6 +36,7 @@ import org.agrona.collections.Int2ObjectHashMap;
 import io.aklivity.zilla.config.engine.AttributeConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.CatalogConfig;
+import io.aklivity.zilla.config.engine.ClassifierConfig;
 import io.aklivity.zilla.config.engine.EmbeddingConfig;
 import io.aklivity.zilla.config.engine.ExporterConfig;
 import io.aklivity.zilla.config.engine.GuardConfig;
@@ -48,6 +49,7 @@ import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
+import io.aklivity.zilla.runtime.engine.classifier.ClassifierContext;
 import io.aklivity.zilla.runtime.engine.embedding.EmbeddingContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
@@ -70,6 +72,7 @@ public class NamespaceRegistry
     private final Function<String, VaultContext> vaultsByType;
     private final Function<String, CatalogContext> catalogsByType;
     private final Function<String, EmbeddingContext> embeddingsByType;
+    private final Function<String, ClassifierContext> classifiersByType;
     private final Function<String, MetricContext> metricsByName;
     private final Function<String, ExporterContext> exportersByType;
     private final Function<String, StoreContext> storesByType;
@@ -83,6 +86,7 @@ public class NamespaceRegistry
     private final Int2ObjectHashMap<VaultRegistry> vaultsById;
     private final Int2ObjectHashMap<CatalogRegistry> catalogsById;
     private final Int2ObjectHashMap<EmbeddingRegistry> embeddingsById;
+    private final Int2ObjectHashMap<ClassifierRegistry> classifiersById;
     private final Int2ObjectHashMap<MetricRegistry> metricsById;
     private final Int2ObjectHashMap<ExporterRegistry> exportersById;
     private final Int2ObjectHashMap<StoreRegistry> storesById;
@@ -99,6 +103,7 @@ public class NamespaceRegistry
         Function<String, VaultContext> vaultsByType,
         Function<String, CatalogContext> catalogsByType,
         Function<String, EmbeddingContext> embeddingsByType,
+        Function<String, ClassifierContext> classifiersByType,
         Function<String, MetricContext> metricsByName,
         Function<String, ExporterContext> exportersByType,
         Function<String, StoreContext> storesByType,
@@ -117,6 +122,7 @@ public class NamespaceRegistry
         this.vaultsByType = vaultsByType;
         this.catalogsByType = catalogsByType;
         this.embeddingsByType = embeddingsByType;
+        this.classifiersByType = classifiersByType;
         this.metricsByName = metricsByName;
         this.exportersByType = exportersByType;
         this.storesByType = storesByType;
@@ -132,6 +138,7 @@ public class NamespaceRegistry
         this.vaultsById = new Int2ObjectHashMap<>();
         this.catalogsById = new Int2ObjectHashMap<>();
         this.embeddingsById = new Int2ObjectHashMap<>();
+        this.classifiersById = new Int2ObjectHashMap<>();
         this.metricsById = new Int2ObjectHashMap<>();
         this.exportersById = new Int2ObjectHashMap<>();
         this.storesById = new Int2ObjectHashMap<>();
@@ -150,6 +157,7 @@ public class NamespaceRegistry
         namespace.guards.forEach(this::attachGuard);
         namespace.catalogs.forEach(this::attachCatalog);
         namespace.embeddings.forEach(this::attachEmbedding);
+        namespace.classifiers.forEach(this::attachClassifier);
         namespace.telemetry.metrics.forEach(this::attachMetric);
         namespace.bindings.forEach(this::attachBinding);
         namespace.telemetry.exporters.forEach(this::attachExporter);
@@ -161,6 +169,7 @@ public class NamespaceRegistry
         namespace.bindings.forEach(this::detachBinding);
         namespace.guards.forEach(this::detachGuard);
         namespace.catalogs.forEach(this::detachCatalog);
+        namespace.classifiers.forEach(this::detachClassifier);
         namespace.embeddings.forEach(this::detachEmbedding);
         namespace.stores.forEach(this::detachStore);
         namespace.telemetry.metrics.forEach(this::detachMetric);
@@ -211,7 +220,7 @@ public class NamespaceRegistry
 
                 MessageConsumer handler = bindingAttributes.isEmpty()
                     ? metric.supplyHandler(recorderByAttrs.apply(0))
-                    : metric.supplyHandler(recorderByAttrs, bindingAttributes);
+                    : metric.supplyHandler(recorderByAttrs, bindingAttributes, config.resolveId);
 
                 int originTypeId = binding.originTypeId() != BindingHandler.STREAM_TYPE
                     ? binding.originTypeId() : (int) config.originTypeId;
@@ -392,6 +401,29 @@ public class NamespaceRegistry
         }
     }
 
+    private void attachClassifier(
+        ClassifierConfig config)
+    {
+        ClassifierContext context = classifiersByType.apply(config.type);
+        assert context != null : "Missing classifier type: " + config.type;
+
+        int classifierId = supplyLabelId.applyAsInt(config.name);
+        ClassifierRegistry registry = new ClassifierRegistry(config, context);
+        classifiersById.put(classifierId, registry);
+        registry.attach();
+    }
+
+    private void detachClassifier(
+        ClassifierConfig config)
+    {
+        int classifierId = NamespacedId.localId(config.id);
+        ClassifierRegistry context = classifiersById.remove(classifierId);
+        if (context != null)
+        {
+            context.detach();
+        }
+    }
+
     private void attachStore(
         StoreConfig config)
     {
@@ -498,6 +530,12 @@ public class NamespaceRegistry
         int embeddingId)
     {
         return embeddingsById.get(embeddingId);
+    }
+
+    ClassifierRegistry findClassifier(
+        int classifierId)
+    {
+        return classifiersById.get(classifierId);
     }
 
     StoreRegistry findStore(

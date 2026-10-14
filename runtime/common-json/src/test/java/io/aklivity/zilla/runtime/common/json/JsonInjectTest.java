@@ -235,6 +235,12 @@ class JsonInjectTest
             }
             return matches;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     }
 
     // Supplies an injected key or number value: getStringView() returns the injected text. The injected events

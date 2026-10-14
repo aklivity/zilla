@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
+
 import org.agrona.collections.Int2ObjectCache;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -22,6 +25,7 @@ import io.aklivity.zilla.runtime.common.json.JsonDiagnostic;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
@@ -38,15 +42,13 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 // any nesting depth, as the value streams through.
 final class JsonModelEncoderPipeline implements ModelPipeline
 {
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_FIN = 0x01;
-
     private final JsonModelHandlerImpl handler;
     private final JsonGeneratorEx generator;
     private final JsonTransform fieldTransform;
     private final Int2ObjectCache<JsonPipeline> pipelines;
     private final JsonEnvelope envelope;
     private final ModelPipelineResult result;
+    private final boolean deterministic;
 
     private JsonPipeline active;
     private String diagnostic;
@@ -69,6 +71,11 @@ final class JsonModelEncoderPipeline implements ModelPipeline
         this.fieldTransform = transform != ModelTransform.NONE ? new JsonModelFieldTransform(transform) : null;
         this.pipelines = new Int2ObjectCache<>(1, 16, p -> {});
         this.result = new ModelPipelineResult();
+        JsonParserEx parser = JsonEx.createParser();
+        this.deterministic = transform.deterministic() &&
+            !handler.extended() &&
+            parser.deterministic() &&
+            generator.deterministic();
     }
 
     @Override
@@ -89,7 +96,7 @@ final class JsonModelEncoderPipeline implements ModelPipeline
         int srcLength = srcLimit - srcIndex;
         int dstLength = dstLimit - dstIndex;
         int prefix = 0;
-        if ((flags & FLAGS_INIT) != 0)
+        if (hasInit(flags))
         {
             int schemaId = handler.resolveSchemaId();
             active = supplyPipeline(schemaId);
@@ -117,7 +124,7 @@ final class JsonModelEncoderPipeline implements ModelPipeline
         }
         else
         {
-            boolean last = (flags & FLAGS_FIN) != 0;
+            boolean last = hasFin(flags);
             JsonPipelineResult json =
                 active.transform(src, srcIndex, srcIndex + srcLength, last, dst, dstIndex + prefix, dstIndex + dstLength);
             status = map(json.status());
@@ -133,6 +140,12 @@ final class JsonModelEncoderPipeline implements ModelPipeline
     public boolean identity()
     {
         return false;
+    }
+
+    @Override
+    public boolean deterministic()
+    {
+        return deterministic;
     }
 
     @Override

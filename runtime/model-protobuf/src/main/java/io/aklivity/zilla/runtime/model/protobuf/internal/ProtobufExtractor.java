@@ -103,6 +103,12 @@ final class ProtobufExtractor implements ProtobufTransform
         return true;
     }
 
+    @Override
+    public boolean deterministic()
+    {
+        return true;
+    }
+
     private void observe(
         ProtobufSource source,
         ProtobufEvent event)

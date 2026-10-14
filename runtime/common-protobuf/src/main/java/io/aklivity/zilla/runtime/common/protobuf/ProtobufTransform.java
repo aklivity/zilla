@@ -58,4 +58,10 @@ public interface ProtobufTransform
     {
         return false;
     }
+
+    /**
+     * Whether this stage always produces the same output for the same input, configuration and
+     * authorization. A stage that consults external or changing state is not deterministic.
+     */
+    boolean deterministic();
 }

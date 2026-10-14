@@ -92,6 +92,11 @@ public interface JsonParserEx extends JsonParser
     boolean identity();
 
     /**
+     * Whether this parser always yields the same events for the same input bytes.
+     */
+    boolean deterministic();
+
+    /**
      * The number of bytes at the tail of the current window not yet consumed — what the caller retains and
      * re-presents, contiguous, at the front of the next window. The window-relative peer of the absolute
      * {@code getLocation().getStreamOffset()}: a caller buffering across windows keeps exactly this many bytes

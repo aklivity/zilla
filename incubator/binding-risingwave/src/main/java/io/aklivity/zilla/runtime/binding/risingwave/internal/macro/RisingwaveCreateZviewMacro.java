@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.risingwave.internal.macro;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
+
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,7 +33,6 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 public class RisingwaveCreateZviewMacro extends RisingwaveMacroBase
 {
-    protected static final int FLAGS_INIT = 0x02;
 
     private static final String MATERIALIZED_VIEW_NAME = "MATERIALIZED VIEW";
     private static final String ZVIEW_NAME = "zviews";
@@ -199,7 +200,7 @@ public class RisingwaveCreateZviewMacro extends RisingwaveMacroBase
         {
             int progress = offset;
 
-            if ((flags & FLAGS_INIT) != 0x00)
+            if (hasInit(flags))
             {
                 columnDescriptions.clear();
                 progress += Short.BYTES;

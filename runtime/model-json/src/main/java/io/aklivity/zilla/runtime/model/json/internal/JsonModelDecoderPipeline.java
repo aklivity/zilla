@@ -15,6 +15,8 @@
 package io.aklivity.zilla.runtime.model.json.internal;
 
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 
 import org.agrona.collections.Int2ObjectCache;
 
@@ -24,6 +26,7 @@ import io.aklivity.zilla.runtime.common.json.JsonDiagnostic;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
@@ -42,9 +45,6 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 // the fact.
 final class JsonModelDecoderPipeline implements ModelPipeline
 {
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_FIN = 0x01;
-
     private final JsonModelHandlerImpl handler;
     private final JsonGeneratorEx generator;
     private final JsonTransform fieldTransform;
@@ -52,6 +52,8 @@ final class JsonModelDecoderPipeline implements ModelPipeline
     private final JsonEnvelope envelope;
     private final ModelPipelineResult result;
     private final ModelCache cache;
+    private final boolean deterministic;
+    private final boolean identity;
 
     private JsonPipeline active;
     private String diagnostic;
@@ -74,6 +76,12 @@ final class JsonModelDecoderPipeline implements ModelPipeline
         this.pipelines = new Int2ObjectCache<>(1, 16, p -> {});
         this.result = new ModelPipelineResult();
         this.cache = cache;
+        JsonParserEx parser = JsonEx.createParser();
+        this.deterministic = transform.deterministic() &&
+            !handler.extended() &&
+            parser.deterministic() &&
+            generator.deterministic();
+        this.identity = fieldTransform == null && handler.decodeIdentity();
     }
 
     @Override
@@ -94,7 +102,7 @@ final class JsonModelDecoderPipeline implements ModelPipeline
         int srcLength = srcLimit - srcIndex;
         int dstLength = dstLimit - dstIndex;
         int prefix = 0;
-        if ((flags & FLAGS_INIT) != 0)
+        if (hasInit(flags))
         {
             // the catalog framing sits at the value start; strip it once on the first fragment and select
             // the schema-bound pipeline, then later fragments stream straight through
@@ -123,7 +131,7 @@ final class JsonModelDecoderPipeline implements ModelPipeline
         }
         else
         {
-            boolean last = (flags & FLAGS_FIN) != 0;
+            boolean last = hasFin(flags);
             JsonPipelineResult json =
                 active.transform(src, srcIndex + prefix, srcIndex + srcLength, last, dst, dstIndex, dstIndex + dstLength);
             status = map(json.status());
@@ -138,7 +146,13 @@ final class JsonModelDecoderPipeline implements ModelPipeline
     @Override
     public boolean identity()
     {
-        return active != null && active.identity();
+        return identity;
+    }
+
+    @Override
+    public boolean deterministic()
+    {
+        return deterministic;
     }
 
     @Override

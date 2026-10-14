@@ -37,6 +37,8 @@ public class HttpConfiguration extends Configuration
     public static final IntPropertyDef HTTP_MAX_CONCURRENT_APPLICATION_HEADERS;
     public static final PropertyDef<String> HTTP_SERVER_HEADER;
     public static final PropertyDef<String> HTTP_USER_AGENT_HEADER;
+    public static final BooleanPropertyDef HTTP_SSE_INITIAL_COMMENT_ENABLED;
+    public static final IntPropertyDef HTTP_SSE_MAXIMUM_IDLE_TIME;
     public static final BooleanPropertyDef HTTP_VERBOSE;
 
     private static final ConfigurationDef HTTP_CONFIG;
@@ -55,6 +57,11 @@ public class HttpConfiguration extends Configuration
         HTTP_MAX_CONCURRENT_STREAMS_CLEANUP = config.property("max.concurrent.streams.cleanup", 1000);
         HTTP_STREAMS_CLEANUP_DELAY = config.property("streams.cleanup.delay", 100);
         HTTP_MAX_CONCURRENT_APPLICATION_HEADERS = config.property("max.concurrent.application.headers", 10000);
+        final ConfigurationDef sse = new ConfigurationDef("zilla.binding.sse");
+        final BooleanPropertyDef sseInitialCommentEnabled = sse.property("initial.comment.enabled", false);
+        final IntPropertyDef sseMaximumIdleTime = sse.property("maximum.idle.time", 0);
+        HTTP_SSE_INITIAL_COMMENT_ENABLED = config.property("sse.initial.comment.enabled", sseInitialCommentEnabled::getAsBoolean);
+        HTTP_SSE_MAXIMUM_IDLE_TIME = config.property("sse.maximum.idle.time", sseMaximumIdleTime::getAsInt);
         HTTP_VERBOSE = config.property("verbose", HttpConfiguration::verboseDefault);
         HTTP_CONFIG = config;
     }
@@ -125,6 +132,16 @@ public class HttpConfiguration extends Configuration
     public String16FW userAgentHeader()
     {
         return userAgentHeader;
+    }
+
+    public boolean sseInitialCommentEnabled()
+    {
+        return HTTP_SSE_INITIAL_COMMENT_ENABLED.getAsBoolean(this);
+    }
+
+    public int sseMaximumIdleTime()
+    {
+        return HTTP_SSE_MAXIMUM_IDLE_TIME.getAsInt(this);
     }
 
     public boolean verbose()

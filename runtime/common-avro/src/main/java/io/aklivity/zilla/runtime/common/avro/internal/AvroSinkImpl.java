@@ -231,6 +231,12 @@ public final class AvroSinkImpl implements AvroSink
         return generator.identity();
     }
 
+    @Override
+    public boolean deterministic()
+    {
+        return generator.deterministic();
+    }
+
     // Streams a length-delimited value (string/bytes/fixed) into the bounded generator without sink state:
     // the segment is the value's unconsumed remainder (the parser advances it on consumed()), so a resume
     // re-reads it from the source and continues. The generator writes the length prefix once and copies

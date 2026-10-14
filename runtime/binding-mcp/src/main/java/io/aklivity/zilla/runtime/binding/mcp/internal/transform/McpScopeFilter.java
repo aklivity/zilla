@@ -92,6 +92,12 @@ public final class McpScopeFilter implements JsonTransform
         return state.apply(source, event, sink);
     }
 
+    @Override
+    public boolean deterministic()
+    {
+        return true;
+    }
+
     // outside the target array: pass everything through, arming when the target array key is seen
     private Status onOuter(
         JsonSource source,

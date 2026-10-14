@@ -281,6 +281,12 @@ public class ProtobufGeneratorTest
             return false;
         }
 
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
         private static String value(
             ProtobufSource source)
         {
@@ -369,6 +375,12 @@ public class ProtobufGeneratorTest
         public boolean identity()
         {
             return false;
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
         }
 
         private void writeValue(

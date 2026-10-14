@@ -78,4 +78,12 @@ public interface StringSink
      * @return {@code true} if every value passes through unchanged; {@code false} otherwise
      */
     boolean identity();
+
+    /**
+     * Whether this sink, together with everything downstream of it, always produces the same output for
+     * the same input, configuration, and authorization.
+     *
+     * @return {@code true} if the same input always produces the same output; {@code false} otherwise
+     */
+    boolean deterministic();
 }

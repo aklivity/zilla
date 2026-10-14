@@ -21,9 +21,6 @@ public class SseConfiguration extends Configuration
 {
     public static final String CHALLENGE_EVENT_TYPE_NAME = "zilla.binding.sse.challenge.event.type";
 
-    public static final BooleanPropertyDef INITIAL_COMMENT_ENABLED;
-    public static final IntPropertyDef MAXIMUM_IDLE_TIME;
-
     private static final ConfigurationDef SSE_CONFIG;
 
     static final PropertyDef<String> CHALLENGE_EVENT_TYPE;
@@ -31,9 +28,7 @@ public class SseConfiguration extends Configuration
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.sse");
-        INITIAL_COMMENT_ENABLED = config.property("initial.comment.enabled", false);
         CHALLENGE_EVENT_TYPE = config.property("challenge.event.type", "challenge");
-        MAXIMUM_IDLE_TIME = config.property("maximum.idle.time", 0);
         SSE_CONFIG = config;
     }
 
@@ -43,18 +38,8 @@ public class SseConfiguration extends Configuration
         super(SSE_CONFIG, config);
     }
 
-    public boolean initialCommentEnabled()
-    {
-        return INITIAL_COMMENT_ENABLED.getAsBoolean(this);
-    }
-
     public String challengeEventType()
     {
         return CHALLENGE_EVENT_TYPE.get(this);
-    }
-
-    public int maximumIdleTime()
-    {
-        return MAXIMUM_IDLE_TIME.getAsInt(this);
     }
 }

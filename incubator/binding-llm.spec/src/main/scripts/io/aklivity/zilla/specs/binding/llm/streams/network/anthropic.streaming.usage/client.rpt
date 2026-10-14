@@ -23,12 +23,13 @@ write zilla:begin.ext ${http:beginEx()
                             .header(":scheme", "http")
                             .header(":authority", "example.com:8080")
                             .header(":path", "/v1/messages")
+                            .header("anthropic-version", "2023-06-01")
                             .header("content-type", "application/json")
                             .build()}
 
 connected
 
-write "{\"model\":\"claude-haiku-4-5-20251001\",\"max_tokens\":100,\"messages\":[{\"role\":\"user\",\"content\":\"Say hello in one sentence.\"}],\"stream\":true}"
+write "{\"model\":\"claude-haiku-4-5-20251001\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Say hello in one sentence.\"}]}]}"
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()
@@ -37,11 +38,35 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("content-type", "text/event-stream")
                            .build()}
 
-read "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"model\":\"claude-haiku-4-5-20251001\",\"id\":\"msg_011CfFkXKDQA6Xuf9Bf5seBn\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"container\":null,\"stop_reason\":null,\"stop_sequence\":null,\"stop_details\":null,\"usage\":{\"input_tokens\":13,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":0},\"output_tokens\":5,\"service_tier\":\"standard\",\"inference_geo\":\"not_available\"}}}\n\n"
-read "event: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\n"
-read "event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Hello! I'm happy\"}}\n\n"
-read "event: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\n"
-read "event: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":13,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":13}}\n\n"
-read "event: message_stop\ndata: {\"type\":\"message_stop\"}\n\n"
+read zilla:data.ext ${http:matchDataEx()
+                         .typeId(zilla:id("http"))
+                         .header("type", "message_start")
+                         .build()}
+read "{\"type\":\"message_start\",\"message\":{\"model\":\"claude-haiku-4-5-20251001\",\"id\":\"msg_011CfFkXKDQA6Xuf9Bf5seBn\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"container\":null,\"stop_reason\":null,\"stop_sequence\":null,\"stop_details\":null,\"usage\":{\"input_tokens\":13,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":0},\"output_tokens\":5,\"service_tier\":\"standard\",\"inference_geo\":\"not_available\"}}}"
+read zilla:data.ext ${http:matchDataEx()
+                         .typeId(zilla:id("http"))
+                         .header("type", "content_block_start")
+                         .build()}
+read "{\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}"
+read zilla:data.ext ${http:matchDataEx()
+                         .typeId(zilla:id("http"))
+                         .header("type", "content_block_delta")
+                         .build()}
+read "{\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Hello! I'm happy\"}}"
+read zilla:data.ext ${http:matchDataEx()
+                         .typeId(zilla:id("http"))
+                         .header("type", "content_block_stop")
+                         .build()}
+read "{\"type\":\"content_block_stop\",\"index\":0}"
+read zilla:data.ext ${http:matchDataEx()
+                         .typeId(zilla:id("http"))
+                         .header("type", "message_delta")
+                         .build()}
+read "{\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":13,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":13}}"
+read zilla:data.ext ${http:matchDataEx()
+                         .typeId(zilla:id("http"))
+                         .header("type", "message_stop")
+                         .build()}
+read "{\"type\":\"message_stop\"}"
 
 read closed

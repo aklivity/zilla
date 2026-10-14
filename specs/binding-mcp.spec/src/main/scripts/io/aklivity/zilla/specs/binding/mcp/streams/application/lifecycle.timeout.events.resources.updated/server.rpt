@@ -55,9 +55,8 @@ write advise zilla:flush ${mcp:flushEx()
                                   .build()
                               .build()}
 
-# withheld until the real client has observed at least one keepalive interval
-# of real elapsed time on the sse stream -- see FLUSH_NOW in the paired
-# network client script
+# withheld until the test releases FLUSH_NOW after real time has elapsed on the
+# sse stream
 read await FLUSH_NOW
 
 write advise zilla:flush ${mcp:flushEx()
@@ -65,5 +64,16 @@ write advise zilla:flush ${mcp:flushEx()
                               .resourcesUpdated()
                                   .id("1")
                                   .uri("file:///data/readme.txt")
+                                  .build()
+                              .build()}
+
+# withheld until the test releases ALIVE_CHECK once past the original inactivity
+# deadline
+read await ALIVE_CHECK
+
+write advise zilla:flush ${mcp:flushEx()
+                              .typeId(zilla:id("mcp"))
+                              .resumable()
+                                  .id("2")
                                   .build()
                               .build()}

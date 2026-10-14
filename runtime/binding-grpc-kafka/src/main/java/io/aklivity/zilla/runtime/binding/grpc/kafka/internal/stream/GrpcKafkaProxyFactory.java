@@ -18,6 +18,9 @@ import static io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaC
 import static io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaCapabilities.PRODUCE_ONLY;
 import static io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcType.BASE64;
 import static io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcType.TEXT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 import static java.time.Instant.now;
 
 import java.util.Arrays;
@@ -73,10 +76,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
     private static final byte[] BIN_SUFFIX = "-bin".getBytes();
     private static final int META_PREFIX_LENGTH = META_PREFIX.length;
     private static final int BIN_SUFFIX_LENGTH = BIN_SUFFIX.length;
-
-    private static final int DATA_FLAG_INIT = 0x02;
-    private static final int DATA_FLAG_FIN = 0x01;
-    private static final int DATA_FLAG_COMPLETE = 0x03;
 
     private static final String8FW HEADER_NAME_ZILLA_GRPC_STATUS = new String8FW("zilla:status");
     private static final String8FW HEADER_NAME_ZILLA_GRPC_MESSAGE = new String8FW("zilla:message");
@@ -1000,7 +999,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
                 OctetsFW progress = null;
 
-                if ((flags & DATA_FLAG_INIT) != 0x00)
+                if (hasInit(flags))
                 {
                     final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
                     final KafkaDataExFW kafkaDataEx =
@@ -1018,7 +1017,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 encodeBuffer.putBytes(encodeProgress, payload.buffer(), payload.offset(), payloadSize);
                 encodeProgress += payloadSize;
 
-                if ((flags & DATA_FLAG_FIN) != 0x00) // FIN
+                if (hasFin(flags)) // FIN
                 {
                     Varuint32FW fieldId = result.fieldId();
 
@@ -1259,7 +1258,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             assert initialAck <= initialSeq;
 
             Flyweight kafkaDataEx = emptyRO;
-            if ((flags & DATA_FLAG_INIT) != 0x00)
+            if (hasInit(flags))
             {
                 GrpcDataExFW dataEx = null;
                 if (extension.sizeof() > 0)
@@ -1775,7 +1774,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             assert initialAck <= initialSeq;
 
             Flyweight kafkaDataEx = emptyRO;
-            if ((flags & DATA_FLAG_INIT) != 0x00)
+            if (hasInit(flags))
             {
                 GrpcDataExFW dataEx = null;
                 if (extension.sizeof() > 0)
@@ -1991,7 +1990,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 .build();
 
             doData(grpc, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, 0L, DATA_FLAG_COMPLETE, 0,  emptyRO, dataEx);
+                traceId, authorization, 0L, COMPLETE, 0,  emptyRO, dataEx);
 
             assert replySeq <= replyAck + replyMax;
         }
@@ -2364,7 +2363,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                     .headers(result::headers)))
                 .build();
 
-            doKafkaData(traceId, authorization, initialBud, 0, DATA_FLAG_COMPLETE, null, tombstoneDataEx);
+            doKafkaData(traceId, authorization, initialBud, 0, COMPLETE, null, tombstoneDataEx);
         }
     }
 

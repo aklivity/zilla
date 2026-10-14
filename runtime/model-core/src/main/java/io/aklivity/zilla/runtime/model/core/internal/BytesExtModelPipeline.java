@@ -34,6 +34,8 @@ final class BytesExtModelPipeline extends CoreExtModelPipeline
     private final BytesController control;
     private final BytesSource source;
     private final BytesSink head;
+    private final boolean identity;
+    private final boolean deterministic;
 
     BytesExtModelPipeline(
         CoreModelHandler handler,
@@ -53,12 +55,20 @@ final class BytesExtModelPipeline extends CoreExtModelPipeline
             sink = new Stage(transforms.get(i), sink);
         }
         this.head = sink;
+        this.identity = head.identity();
+        this.deterministic = head.deterministic();
     }
 
     @Override
     public boolean identity()
     {
-        return head.identity();
+        return identity;
+    }
+
+    @Override
+    public boolean deterministic()
+    {
+        return deterministic;
     }
 
     @Override
@@ -181,6 +191,12 @@ final class BytesExtModelPipeline extends CoreExtModelPipeline
         {
             return transform.identity() && sink.identity();
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return transform.deterministic() && sink.deterministic();
+        }
     }
 
     // the terminal: value bytes land in the caller's destination, and a write the destination bounded
@@ -219,6 +235,12 @@ final class BytesExtModelPipeline extends CoreExtModelPipeline
 
         @Override
         public boolean identity()
+        {
+            return true;
+        }
+
+        @Override
+        public boolean deterministic()
         {
             return true;
         }

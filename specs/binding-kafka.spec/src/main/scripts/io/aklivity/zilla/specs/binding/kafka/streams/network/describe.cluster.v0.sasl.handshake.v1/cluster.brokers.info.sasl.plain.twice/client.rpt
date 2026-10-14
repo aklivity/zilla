@@ -14,12 +14,14 @@
 # under the License.
 #
 
+property authorization 0L
 property networkConnectWindow 8192
 
 property newRequestId1 ${kafka:newRequestId()}
 property newRequestId2 ${kafka:newRequestId()}
 
 connect "zilla://streams/net0"
+  option zilla:authorization ${authorization}
   option zilla:window ${networkConnectWindow}
   option zilla:transmission "duplex"
   option zilla:byteorder "network"
@@ -90,6 +92,7 @@ write abort
 read aborted
 
 connect "zilla://streams/net0"
+  option zilla:authorization ${authorization}
   option zilla:window ${networkConnectWindow}
   option zilla:transmission "duplex"
   option zilla:byteorder "network"

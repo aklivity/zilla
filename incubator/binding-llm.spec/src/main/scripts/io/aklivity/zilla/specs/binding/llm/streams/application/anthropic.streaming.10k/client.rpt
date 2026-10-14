@@ -20,56 +20,102 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("anthropic")
+                           .model("claude-3-opus-20240229")
                            .build()}
 
 connected
 
-write "{\"model\":\"claude-3-opus-20240229\",\"max_tokens\":1024,\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"stream\":true}"
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "{\"model\":\"claude-3-opus-20240229\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\""
+write flush
 
-write close
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("USER_TEXT")
+                          .message(0)
+                          .build()}
+write "Hello"
+write flush
+
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .complete(true)
+                          .build()}
+write "\"}]}]}"
+write flush
+
+write advise zilla:flush
 
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("anthropic")
-                           .contentType("text/event-stream")
+                           .model("claude-3-opus-20240229")
+                           .id("msg_01")
                            .build()}
 
-read zilla:data.ext ${llm:matchDataEx()
+read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("message_start")
+                          .complete(true)
+                          .attribute("type", "message_start")
                           .build()}
 read "{\"type\":\"message_start\",\"message\":{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3-opus-20240229\",\"content\":[],\"usage\":{\"input_tokens\":25,\"output_tokens\":1}}}"
 
-read zilla:data.ext ${llm:matchDataEx()
+read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("content_block_start")
+                          .complete(true)
+                          .attribute("type", "content_block_start")
                           .build()}
 read "{\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}"
 
-read zilla:data.ext ${llm:matchDataEx()
+read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("content_block_delta")
+                          .attribute("type", "content_block_delta")
                           .build()}
-read '{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"'
-     ${core:randomBase64(10000)}
-     '"}}'
+read "{\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\""
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("content_block_stop")
+                          .type("ASSISTANT_TEXT")
+                          .message(0)
+                          .build()}
+read ${core:randomBase64(10000)}
+
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .complete(true)
+                          .build()}
+read "\"}}"
+
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .complete(true)
+                          .attribute("type", "content_block_stop")
                           .build()}
 read "{\"type\":\"content_block_stop\",\"index\":0}"
 
-read zilla:data.ext ${llm:matchDataEx()
+read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("message_delta")
+                          .complete(true)
+                          .attribute("type", "message_delta")
                           .build()}
 read "{\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\",\"stop_sequence\":null},\"usage\":{\"output_tokens\":15}}"
 
-read zilla:data.ext ${llm:matchDataEx()
+read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("message_stop")
+                          .complete(true)
+                          .attribute("type", "message_stop")
                           .build()}
 read "{\"type\":\"message_stop\"}"
 
+read zilla:end.ext ${llm:matchEndEx()
+                            .typeId(zilla:id("llm"))
+                            .inputTokens(25)
+                            .outputTokens(15)
+                            .finishReason("stop")
+                            .build()}
+
 read closed
+
+write close

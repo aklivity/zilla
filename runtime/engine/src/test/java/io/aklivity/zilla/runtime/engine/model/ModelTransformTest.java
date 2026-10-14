@@ -284,8 +284,27 @@ public class ModelTransformTest
     }
 
     // forwards every field unchanged while counting what it saw, as an accumulating observer does
+    @Test
+    public void shouldComposeDeterminismWithLogicalAnd()
+    {
+        ModelTransform observing = new Observing();
+        ModelTransform random = new Nondeterministic();
+
+        assertTrue(ModelTransform.NONE.deterministic());
+        assertTrue(observing.andThen(observing).deterministic());
+        assertFalse(observing.andThen(random).deterministic());
+        assertFalse(random.andThen(observing).deterministic());
+        assertFalse(ModelTransform.NONE.andThen(random).deterministic());
+    }
+
     private static final class Observing implements ModelTransform
     {
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
         private int seen;
 
         @Override
@@ -312,6 +331,12 @@ public class ModelTransformTest
     // replaces the value of one path with a fixed substitute
     private static final class Replacing implements ModelTransform
     {
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
         private final String path;
         private final Field substitute;
 
@@ -339,6 +364,12 @@ public class ModelTransformTest
     // appends a suffix to whatever value reaches it, so a chained stage proves it saw the previous answer
     private static final class Appending implements ModelTransform
     {
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
         private final String suffix;
 
         private int resets;
@@ -370,6 +401,12 @@ public class ModelTransformTest
 
     private static final class Declining implements ModelTransform
     {
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
         private final String path;
 
         private Declining(
@@ -393,6 +430,12 @@ public class ModelTransformTest
 
     private static final class Recording implements ModelTransform
     {
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
         private final List<String> events = new ArrayList<>();
         private final List<Long> authorizations = new ArrayList<>();
 
@@ -424,6 +467,25 @@ public class ModelTransformTest
         public boolean identity()
         {
             return true;
+        }
+    }
+
+    private static final class Nondeterministic implements ModelTransform
+    {
+        @Override
+        public boolean deterministic()
+        {
+            return false;
+        }
+
+        @Override
+        public ModelStatus transform(
+            ModelController control,
+            ModelSource source,
+            ModelEvent event,
+            ModelSink sink)
+        {
+            return sink.transform(control, source, event);
         }
     }
 }

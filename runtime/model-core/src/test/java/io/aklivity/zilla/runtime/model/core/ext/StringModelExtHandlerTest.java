@@ -91,7 +91,24 @@ public class StringModelExtHandlerTest
     @Test
     public void shouldResumeThroughToSinkByDefault()
     {
-        StringTransform transform = (control, source, event, sink) -> sink.transform(control, source, event);
+        StringTransform transform = new StringTransform()
+        {
+            @Override
+            public ModelStatus transform(
+                StringController control,
+                StringSource source,
+                StringEvent event,
+                StringSink sink)
+            {
+                return sink.transform(control, source, event);
+            }
+
+            @Override
+            public boolean deterministic()
+            {
+                return true;
+            }
+        };
         Sink sink = new Sink();
 
         assertEquals(ModelStatus.OK, transform.resume(new Control(), () -> null, StringEvent.SEGMENT, sink));
@@ -153,6 +170,12 @@ public class StringModelExtHandlerTest
 
         @Override
         public boolean identity()
+        {
+            return true;
+        }
+
+        @Override
+        public boolean deterministic()
         {
             return true;
         }

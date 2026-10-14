@@ -118,6 +118,9 @@ import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.classifier.Classifier;
+import io.aklivity.zilla.runtime.engine.classifier.ClassifierContext;
+import io.aklivity.zilla.runtime.engine.classifier.ClassifierHandler;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.embedding.Embedding;
 import io.aklivity.zilla.runtime.engine.embedding.EmbeddingContext;
@@ -215,6 +218,7 @@ public class EngineWorker implements EngineContext, Agent
     private final Collection<Vault> vaults;
     private final Collection<Catalog> catalogs;
     private final Collection<Embedding> embeddings;
+    private final Collection<Classifier> classifiers;
     private final Collection<Model> models;
     private final Collection<MetricGroup> metricGroups;
     private final Collection<Store> stores;
@@ -307,6 +311,7 @@ public class EngineWorker implements EngineContext, Agent
         Collection<Vault> vaults,
         Collection<Catalog> catalogs,
         Collection<Embedding> embeddings,
+        Collection<Classifier> classifiers,
         Collection<Model> models,
         Collection<MetricGroup> metricGroups,
         Collection<Store> stores,
@@ -448,6 +453,7 @@ public class EngineWorker implements EngineContext, Agent
         this.vaults = vaults;
         this.catalogs = catalogs;
         this.embeddings = embeddings;
+        this.classifiers = classifiers;
         this.models = models;
         this.metricGroups = metricGroups;
         this.stores = stores;
@@ -858,6 +864,14 @@ public class EngineWorker implements EngineContext, Agent
     }
 
     @Override
+    public ClassifierHandler supplyClassifier(
+        long classifierId)
+    {
+        ClassifierRegistry classifier = registry.resolveClassifier(classifierId);
+        return classifier != null ? classifier.handler() : null;
+    }
+
+    @Override
     public ModelHandler supplyModel(
         ModelConfig config)
     {
@@ -1112,6 +1126,21 @@ public class EngineWorker implements EngineContext, Agent
             }
         }
 
+        Map<String, ClassifierContext> classifiersByType = new LinkedHashMap<>();
+        for (Classifier classifier : classifiers)
+        {
+            String type = classifier.name();
+            Set<String> aliases = classifier.aliases();
+
+            ClassifierContext context = classifier.supply(this);
+
+            classifiersByType.put(type, context);
+            for (String alias : aliases)
+            {
+                classifiersByType.put(alias, context);
+            }
+        }
+
         Map<String, StoreContext> storesByType = stores.stream()
             .collect(toMap(Store::name, s -> s.supply(this), (a, b) -> a, LinkedHashMap::new));
 
@@ -1130,6 +1159,7 @@ public class EngineWorker implements EngineContext, Agent
 
         this.registry = new EngineRegistry(
                 bindingsByType::get, guardsByType::get, vaultsByType::get, catalogsByType::get, embeddingsByType::get,
+                classifiersByType::get,
                 metricsByName::get, exportersByType::get, storesByType::get, router::supplyLabelId, this::onExporterAttached,
                 this::onExporterDetached, this::supplyMetricWriter, this::detachStreams, collector, process);
 

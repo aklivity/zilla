@@ -28,7 +28,7 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"stream\":false}"
+write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}"
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()
@@ -37,6 +37,4 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("content-type", "application/octet-stream")
                            .build()}
 
-read "this response is not JSON or SSE"
-
-read closed
+read abort

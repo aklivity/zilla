@@ -172,5 +172,11 @@ public final class JsonStreamImpl implements JsonStream
         {
             return transform.identity() && downstream.identity();
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return transform.deterministic() && downstream.deterministic();
+        }
     }
 }

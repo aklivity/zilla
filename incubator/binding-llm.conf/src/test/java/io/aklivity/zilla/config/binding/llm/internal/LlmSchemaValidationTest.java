@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.nullValue;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.config.engine.ConfigException;
 import io.aklivity.zilla.config.engine.EngineConfig;
 import io.aklivity.zilla.config.engine.EngineConfigReader;
 import io.aklivity.zilla.config.engine.EngineInfo;
@@ -440,6 +441,30 @@ public class LlmSchemaValidationTest
     }
 
     @Test
+    public void shouldAcceptProxyWithRoutesWhenModelGlobAnyDialect()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                routes:
+                - when:
+                  - model: [ "claude-*" ]
+                  exit: app0
+                - when:
+                  - model: [ "gpt-*" ]
+                  exit: app1
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
     public void shouldAcceptProxyWithBareExitAndNoRoutes()
     {
         String text =
@@ -493,5 +518,782 @@ public class LlmSchemaValidationTest
             """;
 
         reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientWithoutOptions()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectServerWithVault()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: server
+                vault: vault0
+                exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectServerWithCatalog()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: server
+                catalog:
+                  catalog0:
+                    - subject: subject0
+                exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = ConfigException.class)
+    public void shouldRejectServerRouteWith()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: server
+                routes:
+                  - with:
+                      unknown: value
+                    exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectServerRouteWhen()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: server
+                routes:
+                  - when:
+                      - dialect: openai
+                    exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test
+    public void shouldAcceptServerGuardedRoute()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: server
+                routes:
+                  - guarded:
+                      guard0:
+                        - read
+                    exit: app0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectProxyWithVault()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: proxy
+                vault: vault0
+                exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectProxyWithCatalog()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: proxy
+                catalog:
+                  catalog0:
+                    - subject: subject0
+                exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = ConfigException.class)
+    public void shouldRejectProxyRouteWith()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: proxy
+                routes:
+                  - with:
+                      unknown: value
+                    exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test
+    public void shouldAcceptProxyRouteWithFallback()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: proxy
+                routes:
+                  - when:
+                      - model: [ claude-sonnet-4-6 ]
+                    exit: app0
+                    with:
+                      fallback: [ claude-opus-4-1, claude-haiku-4-5 ]
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test(expected = ConfigException.class)
+    public void shouldRejectProxyRouteWithEmptyFallback()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: proxy
+                routes:
+                  - exit: app0
+                    with:
+                      fallback: []
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = ConfigException.class)
+    public void shouldRejectProxyRouteWithFallbackNotArray()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: proxy
+                routes:
+                  - exit: app0
+                    with:
+                      fallback: claude-opus-4-1
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = ConfigException.class)
+    public void shouldRejectProxyRouteWithFallbackPattern()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: proxy
+                routes:
+                  - exit: app0
+                    with:
+                      fallback: [ "claude-*" ]
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientWithVault()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: client
+                vault: vault0
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientWithCatalog()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: client
+                catalog:
+                  catalog0:
+                    - subject: subject0
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = ConfigException.class)
+    public void shouldRejectClientRouteWith()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                routes:
+                  - with:
+                      unknown: value
+                    exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientRouteWhen()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                routes:
+                  - when:
+                      - dialect: openai
+                    exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test
+    public void shouldAcceptClientGuardedRoute()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                routes:
+                  - guarded:
+                      guard0:
+                        - read
+                    exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptServerWithAuthorization()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: server
+                options:
+                  authorization:
+                    guard0:
+                      credentials: "Bearer {credentials}"
+                exit: app0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectServerAuthorizationWithoutCredentialsPlaceholder()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: server
+                options:
+                  authorization:
+                    guard0:
+                      credentials: static-token
+                exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectServerAuthorizationWithMultipleGuards()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: server
+                options:
+                  authorization:
+                    guard0:
+                      credentials: "Bearer {credentials}"
+                    guard1:
+                      credentials: "Bearer {credentials}"
+                exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectServerAuthorizationWithUnknownProperty()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: server
+                options:
+                  authorization:
+                    guard0:
+                      credentials: "Bearer {credentials}"
+                      unknown: value
+                exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test
+    public void shouldAcceptClientWithAuthorization()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: https://api.example.com
+                  authorization:
+                    guard0:
+                      credentials: "x-api-key {credentials}"
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientAuthorizationWithoutCredentialsPlaceholder()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: https://api.example.com
+                  authorization:
+                    guard0:
+                      credentials: static-token
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientAuthorizationWithMultipleGuards()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: https://api.example.com
+                  authorization:
+                    guard0:
+                      credentials: "x-api-key {credentials}"
+                    guard1:
+                      credentials: "x-api-key {credentials}"
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientAuthorizationWithUnknownProperty()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: https://api.example.com
+                  authorization:
+                    guard0:
+                      credentials: "x-api-key {credentials}"
+                      unknown: value
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test
+    public void shouldAcceptClientWithServerHostAndPort()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://localhost:8080
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectProxyWithOptions()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                options:
+                  dialect: openai
+                exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test
+    public void shouldAcceptProxyWithGuardrails()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                options:
+                  guardrails:
+                    gpt-4o:
+                      request:
+                        - section: [ user-text, tool-result ]
+                          value: test
+                exit: app0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptProxyWithGuardrailsSectionAsString()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                options:
+                  guardrails:
+                    gpt-4o:
+                      request:
+                        - section: user-text
+                          value: test
+                      response:
+                        - section: assistant-text
+                          value: test
+                exit: app0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectProxyGuardrailsWithUnknownSection()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                options:
+                  guardrails:
+                    gpt-4o:
+                      request:
+                        - section: user-poem
+                          value: test
+                exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectProxyGuardrailsWithoutValue()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                options:
+                  guardrails:
+                    gpt-4o:
+                      request:
+                        - section: user-text
+                exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectProxyGuardrailsWithoutSection()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                options:
+                  guardrails:
+                    gpt-4o:
+                      request:
+                        - value: test
+                exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectProxyGuardrailsWithUnknownProperty()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                options:
+                  guardrails:
+                    gpt-4o:
+                      request:
+                        - section: user-text
+                          value: test
+                      other: []
+                exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectServerWithGuardrails()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: server
+                options:
+                  guardrails:
+                    gpt-4o:
+                      request:
+                        - section: user-text
+                          value: test
+                exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test
+    public void shouldAcceptClientWithServerHyphenatedHostAndPath()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: "http://mock-openai:4101/aicomp/v1"
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptClientWithServerIpv4Address()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: "http://10.0.0.1:8080"
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
     }
 }

@@ -25,10 +25,13 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import jakarta.json.JsonValue;
+
 import org.agrona.collections.LongObjPredicate;
 
 import io.aklivity.zilla.config.binding.mqtt.MqttConditionConfig;
 import io.aklivity.zilla.config.binding.mqtt.MqttTopicParamConfig;
+import io.aklivity.zilla.runtime.common.json.JsonStrings;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectBiFunction;
 
 public final class MqttConditionMatcher
@@ -48,7 +51,7 @@ public final class MqttConditionMatcher
 
     public MqttConditionMatcher(
         Function<String, LongFunction<String>> identities,
-        Function<String, LongObjectBiFunction<String, String>> attributor,
+        Function<String, LongObjectBiFunction<String, JsonValue>> attributor,
         MqttConditionConfig condition)
     {
         this.sessionMatchers = condition.sessions != null && !condition.sessions.isEmpty()
@@ -144,7 +147,7 @@ public final class MqttConditionMatcher
 
         private TopicMatcher(
             Function<String, LongFunction<String>> identities,
-            Function<String, LongObjectBiFunction<String, String>> attributor,
+            Function<String, LongObjectBiFunction<String, JsonValue>> attributor,
             String wildcard,
             List<MqttTopicParamConfig> params)
         {
@@ -201,7 +204,7 @@ public final class MqttConditionMatcher
 
         private LongObjPredicate<String> asTopicParamMatcher(
             Function<String, LongFunction<String>> identities,
-            Function<String, LongObjectBiFunction<String, String>> attributor,
+            Function<String, LongObjectBiFunction<String, JsonValue>> attributor,
             String value)
         {
             LongObjPredicate<String> topic;
@@ -227,10 +230,10 @@ public final class MqttConditionMatcher
         }
 
         private static LongObjPredicate<String> asTopicParamAttributeMatcher(
-            LongObjectBiFunction<String, String> attributor,
+            LongObjectBiFunction<String, JsonValue> attributor,
             String name)
         {
-            return (a, v) -> v != null && attributor != null && v.equals(attributor.apply(a, name));
+            return (a, v) -> v != null && attributor != null && v.equals(JsonStrings.asString(attributor.apply(a, name)));
         }
 
         private static LongObjPredicate<String> asTopicParamValueMatcher(

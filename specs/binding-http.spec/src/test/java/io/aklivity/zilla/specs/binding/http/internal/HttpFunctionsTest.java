@@ -51,6 +51,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpChallengeExFW;
+import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpDataExFW;
 import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpEndExFW;
 import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpFlushExFW;
 import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpResetExFW;
@@ -477,6 +478,102 @@ public class HttpFunctionsTest
             assertEquals("value", onlyHeader.value().asString());
         });
         assertTrue(flushEx.promise().sizeof() > 0);
+    }
+
+    @Test
+    public void shouldGenerateDataExtension()
+    {
+        byte[] build = HttpFunctions.dataEx()
+                                    .typeId(0x01)
+                                    .header("type", "message_start")
+                                    .header("id", "1")
+                                    .build();
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
+        HttpDataExFW dataEx = new HttpDataExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, dataEx.typeId());
+        assertTrue(dataEx.headers().anyMatch(h -> "type".equals(h.name().asString()) &&
+                                                  "message_start".equals(h.value().asString())));
+        assertTrue(dataEx.headers().anyMatch(h -> "id".equals(h.name().asString()) &&
+                                                  "1".equals(h.value().asString())));
+    }
+
+    @Test
+    public void shouldMatchDataExtension() throws Exception
+    {
+        BytesMatcher matcher = HttpFunctions.matchDataEx()
+                                            .typeId(0x01)
+                                            .header("type", "message_start")
+                                            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new HttpDataExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .headersItem(h -> h.name("type")
+                               .value("message_start"))
+            .headersItem(h -> h.name("id")
+                               .value("1"))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchDataExtensionWithRegex() throws Exception
+    {
+        BytesMatcher matcher = HttpFunctions.matchDataEx()
+                                            .typeId(0x01)
+                                            .headerRegex("id", "[0-9]+")
+                                            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new HttpDataExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .headersItem(h -> h.name("id")
+                               .value("42"))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchDataExtensionWithHeaderMissing() throws Exception
+    {
+        BytesMatcher matcher = HttpFunctions.matchDataEx()
+                                            .typeId(0x01)
+                                            .header("type", "message_start")
+                                            .headerMissing("id")
+                                            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new HttpDataExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .headersItem(h -> h.name("type")
+                               .value("message_start"))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldFailWhenDataExtensionHeaderDiffers() throws Exception
+    {
+        BytesMatcher matcher = HttpFunctions.matchDataEx()
+                                            .typeId(0x01)
+                                            .header("type", "message_stop")
+                                            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new HttpDataExFW.Builder().wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .headersItem(h -> h.name("type")
+                               .value("message_start"))
+            .build();
+
+        matcher.match(byteBuf);
     }
 
     @Test

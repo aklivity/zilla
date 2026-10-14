@@ -19,7 +19,8 @@ scope core
     {
         enum Capability
         {
-            CHALLENGE
+            CHALLENGE,
+            FRAMING
         }
 
         struct Extension
