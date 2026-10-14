@@ -815,6 +815,56 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.stream.options.absent/client",
+        "${app}/openai.stream.options.absent/server"})
+    public void shouldHandleOpenaiStreamOptionsAbsent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.stream.options.requested/client",
+        "${app}/openai.stream.options.requested/server"})
+    public void shouldHandleOpenaiStreamOptionsRequested() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.stream.options.disabled/client",
+        "${app}/openai.stream.options.disabled/server"})
+    public void shouldHandleOpenaiStreamOptionsDisabled() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.stream.options.members/client",
+        "${app}/openai.stream.options.members/server"})
+    public void shouldHandleOpenaiStreamOptionsMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.stream.options.null/client",
+        "${app}/openai.stream.options.null/server"})
+    public void shouldHandleOpenaiStreamOptionsNull() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
     @ScriptProperty({"source \"openai\""})
     @Specification({
         "${net}/openai.transform.user.text/client",

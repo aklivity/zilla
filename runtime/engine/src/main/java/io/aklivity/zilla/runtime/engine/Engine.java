@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine;
 
-import static io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout.BUCKETS;
+import static io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout.READERS;
 import static io.aklivity.zilla.runtime.engine.namespace.NamespacedId.NO_LOCAL_ID;
 import static io.aklivity.zilla.runtime.engine.namespace.NamespacedId.NO_NAMESPACE_ID;
 import static java.nio.channels.Channels.newWriter;
@@ -598,16 +598,16 @@ public final class Engine implements Collector, AutoCloseable
         int metricId,
         int attributesId)
     {
-        LongSupplier[] result = new LongSupplier[BUCKETS];
-        for (int i = 0; i < BUCKETS; i++)
+        LongSupplier[] result = new LongSupplier[READERS];
+        for (int i = 0; i < READERS; i++)
         {
             final int index = i;
-            result[index] = () -> aggregateHistogramBucketValue(bindingId, metricId, attributesId, index);
+            result[index] = () -> aggregateHistogramValue(bindingId, metricId, attributesId, index);
         }
         return result;
     }
 
-    private long aggregateHistogramBucketValue(
+    private long aggregateHistogramValue(
         long bindingId,
         int metricId,
         int attributesId,
