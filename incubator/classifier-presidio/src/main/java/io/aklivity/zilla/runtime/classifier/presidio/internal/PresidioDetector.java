@@ -14,17 +14,6 @@
  */
 package io.aklivity.zilla.runtime.classifier.presidio.internal;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpRequest.BodyPublishers;
-import java.net.http.HttpResponse;
-import java.net.http.HttpResponse.BodyHandlers;
-import java.time.Duration;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-
 import jakarta.json.JsonException;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -33,32 +22,14 @@ import io.aklivity.zilla.runtime.engine.classifier.Detector;
 final class PresidioDetector implements Detector
 {
     private final EngineContext context;
-    private final HttpClient client;
-    private final URI analyze;
-    private final String authorization;
-    private final String language;
-    private final double threshold;
-    private final Duration timeout;
-    private final List<String> entities;
+    private final PresidioAnalyzer analyzer;
 
     PresidioDetector(
         EngineContext context,
-        HttpClient client,
-        URI analyze,
-        String authorization,
-        String language,
-        double threshold,
-        Duration timeout,
-        List<String> entities)
+        PresidioAnalyzer analyzer)
     {
         this.context = context;
-        this.client = client;
-        this.analyze = analyze;
-        this.authorization = authorization;
-        this.language = language;
-        this.threshold = threshold;
-        this.timeout = timeout;
-        this.entities = entities;
+        this.analyzer = analyzer;
     }
 
     @Override
@@ -75,67 +46,25 @@ final class PresidioDetector implements Detector
         }
         else
         {
-            send(value).whenComplete((response, failure) ->
-                context.dispatch(() -> complete(contextId, response, failure, completion)));
+            analyzer.analyze(value).whenComplete((body, failure) ->
+                context.dispatch(() -> complete(contextId, body, failure, completion)));
         }
-    }
-
-    private CompletableFuture<HttpResponse<String>> send(
-        String value)
-    {
-        CompletableFuture<HttpResponse<String>> response;
-
-        try
-        {
-            response = client.sendAsync(request(value), BodyHandlers.ofString());
-        }
-        catch (RuntimeException ex)
-        {
-            response = CompletableFuture.failedFuture(ex);
-        }
-
-        return response;
-    }
-
-    private HttpRequest request(
-        String value)
-    {
-        HttpRequest.Builder request = HttpRequest.newBuilder(analyze)
-            .header("Content-Type", "application/json")
-            .POST(BodyPublishers.ofString(PresidioRequest.body(value, language, entities, threshold)));
-
-        if (!timeout.isZero())
-        {
-            request.timeout(timeout);
-        }
-
-        if (authorization != null)
-        {
-            request.header("Authorization", authorization);
-        }
-
-        return request.build();
     }
 
     private void complete(
         long contextId,
-        HttpResponse<String> response,
+        String body,
         Throwable failure,
         CompletionCallback completion)
     {
         boolean detected = false;
-        Throwable cause = failure instanceof CompletionException && failure.getCause() != null ? failure.getCause() : failure;
-
-        if (cause == null && response.statusCode() / 100 != 2)
-        {
-            cause = new IllegalStateException("analyze responded with status " + response.statusCode());
-        }
+        Throwable cause = PresidioAnalyzer.cause(failure);
 
         if (cause == null)
         {
             try
             {
-                detected = PresidioResponse.detected(response.body());
+                detected = PresidioResponse.detected(body);
             }
             catch (JsonException | IllegalArgumentException ex)
             {
