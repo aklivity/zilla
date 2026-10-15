@@ -20,6 +20,7 @@ import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class OltpConfiguration extends Configuration
 {
+    public static final PropertyDef<Duration> OTLP_EXPORTER_INITIAL_INTERVAL;
     public static final PropertyDef<Duration> OTLP_EXPORTER_RETRY_INTERVAL;
     public static final PropertyDef<Duration> OTLP_EXPORTER_TIMEOUT_INTERVAL;
     public static final PropertyDef<Duration> OTLP_EXPORTER_WARNING_INTERVAL;
@@ -29,6 +30,8 @@ public class OltpConfiguration extends Configuration
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.exporter.otlp");
+        OTLP_EXPORTER_INITIAL_INTERVAL = config.property(Duration.class, "initial.interval",
+            (c, v) -> Duration.parse(v), "PT1S");
         OTLP_EXPORTER_RETRY_INTERVAL = config.property(Duration.class, "retry.interval",
             (c, v) -> Duration.parse(v), "PT10S");
         OTLP_EXPORTER_TIMEOUT_INTERVAL = config.property(Duration.class, "timeout.interval",
@@ -42,6 +45,11 @@ public class OltpConfiguration extends Configuration
         Configuration config)
     {
         super(OTLP_EXPORTER_CONFIG, config);
+    }
+
+    public Duration initialInterval()
+    {
+        return OTLP_EXPORTER_INITIAL_INTERVAL.get(this);
     }
 
     public Duration retryInterval()

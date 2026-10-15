@@ -2765,6 +2765,78 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/transform.response.reasoning.tag/client",
+        "${app}/transform.response.reasoning.tag/server"})
+    public void shouldTransformResponseReasoningTag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.response.reasoning.tag.fragmented/client",
+        "${app}/transform.response.reasoning.tag.fragmented/server"})
+    public void shouldTransformResponseReasoningTagFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.response.reasoning.tag.multiple/client",
+        "${app}/transform.response.reasoning.tag.multiple/server"})
+    public void shouldTransformResponseReasoningTagMultiple() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.response.reasoning.tag.unclosed/client",
+        "${app}/transform.response.reasoning.tag.unclosed/server"})
+    public void shouldTransformResponseReasoningTagUnclosed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.response.reasoning.tag.absent/client",
+        "${app}/transform.response.reasoning.tag.absent/server"})
+    public void shouldTransformResponseReasoningTagAbsent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.assistant.text.reasoning/client",
+        "${app}/openai.section.assistant.text.reasoning/server"})
+    public void shouldDecodeOpenaiSectionAssistantTextReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.rejected.reasoning/client",
+        "${app}/openai.proxy.guardrail.response.rejected.reasoning/server"})
+    public void shouldRejectGuardedResponseSectionAcrossReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.rejected.reasoning.exit/client",
+        "${app}/openai.proxy.guardrail.response.rejected.reasoning.exit/server"})
+    public void shouldRejectGuardedResponseSectionAcrossReasoningExit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/transform.response.refusal/client",
         "${app}/transform.response.refusal/server"})
     public void shouldTransformResponseRefusal() throws Exception

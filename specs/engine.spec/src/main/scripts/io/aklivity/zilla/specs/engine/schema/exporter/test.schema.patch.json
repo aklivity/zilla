@@ -32,6 +32,14 @@
                         "type": "object",
                         "properties":
                         {
+                            "attributes":
+                            {
+                                "type": "object",
+                                "additionalProperties":
+                                {
+                                    "type": "string"
+                                }
+                            },
                             "events":
                             {
                                 "type": "array",

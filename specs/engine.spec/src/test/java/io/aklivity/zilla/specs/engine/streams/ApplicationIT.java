@@ -112,6 +112,24 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/reconfigure.modify.via.http.applied/client",
+        "${app}/reconfigure.modify.via.http.applied/server" })
+    public void shouldReconfigureWhenModifiedViaHttpApplied() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/reconfigure.modify.via.http.rejected/client",
+        "${app}/reconfigure.modify.via.http.rejected/server" })
+    public void shouldNotReconfigureWhenModifiedViaHttpRejected() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/reconfigure.create.via.http/client",
         "${app}/reconfigure.create.via.http/server" })
     public void shouldReconfigureWhenCreatedViaHttp() throws Exception

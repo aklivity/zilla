@@ -163,6 +163,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final LlmBeginExFW.Builder llmBeginExRW = new LlmBeginExFW.Builder();
     private final LlmDataExFW llmDataExRO = new LlmDataExFW();
     private final LlmSectionAttributes replyAttributes = new LlmSectionAttributes();
+    private final LlmSectionAttributes fragmentAttributes = new LlmSectionAttributes();
     private final LlmDataExFW.Builder llmDataExRW = new LlmDataExFW.Builder();
     private final LlmFlushExFW.Builder llmFlushExRW = new LlmFlushExFW.Builder();
     private final LlmResetExFW llmResetExRO = new LlmResetExFW();
@@ -3239,6 +3240,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final class LlmOpenaiStream
     {
         private final LlmOpenaiServer server;
+        private final LlmReasoningSplitter splitter;
+        private final LlmReasoningSplitter.Visitor reasoningVisitor;
 
         private MessageConsumer app;
         private long initialId;
@@ -3272,6 +3275,20 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             this.eventAttributeOffsets = new int[EVENT_CAPACITY];
             this.eventAttributeLengths = new int[EVENT_CAPACITY];
             this.eventStart = NO_EVENT;
+            this.splitter = new LlmReasoningSplitter();
+            this.reasoningVisitor = this::onReasoning;
+        }
+
+        private void onReasoning(
+            boolean reasoning,
+            DirectBufferEx payload,
+            int payloadOffset,
+            int payloadLength)
+        {
+            if (!reasoning)
+            {
+                doEncodeData(payload, payloadOffset, payloadLength);
+            }
         }
 
         private long initialAvailable()
@@ -3490,9 +3507,27 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             }
             else if (replyKind == LlmDataExFW.KIND_SECTION)
             {
-                if (payload.sizeof() > 0)
+                final LlmDataExFW fragmentEx = data.extension().get(llmDataExRO::tryWrap);
+
+                fragmentAttributes.readFrom(fragmentEx != null && fragmentEx.kind() == LlmDataExFW.KIND_SECTION
+                    ? fragmentEx.section()
+                    : null);
+
+                if (Flags.hasInit(flags))
                 {
-                    doEncodeData(payload.buffer(), payload.offset(), payload.sizeof(), Flags.hasFin(flags));
+                    splitter.begin();
+                }
+
+                if (fragmentAttributes.reasoningTag() != null)
+                {
+                    splitter.activate(fragmentAttributes.reasoningTag());
+                }
+
+                splitter.accept(payload.buffer(), payload.offset(), payload.sizeof(), reasoningVisitor);
+
+                if (Flags.hasFin(flags))
+                {
+                    splitter.end(reasoningVisitor);
                 }
 
                 if (Flags.hasFin(flags))
@@ -4014,8 +4049,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private void doEncodeData(
             DirectBufferEx payload,
             int payloadOffset,
-            int payloadLength,
-            boolean fin)
+            int payloadLength)
         {
             if (kind == KIND_TEXT || kind == KIND_REFUSAL || kind == KIND_TOOL_CALL)
             {
