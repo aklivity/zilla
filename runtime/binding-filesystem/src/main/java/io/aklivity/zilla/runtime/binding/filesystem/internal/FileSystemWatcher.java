@@ -23,6 +23,7 @@ import static org.agrona.CloseHelper.quietClose;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.ClosedWatchServiceException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -30,10 +31,12 @@ import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -43,7 +46,12 @@ import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
 public class FileSystemWatcher implements Callable<Void>
 {
+    private static final int DIGEST_BUFFER_CAPACITY = 8192;
+
     private final Map<WatchKey, Set<WatchedFile>> watchedFiles;
+    private final List<WatchedFile> signaledFiles;
+    private final List<WatchKey> previousKeys;
+    private final FileSystemDigest digest;
     private final WatchService watchService;
     private final Signaler signaler;
 
@@ -52,6 +60,9 @@ public class FileSystemWatcher implements Callable<Void>
         Signaler signaler)
     {
         this.watchedFiles = new HashMap<>();
+        this.signaledFiles = new ArrayList<>();
+        this.previousKeys = new ArrayList<>();
+        this.digest = new FileSystemDigest(new byte[DIGEST_BUFFER_CAPACITY]);
         this.signaler = signaler;
         this.watchService = createWatchService();
     }
@@ -64,38 +75,7 @@ public class FileSystemWatcher implements Callable<Void>
             try
             {
                 final WatchKey watchKey = watchService.take();
-                Set<WatchedFile> changedFiles = watchedFiles.get(watchKey);
-                if (changedFiles != null)
-                {
-                    for (WatchedFile changedFile : changedFiles)
-                    {
-                        String oldTag = changedFile.getOriginalHash();
-                        String newTag = changedFile.calculateHash();
-                        if (!oldTag.equals(newTag))
-                        {
-                            changedFile.cancelTimeoutSignal(signaler);
-                            changedFile.keys.forEach(watchedFiles::remove);
-                            changedFile.unregister();
-                            changedFile.signalChange(signaler);
-                        }
-                        else
-                        {
-                            if (changedFile.symlinks.length == 0)
-                            {
-                                changedFile.keys.forEach(watchedFiles::remove);
-                                changedFile.unregister();
-                                changedFile.registerWithSymlinks(watchService);
-                                changedFile.keys.forEach(key ->
-                                    watchedFiles.computeIfAbsent(key, k -> new HashSet<>()).add(changedFile)
-                                );
-                            }
-                            else
-                            {
-                                watchKey.reset();
-                            }
-                        }
-                    }
-                }
+                onWatchKeySignaled(watchKey);
             }
             catch (InterruptedException | ClosedWatchServiceException ex)
             {
@@ -106,20 +86,114 @@ public class FileSystemWatcher implements Callable<Void>
         return null;
     }
 
-    public void watch(
+    private synchronized void onWatchKeySignaled(
+        WatchKey watchKey)
+    {
+        watchKey.pollEvents();
+
+        Set<WatchedFile> files = watchedFiles.get(watchKey);
+        if (files != null)
+        {
+            signaledFiles.addAll(files);
+            for (WatchedFile signaledFile : signaledFiles)
+            {
+                String oldTag = signaledFile.getOriginalHash();
+                String newTag = calculateHash(signaledFile);
+                if (!oldTag.equals(newTag))
+                {
+                    signaledFile.cancelTimeoutSignal(signaler);
+                    release(signaledFile);
+                    signaledFile.signalChange(signaler);
+                }
+                else if (signaledFile.symlinks.length == 0)
+                {
+                    rewatch(signaledFile);
+                }
+            }
+            signaledFiles.clear();
+        }
+
+        if (watchedFiles.containsKey(watchKey) && !watchKey.reset())
+        {
+            for (WatchedFile watchedFile : watchedFiles.remove(watchKey))
+            {
+                watchedFile.keys.remove(watchKey);
+            }
+        }
+    }
+
+    String calculateHash(
+        WatchedFile watchedFile)
+    {
+        String hash = null;
+        try (InputStream input = watchedFile.input.get())
+        {
+            if (input != null)
+            {
+                hash = digest.digest(input);
+            }
+        }
+        catch (IOException ex)
+        {
+            // reject
+        }
+        return hash;
+    }
+
+    public synchronized void watch(
         WatchedFile watchedFile)
     {
         watchedFile.register(watchService);
-        watchedFile.keys.forEach(key ->
-            watchedFiles.computeIfAbsent(key, k -> new HashSet<>()).add(watchedFile)
-        );
+        watchedFile.keys.forEach(key -> acquire(key, watchedFile));
     }
 
-    public void unregister(
+    public synchronized void unregister(
         WatchedFile watchedFile)
     {
-        watchedFile.keys.forEach(watchedFiles::remove);
-        watchedFile.unregister();
+        release(watchedFile);
+    }
+
+    private void rewatch(
+        WatchedFile watchedFile)
+    {
+        previousKeys.addAll(watchedFile.keys);
+        watchedFile.keys.clear();
+        watchedFile.registerWithSymlinks(watchService);
+        watchedFile.keys.forEach(key -> acquire(key, watchedFile));
+        for (WatchKey previousKey : previousKeys)
+        {
+            if (!watchedFile.keys.contains(previousKey))
+            {
+                release(previousKey, watchedFile);
+            }
+        }
+        previousKeys.clear();
+    }
+
+    private void acquire(
+        WatchKey key,
+        WatchedFile watchedFile)
+    {
+        watchedFiles.computeIfAbsent(key, k -> new HashSet<>()).add(watchedFile);
+    }
+
+    private void release(
+        WatchedFile watchedFile)
+    {
+        watchedFile.keys.forEach(key -> release(key, watchedFile));
+        watchedFile.keys.clear();
+    }
+
+    private void release(
+        WatchKey key,
+        WatchedFile watchedFile)
+    {
+        Set<WatchedFile> files = watchedFiles.get(key);
+        if (files != null && files.remove(watchedFile) && files.isEmpty())
+        {
+            watchedFiles.remove(key);
+            key.cancel();
+        }
     }
 
     public static final class WatchedFile
@@ -127,7 +201,7 @@ public class FileSystemWatcher implements Callable<Void>
         private final Set<WatchKey> keys;
         private final Path resolvedPath;
         private final LinkOption[] symlinks;
-        private final Supplier<String> hashSupplier;
+        private final Supplier<InputStream> input;
         private final String originalHash;
         private final long timeoutId;
         private final long originId;
@@ -137,7 +211,7 @@ public class FileSystemWatcher implements Callable<Void>
         public WatchedFile(
             Path resolvedPath,
             LinkOption[] symlinks,
-            Supplier<String> hashSupplier,
+            Supplier<InputStream> input,
             String hash,
             long timeoutId,
             long originId,
@@ -147,18 +221,13 @@ public class FileSystemWatcher implements Callable<Void>
             this.keys = new HashSet<>();
             this.resolvedPath = resolvedPath;
             this.symlinks = symlinks;
-            this.hashSupplier = hashSupplier;
+            this.input = input;
             this.originalHash = hash;
             this.timeoutId = timeoutId;
             this.originId = originId;
             this.routedId = routedId;
             this.replyId = replyId;
         }
-        public String calculateHash()
-        {
-            return hashSupplier.get();
-        }
-
         public String getOriginalHash()
         {
             return originalHash;
@@ -249,12 +318,6 @@ public class FileSystemWatcher implements Callable<Void>
             {
                 rethrowUnchecked(ex);
             }
-        }
-
-        private void unregister()
-        {
-            keys.forEach(WatchKey::cancel);
-            keys.clear();
         }
 
         private WatchKey registerPath(
