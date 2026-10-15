@@ -90,16 +90,48 @@ public class McpSchemeExcluderTest
     }
 
     @Test
-    public void shouldDropSecuritySchemesBesideElementKeysThatFragmentWithVerbatimSink()
+    public void shouldDropSecuritySchemesKeyThatFragmentsWithVerbatimSink()
     {
+        // the dropped member's value is scanned in one shot, so the window that completes the key must also hold
+        // the whole value; the boundaries therefore fall inside the key and the last window carries the remainder
         String json = "{\"tools\":[" +
             "{\"name\":\"get_weather\",\"securitySchemes\":{\"a\":1},\"inputSchema\":{\"type\":\"object\"}}]}";
         String expected = "{\"tools\":[{\"name\":\"get_weather\",\"inputSchema\":{\"type\":\"object\"}}]}";
+        int key = json.indexOf("\"securitySchemes\"");
 
-        for (int window = 24; window <= 64; window++)
+        assertEquals(expected, driveVerbatim(json, key + 3, json.length()));
+        assertEquals(expected, driveVerbatim(json, key + 3, key + 5, json.length()));
+        assertEquals(expected, driveVerbatim(json, key + 1, key + 4, key + 7, json.length()));
+        assertEquals(expected, driveVerbatim(json, key + 14, json.length()));
+    }
+
+    private static String driveVerbatim(
+        String input,
+        int... ends)
+    {
+        JsonGeneratorEx gen = JsonEx.createGenerator();
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[4096]);
+        gen.wrap(buffer, 0, buffer.capacity());
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(new McpSchemeExcluder("tools"))
+            .into(gen);
+        pipeline.reset();
+
+        byte[] msg = input.getBytes(UTF_8);
+        int progress = 0;
+        Status status = Status.STARVED;
+        for (int index = 0; index < ends.length; index++)
         {
-            assertEquals("window " + window, expected, excludeWindowedVerbatim("tools", json, window));
+            status = pipeline.transform(new UnsafeBufferEx(msg), progress, ends[index], index == ends.length - 1);
+            if (status == Status.STARVED)
+            {
+                progress = ends[index] - pipeline.remaining();
+            }
         }
+        assertEquals(Status.COMPLETED, status);
+        byte[] out = new byte[gen.length()];
+        buffer.getBytes(0, out);
+        return new String(out, UTF_8);
     }
 
     private static String exclude(
