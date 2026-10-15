@@ -606,9 +606,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private char highSurrogate;
         private byte[] textBytes;
         private UnsafeBufferEx textBuffer;
-        private byte[] heldBytes;
-        private UnsafeBufferEx heldBuffer;
-        private int heldLength;
+        private int encodeSlot = NO_SLOT;
+        private int encodeSlotOffset;
 
         private DirectBufferEx decodeInput;
         private boolean dialectActive;
@@ -650,9 +649,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             this.parser = JsonEx.createParser();
             this.textBytes = new byte[1024];
             this.textBuffer = new UnsafeBufferEx(textBytes);
-            this.heldBytes = new byte[1024];
-            this.heldBuffer = new UnsafeBufferEx(heldBytes);
-            this.heldLength = NONE;
             this.decoder = decodeStart;
             this.dialectActive = true;
         }
@@ -664,7 +660,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
         private int replyWindow()
         {
-            return Math.max(0, replyMax - (int) (replySeq - replyAck) - Math.max(heldLength, 0) - EVENT_FRAMES * replyPad);
+            return Math.max(0, replyMax - (int) (replySeq - replyAck) - encodeSlotOffset - EVENT_FRAMES * replyPad);
         }
 
         private boolean replyAvailable()
@@ -902,6 +898,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
             http.doNetReset(traceId);
             http.doNetAbort(traceId);
+            cleanupEncodeSlot();
             http.cleanupEncodeSlot();
             http.cleanupDecodeSlot();
             http.cleanupStageSlot();
@@ -1188,7 +1185,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             sectionOpen = false;
             sectionStarted = false;
             highSurrogate = 0;
-            heldLength = NONE;
+            cleanupEncodeSlot();
             knownToolId = null;
             knownToolName = null;
         }
@@ -1304,7 +1301,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             {
                 int window = Math.min(limit - progress, replyWindow());
 
-                if (window == 0 && limit > progress && heldLength > 0 && replyCredit() > 0)
+                if (window == 0 && limit > progress && encodeSlotOffset > 0 && replyCredit() > 0)
                 {
                     flushHeld();
                     window = Math.min(limit - progress, replyWindow());
@@ -1386,15 +1383,15 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             final int pending = dialectActive ? position() - dialectFrom : 0;
 
-            return replyMax - (int) (replySeq - replyAck) - Math.max(heldLength, 0) - pending - parser.remaining();
+            return replyMax - (int) (replySeq - replyAck) - encodeSlotOffset - pending - parser.remaining();
         }
 
         private void flushHeld()
         {
-            if (heldLength != NONE)
+            if (encodeSlot != NO_SLOT)
             {
-                writeSection(heldBuffer, 0, heldLength, false);
-                heldLength = NONE;
+                writeSection(encodePool.buffer(encodeSlot), 0, encodeSlotOffset, false);
+                cleanupEncodeSlot();
             }
         }
 
@@ -2880,18 +2877,14 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int length,
             boolean fin)
         {
-            if (heldLength != NONE && fin && length == 0)
+            if (encodeSlot != NO_SLOT && fin && length == 0)
             {
-                writeSection(heldBuffer, 0, heldLength, true);
-                heldLength = NONE;
+                writeSection(encodePool.buffer(encodeSlot), 0, encodeSlotOffset, true);
+                cleanupEncodeSlot();
             }
             else
             {
-                if (heldLength != NONE)
-                {
-                    writeSection(heldBuffer, 0, heldLength, false);
-                    heldLength = NONE;
-                }
+                flushHeld();
 
                 if (fin)
                 {
@@ -2899,15 +2892,37 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    if (heldBytes.length < length)
-                    {
-                        heldBytes = new byte[length];
-                        heldBuffer = new UnsafeBufferEx(heldBytes);
-                    }
-
-                    textBuffer.getBytes(0, heldBytes, 0, length);
-                    heldLength = length;
+                    holdSection(length);
                 }
+            }
+        }
+
+        private void holdSection(
+            int length)
+        {
+            if (length <= encodeMax)
+            {
+                encodeSlot = encodePool.acquire(replyId);
+            }
+
+            if (encodeSlot == NO_SLOT)
+            {
+                cleanup(http.decodeTraceId);
+            }
+            else
+            {
+                encodePool.buffer(encodeSlot).putBytes(0, textBuffer, 0, length);
+                encodeSlotOffset = length;
+            }
+        }
+
+        private void cleanupEncodeSlot()
+        {
+            if (encodeSlot != NO_SLOT)
+            {
+                encodePool.release(encodeSlot);
+                encodeSlot = NO_SLOT;
+                encodeSlotOffset = 0;
             }
         }
 
@@ -3141,6 +3156,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                         .build();
 
                     app.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
+                    cleanupEncodeSlot();
                 }
             }
         }
@@ -3173,6 +3189,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                     .build();
 
                 app.accept(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
+                cleanupEncodeSlot();
             }
         }
 
@@ -3317,6 +3334,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             doAppAbort(traceId);
             http.doNetAbort(traceId);
             http.doNetReset(traceId);
+            cleanupEncodeSlot();
             http.cleanupEncodeSlot();
             http.cleanupDecodeSlot();
             http.cleanupStageSlot();
