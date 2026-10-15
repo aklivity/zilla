@@ -179,4 +179,31 @@ public class FileSystemIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${filesystem}/client.read.file.guarded/client",
+        "${filesystem}/client.read.file.guarded/server"})
+    public void shouldReceiveClientReadFileGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${filesystem}/client.read.file.prefixed/client",
+        "${filesystem}/client.read.file.prefixed/server"})
+    public void shouldReceiveClientReadFilePrefixed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${filesystem}/client.read.directory.guarded/client",
+        "${filesystem}/client.read.directory.guarded/server"})
+    public void shouldReceiveClientReadDirectoryGuarded() throws Exception
+    {
+        k3po.finish();
+    }
 }

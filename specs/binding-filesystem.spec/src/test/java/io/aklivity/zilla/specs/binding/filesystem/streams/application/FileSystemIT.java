@@ -108,6 +108,16 @@ public class FileSystemIT
 
     @Test
     @Specification({
+        "${app}/read.file.payload.large.tag.not.matched/client",
+        "${app}/read.file.payload.large.tag.not.matched/server"
+    })
+    public void shouldReadFilePayloadLargeTagNotMatched() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/read.file.payload.modified.follow.symlinks/client",
         "${app}/read.file.payload.modified.follow.symlinks/server"
     })
@@ -222,6 +232,16 @@ public class FileSystemIT
         "${app}/delete.file.payload.failed/server",
     })
     public void shouldDeleteFilePayloadFailed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/delete.file.payload.large.tag.not.matched/client",
+        "${app}/delete.file.payload.large.tag.not.matched/server",
+    })
+    public void shouldRejectDeleteFilePayloadLargeTagNotMatched() throws Exception
     {
         k3po.finish();
     }
