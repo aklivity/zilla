@@ -14,11 +14,18 @@
  */
 package io.aklivity.zilla.runtime.filesystem.http;
 
+import static io.aklivity.zilla.runtime.filesystem.http.HttpFilesystemEnvironment.POLL_INTERVAL_PROPERTY_NAME;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 import java.net.URI;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.Path;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
+import java.util.Map;
 
 import org.junit.Test;
 
@@ -85,5 +92,27 @@ public class HttpFileSystemTest
         assertThat(sibling.getFileSystem().getClass().getSimpleName(), equalTo("HttpFileSystem"));
         assertThat(sibling.getFileSystem().provider().getClass().getSimpleName(), equalTo("HttpsFileSystemProvider"));
         assertThat(sibling.toString(), equalTo("https://localhost:4242/greeting/bye.txt"));
+    }
+
+    @Test
+    public void shouldCancelWatchKeyBeforeWatching() throws Exception
+    {
+        URI uri = URI.create("http://localhost:4243/hello.txt");
+        try (FileSystem fs = FileSystems.newFileSystem(uri, Map.of(POLL_INTERVAL_PROPERTY_NAME, "PT1H")))
+        {
+            Path path = fs.getPath(uri.toString());
+
+            for (int attempt = 0; attempt < 100; attempt++)
+            {
+                try (WatchService watcher = fs.newWatchService())
+                {
+                    WatchKey key = path.register(watcher, ENTRY_MODIFY);
+                    key.cancel();
+
+                    assertThat(key.isValid(), equalTo(false));
+                    assertThat(key.reset(), equalTo(false));
+                }
+            }
+        }
     }
 }
