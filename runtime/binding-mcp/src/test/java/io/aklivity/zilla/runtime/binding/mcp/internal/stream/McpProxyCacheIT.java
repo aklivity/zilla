@@ -210,15 +210,12 @@ public class McpProxyCacheIT
     }
 
     @Test
-    @Configuration("proxy.cache.yaml")
+    @Configuration("proxy.cache.peer.yaml")
     @Specification({
-        "${app}/cache.serve.initialize.hydrate.error/client",
+        "${app}/cache.serve.initialize/client",
         "${app}/cache.hydrate.error/server" })
     @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
-    @Configure(name = ENGINE_WORKERS_NAME, value = "2")
-    @Configure(name = MCP_SESSION_ID_NAME,
-        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheIT::workersSessionId")
-    public void shouldServeInitializeHydrateError() throws Exception
+    public void shouldServeInitializeHydratedByPeer() throws Exception
     {
         k3po.finish();
     }
@@ -852,17 +849,6 @@ public class McpProxyCacheIT
     public void resetSessionIds()
     {
         sessionIds = SESSION_IDS.iterator();
-        WORKERS_SESSION_INDEX.set(0);
-    }
-
-    private static final String[] WORKERS_SESSION_MARKERS = { "000a", "000b" };
-    private static final AtomicInteger WORKERS_SESSION_INDEX = new AtomicInteger();
-
-    public static String workersSessionId(
-        long affinity)
-    {
-        String marker = WORKERS_SESSION_MARKERS[WORKERS_SESSION_INDEX.getAndIncrement() % WORKERS_SESSION_MARKERS.length];
-        return "5ca1ab1e-c0de-4a11-b007-%s00000000".formatted(marker);
     }
 
     private static final String[] CONTENDED_SESSION_MARKERS = { "000a", "000b" };
