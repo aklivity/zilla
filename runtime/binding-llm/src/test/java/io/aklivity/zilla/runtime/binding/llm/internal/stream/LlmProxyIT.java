@@ -102,6 +102,17 @@ public class LlmProxyIT
     }
 
     @Test
+    @Configuration("proxy.guardrail.yaml")
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.rejected.reasoning/client",
+        "${app}/openai.proxy.guardrail.response.rejected.reasoning.exit/server"})
+    public void shouldRejectGuardedResponseSectionAcrossReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.proxy.guardrail.yaml")
     @Specification({
         "${net}/openai.proxy.guardrail.rejected/client",

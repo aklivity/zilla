@@ -29,6 +29,7 @@ final class LlmSectionAttributes
     static final String TOOL_CALL_ID = "tool-call-id";
     static final String IS_ERROR = "is-error";
     static final String PROVIDER_EXECUTED = "provider-executed";
+    static final String REASONING_TAG = "reasoning-tag";
 
     static final String SOURCE_INLINE = "inline";
     static final String SOURCE_URL = "url";
@@ -47,6 +48,7 @@ final class LlmSectionAttributes
     private String toolCallId;
     private String isError;
     private String providerExecuted;
+    private String reasoningTag;
 
     void clear()
     {
@@ -58,6 +60,7 @@ final class LlmSectionAttributes
         toolCallId = null;
         isError = null;
         providerExecuted = null;
+        reasoningTag = null;
     }
 
     void readFrom(
@@ -79,7 +82,8 @@ final class LlmSectionAttributes
     boolean present()
     {
         return mediaType != null || source != null || refId != null || filename != null ||
-            toolName != null || toolCallId != null || isError != null || providerExecuted != null;
+            toolName != null || toolCallId != null || isError != null || providerExecuted != null ||
+            reasoningTag != null;
     }
 
     void difference(
@@ -94,6 +98,7 @@ final class LlmSectionAttributes
         toolCallId = changed(current.toolCallId, previous.toolCallId);
         isError = changed(current.isError, previous.isError);
         providerExecuted = changed(current.providerExecuted, previous.providerExecuted);
+        reasoningTag = changed(current.reasoningTag, previous.reasoningTag);
     }
 
     void copyFrom(
@@ -107,6 +112,7 @@ final class LlmSectionAttributes
         toolCallId = that.toolCallId;
         isError = that.isError;
         providerExecuted = that.providerExecuted;
+        reasoningTag = that.reasoningTag;
     }
 
     String get(
@@ -122,6 +128,7 @@ final class LlmSectionAttributes
         case TOOL_CALL_ID -> toolCallId;
         case IS_ERROR -> isError;
         case PROVIDER_EXECUTED -> providerExecuted;
+        case REASONING_TAG -> reasoningTag;
         default -> null;
         };
     }
@@ -164,6 +171,11 @@ final class LlmSectionAttributes
     String providerExecuted()
     {
         return providerExecuted;
+    }
+
+    String reasoningTag()
+    {
+        return reasoningTag;
     }
 
     void mediaType(
@@ -250,6 +262,7 @@ final class LlmSectionAttributes
         write(builder, TOOL_CALL_ID, toolCallId);
         write(builder, IS_ERROR, isError);
         write(builder, PROVIDER_EXECUTED, providerExecuted);
+        write(builder, REASONING_TAG, reasoningTag);
     }
 
     private static String changed(
@@ -289,6 +302,9 @@ final class LlmSectionAttributes
             break;
         case PROVIDER_EXECUTED:
             providerExecuted = value;
+            break;
+        case REASONING_TAG:
+            reasoningTag = value;
             break;
         default:
             break;
