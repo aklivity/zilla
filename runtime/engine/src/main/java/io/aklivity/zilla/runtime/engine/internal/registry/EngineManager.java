@@ -18,10 +18,12 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 import static java.util.stream.Collectors.toList;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -188,6 +190,7 @@ public class EngineManager
         Path watchedPath)
     {
         EngineConfig newConfig = null;
+        String newEtag = null;
 
         reconfigure:
         try
@@ -195,6 +198,7 @@ public class EngineManager
             int nonLocalConfigAt = 0;
 
             String newConfigText = Files.exists(configPath) ? Files.readString(configPath) : null;
+            newEtag = newConfigText != null ? etag(configPath) : null;
             if (localConfigPath != null &&
                 Files.exists(localConfigPath))
             {
@@ -231,10 +235,12 @@ public class EngineManager
                 {
                     if (newNamespace.configAt >= nonLocalConfigAt)
                     {
-                        break;
+                        newNamespace.etag = newEtag;
                     }
-
-                    newNamespace.vaults.forEach(v -> v.local = true);
+                    else
+                    {
+                        newNamespace.vaults.forEach(v -> v.local = true);
+                    }
                 }
 
                 final String oldConfigText = currentText;
@@ -248,6 +254,11 @@ public class EngineManager
                     current = newConfig;
 
                     register(newConfig);
+
+                    if (oldConfig != null)
+                    {
+                        events.configApplied(newEtag);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -269,11 +280,48 @@ public class EngineManager
                 .map(Throwable::getMessage)
                 .forEach(logger);
 
+            if (!Thread.currentThread().isInterrupted())
+            {
+                events.configRejected(newEtag, reason(ex));
+            }
+
             if (current == null)
             {
                 throw new ConfigException("Engine configuration failed", ex);
             }
         }
+    }
+
+    private static String etag(
+        Path path)
+    {
+        String etag = null;
+
+        try
+        {
+            if (Files.readAttributes(path, BasicFileAttributes.class).fileKey() instanceof String key)
+            {
+                etag = key;
+            }
+        }
+        catch (IOException | UnsupportedOperationException ex)
+        {
+            etag = null;
+        }
+
+        return etag;
+    }
+
+    private static String reason(
+        Exception ex)
+    {
+        Throwable cause = ex;
+        while (cause.getMessage() == null && cause.getCause() != null)
+        {
+            cause = cause.getCause();
+        }
+
+        return Objects.toString(cause.getMessage(), cause.getClass().getSimpleName());
     }
 
     private String buildSystemNamespaceIfNecessary()

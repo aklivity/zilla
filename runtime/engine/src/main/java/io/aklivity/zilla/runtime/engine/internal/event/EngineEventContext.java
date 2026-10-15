@@ -15,12 +15,15 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.event;
 
+import static io.aklivity.zilla.runtime.engine.internal.types.event.EngineEventType.CONFIG_APPLIED;
+import static io.aklivity.zilla.runtime.engine.internal.types.event.EngineEventType.CONFIG_REJECTED;
 import static io.aklivity.zilla.runtime.engine.internal.types.event.EngineEventType.CONFIG_WATCHER_FAILED;
 import static io.aklivity.zilla.runtime.engine.internal.types.event.EngineEventType.STARTED;
 import static io.aklivity.zilla.runtime.engine.internal.types.event.EngineEventType.STOPPED;
 
 import java.nio.ByteBuffer;
 import java.time.Clock;
+import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -32,6 +35,8 @@ import io.aklivity.zilla.runtime.engine.internal.types.event.EventFW;
 public final class EngineEventContext
 {
     private static final int EVENT_BUFFER_CAPACITY = 1024;
+    private static final int REASON_LENGTH_MAX = 512;
+    private static final Pattern CONTROL_CHARACTERS = Pattern.compile("\\p{Cntrl}");
 
     private final MutableDirectBufferEx eventBuffer = new UnsafeBufferEx(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
     private final MutableDirectBufferEx extensionBuffer = new UnsafeBufferEx(ByteBuffer.allocate(EVENT_BUFFER_CAPACITY));
@@ -44,6 +49,8 @@ public final class EngineEventContext
     private final int configWatcherFailedEventId;
     private final int startedEventId;
     private final int stoppedEventId;
+    private final int configAppliedEventId;
+    private final int configRejectedEventId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
 
@@ -55,6 +62,8 @@ public final class EngineEventContext
         this.configWatcherFailedEventId = engine.supplyLabelId("engine.config.watcher.failed");
         this.startedEventId = engine.supplyLabelId("engine.started");
         this.stoppedEventId = engine.supplyLabelId("engine.stopped");
+        this.configAppliedEventId = engine.supplyLabelId("engine.config.applied");
+        this.configRejectedEventId = engine.supplyLabelId("engine.config.rejected");
         this.eventWriter = engine.supplyEventWriter();
         this.clock = engine.clock();
     }
@@ -125,4 +134,56 @@ public final class EngineEventContext
         eventWriter.accept(engineTypeId, event.buffer(), event.offset(), event.limit());
     }
 
+    public void configApplied(
+        String etag)
+    {
+        EngineEventExFW extension = eventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .configApplied(e -> e
+                .typeId(CONFIG_APPLIED.value())
+                .etag(etag)
+            )
+            .build();
+
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(configAppliedEventId)
+            .timestamp(clock.millis())
+            .traceId(0)
+            .namespacedId(engineId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
+            .build();
+
+        eventWriter.accept(engineTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void configRejected(
+        String etag,
+        String reason)
+    {
+        String printable = reason != null ? CONTROL_CHARACTERS.matcher(reason).replaceAll("") : null;
+        String truncated = printable != null && printable.length() > REASON_LENGTH_MAX
+            ? printable.substring(0, REASON_LENGTH_MAX)
+            : printable;
+
+        EngineEventExFW extension = eventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .configRejected(e -> e
+                .typeId(CONFIG_REJECTED.value())
+                .etag(etag)
+                .reason(truncated)
+            )
+            .build();
+
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(configRejectedEventId)
+            .timestamp(clock.millis())
+            .traceId(0)
+            .namespacedId(engineId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
+            .build();
+
+        eventWriter.accept(engineTypeId, event.buffer(), event.offset(), event.limit());
+    }
 }
