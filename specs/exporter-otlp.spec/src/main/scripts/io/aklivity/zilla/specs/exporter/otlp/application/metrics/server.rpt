@@ -123,7 +123,7 @@ read
             '}],'
             '"min":1,'
             '"max":31,'
-            '"sum":63,'
+            '"sum":36,'
             '"count":3,'
             '"explicitBounds":['
               '2,'
