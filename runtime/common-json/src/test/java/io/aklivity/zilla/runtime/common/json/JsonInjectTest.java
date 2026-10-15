@@ -322,5 +322,11 @@ class JsonInjectTest
         {
             throw new UnsupportedOperationException();
         }
+
+        @Override
+        public void deferVerbatim()
+        {
+            throw new UnsupportedOperationException();
+        }
     }
 }

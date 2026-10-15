@@ -633,6 +633,12 @@ public final class McpKafkaConsumeResult
         {
             throw new UnsupportedOperationException();
         }
+
+        @Override
+        public void deferVerbatim()
+        {
+            throw new UnsupportedOperationException();
+        }
     }
 
     // Every event injected by this class is synthetic, so segmentable()/verbatim() requests from the

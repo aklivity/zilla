@@ -363,6 +363,12 @@ class JsonValidatorChainTest
         {
             throw new UnsupportedOperationException();
         }
+
+        @Override
+        public void deferVerbatim()
+        {
+            throw new UnsupportedOperationException();
+        }
     }
 
     @Test

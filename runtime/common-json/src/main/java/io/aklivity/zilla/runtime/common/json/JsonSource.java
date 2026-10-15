@@ -93,6 +93,17 @@ public interface JsonSource
     void skipValue();
 
     /**
+     * Retains the bytes of the pending verbatim run across an input window boundary instead of letting them be
+     * drained when the window is flushed. A stage that declines the current event (see
+     * {@link JsonController#consumed(int)}) because it cannot decide on a partial key calls this first, so that
+     * once the event is complete the stage can either forward it as {@link JsonEvent#VERBATIM}, which pulls the
+     * retained bytes ahead of the bytes that follow so the output is the source exactly, or drop the member with
+     * {@link #skipValue()}, which discards them. Requires the consumer to have opted in via
+     * {@link JsonController#verbatim()}; a source that does not track verbatim runs rejects it.
+     */
+    void deferVerbatim();
+
+    /**
      * Whether the current value has bytes still deferred to later events — {@code true} while more of
      * this same value follows (the value is being streamed across input frames because it exceeds the
      * input window), {@code false} when this event completes it. A JSON string is quote-delimited, so

@@ -445,6 +445,12 @@ public final class McpHttpToolResult implements JsonTransform
         {
             throw new UnsupportedOperationException();
         }
+
+        @Override
+        public void deferVerbatim()
+        {
+            throw new UnsupportedOperationException();
+        }
     }
 
     private final class Control implements JsonController

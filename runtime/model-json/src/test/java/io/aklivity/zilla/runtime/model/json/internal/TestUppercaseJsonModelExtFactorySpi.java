@@ -323,6 +323,12 @@ public final class TestUppercaseJsonModelExtFactorySpi implements JsonModelExtFa
             }
 
             @Override
+            public void deferVerbatim()
+            {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
             public boolean deferredBytes()
             {
                 return false;

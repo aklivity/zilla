@@ -465,6 +465,12 @@ public final class McpScopeFilter implements JsonTransform
         }
 
         @Override
+        public void deferVerbatim()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public boolean deferredBytes()
         {
             return false;

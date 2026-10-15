@@ -437,6 +437,15 @@ final class JsonEscapedParser implements JsonParserEx
     }
 
     @Override
+    public void deferVerbatim()
+    {
+        if (state != State.SCANNING)
+        {
+            outer.deferVerbatim();
+        }
+    }
+
+    @Override
     public boolean deferredBytes()
     {
         return source().deferredBytes();

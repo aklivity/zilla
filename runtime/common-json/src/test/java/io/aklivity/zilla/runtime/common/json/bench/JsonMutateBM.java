@@ -531,6 +531,12 @@ public class JsonMutateBM
         {
             throw new UnsupportedOperationException();
         }
+
+        @Override
+        public void deferVerbatim()
+        {
+            throw new UnsupportedOperationException();
+        }
     }
 
     public static void main(

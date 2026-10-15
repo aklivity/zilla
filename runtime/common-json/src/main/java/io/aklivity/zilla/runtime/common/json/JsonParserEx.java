@@ -185,6 +185,13 @@ public interface JsonParserEx extends JsonParser
     void skipValue();
 
     /**
+     * Retains the bytes of the pending verbatim run across an input window boundary rather than draining them
+     * when the window is flushed. The {@link JsonSource#deferVerbatim()} accessor promoted onto the parser
+     * surface.
+     */
+    void deferVerbatim();
+
+    /**
      * Whether the current value has bytes still deferred to later events — {@code true} while more of this same
      * value follows (the value is being streamed across input frames because it exceeds the input window),
      * {@code false} when this event completes it. The {@link JsonSource#deferredBytes()} accessor promoted onto

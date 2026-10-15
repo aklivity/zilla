@@ -410,6 +410,12 @@ public final class JsonPipelineImpl implements JsonPipeline
         }
 
         @Override
+        public void deferVerbatim()
+        {
+            parser.deferVerbatim();
+        }
+
+        @Override
         public boolean deferredBytes()
         {
             return parser.deferredBytes();

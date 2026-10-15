@@ -481,6 +481,12 @@ public final class McpEagerFilter implements JsonTransform
         }
 
         @Override
+        public void deferVerbatim()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public boolean deferredBytes()
         {
             return false;
