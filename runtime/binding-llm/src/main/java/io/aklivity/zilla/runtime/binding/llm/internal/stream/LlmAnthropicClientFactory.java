@@ -112,7 +112,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final int FRAMING_CAPABILITIES_MASK = 1 << Capability.FRAMING.ordinal();
     private static final int EVENT_ATTRIBUTES_CAPACITY = 256;
     private static final int QUEUE_ENTRY_OVERHEAD = 5 * Integer.BYTES + 3 * Long.BYTES + Byte.BYTES;
-    private static final int QUEUE_ENTRY_RESERVE = QUEUE_ENTRY_OVERHEAD + EVENT_ATTRIBUTES_CAPACITY;
+    private static final int QUEUE_ENTRY_PADDING = QUEUE_ENTRY_OVERHEAD + EVENT_ATTRIBUTES_CAPACITY;
 
     private static final int KIND_SYSTEM_INSTRUCTION = 1;
     private static final int KIND_USER_TEXT = 2;
@@ -4893,10 +4893,10 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 .streamId(replyId)
                 .sequence(replySeq)
                 .acknowledge(replyAck)
-                .maximum(decodeMax - buffered - (framing ? QUEUE_ENTRY_RESERVE : 0))
+                .maximum(decodeMax - buffered)
                 .traceId(traceId)
                 .budgetId(0L)
-                .padding(0)
+                .padding(framing ? QUEUE_ENTRY_PADDING : 0)
                 .capabilities(framing ? FRAMING_CAPABILITIES_MASK : 0)
                 .build();
 
