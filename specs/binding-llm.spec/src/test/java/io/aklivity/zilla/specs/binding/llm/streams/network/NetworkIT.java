@@ -2324,6 +2324,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.section.assistant.reasoning.streaming/client",
+        "${net}/openai.section.assistant.reasoning.streaming/server"})
+    public void shouldStreamOpenaiSectionAssistantReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.stream.options.absent/client",
         "${net}/openai.stream.options.absent/server"})
     public void shouldRelayOpenaiStreamOptionsAbsent() throws Exception

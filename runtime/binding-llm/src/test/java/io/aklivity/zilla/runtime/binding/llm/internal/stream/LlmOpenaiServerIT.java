@@ -816,6 +816,16 @@ public class LlmOpenaiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.section.assistant.reasoning.streaming/client",
+        "${app}/openai.section.assistant.reasoning.streaming/server"})
+    public void shouldStreamOpenaiSectionAssistantReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.stream.options.absent/client",
         "${app}/openai.stream.options.absent/server"})
     public void shouldHandleOpenaiStreamOptionsAbsent() throws Exception
