@@ -974,6 +974,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.section.assistant.reasoning.escaped/client",
+        "${app}/openai.section.assistant.reasoning.escaped/server"})
+    public void shouldDecodeOpenaiResponseReasoningEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.transform.response.streaming.multibyte/client",
         "${app}/openai.transform.response.streaming.multibyte/server"})
     public void shouldEncodeOpenaiResponseStreamingMultibyte() throws Exception

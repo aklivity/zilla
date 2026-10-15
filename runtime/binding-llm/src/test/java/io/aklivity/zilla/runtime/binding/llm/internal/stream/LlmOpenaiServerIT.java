@@ -972,6 +972,16 @@ public class LlmOpenaiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.section.assistant.reasoning.escaped/client",
+        "${app}/openai.section.assistant.reasoning.escaped/server"})
+    public void shouldDecodeOpenaiSectionAssistantReasoningEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.section.assistant.text.logprobs/client",
         "${app}/openai.section.assistant.text.logprobs/server"})
     public void shouldDecodeOpenaiSectionAssistantTextLogprobs() throws Exception

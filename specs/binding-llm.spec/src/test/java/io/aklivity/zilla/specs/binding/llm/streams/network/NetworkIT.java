@@ -830,6 +830,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.section.assistant.reasoning.escaped/client",
+        "${net}/openai.section.assistant.reasoning.escaped/server"})
+    public void shouldDecodeOpenaiResponseReasoningEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.transform.response.streaming.multibyte/client",
         "${net}/openai.transform.response.streaming.multibyte/server"})
     public void shouldEncodeOpenaiResponseStreamingMultibyte() throws Exception
