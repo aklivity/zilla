@@ -265,6 +265,7 @@ public class HttpFileSystemIT
 
                 WatchKey key1 = watcher.take();
                 List<WatchEvent<?>> events1 = key1.pollEvents();
+                boolean reset1 = key1.reset();
 
                 k3po.notifyBarrier("RECEIVED_UPDATE");
 
@@ -277,6 +278,8 @@ public class HttpFileSystemIT
                 assertThat(events1.size(), equalTo(1));
                 assertThat(events1.get(0).kind(), equalTo(ENTRY_CREATE));
                 assertThat(events1.get(0).context(), equalTo(path));
+                assertThat(reset1, equalTo(true));
+                assertThat(key2, equalTo(key1));
                 assertThat(events2.size(), equalTo(1));
                 assertThat(events2.get(0).kind(), equalTo(ENTRY_MODIFY));
                 assertThat(events2.get(0).context(), equalTo(path));
