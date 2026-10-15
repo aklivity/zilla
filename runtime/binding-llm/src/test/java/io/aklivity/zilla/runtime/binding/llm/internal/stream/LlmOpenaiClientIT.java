@@ -120,9 +120,9 @@ public class LlmOpenaiClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
-        "${app}/openai.usage.split/client",
+        "${app}/openai.usage/client",
         "${net}/openai.usage.split/server"})
-    public void shouldForwardOpenaiNonstreamingUsageSplit() throws Exception
+    public void shouldForwardOpenaiNonstreamingUsageSplitNumber() throws Exception
     {
         k3po.finish();
     }

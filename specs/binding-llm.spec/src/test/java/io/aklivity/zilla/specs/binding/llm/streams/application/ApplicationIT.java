@@ -119,15 +119,6 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/openai.usage.split/client",
-        "${app}/openai.usage.split/server"})
-    public void shouldForwardOpenaiNonstreamingUsageSplit() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/openai.reply.padded/client",
         "${app}/openai.reply.padded/server"})
     public void shouldForwardOpenaiNonstreamingWithReplyPadding() throws Exception
