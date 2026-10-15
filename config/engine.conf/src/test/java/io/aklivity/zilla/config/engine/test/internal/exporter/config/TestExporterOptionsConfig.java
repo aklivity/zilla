@@ -25,6 +25,7 @@ public final class TestExporterOptionsConfig extends OptionsConfig
     public final String mode;
     public final List<Event> events;
     public final List<Metric> metrics;
+    public final Map<String, String> attributes;
 
     public static TestExporterOptionsConfigBuilder<TestExporterOptionsConfig> builder()
     {
@@ -40,12 +41,14 @@ public final class TestExporterOptionsConfig extends OptionsConfig
     TestExporterOptionsConfig(
         String mode,
         List<Event> events,
-        List<Metric> metrics)
+        List<Metric> metrics,
+        Map<String, String> attributes)
     {
         super(null, null);
         this.mode = mode;
         this.events = events;
         this.metrics = metrics;
+        this.attributes = attributes;
     }
 
     public static final class Event

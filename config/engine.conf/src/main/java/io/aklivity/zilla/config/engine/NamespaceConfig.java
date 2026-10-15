@@ -29,6 +29,7 @@ public class NamespaceConfig extends Config
 
     public transient int id;
     public transient int configAt;
+    public transient String etag;
 
     public final String name;
     public final TelemetryConfig telemetry;

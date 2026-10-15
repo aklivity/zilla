@@ -14,8 +14,10 @@
  */
 package io.aklivity.zilla.config.engine.test.internal.exporter.config;
 
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
@@ -28,6 +30,7 @@ public final class TestExporterOptionsConfigBuilder<T> extends ConfigBuilder<T, 
     private String mode;
     private List<TestExporterOptionsConfig.Event> events;
     private List<TestExporterOptionsConfig.Metric> metrics;
+    private Map<String, String> attributes;
 
     TestExporterOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -74,9 +77,21 @@ public final class TestExporterOptionsConfigBuilder<T> extends ConfigBuilder<T, 
         return this;
     }
 
+    public TestExporterOptionsConfigBuilder<T> attribute(
+        String name,
+        String value)
+    {
+        if (this.attributes == null)
+        {
+            this.attributes = new LinkedHashMap<>();
+        }
+        this.attributes.put(name, value);
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new TestExporterOptionsConfig(mode, events, metrics));
+        return mapper.apply(new TestExporterOptionsConfig(mode, events, metrics, attributes));
     }
 }

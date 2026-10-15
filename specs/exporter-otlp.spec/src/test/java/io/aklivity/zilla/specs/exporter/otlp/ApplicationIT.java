@@ -71,4 +71,13 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/metrics.after.attach/client",
+        "${app}/metrics.after.attach/server" })
+    public void shouldPostMetricsAfterAttach() throws Exception
+    {
+        k3po.finish();
+    }
 }
