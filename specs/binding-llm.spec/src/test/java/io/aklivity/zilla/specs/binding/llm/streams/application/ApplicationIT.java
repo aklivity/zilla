@@ -83,6 +83,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.streaming.usage.padded/client",
+        "${app}/openai.streaming.usage.padded/server"})
+    public void shouldForwardOpenaiStreamingUsagePadded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai/client",
         "${app}/openai/server"})
     public void shouldForwardOpenaiNonstreaming() throws Exception
@@ -95,6 +104,15 @@ public class ApplicationIT
         "${app}/openai.usage/client",
         "${app}/openai.usage/server"})
     public void shouldForwardOpenaiNonstreamingUsage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.usage.padded/client",
+        "${app}/openai.usage.padded/server"})
+    public void shouldForwardOpenaiNonstreamingUsagePadded() throws Exception
     {
         k3po.finish();
     }
