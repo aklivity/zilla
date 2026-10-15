@@ -1179,6 +1179,83 @@ public class LlmAnthropicServerIT
     @Configuration("server.yaml")
     @ScriptProperty({"source \"anthropic\""})
     @Specification({
+        "${net}/anthropic.transform.response.reasoning.tag/client",
+        "${app}/transform.response.reasoning.tag/server"})
+    public void shouldTransformResponseReasoningTagFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
+        "${net}/anthropic.transform.response.streaming.reasoning.tag/client",
+        "${app}/transform.response.reasoning.tag/server"})
+    public void shouldTransformResponseStreamingReasoningTagFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
+        "${net}/anthropic.transform.response.reasoning.tag.fragmented/client",
+        "${app}/transform.response.reasoning.tag.fragmented/server"})
+    public void shouldTransformResponseReasoningTagFragmentedFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
+        "${net}/anthropic.transform.response.streaming.reasoning.tag.fragmented/client",
+        "${app}/transform.response.reasoning.tag.fragmented/server"})
+    public void shouldTransformResponseStreamingReasoningTagFragmentedFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
+        "${net}/anthropic.transform.response.reasoning.tag.multiple/client",
+        "${app}/transform.response.reasoning.tag.multiple/server"})
+    public void shouldTransformResponseReasoningTagMultipleFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
+        "${net}/anthropic.transform.response.reasoning.tag.unclosed/client",
+        "${app}/transform.response.reasoning.tag.unclosed/server"})
+    public void shouldTransformResponseReasoningTagUnclosedFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
+        "${net}/anthropic.transform.response.reasoning.tag.absent/client",
+        "${app}/transform.response.reasoning.tag.absent/server"})
+    public void shouldTransformResponseReasoningTagAbsentFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
         "${net}/anthropic.transform.response.refusal/client",
         "${app}/transform.response.refusal/server"})
     public void shouldTransformResponseRefusalFromAnthropic() throws Exception

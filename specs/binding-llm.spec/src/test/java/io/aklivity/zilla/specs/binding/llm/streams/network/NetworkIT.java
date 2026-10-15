@@ -2693,6 +2693,141 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/anthropic.transform.response.reasoning.tag/client",
+        "${net}/anthropic.transform.response.reasoning.tag/server"})
+    public void shouldTransformAnthropicResponseReasoningTag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.streaming.reasoning.tag/client",
+        "${net}/anthropic.transform.response.streaming.reasoning.tag/server"})
+    public void shouldTransformAnthropicResponseStreamingReasoningTag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.reasoning.tag.fragmented/client",
+        "${net}/anthropic.transform.response.reasoning.tag.fragmented/server"})
+    public void shouldTransformAnthropicResponseReasoningTagFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.streaming.reasoning.tag.fragmented/client",
+        "${net}/anthropic.transform.response.streaming.reasoning.tag.fragmented/server"})
+    public void shouldTransformAnthropicResponseStreamingReasoningTagFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.reasoning.tag.multiple/client",
+        "${net}/anthropic.transform.response.reasoning.tag.multiple/server"})
+    public void shouldTransformAnthropicResponseReasoningTagMultiple() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.reasoning.tag.unclosed/client",
+        "${net}/anthropic.transform.response.reasoning.tag.unclosed/server"})
+    public void shouldTransformAnthropicResponseReasoningTagUnclosed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.reasoning.tag.absent/client",
+        "${net}/anthropic.transform.response.reasoning.tag.absent/server"})
+    public void shouldTransformAnthropicResponseReasoningTagAbsent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.reasoning.tag/client",
+        "${net}/openai.transform.response.reasoning.tag/server"})
+    public void shouldTransformOpenaiResponseReasoningTag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.streaming.reasoning.tag/client",
+        "${net}/openai.transform.response.streaming.reasoning.tag/server"})
+    public void shouldTransformOpenaiResponseStreamingReasoningTag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.reasoning.tag.fragmented/client",
+        "${net}/openai.transform.response.reasoning.tag.fragmented/server"})
+    public void shouldTransformOpenaiResponseReasoningTagFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.streaming.reasoning.tag.fragmented/client",
+        "${net}/openai.transform.response.streaming.reasoning.tag.fragmented/server"})
+    public void shouldTransformOpenaiResponseStreamingReasoningTagFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.reasoning.tag.multiple/client",
+        "${net}/openai.transform.response.reasoning.tag.multiple/server"})
+    public void shouldTransformOpenaiResponseReasoningTagMultiple() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.reasoning.tag.unclosed/client",
+        "${net}/openai.transform.response.reasoning.tag.unclosed/server"})
+    public void shouldTransformOpenaiResponseReasoningTagUnclosed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.reasoning.tag.absent/client",
+        "${net}/openai.transform.response.reasoning.tag.absent/server"})
+    public void shouldTransformOpenaiResponseReasoningTagAbsent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.assistant.text.reasoning/client",
+        "${net}/openai.section.assistant.text.reasoning/server"})
+    public void shouldDecodeOpenaiSectionAssistantTextReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/anthropic.transform.response.refusal/client",
         "${net}/anthropic.transform.response.refusal/server"})
     public void shouldAnthropicTransformResponseRefusal() throws Exception
