@@ -125,6 +125,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private static final String MEMBER_NAME = "name";
     private static final String MEMBER_ARGUMENTS = "arguments";
     private static final String MEMBER_TYPE = "type";
+    private static final int EVENT_FRAMES = 4;
     private static final int FRAMING_CAPABILITIES_MASK = 1 << Capability.FRAMING.ordinal();
     private static final int EVENT_ATTRIBUTES_CAPACITY = 256;
     private static final int QUEUE_ENTRY_OVERHEAD = 5 * Integer.BYTES + 3 * Long.BYTES + Byte.BYTES;
@@ -623,7 +624,12 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
         private int replyCredit()
         {
-            return Math.max(0, replyMax - (int) (replySeq - replyAck)) / (1 + replyPad);
+            return Math.max(0, replyMax - (int) (replySeq - replyAck) - replyPad);
+        }
+
+        private int replyWindow()
+        {
+            return Math.max(0, replyMax - (int) (replySeq - replyAck) - Math.max(heldLength, 0) - EVENT_FRAMES * replyPad);
         }
 
         private boolean replyAvailable()
@@ -1260,14 +1266,19 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int progress = offset;
             boolean advanced = true;
 
+            if (replay && http.framing && decoder == decodeStart && last)
+            {
+                documentUsageOnly = scanUsageOnly(buffer, offset, limit);
+            }
+
             while (advanced && decoder != decodeEnd && !parseRejected)
             {
-                int window = Math.min(limit - progress, Math.max(0, replyCredit() - Math.max(heldLength, 0)));
+                int window = Math.min(limit - progress, replyWindow());
 
                 if (window == 0 && limit > progress && heldLength > 0 && replyCredit() > 0)
                 {
                     flushHeld();
-                    window = Math.min(limit - progress, Math.max(0, replyCredit() - Math.max(heldLength, 0)));
+                    window = Math.min(limit - progress, replyWindow());
                 }
 
                 if (window > 0)
@@ -1301,11 +1312,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             decodeInput = buffer;
             dialectFrom = offset;
 
-            if (replay && http.framing && decoder == decodeStart && windowLast)
-            {
-                documentUsageOnly = scanUsageOnly(buffer, offset, windowLimit);
-            }
-
             parser.wrap(buffer, offset, windowLimit, windowLast);
 
             LlmOpenaiResponseDecoder previous = null;
@@ -1335,6 +1341,18 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private int position()
         {
             return decodeLimit - parser.remaining();
+        }
+
+        private boolean hasNextEvent()
+        {
+            return parser.hasNextEvent() && (!begun() || draining || eventSlack() >= EVENT_FRAMES * replyPad);
+        }
+
+        private int eventSlack()
+        {
+            final int pending = dialectActive ? position() - dialectFrom : 0;
+
+            return replyMax - (int) (replySeq - replyAck) - Math.max(heldLength, 0) - pending - parser.remaining();
         }
 
         private void flushHeld()
@@ -1496,7 +1514,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            if (parser.hasNextEvent())
+            if (hasNextEvent())
             {
                 parser.nextEvent();
                 decoder = decodeRootStart;
@@ -1510,7 +1528,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            if (parser.hasNextEvent())
+            if (hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
 
@@ -1532,7 +1550,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            while (decoder == decodeRoot && parser.hasNextEvent())
+            while (decoder == decodeRoot && hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
 
@@ -1589,7 +1607,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            while (decoder == decodeId && parser.hasNextEvent())
+            while (decoder == decodeId && hasNextEvent())
             {
                 final String value = stringValue(parser.nextEvent(), decodeRoot, id);
 
@@ -1607,7 +1625,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            while (decoder == decodeModel && parser.hasNextEvent())
+            while (decoder == decodeModel && hasNextEvent())
             {
                 final String value = stringValue(parser.nextEvent(), decodeRoot, servedModel);
 
@@ -1625,7 +1643,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            if (parser.hasNextEvent())
+            if (hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
 
@@ -1647,7 +1665,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            if (parser.hasNextEvent())
+            if (hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
 
@@ -1670,7 +1688,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            while (decoder == decodeChoice && parser.hasNextEvent())
+            while (decoder == decodeChoice && hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
 
@@ -1717,7 +1735,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            while (decoder == decodeChoiceIndex && parser.hasNextEvent())
+            while (decoder == decodeChoiceIndex && hasNextEvent())
             {
                 final int value = intValue(parser.nextEvent(), decodeChoice);
 
@@ -1735,7 +1753,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            while (decoder == decodeFinishReason && parser.hasNextEvent())
+            while (decoder == decodeFinishReason && hasNextEvent())
             {
                 final String value = stringValue(parser.nextEvent(), decodeChoice);
 
@@ -1753,7 +1771,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            if (parser.hasNextEvent())
+            if (hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
 
@@ -1777,7 +1795,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            if (parser.hasNextEvent())
+            if (hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
 
@@ -1801,7 +1819,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            while (decoder == decodeDelta && parser.hasNextEvent())
+            while (decoder == decodeDelta && hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
 
@@ -1827,7 +1845,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            while (decoder == decodeMessage && parser.hasNextEvent())
+            while (decoder == decodeMessage && hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
 
@@ -1881,7 +1899,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             int eventFrom = position();
 
-            while (decoder == decodeText && parser.hasNextEvent())
+            while (decoder == decodeText && hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
 
@@ -1912,7 +1930,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            if (parser.hasNextEvent())
+            if (hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
 
@@ -1934,7 +1952,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            if (parser.hasNextEvent())
+            if (hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
 
@@ -1959,7 +1977,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            while (decoder == decodeToolCall && parser.hasNextEvent())
+            while (decoder == decodeToolCall && hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
 
@@ -2002,7 +2020,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            while (decoder == decodeToolIndex && parser.hasNextEvent())
+            while (decoder == decodeToolIndex && hasNextEvent())
             {
                 final int value = intValue(parser.nextEvent(), decodeToolCall);
 
@@ -2020,7 +2038,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            while (decoder == decodeToolId && parser.hasNextEvent())
+            while (decoder == decodeToolId && hasNextEvent())
             {
                 final String value = stringValue(parser.nextEvent(), decodeToolCall);
 
@@ -2038,7 +2056,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            if (parser.hasNextEvent())
+            if (hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
 
@@ -2060,7 +2078,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            while (decoder == decodeFunction && parser.hasNextEvent())
+            while (decoder == decodeFunction && hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
 
@@ -2099,7 +2117,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            while (decoder == decodeToolName && parser.hasNextEvent())
+            while (decoder == decodeToolName && hasNextEvent())
             {
                 final String value = stringValue(parser.nextEvent(), decodeFunction);
 
@@ -2119,7 +2137,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             int eventFrom = position();
 
-            while (decoder == decodeArguments && parser.hasNextEvent())
+            while (decoder == decodeArguments && hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
 
@@ -2150,7 +2168,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            while (decoder == decodeUsage && parser.hasNextEvent())
+            while (decoder == decodeUsage && hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
                 final boolean deferred = deferredScalar(event);

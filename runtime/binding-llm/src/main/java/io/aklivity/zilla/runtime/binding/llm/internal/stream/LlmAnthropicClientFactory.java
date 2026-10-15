@@ -108,6 +108,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final int STATUS_BAD_REQUEST = 400;
     private static final int NO_ERROR = -1;
     private static final int STATUS_BAD_GATEWAY = 502;
+    private static final int EVENT_FRAMES = 4;
     private static final int FRAMING_CAPABILITIES_MASK = 1 << Capability.FRAMING.ordinal();
     private static final int EVENT_ATTRIBUTES_CAPACITY = 256;
     private static final int QUEUE_ENTRY_OVERHEAD = 5 * Integer.BYTES + 3 * Long.BYTES + Byte.BYTES;
@@ -658,7 +659,12 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
         private int replyCredit()
         {
-            return Math.max(0, replyMax - (int) (replySeq - replyAck)) / (1 + replyPad);
+            return Math.max(0, replyMax - (int) (replySeq - replyAck) - replyPad);
+        }
+
+        private int replyWindow()
+        {
+            return Math.max(0, replyMax - (int) (replySeq - replyAck) - Math.max(heldLength, 0) - EVENT_FRAMES * replyPad);
         }
 
         private boolean replyAvailable()
@@ -1296,12 +1302,12 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
             while (advanced && decoder != decodeEnd && !parseRejected)
             {
-                int window = Math.min(limit - progress, Math.max(0, replyCredit() - Math.max(heldLength, 0)));
+                int window = Math.min(limit - progress, replyWindow());
 
                 if (window == 0 && limit > progress && heldLength > 0 && replyCredit() > 0)
                 {
                     flushHeld();
-                    window = Math.min(limit - progress, Math.max(0, replyCredit() - Math.max(heldLength, 0)));
+                    window = Math.min(limit - progress, replyWindow());
                 }
 
                 if (window > 0)
@@ -1369,6 +1375,18 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private int position()
         {
             return decodeLimit - parser.remaining();
+        }
+
+        private boolean hasNextEvent()
+        {
+            return parser.hasNextEvent() && (!begun() || draining || eventSlack() >= EVENT_FRAMES * replyPad);
+        }
+
+        private int eventSlack()
+        {
+            final int pending = dialectActive ? position() - dialectFrom : 0;
+
+            return replyMax - (int) (replySeq - replyAck) - Math.max(heldLength, 0) - pending - parser.remaining();
         }
 
         private void flushHeld()
@@ -1477,7 +1495,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            if (parser.hasNextEvent())
+            if (hasNextEvent())
             {
                 parser.nextEvent();
                 decoder = decodeRootStart;
@@ -1491,7 +1509,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            if (parser.hasNextEvent())
+            if (hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
 
@@ -1513,7 +1531,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            while (decoder == decodeRoot && parser.hasNextEvent())
+            while (decoder == decodeRoot && hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
 
@@ -1593,7 +1611,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            while (decoder == decodeStopReason && parser.hasNextEvent())
+            while (decoder == decodeStopReason && hasNextEvent())
             {
                 final String value = stringValue(parser.nextEvent(), valueThen);
 
@@ -1611,7 +1629,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            while (decoder == decodeType && parser.hasNextEvent())
+            while (decoder == decodeType && hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
 
@@ -1640,7 +1658,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            while (decoder == decodeId && parser.hasNextEvent())
+            while (decoder == decodeId && hasNextEvent())
             {
                 final String value = stringValue(parser.nextEvent(), valueThen, id);
 
@@ -1658,7 +1676,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            while (decoder == decodeModel && parser.hasNextEvent())
+            while (decoder == decodeModel && hasNextEvent())
             {
                 final String value = stringValue(parser.nextEvent(), valueThen, servedModel);
 
@@ -1676,7 +1694,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            if (parser.hasNextEvent())
+            if (hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
 
@@ -1698,7 +1716,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            while (decoder == decodeMessage && parser.hasNextEvent())
+            while (decoder == decodeMessage && hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
 
@@ -1745,7 +1763,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            if (parser.hasNextEvent())
+            if (hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
 
@@ -1767,7 +1785,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            while (decoder == decodeContent && parser.hasNextEvent())
+            while (decoder == decodeContent && hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
 
@@ -1796,7 +1814,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            while (decoder == decodeContentItem && parser.hasNextEvent())
+            while (decoder == decodeContentItem && hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
 
@@ -1854,7 +1872,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            if (parser.hasNextEvent())
+            if (hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
 
@@ -1876,7 +1894,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            if (parser.hasNextEvent())
+            if (hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
 
@@ -1898,7 +1916,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            while (decoder == decodeContentBlock && parser.hasNextEvent())
+            while (decoder == decodeContentBlock && hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
 
@@ -1950,7 +1968,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            while (decoder == decodeBlockType && parser.hasNextEvent())
+            while (decoder == decodeBlockType && hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
 
@@ -1973,7 +1991,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            while (decoder == decodeBlockId && parser.hasNextEvent())
+            while (decoder == decodeBlockId && hasNextEvent())
             {
                 final String value = stringValue(parser.nextEvent(), blockThen);
 
@@ -1991,7 +2009,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            while (decoder == decodeBlockName && parser.hasNextEvent())
+            while (decoder == decodeBlockName && hasNextEvent())
             {
                 final String value = stringValue(parser.nextEvent(), blockThen);
 
@@ -2011,7 +2029,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             int eventFrom = position();
 
-            while (decoder == decodeBlockText && parser.hasNextEvent())
+            while (decoder == decodeBlockText && hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
 
@@ -2042,7 +2060,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            if (parser.hasNextEvent())
+            if (hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
 
@@ -2064,7 +2082,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            while (decoder == decodeDelta && parser.hasNextEvent())
+            while (decoder == decodeDelta && hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
 
@@ -2114,7 +2132,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             int eventFrom = position();
 
-            while (decoder == decodeArguments && parser.hasNextEvent())
+            while (decoder == decodeArguments && hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
 
@@ -2145,7 +2163,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            if (parser.hasNextEvent())
+            if (hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
 
@@ -2167,7 +2185,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            while (decoder == decodeUsage && parser.hasNextEvent())
+            while (decoder == decodeUsage && hasNextEvent())
             {
                 final JsonEvent event = parser.nextEvent();
 
@@ -2218,7 +2236,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            while (decoder == decodeUsageValue && parser.hasNextEvent())
+            while (decoder == decodeUsageValue && hasNextEvent())
             {
                 final int value = intValue(parser.nextEvent(), decodeUsage);
 

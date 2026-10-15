@@ -119,6 +119,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.usage.split/client",
+        "${app}/openai.usage.split/server"})
+    public void shouldForwardOpenaiNonstreamingUsageSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.reply.padded/client",
         "${app}/openai.reply.padded/server"})
     public void shouldForwardOpenaiNonstreamingWithReplyPadding() throws Exception
@@ -164,6 +173,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/anthropic.streaming.usage.padded/client",
+        "${app}/anthropic.streaming.usage.padded/server"})
+    public void shouldForwardAnthropicStreamingUsagePadded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.streaming.abort/client",
         "${app}/openai.streaming.abort/server"})
     public void shouldAbortOpenaiStreamingWithPartialUsage() throws Exception
@@ -203,6 +221,15 @@ public class ApplicationIT
         "${app}/anthropic.usage/client",
         "${app}/anthropic.usage/server"})
     public void shouldForwardAnthropicNonstreamingUsage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.usage.padded/client",
+        "${app}/anthropic.usage.padded/server"})
+    public void shouldForwardAnthropicNonstreamingUsagePadded() throws Exception
     {
         k3po.finish();
     }

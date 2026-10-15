@@ -120,6 +120,16 @@ public class LlmOpenaiClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
+        "${app}/openai.usage.split/client",
+        "${net}/openai.usage.split/server"})
+    public void shouldForwardOpenaiNonstreamingUsageSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
         "${app}/openai.request.padded/client",
         "${net}/openai.request.padded/server"})
     public void shouldForwardOpenaiRequestWithReplyPadding() throws Exception
