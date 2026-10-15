@@ -149,6 +149,7 @@
 - feat\(binding-llm\): carry max output tokens across dialects [\#2724](https://github.com/aklivity/zilla/pull/2724) ([jfallows](https://github.com/jfallows))
 - fix\(engine\): record exact histogram sum instead of deriving it from bucket limits [\#2725](https://github.com/aklivity/zilla/pull/2725) ([jfallows](https://github.com/jfallows))
 - feat\(binding-llm\): request usage upstream for openai streaming and honor the caller's choice [\#2726](https://github.com/aklivity/zilla/pull/2726) ([jfallows](https://github.com/jfallows))
+- fix\(binding-llm\): escape assistant reasoning text replayed into the openai response [\#2727](https://github.com/aklivity/zilla/pull/2727) ([jfallows](https://github.com/jfallows))
 
 ## [2.4.7](https://github.com/aklivity/zilla/tree/2.4.7) (2026-09-30)
 
