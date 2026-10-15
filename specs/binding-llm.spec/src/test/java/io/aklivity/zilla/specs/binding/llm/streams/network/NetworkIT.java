@@ -830,6 +830,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.section.assistant.reasoning.escaped/client",
+        "${net}/openai.section.assistant.reasoning.escaped/server"})
+    public void shouldDecodeOpenaiResponseReasoningEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.transform.response.streaming.multibyte/client",
         "${net}/openai.transform.response.streaming.multibyte/server"})
     public void shouldEncodeOpenaiResponseStreamingMultibyte() throws Exception
@@ -2309,6 +2318,15 @@ public class NetworkIT
         "${net}/openai.streaming.complete/client",
         "${net}/openai.streaming.complete/server"})
     public void shouldCompleteEachOpenaiStreamingEvent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.assistant.reasoning.streaming/client",
+        "${net}/openai.section.assistant.reasoning.streaming/server"})
+    public void shouldStreamOpenaiSectionAssistantReasoning() throws Exception
     {
         k3po.finish();
     }

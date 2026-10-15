@@ -4133,6 +4133,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             LlmSectionType type)
         {
             replayEscaped = type == LlmSectionType.ASSISTANT_TEXT ||
+                type == LlmSectionType.ASSISTANT_REASONING ||
                 type == LlmSectionType.ASSISTANT_REFUSAL ||
                 type == LlmSectionType.TOOL_CALL;
 
