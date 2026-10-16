@@ -16,6 +16,12 @@ guards:
           alg: RS256
           kid: example
 catalogs:
+  inventory_catalog:
+    type: filesystem
+    options:
+      subjects:
+        inventory:
+          path: protos/inventory.proto
   github_catalog:
     type: inline
     options:
@@ -330,7 +336,7 @@ bindings:
         # works fine since real calls use the caller's own JWT, not this one
         authorization:
           authn_jwt:
-            credentials: "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6ImV4YW1wbGUifQ.eyJhdWQiOiJodHRwczovL2FwaS5leGFtcGxlLmNvbSIsImV4cCI6NDkzODM1MDk3OSwiaXNzIjoiaHR0cHM6Ly9hdXRoLmV4YW1wbGUuY29tIiwic2NvcGUiOiJnaXRodWI6dG9vbHMgcGV0c3RvcmU6dG9vbHMgdXJsZWxpY2l0OmF1dGhvcml6ZSBrYWZrYTp0b29scyBrYWZrYV9zcjp0b29scyBrYWZrYV9jb25uZWN0OnRvb2xzIn0.e5n0XM_a0wb1BYhJiWXvPnSXaWOJyYbAj_1e3dMdNOVFBwmWv5BwHm-LYdf7DbbJk5u09I0MtgBqVnLsntwrnxcNIPzsKSs2U17Yb6NnPz6K41TljV9HCP4nAR6KK7Lt7uwJbpuSz-yY91FqjDQFjGuOGv79oPygMaomyzz4NchnAECUysrvlYlFun-X4klQsMr3h5ik-M5hDJ5rHjkefBFBR1JZOKvJEQpgSQ9Z2i4x9KiLTV4V-UfUmYrLwFuQaHalU20Rmkl8sEJ8L16PU5tuXRnUGdLyg68_i_BV-Wc0PuAHMYIWxERIfoCBrPDrVpeK1zlNYZ4lWfgbN_onLA"
+            credentials: "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6ImV4YW1wbGUifQ.eyJhdWQiOiJodHRwczovL2FwaS5leGFtcGxlLmNvbSIsImV4cCI6NDkzODM1MDk3OSwiaXNzIjoiaHR0cHM6Ly9hdXRoLmV4YW1wbGUuY29tIiwic2NvcGUiOiJnaXRodWI6dG9vbHMgcGV0c3RvcmU6dG9vbHMgdXJsZWxpY2l0OmF1dGhvcml6ZSBrYWZrYTp0b29scyBrYWZrYV9zcjp0b29scyBrYWZrYV9jb25uZWN0OnRvb2xzIGludmVudG9yeTp0b29scyJ9.Q6bq36-hV-3FhkcSZoqLTNqYdqJW0wrpBqIQ-kJUamjN5JS_Es2oeFvO0ficwoGV2qmPJpgwkceEwrUAnW73faus9VEQEY6dS0ByY8d-fNUr6ZJOIB6U9SRpDjfPmy_nDdl5IG-CRB8aEtJNCVnhDlnjHnA22xYevIusxbh06nDJLchkTiQMiCtjHlzAb8j3cQ5hyunYipLHD-tz9VraDBY4HtI-gwCCSg2M-f_J_BwsCAiDpDG2YUQFJ8Mc4UtrKx5SQt93ZKj7PzNQ537KW0YyD_KGqOqIUAmQSfob4F-L1S1xmxE5RFjDn3p6SmwNXll_ThvLbc3bY5NOgkb8Xg"
         # a fixed handful of frequently used tools stay eagerly listed; every other
         # tool across every toolkit (the "everything" reference server's dozen-plus
         # demo tools, most visibly) is omitted from tools/list -- because the search
@@ -346,6 +352,8 @@ bindings:
               - petstore__list_pets
               - petstore__search_pets
               - petstore__create_pet
+              - inventory__get_item
+              - inventory__list_items
               - kafka_sr__list_subjects
               - kafka_sr__register_schema
               - kafka__produce_message
@@ -398,6 +406,12 @@ bindings:
         guarded:
           authn_jwt:
             - petstore:tools
+      - exit: south_mcp_grpc_inventory
+        when:
+          - toolkit: inventory
+        guarded:
+          authn_jwt:
+            - inventory:tools
       - exit: south_mcp_schema_registry_client
         when:
           - toolkit: kafka_sr
@@ -609,6 +623,48 @@ bindings:
         with:
           spec: petstore
           operation: get_pet
+  south_mcp_grpc_inventory:
+    type: mcp-grpc
+    kind: client
+    options:
+      server: http://inventory:4004
+      catalog:
+        inventory_catalog:
+          subject: inventory
+          version: latest
+      tools:
+        get_item:
+          title: Get inventory item
+          description: Look up a single inventory item by SKU.
+          annotations:
+            readOnlyHint: true
+        list_items:
+          title: List inventory items
+          description: List inventory items, optionally filtered by category.
+          annotations:
+            readOnlyHint: true
+    routes:
+      - when:
+          - tool: get_item
+        with:
+          method: acme.inventory.v1.InventoryService/GetItem
+      - when:
+          - tool: list_items
+        with:
+          method: acme.inventory.v1.InventoryService/ListItems
+  south_http_client_inventory:
+    type: http
+    kind: client
+    options:
+      versions:
+        - h2
+    exit: south_tcp_client_inventory
+  south_tcp_client_inventory:
+    type: tcp
+    kind: client
+    options:
+      host: inventory
+      port: 4004
   south_mcp_schema_registry_client:
     type: mcp-schema-registry
     kind: client

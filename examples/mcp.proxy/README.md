@@ -26,7 +26,17 @@ client ── Authorization: Bearer ───►│                             
                                                                                                       OpenAPI-described)   schema registry)             worker)                          KRaft Kafka broker)
 ```
 
-This one configuration exercises all eight `mcp*` binding kinds:
+The `inventory` toolkit's southbound path is a composite: `mcp-grpc(client)`
+generates a `grpc(client)` for the same protobuf schema internally, which
+leaves through `http(client)` (HTTP/2) → `tcp` to `inventory:4004`:
+
+```text
+north_mcp_proxy ─► mcp-grpc(client) ─► grpc(client) ─► http(client, h2) ─► tcp ─► inventory:4004
+inventory toolkit  (derives tools        (generated      (south_http_client_    (mock gRPC service,
+                    from the .proto)      composite)      inventory)             same .proto)
+```
+
+This one configuration exercises all nine `mcp*` binding kinds:
 
 | Binding | Kind | Role in this example |
 | --- | --- | --- |
@@ -35,6 +45,7 @@ This one configuration exercises all eight `mcp*` binding kinds:
 | `mcp` | `client` | Talks to an upstream server that is itself MCP (`everything`, `urlelicit`); `urlelicit` also forwards the caller's own JWT upstream |
 | `mcp-http` | `proxy` | Synthesizes MCP tools from hand-authored config, backed by a plain REST API (`github` toolkit) |
 | `mcp-openapi` | `client` | Synthesizes MCP tools from an OpenAPI document, backed by a plain REST API (`petstore` toolkit) |
+| `mcp-grpc` | `client` | Synthesizes MCP tools from a protobuf service definition fetched from a catalog -- one tool per unary gRPC method, backed by a real gRPC service (`inventory` toolkit) |
 | `mcp-schema-registry` | `client` | Exposes a fixed, bundled tool set for the Karapace/Confluent Schema Registry REST API -- no operator-authored OpenAPI document, unlike `mcp-openapi` (`kafka_sr` toolkit) |
 | `mcp-kafka-connect` | `client` | Exposes a fixed, bundled tool set for the Kafka Connect REST API (`list_connectors`/`create_connector`/`describe_connector`/`delete_connector`/`describe_connector_config`/`update_connector_config`/`validate_connector_config`/`describe_connector_status`/`restart_connector`/`pause_connector`/`resume_connector`/`stop_connector`/`list_connector_tasks`/`restart_connector_task`/`describe_connector_offsets`/`alter_connector_offsets`/`reset_connector_offsets`/`list_connector_plugins`) as intrinsic MCP tools against a real Kafka Connect worker (`kafka_connect` toolkit) |
 | `mcp-kafka` | `client` | Exposes Kafka broker operations (`produce_message`/`consume_messages`/`create_topics`/`delete_topics`/`describe_topic_configs`/`describe_broker_configs`/`alter_topic_configs`/`alter_broker_configs`/`list_acls`/`create_acls`/`delete_acls`/`list_topics`/`describe_topic`/`cluster_overview`/`list_brokers`/`describe_cluster`/`list_consumer_groups`/`describe_consumer_group`/`describe_consumer_group_lag`/`reset_offsets`) as intrinsic MCP tools, generating its own `kafka_cache_client → kafka_client → tcp_client` pipeline against a real broker (`kafka` toolkit) |
@@ -53,6 +64,7 @@ the pipeline, each demonstrating a different mechanism:
 | `mcp(proxy)` route for `github` toolkit | `routes[].guarded` on the toolkit route | `github:tools` |
 | `mcp-http(proxy)` route for `create_pr` | a second, tool-specific `routes[].guarded`, layered under the `mcp-http` binding's base guarded route | `github:tools` **and** `github:pr:write` |
 | `mcp(proxy)` route for `petstore` toolkit | `routes[].guarded` on the toolkit route | `petstore:tools` |
+| `mcp(proxy)` route for `inventory` toolkit | `routes[].guarded` on the toolkit route | `inventory:tools` |
 | `mcp-openapi(client)` operation `create_pet` | the OpenAPI document's own `security` requirement, mapped to `authn_jwt` via `options.specs.petstore.security` | `petstore:tools` **and** `pets:write` |
 | `mcp(proxy)` route for `kafka_sr` toolkit | `routes[].guarded` on the toolkit route | `kafka_sr:tools` |
 | `mcp-schema-registry(client)` route for `register_schema` | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route, layered under the toolkit-level gate above | `kafka_sr:tools` **and** `kafka_sr:write` |
@@ -149,11 +161,12 @@ exist.
 docker compose up -d
 ```
 
-This starts Zilla plus seven locally-reachable upstream services: a Node
+This starts Zilla plus eight locally-reachable upstream services: a Node
 `everything` reference MCP server on `:3001`, a minimal `urlelicit` MCP server
 on `:3003` demonstrating url-mode elicitation, two plain REST mocks --
 `ghapi` on `:4001` (subset of the GitHub API) and `petstore` on `:4002`
-(a small Petstore API, described by an inline OpenAPI document) -- a real,
+(a small Petstore API, described by an inline OpenAPI document) -- a mock
+gRPC `inventory` service on `:4004` (described by `etc/protos/inventory.proto`) -- a real,
 single-node KRaft-mode Kafka broker on `:9092` (`kafka.examples.dev`), with an
 `orders` topic created by the one-shot `kafka-init` service, a real
 Karapace Schema Registry on `:8081` (`karapace-registry`), storing schemas in
@@ -197,7 +210,7 @@ export JWT_TOKEN=$(docker compose run --rm jwt-cli encode \
     --aud "https://api.example.com" \
     --exp=+1d \
     --no-iat \
-    --payload "scope=urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka_sr:tools kafka_sr:write kafka_connect:tools kafka_connect:admin kafka:tools kafka:write kafka:admin kafka:acls" \
+    --payload "scope=urlelicit:authorize github:tools github:pr:write petstore:tools pets:write inventory:tools kafka_sr:tools kafka_sr:write kafka_connect:tools kafka_connect:admin kafka:tools kafka:write kafka:admin kafka:acls" \
     --secret @/private.pem | tr -d '\r\n')
 ```
 
@@ -213,7 +226,8 @@ name per line -- pass a token (or none) as `JWT_TOKEN`:
 docker compose run --rm tools-list-client
 
 # Toolkit-level scopes only, no operation-level scopes: petstore__list_pets,
-# kafka_sr__list_subjects, and kafka_connect__list_connector_plugins appear
+# inventory__get_item, kafka_sr__list_subjects, and
+# kafka_connect__list_connector_plugins appear
 # (none of them require an extra scope beyond toolkit access) but
 # petstore__create_pet, github__create_pr, kafka_sr__register_schema, and
 # kafka_connect__create_connector do not -- toolkit access alone is not tool
@@ -222,7 +236,7 @@ export JWT_TOKEN=$(docker compose run --rm jwt-cli encode \
     --alg "RS256" --kid "example" \
     --iss "https://auth.example.com" --aud "https://api.example.com" \
     --exp=+1d --no-iat \
-    --payload "scope=github:tools petstore:tools kafka_sr:tools kafka_connect:tools" \
+    --payload "scope=github:tools petstore:tools inventory:tools kafka_sr:tools kafka_connect:tools" \
     --secret @/private.pem | tr -d '\r\n')
 docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" tools-list-client
 
@@ -231,7 +245,7 @@ export JWT_TOKEN=$(docker compose run --rm jwt-cli encode \
     --alg "RS256" --kid "example" \
     --iss "https://auth.example.com" --aud "https://api.example.com" \
     --exp=+1d --no-iat \
-    --payload "scope=urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka_sr:tools kafka_sr:write kafka_connect:tools kafka_connect:admin kafka:tools kafka:write kafka:admin kafka:acls" \
+    --payload "scope=urlelicit:authorize github:tools github:pr:write petstore:tools pets:write inventory:tools kafka_sr:tools kafka_sr:write kafka_connect:tools kafka_connect:admin kafka:tools kafka:write kafka:admin kafka:acls" \
     --secret @/private.pem | tr -d '\r\n')
 docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" tools-list-client
 ```
@@ -279,6 +293,8 @@ github__create_pr
 petstore__list_pets
 petstore__search_pets
 petstore__create_pet
+inventory__get_item
+inventory__list_items
 kafka_sr__list_subjects
 kafka_sr__register_schema
 kafka_connect__list_connector_plugins
@@ -472,6 +488,39 @@ docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
 
 `petstore`'s log line reads `search_pets query: {"tag":"cat"}` -- the caller
 said `category`, the request said `tag`.
+
+### Call a gRPC method as an MCP tool (mcp-grpc)
+
+`south_mcp_grpc_inventory` is an `mcp-grpc` `kind: client` binding. It fetches
+`etc/protos/inventory.proto` from `inventory_catalog` and derives one MCP tool
+per unary method -- the request message becomes the tool's `inputSchema` and
+the response message its result. The same `.proto` file is mounted into the
+`inventory` mock service, so neither side re-declares the message shapes.
+
+Routes pick which methods become tools and what they are called. Without a
+route, a method's tool name is its fully qualified gRPC name
+(`acme_inventory_v1_inventory_service_get_item`); here two routes name them
+`get_item` and `list_items`, so the proxy exposes `inventory__get_item` and
+`inventory__list_items`. `options.tools` adds the MCP `title`, `description`
+and `annotations`.
+
+Because the gRPC call leaves through the engine-wide client exit rather than a
+per-binding `exit`, the compose file points it at the HTTP/2 client with
+`-Pzilla.binding.mcp.grpc.client.exit=south_http_client_inventory`. Call a
+method with a token carrying `inventory:tools`:
+
+```bash
+docker compose logs -f inventory &
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=inventory__get_item -e CALL_ARGS='{"sku":"sku-1"}' \
+    tools-list-client
+```
+
+The result carries the response message as JSON text, e.g.
+`{"sku":"sku-1","name":"Widget","category":"tools","quantity":12}`, and the
+`inventory` log shows the decoded request. A non-OK gRPC status comes back as
+an MCP tool error carrying the status and message, e.g. an unknown `sku`
+returns `NOT_FOUND: unknown sku nope` with `isError: true`.
 
 ### Register, look up, and configure schemas through a real Karapace instance
 
