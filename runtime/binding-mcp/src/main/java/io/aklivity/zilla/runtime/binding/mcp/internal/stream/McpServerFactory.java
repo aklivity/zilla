@@ -5474,68 +5474,56 @@ public final class McpServerFactory implements McpStreamFactory
 
                 DirectBufferEx source = body;
                 int sourceLimit = body.capacity();
-                boolean fits = true;
                 if (decodeSlot != NO_SLOT)
                 {
                     final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
+                    slot.putBytes(decodeSlotOffset, body, 0, body.capacity());
                     sourceLimit += decodeSlotOffset;
-                    fits = sourceLimit <= decodePool.slotCapacity();
-                    if (fits)
-                    {
-                        slot.putBytes(decodeSlotOffset, body, 0, body.capacity());
-                        source = slot;
-                    }
+                    source = slot;
                 }
 
-                if (fits)
-                {
-                    final JsonPipelineResult result = schemePipeline.transform(
-                        source, 0, sourceLimit, false, schemeStaging, 0, schemeStaging.capacity());
-                    schemeStagingView.wrap(schemeStaging, 0, result.produced());
+                final JsonPipelineResult result = schemePipeline.transform(
+                    source, 0, sourceLimit, false, schemeStaging, 0, schemeStaging.capacity());
+                schemeStagingView.wrap(schemeStaging, 0, result.produced());
 
-                    switch (result.status())
+                switch (result.status())
+                {
+                case STARVED:
+                    final int unconsumed = sourceLimit - result.consumed();
+                    if (unconsumed == 0)
                     {
-                    case STARVED:
-                        final int unconsumed = sourceLimit - result.consumed();
-                        if (unconsumed == 0)
+                        cleanupDecodeSlot();
+                    }
+                    else
+                    {
+                        if (decodeSlot == NO_SLOT)
                         {
-                            cleanupDecodeSlot();
+                            decodeSlot = decodePool.acquire(initialId);
+                        }
+
+                        if (decodeSlot == NO_SLOT)
+                        {
+                            cleanupApp(traceId, authorization);
+                            schemeStagingView.wrap(schemeStaging, 0, 0);
                         }
                         else
                         {
-                            if (decodeSlot == NO_SLOT)
-                            {
-                                decodeSlot = decodePool.acquire(initialId);
-                            }
-
-                            if (decodeSlot == NO_SLOT)
-                            {
-                                cleanupApp(traceId, authorization);
-                                schemeStagingView.wrap(schemeStaging, 0, 0);
-                            }
-                            else
-                            {
-                                final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
-                                slot.putBytes(0, source, result.consumed(), unconsumed);
-                                decodeSlotOffset = unconsumed;
-                            }
+                            final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
+                            slot.putBytes(0, source, result.consumed(), unconsumed);
+                            decodeSlotOffset = unconsumed;
                         }
-                        break;
-                    case REJECTED:
-                    case SUSPENDED:
-                        cleanupApp(traceId, authorization);
-                        schemeStagingView.wrap(schemeStaging, 0, 0);
-                        break;
-                    default:
-                        cleanupDecodeSlot();
-                        break;
                     }
-                }
-                else
-                {
+                    break;
+                case REJECTED:
+                case SUSPENDED:
                     cleanupApp(traceId, authorization);
                     schemeStagingView.wrap(schemeStaging, 0, 0);
+                    break;
+                default:
+                    cleanupDecodeSlot();
+                    break;
                 }
+
                 body = schemeStagingView;
             }
             return body;
