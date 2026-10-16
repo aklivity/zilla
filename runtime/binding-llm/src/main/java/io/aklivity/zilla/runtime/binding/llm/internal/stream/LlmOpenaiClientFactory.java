@@ -117,6 +117,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private static final String MEMBER_INDEX = "index";
     private static final String MEMBER_DELTA = "delta";
     private static final String MEMBER_MESSAGE = "message";
+    private static final String MEMBER_CODE = "code";
     private static final String MEMBER_CONTENT = "content";
     private static final String MEMBER_REFUSAL = "refusal";
     private static final String MEMBER_TOOL_CALLS = "tool_calls";
@@ -495,6 +496,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private final LlmOpenaiResponseDecoder decodeErrorObjectStart = this::decodeErrorObjectStart;
         private final LlmOpenaiResponseDecoder decodeErrorObject = this::decodeErrorObject;
         private final LlmOpenaiResponseDecoder decodeErrorType = this::decodeErrorType;
+        private final LlmOpenaiResponseDecoder decodeErrorCode = this::decodeErrorCode;
         private final LlmOpenaiResponseDecoder decodeErrorMessage = this::decodeErrorMessage;
 
         private long initialSeq;
@@ -533,6 +535,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private int documentCacheReadTokens = NONE;
         private int documentReasoningTokens = NONE;
         private String documentErrorType;
+        private String documentErrorCode;
         private String documentErrorMessage;
         private String documentId;
         private String documentServedModel;
@@ -544,6 +547,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private int cacheReadTokens = NONE;
         private int reasoningTokens = NONE;
         private String errorType;
+        private String errorCode;
         private String errorMessage;
         private String id;
         private String servedModel;
@@ -1115,7 +1119,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             error.status(NONE)
                 .type(errorType)
-                .message(errorMessage);
+                .message(errorMessage)
+                .code(errorCode);
         }
 
         private void finish()
@@ -2409,6 +2414,10 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                     {
                         decoder = decodeErrorType;
                     }
+                    else if (MEMBER_CODE.contentEquals(member))
+                    {
+                        decoder = decodeErrorCode;
+                    }
                     else if (MEMBER_MESSAGE.contentEquals(member))
                     {
                         decoder = decodeErrorMessage;
@@ -2435,6 +2444,24 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 if (value != null)
                 {
                     documentErrorType = value;
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeErrorCode(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeErrorCode && parser.hasNextEvent())
+            {
+                final String value = stringValue(parser.nextEvent(), decodeErrorObject);
+
+                if (value != null)
+                {
+                    documentErrorCode = value;
                 }
             }
 
@@ -2894,6 +2921,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             cacheReadTokens = documentCacheReadTokens != NONE ? documentCacheReadTokens : cacheReadTokens;
             reasoningTokens = documentReasoningTokens != NONE ? documentReasoningTokens : reasoningTokens;
             errorType = documentErrorType != null ? documentErrorType : errorType;
+            errorCode = documentErrorCode != null ? documentErrorCode : errorCode;
             errorMessage = documentErrorMessage != null ? documentErrorMessage : errorMessage;
             id = documentId != null ? documentId : id;
             servedModel = documentServedModel != null ? documentServedModel : servedModel;
@@ -2905,6 +2933,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             documentCacheReadTokens = NONE;
             documentReasoningTokens = NONE;
             documentErrorType = null;
+            documentErrorCode = null;
             documentErrorMessage = null;
             documentId = null;
             documentServedModel = null;
@@ -3101,6 +3130,16 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             String type,
             String message)
         {
+            doAppReset(traceId, status, type, null, message);
+        }
+
+        private void doAppReset(
+            long traceId,
+            int status,
+            String type,
+            String code,
+            String message)
+        {
             if (!LlmState.initialClosed(state))
             {
                 rejected = true;
@@ -3118,6 +3157,10 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                     if (message != null)
                     {
                         e.message(message);
+                    }
+                    if (code != null)
+                    {
+                        e.code(code);
                     }
                 });
 
@@ -4309,7 +4352,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 state = LlmState.closeReply(state);
                 decodeErrorBody();
                 doNetAbort(traceId);
-                stream.doAppReset(traceId, errorStatus, stream.errorType, stream.errorMessage);
+                stream.doAppReset(traceId, errorStatus, stream.errorType, stream.errorCode, stream.errorMessage);
             }
             else
             {

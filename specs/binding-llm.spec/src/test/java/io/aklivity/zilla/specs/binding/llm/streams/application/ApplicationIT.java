@@ -2915,4 +2915,40 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.rejected.error.type/client",
+        "${app}/anthropic.rejected.error.type/server"})
+    public void shouldPreserveAnthropicRejectedErrorType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.rejected.error.code/client",
+        "${app}/openai.rejected.error.code/server"})
+    public void shouldPreserveOpenaiRejectedErrorCode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.rejected.streaming.error.code/client",
+        "${app}/openai.rejected.streaming.error.code/server"})
+    public void shouldPreserveOpenaiRejectedStreamingErrorCode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.content.type.charset/client",
+        "${app}/openai.content.type.charset/server"})
+    public void shouldAcceptOpenaiRequestContentTypeWithParameters() throws Exception
+    {
+        k3po.finish();
+    }
 }

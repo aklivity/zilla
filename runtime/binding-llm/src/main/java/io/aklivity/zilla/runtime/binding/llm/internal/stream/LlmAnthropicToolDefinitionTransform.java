@@ -19,6 +19,8 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 final class LlmAnthropicToolDefinitionTransform extends LlmToolTransform
 {
+    private static final String TYPE_CUSTOM = "custom";
+
     private boolean named;
 
     @Override
@@ -53,7 +55,7 @@ final class LlmAnthropicToolDefinitionTransform extends LlmToolTransform
         }
         else if (matches(key, "type"))
         {
-            action = REJECT;
+            action = HOLD_STRING;
         }
 
         return action;
@@ -74,7 +76,7 @@ final class LlmAnthropicToolDefinitionTransform extends LlmToolTransform
     {
         Status status = Status.REJECTED;
 
-        if (named)
+        if (named && (held() == null || TYPE_CUSTOM.equals(held())))
         {
             emit(JsonEvent.END_OBJECT);
             pass(JsonEvent.END_OBJECT);

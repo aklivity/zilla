@@ -1306,4 +1306,24 @@ public class LlmAnthropicServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.guarded.route.yaml")
+    @Specification({
+        "${net}/anthropic.authorized/client",
+        "${app}/anthropic.authorized/server"})
+    public void shouldForwardAnthropicRequestRoutedByGuardAuthorization() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.rejected.error.type/client",
+        "${app}/anthropic.rejected.error.type/server"})
+    public void shouldPreserveAnthropicRejectedErrorType() throws Exception
+    {
+        k3po.finish();
+    }
 }

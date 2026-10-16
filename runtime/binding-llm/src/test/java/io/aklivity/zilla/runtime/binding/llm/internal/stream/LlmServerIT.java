@@ -54,4 +54,13 @@ public class LlmServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.completions.unsupported/client"})
+    public void shouldRejectOpenaiCompletionsRequest() throws Exception
+    {
+        k3po.finish();
+    }
 }
