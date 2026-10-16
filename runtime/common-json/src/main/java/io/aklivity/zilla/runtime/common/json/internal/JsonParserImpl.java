@@ -102,8 +102,9 @@ public final class JsonParserImpl implements JsonParserEx
     // bytes of the verbatim run a stage deferred across an input window boundary, retained as stream offsets
     // [heldStart, heldEnd) ahead of the bytes still in the input window; held is empty when the two are equal.
     // holding is set by deferVerbatim() until the next event is delivered, so the flush that follows the
-    // deferral does not drain them
-    private final ExpandableArrayBufferEx held = new ExpandableArrayBufferEx();
+    // deferral does not drain them. held is acquired by the first deferral rather than at construction, because
+    // its buffer needs agrona's unsafe access, which a caller that never defers need not have opened
+    private ExpandableArrayBufferEx held;
     private long heldStart;
     private long heldEnd;
     private boolean holding;
@@ -822,6 +823,10 @@ public final class JsonParserImpl implements JsonParserEx
         // bytes are only addressable while it is current, and the flush that follows a declined event drains
         // the run, so the bytes are copied aside and held back until the stage forwards or drops the event
         final long frontier = tokenizer.streamOffset();
+        if (held == null)
+        {
+            held = new ExpandableArrayBufferEx();
+        }
         if (heldEnd == heldStart)
         {
             heldStart = verbatimCursor;
