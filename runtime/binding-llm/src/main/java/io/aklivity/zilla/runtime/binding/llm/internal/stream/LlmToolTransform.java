@@ -42,12 +42,17 @@ abstract class LlmToolTransform implements JsonTransform
     protected static final int DESCEND_KEPT = 9;
     protected static final int PASS_VALUE = 10;
 
+    protected static final int MODE_OBJECT = 0;
+    protected static final int MODE_EXTRACT = 1;
+    protected static final int MODE_VALUE = 2;
+
     private static final int NONE = -1;
     private static final int QUEUE_CAPACITY = 16;
     private static final int HELD_MAX = 4096;
 
     protected String target;
 
+    private final int mode;
     private final JsonEvent[] queueEvents;
     private final String[] queueTexts;
     private final boolean[] queueSources;
@@ -69,10 +74,18 @@ abstract class LlmToolTransform implements JsonTransform
     private int skipDepth;
     private boolean holding;
     private boolean awaitingContent;
+    private boolean valueStarted;
     private String held;
 
     protected LlmToolTransform()
     {
+        this(MODE_OBJECT);
+    }
+
+    protected LlmToolTransform(
+        int mode)
+    {
+        this.mode = mode;
         this.queueEvents = new JsonEvent[QUEUE_CAPACITY];
         this.queueTexts = new String[QUEUE_CAPACITY];
         this.queueSources = new boolean[QUEUE_CAPACITY];
@@ -90,6 +103,23 @@ abstract class LlmToolTransform implements JsonTransform
 
     protected abstract Status onClose(
         int depth);
+
+    protected void onBegin()
+    {
+    }
+
+    protected Status onEnd()
+    {
+        return Status.ADVANCED;
+    }
+
+    protected final String attribute(
+        String name)
+    {
+        final DirectBufferEx value = control.envelope().get(name, 0);
+
+        return value != null ? value.getStringWithoutLengthUtf8(0, value.capacity()) : null;
+    }
 
     protected final String held()
     {
@@ -187,6 +217,7 @@ abstract class LlmToolTransform implements JsonTransform
         skipping = false;
         holding = false;
         awaitingContent = false;
+        valueStarted = false;
         held = null;
         heldBuilder.setLength(0);
     }
@@ -207,7 +238,10 @@ abstract class LlmToolTransform implements JsonTransform
         switch (event)
         {
         case START_DOCUMENT:
+            pass(event);
+            break;
         case END_DOCUMENT:
+            status = mode == MODE_VALUE && !valueStarted ? Status.REJECTED : Status.ADVANCED;
             pass(event);
             break;
         case KEY_NAME:
@@ -295,7 +329,11 @@ abstract class LlmToolTransform implements JsonTransform
             {
                 pending = NONE;
                 awaitingContent = true;
-                emit(JsonEvent.KEY_NAME, target);
+
+                if (mode != MODE_EXTRACT)
+                {
+                    emit(JsonEvent.KEY_NAME, target);
+                }
             }
             else
             {
@@ -326,6 +364,12 @@ abstract class LlmToolTransform implements JsonTransform
             awaitingContent = false;
             status = event == JsonEvent.START_OBJECT ? startPass(event) : Status.REJECTED;
         }
+        else if (mode == MODE_VALUE && !valueStarted)
+        {
+            valueStarted = true;
+            onBegin();
+            status = event == JsonEvent.START_OBJECT ? startPass(event) : Status.REJECTED;
+        }
         else if (pending != NONE)
         {
             status = begin(event);
@@ -353,7 +397,11 @@ abstract class LlmToolTransform implements JsonTransform
 
         if (event == JsonEvent.START_OBJECT && depth == 0)
         {
-            pass(event);
+            if (mode != MODE_EXTRACT)
+            {
+                pass(event);
+            }
+
             depth++;
             onOpen();
             status = Status.ADVANCED;
@@ -438,7 +486,10 @@ abstract class LlmToolTransform implements JsonTransform
     private Status beginPass(
         JsonEvent event)
     {
-        emit(JsonEvent.KEY_NAME, target);
+        if (mode != MODE_EXTRACT)
+        {
+            emit(JsonEvent.KEY_NAME, target);
+        }
 
         return startPass(event);
     }
@@ -483,18 +534,25 @@ abstract class LlmToolTransform implements JsonTransform
             break;
         }
 
-        finishPass();
-
-        return Status.ADVANCED;
+        return finishPass();
     }
 
-    private void finishPass()
+    private Status finishPass()
     {
+        Status status = Status.ADVANCED;
+
         if (!passing && passEscaped)
         {
             passEscaped = false;
             emit(JsonEvent.END_ESCAPED);
         }
+
+        if (!passing && mode == MODE_VALUE)
+        {
+            status = onEnd();
+        }
+
+        return status;
     }
 
     private Status beginSkip(

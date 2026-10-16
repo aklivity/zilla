@@ -17,19 +17,22 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
-final class LlmOpenaiToolCallTransform extends LlmToolTransform
+final class LlmOpenaiToolCallToCanonical extends LlmToolTransform
 {
-    private boolean identified;
-    private boolean named;
-    private boolean inputSeen;
+    private boolean functioned;
+    private boolean argumented;
+
+    LlmOpenaiToolCallToCanonical()
+    {
+        super(MODE_EXTRACT);
+    }
 
     @Override
     public void reset()
     {
         super.reset();
-        identified = false;
-        named = false;
-        inputSeen = false;
+        functioned = false;
+        argumented = false;
     }
 
     @Override
@@ -39,26 +42,14 @@ final class LlmOpenaiToolCallTransform extends LlmToolTransform
     {
         int action = DROP;
 
-        if (depth == 1 && matches(key, "id"))
+        if (depth == 1 && matches(key, "function"))
         {
-            target = "id";
-            identified = true;
-            action = PASS_STRING;
-        }
-        else if (depth == 1 && matches(key, "function"))
-        {
+            functioned = true;
             action = DESCEND;
-        }
-        else if (depth == 2 && matches(key, "name"))
-        {
-            target = "name";
-            named = true;
-            action = PASS_STRING;
         }
         else if (depth == 2 && matches(key, "arguments"))
         {
-            target = "input";
-            inputSeen = true;
+            argumented = true;
             action = UNESCAPE_OBJECT;
         }
 
@@ -68,8 +59,6 @@ final class LlmOpenaiToolCallTransform extends LlmToolTransform
     @Override
     protected void onOpen()
     {
-        emit(JsonEvent.KEY_NAME, "type");
-        emit(JsonEvent.VALUE_STRING, "tool_use");
     }
 
     @Override
@@ -80,18 +69,13 @@ final class LlmOpenaiToolCallTransform extends LlmToolTransform
 
         if (depth == 2)
         {
-            if (!inputSeen)
+            if (!argumented)
             {
-                emit(JsonEvent.KEY_NAME, "input");
                 emit(JsonEvent.START_OBJECT);
                 emit(JsonEvent.END_OBJECT);
             }
         }
-        else if (identified && named)
-        {
-            pass(JsonEvent.END_OBJECT);
-        }
-        else
+        else if (!functioned)
         {
             status = Status.REJECTED;
         }

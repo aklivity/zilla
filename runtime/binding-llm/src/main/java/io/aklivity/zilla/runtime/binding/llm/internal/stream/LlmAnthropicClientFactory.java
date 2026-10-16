@@ -3681,7 +3681,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             {
                 if (toolCallPipeline == null)
                 {
-                    toolCallPipeline = new LlmSectionPipeline(new LlmOpenaiToolCallTransform(), transformBuffer);
+                    toolCallPipeline = new LlmSectionPipeline(new LlmAnthropicToolCallFromCanonical(), transformBuffer);
                 }
 
                 beginSectionStreaming(toolCallPipeline);

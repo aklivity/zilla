@@ -21,63 +21,72 @@ import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmToolTrans
 
 import org.junit.Test;
 
-public class LlmOpenaiToolCallTransformTest
+public class LlmOpenaiToolCallToCanonicalTest
 {
     private static final String LONG = "x".repeat(300);
+    private static final String HUGE = "x".repeat(5000);
 
-    private final LlmOpenaiToolCallTransform transform = new LlmOpenaiToolCallTransform();
+    private final LlmOpenaiToolCallToCanonical transform = new LlmOpenaiToolCallToCanonical();
 
     @Test
-    public void shouldTransformToolCallToToolUse()
+    public void shouldExtractArgumentsText()
     {
         assertTransforms(transform,
             json("{'id':'call_1','type':'function','function':{'name':'get_weather','arguments':" +
                 quote(json("{'city':'Paris'}")) + "}}"),
-            json("{'type':'tool_use','id':'call_1','name':'get_weather','input':{'city':'Paris'}}"));
+            json("{'city':'Paris'}"));
     }
 
     @Test
-    public void shouldTransformEmptyArgumentsToEmptyInput()
+    public void shouldExtractEmptyArgumentsAsEmptyObject()
     {
         assertTransforms(transform,
             json("{'id':'call_1','type':'function','function':{'name':'ping','arguments':''}}"),
-            json("{'type':'tool_use','id':'call_1','name':'ping','input':{}}"));
+            json("{}"));
     }
 
     @Test
-    public void shouldTransformAbsentArgumentsToEmptyInput()
+    public void shouldExtractAbsentArgumentsAsEmptyObject()
     {
         assertTransforms(transform,
             json("{'id':'call_1','type':'function','function':{'name':'ping'}}"),
-            json("{'type':'tool_use','id':'call_1','name':'ping','input':{}}"));
+            json("{}"));
     }
 
     @Test
-    public void shouldTransformMembersInAnyOrder()
+    public void shouldExtractArgumentsInAnyOrder()
     {
         assertTransforms(transform,
             json("{'type':'function','function':{'arguments':" + quote(json("{'a':1}")) + ",'name':'ping'},'id':'call_1'}"),
-            json("{'type':'tool_use','input':{'a':1},'name':'ping','id':'call_1'}"));
+            json("{'a':1}"));
     }
 
     @Test
-    public void shouldTransformEscapedAndNestedArguments()
+    public void shouldExtractEscapedAndNestedArguments()
     {
         final String arguments = "{\"q\":\"say \\\"hi\\\" \\\\ \\u00e9 \\n\",\"n\":[1,2.5,true,null,{\"k\":\"v\"}],\"e\":{}}";
 
         assertTransforms(transform,
             json("{'id':'call_1','type':'function','function':{'name':'ping','arguments':") + quote(arguments) + "}}",
-            json("{'type':'tool_use','id':'call_1','name':'ping','input':") +
-                "{\"q\":\"say \\\"hi\\\" \\\\ \u00e9 \\n\",\"n\":[1,2.5,true,null,{\"k\":\"v\"}],\"e\":{}}}");
+            "{\"q\":\"say \\\"hi\\\" \\\\ \u00e9 \\n\",\"n\":[1,2.5,true,null,{\"k\":\"v\"}],\"e\":{}}");
     }
 
     @Test
-    public void shouldTransformLongValues()
+    public void shouldExtractLongValues()
     {
         assertTransforms(transform,
             json("{'id':'" + LONG + "','type':'function','function':{'name':'" + LONG + "','arguments':") +
                 quote(json("{'text':'" + LONG + "'}")) + "}}",
-            json("{'type':'tool_use','id':'" + LONG + "','name':'" + LONG + "','input':{'text':'" + LONG + "'}}"));
+            json("{'text':'" + LONG + "'}"));
+    }
+
+    @Test
+    public void shouldExtractValueLargerThanWindow()
+    {
+        assertTransforms(transform,
+            json("{'id':'call_1','type':'function','function':{'name':'ping','arguments':") +
+                quote(json("{'text':'" + HUGE + "'}")) + "}}",
+            json("{'text':'" + HUGE + "'}"));
     }
 
     @Test
@@ -85,9 +94,9 @@ public class LlmOpenaiToolCallTransformTest
     {
         assertTransforms(transform,
             json("{'index':0,'id':'call_1','extra':{'x':[1,{'y':2}],'z':'" + LONG + "'},'type':'function','function':" +
-                "{'strict':true,'name':'ping','note':'" + LONG + "','arguments':" + quote("{}") + ",'count':12345}," +
-                "'tail':[" + LONG.length() + "]}"),
-            json("{'type':'tool_use','id':'call_1','name':'ping','input':{}}"));
+                "{'strict':true,'note':'" + LONG + "','name':'ping','arguments':" + quote(json("{'a':1}")) +
+                "},'tail':null}"),
+            json("{'a':1}"));
     }
 
     @Test
@@ -109,20 +118,6 @@ public class LlmOpenaiToolCallTransformTest
     }
 
     @Test
-    public void shouldRejectMissingId()
-    {
-        assertRejects(transform,
-            json("{'type':'function','function':{'name':'ping','arguments':'{}'}}"));
-    }
-
-    @Test
-    public void shouldRejectMissingName()
-    {
-        assertRejects(transform,
-            json("{'id':'call_1','type':'function','function':{'arguments':'{}'}}"));
-    }
-
-    @Test
     public void shouldRejectMissingFunction()
     {
         assertRejects(transform, json("{'id':'call_1','type':'function'}"));
@@ -132,13 +127,6 @@ public class LlmOpenaiToolCallTransformTest
     public void shouldRejectFunctionThatIsNotAnObject()
     {
         assertRejects(transform, json("{'id':'call_1','type':'function','function':'ping'}"));
-    }
-
-    @Test
-    public void shouldRejectIdThatIsNotAString()
-    {
-        assertRejects(transform,
-            json("{'id':1,'type':'function','function':{'name':'ping','arguments':'{}'}}"));
     }
 
     @Test

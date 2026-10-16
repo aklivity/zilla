@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
 import java.io.ByteArrayOutputStream;
+import java.util.function.Consumer;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -36,12 +37,22 @@ final class LlmToolTransformRunner
         String json,
         String expected)
     {
+        assertTransforms(transform, null, null, json, expected);
+    }
+
+    static void assertTransforms(
+        JsonTransform transform,
+        Consumer<LlmSectionAttributes> early,
+        Consumer<LlmSectionAttributes> late,
+        String json,
+        String expected)
+    {
         for (int window : WINDOWS)
         {
             for (int bound : BOUNDS)
             {
                 final ByteArrayOutputStream output = new ByteArrayOutputStream();
-                final boolean accepted = run(transform, json, window, bound, output);
+                final boolean accepted = run(transform, early, late, json, window, bound, output);
 
                 assertThat("accepted window " + window + " bound " + bound, accepted, is(true));
                 assertThat("window " + window + " bound " + bound, output.toString(UTF_8), equalTo(expected));
@@ -59,12 +70,12 @@ final class LlmToolTransformRunner
             for (int bound : BOUNDS)
             {
                 final ByteArrayOutputStream canonical = new ByteArrayOutputStream();
-                final boolean encoded = run(toCanonical, json, window, bound, canonical);
+                final boolean encoded = run(toCanonical, null, null, json, window, bound, canonical);
 
                 assertThat("encoded window " + window + " bound " + bound, encoded, is(true));
 
                 final ByteArrayOutputStream nativeOutput = new ByteArrayOutputStream();
-                final boolean decoded = run(fromCanonical, canonical.toString(UTF_8), window, bound, nativeOutput);
+                final boolean decoded = run(fromCanonical, null, null, canonical.toString(UTF_8), window, bound, nativeOutput);
 
                 assertThat("decoded window " + window + " bound " + bound, decoded, is(true));
                 assertThat("window " + window + " bound " + bound, nativeOutput.toString(UTF_8), equalTo(json));
@@ -76,9 +87,18 @@ final class LlmToolTransformRunner
         JsonTransform transform,
         String json)
     {
+        assertRejects(transform, null, null, json);
+    }
+
+    static void assertRejects(
+        JsonTransform transform,
+        Consumer<LlmSectionAttributes> early,
+        Consumer<LlmSectionAttributes> late,
+        String json)
+    {
         for (int window : WINDOWS)
         {
-            final boolean accepted = run(transform, json, window, REJECT_BOUND, new ByteArrayOutputStream());
+            final boolean accepted = run(transform, early, late, json, window, REJECT_BOUND, new ByteArrayOutputStream());
 
             assertThat("rejected window " + window, accepted, is(false));
         }
@@ -98,6 +118,8 @@ final class LlmToolTransformRunner
 
     private static boolean run(
         JsonTransform transform,
+        Consumer<LlmSectionAttributes> early,
+        Consumer<LlmSectionAttributes> late,
         String json,
         int window,
         int bound,
@@ -107,12 +129,24 @@ final class LlmToolTransformRunner
         final byte[] bytes = json.getBytes(UTF_8);
         final UnsafeBufferEx input = new UnsafeBufferEx(bytes);
 
-        pipeline.begin(new LlmSectionAttributes());
+        final LlmSectionAttributes attributes = new LlmSectionAttributes();
+
+        if (early != null)
+        {
+            early.accept(attributes);
+        }
+
+        pipeline.begin(attributes);
 
         boolean accepted = true;
 
         for (int offset = 0; accepted && offset < bytes.length; offset += window)
         {
+            if (offset > 0 && offset - window == 0 && late != null)
+            {
+                late.accept(attributes);
+            }
+
             final int length = Math.min(window, bytes.length - offset);
             final boolean last = offset + length == bytes.length;
 

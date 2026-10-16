@@ -3629,7 +3629,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             {
                 if (toolCallPipeline == null)
                 {
-                    toolCallPipeline = new LlmSectionPipeline(new LlmAnthropicToolCallTransform(), transformBuffer);
+                    toolCallPipeline = new LlmSectionPipeline(new LlmOpenaiToolCallFromCanonical(), transformBuffer);
                 }
 
                 beginSectionStreaming(toolCallPipeline, rawOutput);
