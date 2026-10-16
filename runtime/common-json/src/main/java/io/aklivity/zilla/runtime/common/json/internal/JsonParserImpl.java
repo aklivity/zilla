@@ -103,7 +103,7 @@ public final class JsonParserImpl implements JsonParserEx
     // set when the sink reads the parse as original source bytes: a key fragment declined with consumed(0) is
     // then left unconsumed for the caller to re-present, instead of its decoded characters being accumulated
     private boolean verbatim;
-    // where the latest body token ended, and where the one before it ended: rewind() puts the stream back to
+    // where the latest body token ended, and where the one before it ended: takeBackKey() puts the stream back to
     // the end of the token ahead of a key, so the separator and whitespace that introduced the key come back too
     private long tokenEnd;
     private long tokenEndLine = 1;
