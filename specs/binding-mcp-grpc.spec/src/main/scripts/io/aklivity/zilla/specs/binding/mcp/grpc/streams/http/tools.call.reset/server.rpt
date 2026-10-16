@@ -37,8 +37,7 @@ write notify REQUEST_RECEIVED
 
 write zilla:reset.ext ${http:resetEx()
                             .typeId(zilla:id("http"))
-                            .header(":status", "200")
-                            .header("grpc-status", "14")
                             .build()}
 
 read abort
+write aborted

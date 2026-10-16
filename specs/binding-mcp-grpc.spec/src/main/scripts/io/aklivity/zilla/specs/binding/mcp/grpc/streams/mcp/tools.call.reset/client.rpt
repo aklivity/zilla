@@ -51,7 +51,7 @@ write zilla:begin.ext ${mcp:beginEx()
 connected
 
 write '{"name":"example_sql_v1_sql_service_query","arguments":{"statement":"select 1"}}'
-# the upstream gRPC server rejects the request stream itself (reset, not abort): the tool call
-# reply must still surface as an abort rather than be left dangling
+
 read await REQUEST_RECEIVED
+write aborted
 read abort

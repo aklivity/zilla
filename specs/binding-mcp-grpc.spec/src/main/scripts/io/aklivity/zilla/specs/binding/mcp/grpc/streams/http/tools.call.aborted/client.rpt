@@ -34,4 +34,5 @@ write ${grpc:message()
             .build()}
 write flush
 
-read abort
+read aborted
+write abort

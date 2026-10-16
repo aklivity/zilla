@@ -161,4 +161,40 @@ public class McpServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mcp}/tools.call.client.aborted/client",
+        "${mcp}/tools.call.client.aborted/server"})
+    public void shouldRelayToolCallClientAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/tools.call.client.reset/client",
+        "${mcp}/tools.call.client.reset/server"})
+    public void shouldRelayToolCallClientReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/tools.call.unknown/client",
+        "${mcp}/tools.call.unknown/server"})
+    public void shouldRejectUnknownTool() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/tools.call.denied/client",
+        "${mcp}/tools.call.denied/server"})
+    public void shouldRejectDeniedTool() throws Exception
+    {
+        k3po.finish();
+    }
 }

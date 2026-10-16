@@ -58,4 +58,6 @@ write '{"content":[{"type":"text","text":"{\\"status\\":\\"o'
 write flush
 
 write notify RESPONSE_STREAMING
+
 write abort
+read aborted
