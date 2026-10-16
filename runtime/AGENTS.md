@@ -496,6 +496,33 @@ patterns as server/client bindings, adapted to their two-sided model.
 
 ---
 
+### Flow control is the contract
+
+Each direction of a stream has its own credit, and each side of a binding has
+its own decode and encode slot buffers, so the credit on one side is
+independent of the credit on the other. Honor it exactly; never emit more than
+the downstream credit allows and never rely on headroom or on rejecting an
+overshoot.
+
+- Consume input only as far as the downstream credit allows. Size the decode
+  window from the downstream credit (see `windowFor` and `available()` in the
+  llm server factories), leave the rest in the decode slot, and re-run decode
+  when the downstream WINDOW arrives.
+- For a transform whose output can be larger than its input, divide the
+  available credit by the worst-case growth of that transform when sizing the
+  window, so the output cannot exceed the credit. Derive the growth from the
+  transform, not from a guess.
+- When a condition that changes how the window is sized flips mid-window, end
+  the window there so the next window is sized for the new condition. The
+  `gated` check on stream creation in `decodeWindow` is the existing example.
+- Derive the upstream credit you grant from the room in your own slot, as the
+  client factories do with the encode slot, so buffering on one side never
+  leaks into the other.
+- Do not use fixed slack, a fraction of the credit, or a reject-on-overshoot
+  guard as a substitute for sizing by credit.
+
+---
+
 ## Implementing a binding — module-level checklist
 
 The repo-wide steps for adding a new binding (issue, scaffolding, license

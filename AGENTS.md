@@ -323,6 +323,34 @@ commercial consumer's feature as their reason for existing.
 
 ---
 
+## Implementing against established patterns
+
+Get it right the first time by adopting the pattern the codebase already uses
+for the concern in front of you, not by inventing a mechanism and iterating.
+
+- Before writing code for a concern (flow control, buffering, decode/encode
+  slots, stream pipelines, section handling, window sizing), find the closest
+  existing implementation in the same module and in sibling modules, read how
+  it solves that exact problem, and mirror it. Say which implementation you are
+  mirroring before you start.
+- A first draft that needs a reserve, a fixed slack, a fudge fraction, a
+  "reject if it overshoots" guard, a flag that only exists to dodge a case, or a
+  change to a test script so it fits the implementation, means the established
+  pattern was missed. Stop and find the pattern. Do not ship the workaround
+  and do not offer it as an option to be replaced later.
+- Correctness comes from honoring the protocol contract, not from margins.
+  Flow control credit is a contract in every direction; see
+  [runtime/AGENTS.md](runtime/AGENTS.md) for how it is honored.
+- Do not defer a correctness fix as a "larger change, say if you want it".
+  Build the proper behavior in the first change.
+- If you cannot find an established pattern for the concern, ask before
+  inventing one.
+- Fix a spec script only when it violates the protocol, such as a frame that
+  carries a new extension without the init flag; never bend a script to fit
+  implementation behavior.
+
+---
+
 ## Useful references
 
 - Docs: https://docs.aklivity.io/zilla/latest/
