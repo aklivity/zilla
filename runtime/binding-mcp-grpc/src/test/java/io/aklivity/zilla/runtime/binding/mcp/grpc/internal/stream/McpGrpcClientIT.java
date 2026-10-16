@@ -242,4 +242,14 @@ public class McpGrpcClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${mcp}/tools.call.upper.bound/client",
+        "${http}/tools.call/server"})
+    public void shouldCallToolWithContentLengthUpperBound() throws Exception
+    {
+        k3po.finish();
+    }
 }

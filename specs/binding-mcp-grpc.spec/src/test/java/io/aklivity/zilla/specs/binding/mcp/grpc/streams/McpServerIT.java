@@ -206,4 +206,13 @@ public class McpServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mcp}/tools.call.upper.bound/client",
+        "${mcp}/tools.call.upper.bound/server"})
+    public void shouldCallToolWithContentLengthUpperBound() throws Exception
+    {
+        k3po.finish();
+    }
 }
