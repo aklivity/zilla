@@ -50,7 +50,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .typeNull()
                           .attribute("tool-name", "get_weather")
                           .build()}
-read ",\"name\":\"get_weather\"}}"
+read ",\"name\":\"get_weather\",\"parameters\":{\"type\":\"object\"}}}"
 
 read advised zilla:flush
 

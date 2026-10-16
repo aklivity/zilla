@@ -48,7 +48,7 @@ write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .attribute("tool-name", "get_weather")
                           .build()}
-write ",\"name\":\"get_weather\"}}"
+write ",\"name\":\"get_weather\",\"parameters\":{\"type\":\"object\"}}}"
 write flush
 
 write advise zilla:flush

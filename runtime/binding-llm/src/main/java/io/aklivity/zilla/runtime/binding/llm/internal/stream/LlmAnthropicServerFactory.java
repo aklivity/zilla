@@ -117,6 +117,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private static final String MESSAGE_ATTRIBUTE_TOO_LARGE = "a content block attribute value is too large";
     private static final String MESSAGE_TOOL_DEFINITION_INVALID = "tools: Invalid tool definition";
     private static final int CANONICAL_BUFFER_MAX = 4096;
+    private static final int CANONICAL_ROOM = 256;
 
     private static final int RESPONSE_ENCODE_PADDING = 128;
     private static final int RESPONSE_ESCAPE_EXPANSION = 6;
@@ -938,6 +939,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             switch (event)
             {
             case START_ARRAY:
+                server.toolsOpen = true;
                 server.decoder = decodeTools;
                 break;
             case VALUE_NULL:
@@ -978,6 +980,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 server.decoder = decodeAttributes;
                 break;
             case END_ARRAY:
+                server.toolsOpen = false;
                 server.decoder = decodeRoot;
                 break;
             default:
@@ -2097,6 +2100,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private LlmSectionPipeline canonicalPipeline;
         private final LlmSectionPipeline.Output canonicalOutput = this::onCanonicalData;
         private boolean canonicalActive;
+        private boolean toolsOpen;
         private boolean canonicalFinished;
         private boolean canonicalFailed;
         private long canonicalTraceId;
@@ -2425,9 +2429,10 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         {
             final int available = stream != null ? (int) Math.max(stream.initialAvailable(), 0L) : 0;
             final int room = modelOverride != null ? Math.min(modelOverride.capacity(), available >> 1) : 0;
-            final int expansion = canonicalActive ? available >> 2 : 0;
+            final int expansion = canonicalActive || toolsOpen ? available >> 2 : 0;
+            final int slack = available > CANONICAL_ROOM << 1 ? CANONICAL_ROOM : 0;
 
-            return available - room - expansion;
+            return available - room - expansion - slack;
         }
 
         private void onModelOverride(

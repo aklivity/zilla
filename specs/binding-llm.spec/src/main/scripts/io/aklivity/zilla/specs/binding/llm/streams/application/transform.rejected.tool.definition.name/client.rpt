@@ -46,7 +46,7 @@ read zilla:reset.ext ${llm:matchResetEx()
                            .typeId(zilla:id("llm"))
                            .status(400)
                            .type("invalid_request_error")
-                           .message("tool-definition cannot be converted from openai to %s".formatted(target))
+                           .message("tool-definition cannot be converted from %s to %s".formatted(source, target))
                            .build()}
 
 write aborted
