@@ -205,7 +205,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final LlmOpenaiServerDecoder decodePartTypeValue = this::decodePartTypeValue;
     private final LlmOpenaiServerDecoder decodePart = this::decodePart;
     private final LlmOpenaiServerDecoder decodeAttributes = this::decodeAttributes;
-    private final LlmOpenaiServerDecoder decodeCapture = this::decodeCapture;
+    private final LlmOpenaiServerDecoder decodeBlock = this::decodeBlock;
     private final LlmOpenaiServerDecoder decodeText = this::decodeText;
     private final LlmOpenaiServerDecoder decodeSkip = this::decodeSkip;
     private final LlmOpenaiServerDecoder decodeModelOverride = this::decodeModelOverride;
@@ -1219,7 +1219,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                     else
                     {
                         server.captureHeld(blockType, server.message, decodeParts, 1);
-                        server.decoder = decodeCapture;
+                        server.decoder = decodeBlock;
                     }
                 }
             }
@@ -1303,7 +1303,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             {
             case RESOLVED:
                 server.captureProbed();
-                server.decoder = decodeCapture;
+                server.decoder = decodeBlock;
                 break;
             case COMPLETE:
                 server.captureProbed();
@@ -1316,7 +1316,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 if (server.position() - server.holdFrom > HOLD_MAX)
                 {
                     server.captureProbed();
-                    server.decoder = decodeCapture;
+                    server.decoder = decodeBlock;
                 }
                 break;
             }
@@ -1325,7 +1325,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         return server.decoder == decodeIgnore ? limit : server.position();
     }
 
-    private int decodeCapture(
+    private int decodeBlock(
         LlmOpenaiServer server,
         long traceId,
         long authorization,
@@ -1338,7 +1338,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     {
         final JsonParserEx parser = server.parser;
 
-        while (server.decoder == decodeCapture && parser.hasNextEvent())
+        while (server.decoder == decodeBlock && parser.hasNextEvent())
         {
             final JsonEvent event = parser.nextEvent();
             final boolean deferred = event == JsonEvent.VALUE_STRING && parser.deferredBytes();

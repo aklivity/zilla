@@ -214,7 +214,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private final LlmAnthropicServerDecoder decodePart = this::decodePart;
     private final LlmAnthropicServerDecoder decodeAttributes = this::decodeAttributes;
     private final LlmAnthropicServerDecoder decodeToolIsError = this::decodeToolIsError;
-    private final LlmAnthropicServerDecoder decodeCapture = this::decodeCapture;
+    private final LlmAnthropicServerDecoder decodeBlock = this::decodeBlock;
     private final LlmAnthropicServerDecoder decodeTool = this::decodeTool;
     private final LlmAnthropicServerDecoder decodeText = this::decodeText;
     private final LlmAnthropicServerDecoder decodeSkip = this::decodeSkip;
@@ -1118,13 +1118,13 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
                     if (LlmAnthropicAttributeProbe.carries(blockType))
                     {
-                        server.probe(blockType, textMessage(server), extension, type, decodeCapture, decodeParts);
+                        server.probe(blockType, textMessage(server), extension, type, decodeBlock, decodeParts);
                         server.decoder = decodeAttributes;
                     }
                     else
                     {
                         server.captureHeld(blockType, textMessage(server), extension, decodeParts, 1);
-                        server.decoder = decodeCapture;
+                        server.decoder = decodeBlock;
                     }
                 }
             }
@@ -1208,7 +1208,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             {
             case START_ARRAY:
                 server.capture(LlmSectionType.CITATIONS, textMessage(server), null, decodePart);
-                server.decoder = decodeCapture;
+                server.decoder = decodeBlock;
                 break;
             case VALUE_NULL:
                 server.decoder = decodePart;
@@ -1450,7 +1450,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         return server.decoder == decodeIgnore ? limit : server.position();
     }
 
-    private int decodeCapture(
+    private int decodeBlock(
         LlmAnthropicServer server,
         long traceId,
         long authorization,
@@ -1463,7 +1463,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     {
         final JsonParserEx parser = server.parser;
 
-        while (server.decoder == decodeCapture && parser.hasNextEvent())
+        while (server.decoder == decodeBlock && parser.hasNextEvent())
         {
             final JsonEvent event = parser.nextEvent();
             final boolean deferred = event == JsonEvent.VALUE_STRING && parser.deferredBytes();
