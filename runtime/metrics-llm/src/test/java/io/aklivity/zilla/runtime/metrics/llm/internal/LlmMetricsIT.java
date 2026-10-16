@@ -124,4 +124,15 @@ public class LlmMetricsIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("openai.usage.model.yaml")
+    @Specification({
+        "${app}/openai.usage/client",
+        "${app}/openai.usage/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldRecordOpenaiUsageWithModelAttributes() throws Exception
+    {
+        k3po.finish();
+    }
 }
