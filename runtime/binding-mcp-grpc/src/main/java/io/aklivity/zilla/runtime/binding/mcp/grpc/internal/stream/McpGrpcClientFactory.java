@@ -559,6 +559,8 @@ public final class McpGrpcClientFactory implements BindingHandler
         private MessageConsumer grpc;
         private int grpcState;
 
+        private final McpGrpcJsonDocument requestDocument;
+
         private int decodeSlot = NO_SLOT;
         private int decodeSlotOffset;
 
@@ -600,6 +602,7 @@ public final class McpGrpcClientFactory implements BindingHandler
             super(binding, sender, originId, routedId, initialId, authorization, affinity);
             this.tool = tool;
             this.contentLength = contentLength;
+            this.requestDocument = new McpGrpcJsonDocument();
             this.summarized = tool.summary != null;
             this.grpcRoutedId = binding.composite.routeId;
             this.grpcInitialId = supplyInitialId.applyAsLong(grpcRoutedId);
@@ -649,7 +652,9 @@ public final class McpGrpcClientFactory implements BindingHandler
                         payload.buffer(), payload.offset(), payload.sizeof());
                     decodeSlotOffset += payload.sizeof();
 
-                    if (contentLength >= 0 && decodeSlotOffset >= contentLength)
+                    final boolean complete = requestDocument.advance(
+                        payload.buffer(), payload.offset(), payload.limit());
+                    if (complete || contentLength >= 0 && decodeSlotOffset >= contentLength)
                     {
                         openRequest(traceId);
                     }
