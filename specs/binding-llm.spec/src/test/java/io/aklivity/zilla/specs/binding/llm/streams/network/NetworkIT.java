@@ -2933,4 +2933,49 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.content.type.charset/client",
+        "${net}/openai.content.type.charset/server"})
+    public void shouldAcceptOpenaiRequestContentTypeWithParameters() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.completions.unsupported/client",
+        "${net}/openai.completions.unsupported/server"})
+    public void shouldRejectOpenaiCompletionsRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.rejected.error.type/client",
+        "${net}/anthropic.rejected.error.type/server"})
+    public void shouldPreserveAnthropicRejectedErrorType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.rejected.error.code/client",
+        "${net}/openai.rejected.error.code/server"})
+    public void shouldPreserveOpenaiRejectedErrorCode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.rejected.streaming.error.code/client",
+        "${net}/openai.rejected.streaming.error.code/server"})
+    public void shouldPreserveOpenaiRejectedStreamingErrorCode() throws Exception
+    {
+        k3po.finish();
+    }
 }

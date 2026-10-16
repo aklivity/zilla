@@ -283,11 +283,10 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         final HttpBeginExFW httpBeginEx = begin.extension().get(httpBeginExRO::tryWrap);
 
         final LlmBindingConfig binding = bindings.get(routedId);
-        final LlmRouteConfig route = binding != null ? binding.resolve(authorization) : null;
 
         MessageConsumer newStream = null;
 
-        if (route != null && httpBeginEx != null)
+        if (binding != null && httpBeginEx != null)
         {
             final LlmRequestHeaders headers = LlmRequestHeaders.of(httpBeginEx);
             final String contentType = header(headers, HEADER_CONTENT_TYPE);
@@ -298,7 +297,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             {
                 newStream = new LlmAnthropicRejectHandler(network, originId, routedId, initialId,
                     Integer.toString(STATUS_UNSUPPORTED_MEDIA_TYPE),
-                    errorBody(STATUS_UNSUPPORTED_MEDIA_TYPE, null))::onNetMessage;
+                    errorBody(STATUS_UNSUPPORTED_MEDIA_TYPE, null, null))::onNetMessage;
             }
             else
             {
@@ -314,22 +313,31 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 {
                     newStream = new LlmAnthropicRejectHandler(network, originId, routedId, initialId,
                         Integer.toString(STATUS_BAD_REQUEST),
-                        errorBody(STATUS_BAD_REQUEST, version == null
+                        errorBody(STATUS_BAD_REQUEST, null, version == null
                             ? "anthropic-version: header is required"
                             : "anthropic-version: unsupported version " + version))::onNetMessage;
                 }
                 else
                 {
-                    newStream = new LlmAnthropicServer(
-                            network,
-                            originId,
-                            routedId,
-                            initialId,
-                            route.id,
-                            authResult.authorization(),
-                            contentType,
-                            beta,
-                            authResult.deauthorize())::onNetMessage;
+                    final LlmRouteConfig route = binding.resolve(authResult.authorization());
+
+                    if (route != null)
+                    {
+                        newStream = new LlmAnthropicServer(
+                                network,
+                                originId,
+                                routedId,
+                                initialId,
+                                route.id,
+                                authResult.authorization(),
+                                contentType,
+                                beta,
+                                authResult.deauthorize())::onNetMessage;
+                    }
+                    else
+                    {
+                        authResult.deauthorize().run();
+                    }
                 }
             }
         }
@@ -375,12 +383,13 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
     private static String errorBody(
         int status,
+        String type,
         String message)
     {
         return Json.createObjectBuilder()
             .add("type", "error")
             .add("error", Json.createObjectBuilder()
-                .add("type", errorType(status))
+                .add("type", type != null ? type : errorType(status))
                 .add("message", message != null ? message : reason(status)))
             .build()
             .toString();
@@ -2801,7 +2810,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         {
             final int status = error.status() != -1 ? error.status() : STATUS_INTERNAL_SERVER_ERROR;
 
-            doNetError(traceId, authorization, status, error.message().asString());
+            doNetError(traceId, authorization, status, error.type().asString(), error.message().asString());
         }
 
         private void doNetError(
@@ -2810,7 +2819,17 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             int status,
             String message)
         {
-            final DirectBufferEx body = asBuffer(errorBody(status, message));
+            doNetError(traceId, authorization, status, null, message);
+        }
+
+        private void doNetError(
+            long traceId,
+            long authorization,
+            int status,
+            String type,
+            String message)
+        {
+            final DirectBufferEx body = asBuffer(errorBody(status, type, message));
 
             cleanupDecodeSlot();
 

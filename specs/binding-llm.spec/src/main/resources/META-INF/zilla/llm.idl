@@ -89,6 +89,7 @@ scope llm
             string16 type = null;
             string16 param = null;
             string16 message = null;
+            string16 code = null;
         }
 
         struct LlmChallengeEx extends core::stream::Extension

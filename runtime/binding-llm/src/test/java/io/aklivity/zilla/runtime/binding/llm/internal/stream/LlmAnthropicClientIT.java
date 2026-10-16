@@ -1286,4 +1286,14 @@ public class LlmAnthropicClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.rejected.error.type/client",
+        "${net}/anthropic.rejected.error.type/server"})
+    public void shouldPassAnthropicRejectedErrorType() throws Exception
+    {
+        k3po.finish();
+    }
 }
