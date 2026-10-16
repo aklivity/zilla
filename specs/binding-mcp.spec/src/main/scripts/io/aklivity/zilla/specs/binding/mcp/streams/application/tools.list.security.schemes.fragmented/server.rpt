@@ -59,7 +59,9 @@ write 'yNote":"keep","inputSchema":{"type":"object"}},{"secur'
 write 'itySchemes":[{"type":"oauth2","scopes":["read","write"]}],"name":"get_status"},{"sec'
 write 'uri'
 write 'tySchemes":[{"type":"oauth2","scopes":["read"]}]'
-write ',"name":"get_time"}]}'
+write ',"name":"get_time"},{"name":"get_a","description":"a",'
+write '"securitySchemes":[{"type":"oauth2","scopes":["a"]}]},{"name":"get_b","securitySchemes":[{"type":"oauth2",'
+write '"scopes":["b"]}],"description":"b"}]}'
 write flush
 
 write close
