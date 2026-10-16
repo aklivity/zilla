@@ -457,9 +457,11 @@ public final class McpProxyCacheHydrater
             long traceId)
         {
             final McpProxyCache.McpListCache listCache = handler.cache.cacheOf(kind);
+            final McpProxyListFactory listFactory = listFactories.get(kind);
             if (listCache.fragmentsAbsent(prefixes))
             {
-                terminal(true);
+                listCache.putEmptyIfAbsent(listFactory.hydrationPrelude(), listFactory.hydrationClose(),
+                    k -> terminal(true));
             }
             else
             {
@@ -467,7 +469,6 @@ public final class McpProxyCacheHydrater
                 {
                     listCache.disambiguateTitles(toolkitsByPrefix);
                 }
-                final McpProxyListFactory listFactory = listFactories.get(kind);
                 listCache.putAssembled(listFactory.hydrationPrelude(), listFactory.hydrationClose(),
                     prefixes, k -> terminal(failedAny));
             }

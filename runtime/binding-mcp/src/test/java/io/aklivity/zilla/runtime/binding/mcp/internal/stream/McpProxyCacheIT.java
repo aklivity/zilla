@@ -210,6 +210,17 @@ public class McpProxyCacheIT
     }
 
     @Test
+    @Configuration("proxy.cache.peer.yaml")
+    @Specification({
+        "${app}/cache.serve.initialize/client",
+        "${app}/cache.hydrate.error/server" })
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    public void shouldServeInitializeHydratedByPeer() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.cache.seeded.yaml")
     @Specification({
         "${app}/cache.tools.call.reject.bearer/client",

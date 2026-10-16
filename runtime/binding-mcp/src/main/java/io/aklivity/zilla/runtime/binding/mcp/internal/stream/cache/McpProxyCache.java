@@ -480,6 +480,17 @@ public final class McpProxyCache
             put(builder.toString(), completion);
         }
 
+        // a kind that no route could populate is still settled for this worker, but other workers only learn
+        // that through the store, so an empty listing is stored for them unless a listing is already present
+        public void putEmptyIfAbsent(
+            String prelude,
+            String close,
+            Consumer<String> completion)
+        {
+            store.putIfAbsent(storeKey, prelude + close, STORE_TTL_FOREVER,
+                existing -> get((key, value) -> completion.accept(key)));
+        }
+
         public void get(
             BiConsumer<String, String> completion)
         {
