@@ -343,10 +343,11 @@ for the concern in front of you, not by inventing a mechanism and iterating.
   [runtime/AGENTS.md](runtime/AGENTS.md) for how it is honored.
 - Do not defer a correctness fix as a "larger change, say if you want it".
   Build the proper behavior in the first change.
-- Do not add a boolean field to track state. State belongs in the decoder
-  strategy and the `XxxState` bitmask; see
-  [runtime/AGENTS.md](runtime/AGENTS.md). Before adding any field, check whether
-  that state already exists somewhere and derive it instead.
+- Do not add a boolean field to track which phase you are in. Phase is
+  expressed by decoder states (the `decode<StateName>` methods) and the
+  `XxxState` bitmask; values carried to a later decode step stay as named
+  fields. See [runtime/AGENTS.md](runtime/AGENTS.md). Before adding any field,
+  check whether that phase already exists somewhere and derive it instead.
 - If you cannot find an established pattern for the concern, ask before
   inventing one.
 - Fix a spec script only when it violates the protocol, such as a frame that
