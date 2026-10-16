@@ -503,9 +503,9 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/anthropic.transform.tool.definition/client",
+        "${app}/transform.tool.definition/client",
         "${net}/openai.transform.tool.definition/server"})
-    public void shouldTransformAnthropicSectionToolDefinitionAsOpenai() throws Exception
+    public void shouldTransformToolDefinitionAsOpenai() throws Exception
     {
         k3po.finish();
     }

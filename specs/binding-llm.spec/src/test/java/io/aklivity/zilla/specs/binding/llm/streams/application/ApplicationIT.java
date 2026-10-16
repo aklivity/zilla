@@ -2081,15 +2081,6 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/openai.transform.tool.definition/client",
-        "${app}/openai.transform.tool.definition/server"})
-    public void shouldCarryAnthropicTransformOpenaiToolDefinition() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/openai.transform.mixed.content/client",
         "${app}/openai.transform.mixed.content/server"})
     public void shouldCarryAnthropicTransformOpenaiMixedContent() throws Exception
@@ -2264,15 +2255,6 @@ public class ApplicationIT
         "${app}/anthropic.transform.assistant.tool.call/client",
         "${app}/anthropic.transform.assistant.tool.call/server"})
     public void shouldCarryOpenaiTransformAnthropicAssistantToolCall() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/anthropic.transform.tool.definition/client",
-        "${app}/anthropic.transform.tool.definition/server"})
-    public void shouldCarryOpenaiTransformAnthropicToolDefinition() throws Exception
     {
         k3po.finish();
     }
@@ -2570,6 +2552,15 @@ public class ApplicationIT
         "${app}/transform.assistant.text/client",
         "${app}/transform.assistant.text/server"})
     public void shouldTransformAssistantText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.tool.definition/client",
+        "${app}/transform.tool.definition/server"})
+    public void shouldTransformToolDefinition() throws Exception
     {
         k3po.finish();
     }

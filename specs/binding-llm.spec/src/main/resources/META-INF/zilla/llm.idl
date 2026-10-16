@@ -48,7 +48,9 @@ scope llm
             SERVER_TOOL_RESULT(12),
             CITATIONS(13),
             USER_VIDEO(14),
-            UNKNOWN(15)
+            SERVER_TOOL_CALL(15),
+            SERVER_TOOL_DEFINITION(16),
+            UNKNOWN(17)
         }
 
         struct LlmSectionDataEx
