@@ -38,9 +38,9 @@ write zilla:data.ext ${llm:dataEx()
                           .message(0)
                           .attribute("tool-name", "get_weather")
                           .build()}
-write "{\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":\"{\\\"city\\\":\\\""
+write "{\"city\":\""
       ${core:randomBase64(1000)}
-      "\\\"}\"}"
+      "\"}"
 write flush
 write await FIRST_FRAME_READ
 write option zilla:flags "fin"
@@ -48,9 +48,9 @@ write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .attribute("tool-call-id", "call_1")
                           .build()}
-write ",\"id\":\"call_1\"}"
 write flush
 
+write option zilla:flags "init fin"
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)

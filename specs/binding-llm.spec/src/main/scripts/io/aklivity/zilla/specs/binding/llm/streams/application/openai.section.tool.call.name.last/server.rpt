@@ -39,9 +39,9 @@ read zilla:data.ext ${llm:matchDataEx()
                           .message(0)
                           .attribute("tool-call-id", "call_1")
                           .build()}
-read "{\"id\":\"call_1\",\"type\":\"function\",\"function\":{\"arguments\":\"{\\\"city\\\":\\\""
+read "{\"city\":\""
      ${core:randomBase64(1000)}
-     "\\\"}\""
+     "\"}"
 read notify FIRST_FRAME_READ
 read option zilla:flags "fin"
 read zilla:data.ext ${llm:matchDataEx()
@@ -49,7 +49,6 @@ read zilla:data.ext ${llm:matchDataEx()
                           .typeNull()
                           .attribute("tool-name", "get_weather")
                           .build()}
-read ",\"name\":\"get_weather\"}}"
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))

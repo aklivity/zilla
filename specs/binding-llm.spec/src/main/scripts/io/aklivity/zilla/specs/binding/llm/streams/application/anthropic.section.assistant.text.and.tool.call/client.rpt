@@ -66,7 +66,7 @@ write zilla:data.ext ${llm:dataEx()
                           .attribute("tool-name", "get_weather")
                           .attribute("tool-call-id", "toolu_1")
                           .build()}
-write "{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"get_weather\",\"input\":{\"city\":\"Paris\"}}"
+write "{\"city\":\"Paris\"}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()

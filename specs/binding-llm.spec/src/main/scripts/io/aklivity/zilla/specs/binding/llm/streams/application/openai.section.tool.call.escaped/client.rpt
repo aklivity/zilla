@@ -38,7 +38,7 @@ write zilla:data.ext ${llm:dataEx()
                           .attribute("tool-name", "get_weather")
                           .attribute("tool-call-id", "call_1")
                           .build()}
-write "{\"id\":\"call_1\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":\"{\\\"query\\\":\\\"say \\\\\\\"hi\\\\\\\" \\\\\\\\ done\\\\nnext\\\",\\\"text\\\":\\\"caf\\\\u00e9 ✓ 😀\\\",\\\"nested\\\":{\\\"items\\\":[1,2.5,true,null,{\\\"k\\\":\\\"v\\\"}],\\\"empty\\\":{},\\\"list\\\":[]}}\"}}"
+write "{\"query\":\"say \\\"hi\\\" \\\\ done\\nnext\",\"text\":\"café ✓ 😀\",\"nested\":{\"items\":[1,2.5,true,null,{\"k\":\"v\"}],\"empty\":{},\"list\":[]}}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()

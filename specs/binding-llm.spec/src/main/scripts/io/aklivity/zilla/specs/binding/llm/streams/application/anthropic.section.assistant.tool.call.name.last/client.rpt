@@ -52,7 +52,7 @@ write zilla:data.ext ${llm:dataEx()
                           .message(1)
                           .attribute("tool-call-id", "toolu_1")
                           .build()}
-write "{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"input\":{\"city\":\""
+write "{\"city\":\""
       ${core:randomBase64(1000)}
       "\"}"
 write flush
@@ -62,9 +62,9 @@ write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .attribute("tool-name", "get_weather")
                           .build()}
-write ",\"name\":\"get_weather\"}"
 write flush
 
+write option zilla:flags "init fin"
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)

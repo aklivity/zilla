@@ -51,7 +51,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .attribute("tool-name", "get_weather")
                           .attribute("tool-call-id", "call_1")
                           .build()}
-read "{\"id\":\"call_1\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":\"{\\\"city\\\":\\\"Paris\\\"}\"}}"
+read "{\"city\":\"Paris\"}"
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
