@@ -29,11 +29,4 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-write ${grpc:message()
-            .string(1, "select 1")
-            .build()}
-write flush
-
-read await REQUEST_RECEIVED
 read abort
-write abort

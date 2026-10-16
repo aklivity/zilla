@@ -34,10 +34,11 @@ read zilla:begin.ext ${http:matchBeginEx()
 connected
 
 read ${grpc:message()
-            .string(1, "select 1")
-            .build()}
+           .string(1, "select 1")
+           .build()}
+
+read closed
 
 write notify REQUEST_RECEIVED
 
 write abort
-read aborted

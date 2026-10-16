@@ -16,7 +16,7 @@
 property serverAddress "zilla://streams/http0"
 
 accept ${serverAddress}
-       option zilla:window 8192
+       option zilla:window 0
        option zilla:transmission "half-duplex"
 
 accepted
@@ -33,11 +33,8 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-read ${grpc:message()
-            .string(1, "select 1")
-            .build()}
-
 write notify REQUEST_RECEIVED
 
-write aborted
-read aborted
+write zilla:reset.ext ${http:resetEx()
+                            .typeId(zilla:id("http"))
+                            .build()}

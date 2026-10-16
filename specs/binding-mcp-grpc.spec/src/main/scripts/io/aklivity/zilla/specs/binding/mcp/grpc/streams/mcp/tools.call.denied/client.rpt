@@ -48,6 +48,4 @@ write zilla:begin.ext ${mcp:beginEx()
                                .build()
                            .build()}
 
-connected
-
-write aborted
+connect aborted

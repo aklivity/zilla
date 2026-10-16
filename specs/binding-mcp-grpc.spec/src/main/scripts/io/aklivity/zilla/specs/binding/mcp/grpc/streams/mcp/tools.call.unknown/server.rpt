@@ -37,17 +37,4 @@ write zilla:begin.ext ${mcp:beginEx()
                             .build()}
 write flush
 
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .toolsCall()
-                              .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
-                              .name("unknown_tool")
-                              .contentLength(80)
-                              .build()
-                          .build()}
-
-connected
-
-read abort
+rejected

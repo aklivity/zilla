@@ -197,4 +197,13 @@ public class McpServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mcp}/tools.call.with.credentials/client",
+        "${mcp}/tools.call.with.credentials/server"})
+    public void shouldCallToolWithCredentials() throws Exception
+    {
+        k3po.finish();
+    }
 }
