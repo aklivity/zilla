@@ -49,6 +49,29 @@ final class LlmToolTransformRunner
         }
     }
 
+    static void assertRoundTrips(
+        JsonTransform toCanonical,
+        JsonTransform fromCanonical,
+        String json)
+    {
+        for (int window : WINDOWS)
+        {
+            for (int bound : BOUNDS)
+            {
+                final ByteArrayOutputStream canonical = new ByteArrayOutputStream();
+                final boolean encoded = run(toCanonical, json, window, bound, canonical);
+
+                assertThat("encoded window " + window + " bound " + bound, encoded, is(true));
+
+                final ByteArrayOutputStream nativeOutput = new ByteArrayOutputStream();
+                final boolean decoded = run(fromCanonical, canonical.toString(UTF_8), window, bound, nativeOutput);
+
+                assertThat("decoded window " + window + " bound " + bound, decoded, is(true));
+                assertThat("window " + window + " bound " + bound, nativeOutput.toString(UTF_8), equalTo(json));
+            }
+        }
+    }
+
     static void assertRejects(
         JsonTransform transform,
         String json)

@@ -17,45 +17,45 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
-final class LlmAnthropicToolDefinitionTransform extends LlmToolTransform
+final class LlmOpenaiToolDefinitionFromCanonical extends LlmToolTransform
 {
-    private static final String TYPE_CUSTOM = "custom";
-
-    private boolean named;
-
-    @Override
-    public void reset()
-    {
-        super.reset();
-        named = false;
-    }
+    private static final String DIALECT = "openai";
 
     @Override
     protected int member(
         int depth,
         CharSequence key)
     {
-        int action = DROP;
+        int action;
 
-        if (matches(key, "name"))
+        if (depth == 1 && matches(key, "type"))
+        {
+            target = "type";
+            action = PASS_VALUE;
+        }
+        else if (depth == 1 && matches(key, "function"))
+        {
+            target = "function";
+            action = DESCEND_KEPT;
+        }
+        else if (depth == 2 && matches(key, "name"))
         {
             target = "name";
-            named = true;
-            action = PASS_STRING;
+            action = PASS_VALUE;
         }
-        else if (matches(key, "description"))
+        else if (depth == 2 && matches(key, "description"))
         {
             target = "description";
-            action = PASS_STRING_OR_DROP;
+            action = PASS_VALUE;
         }
-        else if (matches(key, "input_schema"))
+        else if (depth == 2 && matches(key, "parameters"))
         {
             target = "parameters";
-            action = PASS_OBJECT;
+            action = PASS_VALUE;
         }
-        else if (matches(key, "type"))
+        else
         {
-            action = HOLD_STRING;
+            action = unprefix(DIALECT, key);
         }
 
         return action;
@@ -64,25 +64,14 @@ final class LlmAnthropicToolDefinitionTransform extends LlmToolTransform
     @Override
     protected void onOpen()
     {
-        emit(JsonEvent.KEY_NAME, "type");
-        emit(JsonEvent.VALUE_STRING, "function");
-        emit(JsonEvent.KEY_NAME, "function");
-        emit(JsonEvent.START_OBJECT);
     }
 
     @Override
     protected Status onClose(
         int depth)
     {
-        Status status = Status.REJECTED;
+        pass(JsonEvent.END_OBJECT);
 
-        if (named && (held() == null || TYPE_CUSTOM.equals(held())))
-        {
-            emit(JsonEvent.END_OBJECT);
-            pass(JsonEvent.END_OBJECT);
-            status = Status.ADVANCED;
-        }
-
-        return status;
+        return Status.ADVANCED;
     }
 }

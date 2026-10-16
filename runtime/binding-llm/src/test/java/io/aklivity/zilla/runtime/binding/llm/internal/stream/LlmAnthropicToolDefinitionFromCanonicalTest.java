@@ -20,11 +20,11 @@ import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmToolTrans
 
 import org.junit.Test;
 
-public class LlmOpenaiToolDefinitionTransformTest
+public class LlmAnthropicToolDefinitionFromCanonicalTest
 {
     private static final String LONG = "x".repeat(300);
 
-    private final LlmOpenaiToolDefinitionTransform transform = new LlmOpenaiToolDefinitionTransform();
+    private final LlmAnthropicToolDefinitionFromCanonical transform = new LlmAnthropicToolDefinitionFromCanonical();
 
     @Test
     public void shouldTransformFunctionToTool()
@@ -85,12 +85,32 @@ public class LlmOpenaiToolDefinitionTransformTest
     }
 
     @Test
-    public void shouldDropUnknownMembers()
+    public void shouldStripOwnPrefixAtTheirPosition()
+    {
+        assertTransforms(transform,
+            json("{'type':'function','function':{'anthropic:cache_control':{'type':'ephemeral','ttl':[1,{'a':null}]}," +
+                "'name':'ping','anthropic:note':'" + LONG + "','anthropic:count':12345,'anthropic:tags':[1,2]}}"),
+            json("{'cache_control':{'type':'ephemeral','ttl':[1,{'a':null}]},'name':'ping','note':'" + LONG +
+                "','count':12345,'tags':[1,2],'input_schema':{'type':'object'}}"));
+    }
+
+    @Test
+    public void shouldDropOtherDialectPrefixedMembers()
+    {
+        assertTransforms(transform,
+            json("{'extra':1,'gemini:top':{'a':[1,{'b':'" + LONG + "'}]},'type':'function','function':{'openai:strict':true," +
+                "'name':'ping','gemini:note':'" + LONG + "','parameters':{'type':'object'}},'tail':null}"),
+            json("{'extra':1,'name':'ping','input_schema':{'type':'object'},'tail':null}"));
+    }
+
+    @Test
+    public void shouldPassUnprefixedUnknownMembers()
     {
         assertTransforms(transform,
             json("{'extra':{'a':[1,{'b':'" + LONG + "'}]},'type':'function','function':{'strict':true,'note':'" + LONG +
                 "','name':'ping','count':12345,'tags':[1,2]},'tail':null}"),
-            json("{'name':'ping','input_schema':{'type':'object'}}"));
+            json("{'extra':{'a':[1,{'b':'" + LONG + "'}]},'strict':true,'note':'" + LONG +
+                "','name':'ping','count':12345,'tags':[1,2],'input_schema':{'type':'object'},'tail':null}"));
     }
 
     @Test

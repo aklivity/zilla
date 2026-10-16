@@ -17,8 +17,10 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
-final class LlmOpenaiToolDefinitionTransform extends LlmToolTransform
+final class LlmAnthropicToolDefinitionFromCanonical extends LlmToolTransform
 {
+    private static final String DIALECT = "anthropic";
+
     private boolean named;
     private boolean parametrized;
 
@@ -35,9 +37,13 @@ final class LlmOpenaiToolDefinitionTransform extends LlmToolTransform
         int depth,
         CharSequence key)
     {
-        int action = DROP;
+        int action;
 
-        if (depth == 1 && matches(key, "function"))
+        if (depth == 1 && matches(key, "type"))
+        {
+            action = DROP;
+        }
+        else if (depth == 1 && matches(key, "function"))
         {
             action = DESCEND;
         }
@@ -57,6 +63,10 @@ final class LlmOpenaiToolDefinitionTransform extends LlmToolTransform
             target = "input_schema";
             parametrized = true;
             action = PASS_OBJECT;
+        }
+        else
+        {
+            action = unprefix(DIALECT, key);
         }
 
         return action;

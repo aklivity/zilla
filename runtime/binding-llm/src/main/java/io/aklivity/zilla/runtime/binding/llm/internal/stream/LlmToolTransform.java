@@ -39,6 +39,8 @@ abstract class LlmToolTransform implements JsonTransform
     protected static final int HOLD_STRING = 6;
     protected static final int UNESCAPE_OBJECT = 7;
     protected static final int ESCAPE_OBJECT = 8;
+    protected static final int DESCEND_KEPT = 9;
+    protected static final int PASS_VALUE = 10;
 
     private static final int NONE = -1;
     private static final int QUEUE_CAPACITY = 16;
@@ -111,6 +113,45 @@ abstract class LlmToolTransform implements JsonTransform
         String text)
     {
         enqueue(event, text, false);
+    }
+
+    protected final int prefix(
+        String dialect,
+        CharSequence key)
+    {
+        target = dialect + ":" + key;
+
+        return PASS_VALUE;
+    }
+
+    protected final int unprefix(
+        String dialect,
+        CharSequence key)
+    {
+        final int length = key.length();
+        int colon = 0;
+
+        while (colon < length && key.charAt(colon) != ':')
+        {
+            colon++;
+        }
+
+        int action = PASS_VALUE;
+
+        if (colon == length)
+        {
+            target = key.toString();
+        }
+        else if (matches(key.subSequence(0, colon), dialect))
+        {
+            target = key.subSequence(colon + 1, length).toString();
+        }
+        else
+        {
+            action = DROP;
+        }
+
+        return action;
     }
 
     protected static boolean matches(
@@ -339,6 +380,21 @@ abstract class LlmToolTransform implements JsonTransform
         case DESCEND:
             if (event == JsonEvent.START_OBJECT)
             {
+                depth++;
+            }
+            else
+            {
+                status = Status.REJECTED;
+            }
+            break;
+        case PASS_VALUE:
+            status = beginPass(event);
+            break;
+        case DESCEND_KEPT:
+            if (event == JsonEvent.START_OBJECT)
+            {
+                emit(JsonEvent.KEY_NAME, target);
+                pass(event);
                 depth++;
             }
             else

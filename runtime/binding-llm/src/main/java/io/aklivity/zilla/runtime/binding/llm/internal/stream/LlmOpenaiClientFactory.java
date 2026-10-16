@@ -3588,7 +3588,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             {
                 if (toolDefinitionPipeline == null)
                 {
-                    toolDefinitionPipeline = new LlmSectionPipeline(new LlmAnthropicToolDefinitionTransform(),
+                    toolDefinitionPipeline = new LlmSectionPipeline(new LlmOpenaiToolDefinitionFromCanonical(),
                         transformBuffer);
                 }
 

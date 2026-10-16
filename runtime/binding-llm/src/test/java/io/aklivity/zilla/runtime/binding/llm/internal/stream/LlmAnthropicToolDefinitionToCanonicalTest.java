@@ -20,11 +20,11 @@ import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmToolTrans
 
 import org.junit.Test;
 
-public class LlmAnthropicToolDefinitionTransformTest
+public class LlmAnthropicToolDefinitionToCanonicalTest
 {
     private static final String LONG = "x".repeat(300);
 
-    private final LlmAnthropicToolDefinitionTransform transform = new LlmAnthropicToolDefinitionTransform();
+    private final LlmAnthropicToolDefinitionToCanonical transform = new LlmAnthropicToolDefinitionToCanonical();
 
     @Test
     public void shouldTransformToolToFunction()
@@ -74,12 +74,23 @@ public class LlmAnthropicToolDefinitionTransformTest
     }
 
     @Test
-    public void shouldDropUnknownMembers()
+    public void shouldPrefixNativeOnlyMembersAtTheirPosition()
     {
         assertTransforms(transform,
             json("{'cache_control':{'type':'ephemeral','ttl':[1,{'a':null}]},'name':'ping','note':'" + LONG +
-                "','count':12345,'tags':[1,2]}"),
-            json("{'type':'function','function':{'name':'ping'}}"));
+                "','count':12345,'tags':[1,2],'strict':true,'gap':null}"),
+            json("{'type':'function','function':{'anthropic:cache_control':{'type':'ephemeral','ttl':[1,{'a':null}]}," +
+                "'name':'ping','anthropic:note':'" + LONG + "','anthropic:count':12345,'anthropic:tags':[1,2]," +
+                "'anthropic:strict':true,'anthropic:gap':null}}"));
+    }
+
+    @Test
+    public void shouldPrefixNativeOnlyMemberBetweenCanonicalMembers()
+    {
+        assertTransforms(transform,
+            json("{'name':'ping','cache_control':{'type':'ephemeral'},'description':'Ping','input_schema':{'type':'object'}}"),
+            json("{'type':'function','function':{'name':'ping','anthropic:cache_control':{'type':'ephemeral'}," +
+                "'description':'Ping','parameters':{'type':'object'}}}"));
     }
 
     @Test
