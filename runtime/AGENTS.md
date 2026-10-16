@@ -467,6 +467,28 @@ decode slot before calling `decodeNetwork`.
 - Terminal/error decoders must always advance progress (consume all remaining
   bytes) so the loop terminates
 
+### State lives in the decoder and the state bitmask, not in boolean fields
+
+Stream and parse state is carried by the `decoder` strategy field and the
+`XxxState` bitmask (`LlmState`, `HttpState`, and so on). A new `boolean` field
+that records "which phase are we in", "did this finish", "did this fail", or
+"is something pending" is almost always the wrong mechanism.
+
+- Before adding a field, ask whether the state already exists: a failed stream
+  is `decodeIgnore`, a deferred end is the `deferInitialEnd` / `initialEndDeferred`
+  state bits that `flushNetEnd` honors, a section in progress is a decoder state
+  or a strategy selected when the section opens.
+- Model a phase as a decoder state (a `decode<StateName>` method assigned to
+  `decoder`) or as a strategy field chosen at the transition, and let the
+  transition do the work. Do not branch on a flag in every call.
+- Do not mirror state that the decoder, the state bitmask, or a queue already
+  carries; derive it. A boolean that duplicates such state will drift from it.
+- When the code you are extending already uses a flag for the same concern,
+  that is not permission to add another. Follow the decoder or bitmask pattern
+  and, if the existing flag is in the way, say so rather than copying it.
+
+---
+
 ### Proxy binding patterns
 
 Proxy bindings connect two protocol sides and are implemented in two variants:
