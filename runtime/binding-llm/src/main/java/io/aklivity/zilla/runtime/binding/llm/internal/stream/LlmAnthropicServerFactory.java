@@ -209,12 +209,18 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private final LlmAnthropicServerDecoder decodeToolsStart = this::decodeToolsStart;
     private final LlmAnthropicServerDecoder decodeTools = this::decodeTools;
     private final LlmAnthropicServerDecoder decodeParts = this::decodeParts;
-    private final LlmAnthropicServerDecoder decodePartType = this::decodePartType;
-    private final LlmAnthropicServerDecoder decodePartTypeValue = this::decodePartTypeValue;
+    private final LlmAnthropicServerDecoder decodeBlock = this::decodeBlock;
+    private final LlmAnthropicServerDecoder decodeBlockType = this::decodeBlockType;
     private final LlmAnthropicServerDecoder decodePart = this::decodePart;
     private final LlmAnthropicServerDecoder decodeAttributes = this::decodeAttributes;
     private final LlmAnthropicServerDecoder decodeToolIsError = this::decodeToolIsError;
-    private final LlmAnthropicServerDecoder decodeBlock = this::decodeBlock;
+    private final LlmAnthropicServerDecoder decodeUnknownBlock = this::decodeUnknownBlock;
+    private final LlmAnthropicServerDecoder decodeThinkingBlock = this::decodeThinkingBlock;
+    private final LlmAnthropicServerDecoder decodeToolUseBlock = this::decodeToolUseBlock;
+    private final LlmAnthropicServerDecoder decodeImageBlock = this::decodeImageBlock;
+    private final LlmAnthropicServerDecoder decodeDocumentBlock = this::decodeDocumentBlock;
+    private final LlmAnthropicServerDecoder decodeServerToolBlock = this::decodeServerToolBlock;
+    private final LlmAnthropicServerDecoder decodeCitationsBlock = this::decodeCitationsBlock;
     private final LlmAnthropicServerDecoder decodeTool = this::decodeTool;
     private final LlmAnthropicServerDecoder decodeText = this::decodeText;
     private final LlmAnthropicServerDecoder decodeSkip = this::decodeSkip;
@@ -1017,7 +1023,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             case START_OBJECT:
                 server.flushHeld();
                 server.hold();
-                server.decoder = decodePartType;
+                server.decoder = decodeBlock;
                 break;
             case END_ARRAY:
                 server.decoder = server.partsThen;
@@ -1032,7 +1038,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         return server.position();
     }
 
-    private int decodePartType(
+    private int decodeBlock(
         LlmAnthropicServer server,
         long traceId,
         long authorization,
@@ -1059,7 +1065,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             {
                 if (matches(parser.getStringView(), "type"))
                 {
-                    server.decoder = decodePartTypeValue;
+                    server.decoder = decodeBlockType;
                 }
                 else
                 {
@@ -1071,7 +1077,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         return server.position();
     }
 
-    private int decodePartTypeValue(
+    private int decodeBlockType(
         LlmAnthropicServer server,
         long traceId,
         long authorization,
@@ -1116,15 +1122,25 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                     final LlmSectionType blockType = partBlockType(server, type);
                     final String extension = blockType == LlmSectionType.SERVER_TOOL_RESULT ? type : null;
 
+                    final LlmAnthropicServerDecoder decodeTypedBlock = switch (blockType)
+                    {
+                    case ASSISTANT_REASONING -> decodeThinkingBlock;
+                    case TOOL_CALL -> decodeToolUseBlock;
+                    case USER_IMAGE -> decodeImageBlock;
+                    case USER_DOCUMENT -> decodeDocumentBlock;
+                    case SERVER_TOOL_RESULT -> decodeServerToolBlock;
+                    default -> decodeUnknownBlock;
+                    };
+
                     if (LlmAnthropicAttributeProbe.carries(blockType))
                     {
-                        server.probe(blockType, textMessage(server), extension, type, decodeBlock, decodeParts);
+                        server.probe(blockType, textMessage(server), extension, type, decodeTypedBlock, decodeParts);
                         server.decoder = decodeAttributes;
                     }
                     else
                     {
                         server.captureHeld(blockType, textMessage(server), extension, decodeParts, 1);
-                        server.decoder = decodeBlock;
+                        server.decoder = decodeTypedBlock;
                     }
                 }
             }
@@ -1208,7 +1224,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             {
             case START_ARRAY:
                 server.capture(LlmSectionType.CITATIONS, textMessage(server), null, decodePart);
-                server.decoder = decodeBlock;
+                server.decoder = decodeCitationsBlock;
                 break;
             case VALUE_NULL:
                 server.decoder = decodePart;
@@ -1450,7 +1466,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         return server.decoder == decodeIgnore ? limit : server.position();
     }
 
-    private int decodeBlock(
+    private int decodeThinkingBlock(
         LlmAnthropicServer server,
         long traceId,
         long authorization,
@@ -1463,7 +1479,204 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     {
         final JsonParserEx parser = server.parser;
 
-        while (server.decoder == decodeBlock && parser.hasNextEvent())
+        while (server.decoder == decodeThinkingBlock && parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            final boolean deferred = event == JsonEvent.VALUE_STRING && parser.deferredBytes();
+
+            server.probe.onEvent(event, parser);
+            server.captureDepth = server.probe.depth();
+
+            if (server.captureDepth == 0 && !deferred)
+            {
+                server.endCapture(traceId, authorization);
+            }
+        }
+
+        return server.position();
+    }
+
+    private int decodeToolUseBlock(
+        LlmAnthropicServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        while (server.decoder == decodeToolUseBlock && parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            final boolean deferred = event == JsonEvent.VALUE_STRING && parser.deferredBytes();
+
+            server.probe.onEvent(event, parser);
+            server.captureDepth = server.probe.depth();
+
+            if (server.captureDepth == 0 && !deferred)
+            {
+                server.endCapture(traceId, authorization);
+            }
+        }
+
+        return server.position();
+    }
+
+    private int decodeImageBlock(
+        LlmAnthropicServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        while (server.decoder == decodeImageBlock && parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            final boolean deferred = event == JsonEvent.VALUE_STRING && parser.deferredBytes();
+
+            server.probe.onEvent(event, parser);
+            server.captureDepth = server.probe.depth();
+
+            if (server.captureDepth == 0 && !deferred)
+            {
+                server.endCapture(traceId, authorization);
+            }
+        }
+
+        return server.position();
+    }
+
+    private int decodeDocumentBlock(
+        LlmAnthropicServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        while (server.decoder == decodeDocumentBlock && parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            final boolean deferred = event == JsonEvent.VALUE_STRING && parser.deferredBytes();
+
+            server.probe.onEvent(event, parser);
+            server.captureDepth = server.probe.depth();
+
+            if (server.captureDepth == 0 && !deferred)
+            {
+                server.endCapture(traceId, authorization);
+            }
+        }
+
+        return server.position();
+    }
+
+    private int decodeServerToolBlock(
+        LlmAnthropicServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        while (server.decoder == decodeServerToolBlock && parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            final boolean deferred = event == JsonEvent.VALUE_STRING && parser.deferredBytes();
+
+            server.probe.onEvent(event, parser);
+            server.captureDepth = server.probe.depth();
+
+            if (server.captureDepth == 0 && !deferred)
+            {
+                server.endCapture(traceId, authorization);
+            }
+        }
+
+        return server.position();
+    }
+
+    private int decodeCitationsBlock(
+        LlmAnthropicServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        while (server.decoder == decodeCitationsBlock && parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            final boolean deferred = event == JsonEvent.VALUE_STRING && parser.deferredBytes();
+
+            switch (event)
+            {
+            case START_OBJECT:
+            case START_ARRAY:
+                server.captureDepth++;
+                break;
+            case END_OBJECT:
+            case END_ARRAY:
+                server.captureDepth--;
+                break;
+            case VALUE_STRING:
+                if (deferred)
+                {
+                    parser.consumed(parser.getStringView().length());
+                }
+                break;
+            default:
+                break;
+            }
+
+            if (server.captureDepth == 0 && !deferred)
+            {
+                server.endCapture(traceId, authorization);
+            }
+        }
+
+        return server.position();
+    }
+
+    private int decodeUnknownBlock(
+        LlmAnthropicServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        while (server.decoder == decodeUnknownBlock && parser.hasNextEvent())
         {
             final JsonEvent event = parser.nextEvent();
             final boolean deferred = event == JsonEvent.VALUE_STRING && parser.deferredBytes();
