@@ -64,11 +64,11 @@ public class LlmOpenaiToolDefinitionFromCanonicalTest
     }
 
     @Test
-    public void shouldPassOwnPrefixedMembers()
+    public void shouldStripOwnPrefixedMembers()
     {
         assertTransforms(transform,
             json("{'type':'function','function':{'openai:note':'x','name':'ping'}}"),
-            json("{'type':'function','function':{'openai:note':'x','name':'ping'}}"));
+            json("{'type':'function','function':{'note':'x','name':'ping'}}"));
     }
 
     @Test
