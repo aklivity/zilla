@@ -62,4 +62,49 @@ public class HttpClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${http}/tools.call.aborted/client",
+        "${http}/tools.call.aborted/server"})
+    public void shouldAbortUnaryRpc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/tools.call.reset/client",
+        "${http}/tools.call.reset/server"})
+    public void shouldResetUnaryRpc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/tools.call.streaming.aborted/client",
+        "${http}/tools.call.streaming.aborted/server"})
+    public void shouldAbortUnaryRpcResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/tools.call.10k/client",
+        "${http}/tools.call.10k/server"})
+    public void shouldCallUnaryRpc10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/tools.call.100k/client",
+        "${http}/tools.call.100k/server"})
+    public void shouldCallUnaryRpc100k() throws Exception
+    {
+        k3po.finish();
+    }
 }
