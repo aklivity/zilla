@@ -113,7 +113,6 @@ public final class McpServerFactory implements McpStreamFactory
     private static final String MCP_TYPE_NAME = "mcp";
 
     private static final int INACTIVE_SIGNAL_ID = 1;
-    private static final int SCHEME_CARRY_RESERVE = 1024;
 
     private static final int FRAMING_CAPABILITIES_MASK = 1 << Capability.FRAMING.ordinal();
     private static final int EVENT_RECORD_HEADER = 3 * Integer.BYTES;
@@ -5256,14 +5255,13 @@ public final class McpServerFactory implements McpStreamFactory
         {
             if (app != null)
             {
-                final long replyAckMax = Math.max(replySeq - minReplyNoAck, 0);
-                final int replyMaxWindow = schemePipeline != null ? minReplyMax - SCHEME_CARRY_RESERVE : minReplyMax;
-                if (replyAckMax > replyAck || replyMaxWindow > replyMax)
+                final long replyAckMax = Math.max(replySeq - minReplyNoAck - decodeSlotOffset, 0);
+                if (replyAckMax > replyAck || minReplyMax > replyMax)
                 {
                     replyAck = replyAckMax;
                     assert replyAck <= replySeq;
 
-                    replyMax = Math.max(replyMaxWindow, replyMax);
+                    replyMax = Math.max(minReplyMax, replyMax);
 
                     doAppWindow(traceId, authorization, budgetId, padding);
                 }

@@ -22,6 +22,7 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTes
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SERVER_NAME_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SERVER_VERSION_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SESSION_ID_NAME;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertTrue;
 import static org.junit.rules.RuleChain.outerRule;
@@ -549,6 +550,18 @@ public class McpServerIT
         "${app}/tools.list.security.schemes.fragmented/server"})
     @ScriptProperty("affinity \"0000003f\"")
     public void shouldListToolsExcludingSecuritySchemesFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "1024")
+    @Specification({
+        "${net}/tools.list.security.schemes.fragmented/client",
+        "${app}/tools.list.security.schemes.fragmented/server"})
+    @ScriptProperty("affinity \"0000003f\"")
+    public void shouldListToolsExcludingSecuritySchemesFragmentedWithinSlotCapacity() throws Exception
     {
         k3po.finish();
     }
