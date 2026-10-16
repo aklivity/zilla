@@ -44,9 +44,9 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateClientWithOverlay()
+    public void shouldValidateClientWithTools()
     {
-        JsonObject config = schema.validate("client.overlay.yaml");
+        JsonObject config = schema.validate("client.tools.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -251,5 +251,23 @@ public class SchemaTest
     public void shouldRejectToolWithInvalidName()
     {
         schema.validate("client.tools.name.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectToolWithUnknownAnnotation()
+    {
+        schema.validate("client.tools.annotations.unknown.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectToolWithInvalidAnnotationType()
+    {
+        schema.validate("client.tools.annotations.type.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectCatalogWithOverlay()
+    {
+        schema.validate("client.catalog.overlay.invalid.yaml");
     }
 }

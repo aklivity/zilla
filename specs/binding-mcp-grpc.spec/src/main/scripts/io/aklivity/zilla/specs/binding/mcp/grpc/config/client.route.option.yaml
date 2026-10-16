@@ -24,40 +24,16 @@ catalogs:
         syntax = "proto3";
         package example.sql.v1;
         service SQLService {
-          rpc Query(QueryRequest) returns (QueryResult);
-          rpc Execute(QueryRequest) returns (QueryResult);
+          rpc Query(QueryRequest) returns (QueryResult) {
+            option (acme.audience) = "readonly";
+          }
+          rpc Execute(QueryRequest) returns (QueryResult) {
+            option (acme.audience) = "operator";
+          }
           rpc Watch(QueryRequest) returns (stream QueryResult);
         }
         message QueryRequest { string statement = 1; }
         message QueryResult { string status = 1; }
-  catalog1:
-    type: test
-    options:
-      subject: sql-mcp
-      schema: |
-        [
-          {
-            "method": "example.sql.v1.SQLService/Query",
-            "options": {
-              "zilla.mcp.v1": {
-                "title": "Query SQL",
-                "description": "Run a read-only SQL query",
-                "annotations": { "readOnlyHint": true, "idempotentHint": true }
-              },
-              "acme.audience": "readonly"
-            }
-          },
-          {
-            "method": "example.sql.v1.SQLService/Execute",
-            "options": {
-              "zilla.mcp.v1": {
-                "title": "Execute SQL",
-                "annotations": { "destructiveHint": true }
-              },
-              "acme.audience": "operator"
-            }
-          }
-        ]
 bindings:
   app0:
     type: mcp-grpc
@@ -68,10 +44,6 @@ bindings:
         catalog0:
           subject: sql
           version: latest
-          overlay:
-            catalog1:
-              subject: sql-mcp
-              version: latest
     routes:
       - with:
           option:

@@ -48,7 +48,7 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-read  '{"tools":[{"name":"example_sql_v1_sql_service_query","title":"Query SQL","description":"Run a read-only SQL query","inputSchema":{"type":"object","properties":{"statement":{"type":"string"}}},"annotations":{"readOnlyHint":true,"idempotentHint":true,"openWorldHint":false}}]}'
+read  '{"tools":[{"name":"example_sql_v1_sql_service_query","description":"example.sql.v1.SQLService/Query","inputSchema":{"type":"object","properties":{"statement":{"type":"string"}}},"annotations":{"openWorldHint":false}}]}'
 read closed
 
 write close
