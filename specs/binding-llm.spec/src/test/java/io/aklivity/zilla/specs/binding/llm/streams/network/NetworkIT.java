@@ -110,6 +110,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.usage.split/client",
+        "${net}/openai.usage.split/server"})
+    public void shouldEncodeOpenaiNonstreamingUsageSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.reply.padded/client",
         "${net}/openai.reply.padded/server"})
     public void shouldEncodeOpenaiNonstreamingWithReplyPadding() throws Exception
