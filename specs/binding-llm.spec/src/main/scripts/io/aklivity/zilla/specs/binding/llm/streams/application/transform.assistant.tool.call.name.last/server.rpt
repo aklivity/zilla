@@ -60,6 +60,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .typeNull()
                           .attribute("tool-name", "get_weather")
                           .build()}
+read zilla:data.empty
 
 read advised zilla:flush
 

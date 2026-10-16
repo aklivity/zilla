@@ -48,6 +48,7 @@ write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .attribute("tool-name", "get_weather")
                           .build()}
+write zilla:data.empty
 write flush
 
 write option zilla:flags "init fin"
