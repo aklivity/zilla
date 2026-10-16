@@ -1461,32 +1461,9 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         int progress,
         int limit)
     {
-        return decodeCapturedValue(server, decodeCapture, traceId, authorization);
-    }
-
-    private int decodeTool(
-        LlmAnthropicServer server,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int reserved,
-        DirectBufferEx buffer,
-        int offset,
-        int progress,
-        int limit)
-    {
-        return decodeCapturedValue(server, decodeTool, traceId, authorization);
-    }
-
-    private int decodeCapturedValue(
-        LlmAnthropicServer server,
-        LlmAnthropicServerDecoder capturing,
-        long traceId,
-        long authorization)
-    {
         final JsonParserEx parser = server.parser;
 
-        while (server.decoder == capturing && parser.hasNextEvent())
+        while (server.decoder == decodeCapture && parser.hasNextEvent())
         {
             final JsonEvent event = parser.nextEvent();
             final boolean deferred = event == JsonEvent.VALUE_STRING && parser.deferredBytes();
@@ -1524,6 +1501,36 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 server.endCapture(traceId, authorization);
             }
 
+        }
+
+        return server.position();
+    }
+
+    private int decodeTool(
+        LlmAnthropicServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        while (server.decoder == decodeTool && parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            final boolean deferred = event == JsonEvent.VALUE_STRING && parser.deferredBytes();
+
+            server.probe.onEvent(event, parser);
+            server.captureDepth = server.probe.depth();
+
+            if (server.captureDepth == 0 && !deferred)
+            {
+                server.endCapture(traceId, authorization);
+            }
         }
 
         return server.position();
