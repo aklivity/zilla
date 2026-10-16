@@ -53,4 +53,13 @@ public class HttpClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${http}/tools.call.with.credentials/client",
+        "${http}/tools.call.with.credentials/server"})
+    public void shouldCallUnaryRpcWithCredentials() throws Exception
+    {
+        k3po.finish();
+    }
 }

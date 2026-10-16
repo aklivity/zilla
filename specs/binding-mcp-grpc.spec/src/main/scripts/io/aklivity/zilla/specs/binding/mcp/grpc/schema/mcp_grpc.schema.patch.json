@@ -43,6 +43,50 @@
                                 "title": "Server",
                                 "type": "string"
                             },
+                            "authorization":
+                            {
+                                "title": "Authorization",
+                                "type": "object",
+                                "patternProperties":
+                                {
+                                    "^[A-Za-z0-9_-]+$":
+                                    {
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "credentials":
+                                            {
+                                                "title": "Credentials",
+                                                "type": "object",
+                                                "properties":
+                                                {
+                                                    "headers":
+                                                    {
+                                                        "title": "Metadata Headers",
+                                                        "type": "object",
+                                                        "patternProperties":
+                                                        {
+                                                            "^(?!grpc-)(?!(?:te|content-type|user-agent|service-name)$)(?!.*-bin$)[a-z0-9][a-z0-9_.-]*$":
+                                                            {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "additionalProperties": false,
+                                                        "minProperties": 1
+                                                    }
+                                                },
+                                                "required": [ "headers" ],
+                                                "additionalProperties": false
+                                            }
+                                        },
+                                        "required": [ "credentials" ],
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "additionalProperties": false,
+                                "minProperties": 1,
+                                "maxProperties": 1
+                            },
                             "catalog":
                             {
                                 "title": "Catalog",
@@ -147,6 +191,24 @@
                                             "tool"
                                         ],
                                         "additionalProperties": false
+                                    }
+                                },
+                                "guarded":
+                                {
+                                    "title": "Guarded",
+                                    "type": "object",
+                                    "patternProperties":
+                                    {
+                                        "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                        {
+                                            "title": "Roles",
+                                            "type": "array",
+                                            "items":
+                                            {
+                                                "title": "Role",
+                                                "type": "string"
+                                            }
+                                        }
                                     }
                                 },
                                 "with":
