@@ -396,6 +396,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/tools.list.security.schemes.fragmented/client",
+        "${app}/tools.list.security.schemes.fragmented/server"})
+    public void shouldListToolsSecuritySchemesFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.list.security.schemes.per.tool/client",
         "${app}/tools.list.security.schemes.per.tool/server"})
     public void shouldListToolsSecuritySchemesPerTool() throws Exception

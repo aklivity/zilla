@@ -364,7 +364,11 @@ public final class JsonSinkImpl implements JsonSink
         final int consumed = generator.consumed() - before;
         // push back the consumed chars so the source re-exposes the remainder on resume. A stage that forwards
         // a buffered key (e.g. the projector) absorbs this so it does not reach the live parser's value cursor.
-        control.consumed(consumed);
+        // Nothing written is not reported, so a report of zero only ever means a stage declined the key.
+        if (consumed > 0)
+        {
+            control.consumed(consumed);
+        }
         Status status;
         if (available - consumed > 0)
         {
