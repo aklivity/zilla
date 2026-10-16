@@ -107,4 +107,22 @@ public class HttpClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${http}/tools.call.client.aborted/client",
+        "${http}/tools.call.client.aborted/server"})
+    public void shouldRelayClientAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/tools.call.client.reset/client",
+        "${http}/tools.call.client.reset/server"})
+    public void shouldRelayClientReset() throws Exception
+    {
+        k3po.finish();
+    }
 }

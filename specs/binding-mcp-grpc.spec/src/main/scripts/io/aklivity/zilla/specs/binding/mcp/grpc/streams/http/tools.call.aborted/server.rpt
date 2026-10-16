@@ -40,3 +40,4 @@ read ${grpc:message()
 write notify REQUEST_RECEIVED
 
 write abort
+read aborted

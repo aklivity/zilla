@@ -52,7 +52,7 @@ connected
 
 read  '{"name":"example_sql_v1_sql_service_query","arguments":{"statement":"select 1"}}'
 
-write flush
-
 write notify REQUEST_RECEIVED
-write abort
+
+read abort
+write aborted

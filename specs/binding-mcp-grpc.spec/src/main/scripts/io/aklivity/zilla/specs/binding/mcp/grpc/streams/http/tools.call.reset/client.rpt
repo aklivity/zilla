@@ -31,8 +31,7 @@ connected
 
 read zilla:reset.ext ${http:resetEx()
                            .typeId(zilla:id("http"))
-                           .header(":status", "200")
-                           .header("grpc-status", "14")
                            .build()}
 
 write aborted
+read abort

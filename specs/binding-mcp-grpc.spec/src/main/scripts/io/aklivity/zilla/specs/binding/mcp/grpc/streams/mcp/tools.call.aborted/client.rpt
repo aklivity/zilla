@@ -51,7 +51,9 @@ write zilla:begin.ext ${mcp:beginEx()
 connected
 
 write '{"name":"example_sql_v1_sql_service_query","arguments":{"statement":"select 1"}}'
+
 # wait for the upstream request to have actually arrived before expecting the abort, so this
 # isn't racing the request delivery itself
 read await REQUEST_RECEIVED
-read abort
+read aborted
+write abort

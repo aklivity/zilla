@@ -55,4 +55,6 @@ read  '{"name":"example_sql_v1_sql_service_query","arguments":{"statement":"sele
 write flush
 
 write notify REQUEST_RECEIVED
+
 write abort
+read aborted
