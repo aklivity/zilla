@@ -52,7 +52,7 @@ connected
 
 write '{"name":"example_sql_v1_sql_service_query","arguments":{"statement":"select 1"}}'
 
-read '{"content":[{"type":"text","text":"{\\"status\\":\\"o'
+read '{"content":[{"type":"text","text":"{\\"status\\":\\"ok'
 read await RESPONSE_STREAMING
 read aborted
 write abort

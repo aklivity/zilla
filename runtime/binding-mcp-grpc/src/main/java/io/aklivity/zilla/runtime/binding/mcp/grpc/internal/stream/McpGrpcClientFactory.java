@@ -583,6 +583,7 @@ public final class McpGrpcClientFactory implements BindingHandler
         private boolean replyBodyComplete;
         private boolean replyPrefixed;
         private boolean replySuffixed;
+        private boolean replyAborting;
         private boolean grpcEnded;
 
         private McpToolsCallProxy(
@@ -693,6 +694,7 @@ public final class McpGrpcClientFactory implements BindingHandler
         {
             super.onMcpWindow(window);
             pumpReply(window.traceId());
+            completeReplyAbort(window.traceId());
         }
 
         @Override
@@ -709,6 +711,7 @@ public final class McpGrpcClientFactory implements BindingHandler
                 doGrpcReset(traceId);
                 doGrpcAbort(traceId);
             }
+            doMcpReset(traceId);
             cleanupResources();
         }
 
@@ -926,7 +929,22 @@ public final class McpGrpcClientFactory implements BindingHandler
             {
                 doToolError(traceId, McpGrpcStatus.describe(status, message));
             }
+            else if (replyPrefixed && !McpGrpcState.replyClosed(state))
+            {
+                replyAborting = true;
+                flushReply(traceId);
+                completeReplyAbort(traceId);
+            }
             else
+            {
+                doMcpAbort(traceId);
+            }
+        }
+
+        private void completeReplyAbort(
+            long traceId)
+        {
+            if (replyAborting && encodeSlotOffset == 0)
             {
                 doMcpAbort(traceId);
             }

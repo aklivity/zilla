@@ -29,9 +29,5 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-read zilla:reset.ext ${http:resetEx()
-                           .typeId(zilla:id("http"))
-                           .build()}
-
+read await REQUEST_RECEIVED
 write aborted
-read abort

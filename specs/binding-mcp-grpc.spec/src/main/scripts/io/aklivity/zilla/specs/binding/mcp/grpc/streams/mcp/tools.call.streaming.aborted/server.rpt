@@ -54,7 +54,7 @@ read  '{"name":"example_sql_v1_sql_service_query","arguments":{"statement":"sele
 
 write flush
 
-write '{"content":[{"type":"text","text":"{\\"status\\":\\"o'
+write '{"content":[{"type":"text","text":"{\\"status\\":\\"ok'
 write flush
 
 write notify RESPONSE_STREAMING

@@ -26,6 +26,7 @@ import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 
+import io.aklivity.k3po.runtime.junit.annotation.ScriptProperty;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
@@ -160,6 +161,84 @@ public class McpGrpcClientIT
         "${mcp}/tools.call.100k/client",
         "${http}/tools.call.100k/server"})
     public void shouldCallTool100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.authorization.yaml")
+    @ScriptProperty("authorization 1L")
+    @Specification({
+        "${mcp}/tools.call.with.credentials/client",
+        "${http}/tools.call.with.credentials/server"})
+    public void shouldCallToolWithCredentials() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${mcp}/tools.call.unknown/client"})
+    public void shouldRejectCallToolUnknown() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.route.guarded.yaml")
+    @Specification({
+        "${mcp}/tools.call.denied/client"})
+    public void shouldRejectCallToolDenied() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${mcp}/tools.call.aborted/client",
+        "${http}/tools.call.aborted/server"})
+    public void shouldAbortReplyWhenUpstreamAborted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${mcp}/tools.call.streaming.aborted/client",
+        "${http}/tools.call.streaming.aborted/server"})
+    public void shouldAbortReplyWhenUpstreamAbortedWhileStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${mcp}/tools.call.reset/client",
+        "${http}/tools.call.reset/server"})
+    public void shouldRelayReplyReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${mcp}/tools.call.client.aborted/client"})
+    public void shouldAbortReplyWhenRequestAborted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${mcp}/tools.call.client.reset/client",
+        "${http}/tools.call.client.reset/server"})
+    public void shouldRelayRequestReset() throws Exception
     {
         k3po.finish();
     }
