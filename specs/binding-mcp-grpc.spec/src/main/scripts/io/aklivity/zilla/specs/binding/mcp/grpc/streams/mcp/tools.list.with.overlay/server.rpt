@@ -48,8 +48,8 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 
 connected
 
-write  '{"tools":[{"name":"example_sql_v1_sql_service_query","title":"Query SQL","description":"Run a read-only SQL query","inputSchema":{"type":"object","properties":{"statement":{"type":"string"}}},"outputSchema":{"type":"object","properties":{"status":{"type":"string"}}},"annotations":{"readOnlyHint":true,"idempotentHint":true,"openWorldHint":false}},'
-       '{"name":"example_sql_v1_sql_service_execute","title":"Execute SQL","description":"example.sql.v1.SQLService/Execute","inputSchema":{"type":"object","properties":{"statement":{"type":"string"}}},"outputSchema":{"type":"object","properties":{"status":{"type":"string"}}},"annotations":{"destructiveHint":true,"openWorldHint":false}}]}'
+write  '{"tools":[{"name":"example_sql_v1_sql_service_query","title":"Query SQL","description":"Run a read-only SQL query","inputSchema":{"type":"object","properties":{"statement":{"type":"string"}}},"annotations":{"readOnlyHint":true,"idempotentHint":true,"openWorldHint":false}},'
+       '{"name":"example_sql_v1_sql_service_execute","title":"Execute SQL","description":"example.sql.v1.SQLService/Execute","inputSchema":{"type":"object","properties":{"statement":{"type":"string"}}},"annotations":{"destructiveHint":true,"openWorldHint":false}}]}'
 write flush
 
 write close

@@ -54,9 +54,7 @@ read  '{"name":"example_sql_v1_sql_service_query","arguments":{"statement":"sele
 
 write flush
 
-write  '{"structuredContent":{"status":"ok"},'
-       '"content":[{"type":"text","text":"{\\"status\\":\\"ok\\"}"}],'
-       '"isError":false}'
+write  '{"content":[{"type":"text","text":"{\\"status\\":\\"ok\\"}"}],"isError":false}'
 write flush
 
 write close

@@ -87,6 +87,28 @@
                                 "minProperties": 1,
                                 "maxProperties": 1
                             },
+                            "tools":
+                            {
+                                "title": "Tools",
+                                "type": "object",
+                                "patternProperties":
+                                {
+                                    "^[A-Za-z0-9_-]{1,64}$":
+                                    {
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "summary":
+                                            {
+                                                "title": "Result Summary",
+                                                "type": "string"
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "additionalProperties": false
+                            },
                             "catalog":
                             {
                                 "title": "Catalog",

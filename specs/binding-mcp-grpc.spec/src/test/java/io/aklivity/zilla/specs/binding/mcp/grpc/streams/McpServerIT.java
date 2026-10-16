@@ -143,4 +143,22 @@ public class McpServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mcp}/tools.list.with.summary/client",
+        "${mcp}/tools.list.with.summary/server"})
+    public void shouldListToolsWithSummary() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/tools.call.with.summary/client",
+        "${mcp}/tools.call.with.summary/server"})
+    public void shouldCallToolWithSummary() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -48,8 +48,8 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-read  '{"tools":[{"name":"query","description":"example.sql.v1.SQLService/Query","inputSchema":{"type":"object","properties":{"statement":{"type":"string"}}},"outputSchema":{"type":"object","properties":{"status":{"type":"string"}}},"annotations":{"openWorldHint":false}},'
-      '{"name":"example_sql_v1_sql_service_execute","description":"example.sql.v1.SQLService/Execute","inputSchema":{"type":"object","properties":{"statement":{"type":"string"}}},"outputSchema":{"type":"object","properties":{"status":{"type":"string"}}},"annotations":{"openWorldHint":false}}]}'
+read  '{"tools":[{"name":"query","description":"example.sql.v1.SQLService/Query","inputSchema":{"type":"object","properties":{"statement":{"type":"string"}}},"annotations":{"openWorldHint":false}},'
+      '{"name":"example_sql_v1_sql_service_execute","description":"example.sql.v1.SQLService/Execute","inputSchema":{"type":"object","properties":{"statement":{"type":"string"}}},"annotations":{"openWorldHint":false}}]}'
 read closed
 
 write close

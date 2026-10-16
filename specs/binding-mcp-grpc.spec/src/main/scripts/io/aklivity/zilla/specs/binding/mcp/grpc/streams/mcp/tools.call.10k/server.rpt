@@ -57,9 +57,7 @@ read ${payload10k}
 read '"}}'
 
 write flush
-write '{"structuredContent":{"status":"'
-write ${payload10k}
-write '"},"content":[{"type":"text","text":"{\\"status\\":\\"'
+write '{"content":[{"type":"text","text":"{\\"status\\":\\"'
 write ${payload10k}
 write '\\"}"}],"isError":false}'
 write flush
