@@ -50,6 +50,6 @@ write flush
 write zilla:end.ext ${http:endEx()
                           .typeId(zilla:id("http"))
                           .trailer("grpc-status", "5")
-                          .trailer("grpc-message", "unknown table")
+                          .trailer("grpc-message", "unknown%20table")
                           .build()}
 write close

@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.grpc.internal.stream;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import java.io.ByteArrayOutputStream;
 import java.util.Map;
 
 final class McpGrpcStatus
@@ -56,7 +59,34 @@ final class McpGrpcStatus
         String message)
     {
         final String name = name(status);
-        return message != null ? "%s: %s".formatted(name, message) : name;
+        return message != null ? "%s: %s".formatted(name, decode(message)) : name;
+    }
+
+    static String decode(
+        String message)
+    {
+        final byte[] bytes = message.getBytes(UTF_8);
+        final ByteArrayOutputStream decoded = new ByteArrayOutputStream(bytes.length);
+
+        int index = 0;
+        while (index < bytes.length)
+        {
+            final int high = index + 2 < bytes.length && bytes[index] == '%' ? Character.digit(bytes[index + 1], 16) : -1;
+            final int low = high != -1 ? Character.digit(bytes[index + 2], 16) : -1;
+
+            if (high != -1 && low != -1)
+            {
+                decoded.write(high << 4 | low);
+                index += 3;
+            }
+            else
+            {
+                decoded.write(bytes[index]);
+                index++;
+            }
+        }
+
+        return decoded.toString(UTF_8);
     }
 
     private McpGrpcStatus()
