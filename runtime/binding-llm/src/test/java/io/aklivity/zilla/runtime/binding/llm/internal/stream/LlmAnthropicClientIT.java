@@ -61,6 +61,16 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
+        "${app}/anthropic.streaming.usage.padded/client",
+        "${net}/anthropic.streaming.usage/server"})
+    public void shouldForwardAnthropicStreamingUsagePadded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
         "${app}/anthropic.streaming.abort/client",
         "${net}/anthropic.streaming.abort/server"})
     public void shouldAbortAnthropicStreamingWithPartialUsage() throws Exception
@@ -74,6 +84,16 @@ public class LlmAnthropicClientIT
         "${app}/anthropic.usage/client",
         "${net}/anthropic.usage/server"})
     public void shouldForwardAnthropicNonstreamingUsage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.usage.padded/client",
+        "${net}/anthropic.usage/server"})
+    public void shouldForwardAnthropicNonstreamingUsagePadded() throws Exception
     {
         k3po.finish();
     }
@@ -1263,6 +1283,16 @@ public class LlmAnthropicClientIT
         "${app}/transform.user.text/client",
         "${net}/anthropic.transform.request.max.output.tokens.configured/server"})
     public void shouldTransformRequestMaxOutputTokensConfiguredAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.rejected.error.type/client",
+        "${net}/anthropic.rejected.error.type/server"})
+    public void shouldPassAnthropicRejectedErrorType() throws Exception
     {
         k3po.finish();
     }

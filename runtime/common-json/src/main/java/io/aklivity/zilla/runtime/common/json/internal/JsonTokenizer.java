@@ -386,6 +386,86 @@ public final class JsonTokenizer
         return delivered;
     }
 
+    // Takes back a key whose first fragment was delivered and declined: the stream goes back to the end of the
+    // token ahead of the key, so the separator and whitespace that introduced it are scanned again with it, and
+    // the caller re-presents the bytes. When the caller has already pulled past that point (floor), the separator
+    // is gone for good, so only the key itself is taken back. A key that is not an object's first member was
+    // reached from the state after its separator, which then goes back to the state before it.
+    void rewindKey(
+        long priorEnd,
+        long priorLine,
+        long priorColumn,
+        long floor)
+    {
+        assert resumeOp == ResumeOp.KEY_STRING;
+        if (priorEnd >= floor)
+        {
+            streamOffset = priorEnd;
+            line = priorLine;
+            column = priorColumn;
+            if (state == ParseState.OBJ_AFTER_COMMA)
+            {
+                state = ParseState.OBJ_AFTER_VALUE;
+            }
+        }
+        else
+        {
+            streamOffset = valueStreamStart;
+            line = valueLine;
+            column = valueColumn;
+        }
+        scratch.setLength(0);
+        scratchConsumed = 0;
+        resumeOp = ResumeOp.NONE;
+        resumeEscape = false;
+        resumeUnicodePending = 0;
+        resumeUnicodeValue = 0;
+        fragmenting = false;
+        pendingEvent = null;
+        pendingString = null;
+        valuePending = false;
+    }
+
+    // Gives back the separator and whitespace scanned past the last delivered token when a non-final window
+    // ended before the next token began, so only whole tokens are ever consumed and the caller re-presents the
+    // rest with the next window. A separator consumed that way is never lost to, or emitted ahead of, a decision
+    // about the member it introduces. A comma goes back to the state before it, which is the state that
+    // expects a separator or the container's close.
+    void rewindLookahead(
+        long offset,
+        long offsetLine,
+        long offsetColumn)
+    {
+        if (!terminalEof && resumeOp == ResumeOp.NONE && streamOffset > offset)
+        {
+            switch (state)
+            {
+            case OBJ_AFTER_COMMA:
+                state = ParseState.OBJ_AFTER_VALUE;
+                streamOffset = offset;
+                line = offsetLine;
+                column = offsetColumn;
+                break;
+            case ARR_AFTER_COMMA:
+                state = ParseState.ARR_AFTER_VALUE;
+                streamOffset = offset;
+                line = offsetLine;
+                column = offsetColumn;
+                break;
+            case OBJ_AFTER_OPEN:
+            case OBJ_AFTER_VALUE:
+            case ARR_AFTER_OPEN:
+            case ARR_AFTER_VALUE:
+                streamOffset = offset;
+                line = offsetLine;
+                column = offsetColumn;
+                break;
+            default:
+                break;
+            }
+        }
+    }
+
     public JsonParser.Event event()
     {
         return pendingEvent;

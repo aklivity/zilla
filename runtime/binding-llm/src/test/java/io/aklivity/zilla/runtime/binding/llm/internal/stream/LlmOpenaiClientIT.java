@@ -80,6 +80,16 @@ public class LlmOpenaiClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
+        "${app}/openai.streaming.usage.padded/client",
+        "${net}/openai.streaming.usage/server"})
+    public void shouldForwardOpenaiStreamingUsagePadded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
         "${app}/openai/client",
         "${net}/openai/server"})
     public void shouldForwardOpenaiNonstreamingSameDialect() throws Exception
@@ -93,6 +103,26 @@ public class LlmOpenaiClientIT
         "${app}/openai.usage/client",
         "${net}/openai.usage/server"})
     public void shouldForwardOpenaiNonstreamingUsage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.usage.padded/client",
+        "${net}/openai.usage/server"})
+    public void shouldForwardOpenaiNonstreamingUsagePadded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.usage/client",
+        "${net}/openai.usage.split/server"})
+    public void shouldForwardOpenaiNonstreamingUsageSplitNumber() throws Exception
     {
         k3po.finish();
     }
@@ -1231,6 +1261,26 @@ public class LlmOpenaiClientIT
         "${app}/transform.request.max.output.tokens/client",
         "${net}/openai.transform.request.max.output.tokens/server"})
     public void shouldTransformRequestMaxOutputTokensAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.rejected.error.code/client",
+        "${net}/openai.rejected.error.code/server"})
+    public void shouldPassOpenaiRejectedErrorCode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.rejected.streaming.error.code/client",
+        "${net}/openai.rejected.streaming.error.code/server"})
+    public void shouldPassOpenaiRejectedStreamingErrorCode() throws Exception
     {
         k3po.finish();
     }

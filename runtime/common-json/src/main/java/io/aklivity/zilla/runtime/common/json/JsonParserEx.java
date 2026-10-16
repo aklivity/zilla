@@ -179,10 +179,20 @@ public interface JsonParserEx extends JsonParser
      * Drops the value at the current member boundary — valid only when the current event is a
      * {@link JsonEvent#KEY_NAME} — advancing the parser past the whole member (key, separator, value) and the
      * verbatim cursor past its bytes so they are never emitted, folding in the leading-separator trim a prune
-     * needs to keep the surviving siblings well-formed. The {@link JsonSource#skipValue()} accessor promoted
-     * onto the parser surface.
+     * needs to keep the surviving siblings well-formed. A value that continues past the end of the input window
+     * is dropped as the rest of it arrives, and until it ends no further event is delivered. The
+     * {@link JsonSource#skipValue()} accessor promoted onto the parser surface.
      */
     void skipValue();
+
+    /**
+     * Records that the sink will read this parse as original source bytes. Declining the first fragment of an
+     * object member's key with {@link #consumed(int)} reporting zero then leaves that fragment, together with
+     * the separator and whitespace that introduced it, unconsumed for the caller to re-present at the front of
+     * the next input window; without it the parser accumulates the decoded characters, which cannot reproduce
+     * the original bytes. The {@link JsonController#verbatim()} request promoted onto the parser surface.
+     */
+    void verbatim();
 
     /**
      * Whether the current value has bytes still deferred to later events — {@code true} while more of this same

@@ -90,7 +90,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private static final String HEADER_AUTHORIZATION = "authorization";
     private static final String METHOD_POST = "POST";
     private static final String PATH_CHAT_COMPLETIONS = "/v1/chat/completions";
-    private static final String PATH_COMPLETIONS = "/v1/completions";
     private static final String STATUS_OK = "200";
     private static final String STATUS_UNAUTHORIZED = "401";
     private static final int NO_MAX_OUTPUT_TOKENS = -1;
@@ -163,6 +162,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final LlmBeginExFW.Builder llmBeginExRW = new LlmBeginExFW.Builder();
     private final LlmDataExFW llmDataExRO = new LlmDataExFW();
     private final LlmSectionAttributes replyAttributes = new LlmSectionAttributes();
+    private final LlmSectionAttributes fragmentAttributes = new LlmSectionAttributes();
     private final LlmDataExFW.Builder llmDataExRW = new LlmDataExFW.Builder();
     private final LlmFlushExFW.Builder llmFlushExRW = new LlmFlushExFW.Builder();
     private final LlmResetExFW llmResetExRO = new LlmResetExFW();
@@ -262,8 +262,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         final String contentType = header(headers, HEADER_CONTENT_TYPE);
 
         return METHOD_POST.equalsIgnoreCase(method) &&
-            (PATH_CHAT_COMPLETIONS.equals(path) || PATH_COMPLETIONS.equals(path)) &&
-            CONTENT_TYPE_JSON.equals(contentType);
+            PATH_CHAT_COMPLETIONS.equals(path) &&
+            CONTENT_TYPE_JSON.equals(mediaType(contentType));
     }
 
     @Override
@@ -282,11 +282,10 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         final HttpBeginExFW httpBeginEx = begin.extension().get(httpBeginExRO::tryWrap);
 
         final LlmBindingConfig binding = bindings.get(routedId);
-        final LlmRouteConfig route = binding != null ? binding.resolve(authorization) : null;
 
         MessageConsumer newStream = null;
 
-        if (route != null && httpBeginEx != null)
+        if (binding != null && httpBeginEx != null)
         {
             final LlmRequestHeaders headers = LlmRequestHeaders.of(httpBeginEx);
             final String contentType = header(headers, HEADER_CONTENT_TYPE);
@@ -295,7 +294,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             {
                 newStream = new LlmOpenaiRejectHandler(network, originId, routedId, initialId,
                     Integer.toString(STATUS_UNSUPPORTED_MEDIA_TYPE),
-                    errorBody(STATUS_UNSUPPORTED_MEDIA_TYPE, null, null, null))::onNetMessage;
+                    errorBody(STATUS_UNSUPPORTED_MEDIA_TYPE, null, null, null, null))::onNetMessage;
             }
             else
             {
@@ -309,15 +308,24 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    newStream = new LlmOpenaiServer(
-                            network,
-                            originId,
-                            routedId,
-                            initialId,
-                            route.id,
-                            authResult.authorization(),
-                            contentType,
-                            authResult.deauthorize())::onNetMessage;
+                    final LlmRouteConfig route = binding.resolve(authResult.authorization());
+
+                    if (route != null)
+                    {
+                        newStream = new LlmOpenaiServer(
+                                network,
+                                originId,
+                                routedId,
+                                initialId,
+                                route.id,
+                                authResult.authorization(),
+                                contentType,
+                                authResult.deauthorize())::onNetMessage;
+                    }
+                    else
+                    {
+                        authResult.deauthorize().run();
+                    }
                 }
             }
         }
@@ -365,6 +373,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         int status,
         String type,
         String param,
+        String code,
         String message)
     {
         final JsonObjectBuilder error = Json.createObjectBuilder()
@@ -380,7 +389,11 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             error.addNull("param");
         }
 
-        if (status == 429)
+        if (code != null)
+        {
+            error.add("code", code);
+        }
+        else if (status == 429)
         {
             error.add("code", "rate_limit_exceeded");
         }
@@ -2717,7 +2730,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             final int status = error.status() != -1 ? error.status() : STATUS_INTERNAL_SERVER_ERROR;
 
             doNetError(traceId, authorization, status, error.type().asString(), error.param().asString(),
-                error.message().asString());
+                error.code().asString(), error.message().asString());
         }
 
         private void doNetError(
@@ -2726,7 +2739,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             int status,
             String message)
         {
-            doNetError(traceId, authorization, status, null, null, message);
+            doNetError(traceId, authorization, status, null, null, null, message);
         }
 
         private void doNetError(
@@ -2735,9 +2748,10 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             int status,
             String type,
             String param,
+            String code,
             String message)
         {
-            final DirectBufferEx body = asBuffer(errorBody(status, type, param, message));
+            final DirectBufferEx body = asBuffer(errorBody(status, type, param, code, message));
 
             cleanupDecodeSlot();
 
@@ -3239,6 +3253,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final class LlmOpenaiStream
     {
         private final LlmOpenaiServer server;
+        private final LlmReasoningSplitter splitter;
+        private final LlmReasoningSplitter.Visitor reasoningVisitor;
 
         private MessageConsumer app;
         private long initialId;
@@ -3272,6 +3288,20 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             this.eventAttributeOffsets = new int[EVENT_CAPACITY];
             this.eventAttributeLengths = new int[EVENT_CAPACITY];
             this.eventStart = NO_EVENT;
+            this.splitter = new LlmReasoningSplitter();
+            this.reasoningVisitor = this::onReasoning;
+        }
+
+        private void onReasoning(
+            boolean reasoning,
+            DirectBufferEx payload,
+            int payloadOffset,
+            int payloadLength)
+        {
+            if (!reasoning)
+            {
+                doEncodeData(payload, payloadOffset, payloadLength);
+            }
         }
 
         private long initialAvailable()
@@ -3490,9 +3520,27 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             }
             else if (replyKind == LlmDataExFW.KIND_SECTION)
             {
-                if (payload.sizeof() > 0)
+                final LlmDataExFW fragmentEx = data.extension().get(llmDataExRO::tryWrap);
+
+                fragmentAttributes.readFrom(fragmentEx != null && fragmentEx.kind() == LlmDataExFW.KIND_SECTION
+                    ? fragmentEx.section()
+                    : null);
+
+                if (Flags.hasInit(flags))
                 {
-                    doEncodeData(payload.buffer(), payload.offset(), payload.sizeof(), Flags.hasFin(flags));
+                    splitter.begin();
+                }
+
+                if (fragmentAttributes.reasoningTag() != null)
+                {
+                    splitter.activate(fragmentAttributes.reasoningTag());
+                }
+
+                splitter.accept(payload.buffer(), payload.offset(), payload.sizeof(), reasoningVisitor);
+
+                if (Flags.hasFin(flags))
+                {
+                    splitter.end(reasoningVisitor);
                 }
 
                 if (Flags.hasFin(flags))
@@ -3589,7 +3637,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             if (error != null && (error.type().asString() != null || error.message().asString() != null))
             {
                 beginEncode();
-                doEncodeError(error.type().asString(), error.param().asString(), error.message().asString());
+                doEncodeError(error.type().asString(), error.param().asString(), error.code().asString(),
+                    error.message().asString());
                 doEncodeFlush(0, 0L, traceId, authorization);
 
                 if (server.encodeSlot != NO_SLOT)
@@ -4014,8 +4063,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private void doEncodeData(
             DirectBufferEx payload,
             int payloadOffset,
-            int payloadLength,
-            boolean fin)
+            int payloadLength)
         {
             if (kind == KIND_TEXT || kind == KIND_REFUSAL || kind == KIND_TOOL_CALL)
             {
@@ -4098,6 +4146,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private void doEncodeError(
             String type,
             String param,
+            String code,
             String message)
         {
             if (eventOpen)
@@ -4120,7 +4169,16 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 generator.writeNull("param");
             }
 
-            generator.writeNull("code").writeEnd().writeEnd();
+            if (code != null)
+            {
+                generator.write("code", code);
+            }
+            else
+            {
+                generator.writeNull("code");
+            }
+
+            generator.writeEnd().writeEnd();
             eventEnd(generator.length());
         }
 

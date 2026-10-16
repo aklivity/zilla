@@ -437,6 +437,12 @@ final class JsonEscapedParser implements JsonParserEx
     }
 
     @Override
+    public void verbatim()
+    {
+        source().verbatim();
+    }
+
+    @Override
     public boolean deferredBytes()
     {
         return source().deferredBytes();

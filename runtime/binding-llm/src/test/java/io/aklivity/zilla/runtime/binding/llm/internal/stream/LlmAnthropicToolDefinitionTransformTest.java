@@ -90,6 +90,28 @@ public class LlmAnthropicToolDefinitionTransformTest
     }
 
     @Test
+    public void shouldTransformCustomToolType()
+    {
+        assertTransforms(transform,
+            json("{'type':'custom','name':'get_weather','description':'Get the weather'," +
+                "'input_schema':{'type':'object','properties':{'city':{'type':'string'}}}}"),
+            json("{'type':'function','function':{'name':'get_weather','description':'Get the weather'," +
+                "'parameters':{'type':'object','properties':{'city':{'type':'string'}}}}}"));
+        assertTransforms(transform,
+            json("{'name':'ping','input_schema':{'type':'object'},'type':'custom'}"),
+            json("{'type':'function','function':{'name':'ping','parameters':{'type':'object'}}}"));
+    }
+
+    @Test
+    public void shouldRejectToolTypeThatIsNotCustom()
+    {
+        assertRejects(transform, json("{'type':'bash_20250124','name':'bash'}"));
+        assertRejects(transform, json("{'name':'bash','type':'bash_20250124'}"));
+        assertRejects(transform, json("{'type':null,'name':'ping'}"));
+        assertRejects(transform, json("{'type':{'a':1},'name':'ping'}"));
+    }
+
+    @Test
     public void shouldRejectMissingName()
     {
         assertRejects(transform, json("{'description':'Ping'}"));

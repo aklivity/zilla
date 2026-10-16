@@ -6,6 +6,7 @@
 
 **Fixed bugs:**
 
+- Engine config watcher stops reloading after a no-op change \(WatchKey never reset\) [\#2624](https://github.com/aklivity/zilla/issues/2624) ([akrambek](https://github.com/akrambek))
 - mcp-kafka: consume data frames use INIT and FIN flag values that are swapped relative to the stream frame flags [\#2649](https://github.com/aklivity/zilla/issues/2649) ([jfallows](https://github.com/jfallows))
 
 **Closed issues:**
@@ -96,6 +97,9 @@
 - feat\(binding-llm\): signal request and response failure on the llm stream [\#2608](https://github.com/aklivity/zilla/pull/2608) ([jfallows](https://github.com/jfallows))
 - feat\(metrics-llm\): record llm token usage, duration and active requests [\#2611](https://github.com/aklivity/zilla/pull/2611) ([jfallows](https://github.com/jfallows))
 - fix\(binding-llm.conf\): reject llm config properties the binding ignores [\#2618](https://github.com/aklivity/zilla/pull/2618) ([jfallows](https://github.com/jfallows))
+- feat\(`binding-http-filesystem`\): resolve guarded identity and attributes in with.path; reject dot segments [\#2623](https://github.com/aklivity/zilla/pull/2623) ([akrambek](https://github.com/akrambek))
+- fix\(engine, filesystem-http\): reset config watch keys after every event [\#2625](https://github.com/aklivity/zilla/pull/2625) ([akrambek](https://github.com/akrambek))
+- engine: report running config etag and config applied/rejected events [\#2626](https://github.com/aklivity/zilla/pull/2626) ([akrambek](https://github.com/akrambek))
 - ci\(codeql\): skip zpm resolve in the autobuild [\#2627](https://github.com/aklivity/zilla/pull/2627) ([jfallows](https://github.com/jfallows))
 - refactor\(binding-llm\): remove dead data-URL handler and response-direction dialect transforms [\#2628](https://github.com/aklivity/zilla/pull/2628) ([jfallows](https://github.com/jfallows))
 - fix\(binding-llm.conf\): tighten llm config schema \(proxy options, client server URL, shared authorization\) [\#2629](https://github.com/aklivity/zilla/pull/2629) ([jfallows](https://github.com/jfallows))
@@ -150,6 +154,9 @@
 - fix\(engine\): record exact histogram sum instead of deriving it from bucket limits [\#2725](https://github.com/aklivity/zilla/pull/2725) ([jfallows](https://github.com/jfallows))
 - feat\(binding-llm\): request usage upstream for openai streaming and honor the caller's choice [\#2726](https://github.com/aklivity/zilla/pull/2726) ([jfallows](https://github.com/jfallows))
 - fix\(binding-llm\): escape assistant reasoning text replayed into the openai response [\#2727](https://github.com/aklivity/zilla/pull/2727) ([jfallows](https://github.com/jfallows))
+- feat\(binding-llm\): convert or drop delimited reasoning in an assistant text section for another dialect [\#2729](https://github.com/aklivity/zilla/pull/2729) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mcp\): serve initialize on every proxy when a kind has nothing to store [\#2730](https://github.com/aklivity/zilla/pull/2730) ([jfallows](https://github.com/jfallows))
+- fix\(binding-llm\): gate same-dialect response decoding on reply credit per event [\#2732](https://github.com/aklivity/zilla/pull/2732) ([jfallows](https://github.com/jfallows))
 
 ## [2.4.7](https://github.com/aklivity/zilla/tree/2.4.7) (2026-09-30)
 

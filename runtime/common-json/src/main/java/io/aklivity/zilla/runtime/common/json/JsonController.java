@@ -82,7 +82,11 @@ public interface JsonController
      * {@link #segmentable()} but additive, not substitutive — a mediating stage (e.g. a validator) absorbs the
      * request upstream (it still takes structured events to inspect) and re-asserts it downstream (it emits
      * verbatim events to its sink). Best-effort and demand-gated; when unset the upstream does no verbatim
-     * tracking. The default does nothing, for an upstream that does not retain source bytes.
+     * tracking. A mediating stage that re-asserts the request downstream also passes it upstream, so the parser
+     * keeps its bytes exact when the stage declines a partial key with {@link #consumed(int)} reporting zero:
+     * the bytes are then left unconsumed for the caller to re-present, in place of the decoded characters the
+     * parser would otherwise accumulate. The default does nothing, for an upstream that does not retain source
+     * bytes.
      */
     default void verbatim()
     {

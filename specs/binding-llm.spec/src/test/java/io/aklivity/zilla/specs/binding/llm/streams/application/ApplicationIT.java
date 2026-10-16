@@ -83,6 +83,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.streaming.usage.padded/client",
+        "${app}/openai.streaming.usage.padded/server"})
+    public void shouldForwardOpenaiStreamingUsagePadded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai/client",
         "${app}/openai/server"})
     public void shouldForwardOpenaiNonstreaming() throws Exception
@@ -95,6 +104,15 @@ public class ApplicationIT
         "${app}/openai.usage/client",
         "${app}/openai.usage/server"})
     public void shouldForwardOpenaiNonstreamingUsage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.usage.padded/client",
+        "${app}/openai.usage.padded/server"})
+    public void shouldForwardOpenaiNonstreamingUsagePadded() throws Exception
     {
         k3po.finish();
     }
@@ -146,6 +164,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/anthropic.streaming.usage.padded/client",
+        "${app}/anthropic.streaming.usage.padded/server"})
+    public void shouldForwardAnthropicStreamingUsagePadded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.streaming.abort/client",
         "${app}/openai.streaming.abort/server"})
     public void shouldAbortOpenaiStreamingWithPartialUsage() throws Exception
@@ -185,6 +212,15 @@ public class ApplicationIT
         "${app}/anthropic.usage/client",
         "${app}/anthropic.usage/server"})
     public void shouldForwardAnthropicNonstreamingUsage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.usage.padded/client",
+        "${app}/anthropic.usage.padded/server"})
+    public void shouldForwardAnthropicNonstreamingUsagePadded() throws Exception
     {
         k3po.finish();
     }
@@ -2765,6 +2801,78 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/transform.response.reasoning.tag/client",
+        "${app}/transform.response.reasoning.tag/server"})
+    public void shouldTransformResponseReasoningTag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.response.reasoning.tag.fragmented/client",
+        "${app}/transform.response.reasoning.tag.fragmented/server"})
+    public void shouldTransformResponseReasoningTagFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.response.reasoning.tag.multiple/client",
+        "${app}/transform.response.reasoning.tag.multiple/server"})
+    public void shouldTransformResponseReasoningTagMultiple() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.response.reasoning.tag.unclosed/client",
+        "${app}/transform.response.reasoning.tag.unclosed/server"})
+    public void shouldTransformResponseReasoningTagUnclosed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.response.reasoning.tag.absent/client",
+        "${app}/transform.response.reasoning.tag.absent/server"})
+    public void shouldTransformResponseReasoningTagAbsent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.assistant.text.reasoning/client",
+        "${app}/openai.section.assistant.text.reasoning/server"})
+    public void shouldDecodeOpenaiSectionAssistantTextReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.rejected.reasoning/client",
+        "${app}/openai.proxy.guardrail.response.rejected.reasoning/server"})
+    public void shouldRejectGuardedResponseSectionAcrossReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.rejected.reasoning.exit/client",
+        "${app}/openai.proxy.guardrail.response.rejected.reasoning.exit/server"})
+    public void shouldRejectGuardedResponseSectionAcrossReasoningExit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/transform.response.refusal/client",
         "${app}/transform.response.refusal/server"})
     public void shouldTransformResponseRefusal() throws Exception
@@ -2804,6 +2912,42 @@ public class ApplicationIT
         "${app}/transform.request.max.output.tokens/client",
         "${app}/transform.request.max.output.tokens/server"})
     public void shouldTransformRequestMaxOutputTokens() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.rejected.error.type/client",
+        "${app}/anthropic.rejected.error.type/server"})
+    public void shouldPreserveAnthropicRejectedErrorType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.rejected.error.code/client",
+        "${app}/openai.rejected.error.code/server"})
+    public void shouldPreserveOpenaiRejectedErrorCode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.rejected.streaming.error.code/client",
+        "${app}/openai.rejected.streaming.error.code/server"})
+    public void shouldPreserveOpenaiRejectedStreamingErrorCode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.content.type.charset/client",
+        "${app}/openai.content.type.charset/server"})
+    public void shouldAcceptOpenaiRequestContentTypeWithParameters() throws Exception
     {
         k3po.finish();
     }
