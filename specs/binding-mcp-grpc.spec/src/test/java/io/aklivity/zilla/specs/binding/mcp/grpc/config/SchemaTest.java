@@ -32,6 +32,7 @@ public class SchemaTest
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
         .schemaPatch("io/aklivity/zilla/specs/binding/mcp/grpc/schema/mcp_grpc.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/catalog/test.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/guard/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/mcp/grpc/config");
 
     @Test
@@ -154,5 +155,81 @@ public class SchemaTest
     public void shouldRejectRouteWithInvalidMethod()
     {
         schema.validate("client.route.method.invalid.yaml");
+    }
+
+    @Test
+    public void shouldValidateClientWithAuthorization()
+    {
+        JsonObject config = schema.validate("client.authorization.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateClientWithGuardedRoute()
+    {
+        JsonObject config = schema.validate("client.route.guarded.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectAuthorizationWithMultipleGuards()
+    {
+        schema.validate("client.authorization.multiple.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectAuthorizationWithoutHeaders()
+    {
+        schema.validate("client.authorization.headers.empty.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectAuthorizationHeaderKeyPseudo()
+    {
+        schema.validate("client.authorization.key.pseudo.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectAuthorizationHeaderKeyUppercase()
+    {
+        schema.validate("client.authorization.key.uppercase.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectAuthorizationHeaderKeyGrpcPrefix()
+    {
+        schema.validate("client.authorization.key.grpc.prefix.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectAuthorizationHeaderKeyTe()
+    {
+        schema.validate("client.authorization.key.te.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectAuthorizationHeaderKeyContentType()
+    {
+        schema.validate("client.authorization.key.content.type.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectAuthorizationHeaderKeyUserAgent()
+    {
+        schema.validate("client.authorization.key.user.agent.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectAuthorizationHeaderKeyServiceName()
+    {
+        schema.validate("client.authorization.key.service.name.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectAuthorizationHeaderKeyBinSuffix()
+    {
+        schema.validate("client.authorization.key.bin.suffix.invalid.yaml");
     }
 }
