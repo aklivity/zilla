@@ -117,12 +117,13 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private static final String MESSAGE_ATTRIBUTE_TOO_LARGE = "a content block attribute value is too large";
     private static final String MESSAGE_TOOL_DEFINITION_INVALID = "tools: Invalid tool definition";
     private static final int CANONICAL_BUFFER_MAX = 4096;
-    private static final int CANONICAL_ROOM = 64;
-    private static final int CANONICAL_GROWTH = 4;
 
     private static final int RESPONSE_ENCODE_PADDING = 128;
     private static final int RESPONSE_ESCAPE_EXPANSION = 6;
     private static final int RESPONSE_ENCODE_SLACK = 2048;
+    private static final int REQUEST_CANONICAL_GROWTH = 4;
+    private static final int REQUEST_ENCODE_SLACK = 512;
+    private static final int REQUEST_RECORD_HEADER = 28;
 
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
     private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx(new byte[0]);
@@ -940,7 +941,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             switch (event)
             {
             case START_ARRAY:
-                server.toolsOpen = true;
                 server.decoder = decodeTools;
                 break;
             case VALUE_NULL:
@@ -981,7 +981,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 server.decoder = decodeAttributes;
                 break;
             case END_ARRAY:
-                server.toolsOpen = false;
                 server.decoder = decodeRoot;
                 break;
             default:
@@ -2015,6 +2014,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private boolean replyBegun;
         private int state;
         private boolean appEndPending;
+        private boolean decodeEndPending;
         private boolean deauthorized;
         private boolean decoding;
 
@@ -2101,7 +2101,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private LlmSectionPipeline canonicalPipeline;
         private final LlmSectionPipeline.Output canonicalOutput = this::onCanonicalData;
         private boolean canonicalActive;
-        private boolean toolsOpen;
         private boolean canonicalFinished;
         private boolean canonicalFailed;
         private long canonicalTraceId;
@@ -2335,7 +2334,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             final boolean windowLast = decodedLast && windowLimit == limit;
 
             final boolean gated = stream != null;
-            final boolean expanding = gated && toolsOpen;
 
             decodedWindowLimit = windowLimit;
             decodeTraceId = traceId;
@@ -2348,7 +2346,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             boolean replayed = false;
             LlmAnthropicServerDecoder previous = null;
             int progress = offset;
-            while (progress <= limit && previous != decoder && (stream != null) == gated && (gated && toolsOpen) == expanding)
+            while (progress <= limit && previous != decoder && (stream != null) == gated)
             {
                 previous = decoder;
                 progress = decoder.decode(this, traceId, authorization, budgetId, reserved, buffer, offset, progress, limit);
@@ -2429,11 +2427,10 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
         private int available()
         {
-            final int available = stream != null ? (int) Math.max(stream.initialAvailable(), 0L) : 0;
+            final int available = stream != null ? stream.encodeRoom() : 0;
             final int room = modelOverride != null ? Math.min(modelOverride.capacity(), available >> 1) : 0;
-            final int credit = available - room;
 
-            return toolsOpen ? Math.max(credit - CANONICAL_ROOM, 0) / CANONICAL_GROWTH : credit;
+            return available - room;
         }
 
         private void onModelOverride(
@@ -2690,7 +2687,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             parser.reset();
             decoder = decodeStart;
             replaying = true;
-            toolsOpen = false;
 
             lookahead = false;
             holding = false;
@@ -2860,8 +2856,13 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             {
                 cleanup(traceId);
             }
+            else if (stream.encodeSlot != NO_SLOT)
+            {
+                decodeEndPending = true;
+            }
             else
             {
+                decodeEndPending = false;
                 stream.doAppFlush(traceId, initialAuthorization, maxOutputTokens);
 
                 if (LlmState.replyClosed(stream.state))
@@ -2953,6 +2954,10 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             decoder = decodeIgnore;
             cleanupDecodeSlot();
             cleanupEncodeSlot();
+            if (stream != null)
+            {
+                stream.cleanupEncodeSlot();
+            }
             if (!deauthorized)
             {
                 deauthorized = true;
@@ -3446,6 +3451,11 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
         private int state;
 
+        private int encodeSlot = NO_SLOT;
+        private int encodeSlotOffset;
+        private int encodeSlotProgress;
+        private int encodeHeadSent;
+
         private boolean replyBegun;
         private boolean replyDialect;
         private boolean crossDialect;
@@ -3473,6 +3483,13 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             return initialMax - (initialSeq - initialAck);
         }
 
+        private int encodeRoom()
+        {
+            final int room = encodePool.slotCapacity() - (encodeSlotOffset - encodeSlotProgress) - REQUEST_ENCODE_SLACK;
+
+            return Math.max(room, 0) / REQUEST_CANONICAL_GROWTH;
+        }
+
         private void onAppReset(
             ResetFW reset)
         {
@@ -3482,6 +3499,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             final LlmResetExFW resetEx = extension.get(llmResetExRO::tryWrap);
 
             state = LlmState.closeInitial(state);
+            cleanupEncodeSlot();
             server.appEndPending = false;
 
             if (resetEx != null && !server.replyBegun)
@@ -3504,6 +3522,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             initialMax = window.maximum();
             initialBud = window.budgetId();
             state = LlmState.openInitial(state);
+
+            drainEncodeSlot(traceId);
 
             server.decodeNet(traceId, server.initialAuthorization, 0L);
         }
@@ -3916,6 +3936,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private void doAppAbort(
             long traceId)
         {
+            cleanupEncodeSlot();
+
             if (!LlmState.initialClosed(state))
             {
                 final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
@@ -4005,66 +4027,189 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             int offset,
             int length)
         {
-            if (dialect && crossDialect)
+            if (!(dialect && crossDialect))
             {
-                return;
+                int extLength = 0;
+
+                if (dialect && (Flags.hasInit(flags) || complete))
+                {
+                    final LlmDataExFW dataEx = llmDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                        .typeId(llmTypeId)
+                        .dialect(d -> d.complete(complete ? 1 : 0))
+                        .build();
+
+                    extLength = dataEx.sizeof();
+                }
+                else if (type != null || attributes != null && attributes.present())
+                {
+                    final LlmDataExFW dataEx = llmDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                        .typeId(llmTypeId)
+                        .section(x ->
+                        {
+                            if (type != null)
+                            {
+                                x.type(t -> t.set(type)).message(message);
+                            }
+
+                            if (attributes != null)
+                            {
+                                attributes.writeTo(x);
+                            }
+
+                            if (extension != null)
+                            {
+                                final byte[] bytes = extension.getBytes(UTF_8);
+                                x.extension(e -> e.set(bytes));
+                            }
+                        })
+                        .build();
+
+                    extLength = dataEx.sizeof();
+                }
+
+                if (enqueueData(traceId, authorization, flags, extLength, buffer, offset, length))
+                {
+                    drainEncodeSlot(traceId);
+                }
+                else
+                {
+                    server.doNetReset(traceId);
+                    doAppAbort(traceId);
+                    server.cleanup(traceId);
+                }
+            }
+        }
+
+        private boolean enqueueData(
+            long traceId,
+            long authorization,
+            int flags,
+            int extLength,
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            final int required = REQUEST_RECORD_HEADER + extLength + length;
+
+            if (encodeSlot == NO_SLOT)
+            {
+                encodeSlot = encodePool.acquire(initialId);
             }
 
-            final DataFW.Builder builder = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .originId(server.routedId)
-                .routedId(server.exitId)
-                .streamId(initialId)
-                .sequence(initialSeq)
-                .acknowledge(initialAck)
-                .maximum(initialMax)
-                .traceId(traceId)
-                .authorization(authorization)
-                .flags(flags)
-                .budgetId(initialBud)
-                .reserved(length)
-                .payload(buffer, offset, length);
+            boolean encoded = encodeSlot != NO_SLOT;
 
-            if (dialect && (Flags.hasInit(flags) || complete))
+            if (encoded)
             {
-                final LlmDataExFW dataEx = llmDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                    .typeId(llmTypeId)
-                    .dialect(d -> d.complete(complete ? 1 : 0))
-                    .build();
+                final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
 
-                builder.extension(dataEx.buffer(), dataEx.offset(), dataEx.sizeof());
-            }
-            else if (type != null || attributes != null && attributes.present())
-            {
-                final LlmDataExFW dataEx = llmDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                    .typeId(llmTypeId)
-                    .section(x ->
-                    {
-                        if (type != null)
-                        {
-                            x.type(t -> t.set(type)).message(message);
-                        }
+                if (encodeSlotOffset + required > encodePool.slotCapacity() && encodeSlotProgress > 0)
+                {
+                    final int remaining = encodeSlotOffset - encodeSlotProgress;
 
-                        if (attributes != null)
-                        {
-                            attributes.writeTo(x);
-                        }
+                    slot.putBytes(0, slot, encodeSlotProgress, remaining);
+                    encodeSlotOffset = remaining;
+                    encodeSlotProgress = 0;
+                }
 
-                        if (extension != null)
-                        {
-                            final byte[] bytes = extension.getBytes(UTF_8);
-                            x.extension(e -> e.set(bytes));
-                        }
-                    })
-                    .build();
+                encoded = encodeSlotOffset + required <= encodePool.slotCapacity();
 
-                builder.extension(dataEx.buffer(), dataEx.offset(), dataEx.sizeof());
+                if (encoded)
+                {
+                    slot.putLong(encodeSlotOffset, traceId);
+                    slot.putLong(encodeSlotOffset + 8, authorization);
+                    slot.putInt(encodeSlotOffset + 16, flags);
+                    slot.putInt(encodeSlotOffset + 20, extLength);
+                    slot.putInt(encodeSlotOffset + 24, length);
+                    slot.putBytes(encodeSlotOffset + REQUEST_RECORD_HEADER, extBuffer, 0, extLength);
+                    slot.putBytes(encodeSlotOffset + REQUEST_RECORD_HEADER + extLength, buffer, offset, length);
+                    encodeSlotOffset += required;
+                }
             }
 
-            final DataFW data = builder.build();
+            return encoded;
+        }
 
-            app.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
+        private void drainEncodeSlot(
+            long traceId)
+        {
+            while (encodeSlot != NO_SLOT && encodeSlotProgress < encodeSlotOffset && !LlmState.initialClosed(state))
+            {
+                final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
+                final int record = encodeSlotProgress;
+                final long recordTraceId = slot.getLong(record);
+                final long recordAuthorization = slot.getLong(record + 8);
+                final int flags = slot.getInt(record + 16);
+                final int extLength = slot.getInt(record + 20);
+                final int payloadLength = slot.getInt(record + 24);
+                final int payloadOffset = record + REQUEST_RECORD_HEADER + extLength;
 
-            initialSeq += length;
+                final int remaining = payloadLength - encodeHeadSent;
+                final int length = (int) Math.min(remaining, Math.max(initialAvailable(), 0L));
+
+                if (length < remaining && length == 0)
+                {
+                    break;
+                }
+
+                final boolean first = encodeHeadSent == 0;
+                final boolean last = length == remaining;
+                final int sentFlags = (first ? flags & Flags.INIT : 0) | (last ? flags & Flags.FIN : 0);
+
+                final DataFW.Builder builder = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                    .originId(server.routedId)
+                    .routedId(server.exitId)
+                    .streamId(initialId)
+                    .sequence(initialSeq)
+                    .acknowledge(initialAck)
+                    .maximum(initialMax)
+                    .traceId(recordTraceId)
+                    .authorization(recordAuthorization)
+                    .flags(sentFlags)
+                    .budgetId(initialBud)
+                    .reserved(length)
+                    .payload(slot, payloadOffset + encodeHeadSent, length);
+
+                if (first && extLength > 0)
+                {
+                    builder.extension(slot, record + REQUEST_RECORD_HEADER, extLength);
+                }
+
+                final DataFW data = builder.build();
+
+                app.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
+
+                initialSeq += length;
+                encodeHeadSent += length;
+
+                if (last)
+                {
+                    encodeSlotProgress = payloadOffset + payloadLength;
+                    encodeHeadSent = 0;
+                }
+            }
+
+            if (encodeSlotProgress == encodeSlotOffset)
+            {
+                cleanupEncodeSlot();
+
+                if (server.decodeEndPending)
+                {
+                    server.onDecodeEnd(traceId);
+                }
+            }
+        }
+
+        private void cleanupEncodeSlot()
+        {
+            if (encodeSlot != NO_SLOT)
+            {
+                encodePool.release(encodeSlot);
+                encodeSlot = NO_SLOT;
+            }
+
+            encodeSlotOffset = 0;
+            encodeSlotProgress = 0;
+            encodeHeadSent = 0;
         }
 
         private void beginEncode()
