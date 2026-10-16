@@ -1484,8 +1484,25 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             final JsonEvent event = parser.nextEvent();
             final boolean deferred = event == JsonEvent.VALUE_STRING && parser.deferredBytes();
 
-            server.probe.onEvent(event, parser);
-            server.captureDepth = server.probe.depth();
+            switch (event)
+            {
+            case START_OBJECT:
+            case START_ARRAY:
+                server.captureDepth++;
+                break;
+            case END_OBJECT:
+            case END_ARRAY:
+                server.captureDepth--;
+                break;
+            case VALUE_STRING:
+                if (deferred)
+                {
+                    parser.consumed(parser.getStringView().length());
+                }
+                break;
+            default:
+                break;
+            }
 
             if (server.captureDepth == 0 && !deferred)
             {
@@ -2667,7 +2684,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
         private int available()
         {
-            final int available = stream != null ? stream.encodeRoom() : 0;
+            final int credit = stream != null ? (int) Math.max(stream.initialAvailable(), 0L) : 0;
+            final int available = stream != null ? Math.min(credit, stream.encodeRoom()) : 0;
             final int room = modelOverride != null ? Math.min(modelOverride.capacity(), available >> 1) : 0;
 
             return available - room;
@@ -4218,7 +4236,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             int offset,
             int length)
         {
-            if (!(dialect && crossDialect))
+            if (!(dialect && crossDialect) && !LlmState.initialClosed(state))
             {
                 int extLength = 0;
 
@@ -4379,7 +4397,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 }
             }
 
-            if (encodeSlotProgress == encodeSlotOffset)
+            if (encodeSlotProgress == encodeSlotOffset || LlmState.initialClosed(state))
             {
                 cleanupEncodeSlot();
                 server.flushNetEnd(traceId);
