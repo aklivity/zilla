@@ -81,6 +81,15 @@ final class LlmAnthropicToolCallFromCanonical extends LlmToolTransform
     }
 
     @Override
+    protected void onValueEnd()
+    {
+        if (toolCallId != null && toolName != null)
+        {
+            emit(JsonEvent.END_OBJECT);
+        }
+    }
+
+    @Override
     protected Status onEnd()
     {
         final String id = toolCallId != null ? toolCallId : attribute("tool-call-id");
@@ -98,7 +107,10 @@ final class LlmAnthropicToolCallFromCanonical extends LlmToolTransform
             emit(JsonEvent.VALUE_STRING, name);
         }
 
-        emit(JsonEvent.END_OBJECT);
+        if (toolCallId == null || toolName == null)
+        {
+            emit(JsonEvent.END_OBJECT);
+        }
 
         return id != null && name != null ? Status.ADVANCED : Status.REJECTED;
     }

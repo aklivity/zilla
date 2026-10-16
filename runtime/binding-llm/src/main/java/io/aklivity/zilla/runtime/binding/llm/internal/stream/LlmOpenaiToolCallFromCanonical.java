@@ -85,20 +85,33 @@ final class LlmOpenaiToolCallFromCanonical extends LlmToolTransform
     }
 
     @Override
+    protected void onValueEnd()
+    {
+        emit(JsonEvent.END_ESCAPED);
+
+        if (toolName != null)
+        {
+            emit(JsonEvent.END_OBJECT);
+
+            if (toolCallId != null)
+            {
+                emit(JsonEvent.END_OBJECT);
+            }
+        }
+    }
+
+    @Override
     protected Status onEnd()
     {
         final String name = toolName != null ? toolName : attribute("tool-name");
         final String id = toolCallId != null ? toolCallId : attribute("tool-call-id");
 
-        emit(JsonEvent.END_ESCAPED);
-
         if (toolName == null && name != null)
         {
             emit(JsonEvent.KEY_NAME, "name");
             emit(JsonEvent.VALUE_STRING, name);
+            emit(JsonEvent.END_OBJECT);
         }
-
-        emit(JsonEvent.END_OBJECT);
 
         if (toolCallId == null && id != null)
         {
@@ -106,7 +119,10 @@ final class LlmOpenaiToolCallFromCanonical extends LlmToolTransform
             emit(JsonEvent.VALUE_STRING, id);
         }
 
-        emit(JsonEvent.END_OBJECT);
+        if (toolName == null || toolCallId == null)
+        {
+            emit(JsonEvent.END_OBJECT);
+        }
 
         return name != null && id != null ? Status.ADVANCED : Status.REJECTED;
     }

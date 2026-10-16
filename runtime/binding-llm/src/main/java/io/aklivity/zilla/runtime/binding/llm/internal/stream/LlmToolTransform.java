@@ -108,6 +108,10 @@ abstract class LlmToolTransform implements JsonTransform
     {
     }
 
+    protected void onValueEnd()
+    {
+    }
+
     protected Status onEnd()
     {
         return Status.ADVANCED;
@@ -241,7 +245,7 @@ abstract class LlmToolTransform implements JsonTransform
             pass(event);
             break;
         case END_DOCUMENT:
-            status = mode == MODE_VALUE && !valueStarted ? Status.REJECTED : Status.ADVANCED;
+            status = mode == MODE_VALUE ? valueEnd() : Status.ADVANCED;
             pass(event);
             break;
         case KEY_NAME:
@@ -534,13 +538,18 @@ abstract class LlmToolTransform implements JsonTransform
             break;
         }
 
-        return finishPass();
+        finishPass();
+
+        return Status.ADVANCED;
     }
 
-    private Status finishPass()
+    private Status valueEnd()
     {
-        Status status = Status.ADVANCED;
+        return valueStarted ? onEnd() : Status.REJECTED;
+    }
 
+    private void finishPass()
+    {
         if (!passing && passEscaped)
         {
             passEscaped = false;
@@ -549,10 +558,8 @@ abstract class LlmToolTransform implements JsonTransform
 
         if (!passing && mode == MODE_VALUE)
         {
-            status = onEnd();
+            onValueEnd();
         }
-
-        return status;
     }
 
     private Status beginSkip(
