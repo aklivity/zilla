@@ -99,4 +99,17 @@ public interface JsonController
         int sourceBytes)
     {
     }
+
+    /**
+     * Declines the {@link JsonEvent#KEY_NAME} fragment just delivered while it is still a partial key, taking
+     * it back with the separator and whitespace ahead of it so the upstream leaves them unconsumed. The stage
+     * then reports {@link JsonPipeline.Status#STARVED}, and the caller re-presents the unconsumed bytes,
+     * available from {@link JsonPipeline#remaining()}, at the front of the next input window. Valid only for
+     * the first fragment of an object member's key. The default rejects, for an upstream that cannot take a
+     * delivered event back.
+     */
+    default void rewind()
+    {
+        throw new JsonException("rewind not supported");
+    }
 }

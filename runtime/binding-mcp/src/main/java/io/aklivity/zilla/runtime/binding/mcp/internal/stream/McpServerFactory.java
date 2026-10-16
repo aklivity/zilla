@@ -5011,6 +5011,8 @@ public final class McpServerFactory implements McpStreamFactory
         // non-null only for tools/list, where it strips securitySchemes from the reply (SEP-1488 pending)
         private JsonPipeline schemePipeline;
         private boolean schemePipelineReset;
+        private int decodeSlot = NO_SLOT;
+        private int decodeSlotOffset;
 
         private McpRequestStream(
             McpLifecycleStream session,
@@ -5189,6 +5191,8 @@ public final class McpServerFactory implements McpStreamFactory
 
         private void cleanupRequest()
         {
+            cleanupDecodeSlot();
+
             if (requestId != null)
             {
                 session.requests.remove(requestId);
@@ -5435,7 +5439,7 @@ public final class McpServerFactory implements McpStreamFactory
             }
             else if (payload != null)
             {
-                final DirectBufferEx body = excludeSchemes(payload);
+                final DirectBufferEx body = excludeSchemes(traceId, authorization, payload);
                 if (body.capacity() > 0)
                 {
                     if (sse != null)
@@ -5451,8 +5455,11 @@ public final class McpServerFactory implements McpStreamFactory
             }
         }
 
-        // strips securitySchemes from a tools/list reply (schemePipeline set), else forwards the payload as-is
+        // strips securitySchemes from a tools/list reply (schemePipeline set), else forwards the payload as-is;
+        // the pipeline leaves a partial key unconsumed, so those bytes are carried ahead of the next payload
         private DirectBufferEx excludeSchemes(
+            long traceId,
+            long authorization,
             OctetsFW payload)
         {
             DirectBufferEx body = payload.value();
@@ -5463,12 +5470,93 @@ public final class McpServerFactory implements McpStreamFactory
                     schemePipeline.reset();
                     schemePipelineReset = true;
                 }
-                final JsonPipelineResult result = schemePipeline.transform(
-                    body, 0, body.capacity(), false, schemeStaging, 0, schemeStaging.capacity());
-                schemeStagingView.wrap(schemeStaging, 0, result.produced());
+
+                DirectBufferEx source = body;
+                int sourceLimit = body.capacity();
+                boolean fits = true;
+                if (decodeSlot != NO_SLOT)
+                {
+                    final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
+                    sourceLimit += decodeSlotOffset;
+                    fits = sourceLimit <= decodePool.slotCapacity();
+                    if (fits)
+                    {
+                        slot.putBytes(decodeSlotOffset, body, 0, body.capacity());
+                        source = slot;
+                    }
+                }
+
+                if (fits)
+                {
+                    final JsonPipelineResult result = schemePipeline.transform(
+                        source, 0, sourceLimit, false, schemeStaging, 0, schemeStaging.capacity());
+                    schemeStagingView.wrap(schemeStaging, 0, result.produced());
+
+                    switch (result.status())
+                    {
+                    case STARVED:
+                        carryDecodeSlot(traceId, authorization, source, result.consumed(), sourceLimit - result.consumed());
+                        break;
+                    case REJECTED:
+                    case SUSPENDED:
+                        cleanupApp(traceId, authorization);
+                        schemeStagingView.wrap(schemeStaging, 0, 0);
+                        break;
+                    default:
+                        cleanupDecodeSlot();
+                        break;
+                    }
+                }
+                else
+                {
+                    cleanupApp(traceId, authorization);
+                    schemeStagingView.wrap(schemeStaging, 0, 0);
+                }
                 body = schemeStagingView;
             }
             return body;
+        }
+
+        private void carryDecodeSlot(
+            long traceId,
+            long authorization,
+            DirectBufferEx source,
+            int offset,
+            int length)
+        {
+            if (length == 0)
+            {
+                cleanupDecodeSlot();
+            }
+            else
+            {
+                if (decodeSlot == NO_SLOT)
+                {
+                    decodeSlot = decodePool.acquire(initialId);
+                }
+
+                if (decodeSlot == NO_SLOT)
+                {
+                    cleanupApp(traceId, authorization);
+                    schemeStagingView.wrap(schemeStaging, 0, 0);
+                }
+                else
+                {
+                    final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
+                    slot.putBytes(0, source, offset, length);
+                    decodeSlotOffset = length;
+                }
+            }
+        }
+
+        private void cleanupDecodeSlot()
+        {
+            if (decodeSlot != NO_SLOT)
+            {
+                decodePool.release(decodeSlot);
+                decodeSlot = NO_SLOT;
+                decodeSlotOffset = 0;
+            }
         }
 
         private void onAppFlush(
@@ -5587,6 +5675,7 @@ public final class McpServerFactory implements McpStreamFactory
             final long authorization = end.authorization();
 
             state = McpState.closedReply(state);
+            cleanupDecodeSlot();
 
             if (sse != null)
             {
@@ -5608,6 +5697,7 @@ public final class McpServerFactory implements McpStreamFactory
             final long traceId = abort.traceId();
             final long authorization = abort.authorization();
 
+            cleanupDecodeSlot();
             server.doEncodeResponseBegin(traceId, authorization);
             server.doNetAbort(traceId, authorization);
 
@@ -5659,6 +5749,7 @@ public final class McpServerFactory implements McpStreamFactory
             long traceId,
             long authorization)
         {
+            cleanupDecodeSlot();
             doAppReset(traceId, authorization);
             doAppAbort(traceId, authorization);
 

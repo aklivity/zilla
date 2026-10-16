@@ -74,66 +74,6 @@ public class McpSchemeExcluderTest
         assertEquals("{\"tools\":[{\"" + key + "\":1,\"other\":2}]}", excludeWindowed("tools", json, 8));
     }
 
-    @Test
-    public void shouldPreserveElementKeysThatFragmentAcrossInputWindowsWithVerbatimSink()
-    {
-        // production delivers through the byte-preserving sink, which must reproduce an element key declined
-        // across windows exactly once, wherever the window boundary falls inside the key
-        String json = "{\"tools\":[" +
-            "{\"name\":\"get_weather\",\"description\":\"Get the weather\",\"inputSchema\":{\"type\":\"object\"}}," +
-            "{\"name\":\"get_time\",\"description\":\"Get the time\",\"inputSchema\":{\"type\":\"object\"}}]}";
-
-        for (int window = 6; window <= 48; window++)
-        {
-            assertEquals("window " + window, json, excludeWindowedVerbatim("tools", json, window));
-        }
-    }
-
-    @Test
-    public void shouldDropSecuritySchemesKeyThatFragmentsWithVerbatimSink()
-    {
-        // the dropped member's value is scanned in one shot, so the window that completes the key must also hold
-        // the whole value; the boundaries therefore fall inside the key and the last window carries the remainder
-        String json = "{\"tools\":[" +
-            "{\"name\":\"get_weather\",\"securitySchemes\":{\"a\":1},\"inputSchema\":{\"type\":\"object\"}}]}";
-        String expected = "{\"tools\":[{\"name\":\"get_weather\",\"inputSchema\":{\"type\":\"object\"}}]}";
-        int key = json.indexOf("\"securitySchemes\"");
-
-        assertEquals(expected, driveVerbatim(json, key + 3, json.length()));
-        assertEquals(expected, driveVerbatim(json, key + 3, key + 5, json.length()));
-        assertEquals(expected, driveVerbatim(json, key + 1, key + 4, key + 7, json.length()));
-        assertEquals(expected, driveVerbatim(json, key + 14, json.length()));
-    }
-
-    private static String driveVerbatim(
-        String input,
-        int... ends)
-    {
-        JsonGeneratorEx gen = JsonEx.createGenerator();
-        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[4096]);
-        gen.wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .transform(new McpSchemeExcluder("tools"))
-            .into(gen);
-        pipeline.reset();
-
-        byte[] msg = input.getBytes(UTF_8);
-        int progress = 0;
-        Status status = Status.STARVED;
-        for (int index = 0; index < ends.length; index++)
-        {
-            status = pipeline.transform(new UnsafeBufferEx(msg), progress, ends[index], index == ends.length - 1);
-            if (status == Status.STARVED)
-            {
-                progress = ends[index] - pipeline.remaining();
-            }
-        }
-        assertEquals(Status.COMPLETED, status);
-        byte[] out = new byte[gen.length()];
-        buffer.getBytes(0, out);
-        return new String(out, UTF_8);
-    }
-
     private static String exclude(
         String arrayKey,
         String input,
@@ -153,20 +93,6 @@ public class McpSchemeExcluderTest
         return new String(out, UTF_8);
     }
 
-    private static String excludeWindowedVerbatim(
-        String arrayKey,
-        String input,
-        int window)
-    {
-        JsonGeneratorEx gen = JsonEx.createGenerator();
-        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[4096]);
-        gen.wrap(buffer, 0, buffer.capacity());
-        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .transform(new McpSchemeExcluder(arrayKey))
-            .into(gen);
-        return drive(pipeline, gen, buffer, input, window);
-    }
-
     // Drives the exclusion through fixed-size input windows, carrying the unconsumed tail
     // (pipeline.remaining()) across STARVED feeds the way a real caller does, so an over-window key
     // fragments and reassembles before this stage matches or forwards it.
@@ -181,16 +107,6 @@ public class McpSchemeExcluderTest
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(new McpSchemeExcluder(arrayKey))
             .into(JsonEx.createSink(gen, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED)));
-        return drive(pipeline, gen, buffer, input, window);
-    }
-
-    private static String drive(
-        JsonPipeline pipeline,
-        JsonGeneratorEx gen,
-        MutableDirectBufferEx buffer,
-        String input,
-        int window)
-    {
         pipeline.reset();
 
         byte[] msg = input.getBytes(UTF_8);

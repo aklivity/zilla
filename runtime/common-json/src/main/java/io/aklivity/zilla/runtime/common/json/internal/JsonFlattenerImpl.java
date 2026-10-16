@@ -560,12 +560,6 @@ public final class JsonFlattenerImpl implements JsonTransform
         }
 
         @Override
-        public void deferVerbatim()
-        {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
         public boolean deferredBytes()
         {
             return false;

@@ -410,12 +410,6 @@ public final class JsonPipelineImpl implements JsonPipeline
         }
 
         @Override
-        public void deferVerbatim()
-        {
-            parser.deferVerbatim();
-        }
-
-        @Override
         public boolean deferredBytes()
         {
             return parser.deferredBytes();
@@ -473,6 +467,12 @@ public final class JsonPipelineImpl implements JsonPipeline
             int sourceBytes)
         {
             parser.consumed(sourceBytes);
+        }
+
+        @Override
+        public void rewind()
+        {
+            parser.rewind();
         }
 
         private Mode mode()

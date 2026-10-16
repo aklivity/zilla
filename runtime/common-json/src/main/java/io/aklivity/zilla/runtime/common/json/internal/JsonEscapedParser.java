@@ -437,12 +437,9 @@ final class JsonEscapedParser implements JsonParserEx
     }
 
     @Override
-    public void deferVerbatim()
+    public void rewind()
     {
-        if (state != State.SCANNING)
-        {
-            outer.deferVerbatim();
-        }
+        source().rewind();
     }
 
     @Override

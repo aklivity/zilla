@@ -216,10 +216,10 @@ public final class McpSchemeExcluder implements JsonTransform
         return sink.transform(mediator, source, forward(event));
     }
 
-    // drops the securitySchemes member of a direct array element. The drop decision needs the whole key, so a
-    // fragment is declined (consumed(0)) only while the key could still turn out to be securitySchemes, and its
-    // bytes are retained across the input window (deferVerbatim) so a key that turns out to be something else is
-    // forwarded verbatim with its original bytes, while a matching key is dropped without leaving a truncated
+    // drops the securitySchemes member of a direct array element. The drop decision needs the whole key, so
+    // while a key fragment could still turn out to be securitySchemes it is taken back with the separator ahead of
+    // it and re-presented once the window holds more of it: a key that turns out to be something else is then
+    // forwarded with its original bytes, while a matching key is dropped along with its separator and leaves no
     // prefix behind. A fragment that cannot match is forwarded as it arrives, like any other key.
     private Status onElementKey(
         JsonController control,
@@ -237,11 +237,7 @@ public final class McpSchemeExcluder implements JsonTransform
         }
         else if (!complete && securitySchemesPrefix(key))
         {
-            if (downstreamVerbatim)
-            {
-                source.deferVerbatim();
-            }
-            control.consumed(0);
+            control.rewind();
             status = Status.STARVED;
         }
         else if (!complete)

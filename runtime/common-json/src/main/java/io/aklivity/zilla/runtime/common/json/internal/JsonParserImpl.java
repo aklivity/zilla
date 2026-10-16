@@ -36,7 +36,6 @@ import jakarta.json.stream.JsonLocation;
 import jakarta.json.stream.JsonParsingException;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.io.DirectBufferInputStreamEx;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
@@ -99,15 +98,14 @@ public final class JsonParserImpl implements JsonParserEx
     // true after a key or scalar fragment whose token is still open: the step it recorded stands for the whole
     // token, so the continuing fragments record none and only extend that step's byte range
     private boolean fragmentOpen;
-    // bytes of the verbatim run a stage deferred across an input window boundary, retained as stream offsets
-    // [heldStart, heldEnd) ahead of the bytes still in the input window; held is empty when the two are equal.
-    // holding is set by deferVerbatim() until the next event is delivered, so the flush that follows the
-    // deferral does not drain them. held is acquired by the first deferral rather than at construction, because
-    // its buffer needs agrona's unsafe access, which a caller that never defers need not have opened
-    private ExpandableArrayBufferEx held;
-    private long heldStart;
-    private long heldEnd;
-    private boolean holding;
+    // where the latest body token ended, and where the one before it ended: rewind() puts the stream back to
+    // the end of the token ahead of a key, so the separator and whitespace that introduced the key come back too
+    private long tokenEnd;
+    private long tokenEndLine = 1;
+    private long tokenEndColumn = 1;
+    private long priorTokenEnd;
+    private long priorTokenEndLine = 1;
+    private long priorTokenEndColumn = 1;
     private final StepCursor cursor = new StepCursor();
     private final Block block = new Block();
 
@@ -219,9 +217,12 @@ public final class JsonParserImpl implements JsonParserEx
         stepCount = 0;
         stepHead = 0;
         fragmentOpen = false;
-        heldStart = 0;
-        heldEnd = 0;
-        holding = false;
+        tokenEnd = 0;
+        tokenEndLine = 1;
+        tokenEndColumn = 1;
+        priorTokenEnd = 0;
+        priorTokenEndLine = 1;
+        priorTokenEndColumn = 1;
         lastEvent = null;
         currentEvent = null;
         docState = DocState.NOT_STARTED;
@@ -375,7 +376,6 @@ public final class JsonParserImpl implements JsonParserEx
             // shared jakarta getters' asserts valid whether driven by the pipeline or the raw parser
             lastEvent = event;
             currentEvent = toEvent(event);
-            holding = false;
             if (isBodyEvent(event))
             {
                 // record the run's structural step for getVerbatim(); segment events are not verbatim steps,
@@ -387,7 +387,13 @@ public final class JsonParserImpl implements JsonParserEx
                 else
                 {
                     appendStep(event);
+                    priorTokenEnd = tokenEnd;
+                    priorTokenEndLine = tokenEndLine;
+                    priorTokenEndColumn = tokenEndColumn;
                 }
+                tokenEnd = tokenizer.streamOffset();
+                tokenEndLine = tokenizer.line();
+                tokenEndColumn = tokenizer.column();
                 fragmentOpen = deferredBytes();
             }
             else if (mode == Mode.SEGMENTED && event == JsonEvent.START_DOCUMENT)
@@ -709,21 +715,13 @@ public final class JsonParserImpl implements JsonParserEx
         {
             stepHead++;
         }
-        if (holding)
-        {
-            // the stage deferred the current event: its bytes and steps stay put until it forwards or drops it
-            verbatimView.wrap(held, 0, 0);
-            block.wrap(stepHead, stepHead - 1);
-            return block;
-        }
         // a prior skipValue() of a container's first member leaves the new-first survivor with a dangling
         // leading separator; trim it (and any leading whitespace) off the front of this run, and drop the
         // SEPARATOR step the trimmed comma stood for so the block's structure matches its trimmed bytes
         if (trimLeadingSeparator)
         {
-            trimLeadingSeparator();
-            trimLeadingSeparator = false;
-            if (stepHead < stepCount && stepKinds[stepHead] == JsonStep.SEPARATOR)
+            trimLeadingSeparator = !trimLeadingSeparator();
+            if (!trimLeadingSeparator && stepHead < stepCount && stepKinds[stepHead] == JsonStep.SEPARATOR)
             {
                 stepHead++;
             }
@@ -752,29 +750,10 @@ public final class JsonParserImpl implements JsonParserEx
             byteEnd = last >= from ? stepEnds[last] : verbatimCursor;
         }
         final int length = (int) (byteEnd - verbatimCursor);
-        if (verbatimCursor >= heldStart && verbatimCursor < heldEnd)
-        {
-            // the run begins in the retained bytes: splice them with the window's bytes up to the block's end
-            if (byteEnd > heldEnd)
-            {
-                held.putBytes((int) (heldEnd - heldStart), ownedInput.buffer(), bufferOffset(heldEnd),
-                    (int) (byteEnd - heldEnd));
-                heldEnd = byteEnd;
-            }
-            verbatimView.wrap(held, (int) (verbatimCursor - heldStart), length);
-        }
-        else
-        {
-            verbatimView.wrap(ownedInput.buffer(), bufferOffset(verbatimCursor), length);
-        }
+        verbatimView.wrap(ownedInput.buffer(), bufferOffset(verbatimCursor), length);
         block.wrap(from, last);
         verbatimCursor = byteEnd;
         stepHead = last + 1;
-        if (verbatimCursor >= heldEnd)
-        {
-            heldStart = verbatimCursor;
-            heldEnd = verbatimCursor;
-        }
         return block;
     }
 
@@ -811,59 +790,51 @@ public final class JsonParserImpl implements JsonParserEx
         // member was the container's first, defer trimming the next survivor's now-dangling leading separator,
         // and keep that trim pending across a further drop that no survivor has been pulled between
         verbatimCursor = tokenizer.streamOffset();
-        heldStart = verbatimCursor;
-        heldEnd = verbatimCursor;
+        tokenEnd = verbatimCursor;
+        tokenEndLine = tokenizer.line();
+        tokenEndColumn = tokenizer.column();
         trimLeadingSeparator |= !occupied;
     }
 
     @Override
-    public void deferVerbatim()
+    public void rewind()
     {
-        // retain the bytes of the pending run so they survive the input window being replaced: a window's
-        // bytes are only addressable while it is current, and the flush that follows a declined event drains
-        // the run, so the bytes are copied aside and held back until the stage forwards or drops the event
-        final long frontier = tokenizer.streamOffset();
-        if (held == null)
+        // only a key's first fragment can be declined, and the step it recorded is the last one, behind the
+        // separator step that introduced it when the key is not its container's first member
+        assert lastEvent == JsonEvent.KEY_NAME && fragmentOpen && stepCount > stepHead;
+        stepCount--;
+        if (stepCount > stepHead && stepKinds[stepCount - 1] == JsonStep.SEPARATOR)
         {
-            held = new ExpandableArrayBufferEx();
+            stepCount--;
         }
-        if (heldEnd == heldStart)
-        {
-            heldStart = verbatimCursor;
-            heldEnd = verbatimCursor;
-        }
-        if (frontier > heldEnd)
-        {
-            held.putBytes((int) (heldEnd - heldStart), ownedInput.buffer(), bufferOffset(heldEnd),
-                (int) (frontier - heldEnd));
-            heldEnd = frontier;
-        }
-        holding = true;
+        tokenizer.rewindKey(priorTokenEnd, priorTokenEndLine, priorTokenEndColumn, verbatimCursor);
+        stringViewOffset = 0;
+        fragmentOpen = false;
+        tokenEnd = tokenizer.streamOffset();
+        tokenEndLine = tokenizer.line();
+        tokenEndColumn = tokenizer.column();
     }
 
     // Advances the verbatim cursor past the new-first survivor's leading whitespace and a single separator
     // comma if present — bounded to the parse frontier so an empty container (the dropped member had no
     // surviving sibling) consumes only its trailing whitespace, leaving the bare close to render {@code {}}.
-    private void trimLeadingSeparator()
+    // Returns whether the trim is settled: a byte past the whitespace was reached, so the comma is trimmed or
+    // was never there. When the parse frontier comes first, the survivor's comma is still to arrive and the
+    // trim stays pending.
+    private boolean trimLeadingSeparator()
     {
         final long frontier = tokenizer.streamOffset();
-        while (verbatimCursor < frontier && isWhitespace(byteAt(verbatimCursor)))
+        final DirectBufferEx buffer = ownedInput.buffer();
+        while (verbatimCursor < frontier && isWhitespace(buffer.getByte(bufferOffset(verbatimCursor))))
         {
             verbatimCursor++;
         }
-        if (verbatimCursor < frontier && byteAt(verbatimCursor) == ',')
+        final boolean settled = verbatimCursor < frontier;
+        if (settled && buffer.getByte(bufferOffset(verbatimCursor)) == ',')
         {
             verbatimCursor++;
         }
-    }
-
-    // a byte of the pending verbatim run, from the retained bytes ahead of the input window or from the window
-    private byte byteAt(
-        long offset)
-    {
-        return offset >= heldStart && offset < heldEnd
-            ? held.getByte((int) (offset - heldStart))
-            : ownedInput.buffer().getByte(bufferOffset(offset));
+        return settled;
     }
 
     private static boolean isWhitespace(

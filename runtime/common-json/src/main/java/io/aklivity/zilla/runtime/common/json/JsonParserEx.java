@@ -185,11 +185,13 @@ public interface JsonParserEx extends JsonParser
     void skipValue();
 
     /**
-     * Retains the bytes of the pending verbatim run across an input window boundary rather than draining them
-     * when the window is flushed. The {@link JsonSource#deferVerbatim()} accessor promoted onto the parser
-     * surface.
+     * Takes back the {@link JsonEvent#KEY_NAME} fragment just delivered — valid only for the first fragment of
+     * an object member's key — together with the separator and whitespace that introduced it, so the bytes
+     * from the end of the previous token are left unconsumed for the caller to re-present at the front of the
+     * next input window. The key is then delivered again, whole or as a fresh first fragment, once the window
+     * holds enough of it.
      */
-    void deferVerbatim();
+    void rewind();
 
     /**
      * Whether the current value has bytes still deferred to later events — {@code true} while more of this same
