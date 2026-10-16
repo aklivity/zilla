@@ -25,11 +25,14 @@ import org.junit.Test;
 
 public class McpGrpcConfigurationTest
 {
+    public static final String MCP_GRPC_SESSION_ID_NAME = "zilla.binding.mcp.grpc.session.id";
+    public static final String MCP_GRPC_CLIENT_EXIT_NAME = "zilla.binding.mcp.grpc.client.exit";
+
     @Test
     public void shouldVerifyConstants()
     {
-        assertThat(MCP_GRPC_CLIENT_EXIT.name(), equalTo("zilla.binding.mcp.grpc.client.exit"));
-        assertThat(MCP_GRPC_SESSION_ID.name(), equalTo("zilla.binding.mcp.grpc.session.id"));
+        assertThat(MCP_GRPC_CLIENT_EXIT.name(), equalTo(MCP_GRPC_CLIENT_EXIT_NAME));
+        assertThat(MCP_GRPC_SESSION_ID.name(), equalTo(MCP_GRPC_SESSION_ID_NAME));
     }
 
     @Test
