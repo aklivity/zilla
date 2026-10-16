@@ -1,0 +1,233 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/binding/properties/type/enum/-",
+        "value": "mcp-grpc"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/binding/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "mcp-grpc"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "mcp-grpc"
+                    },
+                    "kind":
+                    {
+                        "enum": [ "client" ]
+                    },
+                    "vault": false,
+                    "entry": false,
+                    "exit": false,
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "server":
+                            {
+                                "title": "Server",
+                                "type": "string"
+                            },
+                            "catalog":
+                            {
+                                "title": "Catalog",
+                                "type": "object",
+                                "patternProperties":
+                                {
+                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                    {
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "subject":
+                                            {
+                                                "type": "string"
+                                            },
+                                            "version":
+                                            {
+                                                "type": "string",
+                                                "default": "latest"
+                                            },
+                                            "overlay":
+                                            {
+                                                "title": "Overlay",
+                                                "type": "object",
+                                                "patternProperties":
+                                                {
+                                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                                    {
+                                                        "type": "object",
+                                                        "properties":
+                                                        {
+                                                            "subject":
+                                                            {
+                                                                "type": "string"
+                                                            },
+                                                            "version":
+                                                            {
+                                                                "type": "string",
+                                                                "default": "latest"
+                                                            }
+                                                        },
+                                                        "required":
+                                                        [
+                                                            "subject"
+                                                        ],
+                                                        "additionalProperties": false
+                                                    }
+                                                },
+                                                "additionalProperties": false,
+                                                "minProperties": 1,
+                                                "maxProperties": 1
+                                            }
+                                        },
+                                        "required":
+                                        [
+                                            "subject"
+                                        ],
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "additionalProperties": false,
+                                "minProperties": 1,
+                                "maxProperties": 1
+                            }
+                        },
+                        "required":
+                        [
+                            "server",
+                            "catalog"
+                        ],
+                        "additionalProperties": false
+                    },
+                    "routes":
+                    {
+                        "title": "Routes",
+                        "type": "array",
+                        "items":
+                        {
+                            "type": "object",
+                            "properties":
+                            {
+                                "when":
+                                {
+                                    "title": "When",
+                                    "type": "array",
+                                    "minItems": 1,
+                                    "maxItems": 1,
+                                    "items":
+                                    {
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "tool":
+                                            {
+                                                "title": "Tool",
+                                                "type": "string",
+                                                "pattern": "^[A-Za-z0-9_-]{1,64}$"
+                                            }
+                                        },
+                                        "required":
+                                        [
+                                            "tool"
+                                        ],
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "with":
+                                {
+                                    "title": "With",
+                                    "type": "object",
+                                    "properties":
+                                    {
+                                        "method":
+                                        {
+                                            "title": "Method or glob pattern",
+                                            "type": "string",
+                                            "pattern": "^[A-Za-z0-9_.*]+/[A-Za-z0-9_*]+$"
+                                        },
+                                        "option":
+                                        {
+                                            "title": "Method Option",
+                                            "type": "object",
+                                            "patternProperties":
+                                            {
+                                                "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                                {
+                                                    "type":
+                                                    [
+                                                        "string",
+                                                        "number",
+                                                        "boolean"
+                                                    ]
+                                                }
+                                            },
+                                            "additionalProperties": false,
+                                            "minProperties": 1
+                                        }
+                                    },
+                                    "additionalProperties": false,
+                                    "not":
+                                    {
+                                        "required":
+                                        [
+                                            "method",
+                                            "option"
+                                        ]
+                                    }
+                                }
+                            },
+                            "additionalProperties": false,
+                            "if":
+                            {
+                                "required":
+                                [
+                                    "when"
+                                ]
+                            },
+                            "then":
+                            {
+                                "required":
+                                [
+                                    "with"
+                                ],
+                                "properties":
+                                {
+                                    "with":
+                                    {
+                                        "required":
+                                        [
+                                            "method"
+                                        ],
+                                        "properties":
+                                        {
+                                            "method":
+                                            {
+                                                "pattern": "^[^*]*$"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+]
