@@ -32,6 +32,7 @@
     <module>binding-llm</module>
     <module>binding-mqtt</module>
     <module>binding-mcp</module>
+    <module>binding-mcp-grpc</module>
     <module>binding-mcp-http</module>
     <module>binding-mcp-kafka</module>
     <module>binding-mcp-kafka-connect</module>
@@ -160,6 +161,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-mcp.conf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-mcp-grpc.conf</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -400,6 +406,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-mcp</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-mcp-grpc</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
