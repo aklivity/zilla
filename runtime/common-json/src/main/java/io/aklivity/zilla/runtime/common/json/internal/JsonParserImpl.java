@@ -98,6 +98,11 @@ public final class JsonParserImpl implements JsonParserEx
     // true after a key or scalar fragment whose token is still open: the step it recorded stands for the whole
     // token, so the continuing fragments record none and only extend that step's byte range
     private boolean fragmentOpen;
+    // whether the fragment just delivered continued a token already open, as opposed to starting a new one
+    private boolean continuation;
+    // set when the sink reads the parse as original source bytes: a key fragment declined with consumed(0) is
+    // then left unconsumed for the caller to re-present, instead of its decoded characters being accumulated
+    private boolean verbatim;
     // where the latest body token ended, and where the one before it ended: rewind() puts the stream back to
     // the end of the token ahead of a key, so the separator and whitespace that introduced the key come back too
     private long tokenEnd;
@@ -217,6 +222,8 @@ public final class JsonParserImpl implements JsonParserEx
         stepCount = 0;
         stepHead = 0;
         fragmentOpen = false;
+        continuation = false;
+        verbatim = false;
         tokenEnd = 0;
         tokenEndLine = 1;
         tokenEndColumn = 1;
@@ -380,7 +387,8 @@ public final class JsonParserImpl implements JsonParserEx
             {
                 // record the run's structural step for getVerbatim(); segment events are not verbatim steps,
                 // and skipValue()'s internal next() never reaches here
-                if (fragmentOpen)
+                continuation = fragmentOpen;
+                if (continuation)
                 {
                     extendStep();
                 }
@@ -568,6 +576,10 @@ public final class JsonParserImpl implements JsonParserEx
         if (charScalar())
         {
             stringViewOffset += sourceUnits;
+            if (sourceUnits == 0 && verbatim && lastEvent == JsonEvent.KEY_NAME && fragmentOpen && !continuation)
+            {
+                takeBackKey();
+            }
         }
         else
         {
@@ -797,10 +809,17 @@ public final class JsonParserImpl implements JsonParserEx
     }
 
     @Override
-    public void rewind()
+    public void verbatim()
     {
-        // only a key's first fragment can be declined, and the step it recorded is the last one, behind the
-        // separator step that introduced it when the key is not its container's first member
+        verbatim = true;
+    }
+
+    // Takes back the first fragment of a key that a stage declined: its steps are unrecorded and the tokenizer
+    // goes back to the end of the previous token, so the fragment and the separator ahead of it are left
+    // unconsumed. Only a key's first fragment can be taken back, and the step it recorded is the last one,
+    // behind the separator step that introduced it when the key is not its container's first member.
+    private void takeBackKey()
+    {
         assert lastEvent == JsonEvent.KEY_NAME && fragmentOpen && stepCount > stepHead;
         stepCount--;
         if (stepCount > stepHead && stepKinds[stepCount - 1] == JsonStep.SEPARATOR)

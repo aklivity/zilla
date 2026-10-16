@@ -437,9 +437,9 @@ final class JsonEscapedParser implements JsonParserEx
     }
 
     @Override
-    public void rewind()
+    public void verbatim()
     {
-        source().rewind();
+        source().verbatim();
     }
 
     @Override

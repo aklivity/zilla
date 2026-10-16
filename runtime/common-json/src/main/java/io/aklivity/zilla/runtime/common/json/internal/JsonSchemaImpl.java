@@ -2552,9 +2552,9 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
-        public void rewind()
+        public void verbatim()
         {
-            delegateEx.rewind();
+            delegateEx.verbatim();
         }
 
         @Override

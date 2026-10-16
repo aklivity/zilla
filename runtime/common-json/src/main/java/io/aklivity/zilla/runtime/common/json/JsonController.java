@@ -82,7 +82,11 @@ public interface JsonController
      * {@link #segmentable()} but additive, not substitutive — a mediating stage (e.g. a validator) absorbs the
      * request upstream (it still takes structured events to inspect) and re-asserts it downstream (it emits
      * verbatim events to its sink). Best-effort and demand-gated; when unset the upstream does no verbatim
-     * tracking. The default does nothing, for an upstream that does not retain source bytes.
+     * tracking. A mediating stage that re-asserts the request downstream also passes it upstream, so the parser
+     * keeps its bytes exact when the stage declines a partial key with {@link #consumed(int)} reporting zero:
+     * the bytes are then left unconsumed for the caller to re-present, in place of the decoded characters the
+     * parser would otherwise accumulate. The default does nothing, for an upstream that does not retain source
+     * bytes.
      */
     default void verbatim()
     {
@@ -98,18 +102,5 @@ public interface JsonController
     default void consumed(
         int sourceBytes)
     {
-    }
-
-    /**
-     * Declines the {@link JsonEvent#KEY_NAME} fragment just delivered while it is still a partial key, taking
-     * it back with the separator and whitespace ahead of it so the upstream leaves them unconsumed. The stage
-     * then reports {@link JsonPipeline.Status#STARVED}, and the caller re-presents the unconsumed bytes,
-     * available from {@link JsonPipeline#remaining()}, at the front of the next input window. Valid only for
-     * the first fragment of an object member's key. The default rejects, for an upstream that cannot take a
-     * delivered event back.
-     */
-    default void rewind()
-    {
-        throw new JsonException("rewind not supported");
     }
 }

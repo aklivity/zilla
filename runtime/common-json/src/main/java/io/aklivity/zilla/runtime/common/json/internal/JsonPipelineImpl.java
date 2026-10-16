@@ -470,9 +470,9 @@ public final class JsonPipelineImpl implements JsonPipeline
         }
 
         @Override
-        public void rewind()
+        public void verbatim()
         {
-            parser.rewind();
+            parser.verbatim();
         }
 
         private Mode mode()
