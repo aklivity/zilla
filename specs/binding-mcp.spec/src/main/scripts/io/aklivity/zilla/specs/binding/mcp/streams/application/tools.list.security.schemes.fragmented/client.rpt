@@ -50,7 +50,7 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-read '{"tools":[{"name":"get_weather","description":"Get weather","securitySchemes":[{"type":"oauth2","scopes":["read","write"]}],"securityNote":"keep","inputSchema":{"type":"object"}},{"securitySchemes":[{"type":"oauth2","scopes":["read","write"]}],"name":"get_status"}]}'
+read '{"tools":[{"name":"get_weather","description":"Get weather","securitySchemes":[{"type":"oauth2","scopes":["read","write"]}],"securityNote":"keep","inputSchema":{"type":"object"}},{"securitySchemes":[{"type":"oauth2","scopes":["read","write"]}],"name":"get_status"},{"securitySchemes":[{"type":"oauth2","scopes":["read"]}],"name":"get_time"}]}'
 read closed
 
 write close

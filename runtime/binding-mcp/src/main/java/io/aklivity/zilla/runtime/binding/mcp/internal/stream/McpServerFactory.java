@@ -5178,6 +5178,7 @@ public final class McpServerFactory implements McpStreamFactory
             if (!McpState.replyClosed(state))
             {
                 state = McpState.closedReply(state);
+                cleanupDecodeSlot();
                 doReset(app, originId, routedId, replyId,
                     replySeq, replyAck, replyMax,
                     traceId, authorization, emptyRO);

@@ -56,7 +56,10 @@ write '{"tools":[{"name":"get_weather","descr'
 write 'iption":"Get weather","securit'
 write 'ySchemes":[{"type":"oauth2","scopes":["read","write"]}],"securit'
 write 'yNote":"keep","inputSchema":{"type":"object"}},{"secur'
-write 'itySchemes":[{"type":"oauth2","scopes":["read","write"]}],"name":"get_status"}]}'
+write 'itySchemes":[{"type":"oauth2","scopes":["read","write"]}],"name":"get_status"},{"sec'
+write 'uri'
+write 'tySchemes":[{"type":"oauth2","scopes":["read"]}]'
+write ',"name":"get_time"}]}'
 write flush
 
 write close
