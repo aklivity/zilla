@@ -117,7 +117,7 @@ final class LlmSectionPipeline
                 outputBuffer, 0, outputBuffer.capacity());
             status = result.status();
 
-            if (result.produced() > 0)
+            if (result.produced() > 0 || status == Status.COMPLETED)
             {
                 output.put(outputBuffer, 0, result.produced(), status == Status.COMPLETED);
             }
