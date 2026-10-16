@@ -98,4 +98,49 @@ public class McpServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mcp}/tools.call.aborted/client",
+        "${mcp}/tools.call.aborted/server"})
+    public void shouldAbortToolCallWhenRpcAborted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/tools.call.reset/client",
+        "${mcp}/tools.call.reset/server"})
+    public void shouldAbortToolCallWhenRpcReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/tools.call.streaming.aborted/client",
+        "${mcp}/tools.call.streaming.aborted/server"})
+    public void shouldAbortToolCallWhenRpcResponseAborted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/tools.call.10k/client",
+        "${mcp}/tools.call.10k/server"})
+    public void shouldCallTool10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/tools.call.100k/client",
+        "${mcp}/tools.call.100k/server"})
+    public void shouldCallTool100k() throws Exception
+    {
+        k3po.finish();
+    }
 }
