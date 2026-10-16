@@ -117,7 +117,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private static final String MESSAGE_ATTRIBUTE_TOO_LARGE = "a content block attribute value is too large";
     private static final String MESSAGE_TOOL_DEFINITION_INVALID = "tools: Invalid tool definition";
     private static final int CANONICAL_BUFFER_MAX = 4096;
-    private static final int CANONICAL_ROOM = 256;
+    private static final int CANONICAL_ROOM = 64;
+    private static final int CANONICAL_GROWTH = 4;
 
     private static final int RESPONSE_ENCODE_PADDING = 128;
     private static final int RESPONSE_ESCAPE_EXPANSION = 6;
@@ -2334,6 +2335,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             final boolean windowLast = decodedLast && windowLimit == limit;
 
             final boolean gated = stream != null;
+            final boolean expanding = gated && toolsOpen;
 
             decodedWindowLimit = windowLimit;
             decodeTraceId = traceId;
@@ -2346,7 +2348,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             boolean replayed = false;
             LlmAnthropicServerDecoder previous = null;
             int progress = offset;
-            while (progress <= limit && previous != decoder && (stream != null) == gated)
+            while (progress <= limit && previous != decoder && (stream != null) == gated && (gated && toolsOpen) == expanding)
             {
                 previous = decoder;
                 progress = decoder.decode(this, traceId, authorization, budgetId, reserved, buffer, offset, progress, limit);
@@ -2429,10 +2431,9 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         {
             final int available = stream != null ? (int) Math.max(stream.initialAvailable(), 0L) : 0;
             final int room = modelOverride != null ? Math.min(modelOverride.capacity(), available >> 1) : 0;
-            final int expansion = canonicalActive || toolsOpen ? available >> 2 : 0;
-            final int slack = available > CANONICAL_ROOM << 1 ? CANONICAL_ROOM : 0;
+            final int credit = available - room;
 
-            return available - room - expansion - slack;
+            return toolsOpen ? Math.max(credit - CANONICAL_ROOM, 0) / CANONICAL_GROWTH : credit;
         }
 
         private void onModelOverride(
@@ -2689,6 +2690,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             parser.reset();
             decoder = decodeStart;
             replaying = true;
+            toolsOpen = false;
 
             lookahead = false;
             holding = false;
@@ -2783,15 +2785,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         {
             if (!canonicalFailed)
             {
-                if (length > stream.initialAvailable())
-                {
-                    onCanonicalFailed();
-                }
-                else
-                {
-                    canonicalFinished |= done;
-                    onDecodeSectionData(canonicalTraceId, canonicalAuthorization, buffer, offset, length, done);
-                }
+                canonicalFinished |= done;
+                onDecodeSectionData(canonicalTraceId, canonicalAuthorization, buffer, offset, length, done);
             }
         }
 
