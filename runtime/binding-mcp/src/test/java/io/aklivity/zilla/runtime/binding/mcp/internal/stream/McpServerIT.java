@@ -545,6 +545,17 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/tools.list.security.schemes.fragmented/client",
+        "${app}/tools.list.security.schemes.fragmented/server"})
+    @ScriptProperty("affinity \"0000003f\"")
+    public void shouldListToolsExcludingSecuritySchemesFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/tools.list.aborted/client",
         "${app}/tools.list.aborted/server"})
     @ScriptProperty("affinity \"0000003f\"")

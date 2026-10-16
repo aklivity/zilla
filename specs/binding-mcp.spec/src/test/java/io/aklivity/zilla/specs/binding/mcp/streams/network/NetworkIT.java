@@ -407,6 +407,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/tools.list.security.schemes.fragmented/client",
+        "${net}/tools.list.security.schemes.fragmented/server"})
+    public void shouldListToolsSecuritySchemesFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/tools.list.aborted/client",
         "${net}/tools.list.aborted/server"})
     public void shouldAbortToolsList() throws Exception
