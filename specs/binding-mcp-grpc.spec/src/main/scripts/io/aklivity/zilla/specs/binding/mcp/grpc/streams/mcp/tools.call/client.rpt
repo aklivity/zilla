@@ -52,9 +52,7 @@ connected
 
 write '{"name":"example_sql_v1_sql_service_query","arguments":{"statement":"select 1"}}'
 
-read  '{"structuredContent":{"status":"ok"},'
-      '"content":[{"type":"text","text":"{\\"status\\":\\"ok\\"}"}],'
-      '"isError":false}'
+read  '{"content":[{"type":"text","text":"{\\"status\\":\\"ok\\"}"}],"isError":false}'
 read closed
 
 write close

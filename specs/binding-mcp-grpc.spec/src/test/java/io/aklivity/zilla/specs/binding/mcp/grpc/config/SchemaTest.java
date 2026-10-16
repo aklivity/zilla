@@ -232,4 +232,24 @@ public class SchemaTest
     {
         schema.validate("client.authorization.key.bin.suffix.invalid.yaml");
     }
+
+    @Test
+    public void shouldValidateClientWithToolSummary()
+    {
+        JsonObject config = schema.validate("client.summary.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectToolWithUnknownProperty()
+    {
+        schema.validate("client.tools.unknown.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectToolWithInvalidName()
+    {
+        schema.validate("client.tools.name.invalid.yaml");
+    }
 }

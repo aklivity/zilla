@@ -51,7 +51,8 @@ write zilla:begin.ext ${mcp:beginEx()
 connected
 
 write '{"name":"example_sql_v1_sql_service_query","arguments":{"statement":"select 1"}}'
-# the upstream reply is cut off mid-message: no partial result is relayed, the tool call reply
-# surfaces as an abort
+# the upstream reply is cut off mid-message: the part already decoded has been relayed, then the
+# tool call reply surfaces as an abort
+read '{"content":[{"type":"text","text":"{\\"status\\":\\"o'
 read await RESPONSE_STREAMING
 read abort
