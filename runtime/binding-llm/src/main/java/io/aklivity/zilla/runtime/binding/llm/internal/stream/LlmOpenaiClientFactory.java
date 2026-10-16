@@ -3459,6 +3459,16 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             sectionKind = KIND_DROPPED;
         }
 
+        private LlmSectionPipeline toolCallPipeline()
+        {
+            if (toolCallPipeline == null)
+            {
+                toolCallPipeline = new LlmSectionPipeline(new LlmOpenaiToolCallFromCanonical(), transformBuffer);
+            }
+
+            return toolCallPipeline;
+        }
+
         private LlmSectionPipeline toolDefinitionPipeline()
         {
             if (toolDefinitionPipeline == null)
@@ -3495,7 +3505,12 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 type == LlmSectionType.ASSISTANT_REFUSAL ||
                 type == LlmSectionType.TOOL_RESULT;
 
-            replayPipeline = type == LlmSectionType.TOOL_DEFINITION ? toolDefinitionPipeline() : null;
+            replayPipeline = switch (type)
+            {
+            case TOOL_DEFINITION -> toolDefinitionPipeline();
+            case TOOL_CALL -> toolCallPipeline();
+            default -> null;
+            };
 
             if (replayPipeline != null)
             {
@@ -3627,12 +3642,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             }
             else if (kind == KIND_TOOL_CALL)
             {
-                if (toolCallPipeline == null)
-                {
-                    toolCallPipeline = new LlmSectionPipeline(new LlmOpenaiToolCallFromCanonical(), transformBuffer);
-                }
-
-                beginSectionStreaming(toolCallPipeline, rawOutput);
+                beginSectionStreaming(toolCallPipeline(), rawOutput);
             }
             else
             {

@@ -3508,6 +3508,16 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             sectionKind = KIND_DROPPED;
         }
 
+        private LlmSectionPipeline toolCallPipeline()
+        {
+            if (toolCallPipeline == null)
+            {
+                toolCallPipeline = new LlmSectionPipeline(new LlmAnthropicToolCallFromCanonical(), transformBuffer);
+            }
+
+            return toolCallPipeline;
+        }
+
         private LlmSectionPipeline toolDefinitionPipeline()
         {
             if (toolDefinitionPipeline == null)
@@ -3539,7 +3549,12 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             LlmSectionType type)
         {
             replayEscaped = text(sectionKind(type));
-            replayPipeline = type == LlmSectionType.TOOL_DEFINITION ? toolDefinitionPipeline() : null;
+            replayPipeline = switch (type)
+            {
+            case TOOL_DEFINITION -> toolDefinitionPipeline();
+            case TOOL_CALL -> toolCallPipeline();
+            default -> null;
+            };
 
             if (replayPipeline != null)
             {
@@ -3679,12 +3694,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             }
             else if (kind == KIND_TOOL_CALL)
             {
-                if (toolCallPipeline == null)
-                {
-                    toolCallPipeline = new LlmSectionPipeline(new LlmAnthropicToolCallFromCanonical(), transformBuffer);
-                }
-
-                beginSectionStreaming(toolCallPipeline);
+                beginSectionStreaming(toolCallPipeline());
             }
             else
             {

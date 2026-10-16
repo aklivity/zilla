@@ -112,6 +112,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         "The 'tool_call_id' parameter must precede 'content' in a tool message.";
     private static final String MESSAGE_PART_TYPE_ORDER = "The 'type' parameter must be the first member of each content part.";
     private static final String MESSAGE_ATTRIBUTE_TOO_LARGE = "A content part attribute value is too large.";
+    private static final int BLOCK_BUFFER_MAX = 4096;
 
     private static final int RESPONSE_ENCODE_PADDING = 128;
     private static final int RESPONSE_ESCAPE_EXPANSION = 6;
@@ -2232,6 +2233,10 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private LlmSectionType blockSection;
         private int blockMessage;
         private int blockFlags;
+        private LlmSectionPipeline toolCallPipeline;
+        private LlmSectionPipeline blockPipeline;
+        private final LlmSectionPipeline.Output blockOutput = (buffer, offset, length, last) ->
+            onDecodeSectionData(decodeTraceId, decodeAuthorization, buffer, offset, length, last);
 
         private LlmOpenaiServer(
             MessageConsumer network,
@@ -2685,6 +2690,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         {
             flushCapture(traceId, authorization, true);
 
+            blockPipeline = null;
             captureOpen = false;
             probing = false;
             dialectResume(position());
@@ -2784,9 +2790,56 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
             blockAttributes.clear();
             blockAttributes.toolCallId(toolCallId);
+
+            blockPipeline = blockPipelineFor(type);
+
+            if (blockPipeline != null)
+            {
+                blockPipeline.begin(blockAttributes);
+            }
         }
 
         private void onDecodeData(
+            long traceId,
+            long authorization,
+            DirectBufferEx buffer,
+            int offset,
+            int length,
+            boolean last)
+        {
+            if (decoder != decodeIgnore)
+            {
+                if (blockPipeline == null)
+                {
+                    onDecodeSectionData(traceId, authorization, buffer, offset, length, last);
+                }
+                else if (!blockPipeline.feed(buffer, offset, length, last, blockOutput))
+                {
+                    onDecodeParseError(traceId);
+                }
+            }
+        }
+
+        private LlmSectionPipeline blockPipelineFor(
+            LlmSectionType type)
+        {
+            LlmSectionPipeline pipeline = null;
+
+            if (type == LlmSectionType.TOOL_CALL)
+            {
+                if (toolCallPipeline == null)
+                {
+                    toolCallPipeline = new LlmSectionPipeline(new LlmOpenaiToolCallToCanonical(),
+                        new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                }
+
+                pipeline = toolCallPipeline;
+            }
+
+            return pipeline;
+        }
+
+        private void onDecodeSectionData(
             long traceId,
             long authorization,
             DirectBufferEx buffer,

@@ -115,8 +115,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private static final String MESSAGE_TOOL_USE_ID_ORDER = "tool_use_id must precede content in a tool_result block";
     private static final String MESSAGE_PART_TYPE_ORDER = "type must be the first member of each content block";
     private static final String MESSAGE_ATTRIBUTE_TOO_LARGE = "a content block attribute value is too large";
-    private static final String MESSAGE_TOOL_DEFINITION_INVALID = "tools: Invalid tool definition";
-    private static final int TOOL_BUFFER_MAX = 4096;
+    private static final String MESSAGE_BLOCK_INVALID = "Invalid content block";
+    private static final int BLOCK_BUFFER_MAX = 4096;
 
     private static final int RESPONSE_ENCODE_PADDING = 128;
     private static final int RESPONSE_ESCAPE_EXPANSION = 6;
@@ -984,7 +984,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             {
             case START_OBJECT:
                 server.hold();
-                server.beginTool();
                 server.probe(LlmSectionType.TOOL_DEFINITION, -1, null, null, decodeTool, decodeTools);
                 server.decoder = decodeAttributes;
                 break;
@@ -2359,7 +2358,9 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private int blockFlags;
 
         private LlmSectionPipeline toolPipeline;
-        private final LlmSectionPipeline.Output toolOutput = (buffer, offset, length, last) ->
+        private LlmSectionPipeline toolUsePipeline;
+        private LlmSectionPipeline blockPipeline;
+        private final LlmSectionPipeline.Output blockOutput = (buffer, offset, length, last) ->
             onDecodeSectionData(decodeTraceId, decodeAuthorization, buffer, offset, length, last);
 
         private LlmAnthropicServer(
@@ -2872,6 +2873,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             long authorization)
         {
             flushCapture(traceId, authorization, true);
+            blockPipeline = null;
             captureOpen = false;
             probing = false;
             dialectResume(position());
@@ -2972,6 +2974,13 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             blockFlags = Flags.INIT;
 
             blockAttributes.clear();
+
+            blockPipeline = blockPipelineFor(type);
+
+            if (blockPipeline != null)
+            {
+                blockPipeline.begin(blockAttributes);
+            }
         }
 
         private void onDecodeData(
@@ -2982,28 +2991,47 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             int length,
             boolean last)
         {
-            if (decoder == decodeTool)
+            if (decoder != decodeIgnore)
             {
-                if (!toolPipeline.feed(buffer, offset, length, last, toolOutput))
+                if (blockPipeline == null)
                 {
-                    onDecodeInvalidRequest(traceId, MESSAGE_TOOL_DEFINITION_INVALID);
+                    onDecodeSectionData(traceId, authorization, buffer, offset, length, last);
                 }
-            }
-            else if (decoder != decodeIgnore)
-            {
-                onDecodeSectionData(traceId, authorization, buffer, offset, length, last);
+                else if (!blockPipeline.feed(buffer, offset, length, last, blockOutput))
+                {
+                    onDecodeInvalidRequest(traceId, MESSAGE_BLOCK_INVALID);
+                }
             }
         }
 
-        private void beginTool()
+        private LlmSectionPipeline blockPipelineFor(
+            LlmSectionType type)
         {
-            if (toolPipeline == null)
+            LlmSectionPipeline pipeline = null;
+
+            switch (type)
             {
-                toolPipeline = new LlmSectionPipeline(new LlmAnthropicToolDefinitionToCanonical(),
-                    new UnsafeBufferEx(new byte[TOOL_BUFFER_MAX]));
+            case TOOL_DEFINITION:
+                if (toolPipeline == null)
+                {
+                    toolPipeline = new LlmSectionPipeline(new LlmAnthropicToolDefinitionToCanonical(),
+                        new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                }
+                pipeline = toolPipeline;
+                break;
+            case TOOL_CALL:
+                if (toolUsePipeline == null)
+                {
+                    toolUsePipeline = new LlmSectionPipeline(new LlmAnthropicToolCallToCanonical(),
+                        new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                }
+                pipeline = toolUsePipeline;
+                break;
+            default:
+                break;
             }
 
-            toolPipeline.begin(blockAttributes);
+            return pipeline;
         }
 
         private void onDecodeSectionData(
