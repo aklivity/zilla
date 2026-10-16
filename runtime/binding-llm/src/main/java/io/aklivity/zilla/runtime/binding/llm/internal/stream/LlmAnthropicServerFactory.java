@@ -209,8 +209,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private final LlmAnthropicServerDecoder decodeToolsStart = this::decodeToolsStart;
     private final LlmAnthropicServerDecoder decodeTools = this::decodeTools;
     private final LlmAnthropicServerDecoder decodeParts = this::decodeParts;
-    private final LlmAnthropicServerDecoder decodeBlock = this::decodeBlock;
     private final LlmAnthropicServerDecoder decodeBlockType = this::decodeBlockType;
+    private final LlmAnthropicServerDecoder decodeBlockTypeValue = this::decodeBlockTypeValue;
     private final LlmAnthropicServerDecoder decodePart = this::decodePart;
     private final LlmAnthropicServerDecoder decodeAttributes = this::decodeAttributes;
     private final LlmAnthropicServerDecoder decodeToolIsError = this::decodeToolIsError;
@@ -1023,7 +1023,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             case START_OBJECT:
                 server.flushHeld();
                 server.hold();
-                server.decoder = decodeBlock;
+                server.decoder = decodeBlockType;
                 break;
             case END_ARRAY:
                 server.decoder = server.partsThen;
@@ -1038,7 +1038,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         return server.position();
     }
 
-    private int decodeBlock(
+    private int decodeBlockType(
         LlmAnthropicServer server,
         long traceId,
         long authorization,
@@ -1065,7 +1065,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             {
                 if (matches(parser.getStringView(), "type"))
                 {
-                    server.decoder = decodeBlockType;
+                    server.decoder = decodeBlockTypeValue;
                 }
                 else
                 {
@@ -1077,7 +1077,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         return server.position();
     }
 
-    private int decodeBlockType(
+    private int decodeBlockTypeValue(
         LlmAnthropicServer server,
         long traceId,
         long authorization,

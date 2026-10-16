@@ -201,8 +201,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final LlmOpenaiServerDecoder decodeToolsStart = this::decodeToolsStart;
     private final LlmOpenaiServerDecoder decodeTools = this::decodeTools;
     private final LlmOpenaiServerDecoder decodeParts = this::decodeParts;
-    private final LlmOpenaiServerDecoder decodeBlock = this::decodeBlock;
     private final LlmOpenaiServerDecoder decodeBlockType = this::decodeBlockType;
+    private final LlmOpenaiServerDecoder decodeBlockTypeValue = this::decodeBlockTypeValue;
     private final LlmOpenaiServerDecoder decodePart = this::decodePart;
     private final LlmOpenaiServerDecoder decodeAttributes = this::decodeAttributes;
     private final LlmOpenaiServerDecoder decodeUnknownBlock = this::decodeUnknownBlock;
@@ -1126,7 +1126,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             {
             case START_OBJECT:
                 server.hold();
-                server.decoder = decodeBlock;
+                server.decoder = decodeBlockType;
                 break;
             case END_ARRAY:
                 server.decoder = decodeMessage;
@@ -1141,7 +1141,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         return server.position();
     }
 
-    private int decodeBlock(
+    private int decodeBlockType(
         LlmOpenaiServer server,
         long traceId,
         long authorization,
@@ -1168,7 +1168,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             {
                 if (matches(parser.getStringView(), "type"))
                 {
-                    server.decoder = decodeBlockType;
+                    server.decoder = decodeBlockTypeValue;
                 }
                 else
                 {
@@ -1180,7 +1180,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         return server.position();
     }
 
-    private int decodeBlockType(
+    private int decodeBlockTypeValue(
         LlmOpenaiServer server,
         long traceId,
         long authorization,
