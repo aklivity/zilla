@@ -38,7 +38,7 @@ bindings:
       server: http://localhost:8080
       tools:
         example_sql_v1_sql_service_query:
-          title: Query SQL
+          input: {}
       catalog:
         catalog0:
           subject: sql

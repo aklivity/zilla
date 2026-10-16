@@ -98,10 +98,49 @@
                                         "type": "object",
                                         "properties":
                                         {
+                                            "title":
+                                            {
+                                                "title": "Tool Title",
+                                                "type": "string"
+                                            },
+                                            "description":
+                                            {
+                                                "title": "Tool Description",
+                                                "type": "string"
+                                            },
                                             "summary":
                                             {
                                                 "title": "Result Summary",
                                                 "type": "string"
+                                            },
+                                            "annotations":
+                                            {
+                                                "title": "Annotations",
+                                                "type": "object",
+                                                "properties":
+                                                {
+                                                    "readOnlyHint":
+                                                    {
+                                                        "title": "Read-Only Hint",
+                                                        "type": "boolean"
+                                                    },
+                                                    "destructiveHint":
+                                                    {
+                                                        "title": "Destructive Hint",
+                                                        "type": "boolean"
+                                                    },
+                                                    "idempotentHint":
+                                                    {
+                                                        "title": "Idempotent Hint",
+                                                        "type": "boolean"
+                                                    },
+                                                    "openWorldHint":
+                                                    {
+                                                        "title": "Open-World Hint",
+                                                        "type": "boolean"
+                                                    }
+                                                },
+                                                "additionalProperties": false
                                             }
                                         },
                                         "additionalProperties": false
@@ -128,44 +167,9 @@
                                             {
                                                 "type": "string",
                                                 "default": "latest"
-                                            },
-                                            "overlay":
-                                            {
-                                                "title": "Overlay",
-                                                "type": "object",
-                                                "patternProperties":
-                                                {
-                                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
-                                                    {
-                                                        "type": "object",
-                                                        "properties":
-                                                        {
-                                                            "subject":
-                                                            {
-                                                                "type": "string"
-                                                            },
-                                                            "version":
-                                                            {
-                                                                "type": "string",
-                                                                "default": "latest"
-                                                            }
-                                                        },
-                                                        "required":
-                                                        [
-                                                            "subject"
-                                                        ],
-                                                        "additionalProperties": false
-                                                    }
-                                                },
-                                                "additionalProperties": false,
-                                                "minProperties": 1,
-                                                "maxProperties": 1
                                             }
                                         },
-                                        "required":
-                                        [
-                                            "subject"
-                                        ],
+                                        "required": [ "subject" ],
                                         "additionalProperties": false
                                     }
                                 },
@@ -174,11 +178,7 @@
                                 "maxProperties": 1
                             }
                         },
-                        "required":
-                        [
-                            "server",
-                            "catalog"
-                        ],
+                        "required": [ "server", "catalog" ],
                         "additionalProperties": false
                     },
                     "routes":
@@ -208,10 +208,7 @@
                                                 "pattern": "^[A-Za-z0-9_-]{1,64}$"
                                             }
                                         },
-                                        "required":
-                                        [
-                                            "tool"
-                                        ],
+                                        "required": [ "tool" ],
                                         "additionalProperties": false
                                     }
                                 },
@@ -253,12 +250,7 @@
                                             {
                                                 "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
                                                 {
-                                                    "type":
-                                                    [
-                                                        "string",
-                                                        "number",
-                                                        "boolean"
-                                                    ]
+                                                    "type": [ "string", "number", "boolean" ]
                                                 }
                                             },
                                             "additionalProperties": false,
@@ -268,36 +260,23 @@
                                     "additionalProperties": false,
                                     "not":
                                     {
-                                        "required":
-                                        [
-                                            "method",
-                                            "option"
-                                        ]
+                                        "required": [ "method", "option" ]
                                     }
                                 }
                             },
                             "additionalProperties": false,
                             "if":
                             {
-                                "required":
-                                [
-                                    "when"
-                                ]
+                                "required": [ "when" ]
                             },
                             "then":
                             {
-                                "required":
-                                [
-                                    "with"
-                                ],
+                                "required": [ "with" ],
                                 "properties":
                                 {
                                     "with":
                                     {
-                                        "required":
-                                        [
-                                            "method"
-                                        ],
+                                        "required": [ "method" ],
                                         "properties":
                                         {
                                             "method":
