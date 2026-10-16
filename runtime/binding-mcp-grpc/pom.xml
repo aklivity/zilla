@@ -223,7 +223,7 @@
         <artifactId>jacoco-maven-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclude>io/aklivity/zilla/runtime/binding/mcp/http/internal/types/**/*.class</exclude>
+            <exclude>io/aklivity/zilla/runtime/binding/mcp/grpc/internal/types/**/*.class</exclude>
           </excludes>
           <rules>
             <rule>
