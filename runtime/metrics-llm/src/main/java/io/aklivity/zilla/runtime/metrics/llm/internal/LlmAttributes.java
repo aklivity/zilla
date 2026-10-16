@@ -32,37 +32,53 @@ import io.aklivity.zilla.config.engine.AttributeConfig;
 import io.aklivity.zilla.runtime.common.json.JsonStrings;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.runtime.metrics.llm.internal.types.stream.BeginFW;
+import io.aklivity.zilla.runtime.metrics.llm.internal.types.stream.LlmBeginExFW;
 
 final class LlmAttributes
 {
-    static final LlmAttributes NONE = new LlmAttributes(Collections.emptyList(), null, null);
+    static final LlmAttributes NONE = new LlmAttributes(Collections.emptyList(), null, null, 0);
 
     private static final Pattern IDENTITY = Pattern.compile(
         "\\$\\{guarded\\['([a-zA-Z]+[a-zA-Z0-9._:\\-]*)'\\]\\.identity\\}");
     private static final Pattern ATTRIBUTE = Pattern.compile(
         "\\$\\{guarded\\['([a-zA-Z]+[a-zA-Z0-9._:\\-]*)'\\]\\.attributes\\.([a-zA-Z]+[a-zA-Z0-9._:\\-]*)\\}");
+    private static final Pattern MODEL = Pattern.compile("\\$\\{llm\\.(request|response)\\.model\\}");
 
     private final List<GuardedBinding> guardedBindings;
+    private final List<String> requestModels;
+    private final List<String> responseModels;
     private final EngineContext context;
     private final ToLongFunction<String> resolveId;
+    private final int llmTypeId;
     private final Map<String, GuardHandler> guards;
     private final Long2ObjectHashMap<Map<String, String>> requests;
+    private final Long2ObjectHashMap<Map<String, String>> responses;
+    private final Map<String, String> combined;
+    private final LlmBeginExFW llmBeginExRO = new LlmBeginExFW();
 
     LlmAttributes(
         List<AttributeConfig> attributes,
         EngineContext context,
-        ToLongFunction<String> resolveId)
+        ToLongFunction<String> resolveId,
+        int llmTypeId)
     {
         this.guardedBindings = new ArrayList<>();
+        this.requestModels = new ArrayList<>();
+        this.responseModels = new ArrayList<>();
         this.context = context;
         this.resolveId = resolveId;
+        this.llmTypeId = llmTypeId;
         this.guards = new Object2ObjectHashMap<>();
         this.requests = new Long2ObjectHashMap<>();
+        this.responses = new Long2ObjectHashMap<>();
+        this.combined = new Object2ObjectHashMap<>();
 
         for (AttributeConfig attribute : attributes)
         {
             final Matcher identity = IDENTITY.matcher(attribute.value);
             final Matcher guarded = ATTRIBUTE.matcher(attribute.value);
+            final Matcher model = MODEL.matcher(attribute.value);
             if (identity.matches())
             {
                 guardedBindings.add(new GuardedBinding(attribute.name, identity.group(1), null));
@@ -71,14 +87,20 @@ final class LlmAttributes
             {
                 guardedBindings.add(new GuardedBinding(attribute.name, guarded.group(1), guarded.group(2)));
             }
+            else if (model.matches())
+            {
+                final List<String> names = "request".equals(model.group(1)) ? requestModels : responseModels;
+                names.add(attribute.name);
+            }
         }
     }
 
     void request(
         long exchangeId,
-        long authorization)
+        long authorization,
+        BeginFW begin)
     {
-        if (!guardedBindings.isEmpty())
+        if (!guardedBindings.isEmpty() || !requestModels.isEmpty())
         {
             final Map<String, String> values = new Object2ObjectHashMap<>();
             for (GuardedBinding binding : guardedBindings)
@@ -96,23 +118,58 @@ final class LlmAttributes
                     }
                 }
             }
+
+            final String model = requestModels.isEmpty() ? null : model(begin);
+            if (model != null)
+            {
+                for (String name : requestModels)
+                {
+                    values.put(name, model);
+                }
+            }
+
             requests.put(exchangeId, values);
+        }
+    }
+
+    void response(
+        long exchangeId,
+        BeginFW begin)
+    {
+        if (!responseModels.isEmpty() && requests.containsKey(exchangeId))
+        {
+            final String model = model(begin);
+            if (model != null)
+            {
+                final Map<String, String> values = new Object2ObjectHashMap<>();
+                for (String name : responseModels)
+                {
+                    values.put(name, model);
+                }
+                responses.put(exchangeId, values);
+            }
         }
     }
 
     int attributesId(
         long exchangeId)
     {
-        final Map<String, String> values = requests.get(exchangeId);
-        return values != null ? labelId(values) : 0;
+        return labelId(requests.get(exchangeId), responses.get(exchangeId));
+    }
+
+    int requestAttributesId(
+        long exchangeId)
+    {
+        return labelId(requests.get(exchangeId), null);
     }
 
     void release(
         long exchangeId)
     {
-        if (!guardedBindings.isEmpty())
+        if (!requests.isEmpty())
         {
             requests.remove(exchangeId);
+            responses.remove(exchangeId);
         }
     }
 
@@ -137,14 +194,32 @@ final class LlmAttributes
         return value != null ? JsonStrings.asString(value) : null;
     }
 
+    private String model(
+        BeginFW begin)
+    {
+        final LlmBeginExFW llmBeginEx = begin.extension().get(llmBeginExRO::tryWrap);
+        return llmBeginEx != null && llmBeginEx.typeId() == llmTypeId ? llmBeginEx.model().asString() : null;
+    }
+
     private int labelId(
-        Map<String, String> values)
+        Map<String, String> request,
+        Map<String, String> response)
     {
         int labelId = 0;
 
-        if (!values.isEmpty())
+        combined.clear();
+        if (request != null)
         {
-            final String[] names = values.keySet().toArray(String[]::new);
+            combined.putAll(request);
+        }
+        if (response != null)
+        {
+            combined.putAll(response);
+        }
+
+        if (!combined.isEmpty())
+        {
+            final String[] names = combined.keySet().toArray(String[]::new);
             Arrays.sort(names);
 
             final StringBuilder label = new StringBuilder();
@@ -154,7 +229,7 @@ final class LlmAttributes
                 {
                     label.append(',');
                 }
-                label.append(name).append('=').append(values.get(name));
+                label.append(name).append('=').append(combined.get(name));
             }
 
             labelId = context.supplyTypeId(label.toString());

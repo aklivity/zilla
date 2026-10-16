@@ -89,7 +89,7 @@ public final class LlmTimeToFirstTokenMetricContext implements MetricContext
         List<AttributeConfig> attributes,
         ToLongFunction<String> resolveId)
     {
-        return new LlmTimeToFirstTokenHandler(recorder, new LlmAttributes(attributes, context, resolveId));
+        return new LlmTimeToFirstTokenHandler(recorder, new LlmAttributes(attributes, context, resolveId, llmTypeId));
     }
 
     private final class LlmTimeToFirstTokenHandler implements MessageConsumer
@@ -135,7 +135,11 @@ public final class LlmTimeToFirstTokenMetricContext implements MetricContext
                     timestamp != NOT_STARTED)
                 {
                     timestamps.put(exchangeId, timestamp);
-                    attributes.request(exchangeId, frame.authorization());
+                    attributes.request(exchangeId, frame.authorization(), begin);
+                }
+                else if (direction == SENT)
+                {
+                    attributes.response(exchangeId, begin);
                 }
                 break;
             case DataFW.TYPE_ID:

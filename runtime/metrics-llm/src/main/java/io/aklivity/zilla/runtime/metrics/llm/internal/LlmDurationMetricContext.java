@@ -88,7 +88,7 @@ public final class LlmDurationMetricContext implements MetricContext
         List<AttributeConfig> attributes,
         ToLongFunction<String> resolveId)
     {
-        return new LlmDurationHandler(recorder, new LlmAttributes(attributes, context, resolveId));
+        return new LlmDurationHandler(recorder, new LlmAttributes(attributes, context, resolveId, llmTypeId));
     }
 
     private final class LlmDurationHandler implements MessageConsumer
@@ -133,7 +133,11 @@ public final class LlmDurationMetricContext implements MetricContext
                     timestamp != NOT_STARTED)
                 {
                     timestamps.put(exchangeId, timestamp);
-                    attributes.request(exchangeId, frame.authorization());
+                    attributes.request(exchangeId, frame.authorization(), begin);
+                }
+                else if (LlmUtils.direction(streamId) == SENT)
+                {
+                    attributes.response(exchangeId, begin);
                 }
                 break;
             case EndFW.TYPE_ID:
