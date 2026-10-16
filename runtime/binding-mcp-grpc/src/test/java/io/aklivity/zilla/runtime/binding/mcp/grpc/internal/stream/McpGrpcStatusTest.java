@@ -55,4 +55,27 @@ public class McpGrpcStatusTest
         assertEquals("NOT_FOUND: unknown table", McpGrpcStatus.describe("5", "unknown table"));
         assertEquals("INTERNAL", McpGrpcStatus.describe("13", null));
     }
+
+    @Test
+    public void shouldDecodePercentEncodedMessage()
+    {
+        assertEquals("unknown sku nope", McpGrpcStatus.decode("unknown%20sku%20nope"));
+        assertEquals("100% sure", McpGrpcStatus.decode("100%25 sure"));
+        assertEquals("caf\u00e9", McpGrpcStatus.decode("caf%C3%A9"));
+    }
+
+    @Test
+    public void shouldKeepPlusAndMalformedEscapesVerbatim()
+    {
+        assertEquals("a+b", McpGrpcStatus.decode("a+b"));
+        assertEquals("50%zz", McpGrpcStatus.decode("50%zz"));
+        assertEquals("trailing%", McpGrpcStatus.decode("trailing%"));
+        assertEquals("trailing%4", McpGrpcStatus.decode("trailing%4"));
+    }
+
+    @Test
+    public void shouldDescribeStatusWithDecodedMessage()
+    {
+        assertEquals("NOT_FOUND: unknown table", McpGrpcStatus.describe("5", "unknown%20table"));
+    }
 }
