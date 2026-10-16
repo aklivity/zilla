@@ -5459,7 +5459,7 @@ public final class McpServerFactory implements McpStreamFactory
         }
 
         // strips securitySchemes from a tools/list reply (schemePipeline set), else forwards the payload as-is;
-        // the pipeline leaves a partial key unconsumed, so those bytes are carried ahead of the next payload
+        // bytes the pipeline leaves unconsumed stay in the decode slot ahead of the next payload
         private DirectBufferEx excludeSchemes(
             long traceId,
             long authorization,
@@ -5498,7 +5498,30 @@ public final class McpServerFactory implements McpStreamFactory
                     switch (result.status())
                     {
                     case STARVED:
-                        carryDecodeSlot(traceId, authorization, source, result.consumed(), sourceLimit - result.consumed());
+                        final int unconsumed = sourceLimit - result.consumed();
+                        if (unconsumed == 0)
+                        {
+                            cleanupDecodeSlot();
+                        }
+                        else
+                        {
+                            if (decodeSlot == NO_SLOT)
+                            {
+                                decodeSlot = decodePool.acquire(initialId);
+                            }
+
+                            if (decodeSlot == NO_SLOT)
+                            {
+                                cleanupApp(traceId, authorization);
+                                schemeStagingView.wrap(schemeStaging, 0, 0);
+                            }
+                            else
+                            {
+                                final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
+                                slot.putBytes(0, source, result.consumed(), unconsumed);
+                                decodeSlotOffset = unconsumed;
+                            }
+                        }
                         break;
                     case REJECTED:
                     case SUSPENDED:
@@ -5518,38 +5541,6 @@ public final class McpServerFactory implements McpStreamFactory
                 body = schemeStagingView;
             }
             return body;
-        }
-
-        private void carryDecodeSlot(
-            long traceId,
-            long authorization,
-            DirectBufferEx source,
-            int offset,
-            int length)
-        {
-            if (length == 0)
-            {
-                cleanupDecodeSlot();
-            }
-            else
-            {
-                if (decodeSlot == NO_SLOT)
-                {
-                    decodeSlot = decodePool.acquire(initialId);
-                }
-
-                if (decodeSlot == NO_SLOT)
-                {
-                    cleanupApp(traceId, authorization);
-                    schemeStagingView.wrap(schemeStaging, 0, 0);
-                }
-                else
-                {
-                    final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
-                    slot.putBytes(0, source, offset, length);
-                    decodeSlotOffset = length;
-                }
-            }
         }
 
         private void cleanupDecodeSlot()
