@@ -39,8 +39,8 @@ encode_jwt() {
 }
 
 JWT_URLELICIT=$(encode_jwt "urlelicit:authorize")
-JWT_PARTIAL=$(encode_jwt "github:tools petstore:tools kafka_sr:tools kafka_connect:tools")
-JWT_FULL=$(encode_jwt "urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka_sr:tools kafka_sr:write kafka_connect:tools kafka_connect:admin kafka:tools kafka:write kafka:admin kafka:acls")
+JWT_PARTIAL=$(encode_jwt "github:tools petstore:tools inventory:tools kafka_sr:tools kafka_connect:tools")
+JWT_FULL=$(encode_jwt "urlelicit:authorize github:tools github:pr:write petstore:tools pets:write inventory:tools kafka_sr:tools kafka_sr:write kafka_connect:tools kafka_connect:admin kafka:tools kafka:write kafka:admin kafka:acls")
 
 exec docker compose run --rm \
     -e JWT_URLELICIT="$JWT_URLELICIT" \

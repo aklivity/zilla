@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.common.protobuf;
 
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -52,6 +53,14 @@ public final class ProtobufEnum
         String name)
     {
         return numberByName.get(name);
+    }
+
+    /**
+     * The value names in declaration order, including aliases.
+     */
+    public Collection<String> names()
+    {
+        return numberByName.keySet();
     }
 
     public static Builder builder(

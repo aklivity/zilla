@@ -253,6 +253,17 @@ public interface ProtobufGenerator
     boolean flush();
 
     /**
+     * Preserves the in-flight structure and value across the next {@link #wrap(MutableDirectBuffer, int, int)}
+     * when the input window ran out before the message completed, so the output continues one logical document
+     * rather than starting afresh. The default closes the open records as {@link #flush()} does, which the
+     * bounded driver already treats as a continuation point.
+     */
+    default void suspend()
+    {
+        flush();
+    }
+
+    /**
      * Whether this generator writes the values it receives verbatim, reproducing the input bytes. A
      * generator that re-encodes into a different representation (e.g. JSON) is not identity.
      */
