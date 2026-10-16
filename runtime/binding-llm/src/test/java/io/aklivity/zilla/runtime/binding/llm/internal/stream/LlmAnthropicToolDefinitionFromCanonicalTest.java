@@ -23,6 +23,7 @@ import org.junit.Test;
 public class LlmAnthropicToolDefinitionFromCanonicalTest
 {
     private static final String LONG = "x".repeat(300);
+    private static final String HUGE = "x".repeat(5000);
 
     private final LlmAnthropicToolDefinitionFromCanonical transform = new LlmAnthropicToolDefinitionFromCanonical();
 
@@ -111,6 +112,14 @@ public class LlmAnthropicToolDefinitionFromCanonicalTest
                 "','name':'ping','count':12345,'tags':[1,2]},'tail':null}"),
             json("{'extra':{'a':[1,{'b':'" + LONG + "'}]},'strict':true,'note':'" + LONG +
                 "','name':'ping','count':12345,'tags':[1,2],'input_schema':{'type':'object'},'tail':null}"));
+    }
+
+    @Test
+    public void shouldTransformValueLargerThanWindow()
+    {
+        assertTransforms(transform,
+            json("{'type':'function','function':{'description':'" + HUGE + "','name':'ping','parameters':{'type':'object'}}}"),
+            json("{'description':'" + HUGE + "','name':'ping','input_schema':{'type':'object'}}"));
     }
 
     @Test

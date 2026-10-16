@@ -38,9 +38,9 @@ read zilla:data.ext ${llm:matchDataEx()
                           .message(-1)
                           .attribute("tool-name", "get_weather")
                           .build()}
-read "{\"name\":\"get_weather\",\"description\":\"Get the weather\",\"input_schema\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\",\"description\":\""
+read "{\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"description\":\"Get the weather\",\"parameters\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\",\"description\":\""
      ${core:randomBase64(100000)}
-     "\"}}}}"
+     "\"}}}}}"
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))

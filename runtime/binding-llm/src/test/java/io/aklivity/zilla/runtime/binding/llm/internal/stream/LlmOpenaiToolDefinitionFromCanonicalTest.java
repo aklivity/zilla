@@ -23,6 +23,7 @@ import org.junit.Test;
 public class LlmOpenaiToolDefinitionFromCanonicalTest
 {
     private static final String LONG = "x".repeat(300);
+    private static final String HUGE = "x".repeat(5000);
 
     private final LlmOpenaiToolDefinitionFromCanonical transform = new LlmOpenaiToolDefinitionFromCanonical();
 
@@ -69,6 +70,14 @@ public class LlmOpenaiToolDefinitionFromCanonicalTest
         assertTransforms(transform,
             json("{'type':'function','function':{'openai:note':'x','name':'ping'}}"),
             json("{'type':'function','function':{'note':'x','name':'ping'}}"));
+    }
+
+    @Test
+    public void shouldPassValueLargerThanWindow()
+    {
+        assertTransforms(transform,
+            json("{'type':'function','function':{'description':'" + HUGE + "','name':'ping'}}"),
+            json("{'type':'function','function':{'description':'" + HUGE + "','name':'ping'}}"));
     }
 
     @Test

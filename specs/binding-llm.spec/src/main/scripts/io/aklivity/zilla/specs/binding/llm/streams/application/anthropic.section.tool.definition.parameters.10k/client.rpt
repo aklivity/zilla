@@ -37,9 +37,9 @@ write zilla:data.ext ${llm:dataEx()
                           .message(-1)
                           .attribute("tool-name", "get_weather")
                           .build()}
-write "{\"name\":\"get_weather\",\"description\":\"Get the weather\",\"input_schema\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\",\"description\":\""
+write "{\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"description\":\"Get the weather\",\"parameters\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\",\"description\":\""
       ${core:randomBase64(10000)}
-      "\"}}}}"
+      "\"}}}}}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()

@@ -13,6 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property source "source"
 property target "target"
 property model "model"
 
@@ -22,7 +23,7 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("anthropic")
+                           .dialect(source)
                            .model(model)
                            .build()}
 
@@ -37,28 +38,15 @@ write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("TOOL_DEFINITION")
                           .message(-1)
-                          .attribute("tool-name", "get_weather")
                           .build()}
-write "{\"name\":\"get_weather\",\"description\":\"Get the weather\",\"input_schema\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\",\"description\":\""
-      ${core:randomBase64(10000)}
-      "\"}}}}"
+write "{\"type\":\"function\",\"function\":{\"description\":\"Get the weather\"}}"
 write flush
-
-write zilla:data.ext ${llm:dataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("USER_TEXT")
-                          .message(0)
-                          .build()}
-write "Weather in Paris?"
-write flush
-
-write advise zilla:flush
 
 read zilla:reset.ext ${llm:matchResetEx()
                            .typeId(zilla:id("llm"))
-                           .status(429)
-                           .type("rate_limit_error")
-                           .message("Rate limit exceeded")
+                           .status(400)
+                           .type("invalid_request_error")
+                           .message("tool-definition cannot be converted from openai to %s".formatted(target))
                            .build()}
 
 write aborted

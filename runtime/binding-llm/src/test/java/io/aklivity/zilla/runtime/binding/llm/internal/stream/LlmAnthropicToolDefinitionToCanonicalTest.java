@@ -23,6 +23,7 @@ import org.junit.Test;
 public class LlmAnthropicToolDefinitionToCanonicalTest
 {
     private static final String LONG = "x".repeat(300);
+    private static final String HUGE = "x".repeat(5000);
 
     private final LlmAnthropicToolDefinitionToCanonical transform = new LlmAnthropicToolDefinitionToCanonical();
 
@@ -91,6 +92,14 @@ public class LlmAnthropicToolDefinitionToCanonicalTest
             json("{'name':'ping','cache_control':{'type':'ephemeral'},'description':'Ping','input_schema':{'type':'object'}}"),
             json("{'type':'function','function':{'name':'ping','anthropic:cache_control':{'type':'ephemeral'}," +
                 "'description':'Ping','parameters':{'type':'object'}}}"));
+    }
+
+    @Test
+    public void shouldTransformValueLargerThanWindow()
+    {
+        assertTransforms(transform,
+            json("{'description':'" + HUGE + "','name':'ping','input_schema':{'type':'object'}}"),
+            json("{'type':'function','function':{'description':'" + HUGE + "','name':'ping','parameters':{'type':'object'}}}"));
     }
 
     @Test

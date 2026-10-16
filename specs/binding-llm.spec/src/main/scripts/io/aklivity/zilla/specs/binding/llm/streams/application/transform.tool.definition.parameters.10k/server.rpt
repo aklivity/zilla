@@ -13,6 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property source "source"
 property target "target"
 property model "model"
 
@@ -24,7 +25,7 @@ accepted
 
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("anthropic")
+                           .dialect(source)
                            .model(model)
                            .build()}
 
@@ -41,9 +42,9 @@ read zilla:data.ext ${llm:matchDataEx()
                           .message(-1)
                           .attribute("tool-name", "get_weather")
                           .build()}
-read "{\"name\":\"get_weather\",\"description\":\""
+read "{\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"description\":\"Get the weather\",\"parameters\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\",\"description\":\""
      ${core:randomBase64(10000)}
-     "\",\"input_schema\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}}}}"
+     "\"}}}}}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))

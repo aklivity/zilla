@@ -13,6 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property source "source"
 property target "target"
 property model "model"
 
@@ -22,7 +23,7 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
+                           .dialect(source)
                            .model(model)
                            .build()}
 

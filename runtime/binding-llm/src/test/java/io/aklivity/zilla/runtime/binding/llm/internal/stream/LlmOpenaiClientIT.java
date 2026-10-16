@@ -920,9 +920,9 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/anthropic.transform.tool.definition.100k/client",
+        "${app}/transform.tool.definition.100k/client",
         "${net}/openai.transform.tool.definition.100k/server"})
-    public void shouldTransformAnthropicSectionToolDefinition100kAsOpenai() throws Exception
+    public void shouldTransformToolDefinition100kAsOpenai() throws Exception
     {
         k3po.finish();
     }
@@ -931,9 +931,9 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/anthropic.transform.tool.definition.10k/client",
+        "${app}/transform.tool.definition.10k/client",
         "${net}/openai.transform.tool.definition.10k/server"})
-    public void shouldTransformAnthropicSectionToolDefinition10kAsOpenai() throws Exception
+    public void shouldTransformToolDefinition10kAsOpenai() throws Exception
     {
         k3po.finish();
     }
@@ -942,9 +942,9 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/anthropic.transform.tool.definition.name.last/client",
+        "${app}/transform.tool.definition.name.last/client",
         "${net}/openai.transform.tool.definition.name.last/server"})
-    public void shouldTransformAnthropicSectionToolDefinitionNameLastAsOpenai() throws Exception
+    public void shouldTransformToolDefinitionNameLastAsOpenai() throws Exception
     {
         k3po.finish();
     }
@@ -953,9 +953,9 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/anthropic.transform.tool.definition.parameters.100k/client",
+        "${app}/transform.tool.definition.parameters.100k/client",
         "${net}/openai.transform.tool.definition.parameters.100k/server"})
-    public void shouldTransformAnthropicSectionToolDefinitionParameters100kAsOpenai() throws Exception
+    public void shouldTransformToolDefinitionParameters100kAsOpenai() throws Exception
     {
         k3po.finish();
     }
@@ -964,9 +964,9 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/anthropic.transform.tool.definition.parameters.10k/client",
+        "${app}/transform.tool.definition.parameters.10k/client",
         "${net}/openai.transform.tool.definition.parameters.10k/server"})
-    public void shouldTransformAnthropicSectionToolDefinitionParameters10kAsOpenai() throws Exception
+    public void shouldTransformToolDefinitionParameters10kAsOpenai() throws Exception
     {
         k3po.finish();
     }

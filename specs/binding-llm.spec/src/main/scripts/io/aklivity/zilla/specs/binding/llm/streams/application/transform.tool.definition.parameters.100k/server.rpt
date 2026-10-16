@@ -13,52 +13,53 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property source "source"
 property target "target"
 property model "model"
 
-connect "zilla://streams/app0"
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
+accept "zilla://streams/app0"
+       option zilla:window 8192
+       option zilla:transmission "half-duplex"
 
-write zilla:begin.ext ${llm:beginEx()
+accepted
+
+read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("anthropic")
+                           .dialect(source)
                            .model(model)
                            .build()}
 
 connected
 
-write advised zilla:challenge ${llm:matchChallengeEx()
-                                    .typeId(zilla:id("llm"))
-                                    .dialect(target)
-                                    .build()}
+read advise zilla:challenge ${llm:challengeEx()
+                                .typeId(zilla:id("llm"))
+                                .dialect(target)
+                                .build()}
 
-write zilla:data.ext ${llm:dataEx()
+read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("TOOL_DEFINITION")
                           .message(-1)
                           .attribute("tool-name", "get_weather")
                           .build()}
-write "{\"name\":\"get_weather\",\"description\":\""
-      ${core:randomBase64(100000)}
-      "\",\"input_schema\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}}}}"
-write flush
+read "{\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"description\":\"Get the weather\",\"parameters\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\",\"description\":\""
+     ${core:randomBase64(100000)}
+     "\"}}}}}"
 
-write zilla:data.ext ${llm:dataEx()
+read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-write "Weather in Paris?"
-write flush
+read "Weather in Paris?"
 
-write advise zilla:flush
+read advised zilla:flush
 
-read zilla:reset.ext ${llm:matchResetEx()
-                           .typeId(zilla:id("llm"))
-                           .status(429)
-                           .type("rate_limit_error")
-                           .message("Rate limit exceeded")
-                           .build()}
+write zilla:reset.ext ${llm:resetEx()
+                            .typeId(zilla:id("llm"))
+                            .status(429)
+                            .type("rate_limit_error")
+                            .message("Rate limit exceeded")
+                            .build()}
 
-write aborted
+read abort

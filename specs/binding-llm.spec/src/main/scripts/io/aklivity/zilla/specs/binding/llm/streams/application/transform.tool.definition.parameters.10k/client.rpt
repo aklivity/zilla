@@ -13,6 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property source "source"
 property target "target"
 property model "model"
 
@@ -22,7 +23,7 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("anthropic")
+                           .dialect(source)
                            .model(model)
                            .build()}
 
@@ -39,9 +40,9 @@ write zilla:data.ext ${llm:dataEx()
                           .message(-1)
                           .attribute("tool-name", "get_weather")
                           .build()}
-write "{\"name\":\"get_weather\",\"description\":\"Get the weather\",\"input_schema\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\",\"description\":\""
-      ${core:randomBase64(100000)}
-      "\"}}}}"
+write "{\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"description\":\"Get the weather\",\"parameters\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\",\"description\":\""
+      ${core:randomBase64(10000)}
+      "\"}}}}}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()

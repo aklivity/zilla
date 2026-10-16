@@ -1811,15 +1811,6 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/openai.transform.rejected.tool.definition.name/client",
-        "${app}/openai.transform.rejected.tool.definition.name/server"})
-    public void shouldAnthropicTransformOpenaiRejectedToolDefinitionName() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/openai.section.tool.call.100k/client",
         "${app}/openai.section.tool.call.100k/server"})
     public void shouldOpenaiSectionToolCall100k() throws Exception
@@ -1904,15 +1895,6 @@ public class ApplicationIT
         "${app}/anthropic.transform.rejected.tool.call.name/client",
         "${app}/anthropic.transform.rejected.tool.call.name/server"})
     public void shouldOpenaiTransformAnthropicRejectedToolCallName() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/anthropic.transform.rejected.tool.definition.server/client",
-        "${app}/anthropic.transform.rejected.tool.definition.server/server"})
-    public void shouldOpenaiTransformAnthropicRejectedToolDefinitionServer() throws Exception
     {
         k3po.finish();
     }
@@ -2198,51 +2180,6 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/openai.transform.tool.definition.100k/client",
-        "${app}/openai.transform.tool.definition.100k/server"})
-    public void shouldCarryAnthropicTransformOpenaiToolDefinition100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/openai.transform.tool.definition.10k/client",
-        "${app}/openai.transform.tool.definition.10k/server"})
-    public void shouldCarryAnthropicTransformOpenaiToolDefinition10k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/openai.transform.tool.definition.name.last/client",
-        "${app}/openai.transform.tool.definition.name.last/server"})
-    public void shouldCarryAnthropicTransformOpenaiToolDefinitionNameLast() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/openai.transform.tool.definition.parameters.100k/client",
-        "${app}/openai.transform.tool.definition.parameters.100k/server"})
-    public void shouldCarryAnthropicTransformOpenaiToolDefinitionParameters100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/openai.transform.tool.definition.parameters.10k/client",
-        "${app}/openai.transform.tool.definition.parameters.10k/server"})
-    public void shouldCarryAnthropicTransformOpenaiToolDefinitionParameters10k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/anthropic.transform.user.image/client",
         "${app}/anthropic.transform.user.image/server"})
     public void shouldCarryOpenaiTransformAnthropicUserImage() throws Exception
@@ -2387,51 +2324,6 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/anthropic.transform.tool.definition.100k/client",
-        "${app}/anthropic.transform.tool.definition.100k/server"})
-    public void shouldCarryOpenaiTransformAnthropicToolDefinition100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/anthropic.transform.tool.definition.10k/client",
-        "${app}/anthropic.transform.tool.definition.10k/server"})
-    public void shouldCarryOpenaiTransformAnthropicToolDefinition10k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/anthropic.transform.tool.definition.name.last/client",
-        "${app}/anthropic.transform.tool.definition.name.last/server"})
-    public void shouldCarryOpenaiTransformAnthropicToolDefinitionNameLast() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/anthropic.transform.tool.definition.parameters.100k/client",
-        "${app}/anthropic.transform.tool.definition.parameters.100k/server"})
-    public void shouldCarryOpenaiTransformAnthropicToolDefinitionParameters100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/anthropic.transform.tool.definition.parameters.10k/client",
-        "${app}/anthropic.transform.tool.definition.parameters.10k/server"})
-    public void shouldCarryOpenaiTransformAnthropicToolDefinitionParameters10k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/openai.streaming.complete/client",
         "${app}/openai.streaming.complete/server"})
     public void shouldCompleteEachOpenaiStreamingEvent() throws Exception
@@ -2561,6 +2453,69 @@ public class ApplicationIT
         "${app}/transform.tool.definition/client",
         "${app}/transform.tool.definition/server"})
     public void shouldTransformToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.tool.definition.100k/client",
+        "${app}/transform.tool.definition.100k/server"})
+    public void shouldTransformToolDefinition100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.tool.definition.10k/client",
+        "${app}/transform.tool.definition.10k/server"})
+    public void shouldTransformToolDefinition10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.tool.definition.name.last/client",
+        "${app}/transform.tool.definition.name.last/server"})
+    public void shouldTransformToolDefinitionNameLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.tool.definition.parameters.100k/client",
+        "${app}/transform.tool.definition.parameters.100k/server"})
+    public void shouldTransformToolDefinitionParameters100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.tool.definition.parameters.10k/client",
+        "${app}/transform.tool.definition.parameters.10k/server"})
+    public void shouldTransformToolDefinitionParameters10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.tool.definition.name/client",
+        "${app}/transform.rejected.tool.definition.name/server"})
+    public void shouldRejectToolDefinitionName() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.transform.rejected.tool.definition.server/client",
+        "${app}/anthropic.transform.rejected.tool.definition.server/server"})
+    public void shouldOpenaiTransformAnthropicRejectedToolDefinitionServer() throws Exception
     {
         k3po.finish();
     }
