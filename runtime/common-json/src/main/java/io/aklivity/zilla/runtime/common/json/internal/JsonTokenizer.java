@@ -426,6 +426,46 @@ public final class JsonTokenizer
         valuePending = false;
     }
 
+    // Gives back the separator and whitespace scanned past the last delivered token when a non-final window
+    // ended before the next token began, so only whole tokens are ever consumed and the caller re-presents the
+    // rest with the next window. A separator consumed that way is never lost to, or emitted ahead of, a decision
+    // about the member it introduces. A comma goes back to the state before it, which is the state that
+    // expects a separator or the container's close.
+    void rewindLookahead(
+        long offset,
+        long offsetLine,
+        long offsetColumn)
+    {
+        if (!terminalEof && resumeOp == ResumeOp.NONE && streamOffset > offset)
+        {
+            switch (state)
+            {
+            case OBJ_AFTER_COMMA:
+                state = ParseState.OBJ_AFTER_VALUE;
+                streamOffset = offset;
+                line = offsetLine;
+                column = offsetColumn;
+                break;
+            case ARR_AFTER_COMMA:
+                state = ParseState.ARR_AFTER_VALUE;
+                streamOffset = offset;
+                line = offsetLine;
+                column = offsetColumn;
+                break;
+            case OBJ_AFTER_OPEN:
+            case OBJ_AFTER_VALUE:
+            case ARR_AFTER_OPEN:
+            case ARR_AFTER_VALUE:
+                streamOffset = offset;
+                line = offsetLine;
+                column = offsetColumn;
+                break;
+            default:
+                break;
+            }
+        }
+    }
+
     public JsonParser.Event event()
     {
         return pendingEvent;
