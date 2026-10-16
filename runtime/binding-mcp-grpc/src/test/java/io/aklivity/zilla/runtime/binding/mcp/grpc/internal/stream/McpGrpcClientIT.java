@@ -42,7 +42,7 @@ public class McpGrpcClientIT
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
-        .configure(ENGINE_BUFFER_SLOT_CAPACITY, 8192)
+        .configure(ENGINE_BUFFER_SLOT_CAPACITY, 131072)
         .configure(MCP_GRPC_SESSION_ID_NAME, "%s::sessionId".formatted(McpGrpcClientIT.class.getName()))
         .configure(MCP_GRPC_CLIENT_EXIT_NAME, "http0")
         .configurationRoot("io/aklivity/zilla/specs/binding/mcp/grpc/config")
@@ -100,6 +100,66 @@ public class McpGrpcClientIT
     @Specification({
         "${mcp}/tools.list.with.summary/client"})
     public void shouldListToolsWithSummary() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${mcp}/tools.call/client",
+        "${http}/tools.call/server"})
+    public void shouldCallTool() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.route.method.yaml")
+    @Specification({
+        "${mcp}/tools.call.pinned/client",
+        "${http}/tools.call/server"})
+    public void shouldCallToolPinnedByRoute() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${mcp}/tools.call.error/client",
+        "${http}/tools.call.error/server"})
+    public void shouldCallToolWithError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.summary.yaml")
+    @Specification({
+        "${mcp}/tools.call.with.summary/client",
+        "${http}/tools.call/server"})
+    public void shouldCallToolWithSummary() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${mcp}/tools.call.10k/client",
+        "${http}/tools.call.10k/server"})
+    public void shouldCallTool10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${mcp}/tools.call.100k/client",
+        "${http}/tools.call.100k/server"})
+    public void shouldCallTool100k() throws Exception
     {
         k3po.finish();
     }

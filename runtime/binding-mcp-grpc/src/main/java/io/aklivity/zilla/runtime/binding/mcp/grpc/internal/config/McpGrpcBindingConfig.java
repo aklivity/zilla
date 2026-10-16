@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.mcp.grpc.internal.config;
 import static io.aklivity.zilla.runtime.binding.mcp.grpc.internal.types.McpCapabilities.SERVER_TOOLS;
 import static java.util.stream.Collectors.toList;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.function.ToLongBiFunction;
@@ -45,6 +46,8 @@ public final class McpGrpcBindingConfig
     public final GuardHandler guard;
     public final String exit;
     public final String catalogQname;
+    public final String scheme;
+    public final String authority;
     public final ToLongBiFunction<NamespaceConfig, BindingConfig> supplyBindingId;
 
     public transient McpGrpcCompositeConfig composite;
@@ -52,6 +55,7 @@ public final class McpGrpcBindingConfig
     private final EngineContext context;
     private final ToLongFunction<String> resolveId;
 
+    private ProtobufSchema schema;
     private McpGrpcToolRegistry registry;
     private byte[] toolsListJson;
 
@@ -70,6 +74,9 @@ public final class McpGrpcBindingConfig
         this.resolveId = binding.resolveId;
         this.supplyBindingId = context::supplyBindingId;
         this.exit = clientExit.indexOf(':') >= 0 ? clientExit : "%s:%s".formatted(binding.namespace, clientExit);
+        final URI server = URI.create(options.server);
+        this.scheme = server.getScheme();
+        this.authority = server.getAuthority();
         this.catalogQname = context.supplyQName(resolveId.applyAsLong(options.catalog.name));
 
         GuardHandler guard = null;
@@ -109,6 +116,12 @@ public final class McpGrpcBindingConfig
         return toolsListJson;
     }
 
+    public ProtobufSchema schema()
+    {
+        registry();
+        return schema;
+    }
+
     public List<String> denied()
     {
         final McpGrpcToolRegistry registry = registry();
@@ -139,7 +152,7 @@ public final class McpGrpcBindingConfig
     {
         if (registry == null)
         {
-            final ProtobufSchema schema = resolveSchema();
+            schema = resolveSchema();
             if (schema != null)
             {
                 registry = McpGrpcToolRegistry.of(schema, options.tools, routes);
