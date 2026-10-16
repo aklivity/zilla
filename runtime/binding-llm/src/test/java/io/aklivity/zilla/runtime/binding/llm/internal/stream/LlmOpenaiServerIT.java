@@ -1267,4 +1267,44 @@ public class LlmOpenaiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.guarded.route.yaml")
+    @Specification({
+        "${net}/openai.authorized/client",
+        "${app}/openai.authorized/server"})
+    public void shouldForwardOpenaiRequestRoutedByGuardAuthorization() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.content.type.charset/client",
+        "${app}/openai.content.type.charset/server"})
+    public void shouldDetectOpenaiDialectFromContentTypeWithParameters() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.rejected.error.code/client",
+        "${app}/openai.rejected.error.code/server"})
+    public void shouldPreserveOpenaiRejectedErrorCode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.rejected.streaming.error.code/client",
+        "${app}/openai.rejected.streaming.error.code/server"})
+    public void shouldPreserveOpenaiRejectedStreamingErrorCode() throws Exception
+    {
+        k3po.finish();
+    }
 }

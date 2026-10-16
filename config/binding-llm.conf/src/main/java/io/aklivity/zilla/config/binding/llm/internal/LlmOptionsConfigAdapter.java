@@ -176,7 +176,8 @@ public final class LlmOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
         URI uri = URI.create(server);
         String scheme = uri.getScheme();
         int port = uri.getPort() != -1 ? uri.getPort() : defaultPort(scheme);
-        String path = uri.getPath().isEmpty() ? DEFAULT_PATH : uri.getPath();
+        String trimmed = uri.getPath().replaceAll("/+$", "");
+        String path = trimmed.isEmpty() ? DEFAULT_PATH : trimmed;
 
         llmOptions.server()
             .scheme(scheme)

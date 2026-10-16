@@ -95,6 +95,27 @@ public final class JsonParserImpl implements JsonParserEx
     private long[] stepEnds = new long[16];
     private int stepCount;
     private int stepHead;
+    // true after a key or scalar fragment whose token is still open: the step it recorded stands for the whole
+    // token, so the continuing fragments record none and only extend that step's byte range
+    private boolean fragmentOpen;
+    // whether the fragment just delivered continued a token already open, as opposed to starting a new one
+    private boolean continuation;
+    // set when the sink reads the parse as original source bytes: a key fragment declined with consumed(0) is
+    // then left unconsumed for the caller to re-present, instead of its decoded characters being accumulated
+    private boolean verbatim;
+    // set while a member's value is being dropped: skipValue() consumes what the window holds and the rest
+    // follows as it arrives, every consumed byte discarded rather than left in the run for a flush to drain
+    private boolean skipping;
+    private int skipDepth;
+    private boolean skipOccupied;
+    // where the latest body token ended, and where the one before it ended: takeBackKey() puts the stream back to
+    // the end of the token ahead of a key, so the separator and whitespace that introduced the key come back too
+    private long tokenEnd;
+    private long tokenEndLine = 1;
+    private long tokenEndColumn = 1;
+    private long priorTokenEnd;
+    private long priorTokenEndLine = 1;
+    private long priorTokenEndColumn = 1;
     private final StepCursor cursor = new StepCursor();
     private final Block block = new Block();
 
@@ -205,6 +226,17 @@ public final class JsonParserImpl implements JsonParserEx
         trimLeadingSeparator = false;
         stepCount = 0;
         stepHead = 0;
+        fragmentOpen = false;
+        continuation = false;
+        verbatim = false;
+        skipping = false;
+        skipDepth = 0;
+        tokenEnd = 0;
+        tokenEndLine = 1;
+        tokenEndColumn = 1;
+        priorTokenEnd = 0;
+        priorTokenEndLine = 1;
+        priorTokenEndColumn = 1;
         lastEvent = null;
         currentEvent = null;
         docState = DocState.NOT_STARTED;
@@ -215,6 +247,9 @@ public final class JsonParserImpl implements JsonParserEx
     {
         assert docState == DocState.ENDED;
         tokenizer.nextDocument();
+        tokenEnd = tokenizer.streamOffset();
+        tokenEndLine = tokenizer.line();
+        tokenEndColumn = tokenizer.column();
         docState = DocState.NOT_STARTED;
         lastEvent = null;
         currentEvent = null;
@@ -236,7 +271,16 @@ public final class JsonParserImpl implements JsonParserEx
     public boolean hasNext()
     {
         boolean result;
-        if (segmentState == SegmentState.PENDING_START)
+        if (skipping)
+        {
+            skipPending();
+        }
+
+        if (skipping)
+        {
+            result = false;
+        }
+        else if (segmentState == SegmentState.PENDING_START)
         {
             result = true;
         }
@@ -284,7 +328,12 @@ public final class JsonParserImpl implements JsonParserEx
     @Override
     public Event next()
     {
-        if (tokenizer.event() == null && !tokenizerHasNext())
+        if (skipping)
+        {
+            skipPending();
+        }
+
+        if (skipping || tokenizer.event() == null && !tokenizerHasNext())
         {
             throw new JsonParsingException("No more events", location);
         }
@@ -302,6 +351,16 @@ public final class JsonParserImpl implements JsonParserEx
 
     @Override
     public JsonEvent nextEvent(
+        Mode mode)
+    {
+        if (skipping)
+        {
+            skipPending();
+        }
+        return skipping ? null : deliverEvent(mode);
+    }
+
+    private JsonEvent deliverEvent(
         Mode mode)
     {
         if (mode == Mode.SEGMENTED)
@@ -330,7 +389,14 @@ public final class JsonParserImpl implements JsonParserEx
         JsonEvent event;
         if (!hasNextEvent())
         {
-            // window consumed mid-document, or the document already ended: no event this pull
+            // window consumed mid-document, or the document already ended: no event this pull. A window that
+            // ends between tokens leaves the separator and whitespace it scanned past the last token unconsumed
+            // when a sink is reading the original bytes, which are otherwise drained ahead of the decision about
+            // the member the separator introduces
+            if (verbatim && docState == DocState.STARTED && segmentState == SegmentState.NONE)
+            {
+                tokenizer.rewindLookahead(tokenEnd, tokenEndLine, tokenEndColumn);
+            }
             event = null;
         }
         else if (docState == DocState.NOT_STARTED)
@@ -362,7 +428,22 @@ public final class JsonParserImpl implements JsonParserEx
             {
                 // record the run's structural step for getVerbatim(); segment events are not verbatim steps,
                 // and skipValue()'s internal next() never reaches here
-                appendStep(event);
+                continuation = fragmentOpen;
+                if (continuation)
+                {
+                    extendStep();
+                }
+                else
+                {
+                    appendStep(event);
+                    priorTokenEnd = tokenEnd;
+                    priorTokenEndLine = tokenEndLine;
+                    priorTokenEndColumn = tokenEndColumn;
+                }
+                tokenEnd = tokenizer.streamOffset();
+                tokenEndLine = tokenizer.line();
+                tokenEndColumn = tokenizer.column();
+                fragmentOpen = deferredBytes();
             }
             else if (mode == Mode.SEGMENTED && event == JsonEvent.START_DOCUMENT)
             {
@@ -402,7 +483,16 @@ public final class JsonParserImpl implements JsonParserEx
     public boolean hasNextEvent()
     {
         boolean result;
-        if (docState == DocState.NOT_STARTED)
+        if (skipping)
+        {
+            skipPending();
+        }
+
+        if (skipping)
+        {
+            result = false;
+        }
+        else if (docState == DocState.NOT_STARTED)
         {
             result = true;
         }
@@ -536,6 +626,10 @@ public final class JsonParserImpl implements JsonParserEx
         if (charScalar())
         {
             stringViewOffset += sourceUnits;
+            if (sourceUnits == 0 && verbatim && lastEvent == JsonEvent.KEY_NAME && fragmentOpen && !continuation)
+            {
+                takeBackKey();
+            }
         }
         else
         {
@@ -688,9 +782,8 @@ public final class JsonParserImpl implements JsonParserEx
         // SEPARATOR step the trimmed comma stood for so the block's structure matches its trimmed bytes
         if (trimLeadingSeparator)
         {
-            trimLeadingSeparator();
-            trimLeadingSeparator = false;
-            if (stepHead < stepCount && stepKinds[stepHead] == JsonStep.SEPARATOR)
+            trimLeadingSeparator = !trimLeadingSeparator();
+            if (!trimLeadingSeparator && stepHead < stepCount && stepKinds[stepHead] == JsonStep.SEPARATOR)
             {
                 stepHead++;
             }
@@ -734,38 +827,84 @@ public final class JsonParserImpl implements JsonParserEx
         // caller must not drop a member on a still-fragmenting key (deferredBytes() true) — the key is only
         // a prefix at that point, so the drop decision would be made on incomplete content.
         assert lastEvent == JsonEvent.KEY_NAME && !deferredBytes();
-        final boolean occupied = tokenizer.memberSeparated();
-        // drive the value's events internally so the caller never sees them: a scalar is one event, a container
-        // runs to its matching close
-        final Event value = next();
-        if (value == Event.START_OBJECT || value == Event.START_ARRAY)
+        skipOccupied = tokenizer.memberSeparated();
+        skipping = true;
+        skipDepth = 0;
+        skipPending();
+    }
+
+    // Drives the dropped value's events internally so the caller never sees them: a scalar is one token, a
+    // container runs to its matching close. A window that ends first leaves the skip pending, and the bytes
+    // consumed so far are discarded, so the end-of-window flush does not drain them. Once the value ends, the
+    // whole member is discarded by advancing the verbatim cursor to the value's end: when occupied this also
+    // drops the dropped member's leading separator (the surviving sibling carries its own); when the dropped
+    // member was the container's first, trimming the next survivor's now-dangling leading separator is deferred,
+    // and kept pending across a further drop that no survivor has been pulled between.
+    private void skipPending()
+    {
+        while (skipping && tokenizerHasNext())
         {
-            int depth = 1;
-            while (depth > 0)
+            final Event token = tokenizer.event();
+            tokenizer.clearEvent();
+            if (token == Event.START_OBJECT || token == Event.START_ARRAY)
             {
-                final Event token = next();
-                if (token == Event.START_OBJECT || token == Event.START_ARRAY)
-                {
-                    depth++;
-                }
-                else if (token == Event.END_OBJECT || token == Event.END_ARRAY)
-                {
-                    depth--;
-                }
+                skipDepth++;
             }
+            else if (token == Event.END_OBJECT || token == Event.END_ARRAY)
+            {
+                skipDepth--;
+            }
+            else
+            {
+                final CharSequence view = tokenizer.stringView();
+                stringViewOffset = view != null ? view.length() : 0;
+            }
+            skipping = skipDepth > 0 || tokenizer.fragmenting();
         }
-        // discard the whole member by advancing the verbatim cursor to the value's end: when occupied this also
-        // drops the dropped member's leading separator (the surviving sibling carries its own); when the dropped
-        // member was the container's first, defer trimming the next survivor's now-dangling leading separator,
-        // and keep that trim pending across a further drop that no survivor has been pulled between
+
         verbatimCursor = tokenizer.streamOffset();
-        trimLeadingSeparator |= !occupied;
+        if (!skipping)
+        {
+            tokenEnd = verbatimCursor;
+            tokenEndLine = tokenizer.line();
+            tokenEndColumn = tokenizer.column();
+            trimLeadingSeparator |= !skipOccupied;
+        }
+    }
+
+    @Override
+    public void verbatim()
+    {
+        verbatim = true;
+    }
+
+    // Takes back the first fragment of a key that a stage declined: its steps are unrecorded and the tokenizer
+    // goes back to the end of the previous token, so the fragment and the separator ahead of it are left
+    // unconsumed. Only a key's first fragment can be taken back, and the step it recorded is the last one,
+    // behind the separator step that introduced it when the key is not its container's first member.
+    private void takeBackKey()
+    {
+        assert lastEvent == JsonEvent.KEY_NAME && fragmentOpen && stepCount > stepHead;
+        stepCount--;
+        if (stepCount > stepHead && stepKinds[stepCount - 1] == JsonStep.SEPARATOR)
+        {
+            stepCount--;
+        }
+        tokenizer.rewindKey(priorTokenEnd, priorTokenEndLine, priorTokenEndColumn, verbatimCursor);
+        stringViewOffset = 0;
+        fragmentOpen = false;
+        tokenEnd = tokenizer.streamOffset();
+        tokenEndLine = tokenizer.line();
+        tokenEndColumn = tokenizer.column();
     }
 
     // Advances the verbatim cursor past the new-first survivor's leading whitespace and a single separator
     // comma if present — bounded to the parse frontier so an empty container (the dropped member had no
     // surviving sibling) consumes only its trailing whitespace, leaving the bare close to render {@code {}}.
-    private void trimLeadingSeparator()
+    // Returns whether the trim is settled: a byte past the whitespace was reached, so the comma is trimmed or
+    // was never there. When the parse frontier comes first, the survivor's comma is still to arrive and the
+    // trim stays pending.
+    private boolean trimLeadingSeparator()
     {
         final long frontier = tokenizer.streamOffset();
         final DirectBufferEx buffer = ownedInput.buffer();
@@ -773,10 +912,12 @@ public final class JsonParserImpl implements JsonParserEx
         {
             verbatimCursor++;
         }
-        if (verbatimCursor < frontier && buffer.getByte(bufferOffset(verbatimCursor)) == ',')
+        final boolean settled = verbatimCursor < frontier;
+        if (settled && buffer.getByte(bufferOffset(verbatimCursor)) == ',')
         {
             verbatimCursor++;
         }
+        return settled;
     }
 
     private static boolean isWhitespace(
@@ -805,6 +946,17 @@ public final class JsonParserImpl implements JsonParserEx
             append(JsonStep.SEPARATOR, end);
         }
         append(toStep(kind), end);
+    }
+
+    // A continuing fragment of a token whose step is already recorded adds no step -- a second step for the same
+    // token would be applied as a second member or element -- but the bytes it carries extend that step's token
+    // while it is still unpulled, keeping a bounded block's bytes and steps agreed on a token boundary.
+    private void extendStep()
+    {
+        if (stepHead < stepCount)
+        {
+            stepEnds[stepCount - 1] = tokenizer.streamOffset();
+        }
     }
 
     // records a framing step (no separator, no occupancy) at the current frontier; for END_DOCUMENT this makes

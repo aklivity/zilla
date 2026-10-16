@@ -19,9 +19,14 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.junit.Before;
@@ -33,7 +38,11 @@ import io.aklivity.zilla.config.engine.ConfigException;
 import io.aklivity.zilla.config.engine.GenericBindingConfig;
 import io.aklivity.zilla.config.engine.test.internal.model.config.TestModelConfig;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionType;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
@@ -245,6 +254,91 @@ public class LlmBindingConfigTest
                     .build()
                 .build()
             .build()), context);
+    }
+
+    @Test
+    public void shouldAuthorizeCredentialsTemplateWithLiteralRegexCharacters()
+    {
+        final GuardHandler guard = mock(GuardHandler.class);
+        when(context.supplyGuard(1L)).thenReturn(guard);
+        when(guard.reauthorize(anyLong(), anyLong(), anyLong(), eq("secret"))).thenReturn(0x1234L);
+
+        LlmBindingConfig binding = new LlmBindingConfig(binding(authorized("key.+({credentials})")), context);
+
+        LlmAuthorizationResult result = binding.authorize(1L, 2L, 3L, 0L, header("x-api-key", "key.+(secret)"), "x-api-key");
+
+        assertThat(result.authorized(), is(true));
+        assertThat(result.authorization(), is(0x1234L));
+    }
+
+    @Test
+    public void shouldNotAuthorizeCredentialsTemplateMatchingLiteralAsRegex()
+    {
+        final GuardHandler guard = mock(GuardHandler.class);
+        when(context.supplyGuard(1L)).thenReturn(guard);
+
+        LlmBindingConfig binding = new LlmBindingConfig(binding(authorized("key.{credentials}")), context);
+
+        LlmAuthorizationResult result = binding.authorize(1L, 2L, 3L, 0L, header("x-api-key", "keyXsecret"), "x-api-key");
+
+        assertThat(result.authorized(), is(false));
+        verify(guard, never()).reauthorize(anyLong(), anyLong(), anyLong(), any());
+    }
+
+    @Test
+    public void shouldAuthorizeCredentialsTemplateWithRepeatedPlus()
+    {
+        final GuardHandler guard = mock(GuardHandler.class);
+        when(context.supplyGuard(1L)).thenReturn(guard);
+        when(guard.reauthorize(anyLong(), anyLong(), anyLong(), eq("secret"))).thenReturn(0x1234L);
+
+        LlmBindingConfig binding = new LlmBindingConfig(binding(authorized("Token+{credentials}")), context);
+
+        LlmAuthorizationResult result = binding.authorize(1L, 2L, 3L, 0L, header("authorization", "Token+secret"),
+            "authorization");
+
+        assertThat(result.authorized(), is(true));
+    }
+
+    private static LlmOptionsConfig authorized(
+        String credentials)
+    {
+        return LlmOptionsConfig.builder()
+            .authorization()
+                .name("test0")
+                .credentials(credentials)
+                .build()
+            .build();
+    }
+
+    private static JsonEnvelope header(
+        String name,
+        String value)
+    {
+        return new JsonEnvelope()
+        {
+            @Override
+            public int count(
+                String key)
+            {
+                return name.equals(key) ? 1 : 0;
+            }
+
+            @Override
+            public DirectBufferEx get(
+                String key,
+                int index)
+            {
+                return name.equals(key) ? new UnsafeBufferEx(value.getBytes()) : null;
+            }
+
+            @Override
+            public void set(
+                String key,
+                DirectBufferEx buffer)
+            {
+            }
+        };
     }
 
     private static BindingConfig binding(

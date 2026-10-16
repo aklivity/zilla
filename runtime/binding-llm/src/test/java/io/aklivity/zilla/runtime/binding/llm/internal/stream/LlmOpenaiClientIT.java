@@ -1264,4 +1264,24 @@ public class LlmOpenaiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.rejected.error.code/client",
+        "${net}/openai.rejected.error.code/server"})
+    public void shouldPassOpenaiRejectedErrorCode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.rejected.streaming.error.code/client",
+        "${net}/openai.rejected.streaming.error.code/server"})
+    public void shouldPassOpenaiRejectedStreamingErrorCode() throws Exception
+    {
+        k3po.finish();
+    }
 }

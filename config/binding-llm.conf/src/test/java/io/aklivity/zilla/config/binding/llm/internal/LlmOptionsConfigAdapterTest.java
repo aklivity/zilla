@@ -293,6 +293,33 @@ public class LlmOptionsConfigAdapterTest
     }
 
     @Test
+    public void shouldReadServerOptionWithRootPathAsDefaultPath()
+    {
+        String text =
+                "{" +
+                    "\"server\": \"https://api.openai.com/\"" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.server.host, equalTo("api.openai.com"));
+        assertThat(options.server.path, equalTo("/v1"));
+    }
+
+    @Test
+    public void shouldReadServerOptionWithTrailingSlashStripped()
+    {
+        String text =
+                "{" +
+                    "\"server\": \"http://localhost:11434/aicomp/v1/\"" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.server.path, equalTo("/aicomp/v1"));
+    }
+
+    @Test
     public void shouldReadServerOptionWithDefaultHttpsPort()
     {
         String text =

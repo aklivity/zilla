@@ -14,9 +14,11 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.config;
 
+import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -46,6 +48,8 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 public class LlmBindingConfig
 {
     public static final String CREDENTIALS_PLACEHOLDER = "{credentials}";
+
+    private static final String CREDENTIALS_GROUP = "(?<credentials>[^\\s]+)";
 
     private static final Runnable NOOP = () ->
     {
@@ -83,7 +87,7 @@ public class LlmBindingConfig
             .filter(c -> !c.isEmpty())
             .orElse(null);
         this.credentialsPattern = credentials != null
-            ? Pattern.compile(credentials.replace(CREDENTIALS_PLACEHOLDER, "(?<credentials>[^\\s]+)"))
+            ? supplyCredentialsPattern(credentials)
             : null;
         this.guardrails = new LinkedHashMap<>();
         this.options.guardrails.forEach(guardrail -> guardrails.put(guardrail.name, supplyGuardrail(context, guardrail)));
@@ -170,6 +174,14 @@ public class LlmBindingConfig
         String model)
     {
         return guardrails.getOrDefault(model, LlmGuardrail.NONE);
+    }
+
+    private static Pattern supplyCredentialsPattern(
+        String template)
+    {
+        return Pattern.compile(Arrays.stream(template.split(Pattern.quote(CREDENTIALS_PLACEHOLDER), -1))
+            .map(Pattern::quote)
+            .collect(joining(CREDENTIALS_GROUP)));
     }
 
     private static LlmGuardrail supplyGuardrail(
