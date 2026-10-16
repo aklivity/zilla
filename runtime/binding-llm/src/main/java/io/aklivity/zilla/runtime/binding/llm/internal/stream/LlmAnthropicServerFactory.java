@@ -115,6 +115,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private static final String MESSAGE_TOOL_USE_ID_ORDER = "tool_use_id must precede content in a tool_result block";
     private static final String MESSAGE_PART_TYPE_ORDER = "type must be the first member of each content block";
     private static final String MESSAGE_ATTRIBUTE_TOO_LARGE = "a content block attribute value is too large";
+    private static final String MESSAGE_TOOL_DEFINITION_INVALID = "tools: Invalid tool definition";
+    private static final int CANONICAL_BUFFER_MAX = 4096;
 
     private static final int RESPONSE_ENCODE_PADDING = 128;
     private static final int RESPONSE_ESCAPE_EXPANSION = 6;
@@ -2092,6 +2094,14 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private String blockExtension;
         private int blockFlags;
 
+        private LlmSectionPipeline canonicalPipeline;
+        private final LlmSectionPipeline.Output canonicalOutput = this::onCanonicalData;
+        private boolean canonicalActive;
+        private boolean canonicalFinished;
+        private boolean canonicalFailed;
+        private long canonicalTraceId;
+        private long canonicalAuthorization;
+
         private LlmAnthropicServer(
             MessageConsumer network,
             long originId,
@@ -2415,8 +2425,9 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         {
             final int available = stream != null ? (int) Math.max(stream.initialAvailable(), 0L) : 0;
             final int room = modelOverride != null ? Math.min(modelOverride.capacity(), available >> 1) : 0;
+            final int expansion = canonicalActive ? available >> 2 : 0;
 
-            return available - room;
+            return available - room - expansion;
         }
 
         private void onModelOverride(
@@ -2697,9 +2708,95 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             blockFlags = Flags.INIT;
 
             blockAttributes.clear();
+
+            canonicalActive = type == LlmSectionType.TOOL_DEFINITION;
+
+            if (canonicalActive)
+            {
+                if (canonicalPipeline == null)
+                {
+                    canonicalPipeline = new LlmSectionPipeline(new LlmAnthropicToolDefinitionToCanonical(),
+                        new UnsafeBufferEx(new byte[CANONICAL_BUFFER_MAX]));
+                }
+
+                canonicalPipeline.begin(blockAttributes);
+                canonicalFinished = false;
+                canonicalFailed = false;
+            }
         }
 
         private void onDecodeData(
+            long traceId,
+            long authorization,
+            DirectBufferEx buffer,
+            int offset,
+            int length,
+            boolean last)
+        {
+            if (canonicalActive)
+            {
+                onDecodeCanonical(traceId, authorization, buffer, offset, length, last);
+            }
+            else
+            {
+                onDecodeSectionData(traceId, authorization, buffer, offset, length, last);
+            }
+        }
+
+        private void onDecodeCanonical(
+            long traceId,
+            long authorization,
+            DirectBufferEx buffer,
+            int offset,
+            int length,
+            boolean last)
+        {
+            canonicalTraceId = traceId;
+            canonicalAuthorization = authorization;
+
+            if (!canonicalFailed && !canonicalPipeline.feed(buffer, offset, length, last, canonicalOutput))
+            {
+                onCanonicalFailed();
+            }
+
+            if (last)
+            {
+                if (!canonicalFailed && !canonicalFinished)
+                {
+                    onDecodeSectionData(traceId, authorization, EMPTY_BUFFER, 0, 0, true);
+                }
+
+                canonicalActive = false;
+            }
+        }
+
+        private void onCanonicalData(
+            DirectBufferEx buffer,
+            int offset,
+            int length,
+            boolean done)
+        {
+            if (!canonicalFailed)
+            {
+                if (length > stream.initialAvailable())
+                {
+                    onCanonicalFailed();
+                }
+                else
+                {
+                    canonicalFinished |= done;
+                    onDecodeSectionData(canonicalTraceId, canonicalAuthorization, buffer, offset, length, done);
+                }
+            }
+        }
+
+        private void onCanonicalFailed()
+        {
+            canonicalFailed = true;
+            onDecodeInvalidRequest(canonicalTraceId, MESSAGE_TOOL_DEFINITION_INVALID);
+        }
+
+        private void onDecodeSectionData(
             long traceId,
             long authorization,
             DirectBufferEx buffer,

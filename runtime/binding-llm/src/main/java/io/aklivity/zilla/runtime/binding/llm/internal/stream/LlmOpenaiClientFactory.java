@@ -760,7 +760,11 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 {
                     if (payload != null && payload.sizeof() > 0)
                     {
-                        http.doReplayData(payload.buffer(), payload.offset(), payload.sizeof());
+                        http.doReplayData(payload.buffer(), payload.offset(), payload.sizeof(), fin);
+                    }
+                    else if (fin && http.replayPipeline != null)
+                    {
+                        http.doReplayData(EMPTY_OCTETS.buffer(), 0, 0, true);
                     }
                 }
                 else
@@ -3343,6 +3347,9 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private LlmSectionPipeline mediaUrlPipeline;
         private LlmSectionPipeline toolCallPipeline;
         private LlmSectionPipeline toolDefinitionPipeline;
+        private LlmSectionPipeline replayPipeline;
+        private final LlmSectionPipeline.Output replayOutput =
+            (buffer, offset, length, last) -> putReplay(buffer, offset, length);
         private final LlmSectionPipeline.Output mediaOutput = this::putMedia;
         private final LlmSectionPipeline.Output rawOutput = (buffer, offset, length, last) -> putRaw(buffer, offset, length);
         private String messageRole;
@@ -3452,6 +3459,33 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             sectionKind = KIND_DROPPED;
         }
 
+        private LlmSectionPipeline toolDefinitionPipeline()
+        {
+            if (toolDefinitionPipeline == null)
+            {
+                toolDefinitionPipeline = new LlmSectionPipeline(new LlmOpenaiToolDefinitionFromCanonical(),
+                    transformBuffer);
+            }
+
+            return toolDefinitionPipeline;
+        }
+
+        private void putReplay(
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            if (encodeSlotOffset + length <= encodeMax)
+            {
+                encodePool.buffer(encodeSlot).putBytes(encodeSlotOffset, buffer, offset, length);
+                encodeSlotOffset += length;
+            }
+            else
+            {
+                encodeFailed = true;
+            }
+        }
+
         private void doReplaySection(
             LlmSectionType type)
         {
@@ -3460,19 +3494,35 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 type == LlmSectionType.ASSISTANT_TEXT ||
                 type == LlmSectionType.ASSISTANT_REFUSAL ||
                 type == LlmSectionType.TOOL_RESULT;
+
+            replayPipeline = type == LlmSectionType.TOOL_DEFINITION ? toolDefinitionPipeline() : null;
+
+            if (replayPipeline != null)
+            {
+                replayPipeline.begin(sectionAttributes);
+            }
         }
 
         private void doReplayDialect()
         {
             replayEscaped = false;
+            replayPipeline = null;
         }
 
         private void doReplayData(
             DirectBufferEx buffer,
             int offset,
-            int length)
+            int length,
+            boolean fin)
         {
-            if (beginEncode(replayEscaped ? length * ESCAPE_EXPANSION : length))
+            if (replayPipeline != null)
+            {
+                if (beginEncode(0) && !replayPipeline.feed(buffer, offset, length, fin, replayOutput))
+                {
+                    encodeFailed = true;
+                }
+            }
+            else if (beginEncode(replayEscaped ? length * ESCAPE_EXPANSION : length))
             {
                 final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
 
@@ -3586,13 +3636,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             }
             else
             {
-                if (toolDefinitionPipeline == null)
-                {
-                    toolDefinitionPipeline = new LlmSectionPipeline(new LlmOpenaiToolDefinitionFromCanonical(),
-                        transformBuffer);
-                }
-
-                beginSectionStreaming(toolDefinitionPipeline, rawOutput);
+                beginSectionStreaming(toolDefinitionPipeline(), rawOutput);
             }
         }
 
