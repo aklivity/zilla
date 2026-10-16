@@ -803,6 +803,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.section.tool.definition.streaming/client",
+        "${net}/openai.section.tool.definition.streaming/server"})
+    public void shouldDecodeOpenaiSectionToolDefinitionStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.section.assistant.text.usage.streaming/client",
         "${net}/openai.section.assistant.text.usage.streaming/server"})
     public void shouldDecodeOpenaiResponseStreamingUsage() throws Exception
@@ -1742,6 +1751,15 @@ public class NetworkIT
         "${net}/anthropic.section.assistant.tool.call.streaming/client",
         "${net}/anthropic.section.assistant.tool.call.streaming/server"})
     public void shouldDecodeAnthropicResponseStreamingToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.tool.definition.streaming/client",
+        "${net}/anthropic.section.tool.definition.streaming/server"})
+    public void shouldDecodeAnthropicSectionToolDefinitionStreaming() throws Exception
     {
         k3po.finish();
     }

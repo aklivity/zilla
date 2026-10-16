@@ -1091,6 +1091,16 @@ public class LlmAnthropicServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/anthropic.section.tool.definition.streaming/client",
+        "${app}/anthropic.section.tool.definition.streaming/server"})
+    public void shouldDecodeAnthropicSectionToolDefinitionStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/anthropic.rejected.streaming/client",
         "${app}/anthropic.rejected.streaming/server"})
     public void shouldDecodeAnthropicRejectedStreaming() throws Exception

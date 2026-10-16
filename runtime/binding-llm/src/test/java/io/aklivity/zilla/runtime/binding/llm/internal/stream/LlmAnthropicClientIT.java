@@ -802,6 +802,16 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
+        "${app}/anthropic.section.tool.definition.streaming/client",
+        "${net}/anthropic.section.tool.definition.streaming/server"})
+    public void shouldEncodeAnthropicSectionToolDefinitionStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
         "${app}/anthropic.section.assistant.text.members/client",
         "${net}/anthropic.section.assistant.text.members/server"})
     public void shouldEncodeAnthropicSectionAssistantTextMembers() throws Exception

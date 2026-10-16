@@ -974,6 +974,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.section.tool.definition.streaming/client",
+        "${app}/openai.section.tool.definition.streaming/server"})
+    public void shouldDecodeOpenaiSectionToolDefinitionStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.section.assistant.text.usage.streaming/client",
         "${app}/openai.section.assistant.text.usage.streaming/server"})
     public void shouldDecodeOpenaiResponseStreamingUsage() throws Exception
@@ -1679,6 +1688,15 @@ public class ApplicationIT
         "${app}/anthropic.section.assistant.tool.call.streaming/client",
         "${app}/anthropic.section.assistant.tool.call.streaming/server"})
     public void shouldDecodeAnthropicResponseStreamingToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.tool.definition.streaming/client",
+        "${app}/anthropic.section.tool.definition.streaming/server"})
+    public void shouldDecodeAnthropicSectionToolDefinitionStreaming() throws Exception
     {
         k3po.finish();
     }

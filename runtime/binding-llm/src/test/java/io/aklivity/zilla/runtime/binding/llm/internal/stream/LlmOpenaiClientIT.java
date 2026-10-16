@@ -712,6 +712,16 @@ public class LlmOpenaiClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
+        "${app}/openai.section.tool.definition.streaming/client",
+        "${net}/openai.section.tool.definition.streaming/server"})
+    public void shouldEncodeOpenaiSectionToolDefinitionStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
         "${app}/openai.section.assistant.text.usage.streaming/client",
         "${net}/openai.section.assistant.text.usage.streaming/server"})
     public void shouldEncodeOpenaiSectionAssistantTextUsageStreaming() throws Exception
