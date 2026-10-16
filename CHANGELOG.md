@@ -156,7 +156,9 @@
 - fix\(binding-llm\): escape assistant reasoning text replayed into the openai response [\#2727](https://github.com/aklivity/zilla/pull/2727) ([jfallows](https://github.com/jfallows))
 - feat\(binding-llm\): convert or drop delimited reasoning in an assistant text section for another dialect [\#2729](https://github.com/aklivity/zilla/pull/2729) ([jfallows](https://github.com/jfallows))
 - fix\(binding-mcp\): serve initialize on every proxy when a kind has nothing to store [\#2730](https://github.com/aklivity/zilla/pull/2730) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mcp\): preserve element keys that fragment across windows in scheme exclusion [\#2731](https://github.com/aklivity/zilla/pull/2731) ([jfallows](https://github.com/jfallows))
 - fix\(binding-llm\): gate same-dialect response decoding on reply credit per event [\#2732](https://github.com/aklivity/zilla/pull/2732) ([jfallows](https://github.com/jfallows))
+- fix\(binding-llm\): authorize before routing, detect on media type, preserve upstream error code and type [\#2733](https://github.com/aklivity/zilla/pull/2733) ([jfallows](https://github.com/jfallows))
 
 ## [2.4.7](https://github.com/aklivity/zilla/tree/2.4.7) (2026-09-30)
 
