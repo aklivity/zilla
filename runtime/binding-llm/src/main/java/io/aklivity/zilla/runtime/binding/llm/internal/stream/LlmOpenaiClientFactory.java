@@ -2715,7 +2715,10 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 scanChoice = choiceIndex;
             }
 
-            scanFrom = contentFrom(eventFrom);
+            if (!contentContinued)
+            {
+                scanFrom = contentFrom(eventFrom);
+            }
 
             final int take = textAllowance(chars, deferred);
             final boolean finished = !deferred && take == length;
