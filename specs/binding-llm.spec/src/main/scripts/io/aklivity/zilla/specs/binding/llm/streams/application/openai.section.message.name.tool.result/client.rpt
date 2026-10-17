@@ -37,7 +37,7 @@ write zilla:data.ext ${llm:dataEx()
                            .message(0)
                            .attribute("tool-call-id", "call_1")
                            .build()}
-write "sunny"
+write "{\"text\":\"sunny\"}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
@@ -66,7 +66,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-read "Hello! How can I help you today?"
+read "{\"text\":\"Hello! How can I help you today?\"}"
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))

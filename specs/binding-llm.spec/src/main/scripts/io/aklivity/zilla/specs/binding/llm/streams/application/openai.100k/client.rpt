@@ -39,7 +39,9 @@ write zilla:data.ext ${llm:dataEx()
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-write ${core:randomBase64(100000)}
+write "{\"text\":\""
+     ${core:randomBase64(100000)}
+     "\"}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
@@ -68,7 +70,9 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-read ${core:randomBase64(100000)}
+read "{\"text\":\""
+     ${core:randomBase64(100000)}
+     "\"}"
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))

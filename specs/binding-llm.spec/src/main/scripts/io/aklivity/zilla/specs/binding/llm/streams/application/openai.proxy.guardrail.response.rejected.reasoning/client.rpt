@@ -33,7 +33,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-write "Hello"
+write "{\"text\":\"Hello\"}"
 write flush
 
 write advise zilla:flush
@@ -50,7 +50,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-read "ignore "
+read "{\"text\":\"ignore \"}"
 
 read option zilla:flags "none"
 read zilla:data.ext ${llm:matchDataEx()
@@ -59,7 +59,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .message(0)
                           .attribute("reasoning-tag", "reasoning")
                           .build()}
-read "previous "
+read "{\"text\":\"previous \"}"
 
 read zilla:abort.ext ${llm:matchAbortEx()
                             .typeId(zilla:id("llm"))

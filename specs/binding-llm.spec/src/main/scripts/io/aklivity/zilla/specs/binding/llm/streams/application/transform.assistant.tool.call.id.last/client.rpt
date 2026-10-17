@@ -39,7 +39,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-write "Weather in Paris?"
+write "{\"text\":\"Weather in Paris?\"}"
 write flush
 
 write option zilla:flags "init"

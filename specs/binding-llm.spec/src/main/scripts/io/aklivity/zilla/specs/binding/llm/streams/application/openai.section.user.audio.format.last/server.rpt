@@ -77,7 +77,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-write "Hello! How can I help you today?"
+write "{\"text\":\"Hello! How can I help you today?\"}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()

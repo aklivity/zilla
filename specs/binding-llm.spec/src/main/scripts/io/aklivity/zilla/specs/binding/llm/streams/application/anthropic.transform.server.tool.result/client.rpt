@@ -38,7 +38,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-write "Search"
+write "{\"text\":\"Search\"}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()

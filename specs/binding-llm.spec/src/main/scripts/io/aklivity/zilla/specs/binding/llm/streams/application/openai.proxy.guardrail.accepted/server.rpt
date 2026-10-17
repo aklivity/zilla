@@ -36,11 +36,11 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-read "Hello, "
+read "{\"text\":\"Hello, "
 read option zilla:flags "none"
 read "this section "
 read option zilla:flags "fin"
-read "is fine"
+read "is fine\"}"
 
 read advised zilla:flush
 
@@ -57,10 +57,10 @@ write zilla:data.ext ${llm:dataEx()
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-write "Hi, "
+write "{\"text\":\"Hi, "
 write flush
 write option zilla:flags "fin"
-write "how can I help?"
+write "how can I help?\"}"
 write flush
 
 write close

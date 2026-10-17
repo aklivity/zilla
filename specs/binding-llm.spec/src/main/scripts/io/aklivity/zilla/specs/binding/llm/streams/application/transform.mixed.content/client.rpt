@@ -39,7 +39,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-write "What is in this image?"
+write "{\"text\":\"What is in this image?\"}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()

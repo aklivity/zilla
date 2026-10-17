@@ -38,7 +38,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-write "Sky colour?"
+write "{\"text\":\"Sky colour?\"}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -46,7 +46,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("ASSISTANT_TEXT")
                           .message(1)
                           .build()}
-write "The sky is blue."
+write "{\"text\":\"The sky is blue.\"}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()

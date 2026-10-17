@@ -39,7 +39,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .attribute("tool-call-id", "toolu_1")
                           .attribute("is-error", "true")
                           .build()}
-read "city not found"
+read "{\"text\":\"city not found\"}"
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
@@ -68,7 +68,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-write "Hello! How can I help you today?"
+write "{\"text\":\"Hello! How can I help you today?\"}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()

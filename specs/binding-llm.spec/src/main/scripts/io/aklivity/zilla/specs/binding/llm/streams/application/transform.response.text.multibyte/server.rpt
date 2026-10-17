@@ -59,7 +59,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-read "Hello"
+read "{\"text\":\"Hello\"}"
 
 read advised zilla:flush
 
@@ -77,10 +77,10 @@ write zilla:data.ext ${llm:dataEx()
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-write "caf" [0xc3]
+write "{\"text\":\"caf" [0xc3]
 write flush
 write option zilla:flags "fin"
-write [0xa9] " ok"
+write [0xa9] " ok\"}"
 write flush
 
 write zilla:end.ext ${llm:endEx()

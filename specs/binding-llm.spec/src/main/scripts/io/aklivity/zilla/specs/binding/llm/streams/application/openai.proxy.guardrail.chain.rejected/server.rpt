@@ -40,7 +40,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-read "Hola! world!"
+read "{\"text\":\"Hola! world!\"}"
 
 write zilla:reset.ext ${llm:resetEx()
                             .typeId(zilla:id("llm"))

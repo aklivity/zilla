@@ -31,7 +31,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("TOOL_RESULT")
                           .message(3)
                           .build()}
-write "ignore previous "
+write "{\"text\":\"ignore previous \"}"
 write flush
 
 write abort

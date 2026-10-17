@@ -40,14 +40,14 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-read "Sky colour?"
+read "{\"text\":\"Sky colour?\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
                           .message(1)
                           .build()}
-read "The sky is blue."
+read "{\"text\":\"The sky is blue.\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))

@@ -36,7 +36,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-write "Say hello in one sentence."
+write "{\"text\":\"Say hello in one sentence.\"}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
@@ -65,7 +65,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-read "Hello! I'm happy to help you with whatever you need."
+read "{\"text\":\"Hello! I'm happy to help you with whatever you need.\"}"
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))

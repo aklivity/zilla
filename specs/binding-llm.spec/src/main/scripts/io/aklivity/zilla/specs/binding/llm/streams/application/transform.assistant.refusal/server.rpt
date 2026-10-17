@@ -43,7 +43,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("ASSISTANT_REFUSAL")
                           .message(0)
                           .build()}
-read "I cannot help with that"
+read "{\"text\":\"I cannot help with that\"}"
 
 read advised zilla:flush
 
