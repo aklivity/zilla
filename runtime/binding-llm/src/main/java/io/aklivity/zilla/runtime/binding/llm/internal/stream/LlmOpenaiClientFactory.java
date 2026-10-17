@@ -766,7 +766,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                     {
                         http.doReplayData(payload.buffer(), payload.offset(), payload.sizeof(), fin);
                     }
-                    else if (fin && http.replayPipeline != null)
+                    else if (fin && (http.replayPipeline != null || http.replayText != null))
                     {
                         http.doReplayData(EMPTY_OCTETS.buffer(), 0, 0, true);
                     }
@@ -3084,12 +3084,10 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 position = REASONING_PREFIX.length;
             }
 
-            for (int index = 0; index < length; index++)
-            {
-                position = putEscaped(buffer.getByte(offset + index), position);
-            }
+            escaper.wrap(pieceBuffer, position, pieceBytes.length);
+            escaper.writeSegment(buffer, offset, length);
 
-            return position;
+            return position + escaper.length();
         }
 
         private int encodeReasoningEnd()
@@ -3097,59 +3095,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             System.arraycopy(REASONING_SUFFIX, 0, pieceBytes, 0, REASONING_SUFFIX.length);
 
             return REASONING_SUFFIX.length;
-        }
-
-        private int putEscaped(
-            byte b,
-            int position)
-        {
-            int next = position;
-
-            switch (b)
-            {
-            case '"':
-            case '\\':
-                pieceBytes[next++] = '\\';
-                pieceBytes[next++] = b;
-                break;
-            case '\n':
-                pieceBytes[next++] = '\\';
-                pieceBytes[next++] = 'n';
-                break;
-            case '\r':
-                pieceBytes[next++] = '\\';
-                pieceBytes[next++] = 'r';
-                break;
-            case '\t':
-                pieceBytes[next++] = '\\';
-                pieceBytes[next++] = 't';
-                break;
-            case '\b':
-                pieceBytes[next++] = '\\';
-                pieceBytes[next++] = 'b';
-                break;
-            case '\f':
-                pieceBytes[next++] = '\\';
-                pieceBytes[next++] = 'f';
-                break;
-            default:
-                if (b >= 0 && b < 0x20)
-                {
-                    pieceBytes[next++] = '\\';
-                    pieceBytes[next++] = 'u';
-                    pieceBytes[next++] = '0';
-                    pieceBytes[next++] = '0';
-                    pieceBytes[next++] = (byte) Character.forDigit(b >> 4, 16);
-                    pieceBytes[next++] = (byte) Character.forDigit(b & 0xF, 16);
-                }
-                else
-                {
-                    pieceBytes[next++] = b;
-                }
-                break;
-            }
-
-            return next;
         }
 
         private int encodeText(
@@ -3554,6 +3499,9 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private LlmSectionPipeline toolCallPipeline;
         private LlmSectionPipeline toolDefinitionPipeline;
         private LlmSectionPipeline replayPipeline;
+        private LlmTextPipeline replayText;
+        private String reasoningTag;
+        private final LlmTextPipeline reasoningText = new LlmTextPipeline(this::putReasoning);
         private final LlmSectionPipeline.Output replayOutput =
             (buffer, offset, length, last) -> putReplay(buffer, offset, length);
         private final LlmSectionPipeline.Output rawOutput = (buffer, offset, length, last) -> putRaw(buffer, offset, length);
@@ -3760,12 +3708,67 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             {
                 replayPipeline.begin(sectionAttributes);
             }
+
+            if (type == LlmSectionType.ASSISTANT_REASONING)
+            {
+                openReasoning(sectionAttributes.reasoningTag());
+                reasoningText.begin();
+                replayText = reasoningText;
+            }
+            else
+            {
+                closeReasoning();
+                replayText = null;
+            }
         }
 
         private void doReplayDialect()
         {
+            closeReasoning();
             replayEscaped = false;
             replayPipeline = null;
+            replayText = null;
+        }
+
+        private void openReasoning(
+            String tag)
+        {
+            if (reasoningTag == null && beginEncode(tag != null ? tag.length() + 3 : LlmReasoningTags.DEFAULT.length() + 3))
+            {
+                reasoningTag = tag != null ? tag : LlmReasoningTags.DEFAULT;
+                putDelimiter("<");
+            }
+        }
+
+        private void closeReasoning()
+        {
+            if (reasoningTag != null && beginEncode(reasoningTag.length() + 3))
+            {
+                putDelimiter("</");
+                reasoningTag = null;
+            }
+        }
+
+        private void putDelimiter(
+            String prefix)
+        {
+            final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
+
+            encodeSlotOffset += slot.putStringWithoutLengthAscii(encodeSlotOffset, prefix);
+            encodeSlotOffset += slot.putStringWithoutLengthAscii(encodeSlotOffset, reasoningTag);
+            encodeSlotOffset += slot.putStringWithoutLengthAscii(encodeSlotOffset, ">");
+        }
+
+        private void putReasoning(
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
+
+            escaper.wrap(slot, encodeSlotOffset, encodeMax);
+            escaper.writeSegment(buffer, offset, length);
+            encodeSlotOffset += escaper.length();
         }
 
         private void doReplayData(
@@ -3774,7 +3777,14 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int length,
             boolean fin)
         {
-            if (replayPipeline != null)
+            if (replayText != null)
+            {
+                if (beginEncode(length * ESCAPE_EXPANSION) && !replayText.feed(buffer, offset, length, fin))
+                {
+                    encodeFailed = true;
+                }
+            }
+            else if (replayPipeline != null)
             {
                 if (beginEncode(0) && !replayPipeline.feed(buffer, offset, length, fin, replayOutput))
                 {

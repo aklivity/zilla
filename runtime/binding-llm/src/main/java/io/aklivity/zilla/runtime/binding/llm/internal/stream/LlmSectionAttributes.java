@@ -214,6 +214,12 @@ final class LlmSectionAttributes
         this.toolCallId = toolCallId;
     }
 
+    void reasoningTag(
+        String reasoningTag)
+    {
+        this.reasoningTag = reasoningTag;
+    }
+
     void isError(
         boolean isError)
     {

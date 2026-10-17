@@ -116,6 +116,9 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
     private static final int RESPONSE_ENCODE_PADDING = 128;
     private static final int RESPONSE_ESCAPE_EXPANSION = 6;
+    private static final int REASONING_ESCAPE_EXPANSION = 6;
+    private static final byte[] REASONING_PREFIX = "{\"text\":\"".getBytes(UTF_8);
+    private static final byte[] REASONING_SUFFIX = "\"}".getBytes(UTF_8);
     private static final int RESPONSE_ENCODE_SLACK = 2048;
 
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
@@ -1583,17 +1586,25 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
         if (event == JsonEvent.VALUE_STRING)
         {
-            if (!server.textOpen)
-            {
-                server.onDecodeBlock(server.textType, server.message, server.textToolCallId, server.contentFrom(eventFrom));
-                server.textOpen = true;
-            }
-
             final boolean fin = !parser.deferredBytes();
             final CharSequence chars = parser.getStringView();
             final int taken = chars.length();
-            final int length = encode(server, chars, fin);
-            server.onDecodeData(traceId, authorization, textBuffer, 0, length, fin);
+
+            if (server.textType == LlmSectionType.ASSISTANT_TEXT)
+            {
+                server.onDecodeScan(traceId, authorization, chars, fin, eventFrom);
+            }
+            else
+            {
+                if (!server.textOpen)
+                {
+                    server.onDecodeBlock(server.textType, server.message, server.textToolCallId, server.contentFrom(eventFrom));
+                    server.textOpen = true;
+                }
+
+                final int length = encode(server, chars, fin);
+                server.onDecodeData(traceId, authorization, textBuffer, 0, length, fin);
+            }
 
             if (fin)
             {
@@ -2129,7 +2140,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         return limit;
     }
 
-    private final class LlmOpenaiServer
+    private final class LlmOpenaiServer implements LlmReasoningScanner.Visitor
     {
         private final MessageConsumer network;
         private final long originId;
@@ -2233,6 +2244,15 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private int blockMessage;
         private int blockFlags;
         private LlmSectionPipeline toolCallPipeline;
+        private final LlmReasoningScanner scanner;
+        private LlmSectionType scanType;
+        private int scanFrom;
+        private int scanSections;
+        private byte[] pieceBytes;
+        private UnsafeBufferEx pieceBuffer;
+        private int pieceLength;
+        private long scanTraceId;
+        private long scanAuthorization;
         private LlmSectionPipeline blockPipeline;
         private final LlmSectionPipeline.Output blockOutput = (buffer, offset, length, last) ->
             onDecodeSectionData(decodeTraceId, decodeAuthorization, buffer, offset, length, last);
@@ -2257,6 +2277,9 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             this.contentType = contentType;
             this.deauthorize = deauthorize;
             this.parser = JsonEx.createParser();
+            this.scanner = new LlmReasoningScanner(LlmReasoningTags.DEFAULTS);
+            this.pieceBytes = new byte[1024];
+            this.pieceBuffer = new UnsafeBufferEx(pieceBytes);
             this.probe = new LlmOpenaiAttributeProbe();
             this.lookahead = true;
             this.holding = true;
@@ -2772,6 +2795,162 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             retained = 0;
             dialectActive = true;
             dialectOpen = false;
+        }
+
+        private void onDecodeScan(
+            long traceId,
+            long authorization,
+            CharSequence chars,
+            boolean fin,
+            int eventFrom)
+        {
+            if (!textOpen)
+            {
+                scanner.begin();
+                scanSections = 0;
+                textOpen = true;
+            }
+
+            scanTraceId = traceId;
+            scanAuthorization = authorization;
+            scanFrom = contentFrom(eventFrom);
+
+            final int length = encode(this, chars, fin);
+
+            scanner.accept(textBuffer, 0, length, this);
+
+            if (fin)
+            {
+                scanner.end(this);
+                closeScan();
+
+                if (scanSections == 0)
+                {
+                    openScan(LlmSectionType.ASSISTANT_TEXT);
+                    closeScan();
+                }
+            }
+        }
+
+        @Override
+        public void text(
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            if (scanType != null && scanType != LlmSectionType.ASSISTANT_TEXT)
+            {
+                closeScan();
+            }
+
+            if (scanType == null)
+            {
+                openScan(LlmSectionType.ASSISTANT_TEXT);
+            }
+
+            flushPiece(false);
+            reservePiece(length);
+            pieceBuffer.putBytes(0, buffer, offset, length);
+            pieceLength = length;
+        }
+
+        @Override
+        public void reasoningBegin(
+            String tag)
+        {
+            closeScan();
+        }
+
+        @Override
+        public void reasoning(
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            if (scanType != null && scanType != LlmSectionType.ASSISTANT_REASONING)
+            {
+                closeScan();
+            }
+
+            if (scanType == null)
+            {
+                openScan(LlmSectionType.ASSISTANT_REASONING);
+                blockAttributes.reasoningTag(scanner.tag());
+            }
+
+            flushPiece(false);
+            pieceLength = encodeReasoning(buffer, offset, length);
+        }
+
+        @Override
+        public void reasoningEnd()
+        {
+            closeScan();
+        }
+
+        private void openScan(
+            LlmSectionType type)
+        {
+            onDecodeBlock(type, message, null, scanFrom);
+            scanType = type;
+            scanSections++;
+        }
+
+        private void closeScan()
+        {
+            if (scanType != null)
+            {
+                if (scanType == LlmSectionType.ASSISTANT_REASONING)
+                {
+                    reservePiece(pieceLength + REASONING_SUFFIX.length);
+                    System.arraycopy(REASONING_SUFFIX, 0, pieceBytes, pieceLength, REASONING_SUFFIX.length);
+                    pieceLength += REASONING_SUFFIX.length;
+                }
+
+                flushPiece(true);
+                scanType = null;
+            }
+        }
+
+        private void flushPiece(
+            boolean last)
+        {
+            if (pieceLength > 0 || last)
+            {
+                onDecodeData(scanTraceId, scanAuthorization, pieceBuffer, 0, pieceLength, last);
+                pieceLength = 0;
+            }
+        }
+
+        private void reservePiece(
+            int capacity)
+        {
+            if (pieceBytes.length < capacity)
+            {
+                pieceBytes = Arrays.copyOf(pieceBytes, capacity);
+                pieceBuffer = new UnsafeBufferEx(pieceBytes);
+            }
+        }
+
+        private int encodeReasoning(
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            reservePiece(REASONING_PREFIX.length + length * REASONING_ESCAPE_EXPANSION);
+
+            int position = 0;
+
+            if (Flags.hasInit(blockFlags))
+            {
+                System.arraycopy(REASONING_PREFIX, 0, pieceBytes, 0, REASONING_PREFIX.length);
+                position = REASONING_PREFIX.length;
+            }
+
+            escaper.wrap(pieceBuffer, position, pieceBytes.length);
+            escaper.writeSegment(buffer, offset, length);
+
+            return position + escaper.length();
         }
 
         private void onDecodeBlock(

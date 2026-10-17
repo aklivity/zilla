@@ -524,6 +524,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.section.assistant.reasoning.history/client",
+        "${net}/openai.section.assistant.reasoning.history/server"})
+    public void shouldDecodeOpenaiSectionAssistantReasoningHistory() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.section.assistant.refusal/client",
         "${net}/openai.section.assistant.refusal/server"})
     public void shouldOpenaiSectionAssistantRefusal() throws Exception

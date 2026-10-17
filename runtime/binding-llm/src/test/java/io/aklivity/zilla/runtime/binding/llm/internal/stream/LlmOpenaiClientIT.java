@@ -360,6 +360,16 @@ public class LlmOpenaiClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
+        "${app}/openai.section.assistant.reasoning.history/client",
+        "${net}/openai.section.assistant.reasoning.history/server"})
+    public void shouldEncodeOpenaiSectionAssistantReasoningHistory() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
         "${app}/openai.section.assistant.refusal/client",
         "${net}/openai.section.assistant.refusal/server"})
     public void shouldEncodeOpenaiSectionAssistantRefusal() throws Exception

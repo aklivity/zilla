@@ -722,6 +722,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.section.assistant.reasoning.history/client",
+        "${app}/openai.section.assistant.reasoning.history/server"})
+    public void shouldDecodeOpenaiSectionAssistantReasoningHistory() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.section.assistant.refusal/client",
         "${app}/openai.section.assistant.refusal/server"})
     public void shouldOpenaiSectionAssistantRefusal() throws Exception
