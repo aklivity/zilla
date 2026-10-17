@@ -805,6 +805,17 @@ public class LlmOpenaiClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
+        "${app}/openai.rejected.streaming/client",
+        "${net}/openai.rejected.streaming/server"})
+    @ScriptProperty({"model \"gpt-4o\""})
+    public void shouldEncodeOpenaiRejectedStreamingModelOverride() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
         "${app}/openai.section.assistant.text.100k/client",
         "${net}/openai.section.assistant.text.100k/server"})
     public void shouldEncodeOpenaiSectionAssistantText100k() throws Exception

@@ -874,6 +874,17 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
+        "${app}/anthropic.rejected.streaming/client",
+        "${net}/anthropic.rejected.streaming/server"})
+    @ScriptProperty({"model \"claude-3-5-sonnet-20241022\""})
+    public void shouldEncodeAnthropicRejectedStreamingModelOverride() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
         "${app}/anthropic.section.assistant.tool.call.streaming/client",
         "${net}/anthropic.section.assistant.tool.call.streaming/server"})
     public void shouldEncodeAnthropicSectionAssistantToolCallStreaming() throws Exception

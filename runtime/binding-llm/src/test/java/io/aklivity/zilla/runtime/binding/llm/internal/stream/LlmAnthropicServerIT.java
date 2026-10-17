@@ -1191,6 +1191,17 @@ public class LlmAnthropicServerIT
 
     @Test
     @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.rejected.streaming/client",
+        "${app}/anthropic.rejected.streaming/server"})
+    @ScriptProperty({"model \"claude-3-5-sonnet-20241022\""})
+    public void shouldDecodeAnthropicRejectedStreamingModelOverride() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
     @ScriptProperty({"source \"anthropic\""})
     @Specification({
         "${net}/anthropic.transform.response.text/client",
