@@ -26,7 +26,6 @@ public final class LlmGuardrailStageConfig extends Config
 {
     public final List<String> sections;
     public final ModelConfig value;
-    public final int overlap;
 
     public static LlmGuardrailStageConfigBuilder<LlmGuardrailStageConfig> builder()
     {
@@ -41,11 +40,9 @@ public final class LlmGuardrailStageConfig extends Config
 
     LlmGuardrailStageConfig(
         List<String> sections,
-        ModelConfig value,
-        int overlap)
+        ModelConfig value)
     {
         this.sections = sections;
         this.value = value;
-        this.overlap = overlap;
     }
 }

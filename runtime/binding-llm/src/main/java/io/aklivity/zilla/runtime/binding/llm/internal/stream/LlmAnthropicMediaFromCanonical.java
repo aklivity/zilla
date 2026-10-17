@@ -53,7 +53,7 @@ final class LlmAnthropicMediaFromCanonical extends LlmToolTransform
         int depth,
         CharSequence key)
     {
-        final boolean inline = LlmSectionAttributes.SOURCE_INLINE.equals(attribute("source"));
+        final boolean inline = attributeEquals("source", LlmSectionAttributes.SOURCE_INLINE);
         int action;
 
         if (depth == 1 && matches(key, "type"))
@@ -103,23 +103,22 @@ final class LlmAnthropicMediaFromCanonical extends LlmToolTransform
     protected Status onDescend(
         int depth)
     {
-        final String source = attribute("source");
-        final String mediaType = attribute("media-type");
+        final String mediaType = attributeEquals("source", LlmSectionAttributes.SOURCE_INLINE) ? attribute("media-type") : null;
         Status status = Status.ADVANCED;
 
-        if (LlmSectionAttributes.SOURCE_INLINE.equals(source) && mediaType != null)
+        if (mediaType != null)
         {
             emit(JsonEvent.KEY_NAME, "type");
             emit(JsonEvent.VALUE_STRING, "base64");
             emit(JsonEvent.KEY_NAME, "media_type");
             emit(JsonEvent.VALUE_STRING, mediaType);
         }
-        else if (LlmSectionAttributes.SOURCE_URL.equals(source))
+        else if (attributeEquals("source", LlmSectionAttributes.SOURCE_URL))
         {
             emit(JsonEvent.KEY_NAME, "type");
             emit(JsonEvent.VALUE_STRING, "url");
         }
-        else if (LlmSectionAttributes.SOURCE_REFERENCE.equals(source))
+        else if (attributeEquals("source", LlmSectionAttributes.SOURCE_REFERENCE))
         {
             emit(JsonEvent.KEY_NAME, "type");
             emit(JsonEvent.VALUE_STRING, "file");

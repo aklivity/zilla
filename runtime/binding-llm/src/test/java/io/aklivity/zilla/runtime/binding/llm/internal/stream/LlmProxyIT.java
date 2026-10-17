@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.llm.internal.LlmConfigurationTest.LLM_GUARDRAIL_OVERLAP_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -28,6 +29,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class LlmProxyIT
 {
@@ -113,6 +115,28 @@ public class LlmProxyIT
     }
 
     @Test
+    @Configuration("proxy.guardrail.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.accepted.tool.call/client",
+        "${app}/openai.proxy.guardrail.response.accepted.tool.call/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayGuardedToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.rejected.tool.call/client",
+        "${app}/openai.proxy.guardrail.response.rejected.tool.call.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRejectGuardedResponseToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.proxy.guardrail.yaml")
     @Specification({
         "${net}/openai.proxy.guardrail.rejected/client",
@@ -178,7 +202,8 @@ public class LlmProxyIT
     }
 
     @Test
-    @Configuration("proxy.guardrail.overlap.yaml")
+    @Configuration("proxy.guardrail.mask.yaml")
+    @Configure(name = LLM_GUARDRAIL_OVERLAP_NAME, value = "8")
     @Specification({
         "${app}/openai.proxy.guardrail.transform.overlap/client",
         "${app}/openai.proxy.guardrail.transform.overlap.exit/server"})

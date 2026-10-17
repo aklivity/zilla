@@ -117,6 +117,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
     private final MutableDirectBufferEx guardrailBuffer;
+    private final int guardrailOverlap;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final BindingHandler streamFactory;
@@ -131,6 +132,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
         this.writeBuffer = requireNonNull(context.writeBuffer());
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.guardrailBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.guardrailOverlap = config.guardrailOverlap();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();
@@ -1309,22 +1311,17 @@ public final class LlmProxyFactory implements LlmStreamFactory
             this.frameAttributes = new LlmSectionAttributes();
 
             final Map<LlmSectionType, ModelPipeline> chains = new EnumMap<>(LlmSectionType.class);
-            final Map<LlmSectionType, Integer> overlaps = new EnumMap<>(LlmSectionType.class);
 
             for (LlmGuardrailStage stage : stages)
             {
                 final ModelPipeline pipeline = stage.handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE,
                     this::onResumed);
-                stage.sections.forEach(section ->
-                {
-                    chains.merge(section, pipeline, ModelPipeline::andThen);
-                    overlaps.merge(section, stage.overlap, Math::max);
-                });
+                stage.sections.forEach(section -> chains.merge(section, pipeline, ModelPipeline::andThen));
             }
 
             this.pipelines = new EnumMap<>(LlmSectionType.class);
             chains.forEach((section, chain) -> pipelines.put(section, LlmTextModelPipeline.objectShaped(section)
-                ? new LlmTextModelPipeline(chain, overlaps.get(section), guardrailBuffer.capacity() / 2)
+                ? new LlmTextModelPipeline(chain, guardrailOverlap, guardrailBuffer.capacity() / 2)
                 : new LlmRawRunPipeline(chain)));
         }
 

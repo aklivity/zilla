@@ -140,6 +140,22 @@ abstract class LlmToolTransform implements JsonTransform
         return value != null ? value.getStringWithoutLengthUtf8(0, value.capacity()) : null;
     }
 
+    protected final boolean attributeEquals(
+        String name,
+        String expected)
+    {
+        final DirectBufferEx value = control.envelope().get(name, 0);
+        final int length = expected.length();
+        boolean equal = value != null && value.capacity() == length;
+
+        for (int index = 0; equal && index < length; index++)
+        {
+            equal = value.getByte(index) == expected.charAt(index);
+        }
+
+        return equal;
+    }
+
     protected final String held()
     {
         return held;

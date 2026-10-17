@@ -313,13 +313,6 @@
                             "title": "Value",
                             "description": "The model the section payload is passed through.",
                             "$ref": "#/$defs/models"
-                        },
-                        "overlap":
-                        {
-                            "title": "Overlap",
-                            "description": "The number of trailing bytes of each streamed delta held back from a transforming model until more text arrives or the value ends.",
-                            "type": "integer",
-                            "minimum": 0
                         }
                     },
                     "required": [ "section", "value" ],

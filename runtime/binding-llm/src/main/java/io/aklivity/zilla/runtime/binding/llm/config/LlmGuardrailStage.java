@@ -23,15 +23,12 @@ public final class LlmGuardrailStage
 {
     public final Set<LlmSectionType> sections;
     public final ModelHandler handler;
-    public final int overlap;
 
     LlmGuardrailStage(
         Set<LlmSectionType> sections,
-        ModelHandler handler,
-        int overlap)
+        ModelHandler handler)
     {
         this.sections = sections;
         this.handler = handler;
-        this.overlap = overlap;
     }
 }

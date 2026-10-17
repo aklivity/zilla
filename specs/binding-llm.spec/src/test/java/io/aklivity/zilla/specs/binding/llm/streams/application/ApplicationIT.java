@@ -470,6 +470,33 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.proxy.guardrail.response.accepted.tool.call/client",
+        "${app}/openai.proxy.guardrail.response.accepted.tool.call/server"})
+    public void shouldGuardOpenaiResponseAcceptedToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.rejected.tool.call/client",
+        "${app}/openai.proxy.guardrail.response.rejected.tool.call/server"})
+    public void shouldGuardOpenaiResponseRejectedToolCallNet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.rejected.tool.call.exit/client",
+        "${app}/openai.proxy.guardrail.response.rejected.tool.call.exit/server"})
+    public void shouldGuardOpenaiResponseRejectedToolCallExit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.proxy.guardrail.response.rejected.streaming.exit/client",
         "${app}/openai.proxy.guardrail.response.rejected.streaming.exit/server"})
     public void shouldGuardOpenaiResponseRejectedStreamingExit() throws Exception

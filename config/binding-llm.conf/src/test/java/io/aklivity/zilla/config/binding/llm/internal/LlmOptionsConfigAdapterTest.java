@@ -142,64 +142,6 @@ public class LlmOptionsConfigAdapterTest
     }
 
     @Test
-    public void shouldReadGuardrailStageOverlap()
-    {
-        String text =
-                "{" +
-                    "\"guardrails\": {" +
-                        "\"gpt-4o\": {" +
-                            "\"response\": [" +
-                                "{ \"section\": \"assistant-text\", \"value\": \"test\", \"overlap\": 32 }" +
-                            "]" +
-                        "}" +
-                    "}" +
-                "}";
-
-        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
-
-        assertThat(options.guardrails.get(0).response.get(0).overlap, equalTo(32));
-    }
-
-    @Test
-    public void shouldDefaultGuardrailStageOverlapToZero()
-    {
-        String text =
-                "{" +
-                    "\"guardrails\": {" +
-                        "\"gpt-4o\": {" +
-                            "\"request\": [" +
-                                "{ \"section\": \"user-text\", \"value\": \"test\" }" +
-                            "]" +
-                        "}" +
-                    "}" +
-                "}";
-
-        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
-
-        assertThat(options.guardrails.get(0).request.get(0).overlap, equalTo(0));
-    }
-
-    @Test
-    public void shouldWriteGuardrailStageOverlap()
-    {
-        LlmOptionsConfig options = LlmOptionsConfig.builder()
-            .guardrail()
-                .name("gpt-4o")
-                .response()
-                    .section("assistant-text")
-                    .value(TestModelConfig.builder().length(0).build())
-                    .overlap(32)
-                    .build()
-                .build()
-            .build();
-
-        String text = jsonb.toJson(options);
-
-        assertThat(text, equalTo("{\"guardrails\":{\"gpt-4o\":{\"response\":" +
-            "[{\"section\":[\"assistant-text\"],\"value\":\"test\",\"overlap\":32}]}}}"));
-    }
-
-    @Test
     public void shouldWriteGuardrailRequest()
     {
         LlmOptionsConfig options = LlmOptionsConfig.builder()

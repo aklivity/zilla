@@ -27,7 +27,6 @@ public final class LlmGuardrailStageConfigBuilder<T> extends ConfigBuilder<T, Ll
 
     private List<String> sections;
     private ModelConfig value;
-    private int overlap;
 
     LlmGuardrailStageConfigBuilder(
         Function<LlmGuardrailStageConfig, T> mapper)
@@ -64,16 +63,9 @@ public final class LlmGuardrailStageConfigBuilder<T> extends ConfigBuilder<T, Ll
         return this;
     }
 
-    public LlmGuardrailStageConfigBuilder<T> overlap(
-        int overlap)
-    {
-        this.overlap = overlap;
-        return this;
-    }
-
     @Override
     public T build()
     {
-        return mapper.apply(new LlmGuardrailStageConfig(List.copyOf(sections), value, overlap));
+        return mapper.apply(new LlmGuardrailStageConfig(List.copyOf(sections), value));
     }
 }
