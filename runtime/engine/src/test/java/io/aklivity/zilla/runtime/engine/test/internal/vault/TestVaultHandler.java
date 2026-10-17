@@ -446,10 +446,19 @@ public final class TestVaultHandler implements VaultHandler
         List<String> aliases)
     {
         Map<String, SecretKey> matched = matchedWraps(aliases);
-        SecretKeyManager manager = !matched.isEmpty() ? new TestSecretKeyManager(matched) : null;
+        SecretKeyManager manager = !matched.isEmpty() ? new TestSecretKeyManager(matched, matched) : null;
         return manager != null
             ? () -> manager
             : delegate != null ? delegate.initSecretKeys(aliases) : null;
+    }
+
+    @Override
+    public SecretKeyManagerFactory initSecretKeys()
+    {
+        SecretKeyManager manager = wraps != null && !wraps.isEmpty() ? new TestSecretKeyManager(Map.of(), wraps) : null;
+        return manager != null
+            ? () -> manager
+            : delegate != null ? delegate.initSecretKeys() : null;
     }
 
     private Map<String, SecretKey> matchedWraps(
@@ -472,12 +481,15 @@ public final class TestVaultHandler implements VaultHandler
 
     private static final class TestSecretKeyManager implements SecretKeyManager
     {
-        private final Map<String, SecretKey> keys;
+        private final Map<String, SecretKey> wrapKeys;
+        private final Map<String, SecretKey> unwrapKeys;
 
         private TestSecretKeyManager(
-            Map<String, SecretKey> keys)
+            Map<String, SecretKey> wrapKeys,
+            Map<String, SecretKey> unwrapKeys)
         {
-            this.keys = keys;
+            this.wrapKeys = wrapKeys;
+            this.unwrapKeys = unwrapKeys;
         }
 
         @Override
@@ -489,7 +501,7 @@ public final class TestVaultHandler implements VaultHandler
             MutableDirectBufferEx dst,
             int dstIndex)
         {
-            SecretKey secretKey = keys.get(keyName);
+            SecretKey secretKey = wrapKeys.get(keyName);
             int written = -1;
 
             if (secretKey != null)
@@ -518,7 +530,7 @@ public final class TestVaultHandler implements VaultHandler
             int dstIndex)
         {
             String keyName = nameOf(bytes, index, length);
-            SecretKey secretKey = keyName != null ? keys.get(keyName) : null;
+            SecretKey secretKey = keyName != null ? unwrapKeys.get(keyName) : null;
             int written = -1;
 
             if (secretKey != null)

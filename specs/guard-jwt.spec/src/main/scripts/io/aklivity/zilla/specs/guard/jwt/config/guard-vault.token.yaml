@@ -1,0 +1,53 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+---
+name: test
+vaults:
+  vault0:
+    type: test
+    options:
+      wrap:
+        alias: tenant-1
+        entry: |
+          -----BEGIN SECRET KEY-----
+          jOl3tg1ZDuqTrzB7WOVaUOEoezst8sz/ywPPbsGE8bA=
+          -----END SECRET KEY-----
+guards:
+  jwt0:
+    type: jwt
+    vault: vault0
+    options:
+      issuer: http://localhost:8080
+      audience: https://api.aklivity.com
+      keys: []
+      attributes:
+        site: website
+bindings:
+  net0:
+    type: test
+    kind: server
+    options:
+      authorization:
+        jwt0:
+          expectIdentity: alice
+          attributes:
+            site: http://example.com
+          credentials: eyJhbGciOiJpby5ha2xpdml0eS56aWxsYS52YXVsdC52MSIsImVuYyI6IkEyNTZHQ00ifQ.AAAACHRlbmFudC0xjLzpX-qMZXdeWEBnicav-1MF1E5IUaHWJ9IihxGRTciAM1WJ5H89L4L950U5INKKKldLdpc0hvpdz2re.VW_43ucvCXg1fUCl.orbcFe485xxCUgHFrRd8lWZZ9OmVR2ZK0C8F7tyXohuFPrtNr3tDJk7UBUvG8FloWm6x0AmcUsMyxJRKU6m8DAaT0CDYwomKvwNHEBzcH0XDtbtSamiQAm481EJvOxJiTCGhp2QJed0_y1nk8BvjefO8vtAw6f5yd0JgQtJ0rDQucfZuWdo_K65ipREbPCm-YYK5.GUTO4xZkbU4LIacD9qfhMg
+    routes:
+      - guarded:
+          jwt0:
+            - read
+        exit: app0

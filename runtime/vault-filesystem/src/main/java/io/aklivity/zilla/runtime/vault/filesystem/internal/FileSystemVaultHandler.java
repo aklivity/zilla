@@ -180,7 +180,21 @@ public class FileSystemVaultHandler implements VaultHandler
 
         if (!matched.isEmpty())
         {
-            SecretKeyManager manager = new FileSystemSecretKeyManager(new HashSet<>(matched));
+            SecretKeyManager manager = new FileSystemSecretKeyManager(new HashSet<>(matched), false);
+            factory = () -> manager;
+        }
+
+        return factory;
+    }
+
+    @Override
+    public SecretKeyManagerFactory initSecretKeys()
+    {
+        SecretKeyManagerFactory factory = null;
+
+        if (secrets != null && !secrets.entries.isEmpty())
+        {
+            SecretKeyManager manager = new FileSystemSecretKeyManager(Set.of(), true);
             factory = () -> manager;
         }
 
@@ -745,11 +759,14 @@ public class FileSystemVaultHandler implements VaultHandler
     private final class FileSystemSecretKeyManager implements SecretKeyManager
     {
         private final Set<String> permitted;
+        private final boolean unrestricted;
 
         private FileSystemSecretKeyManager(
-            Set<String> permitted)
+            Set<String> permitted,
+            boolean unrestricted)
         {
             this.permitted = permitted;
+            this.unrestricted = unrestricted;
         }
 
         @Override
@@ -825,7 +842,7 @@ public class FileSystemVaultHandler implements VaultHandler
                 {
                     FileSystemSecretEntryInfo entry = secrets.entry(bytes, nameOffset, nameLength);
 
-                    if (entry != null && permitted.contains(entry.name()))
+                    if (entry != null && (unrestricted || permitted.contains(entry.name())))
                     {
                         int versionOffset = nameOffset + nameLength;
                         int headerLength = (versionOffset - index) + PREFIX_LENGTH;

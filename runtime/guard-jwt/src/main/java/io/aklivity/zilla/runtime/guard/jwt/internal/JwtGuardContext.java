@@ -21,9 +21,11 @@ import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.config.engine.GuardConfig;
 import io.aklivity.zilla.config.guard.jwt.JwtOptionsConfig;
-import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.common.jwt.JweKeyManager;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
+import io.aklivity.zilla.runtime.engine.vault.SecretKeyManagerFactory;
+import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 final class JwtGuardContext implements GuardContext
 {
@@ -31,9 +33,10 @@ final class JwtGuardContext implements GuardContext
     private final LongSupplier supplyAuthorizedId;
     private final EngineContext context;
     private final JwtGuard parent;
+    private final long keyCacheExpiryMillis;
 
     JwtGuardContext(
-        Configuration config,
+        JwtGuardConfiguration config,
         EngineContext context,
         JwtGuard parent)
     {
@@ -41,6 +44,7 @@ final class JwtGuardContext implements GuardContext
         this.context = context;
         this.supplyAuthorizedId = context::supplyAuthorizedId;
         this.parent = parent;
+        this.keyCacheExpiryMillis = config.keyCacheExpiry().toMillis();
     }
 
     @Override
@@ -50,9 +54,24 @@ final class JwtGuardContext implements GuardContext
         JwtOptionsConfig options = (JwtOptionsConfig) guard.options;
         long guardId = guard.id;
         LongFunction<String> credentialer = sessionId -> parent.credentials(context.indexOf(sessionId), guardId, sessionId);
-        JwtGuardHandler handler = new JwtGuardHandler(options, context, supplyAuthorizedId, credentialer);
+        JweKeyManager encryption = guard.vault != null ? newEncryption(guard) : null;
+        JwtGuardHandler handler = new JwtGuardHandler(options, context, supplyAuthorizedId, credentialer, encryption);
         handlersById.put(guard.id, handler);
         return handler;
+    }
+
+    private JweKeyManager newEncryption(
+        GuardConfig guard)
+    {
+        VaultHandler vault = context.supplyVault(guard.vaultId);
+        SecretKeyManagerFactory factory = vault != null ? vault.initSecretKeys() : null;
+
+        if (factory == null)
+        {
+            throw new IllegalStateException("Unable to unwrap secret keys from vault: " + guard.vault);
+        }
+
+        return new VaultJweKeyManager(factory.getSecretKeyManager(), System::currentTimeMillis, keyCacheExpiryMillis);
     }
 
     @Override
