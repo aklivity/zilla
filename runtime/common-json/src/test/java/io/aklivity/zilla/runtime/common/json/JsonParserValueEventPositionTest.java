@@ -27,7 +27,7 @@ import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
-class JsonParserTokenBoundariesTest
+class JsonParserValueEventPositionTest
 {
     private static final String DOCUMENT = "{\"a\":{\"content\" : \"Hello, world\" , \"n\":1}}";
 
@@ -181,7 +181,8 @@ class JsonParserTokenBoundariesTest
     private static JsonParserEx parser(
         boolean boundaries)
     {
-        return JsonEx.createParser(Map.of(JsonParserEx.TOKEN_BOUNDARIES, boundaries));
+        return JsonEx.createParser(Map.of(JsonParserEx.VALUE_EVENT_POSITION,
+            boundaries ? JsonParserEx.ValueEventPosition.INCLUDE_QUOTES : JsonParserEx.ValueEventPosition.EXCLUDE_QUOTES));
     }
 
     private static int position(
