@@ -13,6 +13,8 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property model "gpt-4"
+
 connect "zilla://streams/net0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"

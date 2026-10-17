@@ -218,6 +218,17 @@ public class LlmOpenaiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.section.user.text/client",
+        "${app}/openai.section.user.text/server"})
+    @ScriptProperty({"model \"gpt-4o\""})
+    public void shouldDecodeOpenaiSectionUserTextModelOverride() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.section.user.text.empty/client",
         "${app}/openai.section.user.text.empty/server"})
     public void shouldDecodeOpenaiSectionUserTextEmpty() throws Exception

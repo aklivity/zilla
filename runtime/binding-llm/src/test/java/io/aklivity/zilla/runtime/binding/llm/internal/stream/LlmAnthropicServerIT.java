@@ -598,6 +598,17 @@ public class LlmAnthropicServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/anthropic.section.user.text/client",
+        "${app}/anthropic.section.user.text/server"})
+    @ScriptProperty({"model \"claude-3-5-sonnet-20241022\""})
+    public void shouldDecodeAnthropicSectionUserTextModelOverride() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/anthropic.section.user.text.empty/client",
         "${app}/anthropic.section.user.text.empty/server"})
     public void shouldDecodeAnthropicSectionUserTextEmpty() throws Exception

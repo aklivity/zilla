@@ -22,7 +22,7 @@ accepted
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("anthropic")
-                           .model("claude-3-opus-20240229")
+                           .model(model)
                            .build()}
 
 connected
