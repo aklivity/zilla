@@ -1685,6 +1685,24 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/anthropic.section.assistant.reasoning.streaming/client",
+        "${app}/anthropic.section.assistant.reasoning.streaming/server"})
+    public void shouldAnthropicSectionAssistantReasoningStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.assistant.reasoning.redacted.streaming/client",
+        "${app}/anthropic.section.assistant.reasoning.redacted.streaming/server"})
+    public void shouldAnthropicSectionAssistantReasoningRedactedStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/anthropic.rejected.streaming/client",
         "${app}/anthropic.rejected.streaming/server"})
     public void shouldDecodeAnthropicResponseStreamingError() throws Exception

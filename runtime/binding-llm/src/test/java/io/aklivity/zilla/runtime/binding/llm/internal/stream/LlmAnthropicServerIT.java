@@ -1101,6 +1101,26 @@ public class LlmAnthropicServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/anthropic.section.assistant.reasoning.streaming/client",
+        "${app}/anthropic.section.assistant.reasoning.streaming/server"})
+    public void shouldDecodeAnthropicSectionAssistantReasoningStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.assistant.reasoning.redacted.streaming/client",
+        "${app}/anthropic.section.assistant.reasoning.redacted.streaming/server"})
+    public void shouldDecodeAnthropicSectionAssistantReasoningRedactedStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/anthropic.section.assistant.tool.call.streaming/client",
         "${app}/anthropic.section.assistant.tool.call.streaming/server"})
     public void shouldDecodeAnthropicSectionAssistantToolCallStreaming() throws Exception
@@ -1191,6 +1211,17 @@ public class LlmAnthropicServerIT
         "${net}/anthropic.transform.response.reasoning/client",
         "${app}/transform.response.reasoning/server"})
     public void shouldTransformResponseReasoningFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
+        "${net}/anthropic.transform.response.streaming.reasoning/client",
+        "${app}/transform.response.reasoning/server"})
+    public void shouldTransformResponseStreamingReasoningFromAnthropic() throws Exception
     {
         k3po.finish();
     }

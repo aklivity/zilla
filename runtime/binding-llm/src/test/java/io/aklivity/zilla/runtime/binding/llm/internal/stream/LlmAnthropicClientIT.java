@@ -782,6 +782,26 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
+        "${app}/anthropic.section.assistant.reasoning.streaming/client",
+        "${net}/anthropic.section.assistant.reasoning.streaming/server"})
+    public void shouldEncodeAnthropicSectionAssistantReasoningStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.assistant.reasoning.redacted.streaming/client",
+        "${net}/anthropic.section.assistant.reasoning.redacted.streaming/server"})
+    public void shouldEncodeAnthropicSectionAssistantReasoningRedactedStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
         "${app}/anthropic.rejected.streaming/client",
         "${net}/anthropic.rejected.streaming/server"})
     public void shouldEncodeAnthropicRejectedStreaming() throws Exception

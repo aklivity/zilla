@@ -151,6 +151,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final int NONE = -1;
     private static final int REPLACEMENT_CHARACTER = 0xFFFD;
     private static final int REASONING_CANONICAL_GROWTH = 3;
+    private static final int REASONING_ESCAPE_EXPANSION = 6;
+    private static final int REASONING_FRAMING = 48;
 
     private static final String BLOCK_TOOL_USE = "tool_use";
     private static final String BLOCK_OTHER = "other";
@@ -170,6 +172,11 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final String MEMBER_ERROR = "error";
     private static final String MEMBER_TEXT = "text";
     private static final String MEMBER_THINKING = "thinking";
+    private static final String MEMBER_SIGNATURE = "signature";
+    private static final String MEMBER_DATA = "data";
+    private static final String REASONING_TEXT = "text";
+    private static final String REASONING_SIGNATURE = "anthropic:signature";
+    private static final String REASONING_DATA = "anthropic:data";
     private static final String MEMBER_INPUT = "input";
     private static final String MEMBER_PARTIAL_JSON = "partial_json";
     private static final String TYPE_MESSAGE = "message";
@@ -583,6 +590,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private String toolId;
         private String toolName;
         private LlmSectionType textType;
+        private String reasoningMember;
 
         private boolean sectionOpen;
         private boolean contentContinued;
@@ -1857,7 +1865,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                     }
                     else if (MEMBER_THINKING.contentEquals(member))
                     {
-                        beginText(LlmSectionType.ASSISTANT_REASONING, decodeContentItem);
+                        beginReasoning(REASONING_TEXT, decodeContentItem);
                     }
                     else if (MEMBER_INPUT.contentEquals(member))
                     {
@@ -1959,6 +1967,10 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                         blockThen = decodeContentBlock;
                         decoder = decodeBlockName;
                     }
+                    else if (MEMBER_DATA.contentEquals(member) && BLOCK_REDACTED_THINKING.equals(blockType))
+                    {
+                        beginReasoning(REASONING_DATA, decodeContentBlock);
+                    }
                     else
                     {
                         skipMember(decodeContentBlock);
@@ -1982,7 +1994,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 {
                     final CharSequence type = parser.getStringView();
 
-                    blockType = BLOCK_TOOL_USE.contentEquals(type) ? BLOCK_TOOL_USE : BLOCK_OTHER;
+                    blockType = BLOCK_TOOL_USE.contentEquals(type) ? BLOCK_TOOL_USE
+                        : BLOCK_REDACTED_THINKING.contentEquals(type) ? BLOCK_REDACTED_THINKING : BLOCK_OTHER;
 
                     if (blockThen == decodeContentItem &&
                         (BLOCK_THINKING.contentEquals(type) || BLOCK_REDACTED_THINKING.contentEquals(type)))
@@ -2126,7 +2139,11 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                     }
                     else if (MEMBER_THINKING.contentEquals(member))
                     {
-                        beginText(LlmSectionType.ASSISTANT_REASONING, decodeDelta);
+                        beginReasoning(REASONING_TEXT, decodeDelta);
+                    }
+                    else if (MEMBER_SIGNATURE.contentEquals(member))
+                    {
+                        beginReasoning(REASONING_SIGNATURE, decodeDelta);
                     }
                     else if (MEMBER_PARTIAL_JSON.contentEquals(member))
                     {
@@ -2744,6 +2761,14 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             decoder = decodeBlockText;
         }
 
+        private void beginReasoning(
+            String member,
+            LlmAnthropicResponseDecoder then)
+        {
+            reasoningMember = member;
+            beginText(LlmSectionType.ASSISTANT_REASONING, then);
+        }
+
         private void emitText(
             boolean deferred,
             int eventFrom)
@@ -3063,15 +3088,23 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             boolean last)
         {
             final int length = chars.length();
+            final boolean reasoning = sectionType == LlmSectionType.ASSISTANT_REASONING;
+            final int capacity = length * (reasoning ? REASONING_ESCAPE_EXPANSION : 3) + 8 +
+                (reasoning ? REASONING_FRAMING : 0);
 
-            if (textBytes.length < length * 3 + 8)
+            if (textBytes.length < capacity)
             {
-                textBytes = new byte[length * 3 + 8];
+                textBytes = new byte[capacity];
                 textBuffer = new UnsafeBufferEx(textBytes);
             }
 
             int position = 0;
             int index = 0;
+
+            if (reasoning && !sectionStarted)
+            {
+                position = putMember(reasoningMember, position);
+            }
 
             if (highSurrogate != 0 && length > 0)
             {
@@ -3122,7 +3155,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    position = putCodePoint(c, position);
+                    position = reasoning ? putEscaped(c, position) : putCodePoint(c, position);
                 }
             }
 
@@ -3132,7 +3165,87 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 highSurrogate = 0;
             }
 
+            if (reasoning && last)
+            {
+                textBytes[position++] = '"';
+                textBytes[position++] = '}';
+            }
+
             return position;
+        }
+
+        private int putMember(
+            String member,
+            int position)
+        {
+            int next = position;
+
+            textBytes[next++] = '{';
+            textBytes[next++] = '"';
+
+            for (int i = 0; i < member.length(); i++)
+            {
+                textBytes[next++] = (byte) member.charAt(i);
+            }
+
+            textBytes[next++] = '"';
+            textBytes[next++] = ':';
+            textBytes[next++] = '"';
+
+            return next;
+        }
+
+        private int putEscaped(
+            char c,
+            int position)
+        {
+            int next = position;
+
+            switch (c)
+            {
+            case '"':
+            case '\\':
+                textBytes[next++] = '\\';
+                textBytes[next++] = (byte) c;
+                break;
+            case '\n':
+                textBytes[next++] = '\\';
+                textBytes[next++] = 'n';
+                break;
+            case '\r':
+                textBytes[next++] = '\\';
+                textBytes[next++] = 'r';
+                break;
+            case '\t':
+                textBytes[next++] = '\\';
+                textBytes[next++] = 't';
+                break;
+            case '\b':
+                textBytes[next++] = '\\';
+                textBytes[next++] = 'b';
+                break;
+            case '\f':
+                textBytes[next++] = '\\';
+                textBytes[next++] = 'f';
+                break;
+            default:
+                if (c < 0x20)
+                {
+                    textBytes[next++] = '\\';
+                    textBytes[next++] = 'u';
+                    textBytes[next++] = '0';
+                    textBytes[next++] = '0';
+                    textBytes[next++] = (byte) Character.forDigit(c >> 4, 16);
+                    textBytes[next++] = (byte) Character.forDigit(c & 0xF, 16);
+                }
+                else
+                {
+                    next = putCodePoint(c, next);
+                }
+                break;
+            }
+
+            return next;
         }
 
         private int putCodePoint(

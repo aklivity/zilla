@@ -1748,6 +1748,24 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/anthropic.section.assistant.reasoning.streaming/client",
+        "${net}/anthropic.section.assistant.reasoning.streaming/server"})
+    public void shouldAnthropicSectionAssistantReasoningStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.assistant.reasoning.redacted.streaming/client",
+        "${net}/anthropic.section.assistant.reasoning.redacted.streaming/server"})
+    public void shouldAnthropicSectionAssistantReasoningRedactedStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/anthropic.rejected.streaming/client",
         "${net}/anthropic.rejected.streaming/server"})
     public void shouldDecodeAnthropicResponseStreamingError() throws Exception
@@ -2705,6 +2723,15 @@ public class NetworkIT
         "${net}/anthropic.transform.response.reasoning/client",
         "${net}/anthropic.transform.response.reasoning/server"})
     public void shouldAnthropicTransformResponseReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.streaming.reasoning/client",
+        "${net}/anthropic.transform.response.streaming.reasoning/server"})
+    public void shouldAnthropicTransformResponseStreamingReasoning() throws Exception
     {
         k3po.finish();
     }

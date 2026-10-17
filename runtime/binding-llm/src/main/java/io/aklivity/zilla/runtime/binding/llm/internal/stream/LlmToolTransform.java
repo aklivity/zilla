@@ -43,6 +43,7 @@ abstract class LlmToolTransform implements JsonTransform
     protected static final int PASS_VALUE = 10;
     protected static final int PASS_DATA_URI = 11;
     protected static final int STRIP_DATA_URI = 12;
+    protected static final int DELIVER_STRING = 13;
 
     protected static final int MODE_OBJECT = 0;
     protected static final int MODE_EXTRACT = 1;
@@ -74,6 +75,8 @@ abstract class LlmToolTransform implements JsonTransform
     private int pending;
     private boolean passing;
     private boolean passEscaped;
+    private boolean delivering;
+    private String delivered;
     private int passDepth;
     private boolean skipping;
     private int skipDepth;
@@ -111,6 +114,13 @@ abstract class LlmToolTransform implements JsonTransform
         int depth);
 
     protected void onBegin()
+    {
+    }
+
+    protected void deliver(
+        String member,
+        CharSequence chars,
+        boolean last)
     {
     }
 
@@ -237,6 +247,8 @@ abstract class LlmToolTransform implements JsonTransform
         pending = NONE;
         passing = false;
         passEscaped = false;
+        delivering = false;
+        delivered = null;
         skipping = false;
         holding = false;
         awaitingContent = false;
@@ -401,6 +413,10 @@ abstract class LlmToolTransform implements JsonTransform
         {
             status = hold();
         }
+        else if (delivering)
+        {
+            status = deliverChunk();
+        }
         else if (passing)
         {
             status = carry(event);
@@ -491,6 +507,10 @@ abstract class LlmToolTransform implements JsonTransform
             break;
         case HOLD_STRING:
             status = event == JsonEvent.VALUE_STRING ? hold() : Status.REJECTED;
+            break;
+        case DELIVER_STRING:
+            delivered = target;
+            status = event == JsonEvent.VALUE_STRING ? deliverChunk() : Status.REJECTED;
             break;
         case ESCAPE_OBJECT:
             if (event == JsonEvent.START_OBJECT)
@@ -733,6 +753,19 @@ abstract class LlmToolTransform implements JsonTransform
         control.consumed(source.getStringView().length());
 
         return Status.STARVED;
+    }
+
+    private Status deliverChunk()
+    {
+        final CharSequence view = source.getStringView();
+        final boolean deferred = source.deferredBytes();
+
+        deliver(delivered, view, !deferred);
+        control.consumed(view.length());
+
+        delivering = deferred;
+
+        return deferred ? Status.STARVED : Status.ADVANCED;
     }
 
     private Status hold()
