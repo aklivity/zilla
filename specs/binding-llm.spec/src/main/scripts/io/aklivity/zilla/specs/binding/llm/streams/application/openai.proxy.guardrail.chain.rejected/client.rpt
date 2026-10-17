@@ -31,7 +31,7 @@ connected
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-write "{\"model\":\"gpt-a\",\"messages\":[{\"role\":\"user\",\"content\":\""
+write "{\"model\":\"gpt-a\",\"messages\":[{\"role\":\"user\",\"content\":"
 write flush
 
 write zilla:data.ext ${llm:dataEx()

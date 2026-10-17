@@ -218,6 +218,26 @@ public class LlmOpenaiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.section.user.text.empty/client",
+        "${app}/openai.section.user.text.empty/server"})
+    public void shouldDecodeOpenaiSectionUserTextEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.assistant.text.empty/client",
+        "${app}/openai.section.assistant.text.empty/server"})
+    public void shouldDecodeOpenaiSectionAssistantTextEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.section.user.image/client",
         "${app}/openai.section.user.image/server"})
     public void shouldDecodeOpenaiSectionUserImage() throws Exception

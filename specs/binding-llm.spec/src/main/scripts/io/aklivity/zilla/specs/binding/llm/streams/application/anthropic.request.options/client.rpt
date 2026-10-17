@@ -28,7 +28,7 @@ connected
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-write "{\"model\":\"claude-3-opus-20240229\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\""
+write "{\"model\":\"claude-3-opus-20240229\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -43,7 +43,7 @@ write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
                           .build()}
-write "\"}]}],\"temperature\":0.5,\"top_p\":0.9,\"top_k\":40,\"max_tokens\":1024,\"stop_sequences\":[\"END\"],\"thinking\":{\"type\":\"enabled\",\"budget_tokens\":2048},\"container_id\":\"ctr_1\",\"mcp_servers\":[{\"type\":\"url\",\"url\":\"https://mcp.example.com\",\"name\":\"example\"}]}"
+write "}]}],\"temperature\":0.5,\"top_p\":0.9,\"top_k\":40,\"max_tokens\":1024,\"stop_sequences\":[\"END\"],\"thinking\":{\"type\":\"enabled\",\"budget_tokens\":2048},\"container_id\":\"ctr_1\",\"mcp_servers\":[{\"type\":\"url\",\"url\":\"https://mcp.example.com\",\"name\":\"example\"}]}"
 write flush
 write advise zilla:flush ${llm:dialectFlushEx()
                                .typeId(zilla:id("llm"))

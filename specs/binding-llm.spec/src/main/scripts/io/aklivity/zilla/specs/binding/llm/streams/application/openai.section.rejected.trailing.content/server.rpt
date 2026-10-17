@@ -30,7 +30,7 @@ connected
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-read "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\""
+read "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
@@ -43,7 +43,7 @@ read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
                           .build()}
-read "\"}]}"
+read "}]}"
 
 read aborted
 write aborted

@@ -521,6 +521,26 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
+        "${app}/anthropic.section.user.text.empty/client",
+        "${net}/anthropic.section.user.text.empty/server"})
+    public void shouldEncodeAnthropicSectionUserTextEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.assistant.text.empty/client",
+        "${net}/anthropic.section.assistant.text.empty/server"})
+    public void shouldEncodeAnthropicSectionAssistantTextEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
         "${app}/anthropic.section.user.text.100k/client",
         "${net}/anthropic.section.user.text.100k/server"})
     public void shouldEncodeAnthropicSectionUserText100k() throws Exception

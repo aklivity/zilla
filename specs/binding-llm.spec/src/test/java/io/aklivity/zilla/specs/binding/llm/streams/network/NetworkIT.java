@@ -407,6 +407,24 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.section.user.text.empty/client",
+        "${net}/openai.section.user.text.empty/server"})
+    public void shouldOpenaiSectionUserTextEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.assistant.text.empty/client",
+        "${net}/openai.section.assistant.text.empty/server"})
+    public void shouldOpenaiSectionAssistantTextEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.request.response.format/client",
         "${net}/openai.request.response.format/server"})
     public void shouldOpenaiRequestResponseFormat() throws Exception
@@ -1301,6 +1319,24 @@ public class NetworkIT
         "${net}/anthropic.section.user.text/client",
         "${net}/anthropic.section.user.text/server"})
     public void shouldAnthropicSectionUserText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.user.text.empty/client",
+        "${net}/anthropic.section.user.text.empty/server"})
+    public void shouldAnthropicSectionUserTextEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.assistant.text.empty/client",
+        "${net}/anthropic.section.assistant.text.empty/server"})
+    public void shouldAnthropicSectionAssistantTextEmpty() throws Exception
     {
         k3po.finish();
     }
