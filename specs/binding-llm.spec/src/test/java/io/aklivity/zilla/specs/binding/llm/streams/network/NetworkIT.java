@@ -2828,6 +2828,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.transform.response.streaming.reasoning/client",
+        "${net}/openai.transform.response.streaming.reasoning/server"})
+    public void shouldTransformOpenaiResponseStreamingReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.transform.response.streaming.reasoning.tag/client",
         "${net}/openai.transform.response.streaming.reasoning.tag/server"})
     public void shouldTransformOpenaiResponseStreamingReasoningTag() throws Exception

@@ -2700,7 +2700,9 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                     openSection(textType, choiceIndex, null, null, NONE, contentFrom(eventFrom));
                 }
 
-                emitSection(textBuffer, 0, encodeText(chars, !deferred), !deferred);
+                final int encoded = encodeText(chars, !deferred);
+
+                emitSection(textBuffer, 0, encoded, !deferred);
             }
 
             if (!deferred)
@@ -2730,7 +2732,9 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
             if (chars.length() > 0 || highSurrogate != 0)
             {
-                scanner.accept(textBuffer, 0, encodeText(chars, !deferred), this);
+                final int decoded = encodeText(chars, !deferred);
+
+                scanner.accept(textBuffer, 0, decoded, this);
             }
 
             if (!deferred)
@@ -2811,7 +2815,9 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                         contentFrom(eventFrom));
                 }
 
-                emitSection(textBuffer, 0, encodeText(chars, !deferred), !deferred);
+                final int encoded = encodeText(chars, !deferred);
+
+                emitSection(textBuffer, 0, encoded, !deferred);
             }
 
             if (!deferred)

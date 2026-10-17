@@ -23,13 +23,11 @@
 # the call id as extension and the tool name as attributes); the last has the fin flag, possibly with an empty payload.
 # Fragment boundaries within a section are not significant. Sections are never interleaved.
 #
-# An assistant-text section may hold reasoning that a provider inlines in its text, delimited as <name>...</name>. The first
-# data frame that contains the opening delimiter carries the data extension with the reasoning-tag attribute set to the
-# name, such as reasoning. The section stays one contiguous run: the delimiters and the reasoning stay in the payload bytes
-# unchanged, so a consumer that reads the frames by flags sees the whole text. A consumer that converts or drops reasoning
-# for a client of another dialect reads the section from the frame with the attribute through its fin, for any number of
-# delimited blocks, and a block that is still open at the fin ends there. A frame before it holds no delimiter, and a section
-# with no such frame is plain text. A response to a client of the same dialect replays the payload bytes as they are.
+# An assistant-reasoning section holds the reasoning of the model as an object whose text member carries the reasoning text,
+# followed by any provider-specific members under a dialect prefix. When a provider delimits reasoning inline in its text,
+# as <name>...</name>, each delimited block is split out of the assistant-text into assistant-reasoning sections, and the
+# first data frame of each carries the reasoning-tag attribute set to the name, such as reasoning. A consumer renders the
+# delimiters from that attribute, or as think when it is absent, and ends a block at the next section of another type.
 #
 # Section types: assistant-text, assistant-reasoning, assistant-refusal (utf-8 text) and tool-call (the arguments).
 # The message is the index of the assistant message, 0 for the first.
@@ -77,15 +75,23 @@ read zilla:begin.ext ${llm:matchBeginEx()
 read option zilla:flags "init"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("ASSISTANT_TEXT")
+                          .type("ASSISTANT_REASONING")
                           .message(0)
                           .attribute("reasoning-tag", "reasoning")
                           .build()}
-read "<reasoning>Let me th"
+read "{\"text\":\"Let me th"
 read option zilla:flags "none"
-read "ink.</reaso"
+read "ink.\""
 read option zilla:flags "fin"
-read "ning>Hello"
+read "}"
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("ASSISTANT_TEXT")
+                          .message(0)
+                          .build()}
+read "Hello"
+
 read zilla:end.ext ${llm:matchEndEx()
                             .typeId(zilla:id("llm"))
                             .inputTokens(25)

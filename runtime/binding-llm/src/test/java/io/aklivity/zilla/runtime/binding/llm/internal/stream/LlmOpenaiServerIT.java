@@ -1151,6 +1151,17 @@ public class LlmOpenaiServerIT
     @Configuration("server.yaml")
     @ScriptProperty({"source \"openai\""})
     @Specification({
+        "${net}/openai.transform.response.streaming.reasoning/client",
+        "${app}/transform.response.reasoning/server"})
+    public void shouldTransformResponseStreamingReasoningFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai\""})
+    @Specification({
         "${net}/openai.transform.response.streaming.reasoning.tag/client",
         "${app}/transform.response.reasoning.tag/server"})
     public void shouldTransformResponseStreamingReasoningTagFromOpenai() throws Exception

@@ -3481,8 +3481,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final class LlmOpenaiStream
     {
         private final LlmOpenaiServer server;
-        private final LlmReasoningSplitter splitter;
-        private final LlmReasoningSplitter.Visitor reasoningVisitor;
         private final LlmTextPipeline reasoningText;
         private final LlmOpenaiReplay replayCopy = this::onReplayCopy;
         private final LlmOpenaiReplay replayEscape = this::onReplayEscape;
@@ -3520,22 +3518,10 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             this.eventAttributeOffsets = new int[EVENT_CAPACITY];
             this.eventAttributeLengths = new int[EVENT_CAPACITY];
             this.eventStart = NO_EVENT;
-            this.splitter = new LlmReasoningSplitter();
-            this.reasoningVisitor = this::onReasoning;
-            this.reasoningText = new LlmTextPipeline(this::onReplayText);
+            this.reasoningText = new LlmTextPipeline(this::onReasoningText);
+            this.delimiterBytes = new byte[64];
+            this.delimiterBuffer = new UnsafeBufferEx(delimiterBytes);
             this.replayData = replayCopy;
-        }
-
-        private void onReasoning(
-            boolean reasoning,
-            DirectBufferEx payload,
-            int payloadOffset,
-            int payloadLength)
-        {
-            if (!reasoning)
-            {
-                doEncodeData(payload, payloadOffset, payloadLength);
-            }
         }
 
         private long initialAvailable()
@@ -3732,7 +3718,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                             type,
                             section != null ? section.message() : -1,
                             replyAttributes.toolCallId(),
-                            replyAttributes.toolName());
+                            replyAttributes.toolName(),
+                            replyAttributes.reasoningTag());
                     }
                 }
                 else if (replyDialect)
@@ -3754,28 +3741,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             }
             else if (replyKind == LlmDataExFW.KIND_SECTION)
             {
-                final LlmDataExFW fragmentEx = data.extension().get(llmDataExRO::tryWrap);
-
-                fragmentAttributes.readFrom(fragmentEx != null && fragmentEx.kind() == LlmDataExFW.KIND_SECTION
-                    ? fragmentEx.section()
-                    : null);
-
-                if (Flags.hasInit(flags))
-                {
-                    splitter.begin();
-                }
-
-                if (fragmentAttributes.reasoningTag() != null)
-                {
-                    splitter.activate(fragmentAttributes.reasoningTag());
-                }
-
-                splitter.accept(payload.buffer(), payload.offset(), payload.sizeof(), reasoningVisitor);
-
-                if (Flags.hasFin(flags))
-                {
-                    splitter.end(reasoningVisitor);
-                }
+                doEncodeData(payload.buffer(), payload.offset(), payload.sizeof(), Flags.hasFin(flags));
 
                 if (Flags.hasFin(flags))
                 {
@@ -3826,6 +3792,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             }
             else
             {
+                closeEncodedReasoning();
                 doEncodeEnd();
                 doEncodeFinish(
                     llmEndEx != null ? llmEndEx.finishReason().asString() : null,
@@ -4191,6 +4158,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private static final int KIND_REFUSAL = 2;
         private static final int KIND_TOOL_CALL = 3;
         private static final int KIND_SKIPPED = 4;
+        private static final int KIND_REASONING = 5;
 
         private static final int MEMBER_NONE = 0;
         private static final int MEMBER_CONTENT = 1;
@@ -4239,6 +4207,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private int replayPosition;
         private LlmOpenaiReplay replayData;
         private String reasoningTag;
+        private byte[] delimiterBytes;
+        private UnsafeBufferEx delimiterBuffer;
         private boolean replyComplete;
 
         private void doEncodeBegin()
@@ -4270,9 +4240,19 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             LlmSectionType type,
             int message,
             String toolCallId,
-            String toolName)
+            String toolName,
+            String tag)
         {
-            kind = message == MESSAGE_FIRST && !messageClosed && envelope != ENVELOPE_TAIL ? kindOf(type) : KIND_SKIPPED;
+            final int next = message == MESSAGE_FIRST && !messageClosed && envelope != ENVELOPE_TAIL
+                ? kindOf(type)
+                : KIND_SKIPPED;
+
+            if (next != KIND_REASONING)
+            {
+                closeEncodedReasoning();
+            }
+
+            kind = next;
 
             if (!server.streaming && kind != KIND_SKIPPED && envelope == ENVELOPE_PRELUDE)
             {
@@ -4283,6 +4263,9 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             {
             case KIND_TEXT:
                 sectionText();
+                break;
+            case KIND_REASONING:
+                sectionReasoning(tag);
                 break;
             case KIND_REFUSAL:
                 sectionRefusal();
@@ -4298,19 +4281,96 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private void doEncodeData(
             DirectBufferEx payload,
             int payloadOffset,
-            int payloadLength)
+            int payloadLength,
+            boolean fin)
         {
-            if (kind == KIND_TEXT || kind == KIND_REFUSAL || kind == KIND_TOOL_CALL)
+            if (kind == KIND_REASONING)
             {
-                if (server.streaming)
+                reasoningText.feed(payload, payloadOffset, payloadLength, fin);
+            }
+            else if (payloadLength > 0 && (kind == KIND_TEXT || kind == KIND_REFUSAL || kind == KIND_TOOL_CALL))
+            {
+                onEncodeText(payload, payloadOffset, payloadLength);
+            }
+        }
+
+        private void onEncodeText(
+            DirectBufferEx payload,
+            int offset,
+            int length)
+        {
+            if (server.streaming)
+            {
+                dataChunk(payload, offset, length);
+            }
+            else
+            {
+                generator.writeSegment(payload, offset, length);
+            }
+        }
+
+        private void onReasoningText(
+            DirectBufferEx payload,
+            int offset,
+            int length)
+        {
+            if (replyDialect)
+            {
+                onReplayText(payload, offset, length);
+            }
+            else
+            {
+                onEncodeText(payload, offset, length);
+            }
+        }
+
+        private void sectionReasoning(
+            String tag)
+        {
+            if (!server.streaming)
+            {
+                sectionText();
+            }
+
+            if (kind != KIND_SKIPPED)
+            {
+                kind = KIND_REASONING;
+                reasoningText.begin();
+
+                if (reasoningTag == null)
                 {
-                    dataChunk(payload, payloadOffset, payloadLength);
-                }
-                else
-                {
-                    generator.writeSegment(payload, payloadOffset, payloadLength);
+                    reasoningTag = tag != null ? tag : LlmReasoningTags.DEFAULT;
+                    encodeDelimiter("<");
                 }
             }
+        }
+
+        private void closeEncodedReasoning()
+        {
+            if (reasoningTag != null)
+            {
+                kind = KIND_REASONING;
+                encodeDelimiter("</");
+                reasoningTag = null;
+            }
+        }
+
+        private void encodeDelimiter(
+            String prefix)
+        {
+            final int length = prefix.length() + reasoningTag.length() + 1;
+
+            if (delimiterBytes.length < length)
+            {
+                delimiterBytes = new byte[length];
+                delimiterBuffer = new UnsafeBufferEx(delimiterBytes);
+            }
+
+            int position = delimiterBuffer.putStringWithoutLengthAscii(0, prefix);
+            position += delimiterBuffer.putStringWithoutLengthAscii(position, reasoningTag);
+            position += delimiterBuffer.putStringWithoutLengthAscii(position, ">");
+
+            onEncodeText(delimiterBuffer, 0, position);
         }
 
         private void doEncodeEnd()
@@ -4649,6 +4709,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             return switch (type)
             {
             case ASSISTANT_TEXT -> KIND_TEXT;
+            case ASSISTANT_REASONING -> KIND_REASONING;
             case ASSISTANT_REFUSAL -> KIND_REFUSAL;
             case TOOL_CALL -> KIND_TOOL_CALL;
             default -> KIND_SKIPPED;
@@ -4821,7 +4882,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
             switch (kind)
             {
-            case KIND_TEXT:
+            case KIND_TEXT, KIND_REASONING:
                 generator.writeKey("content");
                 break;
             case KIND_REFUSAL:
