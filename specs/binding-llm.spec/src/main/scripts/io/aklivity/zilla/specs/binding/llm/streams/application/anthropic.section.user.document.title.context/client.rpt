@@ -37,7 +37,7 @@ write zilla:data.ext ${llm:dataEx()
                           .message(0)
                           .attribute("source", "url")
                           .build()}
-write "{\"type\":\"document\",\"source\":{\"type\":\"url\",\"url\":\"https://example.com/report.pdf\"},\"title\":\"Q3 report\",\"context\":\"Quarterly numbers\"}"
+write "{\"type\":\"file\",\"file\":{\"file_url\":\"https://example.com/report.pdf\"},\"anthropic:title\":\"Q3 report\",\"anthropic:context\":\"Quarterly numbers\"}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()

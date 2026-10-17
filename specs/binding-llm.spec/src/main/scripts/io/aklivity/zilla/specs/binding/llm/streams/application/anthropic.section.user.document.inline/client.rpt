@@ -38,7 +38,7 @@ write zilla:data.ext ${llm:dataEx()
                           .attribute("media-type", "application/pdf")
                           .attribute("source", "inline")
                           .build()}
-write "{\"type\":\"document\",\"source\":{\"type\":\"base64\",\"media_type\":\"application/pdf\",\"data\":\"JVBERi0=\"}}"
+write "{\"type\":\"file\",\"file\":{\"file_data\":\"data:application/pdf;base64,JVBERi0=\"}}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()

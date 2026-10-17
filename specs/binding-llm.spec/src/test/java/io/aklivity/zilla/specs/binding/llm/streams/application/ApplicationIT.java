@@ -2018,27 +2018,27 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/openai.transform.user.image/client",
-        "${app}/openai.transform.user.image/server"})
-    public void shouldCarryAnthropicTransformOpenaiUserImage() throws Exception
+        "${app}/transform.user.image/client",
+        "${app}/transform.user.image/server"})
+    public void shouldTransformUserImage() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/openai.transform.user.document.reference/client",
-        "${app}/openai.transform.user.document.reference/server"})
-    public void shouldCarryAnthropicTransformOpenaiUserDocumentReference() throws Exception
+        "${app}/transform.user.document.reference/client",
+        "${app}/transform.user.document.reference/server"})
+    public void shouldTransformUserDocumentReference() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/openai.transform.mixed.content/client",
-        "${app}/openai.transform.mixed.content/server"})
-    public void shouldCarryAnthropicTransformOpenaiMixedContent() throws Exception
+        "${app}/transform.mixed.content/client",
+        "${app}/transform.mixed.content/server"})
+    public void shouldTransformMixedContent() throws Exception
     {
         k3po.finish();
     }
@@ -2054,63 +2054,45 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/openai.transform.user.image.inline/client",
-        "${app}/openai.transform.user.image.inline/server"})
-    public void shouldCarryAnthropicTransformOpenaiUserImageInline() throws Exception
+        "${app}/transform.user.image.inline/client",
+        "${app}/transform.user.image.inline/server"})
+    public void shouldTransformUserImageInline() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/openai.transform.user.document.inline/client",
-        "${app}/openai.transform.user.document.inline/server"})
-    public void shouldCarryAnthropicTransformOpenaiUserDocumentInline() throws Exception
+        "${app}/transform.user.document.inline/client",
+        "${app}/transform.user.document.inline/server"})
+    public void shouldTransformUserDocumentInline() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/openai.transform.user.image.10k/client",
-        "${app}/openai.transform.user.image.10k/server"})
-    public void shouldCarryAnthropicTransformOpenaiUserImage10k() throws Exception
+        "${app}/transform.user.image.10k/client",
+        "${app}/transform.user.image.10k/server"})
+    public void shouldTransformUserImage10k() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/openai.transform.user.image.url.10k/client",
-        "${app}/openai.transform.user.image.url.10k/server"})
-    public void shouldCarryAnthropicTransformOpenaiUserImageUrl10k() throws Exception
+        "${app}/transform.user.image.url.10k/client",
+        "${app}/transform.user.image.url.10k/server"})
+    public void shouldTransformUserImageUrl10k() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/openai.transform.user.image.url.100k/client",
-        "${app}/openai.transform.user.image.url.100k/server"})
-    public void shouldCarryAnthropicTransformOpenaiUserImageUrl100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/anthropic.transform.user.image/client",
-        "${app}/anthropic.transform.user.image/server"})
-    public void shouldCarryOpenaiTransformAnthropicUserImage() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/anthropic.transform.mixed.content/client",
-        "${app}/anthropic.transform.mixed.content/server"})
-    public void shouldCarryOpenaiTransformAnthropicMixedContent() throws Exception
+        "${app}/transform.user.image.url.100k/client",
+        "${app}/transform.user.image.url.100k/server"})
+    public void shouldTransformUserImageUrl100k() throws Exception
     {
         k3po.finish();
     }
@@ -2129,60 +2111,6 @@ public class ApplicationIT
         "${app}/anthropic.transform.assistant.text.citations/client",
         "${app}/anthropic.transform.assistant.text.citations/server"})
     public void shouldCarryOpenaiTransformAnthropicAssistantTextCitations() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/anthropic.transform.user.image.inline/client",
-        "${app}/anthropic.transform.user.image.inline/server"})
-    public void shouldCarryOpenaiTransformAnthropicUserImageInline() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/anthropic.transform.user.document.inline/client",
-        "${app}/anthropic.transform.user.document.inline/server"})
-    public void shouldCarryOpenaiTransformAnthropicUserDocumentInline() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/anthropic.transform.user.document.reference/client",
-        "${app}/anthropic.transform.user.document.reference/server"})
-    public void shouldCarryOpenaiTransformAnthropicUserDocumentReference() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/anthropic.transform.user.image.10k/client",
-        "${app}/anthropic.transform.user.image.10k/server"})
-    public void shouldCarryOpenaiTransformAnthropicUserImage10k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/anthropic.transform.user.image.url.10k/client",
-        "${app}/anthropic.transform.user.image.url.10k/server"})
-    public void shouldCarryOpenaiTransformAnthropicUserImageUrl10k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/anthropic.transform.user.image.url.100k/client",
-        "${app}/anthropic.transform.user.image.url.100k/server"})
-    public void shouldCarryOpenaiTransformAnthropicUserImageUrl100k() throws Exception
     {
         k3po.finish();
     }

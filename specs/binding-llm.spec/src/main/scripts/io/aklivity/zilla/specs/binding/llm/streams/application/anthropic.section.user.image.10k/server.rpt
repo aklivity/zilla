@@ -39,7 +39,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .attribute("media-type", "image/png")
                           .attribute("source", "inline")
                           .build()}
-read "{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image/png\",\"data\":\""
+read "{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,"
      ${core:randomBase64(10000)}
      "\"}}"
 

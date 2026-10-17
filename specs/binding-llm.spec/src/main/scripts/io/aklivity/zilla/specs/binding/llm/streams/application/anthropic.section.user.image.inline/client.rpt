@@ -38,7 +38,7 @@ write zilla:data.ext ${llm:dataEx()
                           .attribute("media-type", "image/jpeg")
                           .attribute("source", "inline")
                           .build()}
-write "{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image/jpeg\",\"data\":\"/9j/4AAQ\"}}"
+write "{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/jpeg;base64,/9j/4AAQ\"}}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()

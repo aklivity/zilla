@@ -39,7 +39,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .attribute("source", "reference")
                           .attribute("ref-id", "file_011abc")
                           .build()}
-read "{\"type\":\"image\",\"source\":{\"type\":\"file\",\"file_id\":\"file_011abc\"}}"
+read "{\"type\":\"image_url\",\"image_url\":{\"file_id\":\"file_011abc\"}}"
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))

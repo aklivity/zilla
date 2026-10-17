@@ -39,7 +39,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .attribute("media-type", "image/jpeg")
                           .attribute("source", "inline")
                           .build()}
-read "{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image/jpeg\",\"data\":\"/9j/4AAQ\"}}"
+read "{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/jpeg;base64,/9j/4AAQ\"}}"
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))

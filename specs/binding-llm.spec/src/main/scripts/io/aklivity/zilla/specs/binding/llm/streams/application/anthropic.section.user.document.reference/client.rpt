@@ -38,7 +38,7 @@ write zilla:data.ext ${llm:dataEx()
                           .attribute("source", "reference")
                           .attribute("ref-id", "file_011abc")
                           .build()}
-write "{\"type\":\"document\",\"source\":{\"type\":\"file\",\"file_id\":\"file_011abc\"}}"
+write "{\"type\":\"file\",\"file\":{\"file_id\":\"file_011abc\"}}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
