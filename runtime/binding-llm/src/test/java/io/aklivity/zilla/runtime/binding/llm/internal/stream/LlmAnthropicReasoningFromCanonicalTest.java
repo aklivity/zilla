@@ -26,6 +26,7 @@ public class LlmAnthropicReasoningFromCanonicalTest
     private static final String TEXT = "Let me think. ".repeat(400);
 
     private final LlmAnthropicReasoningFromCanonical reasoning = new LlmAnthropicReasoningFromCanonical();
+    private final LlmAnthropicReasoningFromCanonical unsigned = new LlmAnthropicReasoningFromCanonical(true);
     private final LlmAnthropicReasoningToCanonical canonical = new LlmAnthropicReasoningToCanonical();
 
     @Test
@@ -66,6 +67,30 @@ public class LlmAnthropicReasoningFromCanonicalTest
         assertTransforms(reasoning,
             json("{'openai:note':'x','anthropic:cache_control':{'type':'ephemeral'},'text':'t'}"),
             json("{'cache_control':{'type':'ephemeral'},'type':'thinking','thinking':'t'}"));
+    }
+
+    @Test
+    public void shouldAddEmptySignatureToUnsignedText()
+    {
+        assertTransforms(unsigned,
+            json("{'text':'Let me think.'}"),
+            json("{'type':'thinking','thinking':'Let me think.','signature':''}"));
+    }
+
+    @Test
+    public void shouldKeepSignatureWhenUnsignedModeHasOne()
+    {
+        assertTransforms(unsigned,
+            json("{'text':'Let me think.','anthropic:signature':'sig-1'}"),
+            json("{'type':'thinking','thinking':'Let me think.','signature':'sig-1'}"));
+    }
+
+    @Test
+    public void shouldNotAddSignatureToRedactedWhenUnsignedModeHasNone()
+    {
+        assertTransforms(unsigned,
+            json("{'anthropic:data':'opaque'}"),
+            json("{'type':'redacted_thinking','data':'opaque'}"));
     }
 
     @Test

@@ -3699,7 +3699,12 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private final LlmAnthropicServer server;
         private final LlmReasoningSplitter splitter;
         private final LlmReasoningSplitter.Visitor reasoningVisitor;
+        private final LlmSectionPipeline.Output reasoningOutput;
+        private final LlmSectionPipeline.Output replayOutput;
 
+        private LlmSectionPipeline reasoningPipeline;
+        private LlmSectionPipeline replayPipeline;
+        private LlmSectionPipeline replayReasoning;
         private MessageConsumer app;
         private long initialId;
         private long replyId;
@@ -3740,6 +3745,9 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             this.eventStart = NO_EVENT;
             this.splitter = new LlmReasoningSplitter();
             this.reasoningVisitor = this::doEncodeData;
+            this.reasoningOutput = (buffer, offset, length, last) ->
+                generator.writeSegment(buffer, offset, length, Completion.INCOMPLETE);
+            this.replayOutput = (buffer, offset, length, last) -> putReplay(buffer, offset, length);
         }
 
         private long initialAvailable()
@@ -3971,7 +3979,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
             if (replyDialect)
             {
-                doReplayData(payload.buffer(), payload.offset(), payload.sizeof(), Flags.hasFin(flags));
+                doReplayData(traceId, payload.buffer(), payload.offset(), payload.sizeof(), Flags.hasFin(flags));
             }
             else if (replyKind == LlmDataExFW.KIND_SECTION)
             {
@@ -3981,22 +3989,38 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                     ? fragmentEx.section()
                     : null);
 
-                if (Flags.hasInit(flags))
+                if (!textSection && kind == KIND_REASONING && !server.streaming)
                 {
-                    splitter.begin();
+                    if (!reasoningPipeline.feed(payload.buffer(), payload.offset(), payload.sizeof(), Flags.hasFin(flags),
+                        reasoningOutput))
+                    {
+                        server.cleanup(traceId);
+                    }
+
+                    if (Flags.hasFin(flags))
+                    {
+                        doEncodeEnd();
+                    }
                 }
-
-                if (fragmentAttributes.reasoningTag() != null)
+                else
                 {
-                    splitter.activate(fragmentAttributes.reasoningTag());
-                }
+                    if (Flags.hasInit(flags))
+                    {
+                        splitter.begin();
+                    }
 
-                splitter.accept(payload.buffer(), payload.offset(), payload.sizeof(), reasoningVisitor);
+                    if (fragmentAttributes.reasoningTag() != null)
+                    {
+                        splitter.activate(fragmentAttributes.reasoningTag());
+                    }
 
-                if (Flags.hasFin(flags))
-                {
-                    splitter.end(reasoningVisitor);
-                    doEncodeEnd();
+                    splitter.accept(payload.buffer(), payload.offset(), payload.sizeof(), reasoningVisitor);
+
+                    if (Flags.hasFin(flags))
+                    {
+                        splitter.end(reasoningVisitor);
+                        doEncodeEnd();
+                    }
                 }
             }
 
@@ -4857,21 +4881,34 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             String toolName)
         {
             blocks++;
-            generator.writeStartObject();
 
             switch (kind)
             {
             case KIND_TEXT:
-                generator.write("type", "text").writeKey("text");
+                generator.writeStartObject().write("type", "text").writeKey("text");
                 generator.writeStartEscaped();
                 break;
             case KIND_REASONING:
-                generator.write("type", "thinking").writeKey("thinking");
-                generator.writeStartEscaped();
+                if (textSection)
+                {
+                    generator.writeStartObject().write("type", "thinking").writeKey("thinking");
+                    generator.writeStartEscaped();
+                }
+                else
+                {
+                    if (reasoningPipeline == null)
+                    {
+                        reasoningPipeline = new LlmSectionPipeline(new LlmAnthropicReasoningFromCanonical(true),
+                            new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                    }
+
+                    reasoningPipeline.begin(replyAttributes);
+                }
                 break;
             default:
                 toolCalls++;
                 inputWritten = false;
+                generator.writeStartObject();
                 generator.write("type", "tool_use")
                     .write("id", toolCallId != null ? toolCallId : "")
                     .write("name", toolName != null ? toolName : "")
@@ -4888,7 +4925,14 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 generator.writeEndEscaped().writeEnd();
                 break;
             case KIND_REASONING:
-                generator.writeEndEscaped().write("signature", "").writeEnd();
+                if (textSection)
+                {
+                    generator.writeEndEscaped().write("signature", "").writeEnd();
+                }
+                else
+                {
+                    generator.writeSegment(EMPTY_BUFFER, 0, 0, Completion.COMPLETE);
+                }
                 break;
             default:
                 if (inputWritten)
@@ -5000,8 +5044,15 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         {
             replayEscaped = type == LlmSectionType.ASSISTANT_TEXT ||
                 type == LlmSectionType.ASSISTANT_REFUSAL ||
-                type == LlmSectionType.ASSISTANT_REASONING ||
+                type == LlmSectionType.ASSISTANT_REASONING && server.streaming ||
                 type == LlmSectionType.TOOL_CALL && server.streaming;
+
+            replayPipeline = type == LlmSectionType.ASSISTANT_REASONING && !server.streaming ? replayReasoningPipeline() : null;
+
+            if (replayPipeline != null)
+            {
+                replayPipeline.begin(replyAttributes);
+            }
 
             if (server.streaming && !eventOpen)
             {
@@ -5009,10 +5060,31 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             }
         }
 
+        private LlmSectionPipeline replayReasoningPipeline()
+        {
+            if (replayReasoning == null)
+            {
+                replayReasoning = new LlmSectionPipeline(new LlmAnthropicReasoningFromCanonical(),
+                    new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+            }
+
+            return replayReasoning;
+        }
+
+        private void putReplay(
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            copyBuffer.putBytes(replayPosition, buffer, offset, length);
+            replayPosition += length;
+        }
+
         private void doReplayDialect(
             LlmDialectDataExFW dialect)
         {
             replayEscaped = false;
+            replayPipeline = null;
 
             if (server.streaming && !eventOpen)
             {
@@ -5030,12 +5102,20 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         }
 
         private void doReplayData(
+            long traceId,
             DirectBufferEx payload,
             int offset,
             int length,
             boolean fin)
         {
-            if (length > 0)
+            if (replayPipeline != null)
+            {
+                if (!replayPipeline.feed(payload, offset, length, fin, replayOutput))
+                {
+                    server.cleanup(traceId);
+                }
+            }
+            else if (length > 0)
             {
                 if (replayEscaped)
                 {

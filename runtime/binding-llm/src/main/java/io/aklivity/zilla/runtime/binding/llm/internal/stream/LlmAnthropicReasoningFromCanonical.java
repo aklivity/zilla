@@ -23,13 +23,28 @@ final class LlmAnthropicReasoningFromCanonical extends LlmToolTransform
     private static final String TYPE_THINKING = "thinking";
     private static final String TYPE_REDACTED = "redacted_thinking";
 
-    private boolean typed;
+    private final boolean unsigned;
+
+    private String type;
+    private boolean signed;
+
+    LlmAnthropicReasoningFromCanonical()
+    {
+        this(false);
+    }
+
+    LlmAnthropicReasoningFromCanonical(
+        boolean unsigned)
+    {
+        this.unsigned = unsigned;
+    }
 
     @Override
     public void reset()
     {
         super.reset();
-        typed = false;
+        type = null;
+        signed = false;
     }
 
     @Override
@@ -52,6 +67,7 @@ final class LlmAnthropicReasoningFromCanonical extends LlmToolTransform
             if (action != DROP && matches(key, "anthropic:signature"))
             {
                 emitType(TYPE_THINKING);
+                signed = true;
             }
             else if (action != DROP && matches(key, "anthropic:data"))
             {
@@ -73,8 +89,14 @@ final class LlmAnthropicReasoningFromCanonical extends LlmToolTransform
     {
         Status status = Status.REJECTED;
 
-        if (typed)
+        if (type != null)
         {
+            if (unsigned && !signed && TYPE_THINKING.equals(type))
+            {
+                emit(JsonEvent.KEY_NAME, "signature");
+                emit(JsonEvent.VALUE_STRING, "");
+            }
+
             pass(JsonEvent.END_OBJECT);
             status = Status.ADVANCED;
         }
@@ -83,13 +105,13 @@ final class LlmAnthropicReasoningFromCanonical extends LlmToolTransform
     }
 
     private void emitType(
-        String type)
+        String blockType)
     {
-        if (!typed)
+        if (type == null)
         {
             emit(JsonEvent.KEY_NAME, "type");
-            emit(JsonEvent.VALUE_STRING, type);
-            typed = true;
+            emit(JsonEvent.VALUE_STRING, blockType);
+            type = blockType;
         }
     }
 }

@@ -150,9 +150,12 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
     private static final int NONE = -1;
     private static final int REPLACEMENT_CHARACTER = 0xFFFD;
+    private static final int REASONING_CANONICAL_GROWTH = 3;
 
     private static final String BLOCK_TOOL_USE = "tool_use";
     private static final String BLOCK_OTHER = "other";
+    private static final String BLOCK_THINKING = "thinking";
+    private static final String BLOCK_REDACTED_THINKING = "redacted_thinking";
     private static final String KEY_STOP_REASON = "stop_reason";
     private static final String MEMBER_TYPE = "type";
     private static final String MEMBER_ID = "id";
@@ -604,6 +607,12 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
         private int captureDepth;
         private int captureFrom;
+        private int blockFrom;
+        private LlmSectionPipeline capturePipeline;
+        private LlmSectionPipeline reasoningPipeline;
+        private final LlmSectionAttributes captureAttributes = new LlmSectionAttributes();
+        private final LlmSectionPipeline.Output captureOutput = (buffer, offset, length, last) ->
+            writeSection(buffer, offset, length, last);
 
         private LlmAnthropicStream(
             MessageConsumer app,
@@ -1288,12 +1297,12 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
             while (advanced && decoder != decodeEnd && !parseRejected)
             {
-                int window = Math.min(limit - progress, replyWindow());
+                int window = Math.min(limit - progress, replyWindow() / decodeGrowth());
 
                 if (window == 0 && limit > progress && encodeSlotOffset > 0 && replyCredit() > 0)
                 {
                     flushHeld();
-                    window = Math.min(limit - progress, replyWindow());
+                    window = Math.min(limit - progress, replyWindow() / decodeGrowth());
                 }
 
                 if (window > 0)
@@ -1326,6 +1335,11 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             decodeLimit = windowLimit;
             decodeInput = buffer;
             dialectFrom = offset;
+
+            if (decoder == decodeCapture)
+            {
+                captureFrom = offset;
+            }
 
             parser.wrap(buffer, offset, windowLimit, windowLast);
 
@@ -1372,7 +1386,12 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             final int pending = dialectActive ? position() - dialectFrom : 0;
 
-            return replyMax - (int) (replySeq - replyAck) - encodeSlotOffset - pending - parser.remaining();
+            return replyMax - (int) (replySeq - replyAck) - encodeSlotOffset - pending - parser.remaining() * decodeGrowth();
+        }
+
+        private int decodeGrowth()
+        {
+            return capturePipeline != null ? REASONING_CANONICAL_GROWTH : 1;
         }
 
         private void flushHeld()
@@ -1784,6 +1803,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                     blockType = null;
                     toolId = null;
                     toolName = null;
+                    blockFrom = position() - 1;
                     decoder = decodeContentItem;
                 }
                 else
@@ -1960,8 +1980,19 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
                 if (event == JsonEvent.VALUE_STRING && !parser.deferredBytes())
                 {
-                    blockType = BLOCK_TOOL_USE.contentEquals(parser.getStringView()) ? BLOCK_TOOL_USE : BLOCK_OTHER;
-                    decoder = blockThen;
+                    final CharSequence type = parser.getStringView();
+
+                    blockType = BLOCK_TOOL_USE.contentEquals(type) ? BLOCK_TOOL_USE : BLOCK_OTHER;
+
+                    if (blockThen == decodeContentItem &&
+                        (BLOCK_THINKING.contentEquals(type) || BLOCK_REDACTED_THINKING.contentEquals(type)))
+                    {
+                        beginReasoningCapture();
+                    }
+                    else
+                    {
+                        decoder = blockThen;
+                    }
                 }
                 else
                 {
@@ -2944,11 +2975,32 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             decoder = decodeCapture;
         }
 
+        private void beginReasoningCapture()
+        {
+            if (reasoningPipeline == null)
+            {
+                reasoningPipeline = new LlmSectionPipeline(new LlmAnthropicReasoningToCanonical(), transformBuffer);
+            }
+
+            captureThen = decodeContent;
+            captureDepth = 1;
+            captureFrom = blockFrom;
+            capturePipeline = reasoningPipeline;
+            capturePipeline.begin(captureAttributes);
+
+            closeSection();
+            openSection(LlmSectionType.ASSISTANT_REASONING, null, null, blockFrom);
+            sectionStarted = true;
+
+            decoder = decodeCapture;
+        }
+
         private void endCapture(
             DirectBufferEx buffer)
         {
             flushCapture(buffer, true);
 
+            capturePipeline = null;
             sectionOpen = false;
             dialectResume(position());
             decoder = captureThen;
@@ -2962,14 +3014,21 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
             if (end > captureFrom || fin)
             {
-                final int flags = sectionWritten
-                    ? fin ? Flags.FIN : Flags.NONE
-                    : fin ? Flags.COMPLETE : Flags.INIT;
+                if (capturePipeline != null)
+                {
+                    parseRejected |= !capturePipeline.feed(buffer, captureFrom, end - captureFrom, fin, captureOutput);
+                }
+                else
+                {
+                    final int flags = sectionWritten
+                        ? fin ? Flags.FIN : Flags.NONE
+                        : fin ? Flags.COMPLETE : Flags.INIT;
 
-                sectionWritten = true;
+                    sectionWritten = true;
 
-                doAppFrame(http.decodeTraceId, flags, false, false, sectionType, 0, sectionToolCallId, sectionToolName, buffer,
-                    captureFrom, end - captureFrom);
+                    doAppFrame(http.decodeTraceId, flags, false, false, sectionType, 0, sectionToolCallId, sectionToolName,
+                        buffer, captureFrom, end - captureFrom);
+                }
             }
 
             captureFrom = end;

@@ -82,7 +82,7 @@ write flush
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-write "{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3-opus-20240229\",\"content\":[{\"type\":\"thinking\",\"thinking\":\""
+write "{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3-opus-20240229\",\"content\":["
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -90,13 +90,13 @@ write zilla:data.ext ${llm:dataEx()
                           .type("ASSISTANT_REASONING")
                           .message(0)
                           .build()}
-write "Let me think about it."
+write "{\"text\":\"Let me think about it.\",\"anthropic:signature\":\"sig-1\"}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-write "\",\"signature\":\"sig-1\"},{\"type\":\"text\",\"text\":\""
+write ",{\"type\":\"text\",\"text\":\""
 write flush
 
 write zilla:data.ext ${llm:dataEx()

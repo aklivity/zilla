@@ -76,7 +76,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("ASSISTANT_REASONING")
                           .message(0)
                           .build()}
-write "Let me think about it."
+write "{\"text\":\"Let me think about it.\"}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
