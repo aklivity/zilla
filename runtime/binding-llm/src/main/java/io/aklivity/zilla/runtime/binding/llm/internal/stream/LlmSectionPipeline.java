@@ -29,8 +29,6 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 final class LlmSectionPipeline
 {
-    private static final int MIN_WINDOW = 64;
-
     @FunctionalInterface
     interface Output
     {
@@ -95,13 +93,6 @@ final class LlmSectionPipeline
             return true;
         }
 
-        if (!last && windowLength < MIN_WINDOW)
-        {
-            retain(buffer, offset, length);
-
-            return true;
-        }
-
         DirectBufferEx input = buffer;
         int progress = offset;
         int limit = offset + length;
@@ -154,16 +145,6 @@ final class LlmSectionPipeline
         }
 
         return status != Status.REJECTED;
-    }
-
-    private void retain(
-        DirectBufferEx buffer,
-        int offset,
-        int length)
-    {
-        reserve(tailLength + length);
-        buffer.getBytes(offset, window, tailLength, length);
-        tailLength += length;
     }
 
     private void reserve(

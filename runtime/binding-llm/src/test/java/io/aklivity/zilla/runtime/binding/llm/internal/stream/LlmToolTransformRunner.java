@@ -28,7 +28,7 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 final class LlmToolTransformRunner
 {
-    private static final int[] WINDOWS = {64, 65, 100, 128, 1000};
+    private static final int[] WINDOWS = {1, 7, 13, 64, 65, 100, 128, 1000};
     private static final int[] BOUNDS = {24, 40, 64, 4096};
     private static final int REJECT_BOUND = 4096;
 
