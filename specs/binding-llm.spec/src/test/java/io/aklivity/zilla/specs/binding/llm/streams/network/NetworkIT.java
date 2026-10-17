@@ -2378,6 +2378,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.section.assistant.reasoning.streaming.delta/client",
+        "${net}/openai.section.assistant.reasoning.streaming.delta/server"})
+    public void shouldStreamOpenaiSectionAssistantReasoningDelta() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.stream.options.absent/client",
         "${net}/openai.stream.options.absent/server"})
     public void shouldRelayOpenaiStreamOptionsAbsent() throws Exception

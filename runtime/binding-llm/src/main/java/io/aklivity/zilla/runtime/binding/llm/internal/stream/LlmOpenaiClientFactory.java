@@ -2764,6 +2764,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             String tag)
         {
             closeSection();
+            detachDialect(scanFrom);
         }
 
         @Override
@@ -2790,6 +2791,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         public void reasoningEnd()
         {
             closeSection();
+            detachDialect(scanFrom);
         }
 
         private void emitArguments(
@@ -2909,8 +2911,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int tool,
             int sectionFrom)
         {
-            flushDialect(sectionFrom, true, false);
-            dialectActive = false;
+            detachDialect(sectionFrom);
 
             sectionOpen = true;
             sectionStarted = false;
@@ -2921,6 +2922,13 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             sectionToolId = toolCallId;
             sectionToolName = toolName;
             sectionTag = null;
+        }
+
+        private void detachDialect(
+            int from)
+        {
+            flushDialect(from, true, false);
+            dialectActive = false;
         }
 
         private void closeSection()

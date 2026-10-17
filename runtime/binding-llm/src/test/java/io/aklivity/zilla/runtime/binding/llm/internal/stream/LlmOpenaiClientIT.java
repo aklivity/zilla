@@ -1149,6 +1149,16 @@ public class LlmOpenaiClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
+        "${app}/openai.section.assistant.reasoning.streaming.delta/client",
+        "${net}/openai.section.assistant.reasoning.streaming.delta/server"})
+    public void shouldStreamOpenaiSectionAssistantReasoningDelta() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
         "${app}/openai.section.assistant.text.reasoning/client",
         "${net}/openai.section.assistant.text.reasoning/server"})
     public void shouldEncodeOpenaiSectionAssistantTextReasoning() throws Exception
