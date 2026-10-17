@@ -572,6 +572,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
         private boolean sectionOpen;
         private boolean contentContinued;
+        private int contentTaken;
         private boolean sectionStarted;
         private boolean sectionWritten;
         private LlmSectionType sectionType;
@@ -2723,6 +2724,10 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             {
                 scanFrom = contentFrom(eventFrom);
             }
+            else if (contentTaken == 0)
+            {
+                scanFrom = eventFrom;
+            }
 
             final int take = textAllowance(chars, deferred);
             final boolean finished = !deferred && take == length;
@@ -2752,7 +2757,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 parser.consumed(take);
             }
 
-            contentContinued = !finished && (contentContinued || take > 0);
+            contentTaken = finished ? 0 : contentTaken + take;
+            contentContinued = !finished;
 
             return take < length;
         }
