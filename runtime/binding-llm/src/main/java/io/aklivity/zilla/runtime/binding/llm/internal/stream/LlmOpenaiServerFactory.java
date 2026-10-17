@@ -119,6 +119,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private static final int RESPONSE_ESCAPE_EXPANSION = 6;
     private static final int REASONING_ESCAPE_EXPANSION = 6;
     private static final int MIN_TEXT_INPUT = "\"content\":\"\"".length();
+    private static final String MEMBER_TEXT = "text";
     private static final byte[] REASONING_PREFIX = "{\"text\":\"".getBytes(UTF_8);
     private static final byte[] REASONING_SUFFIX = "\"}".getBytes(UTF_8);
     private static final int RESPONSE_ENCODE_SLACK = 2048;
@@ -178,7 +179,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final MutableDirectBufferEx extBuffer;
     private final Matcher contentTypeMatcher;
     private final MutableDirectBufferEx copyBuffer;
-    private final JsonGeneratorEx escaper;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final BindingHandler streamFactory;
@@ -242,7 +242,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         this.encodePool = context.bufferPool().duplicate();
         this.decodeMax = decodePool.slotCapacity();
         this.copyBuffer = new UnsafeBufferEx(new byte[encodePool.slotCapacity()]);
-        this.escaper = JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true));
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();
@@ -2337,6 +2336,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private int scanSections;
         private byte[] pieceBytes;
         private UnsafeBufferEx pieceBuffer;
+        private final JsonGeneratorEx generator;
         private long scanTraceId;
         private long scanAuthorization;
         private LlmSectionPipeline blockPipeline;
@@ -2366,6 +2366,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             this.scanner = new LlmReasoningScanner(LlmReasoningTags.DEFAULTS);
             this.pieceBytes = new byte[1024];
             this.pieceBuffer = new UnsafeBufferEx(pieceBytes);
+            this.generator = JsonEx.createGenerator();
             this.probe = new LlmOpenaiAttributeProbe();
             this.lookahead = true;
             this.holding = true;
@@ -3082,35 +3083,38 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         {
             reservePiece(REASONING_PREFIX.length + length * REASONING_ESCAPE_EXPANSION);
 
-            int position = 0;
+            generator.wrap(pieceBuffer, 0, pieceBytes.length);
 
             if (Flags.hasInit(blockFlags))
             {
-                System.arraycopy(REASONING_PREFIX, 0, pieceBytes, 0, REASONING_PREFIX.length);
-                position = REASONING_PREFIX.length;
+                beginPieceObject();
             }
 
-            escaper.wrap(pieceBuffer, position, pieceBytes.length);
-            escaper.writeSegment(buffer, offset, length);
+            generator.writeSegment(buffer, offset, length);
 
-            return position + escaper.length();
+            return generator.length();
         }
 
         private int encodePieceEnd()
         {
             reservePiece(REASONING_PREFIX.length + REASONING_SUFFIX.length);
 
-            int position = 0;
+            generator.wrap(pieceBuffer, 0, pieceBytes.length);
 
             if (Flags.hasInit(blockFlags))
             {
-                System.arraycopy(REASONING_PREFIX, 0, pieceBytes, 0, REASONING_PREFIX.length);
-                position = REASONING_PREFIX.length;
+                beginPieceObject();
             }
 
-            System.arraycopy(REASONING_SUFFIX, 0, pieceBytes, position, REASONING_SUFFIX.length);
+            generator.writeEndEscaped().writeEnd();
 
-            return position + REASONING_SUFFIX.length;
+            return generator.length();
+        }
+
+        private void beginPieceObject()
+        {
+            generator.reset();
+            generator.writeStartObject().writeKey(MEMBER_TEXT).writeStartEscaped();
         }
 
         private static int escapedWidth(
@@ -4974,16 +4978,19 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             int offset,
             int length)
         {
-            escaper.wrap(copyBuffer, replayPosition, copyBuffer.capacity());
-            escaper.writeSegment(buffer, offset, length);
-            replayPosition += escaper.length();
+            generator.wrap(copyBuffer, replayPosition, copyBuffer.capacity());
+            generator.writeSegment(buffer, offset, length);
+            replayPosition += generator.length();
         }
 
         private void openString()
         {
             if (!stringOpen)
             {
-                copyBuffer.putByte(replayPosition++, (byte) '"');
+                generator.reset();
+                generator.wrap(copyBuffer, replayPosition, copyBuffer.capacity());
+                generator.writeStartEscaped();
+                replayPosition += generator.length();
                 stringOpen = true;
             }
         }
@@ -4992,7 +4999,9 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         {
             if (stringOpen)
             {
-                copyBuffer.putByte(replayPosition++, (byte) '"');
+                generator.wrap(copyBuffer, replayPosition, copyBuffer.capacity());
+                generator.writeEndEscaped();
+                replayPosition += generator.length();
                 stringOpen = false;
             }
         }

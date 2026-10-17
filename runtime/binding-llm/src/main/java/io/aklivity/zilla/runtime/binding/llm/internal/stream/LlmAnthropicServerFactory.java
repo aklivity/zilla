@@ -134,6 +134,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
     private static final int REPLACEMENT_CHARACTER = 0xFFFD;
 
+    private static final String MEMBER_TEXT = "text";
     private static final byte[] TEXT_PREFIX = "{\"text\":\"".getBytes(UTF_8);
     private static final byte[] TEXT_SUFFIX = "\"}".getBytes(UTF_8);
     private static final int TEXT_ESCAPE_EXPANSION = 6;
@@ -185,7 +186,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private final MutableDirectBufferEx extBuffer;
     private final Matcher contentTypeMatcher;
     private final MutableDirectBufferEx copyBuffer;
-    private final JsonGeneratorEx escaper;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final BindingHandler streamFactory;
@@ -250,7 +250,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         this.encodePool = context.bufferPool().duplicate();
         this.decodeMax = decodePool.slotCapacity();
         this.copyBuffer = new UnsafeBufferEx(new byte[encodePool.slotCapacity()]);
-        this.escaper = JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true));
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();
@@ -2095,25 +2094,24 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             pieceBuffer = new UnsafeBufferEx(pieceBytes);
         }
 
-        int position = 0;
+        final JsonGeneratorEx generator = server.generator;
+
+        generator.wrap(pieceBuffer, 0, pieceBytes.length);
 
         if (Flags.hasInit(server.blockFlags))
         {
-            System.arraycopy(TEXT_PREFIX, 0, pieceBytes, 0, TEXT_PREFIX.length);
-            position = TEXT_PREFIX.length;
+            generator.reset();
+            generator.writeStartObject().writeKey(MEMBER_TEXT).writeStartEscaped();
         }
 
-        escaper.wrap(pieceBuffer, position, pieceBytes.length);
-        escaper.writeSegment(textBuffer, 0, length);
-        position += escaper.length();
+        generator.writeSegment(textBuffer, 0, length);
 
         if (fin)
         {
-            System.arraycopy(TEXT_SUFFIX, 0, pieceBytes, position, TEXT_SUFFIX.length);
-            position += TEXT_SUFFIX.length;
+            generator.writeEndEscaped().writeEnd();
         }
 
-        return position;
+        return generator.length();
     }
 
     private int encode(
@@ -2288,6 +2286,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
     private final class LlmAnthropicServer
     {
+        private final JsonGeneratorEx generator;
         private final MessageConsumer network;
         private final long originId;
         private final long routedId;
@@ -2433,6 +2432,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             this.beta = beta;
             this.deauthorize = deauthorize;
             this.parser = JsonEx.createParser(Map.of(JsonParserEx.STRING_EVENT_POSITIONS, StringEventPositions.QUOTED));
+            this.generator = JsonEx.createGenerator();
             this.probe = new LlmAnthropicAttributeProbe();
             this.lookahead = true;
             this.holding = true;
@@ -4727,9 +4727,9 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             int offset,
             int length)
         {
-            escaper.wrap(copyBuffer, replayPosition, copyBuffer.capacity());
-            escaper.writeSegment(buffer, offset, length);
-            replayPosition += escaper.length();
+            generator.wrap(copyBuffer, replayPosition, copyBuffer.capacity());
+            generator.writeSegment(buffer, offset, length);
+            replayPosition += generator.length();
         }
 
         private void doEncodeData(
@@ -5152,7 +5152,10 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
             if (textPipeline != null || replayEscaped)
             {
-                copyBuffer.putByte(replayPosition++, (byte) '"');
+                generator.reset();
+                generator.wrap(copyBuffer, replayPosition, copyBuffer.capacity());
+                generator.writeStartEscaped();
+                replayPosition += generator.length();
             }
         }
 
@@ -5240,9 +5243,9 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             {
                 if (replayEscaped)
                 {
-                    escaper.wrap(copyBuffer, replayPosition, copyBuffer.capacity());
-                    escaper.writeSegment(payload, offset, length);
-                    replayPosition += escaper.length();
+                    generator.wrap(copyBuffer, replayPosition, copyBuffer.capacity());
+                    generator.writeSegment(payload, offset, length);
+                    replayPosition += generator.length();
                 }
                 else
                 {
@@ -5253,7 +5256,9 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
             if (fin && (textPipeline != null || replayEscaped))
             {
-                copyBuffer.putByte(replayPosition++, (byte) '"');
+                generator.wrap(copyBuffer, replayPosition, copyBuffer.capacity());
+                generator.writeEndEscaped();
+                replayPosition += generator.length();
             }
 
             if (fin && replyComplete && replyKind == LlmDataExFW.KIND_DIALECT)

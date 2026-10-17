@@ -212,7 +212,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private final MutableDirectBufferEx extBuffer;
     private final Matcher contentTypeMatcher;
     private final MutableDirectBufferEx transformBuffer;
-    private final JsonGeneratorEx escaper;
     private final int holdLimit;
     private final UnsafeBufferEx comparisonRO;
     private final DirectBufferEx emptyBufferRO;
@@ -240,7 +239,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         this.decodeMax = decodePool.slotCapacity();
         this.encodeMax = encodePool.slotCapacity();
         this.transformBuffer = new UnsafeBufferEx(new byte[decodeMax]);
-        this.escaper = JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true));
         this.holdLimit = (encodeMax - ENCODE_SLACK) / (2 * ESCAPE_EXPANSION);
         this.comparisonRO = new UnsafeBufferEx(new byte[0]);
         this.emptyBufferRO = new UnsafeBufferEx(new byte[0]);
@@ -589,6 +587,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private UnsafeBufferEx textBuffer;
         private byte[] pieceBytes;
         private UnsafeBufferEx pieceBuffer;
+        private final JsonGeneratorEx generator;
         private int encodeSlot = NO_SLOT;
         private int encodeSlotOffset;
 
@@ -636,6 +635,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             this.textBuffer = new UnsafeBufferEx(textBytes);
             this.pieceBytes = new byte[1024];
             this.pieceBuffer = new UnsafeBufferEx(pieceBytes);
+            this.generator = JsonEx.createGenerator();
             this.scanner = new LlmReasoningScanner(LlmReasoningTags.DEFAULTS);
             this.sectionTool = NONE;
             this.decoder = decodeStart;
@@ -3173,33 +3173,36 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 pieceBuffer = new UnsafeBufferEx(pieceBytes);
             }
 
-            int position = 0;
+            generator.wrap(pieceBuffer, 0, pieceBytes.length);
 
             if (!sectionStarted)
             {
-                System.arraycopy(REASONING_PREFIX, 0, pieceBytes, 0, REASONING_PREFIX.length);
-                position = REASONING_PREFIX.length;
+                beginPieceObject();
             }
 
-            escaper.wrap(pieceBuffer, position, pieceBytes.length);
-            escaper.writeSegment(buffer, offset, length);
+            generator.writeSegment(buffer, offset, length);
 
-            return position + escaper.length();
+            return generator.length();
         }
 
         private int encodePieceEnd()
         {
-            int position = 0;
+            generator.wrap(pieceBuffer, 0, pieceBytes.length);
 
             if (!sectionStarted)
             {
-                System.arraycopy(REASONING_PREFIX, 0, pieceBytes, 0, REASONING_PREFIX.length);
-                position = REASONING_PREFIX.length;
+                beginPieceObject();
             }
 
-            System.arraycopy(REASONING_SUFFIX, 0, pieceBytes, position, REASONING_SUFFIX.length);
+            generator.writeEndEscaped().writeEnd();
 
-            return position + REASONING_SUFFIX.length;
+            return generator.length();
+        }
+
+        private void beginPieceObject()
+        {
+            generator.reset();
+            generator.writeStartObject().writeKey(MEMBER_TEXT).writeStartEscaped();
         }
 
         private int encodeText(
@@ -3855,7 +3858,9 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             if (!stringOpen && beginEncode(1))
             {
-                encodePool.buffer(encodeSlot).putByte(encodeSlotOffset++, (byte) '"');
+                generator.reset();
+                generator.writeStartEscaped();
+                endEncode();
                 stringOpen = true;
             }
         }
@@ -3864,7 +3869,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             if (stringOpen && beginEncode(1))
             {
-                encodePool.buffer(encodeSlot).putByte(encodeSlotOffset++, (byte) '"');
+                generator.writeEndEscaped();
+                endEncode();
                 stringOpen = false;
             }
         }
@@ -3923,11 +3929,9 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int length)
         {
-            final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
-
-            escaper.wrap(slot, encodeSlotOffset, encodeMax);
-            escaper.writeSegment(buffer, offset, length);
-            encodeSlotOffset += escaper.length();
+            generator.wrap(encodePool.buffer(encodeSlot), encodeSlotOffset, encodeMax);
+            generator.writeSegment(buffer, offset, length);
+            endEncode();
         }
 
         private void doReplayData(

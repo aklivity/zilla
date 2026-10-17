@@ -250,7 +250,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private final MutableDirectBufferEx extBuffer;
     private final Matcher contentTypeMatcher;
     private final MutableDirectBufferEx transformBuffer;
-    private final JsonGeneratorEx escaper;
     private final DirectBufferEx emptyBufferRO;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -279,7 +278,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         this.decodeMax = decodePool.slotCapacity();
         this.encodeMax = encodePool.slotCapacity();
         this.transformBuffer = new UnsafeBufferEx(new byte[decodeMax]);
-        this.escaper = JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true));
         this.emptyBufferRO = new UnsafeBufferEx(new byte[0]);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -3831,15 +3829,26 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             if (replayText != null)
             {
                 replayText.begin();
-                putQuote();
+                openString();
             }
         }
 
-        private void putQuote()
+        private void openString()
         {
             if (beginEncode(1))
             {
-                encodePool.buffer(encodeSlot).putByte(encodeSlotOffset++, (byte) '"');
+                generator.reset();
+                generator.writeStartEscaped();
+                endEncode();
+            }
+        }
+
+        private void closeString()
+        {
+            if (beginEncode(1))
+            {
+                generator.writeEndEscaped();
+                endEncode();
             }
         }
 
@@ -3856,11 +3865,9 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             if (stream.replay)
             {
-                final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
-
-                escaper.wrap(slot, encodeSlotOffset, encodeMax);
-                escaper.writeSegment(buffer, offset, length);
-                encodeSlotOffset += escaper.length();
+                generator.wrap(encodePool.buffer(encodeSlot), encodeSlotOffset, encodeMax);
+                generator.writeSegment(buffer, offset, length);
+                endEncode();
             }
             else if (beginEncode(0))
             {
@@ -3883,7 +3890,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 }
                 else if (fin)
                 {
-                    putQuote();
+                    closeString();
                 }
             }
             else if (replayPipeline != null)

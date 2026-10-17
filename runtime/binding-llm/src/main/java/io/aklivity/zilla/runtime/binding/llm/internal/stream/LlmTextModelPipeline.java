@@ -17,8 +17,6 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.util.Map;
-
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionType;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
@@ -38,6 +36,7 @@ import io.aklivity.zilla.runtime.engine.util.Flags;
 // delivered, and the held bytes are fed when more text arrives or the run ends.
 final class LlmTextModelPipeline implements LlmRunPipeline
 {
+    private static final String MEMBER_TEXT = "text";
     private static final byte[] PREFIX = "{\"text\":\"".getBytes(UTF_8);
     private static final byte[] SUFFIX = "\"}".getBytes(UTF_8);
     private static final byte COMMA = ',';
@@ -52,7 +51,7 @@ final class LlmTextModelPipeline implements LlmRunPipeline
     private final long streamId;
     private final MutableDirectBufferEx transformBuffer;
     private final LlmTextPipeline decoder;
-    private final JsonGeneratorEx escaper;
+    private final JsonGeneratorEx generator;
     private final ModelPipelineResult result;
     private final LlmSectionPipeline residual;
     private final LlmSectionPipeline.Output residualOutput;
@@ -84,7 +83,7 @@ final class LlmTextModelPipeline implements LlmRunPipeline
         this.residualOutput = (buffer, offset, length, last) -> onResidual(buffer, offset, length);
         this.residualAttributes = new LlmSectionAttributes();
         this.decoder = new LlmTextPipeline(this::onText);
-        this.escaper = JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true));
+        this.generator = JsonEx.createGenerator();
         this.result = new ModelPipelineResult();
         decoder.begin();
     }
@@ -170,24 +169,31 @@ final class LlmTextModelPipeline implements LlmRunPipeline
         MutableDirectBufferEx dst,
         int dstIndex)
     {
-        int position = dstIndex;
+        generator.wrap(dst, dstIndex, dst.capacity());
 
         if (emitted == 0)
         {
-            dst.putBytes(position, PREFIX);
-            position += PREFIX.length;
+            beginObject();
         }
 
-        dst.putByte(position++, SUFFIX[0]);
+        generator.writeEndEscaped();
 
-        if (residualLength > RESIDUAL_EMPTY)
+        final boolean members = residualLength > RESIDUAL_EMPTY;
+
+        if (!members)
+        {
+            generator.writeEnd();
+        }
+
+        int position = dstIndex + generator.length();
+
+        if (members)
         {
             dst.putByte(position++, COMMA);
             dst.putBytes(position, slotBuffer, textCapacity + 1, residualLength - RESIDUAL_EMPTY);
             position += residualLength - RESIDUAL_EMPTY;
+            dst.putByte(position++, SUFFIX[1]);
         }
-
-        dst.putByte(position++, SUFFIX[1]);
 
         emitted = 0;
         residualLength = 0;
@@ -309,26 +315,29 @@ final class LlmTextModelPipeline implements LlmRunPipeline
         int dstIndex,
         int dstLimit)
     {
-        int position = dstIndex;
+        generator.wrap(dst, dstIndex, dstLimit);
 
         if (length > 0)
         {
             if (emitted == 0)
             {
-                dst.putBytes(position, PREFIX);
-                position += PREFIX.length;
+                beginObject();
             }
 
-            escaper.wrap(dst, position, dstLimit);
-            escaper.writeSegment(transformBuffer, 0, length);
-            position += escaper.length();
+            generator.writeSegment(transformBuffer, 0, length);
         }
 
-        final int produced = position - dstIndex;
+        final int produced = generator.length();
 
         emitted += produced;
 
         return produced;
+    }
+
+    private void beginObject()
+    {
+        generator.reset();
+        generator.writeStartObject().writeKey(MEMBER_TEXT).writeStartEscaped();
     }
 
     private void compact()
