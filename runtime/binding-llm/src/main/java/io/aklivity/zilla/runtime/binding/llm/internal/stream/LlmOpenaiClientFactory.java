@@ -840,8 +840,9 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             final long traceId = flush.traceId();
             final LlmFlushExFW llmFlushEx = flush.extension().get(llmFlushExRO::tryWrap);
-            final int maxOutputTokens = llmFlushEx != null && llmFlushEx.typeId() == llmTypeId
-                ? llmFlushEx.maxOutputTokens()
+            final int maxOutputTokens = llmFlushEx != null && llmFlushEx.typeId() == llmTypeId &&
+                llmFlushEx.kind() == LlmFlushExFW.KIND_DIALECT
+                ? llmFlushEx.dialect().maxOutputTokens()
                 : NO_MAX_OUTPUT_TOKENS;
 
             http.doEncodeRequestEnd(maxOutputTokens);

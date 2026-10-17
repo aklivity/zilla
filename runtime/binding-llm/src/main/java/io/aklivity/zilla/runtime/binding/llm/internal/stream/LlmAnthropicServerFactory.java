@@ -4226,7 +4226,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 {
                     final LlmFlushExFW llmFlushEx = llmFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(llmTypeId)
-                        .maxOutputTokens(maxOutputTokens)
+                        .dialect(d -> d.maxOutputTokens(maxOutputTokens))
                         .build();
 
                     builder.extension(llmFlushEx.buffer(), llmFlushEx.offset(), llmFlushEx.sizeof());

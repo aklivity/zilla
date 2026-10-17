@@ -126,6 +126,12 @@ read zilla:data.ext ${llm:matchDialectDataEx()
                           .build()}
 read "}}"
 
+read advised zilla:flush ${llm:matchFlushEx()
+                                .typeId(zilla:id("llm"))
+                                .type("ASSISTANT_REASONING")
+                                .message(0)
+                                .build()}
+
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)

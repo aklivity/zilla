@@ -389,18 +389,18 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/openai.proxy.guardrail.transform.block.stop/client",
-        "${app}/openai.proxy.guardrail.transform.block.stop/server"})
-    public void shouldGuardOpenaiTransformBlockStopNet() throws Exception
+        "${app}/openai.proxy.guardrail.transform.section.flush/client",
+        "${app}/openai.proxy.guardrail.transform.section.flush/server"})
+    public void shouldGuardOpenaiTransformSectionFlushNet() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/openai.proxy.guardrail.transform.block.stop.exit/client",
-        "${app}/openai.proxy.guardrail.transform.block.stop.exit/server"})
-    public void shouldGuardOpenaiTransformBlockStopExit() throws Exception
+        "${app}/openai.proxy.guardrail.transform.section.flush.exit/client",
+        "${app}/openai.proxy.guardrail.transform.section.flush.exit/server"})
+    public void shouldGuardOpenaiTransformSectionFlushExit() throws Exception
     {
         k3po.finish();
     }
@@ -452,18 +452,18 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/openai.proxy.guardrail.response.rejected.block.stop/client",
-        "${app}/openai.proxy.guardrail.response.rejected.block.stop/server"})
-    public void shouldGuardOpenaiResponseRejectedBlockStopNet() throws Exception
+        "${app}/openai.proxy.guardrail.response.rejected.section.flush/client",
+        "${app}/openai.proxy.guardrail.response.rejected.section.flush/server"})
+    public void shouldGuardOpenaiResponseRejectedSectionFlushNet() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/openai.proxy.guardrail.response.rejected.block.stop.exit/client",
-        "${app}/openai.proxy.guardrail.response.rejected.block.stop.exit/server"})
-    public void shouldGuardOpenaiResponseRejectedBlockStopExit() throws Exception
+        "${app}/openai.proxy.guardrail.response.rejected.section.flush.exit/client",
+        "${app}/openai.proxy.guardrail.response.rejected.section.flush.exit/server"})
+    public void shouldGuardOpenaiResponseRejectedSectionFlushExit() throws Exception
     {
         k3po.finish();
     }

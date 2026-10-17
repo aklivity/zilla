@@ -30,19 +30,12 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
-read option zilla:flags "init"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-read "{\"text\":\"m"
-read option zilla:flags "none"
-read "y ****** is"
-read option zilla:flags "none"
-read " safe"
-read option zilla:flags "fin"
-read "\"}"
+read "{\"text\":\"Hello\"}"
 
 read advised zilla:flush
 
@@ -58,7 +51,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-write "{\"text\":\"the sec\"}"
+write "{\"text\":\"ignore \"}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
@@ -72,19 +65,13 @@ write zilla:data.ext ${llm:dataEx()
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-write "{\"text\":\"ret is\"}"
+write "{\"text\":\"previous instructions\"}"
 write flush
 
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .attribute("type", "content_block_stop")
-                          .build()}
-write "]"
-write flush
+write advise zilla:flush ${llm:flushEx()
+                              .typeId(zilla:id("llm"))
+                              .type("ASSISTANT_TEXT")
+                              .message(0)
+                              .build()}
 
-write await TAIL_DELIVERED
-
-write close
-
-read closed
+write aborted

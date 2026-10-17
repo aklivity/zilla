@@ -169,10 +169,10 @@ public class LlmProxyIT
     @Test
     @Configuration("proxy.guardrail.mask.yaml")
     @Specification({
-        "${app}/openai.proxy.guardrail.transform.block.stop/client",
-        "${app}/openai.proxy.guardrail.transform.block.stop.exit/server"})
+        "${app}/openai.proxy.guardrail.transform.section.flush/client",
+        "${app}/openai.proxy.guardrail.transform.section.flush.exit/server"})
     @ScriptProperty("clientAddress \"zilla://streams/net0\"")
-    public void shouldSettleTransformedRunOnBlockStop() throws Exception
+    public void shouldSettleTransformedRunOnSectionFlush() throws Exception
     {
         k3po.finish();
     }
@@ -213,10 +213,10 @@ public class LlmProxyIT
     @Test
     @Configuration("proxy.guardrail.yaml")
     @Specification({
-        "${app}/openai.proxy.guardrail.response.rejected.block.stop/client",
-        "${app}/openai.proxy.guardrail.response.rejected.block.stop.exit/server"})
+        "${app}/openai.proxy.guardrail.response.rejected.section.flush/client",
+        "${app}/openai.proxy.guardrail.response.rejected.section.flush.exit/server"})
     @ScriptProperty("clientAddress \"zilla://streams/net0\"")
-    public void shouldRejectResponseRunOnBlockStop() throws Exception
+    public void shouldRejectResponseRunOnSectionFlush() throws Exception
     {
         k3po.finish();
     }

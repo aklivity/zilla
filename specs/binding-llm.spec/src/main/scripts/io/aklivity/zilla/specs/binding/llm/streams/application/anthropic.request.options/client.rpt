@@ -45,7 +45,7 @@ write zilla:data.ext ${llm:dialectDataEx()
                           .build()}
 write "\"}]}],\"temperature\":0.5,\"top_p\":0.9,\"top_k\":40,\"max_tokens\":1024,\"stop_sequences\":[\"END\"],\"thinking\":{\"type\":\"enabled\",\"budget_tokens\":2048},\"container_id\":\"ctr_1\",\"mcp_servers\":[{\"type\":\"url\",\"url\":\"https://mcp.example.com\",\"name\":\"example\"}]}"
 write flush
-write advise zilla:flush ${llm:flushEx()
+write advise zilla:flush ${llm:dialectFlushEx()
                                .typeId(zilla:id("llm"))
                                .maxOutputTokens(1024)
                                .build()}

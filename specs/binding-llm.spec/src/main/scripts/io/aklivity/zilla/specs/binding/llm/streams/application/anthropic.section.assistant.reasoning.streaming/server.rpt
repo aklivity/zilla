@@ -137,6 +137,12 @@ write zilla:data.ext ${llm:dialectDataEx()
 write "}}"
 write flush
 
+write advise zilla:flush ${llm:flushEx()
+                              .typeId(zilla:id("llm"))
+                              .type("ASSISTANT_REASONING")
+                              .message(0)
+                              .build()}
+
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)

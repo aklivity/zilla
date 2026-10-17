@@ -45,7 +45,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "{\"text\":\"Hello\"}"
 
-read advised zilla:flush ${llm:matchFlushEx()
+read advised zilla:flush ${llm:matchDialectFlushEx()
                                  .typeId(zilla:id("llm"))
                                  .maxOutputTokens(2048)
                                  .build()}

@@ -34,10 +34,16 @@ write zilla:data.ext ${llm:dataEx()
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-write "{\"text\":\"my sec"
+write "{\"text\":\"m"
+write flush
+write option zilla:flags "none"
+write "y ****** is"
+write flush
+write option zilla:flags "none"
+write " safe"
 write flush
 write option zilla:flags "fin"
-write "ret is safe\"}"
+write "\"}"
 write flush
 
 write advise zilla:flush
@@ -48,37 +54,33 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .model(model)
                            .build()}
 
-read option zilla:flags "init"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-read "{\"text\":\"th"
+read "{\"text\":\"the sec\"}"
 
-read option zilla:flags "fin"
-read "\"}"
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
 read ","
 
-read option zilla:flags "init"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-read "{\"text\":\"e ******"
+read "{\"text\":\"ret is\"}"
 
-read option zilla:flags "none"
-read " is"
-read option zilla:flags "fin"
-read "\"}"
+read advised zilla:flush ${llm:matchFlushEx()
+                                .typeId(zilla:id("llm"))
+                                .type("ASSISTANT_TEXT")
+                                .message(0)
+                                .build()}
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
-                          .attribute("type", "content_block_stop")
                           .build()}
 read "]"
 read notify TAIL_DELIVERED

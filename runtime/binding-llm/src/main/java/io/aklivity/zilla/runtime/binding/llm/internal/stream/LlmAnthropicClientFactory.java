@@ -217,6 +217,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
     private final FlushFW flushRO = new FlushFW();
+    private final FlushFW.Builder flushRW = new FlushFW.Builder();
     private final AbortFW abortRO = new AbortFW();
     private final ResetFW resetRO = new ResetFW();
     private final WindowFW windowRO = new WindowFW();
@@ -238,6 +239,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private final LlmBeginExFW.Builder llmBeginExRW = new LlmBeginExFW.Builder();
     private final LlmChallengeExFW.Builder llmChallengeExRW = new LlmChallengeExFW.Builder();
     private final LlmFlushExFW llmFlushExRO = new LlmFlushExFW();
+    private final LlmFlushExFW.Builder llmFlushExRW = new LlmFlushExFW.Builder();
     private final LlmDataExFW.Builder llmDataExRW = new LlmDataExFW.Builder();
     private final LlmResetExFW.Builder llmResetExRW = new LlmResetExFW.Builder();
     private final LlmEndExFW.Builder llmEndExRW = new LlmEndExFW.Builder();
@@ -884,8 +886,9 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             final long traceId = flush.traceId();
 
             final LlmFlushExFW llmFlushEx = flush.extension().get(llmFlushExRO::tryWrap);
-            final int maxOutputTokens = llmFlushEx != null && llmFlushEx.typeId() == llmTypeId
-                ? llmFlushEx.maxOutputTokens()
+            final int maxOutputTokens = llmFlushEx != null && llmFlushEx.typeId() == llmTypeId &&
+                llmFlushEx.kind() == LlmFlushExFW.KIND_DIALECT
+                ? llmFlushEx.dialect().maxOutputTokens()
                 : NO_MAX_OUTPUT_TOKENS;
 
             http.doEncodeRequestEnd(maxOutputTokens);
@@ -1097,6 +1100,35 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 .build();
             app.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
             replySeq += data.reserved();
+        }
+
+        private void doAppSectionFlush()
+        {
+            if (sectionWritten)
+            {
+                sectionWritten = false;
+
+                final LlmFlushExFW llmFlushEx = llmFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(llmTypeId)
+                    .section(s -> s.type(t -> t.set(sectionType)).message(0))
+                    .build();
+
+                final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                    .originId(originId)
+                    .routedId(routedId)
+                    .streamId(replyId)
+                    .sequence(replySeq)
+                    .acknowledge(replyAck)
+                    .maximum(replyMax)
+                    .traceId(http.decodeTraceId)
+                    .authorization(authorization)
+                    .budgetId(0L)
+                    .reserved(0)
+                    .extension(llmFlushEx.buffer(), llmFlushEx.offset(), llmFlushEx.sizeof())
+                    .build();
+
+                app.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
+            }
         }
 
         private boolean failed()
@@ -1676,6 +1708,11 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                         TYPE_MESSAGE_STOP.equals(documentType))
                     {
                         closeSection();
+                    }
+
+                    if (TYPE_CONTENT_BLOCK_STOP.equals(documentType))
+                    {
+                        doAppSectionFlush();
                     }
                 }
                 else

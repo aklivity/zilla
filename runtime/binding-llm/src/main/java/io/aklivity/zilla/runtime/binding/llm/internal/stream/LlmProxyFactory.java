@@ -33,7 +33,6 @@ import io.aklivity.zilla.runtime.binding.llm.config.LlmGuardrailStage;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmRouteConfig;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmBinding;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmConfiguration;
-import io.aklivity.zilla.runtime.binding.llm.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.BeginFW;
@@ -42,7 +41,6 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmAbortExFW;
-import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmAttributeFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBeginExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmChallengeExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDataExFW;
@@ -86,8 +84,6 @@ public final class LlmProxyFactory implements LlmStreamFactory
     private static final int STATUS_BAD_REQUEST = 400;
     private static final int NO_USAGE = -1;
     private static final String ERROR_TYPE_INVALID_REQUEST = "invalid_request_error";
-    private static final String DIALECT_EVENT_TYPE = "type";
-    private static final String DIALECT_BLOCK_STOP = "content_block_stop";
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -1388,10 +1384,6 @@ public final class LlmProxyFactory implements LlmStreamFactory
                 {
                     settling = !sameRun() ? SETTLE_RUN : outputPending ? SETTLE_SECTION : settling;
                 }
-                else if (Flags.hasInit(flags) && peekBlockStop(extension))
-                {
-                    settleRun();
-                }
 
                 if (settling != SETTLE_NONE || suspended || !held.isEmpty() || outputPending)
                 {
@@ -1517,23 +1509,6 @@ public final class LlmProxyFactory implements LlmStreamFactory
             }
 
             return section;
-        }
-
-        private boolean peekBlockStop(
-            OctetsFW extension)
-        {
-            final LlmDataExFW llmDataEx = extension.get(llmDataExRO::tryWrap);
-            boolean blockStop = false;
-
-            if (llmDataEx != null && llmDataEx.kind() == LlmDataExFW.KIND_DIALECT)
-            {
-                final Array32FW<LlmAttributeFW> attributes = llmDataEx.dialect().attributes();
-
-                blockStop = attributes.anyMatch(a -> DIALECT_EVENT_TYPE.equals(a.name().asString()) &&
-                    DIALECT_BLOCK_STOP.equals(a.value().asString()));
-            }
-
-            return blockStop;
         }
 
         private boolean sameRun()

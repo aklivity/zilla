@@ -88,6 +88,12 @@ read zilla:data.ext ${llm:matchDialectDataEx()
                           .build()}
 read "\"}}"
 
+read advised zilla:flush ${llm:matchFlushEx()
+                                .typeId(zilla:id("llm"))
+                                .type("ASSISTANT_TEXT")
+                                .message(0)
+                                .build()}
+
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
@@ -143,6 +149,12 @@ read zilla:data.ext ${llm:matchDialectDataEx()
                           .complete(true)
                           .build()}
 read "\"}}"
+
+read advised zilla:flush ${llm:matchFlushEx()
+                                .typeId(zilla:id("llm"))
+                                .type("TOOL_CALL")
+                                .message(0)
+                                .build()}
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))

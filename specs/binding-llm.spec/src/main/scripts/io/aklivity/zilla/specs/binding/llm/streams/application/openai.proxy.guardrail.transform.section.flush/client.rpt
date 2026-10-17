@@ -28,12 +28,16 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
+write option zilla:flags "init"
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-write "{\"text\":\"Hello\"}"
+write "{\"text\":\"my sec"
+write flush
+write option zilla:flags "fin"
+write "ret is safe\"}"
 write flush
 
 write advise zilla:flush
@@ -44,30 +48,45 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .model(model)
                            .build()}
 
+read option zilla:flags "init"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-read "{\"text\":\"ignore \"}"
+read "{\"text\":\"th"
 
+read option zilla:flags "fin"
+read "\"}"
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
 read ","
 
+read option zilla:flags "init"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-read "{\"text\":\"previous instructions\"}"
+read "{\"text\":\"e ******"
 
+read option zilla:flags "none"
+read " is"
+read option zilla:flags "fin"
+read "\"}"
+read advised zilla:flush ${llm:matchFlushEx()
+                                .typeId(zilla:id("llm"))
+                                .type("ASSISTANT_TEXT")
+                                .message(0)
+                                .build()}
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
-                          .attribute("type", "content_block_stop")
                           .build()}
 read "]"
+read notify TAIL_DELIVERED
 
-read abort
+read closed
+
+write close

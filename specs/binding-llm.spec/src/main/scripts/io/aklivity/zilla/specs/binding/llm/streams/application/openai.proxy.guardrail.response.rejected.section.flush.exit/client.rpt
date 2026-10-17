@@ -13,16 +13,14 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property serverAddress "zilla://streams/app0"
+property clientAddress "zilla://streams/app0"
 property model "gpt-a"
 
-accept ${serverAddress}
-       option zilla:window 8192
-       option zilla:transmission "half-duplex"
+connect ${clientAddress}
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
 
-accepted
-
-read zilla:begin.ext ${llm:matchBeginEx()
+write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("openai")
                            .model(model)
@@ -30,68 +28,45 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
-read option zilla:flags "init"
-read zilla:data.ext ${llm:matchDataEx()
+write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-read "{\"text\":\"my sec"
-read option zilla:flags "fin"
-read "ret is safe\"}"
+write "{\"text\":\"Hello\"}"
+write flush
 
-read advised zilla:flush
+write advise zilla:flush
 
-write zilla:begin.ext ${llm:beginEx()
+read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("openai")
                            .model(model)
                            .build()}
-write flush
 
-write option zilla:flags "init"
-write zilla:data.ext ${llm:dataEx()
+read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-write "{\"text\":\"th"
-write flush
+read "{\"text\":\"ignore \"}"
 
-write option zilla:flags "fin"
-write "\"}"
-write flush
-write zilla:data.ext ${llm:dialectDataEx()
+read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-write ","
-write flush
+read ","
 
-write option zilla:flags "init"
-write zilla:data.ext ${llm:dataEx()
+read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-write "{\"text\":\"e ******"
-write flush
+read "{\"text\":\"previous instructions\"}"
 
-write option zilla:flags "none"
-write " is"
-write flush
-write option zilla:flags "fin"
-write "\"}"
-write flush
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .attribute("type", "content_block_stop")
-                          .build()}
-write "]"
-write flush
+read advised zilla:flush ${llm:matchFlushEx()
+                                .typeId(zilla:id("llm"))
+                                .type("ASSISTANT_TEXT")
+                                .message(0)
+                                .build()}
 
-write await TAIL_DELIVERED
-
-write close
-
-read closed
+read abort
