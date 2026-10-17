@@ -41,11 +41,15 @@ abstract class LlmToolTransform implements JsonTransform
     protected static final int ESCAPE_OBJECT = 8;
     protected static final int DESCEND_KEPT = 9;
     protected static final int PASS_VALUE = 10;
+    protected static final int PASS_DATA_URI = 11;
+    protected static final int STRIP_DATA_URI = 12;
 
     protected static final int MODE_OBJECT = 0;
     protected static final int MODE_EXTRACT = 1;
     protected static final int MODE_VALUE = 2;
 
+    private static final String DATA_URI_PREFIX = "data:";
+    private static final String BASE64_MARKER = ";base64,";
     private static final int NONE = -1;
     private static final int QUEUE_CAPACITY = 16;
     private static final int HELD_MAX = 4096;
@@ -56,6 +60,7 @@ abstract class LlmToolTransform implements JsonTransform
     private final JsonEvent[] queueEvents;
     private final String[] queueTexts;
     private final boolean[] queueSources;
+    private final boolean[] queueFragments;
     private final LiteralSource literalSource;
     private final LiteralControl literalControl;
     private final StringBuilder heldBuilder;
@@ -89,6 +94,7 @@ abstract class LlmToolTransform implements JsonTransform
         this.queueEvents = new JsonEvent[QUEUE_CAPACITY];
         this.queueTexts = new String[QUEUE_CAPACITY];
         this.queueSources = new boolean[QUEUE_CAPACITY];
+        this.queueFragments = new boolean[QUEUE_CAPACITY];
         this.literalSource = new LiteralSource();
         this.literalControl = new LiteralControl();
         this.heldBuilder = new StringBuilder();
@@ -106,6 +112,12 @@ abstract class LlmToolTransform implements JsonTransform
 
     protected void onBegin()
     {
+    }
+
+    protected Status onDescend(
+        int depth)
+    {
+        return Status.ADVANCED;
     }
 
     protected void onValueEnd()
@@ -133,20 +145,27 @@ abstract class LlmToolTransform implements JsonTransform
     protected final void pass(
         JsonEvent event)
     {
-        enqueue(event, null, true);
+        enqueue(event, null, true, false);
     }
 
     protected final void emit(
         JsonEvent event)
     {
-        enqueue(event, null, false);
+        enqueue(event, null, false, false);
+    }
+
+    protected final void emitFragment(
+        JsonEvent event,
+        String text)
+    {
+        enqueue(event, text, false, true);
     }
 
     protected final void emit(
         JsonEvent event,
         String text)
     {
-        enqueue(event, text, false);
+        enqueue(event, text, false, false);
     }
 
     protected final int prefix(
@@ -448,11 +467,18 @@ abstract class LlmToolTransform implements JsonTransform
                 emit(JsonEvent.KEY_NAME, target);
                 pass(event);
                 depth++;
+                status = onDescend(depth);
             }
             else
             {
                 status = Status.REJECTED;
             }
+            break;
+        case PASS_DATA_URI:
+            status = event == JsonEvent.VALUE_STRING ? beginDataUri(event) : Status.REJECTED;
+            break;
+        case STRIP_DATA_URI:
+            status = event == JsonEvent.VALUE_STRING ? beginStripped(event) : Status.REJECTED;
             break;
         case PASS_STRING:
             status = event == JsonEvent.VALUE_STRING ? beginPass(event) : Status.REJECTED;
@@ -485,6 +511,82 @@ abstract class LlmToolTransform implements JsonTransform
         }
 
         return status;
+    }
+
+    private Status beginDataUri(
+        JsonEvent event)
+    {
+        final String mediaType = attribute("media-type");
+        Status status = Status.REJECTED;
+
+        if (mediaType != null)
+        {
+            emit(JsonEvent.KEY_NAME, target);
+            emitFragment(JsonEvent.VALUE_STRING, DATA_URI_PREFIX + mediaType + BASE64_MARKER);
+            status = startPass(event);
+        }
+
+        return status;
+    }
+
+    private Status beginStripped(
+        JsonEvent event)
+    {
+        final DirectBufferEx mediaType = control.envelope().get("media-type", 0);
+        Status status = Status.REJECTED;
+
+        if (mediaType != null)
+        {
+            final CharSequence view = source.getStringView();
+            final int prefixLength = DATA_URI_PREFIX.length() + mediaType.capacity() + BASE64_MARKER.length();
+
+            if (view.length() >= prefixLength)
+            {
+                if (prefixMatches(view, mediaType))
+                {
+                    control.consumed(prefixLength);
+                    status = beginPass(event);
+                }
+            }
+            else if (source.deferredBytes())
+            {
+                control.consumed(0);
+                pending = STRIP_DATA_URI;
+                status = Status.STARVED;
+            }
+        }
+
+        return status;
+    }
+
+    private static boolean prefixMatches(
+        CharSequence view,
+        DirectBufferEx mediaType)
+    {
+        final int mediaTypeLength = mediaType.capacity();
+        boolean matches = startsWith(view, 0, DATA_URI_PREFIX);
+
+        for (int index = 0; matches && index < mediaTypeLength; index++)
+        {
+            matches = view.charAt(DATA_URI_PREFIX.length() + index) == (char) mediaType.getByte(index);
+        }
+
+        return matches && startsWith(view, DATA_URI_PREFIX.length() + mediaTypeLength, BASE64_MARKER);
+    }
+
+    private static boolean startsWith(
+        CharSequence view,
+        int offset,
+        String prefix)
+    {
+        boolean matches = true;
+
+        for (int index = 0; matches && index < prefix.length(); index++)
+        {
+            matches = view.charAt(offset + index) == prefix.charAt(index);
+        }
+
+        return matches;
     }
 
     private Status beginPass(
@@ -661,11 +763,13 @@ abstract class LlmToolTransform implements JsonTransform
     private void enqueue(
         JsonEvent event,
         String text,
-        boolean fromSource)
+        boolean fromSource,
+        boolean fragment)
     {
         queueEvents[queueTail] = event;
         queueTexts[queueTail] = text;
         queueSources[queueTail] = fromSource;
+        queueFragments[queueTail] = fragment;
         queueTail++;
     }
 
@@ -677,7 +781,8 @@ abstract class LlmToolTransform implements JsonTransform
         {
             status = queueSources[queueHead]
                 ? sink.transform(control, source, queueEvents[queueHead])
-                : sink.transform(literalControl, literalSource.with(queueTexts[queueHead]), queueEvents[queueHead]);
+                : sink.transform(literalControl, literalSource.with(queueTexts[queueHead], queueFragments[queueHead]),
+                    queueEvents[queueHead]);
 
             if (status != Status.SUSPENDED)
             {
@@ -725,16 +830,20 @@ abstract class LlmToolTransform implements JsonTransform
     {
         private final LiteralView view;
 
+        private boolean fragment;
+
         private LiteralSource()
         {
             this.view = new LiteralView();
         }
 
         private LiteralSource with(
-            String text)
+            String text,
+            boolean fragment)
         {
             view.text = text != null ? text : "";
             view.offset = 0;
+            this.fragment = fragment;
 
             return this;
         }
@@ -809,7 +918,7 @@ abstract class LlmToolTransform implements JsonTransform
         @Override
         public boolean deferredBytes()
         {
-            return false;
+            return fragment;
         }
     }
 
