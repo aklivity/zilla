@@ -101,6 +101,21 @@ without properly saying goodbye", event-assertion mismatches) is a symptom of
 this same root cause, not a real bug — before spending time diagnosing a
 crash from an `*IT` run, confirm it was launched with `verify`.
 
+### Docker
+
+Cloud sessions have Docker installed but the daemon is not running at start,
+so `docker info` fails with `Cannot connect to the Docker daemon`. That does
+not mean Docker is unavailable: start the daemon yourself and carry on.
+
+```bash
+(nohup dockerd > /tmp/dockerd.log 2>&1 &); sleep 8; docker info
+```
+
+Do this before concluding that an example (`examples/*/.github/test.sh`,
+`docker compose`) or a Docker image build cannot be run locally. Run the
+example's own check rather than only the ITs when a change affects what the
+example exercises.
+
 The Maven plugin in `build/flyweight-maven-plugin/` generates flyweight Java
 classes from `.idl` files. Always run a full build after modifying any `.idl`
 file. It is a peer reactor module, not a published remote artifact — it comes
