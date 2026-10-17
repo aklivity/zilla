@@ -21,6 +21,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
@@ -53,6 +54,14 @@ final class LlmSectionPipeline
         JsonTransform stage,
         MutableDirectBufferEx outputBuffer)
     {
+        this(stage, JsonEx.createGenerator(), outputBuffer);
+    }
+
+    LlmSectionPipeline(
+        JsonTransform stage,
+        JsonGeneratorEx generator,
+        MutableDirectBufferEx outputBuffer)
+    {
         this.envelope = new LlmSectionEnvelope();
         this.outputBuffer = outputBuffer;
         this.windowBuffer = new UnsafeBufferEx();
@@ -60,7 +69,7 @@ final class LlmSectionPipeline
         this.pipeline = JsonEx.stream(JsonEx.createParser())
             .envelope(envelope)
             .transform(stage)
-            .into(JsonEx.createGenerator(), Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED));
+            .into(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED));
     }
 
     void begin(
