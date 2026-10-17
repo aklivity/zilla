@@ -14,9 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.util.Arrays;
 import java.util.Map;
 
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionType;
@@ -25,6 +25,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
+import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelRejection;
@@ -43,22 +44,23 @@ final class LlmTextModelPipeline implements LlmRunPipeline
     private static final int ESCAPE_EXPANSION = 6;
     private static final int RESIDUAL_CHUNK = 256;
     private static final int RESIDUAL_EMPTY = 2;
+    private static final DirectBufferEx EMPTY_TEXT = new UnsafeBufferEx(new byte[0]);
 
     private final ModelPipeline pipeline;
     private final int overlap;
+    private final BufferPool pool;
+    private final long streamId;
+    private final MutableDirectBufferEx transformBuffer;
     private final LlmTextPipeline decoder;
     private final JsonGeneratorEx escaper;
     private final ModelPipelineResult result;
-    private final UnsafeBufferEx textBuffer;
-    private final UnsafeBufferEx outputBuffer;
     private final LlmSectionPipeline residual;
     private final LlmSectionPipeline.Output residualOutput;
     private final LlmSectionAttributes residualAttributes;
-    private final int residualMax;
 
-    private byte[] textBytes;
-    private byte[] outputBytes;
-    private byte[] residualBytes;
+    private int slot;
+    private MutableDirectBufferEx slotBuffer;
+    private int textCapacity;
     private int residualLength;
     private int textLength;
     private int textProgress;
@@ -68,22 +70,22 @@ final class LlmTextModelPipeline implements LlmRunPipeline
     LlmTextModelPipeline(
         ModelPipeline pipeline,
         int overlap,
-        int residualMax)
+        BufferPool pool,
+        long streamId,
+        MutableDirectBufferEx transformBuffer)
     {
         this.pipeline = pipeline;
         this.overlap = overlap;
-        this.residualMax = residualMax;
+        this.pool = pool;
+        this.streamId = streamId;
+        this.transformBuffer = transformBuffer;
+        this.slot = NO_SLOT;
         this.residual = new LlmSectionPipeline(new LlmTextResidualTransform(), new UnsafeBufferEx(new byte[RESIDUAL_CHUNK]));
         this.residualOutput = (buffer, offset, length, last) -> onResidual(buffer, offset, length);
         this.residualAttributes = new LlmSectionAttributes();
-        this.residualBytes = new byte[0];
         this.decoder = new LlmTextPipeline(this::onText);
         this.escaper = JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true));
         this.result = new ModelPipelineResult();
-        this.textBytes = new byte[0];
-        this.outputBytes = new byte[0];
-        this.textBuffer = new UnsafeBufferEx(textBytes);
-        this.outputBuffer = new UnsafeBufferEx(outputBytes);
         decoder.begin();
     }
 
@@ -100,6 +102,7 @@ final class LlmTextModelPipeline implements LlmRunPipeline
     {
         pipeline.reset();
         decoder.begin();
+        releaseSlot();
         textLength = 0;
         textProgress = 0;
         residualLength = 0;
@@ -180,7 +183,7 @@ final class LlmTextModelPipeline implements LlmRunPipeline
         if (residualLength > RESIDUAL_EMPTY)
         {
             dst.putByte(position++, COMMA);
-            dst.putBytes(position, residualBytes, 1, residualLength - RESIDUAL_EMPTY);
+            dst.putBytes(position, slotBuffer, textCapacity + 1, residualLength - RESIDUAL_EMPTY);
             position += residualLength - RESIDUAL_EMPTY;
         }
 
@@ -198,8 +201,40 @@ final class LlmTextModelPipeline implements LlmRunPipeline
         int length,
         boolean sectionFin)
     {
-        return decoder.feed(src, srcIndex, length, sectionFin) &&
-            residual.feed(src, srcIndex, length, sectionFin, residualOutput) && residualLength <= residualMax;
+        return acquireSlot() && textLength + length <= textCapacity && residualLength + length <= residualCapacity() &&
+            decoder.feed(src, srcIndex, length, sectionFin) &&
+            residual.feed(src, srcIndex, length, sectionFin, residualOutput);
+    }
+
+    private boolean acquireSlot()
+    {
+        if (slot == NO_SLOT)
+        {
+            slot = pool.acquire(streamId);
+
+            if (slot != NO_SLOT)
+            {
+                slotBuffer = pool.buffer(slot);
+                textCapacity = pool.slotCapacity() / 2;
+            }
+        }
+
+        return slot != NO_SLOT;
+    }
+
+    private void releaseSlot()
+    {
+        if (slot != NO_SLOT)
+        {
+            pool.release(slot);
+            slot = NO_SLOT;
+            slotBuffer = null;
+        }
+    }
+
+    private int residualCapacity()
+    {
+        return pool.slotCapacity() - textCapacity;
     }
 
     private void onResidual(
@@ -207,12 +242,7 @@ final class LlmTextModelPipeline implements LlmRunPipeline
         int offset,
         int length)
     {
-        if (residualBytes.length < residualLength + length)
-        {
-            residualBytes = Arrays.copyOf(residualBytes, residualLength + length);
-        }
-
-        buffer.getBytes(offset, residualBytes, residualLength, length);
+        slotBuffer.putBytes(textCapacity + residualLength, buffer, offset, length);
         residualLength += length;
     }
 
@@ -237,12 +267,11 @@ final class LlmTextModelPipeline implements LlmRunPipeline
         {
             final int innerFlags = started ? flags : flags | Flags.INIT;
 
-            final int room = Math.max(dstLimit - dstIndex - (emitted == 0 ? PREFIX.length : 0), 0) / ESCAPE_EXPANSION;
-
-            reserveOutput(room);
+            final int room = Math.min(Math.max(dstLimit - dstIndex - (emitted == 0 ? PREFIX.length : 0), 0) / ESCAPE_EXPANSION,
+                transformBuffer.capacity());
 
             final ModelPipelineResult inner = pipeline.transform(traceId, bindingId, authorization, innerFlags,
-                textBuffer, textProgress, limit, outputBuffer, 0, room);
+                slot != NO_SLOT ? slotBuffer : EMPTY_TEXT, textProgress, limit, transformBuffer, 0, room);
 
             status = inner.status();
             rejection = inner.rejection();
@@ -265,7 +294,7 @@ final class LlmTextModelPipeline implements LlmRunPipeline
         {
             limit = Math.max(textLength - overlap, textProgress);
 
-            while (limit > textProgress && limit < textLength && (textBytes[limit] & 0xC0) == 0x80)
+            while (limit > textProgress && limit < textLength && (slotBuffer.getByte(limit) & 0xC0) == 0x80)
             {
                 limit--;
             }
@@ -291,7 +320,7 @@ final class LlmTextModelPipeline implements LlmRunPipeline
             }
 
             escaper.wrap(dst, position, dstLimit);
-            escaper.writeSegment(outputBuffer, 0, length);
+            escaper.writeSegment(transformBuffer, 0, length);
             position += escaper.length();
         }
 
@@ -300,16 +329,6 @@ final class LlmTextModelPipeline implements LlmRunPipeline
         emitted += produced;
 
         return produced;
-    }
-
-    private void reserveOutput(
-        int capacity)
-    {
-        if (outputBytes.length < capacity)
-        {
-            outputBytes = new byte[capacity];
-            outputBuffer.wrap(outputBytes);
-        }
     }
 
     private void compact()
@@ -321,8 +340,14 @@ final class LlmTextModelPipeline implements LlmRunPipeline
         }
         else if (textProgress > 0)
         {
-            System.arraycopy(textBytes, textProgress, textBytes, 0, textLength - textProgress);
-            textLength -= textProgress;
+            final int remaining = textLength - textProgress;
+
+            for (int index = 0; index < remaining; index++)
+            {
+                slotBuffer.putByte(index, slotBuffer.getByte(textProgress + index));
+            }
+
+            textLength = remaining;
             textProgress = 0;
         }
     }
@@ -332,13 +357,7 @@ final class LlmTextModelPipeline implements LlmRunPipeline
         int offset,
         int length)
     {
-        if (textBytes.length < textLength + length)
-        {
-            textBytes = Arrays.copyOf(textBytes, textLength + length);
-            textBuffer.wrap(textBytes);
-        }
-
-        buffer.getBytes(offset, textBytes, textLength, length);
+        slotBuffer.putBytes(textLength, buffer, offset, length);
         textLength += length;
     }
 }
