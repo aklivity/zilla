@@ -51,11 +51,16 @@ final class LlmToolTransformRunner
         {
             for (int bound : BOUNDS)
             {
-                final ByteArrayOutputStream output = new ByteArrayOutputStream();
-                final boolean accepted = run(transform, early, late, json, window, bound, output);
+                for (boolean emptyLast : new boolean[] {false, true})
+                {
+                    final ByteArrayOutputStream output = new ByteArrayOutputStream();
+                    final boolean accepted = run(transform, early, late, json, window, bound, emptyLast, output);
 
-                assertThat("accepted window " + window + " bound " + bound, accepted, is(true));
-                assertThat("window " + window + " bound " + bound, output.toString(UTF_8), equalTo(expected));
+                    assertThat("accepted window " + window + " bound " + bound + " emptyLast " + emptyLast,
+                        accepted, is(true));
+                    assertThat("window " + window + " bound " + bound + " emptyLast " + emptyLast,
+                        output.toString(UTF_8), equalTo(expected));
+                }
             }
         }
     }
@@ -70,12 +75,13 @@ final class LlmToolTransformRunner
             for (int bound : BOUNDS)
             {
                 final ByteArrayOutputStream canonical = new ByteArrayOutputStream();
-                final boolean encoded = run(toCanonical, null, null, json, window, bound, canonical);
+                final boolean encoded = run(toCanonical, null, null, json, window, bound, false, canonical);
 
                 assertThat("encoded window " + window + " bound " + bound, encoded, is(true));
 
                 final ByteArrayOutputStream nativeOutput = new ByteArrayOutputStream();
-                final boolean decoded = run(fromCanonical, null, null, canonical.toString(UTF_8), window, bound, nativeOutput);
+                final boolean decoded = run(fromCanonical, null, null, canonical.toString(UTF_8), window, bound, false,
+                    nativeOutput);
 
                 assertThat("decoded window " + window + " bound " + bound, decoded, is(true));
                 assertThat("window " + window + " bound " + bound, nativeOutput.toString(UTF_8), equalTo(json));
@@ -98,7 +104,7 @@ final class LlmToolTransformRunner
     {
         for (int window : WINDOWS)
         {
-            final boolean accepted = run(transform, early, late, json, window, REJECT_BOUND, new ByteArrayOutputStream());
+            final boolean accepted = run(transform, early, late, json, window, REJECT_BOUND, false, new ByteArrayOutputStream());
 
             assertThat("rejected window " + window, accepted, is(false));
         }
@@ -123,6 +129,7 @@ final class LlmToolTransformRunner
         String json,
         int window,
         int bound,
+        boolean emptyLast,
         ByteArrayOutputStream output)
     {
         final LlmSectionPipeline pipeline = new LlmSectionPipeline(transform, new UnsafeBufferEx(new byte[bound]));
@@ -148,9 +155,15 @@ final class LlmToolTransformRunner
             }
 
             final int length = Math.min(window, bytes.length - offset);
-            final boolean last = offset + length == bytes.length;
+            final boolean last = offset + length == bytes.length && !emptyLast;
 
             accepted = pipeline.feed(input, offset, length, last,
+                (buffer, index, size, done) -> collect(output, buffer, index, size));
+        }
+
+        if (accepted && emptyLast)
+        {
+            accepted = pipeline.feed(input, bytes.length, 0, true,
                 (buffer, index, size, done) -> collect(output, buffer, index, size));
         }
 

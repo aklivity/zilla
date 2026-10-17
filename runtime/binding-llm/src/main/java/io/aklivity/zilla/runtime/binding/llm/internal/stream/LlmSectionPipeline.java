@@ -49,6 +49,7 @@ final class LlmSectionPipeline
     private byte[] window;
     private int tailLength;
     private boolean completed;
+    private boolean closed;
 
     LlmSectionPipeline(
         JsonTransform stage,
@@ -71,6 +72,7 @@ final class LlmSectionPipeline
         pipeline.reset();
         tailLength = 0;
         completed = false;
+        closed = false;
     }
 
     boolean feed(
@@ -84,6 +86,12 @@ final class LlmSectionPipeline
 
         if (completed)
         {
+            if (last && !closed)
+            {
+                output.put(outputBuffer, 0, 0, true);
+                closed = true;
+            }
+
             return true;
         }
 
@@ -117,9 +125,12 @@ final class LlmSectionPipeline
                 outputBuffer, 0, outputBuffer.capacity());
             status = result.status();
 
-            if (result.produced() > 0 || status == Status.COMPLETED)
+            final boolean done = status == Status.COMPLETED && last;
+
+            if (result.produced() > 0 || done)
             {
-                output.put(outputBuffer, 0, result.produced(), status == Status.COMPLETED);
+                output.put(outputBuffer, 0, result.produced(), done);
+                closed |= done;
             }
 
             progress += result.consumed();

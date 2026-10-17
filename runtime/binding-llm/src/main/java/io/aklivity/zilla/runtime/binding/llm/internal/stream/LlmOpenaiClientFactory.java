@@ -716,15 +716,17 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             }
             else
             {
+                final LlmDataExFW llmDataEx = data.extension().get(llmDataExRO::tryWrap);
+                final LlmSectionDataExFW section = llmDataEx != null && llmDataEx.kind() == LlmDataExFW.KIND_SECTION
+                    ? llmDataEx.section()
+                    : null;
+
                 if (Flags.hasInit(flags))
                 {
-                    final LlmDataExFW llmDataEx = data.extension().get(llmDataExRO::tryWrap);
-
                     appKind = llmDataEx != null ? llmDataEx.kind() : LlmDataExFW.KIND_SECTION;
 
                     if (appKind == LlmDataExFW.KIND_SECTION)
                     {
-                        final LlmSectionDataExFW section = llmDataEx != null ? llmDataEx.section() : null;
                         sectionAttributes.readFrom(section);
 
                         final LlmSectionType type = section != null ? section.type().get() : LlmSectionType.NONE;
@@ -751,6 +753,10 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                     {
                         http.doEncodeDialectDropped();
                     }
+                }
+                else
+                {
+                    sectionAttributes.mergeFrom(section);
                 }
 
                 final OctetsFW payload = data.payload();
