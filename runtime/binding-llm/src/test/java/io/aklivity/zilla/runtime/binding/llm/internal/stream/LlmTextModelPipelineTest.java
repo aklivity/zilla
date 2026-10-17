@@ -39,6 +39,7 @@ public class LlmTextModelPipelineTest
     private static final String OBJECT = "{\"text\":\"héllo \\\"x\\\" \\n\\u0001\"}";
     private static final int[] FRAGMENTS = {1, 2, 3, 5, 8, 1000};
     private static final int[] CAPACITIES = {32, 64, 4096};
+    private static final int RESIDUAL_MAX = 1024;
 
     @Test
     public void shouldTransformDecodedTextAndEmbedAsObject()
@@ -47,7 +48,7 @@ public class LlmTextModelPipelineTest
         {
             for (int capacity : CAPACITIES)
             {
-                final Run run = run(new LlmTextModelPipeline(new Upper(), 0), List.of(OBJECT), fragment, capacity);
+                final Run run = run(new LlmTextModelPipeline(new Upper(), 0, RESIDUAL_MAX), List.of(OBJECT), fragment, capacity);
 
                 assertThat("fragment " + fragment + " capacity " + capacity, run.status, is(ModelStatus.COMPLETE));
                 assertThat("fragment " + fragment + " capacity " + capacity, run.sections,
@@ -57,13 +58,48 @@ public class LlmTextModelPipelineTest
     }
 
     @Test
+    public void shouldKeepMembersOtherThanTextAfterTransformedText()
+    {
+        for (int fragment : FRAGMENTS)
+        {
+            final Run before = run(new LlmTextModelPipeline(new Upper(), 0, RESIDUAL_MAX),
+                List.of("{\"sig\":{\"k\":[1,\"v\"]},\"text\":\"ab\"}"), fragment, 64);
+            final Run after = run(new LlmTextModelPipeline(new Upper(), 0, RESIDUAL_MAX),
+                List.of("{\"text\":\"ab\",\"sig\":{\"k\":[1,\"v\"]},\"n\":2}"), fragment, 64);
+
+            assertThat("fragment " + fragment, before.sections,
+                equalTo(List.of("{\"text\":\"AB\",\"sig\":{\"k\":[1,\"v\"]}}")));
+            assertThat("fragment " + fragment, after.sections,
+                equalTo(List.of("{\"text\":\"AB\",\"sig\":{\"k\":[1,\"v\"]},\"n\":2}")));
+        }
+    }
+
+    @Test
+    public void shouldKeepMembersOfEachSectionOfRun()
+    {
+        final Run run = run(new LlmTextModelPipeline(new Upper(), 0, RESIDUAL_MAX),
+            List.of("{\"text\":\"ab\",\"a\":1}", "{\"b\":2,\"text\":\"cd\"}"), 3, 64);
+
+        assertThat(run.sections, equalTo(List.of("{\"text\":\"AB\",\"a\":1}", "{\"text\":\"CD\",\"b\":2}")));
+    }
+
+    @Test
+    public void shouldRejectMembersLargerThanResidualMax()
+    {
+        final Run run = run(new LlmTextModelPipeline(new Upper(), 0, 8),
+            List.of("{\"text\":\"ab\",\"member\":\"0123456789\"}"), 1000, 64);
+
+        assertThat(run.statuses.get(0), is(ModelStatus.REJECTED));
+    }
+
+    @Test
     public void shouldPresentSectionsOfRunAsOneValue()
     {
         final List<String> input = List.of("{\"text\":\"ab\"}", "{\"text\":\"cd\"}", "{\"text\":\"ef\"}");
 
         for (int fragment : FRAGMENTS)
         {
-            final Run run = run(new LlmTextModelPipeline(new Upper(), 0), input, fragment, 64);
+            final Run run = run(new LlmTextModelPipeline(new Upper(), 0, RESIDUAL_MAX), input, fragment, 64);
 
             assertThat("fragment " + fragment, run.sections,
                 equalTo(List.of("{\"text\":\"AB\"}", "{\"text\":\"CD\"}", "{\"text\":\"EF\"}")));
@@ -77,7 +113,7 @@ public class LlmTextModelPipelineTest
 
         for (int fragment : FRAGMENTS)
         {
-            final Run run = run(new LlmTextModelPipeline(new Upper(), 3), input, fragment, 64);
+            final Run run = run(new LlmTextModelPipeline(new Upper(), 3, RESIDUAL_MAX), input, fragment, 64);
 
             assertThat("fragment " + fragment, run.sections,
                 equalTo(List.of("{\"text\":\"A\"}", "{\"text\":\"BCDE\"}", "{\"text\":\"FGHIJ\"}")));
@@ -87,7 +123,8 @@ public class LlmTextModelPipelineTest
     @Test
     public void shouldCloseSectionHoldingNoOutput()
     {
-        final Run run = run(new LlmTextModelPipeline(new Upper(), 100), List.of("{\"text\":\"ab\"}", "{\"text\":\"cd\"}"), 3, 64);
+        final Run run = run(new LlmTextModelPipeline(new Upper(), 100, RESIDUAL_MAX),
+            List.of("{\"text\":\"ab\"}", "{\"text\":\"cd\"}"), 3, 64);
 
         assertThat(run.sections, equalTo(List.of("{\"text\":\"\"}", "{\"text\":\"ABCD\"}")));
     }
@@ -97,7 +134,8 @@ public class LlmTextModelPipelineTest
     {
         for (int fragment : FRAGMENTS)
         {
-            final Run run = run(new LlmTextModelPipeline(new Pairs(), 0), List.of("{\"text\":\"abcdefg\"}"), fragment, 64);
+            final Run run = run(new LlmTextModelPipeline(new Pairs(), 0, RESIDUAL_MAX),
+                List.of("{\"text\":\"abcdefg\"}"), fragment, 64);
 
             assertThat("fragment " + fragment, run.status, is(ModelStatus.COMPLETE));
             assertThat("fragment " + fragment, String.join("", run.sections), equalTo("{\"text\":\"ABCDEFG\"}"));
@@ -107,7 +145,7 @@ public class LlmTextModelPipelineTest
     @Test
     public void shouldNotEmitFramingBeforeChainProducesOutput()
     {
-        final LlmTextModelPipeline pipeline = new LlmTextModelPipeline(new Holding(), 0);
+        final LlmTextModelPipeline pipeline = new LlmTextModelPipeline(new Holding(), 0, RESIDUAL_MAX);
         final UnsafeBufferEx dst = new UnsafeBufferEx(new byte[64]);
         final byte[] bytes = "{\"text\":\"ab".getBytes(UTF_8);
         final ModelPipelineResult result = pipeline.accept(0L, 0L, 0L, true, false, new UnsafeBufferEx(bytes), 0,
@@ -123,7 +161,8 @@ public class LlmTextModelPipelineTest
     {
         for (int fragment : FRAGMENTS)
         {
-            final Run run = run(new LlmTextModelPipeline(new Reject(), 0), List.of("{\"text\":\"fine \\\"text\\\"\"}"),
+            final Run run = run(new LlmTextModelPipeline(new Reject(), 0, RESIDUAL_MAX),
+                List.of("{\"text\":\"fine \\\"text\\\"\"}"),
                 fragment, 4096);
 
             assertThat("fragment " + fragment, run.status, is(ModelStatus.COMPLETE));
@@ -136,7 +175,7 @@ public class LlmTextModelPipelineTest
     {
         for (int fragment : FRAGMENTS)
         {
-            final LlmTextModelPipeline pipeline = new LlmTextModelPipeline(new Reject(), 0);
+            final LlmTextModelPipeline pipeline = new LlmTextModelPipeline(new Reject(), 0, RESIDUAL_MAX);
             final Run run = run(pipeline, List.of("{\"text\":\"b\"}", "{\"text\":\"a\"}", "{\"text\":\"d\"}"), fragment, 4096);
 
             assertThat("fragment " + fragment, run.statuses.subList(0, run.statuses.size() - 1)
@@ -148,7 +187,7 @@ public class LlmTextModelPipelineTest
     @Test
     public void shouldRejectInvalidObject()
     {
-        final Run run = run(new LlmTextModelPipeline(new Upper(), 0), List.of("[1]"), 1000, 4096);
+        final Run run = run(new LlmTextModelPipeline(new Upper(), 0, RESIDUAL_MAX), List.of("[1]"), 1000, 4096);
 
         assertThat(run.statuses.get(0), is(ModelStatus.REJECTED));
     }
@@ -156,7 +195,7 @@ public class LlmTextModelPipelineTest
     @Test
     public void shouldResetBetweenRuns()
     {
-        final LlmTextModelPipeline pipeline = new LlmTextModelPipeline(new Upper(), 0);
+        final LlmTextModelPipeline pipeline = new LlmTextModelPipeline(new Upper(), 0, RESIDUAL_MAX);
 
         for (int index = 0; index < 2; index++)
         {
@@ -169,7 +208,7 @@ public class LlmTextModelPipelineTest
     @Test
     public void shouldHoldLessThanWholeValueWhenOverlapIsSmall()
     {
-        final Run run = run(new LlmTextModelPipeline(new Upper(), 2), List.of("{\"text\":\"abcdefgh\"}"), 1000, 64);
+        final Run run = run(new LlmTextModelPipeline(new Upper(), 2, RESIDUAL_MAX), List.of("{\"text\":\"abcdefgh\"}"), 1000, 64);
 
         assertThat(run.sections.size(), is(1));
         assertThat(run.sections.get(0).length(), lessThan("{\"text\":\"abcdefgh\"}".length() + 1));

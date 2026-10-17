@@ -178,6 +178,17 @@ public class LlmProxyIT
     }
 
     @Test
+    @Configuration("proxy.guardrail.mask.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.transform.members/client",
+        "${app}/openai.proxy.guardrail.transform.members.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayTransformedSectionsKeepingMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.guardrail.yaml")
     @Specification({
         "${app}/openai.proxy.guardrail.response.rejected.streaming/client",

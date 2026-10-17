@@ -1324,7 +1324,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
 
             this.pipelines = new EnumMap<>(LlmSectionType.class);
             chains.forEach((section, chain) -> pipelines.put(section, LlmTextModelPipeline.objectShaped(section)
-                ? new LlmTextModelPipeline(chain, overlaps.get(section))
+                ? new LlmTextModelPipeline(chain, overlaps.get(section), guardrailBuffer.capacity() / 2)
                 : new LlmRawRunPipeline(chain)));
         }
 

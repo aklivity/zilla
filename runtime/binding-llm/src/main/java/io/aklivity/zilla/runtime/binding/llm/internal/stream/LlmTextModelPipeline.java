@@ -40,7 +40,10 @@ final class LlmTextModelPipeline implements LlmRunPipeline
 {
     private static final byte[] PREFIX = "{\"text\":\"".getBytes(UTF_8);
     private static final byte[] SUFFIX = "\"}".getBytes(UTF_8);
+    private static final byte COMMA = ',';
     private static final int ESCAPE_EXPANSION = 6;
+    private static final int RESIDUAL_CHUNK = 256;
+    private static final int RESIDUAL_EMPTY = 2;
 
     private final ModelPipeline pipeline;
     private final int overlap;
@@ -49,9 +52,15 @@ final class LlmTextModelPipeline implements LlmRunPipeline
     private final ModelPipelineResult result;
     private final UnsafeBufferEx textBuffer;
     private final UnsafeBufferEx outputBuffer;
+    private final LlmSectionPipeline residual;
+    private final LlmSectionPipeline.Output residualOutput;
+    private final LlmSectionAttributes residualAttributes;
+    private final int residualMax;
 
     private byte[] textBytes;
     private byte[] outputBytes;
+    private byte[] residualBytes;
+    private int residualLength;
     private int textLength;
     private int textProgress;
     private int emitted;
@@ -59,10 +68,16 @@ final class LlmTextModelPipeline implements LlmRunPipeline
 
     LlmTextModelPipeline(
         ModelPipeline pipeline,
-        int overlap)
+        int overlap,
+        int residualMax)
     {
         this.pipeline = pipeline;
         this.overlap = overlap;
+        this.residualMax = residualMax;
+        this.residual = new LlmSectionPipeline(new LlmTextResidualTransform(), new UnsafeBufferEx(new byte[RESIDUAL_CHUNK]));
+        this.residualOutput = (buffer, offset, length, last) -> onResidual(buffer, offset, length);
+        this.residualAttributes = new LlmSectionAttributes();
+        this.residualBytes = new byte[0];
         this.decoder = new LlmTextPipeline(this::onText);
         this.escaper = JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true));
         this.result = new ModelPipelineResult();
@@ -94,6 +109,7 @@ final class LlmTextModelPipeline implements LlmRunPipeline
         decoder.begin();
         textLength = 0;
         textProgress = 0;
+        residualLength = 0;
         emitted = 0;
         started = false;
     }
@@ -117,11 +133,17 @@ final class LlmTextModelPipeline implements LlmRunPipeline
         if (sectionInit)
         {
             decoder.begin();
+            residualLength = 0;
+
+            if (!pipeline.identity())
+            {
+                residual.begin(residualAttributes);
+            }
         }
 
         ModelPipelineResult outcome = null;
 
-        if (consumed > 0 && !decoder.feed(src, srcIndex, consumed, sectionFin))
+        if (consumed > 0 && !accepted(src, srcIndex, consumed, sectionFin))
         {
             outcome = result.set(ModelStatus.REJECTED, consumed, 0);
         }
@@ -148,7 +170,7 @@ final class LlmTextModelPipeline implements LlmRunPipeline
     @Override
     public int closeWidth()
     {
-        return PREFIX.length + SUFFIX.length;
+        return PREFIX.length + SUFFIX.length + (residualLength > RESIDUAL_EMPTY ? residualLength : 0);
     }
 
     @Override
@@ -164,12 +186,51 @@ final class LlmTextModelPipeline implements LlmRunPipeline
             position += PREFIX.length;
         }
 
-        dst.putBytes(position, SUFFIX);
-        position += SUFFIX.length;
+        dst.putByte(position++, SUFFIX[0]);
+
+        if (residualLength > RESIDUAL_EMPTY)
+        {
+            dst.putByte(position++, COMMA);
+            dst.putBytes(position, residualBytes, 1, residualLength - RESIDUAL_EMPTY);
+            position += residualLength - RESIDUAL_EMPTY;
+        }
+
+        dst.putByte(position++, SUFFIX[1]);
 
         emitted = 0;
+        residualLength = 0;
 
         return position - dstIndex;
+    }
+
+    private boolean accepted(
+        DirectBufferEx src,
+        int srcIndex,
+        int length,
+        boolean sectionFin)
+    {
+        boolean accepted = decoder.feed(src, srcIndex, length, sectionFin);
+
+        if (accepted && !pipeline.identity())
+        {
+            accepted = residual.feed(src, srcIndex, length, sectionFin, residualOutput) && residualLength <= residualMax;
+        }
+
+        return accepted;
+    }
+
+    private void onResidual(
+        DirectBufferEx buffer,
+        int offset,
+        int length)
+    {
+        if (residualBytes.length < residualLength + length)
+        {
+            residualBytes = Arrays.copyOf(residualBytes, residualLength + length);
+        }
+
+        buffer.getBytes(offset, residualBytes, residualLength, length);
+        residualLength += length;
     }
 
     private ModelPipelineResult run(
