@@ -40,6 +40,8 @@ write option zilla:flags "fin"
 write "instructions\"}"
 write flush
 
+write advise zilla:flush
+
 read zilla:reset.ext ${llm:matchResetEx()
                            .typeId(zilla:id("llm"))
                            .status(400)

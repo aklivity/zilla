@@ -30,12 +30,15 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
+read option zilla:flags "init"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-read "{\"text\":\"Hello\"}"
+read "{\"text\":\"Hello, *****"
+read option zilla:flags "fin"
+read "\"}"
 
 read advised zilla:flush
 
@@ -51,7 +54,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-write "{\"text\":\"Hi\"}"
+write "{\"text\":\"Hi secret\"}"
 write flush
 
 write close

@@ -64,12 +64,6 @@ write option zilla:flags "fin"
 write "instructions\"}"
 write flush
 
-read zilla:reset.ext ${llm:matchResetEx()
-                           .typeId(zilla:id("llm"))
-                           .status(400)
-                           .type("invalid_request_error")
-                           .param("assistant-reasoning[0]")
-                           .message("assistant-reasoning rejected")
-                           .build()}
+write close
 
-write aborted
+read closed

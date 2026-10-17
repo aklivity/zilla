@@ -21,6 +21,7 @@ import java.util.Deque;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.collections.Long2ObjectHashMap;
@@ -1248,48 +1249,83 @@ public final class LlmProxyFactory implements LlmStreamFactory
     }
 
     // Applies the guardrail stages of one direction to the sections flowing through it. The stages that name a
-    // section type are chained in configuration order, each applied to what the previous one produced. A chain of
-    // validating stages leaves the bytes unchanged, so the original frames continue once the chain accepts them.
-    // A chain with a transforming stage emits what it produces instead, in fragments no larger than the credit
-    // the destination has granted: the input it has not yet consumed, and every frame received behind it, is held
-    // until credit arrives, and the held bytes count against the credit granted to the sender. A stage that
-    // suspends holds the frame that raised the question in the same way, until it answers.
+    // section type are chained in configuration order, each applied to what the previous one produced. The sections
+    // of a run, consecutive sections of the same type, message and tool call, are presented to the chain as one
+    // continuous value that starts with the run and completes when the run ends: a different section, the end of the
+    // stream, or a flush.
+    //
+    // A chain of validating stages leaves the bytes unchanged, so each original frame continues as soon as the
+    // chain has observed it. A verdict that depends on the whole run follows when the run ends, and can follow
+    // frames already delivered.
+    //
+    // A chain with a transforming stage emits what it produces for the bytes it has been fed, in the section being
+    // delivered, in fragments no larger than the credit the destination has granted. A chain holds back what it
+    // needs to see more of, so its output can lag the input; the closing frame of the last section of the run, and
+    // the dialect frames behind it, wait for the run to end so that what remains has a frame to ride in. Frames held
+    // behind a decision count against the credit granted to the sender. A stage that suspends holds the frame that
+    // raised the question in the same way, until it answers.
     private abstract class LlmSectionGuard
     {
-        private final long routedId;
-        private final Map<LlmSectionType, ModelPipeline> pipelines;
-        private final Deque<LlmHeldFrame> held;
+        private static final int SETTLE_NONE = 0;
+        private static final int SETTLE_SECTION = 1;
+        private static final int SETTLE_RUN = 2;
 
-        private ModelPipeline sectionPipeline;
+        private final long routedId;
+        private final Map<LlmSectionType, LlmRunPipeline> pipelines;
+        private final Deque<LlmHeldFrame> held;
+        private final LlmSectionAttributes frameAttributes;
+
+        private LlmRunPipeline runPipeline;
+        private LlmSectionType runType;
+        private int runMessage;
+        private String runToolCallId;
+        private boolean runFinished;
+        private LlmSectionType peekType;
+        private int peekMessage;
+        private String peekToolCallId;
+        private LlmRunPipeline sectionPipeline;
         private LlmSectionType sectionType;
         private int sectionMessage;
+        private String sectionToolCallId;
         private byte[] sectionExtension;
         private boolean sectionTransforms;
         private boolean outputStarted;
+        private boolean outputPending;
+        private int settling;
         private boolean suspended;
         private boolean closed;
         private int heldBytes;
         private int progress;
         private long traceId;
         private long authorization;
+        private long budgetId;
 
         private LlmSectionGuard(
             long routedId,
             List<LlmGuardrailStage> stages)
         {
             this.routedId = routedId;
-            this.pipelines = new EnumMap<>(LlmSectionType.class);
             this.held = new ArrayDeque<>();
+            this.frameAttributes = new LlmSectionAttributes();
+
+            final Map<LlmSectionType, ModelPipeline> chains = new EnumMap<>(LlmSectionType.class);
+            final Map<LlmSectionType, Integer> overlaps = new EnumMap<>(LlmSectionType.class);
 
             for (LlmGuardrailStage stage : stages)
             {
                 final ModelPipeline pipeline = stage.handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE,
                     this::onResumed);
-                stage.sections.forEach(section -> pipelines.merge(section, pipeline, ModelPipeline::andThen));
+                stage.sections.forEach(section ->
+                {
+                    chains.merge(section, pipeline, ModelPipeline::andThen);
+                    overlaps.merge(section, stage.overlap, Math::max);
+                });
             }
 
-            pipelines.replaceAll((section, pipeline) ->
-                LlmTextModelPipeline.objectShaped(section) ? new LlmTextModelPipeline(pipeline) : pipeline);
+            this.pipelines = new EnumMap<>(LlmSectionType.class);
+            chains.forEach((section, chain) -> pipelines.put(section, LlmTextModelPipeline.objectShaped(section)
+                ? new LlmTextModelPipeline(chain, overlaps.get(section))
+                : new LlmRawRunPipeline(chain)));
         }
 
         abstract void doForwardData(
@@ -1338,13 +1374,22 @@ public final class LlmProxyFactory implements LlmStreamFactory
         {
             this.traceId = traceId;
             this.authorization = authorization;
+            this.budgetId = budgetId;
 
             if (!closed)
             {
-                if (suspended || !held.isEmpty())
+                final boolean section = Flags.hasInit(flags) && peekSection(extension);
+
+                if (section && runPipeline != null)
+                {
+                    settling = !sameRun() ? SETTLE_RUN : outputPending ? SETTLE_SECTION : settling;
+                }
+
+                if (settling != SETTLE_NONE || suspended || !held.isEmpty() || outputPending)
                 {
                     holdLast(new LlmHeldFrame(LlmHeldFrame.KIND_DATA, traceId, authorization, flags, budgetId, reserved,
                         payload, extension));
+                    release();
                 }
                 else
                 {
@@ -1368,9 +1413,9 @@ public final class LlmProxyFactory implements LlmStreamFactory
                     default:
                         break;
                     }
-
-                    refreshWindow(traceId, authorization);
                 }
+
+                refreshWindow(traceId, authorization);
             }
         }
 
@@ -1379,14 +1424,22 @@ public final class LlmProxyFactory implements LlmStreamFactory
             long authorization,
             OctetsFW extension)
         {
-            if (suspended || !held.isEmpty())
+            this.traceId = traceId;
+            this.authorization = authorization;
+            if (!closed)
             {
-                holdLast(new LlmHeldFrame(LlmHeldFrame.KIND_END, traceId, authorization, 0, 0L, 0,
-                    EMPTY_OCTETS, extension));
-            }
-            else if (!closed)
-            {
-                doForwardEnd(traceId, authorization, extension);
+                settleRun();
+
+                if (settling != SETTLE_NONE || suspended || !held.isEmpty())
+                {
+                    holdLast(new LlmHeldFrame(LlmHeldFrame.KIND_END, traceId, authorization, 0, 0L, 0,
+                        EMPTY_OCTETS, extension));
+                    release();
+                }
+                else
+                {
+                    doForwardEnd(traceId, authorization, extension);
+                }
             }
         }
 
@@ -1397,14 +1450,24 @@ public final class LlmProxyFactory implements LlmStreamFactory
             int reserved,
             OctetsFW extension)
         {
-            if (suspended || !held.isEmpty())
+            this.traceId = traceId;
+            this.authorization = authorization;
+            this.budgetId = budgetId;
+
+            if (!closed)
             {
-                holdLast(new LlmHeldFrame(LlmHeldFrame.KIND_FLUSH, traceId, authorization, 0, budgetId, reserved,
-                    EMPTY_OCTETS, extension));
-            }
-            else if (!closed)
-            {
-                doForwardFlush(traceId, authorization, budgetId, reserved, extension);
+                settleRun();
+
+                if (settling != SETTLE_NONE || suspended || !held.isEmpty())
+                {
+                    holdLast(new LlmHeldFrame(LlmHeldFrame.KIND_FLUSH, traceId, authorization, 0, budgetId, reserved,
+                        EMPTY_OCTETS, extension));
+                    release();
+                }
+                else
+                {
+                    doForwardFlush(traceId, authorization, budgetId, reserved, extension);
+                }
             }
         }
 
@@ -1413,6 +1476,44 @@ public final class LlmProxyFactory implements LlmStreamFactory
             this.closed = true;
             held.clear();
             this.heldBytes = 0;
+
+            if (runPipeline != null)
+            {
+                runPipeline.reset();
+                runPipeline = null;
+            }
+        }
+
+        private void settleRun()
+        {
+            if (runPipeline != null)
+            {
+                settling = SETTLE_RUN;
+            }
+        }
+
+        private boolean peekSection(
+            OctetsFW extension)
+        {
+            final LlmDataExFW llmDataEx = extension.get(llmDataExRO::tryWrap);
+            final boolean section = llmDataEx != null && llmDataEx.kind() == LlmDataExFW.KIND_SECTION;
+
+            if (section)
+            {
+                final LlmSectionDataExFW dataEx = llmDataEx.section();
+
+                frameAttributes.readFrom(dataEx);
+                peekType = dataEx.type().get();
+                peekMessage = dataEx.message();
+                peekToolCallId = frameAttributes.toolCallId();
+            }
+
+            return section;
+        }
+
+        private boolean sameRun()
+        {
+            return runType == peekType && runMessage == peekMessage && Objects.equals(runToolCallId, peekToolCallId);
         }
 
         private LlmGuardVerdict process(
@@ -1428,14 +1529,15 @@ public final class LlmProxyFactory implements LlmStreamFactory
             boolean initial,
             OctetsFW extension)
         {
-            if (initial && Flags.hasInit(flags))
+            final boolean sectionInit = initial && Flags.hasInit(flags);
+
+            if (sectionInit)
             {
                 selectSection(extension);
             }
 
-            final int fragmentFlags = initial ? flags : flags & ~Flags.INIT;
+            final LlmGuardVerdict verdict;
 
-            LlmGuardVerdict verdict;
             if (sectionPipeline == null)
             {
                 this.progress = limit;
@@ -1445,27 +1547,17 @@ public final class LlmProxyFactory implements LlmStreamFactory
             }
             else if (sectionTransforms)
             {
-                verdict = transform(traceId, authorization, fragmentFlags, budgetId, buffer, offset, limit);
+                verdict = transform(traceId, authorization, flags, buffer, offset, limit, sectionInit);
             }
             else
             {
-                verdict = validate(traceId, authorization, fragmentFlags, buffer, offset, limit);
+                verdict = observe(traceId, authorization, flags, buffer, offset, limit, sectionInit);
 
                 if (verdict == LlmGuardVerdict.ACCEPTED)
                 {
                     doForwardData(traceId, authorization, flags, budgetId, reserved,
                         forwardPayloadRO.wrap(buffer, start, limit), extension);
                 }
-            }
-
-            if (verdict == LlmGuardVerdict.ACCEPTED && Flags.hasFin(flags))
-            {
-                if (sectionPipeline != null)
-                {
-                    sectionPipeline.reset();
-                }
-
-                this.sectionPipeline = null;
             }
 
             return verdict;
@@ -1484,14 +1576,26 @@ public final class LlmProxyFactory implements LlmStreamFactory
             {
                 final LlmSectionDataExFW section = llmDataEx.section();
 
+                frameAttributes.readFrom(section);
                 this.sectionType = section.type().get();
                 this.sectionMessage = section.message();
-                this.sectionPipeline = pipelines.get(sectionType);
+                this.sectionToolCallId = frameAttributes.toolCallId();
 
-                if (sectionPipeline != null)
+                final LlmRunPipeline pipeline = pipelines.get(sectionType);
+
+                if (pipeline != null)
                 {
-                    sectionPipeline.reset();
-                    this.sectionTransforms = !sectionPipeline.identity();
+                    if (runPipeline == null)
+                    {
+                        this.runPipeline = pipeline;
+                        this.runType = sectionType;
+                        this.runMessage = sectionMessage;
+                        this.runToolCallId = sectionToolCallId;
+                        this.runFinished = false;
+                    }
+
+                    this.sectionPipeline = pipeline;
+                    this.sectionTransforms = !pipeline.identity();
 
                     if (sectionTransforms)
                     {
@@ -1502,26 +1606,27 @@ public final class LlmProxyFactory implements LlmStreamFactory
             }
         }
 
-        private LlmGuardVerdict validate(
+        private LlmGuardVerdict observe(
             long traceId,
             long authorization,
             int flags,
             DirectBufferEx buffer,
             int offset,
-            int limit)
+            int limit,
+            boolean sectionInit)
         {
             int position = offset;
-            int fragmentFlags = flags;
+            boolean init = sectionInit;
             ModelStatus status;
 
             do
             {
-                final ModelPipelineResult result = sectionPipeline.transform(traceId, routedId, authorization,
-                    fragmentFlags, buffer, position, limit, guardrailBuffer, 0, guardrailBuffer.capacity());
+                final ModelPipelineResult result = sectionPipeline.accept(traceId, routedId, authorization, init,
+                    Flags.hasFin(flags), buffer, position, limit, guardrailBuffer, 0, guardrailBuffer.capacity());
 
                 status = result.status();
                 position += result.consumed();
-                fragmentFlags &= ~Flags.INIT;
+                init = false;
             }
             while (status == ModelStatus.OVERFLOW);
 
@@ -1536,13 +1641,13 @@ public final class LlmProxyFactory implements LlmStreamFactory
             long traceId,
             long authorization,
             int flags,
-            long budgetId,
             DirectBufferEx buffer,
             int offset,
-            int limit)
+            int limit,
+            boolean sectionInit)
         {
             int position = offset;
-            int fragmentFlags = flags;
+            boolean init = sectionInit;
             LlmGuardVerdict verdict = null;
 
             while (verdict == null)
@@ -1555,18 +1660,18 @@ public final class LlmProxyFactory implements LlmStreamFactory
                 }
                 else
                 {
-                    final ModelPipelineResult result = sectionPipeline.transform(traceId, routedId, authorization,
-                        fragmentFlags, buffer, position, limit, guardrailBuffer, 0, outputLimit);
+                    final ModelPipelineResult result = sectionPipeline.accept(traceId, routedId, authorization, init,
+                        Flags.hasFin(flags), buffer, position, limit, guardrailBuffer, 0, outputLimit);
 
                     final ModelStatus status = result.status();
                     final int produced = result.produced();
 
                     position += result.consumed();
-                    fragmentFlags &= ~Flags.INIT;
+                    init = false;
 
-                    if (produced > 0 || status == ModelStatus.COMPLETE)
+                    if (produced > 0)
                     {
-                        doForwardOutput(traceId, authorization, budgetId, produced, status == ModelStatus.COMPLETE);
+                        doForwardOutput(traceId, authorization, budgetId, produced, false);
                     }
 
                     switch (status)
@@ -1588,6 +1693,106 @@ public final class LlmProxyFactory implements LlmStreamFactory
             }
 
             this.progress = position;
+            this.outputPending |= verdict == LlmGuardVerdict.ACCEPTED && Flags.hasFin(flags);
+
+            return verdict;
+        }
+
+        private LlmGuardVerdict settle()
+        {
+            LlmGuardVerdict verdict = LlmGuardVerdict.ACCEPTED;
+
+            if (settling == SETTLE_RUN && !runFinished)
+            {
+                verdict = finishRun();
+                runFinished = verdict == LlmGuardVerdict.ACCEPTED;
+            }
+
+            if (verdict == LlmGuardVerdict.ACCEPTED && outputPending)
+            {
+                verdict = closeOutput();
+            }
+
+            if (verdict == LlmGuardVerdict.ACCEPTED)
+            {
+                if (settling == SETTLE_RUN)
+                {
+                    runPipeline.reset();
+                    runPipeline = null;
+                    runFinished = false;
+                }
+
+                settling = SETTLE_NONE;
+            }
+
+            return verdict;
+        }
+
+        private LlmGuardVerdict finishRun()
+        {
+            final boolean transforms = !runPipeline.identity();
+            LlmGuardVerdict verdict = null;
+
+            while (verdict == null)
+            {
+                final int outputLimit = transforms
+                    ? Math.min(credit() - padding(), guardrailBuffer.capacity() / 2)
+                    : guardrailBuffer.capacity();
+
+                if (outputLimit <= 0)
+                {
+                    verdict = LlmGuardVerdict.BLOCKED;
+                }
+                else
+                {
+                    final ModelPipelineResult result = runPipeline.finish(traceId, routedId, authorization,
+                        guardrailBuffer, 0, outputLimit);
+
+                    final ModelStatus status = result.status();
+                    final int produced = result.produced();
+
+                    if (transforms && produced > 0)
+                    {
+                        doForwardOutput(traceId, authorization, budgetId, produced, false);
+                    }
+
+                    switch (status)
+                    {
+                    case REJECTED:
+                        verdict = LlmGuardVerdict.REJECTED;
+                        break;
+                    case SUSPENDED:
+                        verdict = LlmGuardVerdict.SUSPENDED;
+                        break;
+                    case OVERFLOW:
+                        verdict = produced == 0 ? LlmGuardVerdict.BLOCKED : null;
+                        break;
+                    default:
+                        verdict = LlmGuardVerdict.ACCEPTED;
+                        break;
+                    }
+                }
+            }
+
+            return verdict;
+        }
+
+        private LlmGuardVerdict closeOutput()
+        {
+            final LlmGuardVerdict verdict;
+
+            if (credit() - padding() < runPipeline.closeWidth())
+            {
+                verdict = LlmGuardVerdict.BLOCKED;
+            }
+            else
+            {
+                final int length = runPipeline.close(guardrailBuffer, 0);
+
+                doForwardOutput(traceId, authorization, budgetId, length, true);
+                outputPending = false;
+                verdict = LlmGuardVerdict.ACCEPTED;
+            }
 
             return verdict;
         }
@@ -1597,9 +1802,9 @@ public final class LlmProxyFactory implements LlmStreamFactory
             long authorization,
             long budgetId,
             int produced,
-            boolean complete)
+            boolean closing)
         {
-            final int flags = (outputStarted ? 0 : Flags.INIT) | (complete ? Flags.FIN : 0);
+            final int flags = (outputStarted ? 0 : Flags.INIT) | (closing ? Flags.FIN : 0);
             final OctetsFW extension = outputStarted
                 ? EMPTY_OCTETS
                 : forwardExtensionRO.wrap(new UnsafeBufferEx(sectionExtension), 0, sectionExtension.length);
@@ -1607,7 +1812,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             doForwardData(traceId, authorization, flags, budgetId, produced + padding(),
                 forwardPayloadRO.wrap(guardrailBuffer, 0, produced), extension);
 
-            this.outputStarted = !complete;
+            this.outputStarted = !closing;
         }
 
         private void onResumed()
@@ -1635,30 +1840,16 @@ public final class LlmProxyFactory implements LlmStreamFactory
         {
             boolean blocked = false;
 
-            while (!blocked && !suspended && !closed && !held.isEmpty())
+            while (!blocked && !suspended && !closed)
             {
-                final LlmHeldFrame frame = held.peekFirst();
-
-                if (frame.kind == LlmHeldFrame.KIND_DATA)
+                if (settling != SETTLE_NONE)
                 {
-                    final UnsafeBufferEx payload = new UnsafeBufferEx(frame.payload);
-                    final OctetsFW extension = heldExtensionRO.wrap(new UnsafeBufferEx(frame.extension), 0,
-                        frame.extension.length);
-
-                    final LlmGuardVerdict verdict = process(frame.traceId, frame.authorization, frame.flags, frame.budgetId,
-                        frame.reserved, payload, 0, frame.consumed, frame.payload.length, !frame.started, extension);
-
-                    frame.consumed = progress;
-                    frame.started = true;
+                    final LlmGuardVerdict verdict = settle();
 
                     switch (verdict)
                     {
-                    case ACCEPTED:
-                        held.pollFirst();
-                        this.heldBytes -= frame.reserved;
-                        break;
                     case REJECTED:
-                        reject(frame.traceId, frame.authorization);
+                        reject(traceId, authorization);
                         break;
                     case SUSPENDED:
                         this.suspended = true;
@@ -1666,15 +1857,63 @@ public final class LlmProxyFactory implements LlmStreamFactory
                     case BLOCKED:
                         blocked = true;
                         break;
+                    default:
+                        break;
                     }
+                }
+                else if (held.isEmpty() || outputPending)
+                {
+                    blocked = true;
                 }
                 else
                 {
-                    held.pollFirst();
-                    this.heldBytes -= frame.reserved;
-                    forward(frame);
+                    blocked = !releaseHeld();
                 }
             }
+        }
+
+        private boolean releaseHeld()
+        {
+            final LlmHeldFrame frame = held.peekFirst();
+            boolean released = true;
+
+            if (frame.kind == LlmHeldFrame.KIND_DATA)
+            {
+                final UnsafeBufferEx payload = new UnsafeBufferEx(frame.payload);
+                final OctetsFW extension = heldExtensionRO.wrap(new UnsafeBufferEx(frame.extension), 0,
+                    frame.extension.length);
+
+                final LlmGuardVerdict verdict = process(frame.traceId, frame.authorization, frame.flags, frame.budgetId,
+                    frame.reserved, payload, 0, frame.consumed, frame.payload.length, !frame.started, extension);
+
+                frame.consumed = progress;
+                frame.started = true;
+
+                switch (verdict)
+                {
+                case ACCEPTED:
+                    held.pollFirst();
+                    this.heldBytes -= frame.reserved;
+                    break;
+                case REJECTED:
+                    reject(frame.traceId, frame.authorization);
+                    break;
+                case SUSPENDED:
+                    this.suspended = true;
+                    break;
+                default:
+                    released = false;
+                    break;
+                }
+            }
+            else
+            {
+                held.pollFirst();
+                this.heldBytes -= frame.reserved;
+                forward(frame);
+            }
+
+            return released;
         }
 
         private void forward(
@@ -1716,10 +1955,13 @@ public final class LlmProxyFactory implements LlmStreamFactory
             long traceId,
             long authorization)
         {
+            final LlmSectionType type = runPipeline != null ? runType : sectionType;
+            final int message = runPipeline != null ? runMessage : sectionMessage;
+
             close();
 
-            final String section = sectionType.name().toLowerCase().replace('_', '-');
-            final String param = sectionMessage >= 0 ? String.format("%s[%d]", section, sectionMessage) : section;
+            final String section = type.name().toLowerCase().replace('_', '-');
+            final String param = message >= 0 ? String.format("%s[%d]", section, message) : section;
 
             doReject(traceId, authorization, section, param);
         }

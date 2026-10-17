@@ -37,6 +37,7 @@ public class TestModelConfigBuilder<T> extends ConfigBuilder<T, TestModelConfigB
     private List<Long> transformAuthorizations;
     private List<String> reject;
     private List<String> withhold;
+    private List<String> mask;
     private boolean suspend;
     private List<Long> discloseAuthorized;
     private String discloseRedacted;
@@ -169,6 +170,17 @@ public class TestModelConfigBuilder<T> extends ConfigBuilder<T, TestModelConfigB
         return this;
     }
 
+    public TestModelConfigBuilder<T> mask(
+        String mask)
+    {
+        if (this.mask == null)
+        {
+            this.mask = new LinkedList<>();
+        }
+        this.mask.add(mask);
+        return this;
+    }
+
     public TestModelConfigBuilder<T> suspend(
         boolean suspend)
     {
@@ -188,6 +200,7 @@ public class TestModelConfigBuilder<T> extends ConfigBuilder<T, TestModelConfigB
     {
         return mapper.apply(
             new TestModelConfig(length, catalogs, read, transformLength, fields, validate, transformAuthorizations,
-                reject, withhold, suspend, discloseAuthorized, discloseRedacted, envelopeDiscloseName, deterministic));
+                reject, withhold, mask, suspend, discloseAuthorized, discloseRedacted, envelopeDiscloseName,
+                deterministic));
     }
 }

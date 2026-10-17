@@ -58,12 +58,6 @@ read "previous "
 read option zilla:flags "fin"
 read "instructions\"}"
 
-write zilla:reset.ext ${llm:resetEx()
-                            .typeId(zilla:id("llm"))
-                            .status(400)
-                            .type("invalid_request_error")
-                            .param("assistant-reasoning[0]")
-                            .message("assistant-reasoning rejected")
-                            .build()}
+read closed
 
-read abort
+write close

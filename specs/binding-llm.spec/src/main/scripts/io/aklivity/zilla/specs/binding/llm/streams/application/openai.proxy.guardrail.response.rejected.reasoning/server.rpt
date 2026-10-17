@@ -59,6 +59,9 @@ write flush
 write option zilla:flags "none"
 write "previous "
 write flush
+write option zilla:flags "fin"
+write "instructions\"}"
+write flush
 
 write zilla:abort.ext ${llm:abortEx()
                             .typeId(zilla:id("llm"))

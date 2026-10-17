@@ -44,12 +44,15 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .model(model)
                            .build()}
 
+read option zilla:flags "init"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-read "{\"text\":\"HiHiHi\"}"
+read "{\"text\":\"Hi ******"
+read option zilla:flags "fin"
+read "\"}"
 
 read closed
 

@@ -18,8 +18,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThan;
 
 import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.Test;
 
@@ -44,23 +47,70 @@ public class LlmTextModelPipelineTest
         {
             for (int capacity : CAPACITIES)
             {
-                final ByteArrayOutputStream output = new ByteArrayOutputStream();
-                final ModelStatus status = drive(new LlmTextModelPipeline(new Upper()), OBJECT, fragment, capacity, output);
+                final Run run = run(new LlmTextModelPipeline(new Upper(), 0), List.of(OBJECT), fragment, capacity);
 
-                assertThat("fragment " + fragment + " capacity " + capacity, status, is(ModelStatus.COMPLETE));
-                assertThat("fragment " + fragment + " capacity " + capacity, output.toString(UTF_8),
-                    equalTo("{\"text\":\"HéLLO \\\"X\\\" \\n\\u0001\"}"));
+                assertThat("fragment " + fragment + " capacity " + capacity, run.status, is(ModelStatus.COMPLETE));
+                assertThat("fragment " + fragment + " capacity " + capacity, run.sections,
+                    equalTo(List.of("{\"text\":\"HéLLO \\\"X\\\" \\n\\u0001\"}")));
             }
         }
     }
 
     @Test
-    public void shouldNotEmitFramingBeforeModelProducesOutput()
+    public void shouldPresentSectionsOfRunAsOneValue()
     {
-        final LlmTextModelPipeline pipeline = new LlmTextModelPipeline(new Holding());
+        final List<String> input = List.of("{\"text\":\"ab\"}", "{\"text\":\"cd\"}", "{\"text\":\"ef\"}");
+
+        for (int fragment : FRAGMENTS)
+        {
+            final Run run = run(new LlmTextModelPipeline(new Upper(), 0), input, fragment, 64);
+
+            assertThat("fragment " + fragment, run.sections,
+                equalTo(List.of("{\"text\":\"AB\"}", "{\"text\":\"CD\"}", "{\"text\":\"EF\"}")));
+        }
+    }
+
+    @Test
+    public void shouldHoldOverlapBackUntilMoreTextOrRunEnd()
+    {
+        final List<String> input = List.of("{\"text\":\"abcd\"}", "{\"text\":\"efgh\"}", "{\"text\":\"ij\"}");
+
+        for (int fragment : FRAGMENTS)
+        {
+            final Run run = run(new LlmTextModelPipeline(new Upper(), 3), input, fragment, 64);
+
+            assertThat("fragment " + fragment, run.sections,
+                equalTo(List.of("{\"text\":\"A\"}", "{\"text\":\"BCDE\"}", "{\"text\":\"FGHIJ\"}")));
+        }
+    }
+
+    @Test
+    public void shouldCloseSectionHoldingNoOutput()
+    {
+        final Run run = run(new LlmTextModelPipeline(new Upper(), 100), List.of("{\"text\":\"ab\"}", "{\"text\":\"cd\"}"), 3, 64);
+
+        assertThat(run.sections, equalTo(List.of("{\"text\":\"\"}", "{\"text\":\"ABCD\"}")));
+    }
+
+    @Test
+    public void shouldRetainUnconsumedDecodedTail()
+    {
+        for (int fragment : FRAGMENTS)
+        {
+            final Run run = run(new LlmTextModelPipeline(new Pairs(), 0), List.of("{\"text\":\"abcdefg\"}"), fragment, 64);
+
+            assertThat("fragment " + fragment, run.status, is(ModelStatus.COMPLETE));
+            assertThat("fragment " + fragment, String.join("", run.sections), equalTo("{\"text\":\"ABCDEFG\"}"));
+        }
+    }
+
+    @Test
+    public void shouldNotEmitFramingBeforeChainProducesOutput()
+    {
+        final LlmTextModelPipeline pipeline = new LlmTextModelPipeline(new Holding(), 0);
         final UnsafeBufferEx dst = new UnsafeBufferEx(new byte[64]);
         final byte[] bytes = "{\"text\":\"ab".getBytes(UTF_8);
-        final ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, Flags.INIT, new UnsafeBufferEx(bytes), 0,
+        final ModelPipelineResult result = pipeline.accept(0L, 0L, 0L, true, false, new UnsafeBufferEx(bytes), 0,
             bytes.length, dst, 0, dst.capacity());
 
         assertThat(result.status(), is(ModelStatus.UNDERFLOW));
@@ -69,111 +119,163 @@ public class LlmTextModelPipelineTest
     }
 
     @Test
-    public void shouldRetainUnconsumedDecodedTail()
-    {
-        for (int fragment : FRAGMENTS)
-        {
-            final ByteArrayOutputStream output = new ByteArrayOutputStream();
-            final ModelStatus status = drive(new LlmTextModelPipeline(new Pairs()), "{\"text\":\"abcdefg\"}", fragment, 64,
-                output);
-
-            assertThat("fragment " + fragment, status, is(ModelStatus.COMPLETE));
-            assertThat("fragment " + fragment, output.toString(UTF_8), equalTo("{\"text\":\"ABCDEFG\"}"));
-        }
-    }
-
-    @Test
     public void shouldValidateDecodedTextWithoutEmbedding()
     {
         for (int fragment : FRAGMENTS)
         {
-            final ByteArrayOutputStream output = new ByteArrayOutputStream();
-            final ModelStatus status = drive(new LlmTextModelPipeline(new Reject()), "{\"text\":\"fine \\\"text\\\"\"}",
-                fragment, 4096, output);
+            final Run run = run(new LlmTextModelPipeline(new Reject(), 0), List.of("{\"text\":\"fine \\\"text\\\"\"}"),
+                fragment, 4096);
 
-            assertThat("fragment " + fragment, status, is(ModelStatus.COMPLETE));
-            assertThat("fragment " + fragment, output.size(), is(0));
+            assertThat("fragment " + fragment, run.status, is(ModelStatus.COMPLETE));
+            assertThat("fragment " + fragment, run.sections.size(), is(0));
         }
     }
 
     @Test
-    public void shouldRejectDecodedText()
+    public void shouldRejectOnlyWhenRunEnds()
     {
         for (int fragment : FRAGMENTS)
         {
-            final ModelStatus status = drive(new LlmTextModelPipeline(new Reject()), "{\"text\":\"b\\u0061d\"}", fragment, 4096,
-                new ByteArrayOutputStream());
+            final LlmTextModelPipeline pipeline = new LlmTextModelPipeline(new Reject(), 0);
+            final Run run = run(pipeline, List.of("{\"text\":\"b\"}", "{\"text\":\"a\"}", "{\"text\":\"d\"}"), fragment, 4096);
 
-            assertThat("fragment " + fragment, status, is(ModelStatus.REJECTED));
+            assertThat("fragment " + fragment, run.statuses.subList(0, run.statuses.size() - 1)
+                .contains(ModelStatus.REJECTED), is(false));
+            assertThat("fragment " + fragment, run.status, is(ModelStatus.REJECTED));
         }
     }
 
     @Test
     public void shouldRejectInvalidObject()
     {
-        final ModelStatus status = drive(new LlmTextModelPipeline(new Upper()), "[1]", 1000, 4096,
-            new ByteArrayOutputStream());
+        final Run run = run(new LlmTextModelPipeline(new Upper(), 0), List.of("[1]"), 1000, 4096);
 
-        assertThat(status, is(ModelStatus.REJECTED));
+        assertThat(run.statuses.get(0), is(ModelStatus.REJECTED));
     }
 
     @Test
-    public void shouldResetBetweenSections()
+    public void shouldResetBetweenRuns()
     {
-        final LlmTextModelPipeline pipeline = new LlmTextModelPipeline(new Upper());
+        final LlmTextModelPipeline pipeline = new LlmTextModelPipeline(new Upper(), 0);
 
-        for (int section = 0; section < 2; section++)
+        for (int index = 0; index < 2; index++)
         {
-            final ByteArrayOutputStream output = new ByteArrayOutputStream();
-
-            assertThat(drive(pipeline, "{\"text\":\"ab\"}", 3, 64, output), is(ModelStatus.COMPLETE));
-            assertThat(output.toString(UTF_8), equalTo("{\"text\":\"AB\"}"));
+            assertThat(run(pipeline, List.of("{\"text\":\"ab\"}"), 3, 64).sections, equalTo(List.of("{\"text\":\"AB\"}")));
 
             pipeline.reset();
         }
     }
 
-    private static ModelStatus drive(
-        LlmTextModelPipeline pipeline,
-        String json,
-        int fragment,
-        int capacity,
-        ByteArrayOutputStream output)
+    @Test
+    public void shouldHoldLessThanWholeValueWhenOverlapIsSmall()
     {
-        final byte[] bytes = json.getBytes(UTF_8);
-        final UnsafeBufferEx src = new UnsafeBufferEx(bytes);
+        final Run run = run(new LlmTextModelPipeline(new Upper(), 2), List.of("{\"text\":\"abcdefgh\"}"), 1000, 64);
+
+        assertThat(run.sections.size(), is(1));
+        assertThat(run.sections.get(0).length(), lessThan("{\"text\":\"abcdefgh\"}".length() + 1));
+    }
+
+    private static Run run(
+        LlmTextModelPipeline pipeline,
+        List<String> sections,
+        int fragment,
+        int capacity)
+    {
         final UnsafeBufferEx dst = new UnsafeBufferEx(new byte[capacity]);
+        final Run run = new Run();
 
-        ModelStatus status = ModelStatus.UNDERFLOW;
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
 
-        for (int offset = 0; offset < bytes.length && status != ModelStatus.REJECTED; offset += fragment)
+        for (int section = 0; section < sections.size() && run.status != ModelStatus.REJECTED; section++)
         {
-            final int limit = Math.min(offset + fragment, bytes.length);
-            final boolean last = limit == bytes.length;
+            if (section > 0)
+            {
+                run.sections.add(close(pipeline, dst, output));
+                output = new ByteArrayOutputStream();
+            }
 
-            int flags = (offset == 0 ? Flags.INIT : 0) | (last ? Flags.FIN : 0);
-            int position = offset;
+            final byte[] bytes = sections.get(section).getBytes(UTF_8);
+            final UnsafeBufferEx src = new UnsafeBufferEx(bytes);
+
+            for (int offset = 0; offset < bytes.length && run.status != ModelStatus.REJECTED; offset += fragment)
+            {
+                final int limit = Math.min(offset + fragment, bytes.length);
+
+                int position = offset;
+                boolean init = offset == 0;
+                ModelStatus status;
+
+                do
+                {
+                    final ModelPipelineResult result = pipeline.accept(0L, 0L, 0L, init, limit == bytes.length, src,
+                        position, limit, dst, 0, capacity);
+
+                    status = result.status();
+                    position += result.consumed();
+                    init = false;
+                    collect(output, dst, result.produced());
+                    run.statuses.add(status);
+
+                    assertThat("progress", status != ModelStatus.OVERFLOW || result.produced() > 0 || result.consumed() > 0,
+                        is(true));
+                }
+                while (status == ModelStatus.OVERFLOW);
+
+                run.status = status;
+            }
+        }
+
+        if (run.status != ModelStatus.REJECTED)
+        {
+            ModelStatus status;
 
             do
             {
-                final ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, flags, src, position, limit, dst, 0,
-                    capacity);
+                final ModelPipelineResult result = pipeline.finish(0L, 0L, 0L, dst, 0, capacity);
 
                 status = result.status();
-                position += result.consumed();
-                flags &= ~Flags.INIT;
-
-                final byte[] produced = new byte[result.produced()];
-                dst.getBytes(0, produced);
-                output.write(produced, 0, produced.length);
-
-                assertThat("progress", status != ModelStatus.OVERFLOW || result.produced() > 0 || result.consumed() > 0,
-                    is(true));
+                collect(output, dst, result.produced());
+                run.statuses.add(status);
             }
             while (status == ModelStatus.OVERFLOW);
+
+            run.status = status;
+
+            if (!pipeline.identity())
+            {
+                run.sections.add(close(pipeline, dst, output));
+            }
         }
 
-        return status;
+        return run;
+    }
+
+    private static String close(
+        LlmTextModelPipeline pipeline,
+        UnsafeBufferEx dst,
+        ByteArrayOutputStream output)
+    {
+        collect(output, dst, pipeline.close(dst, 0));
+
+        return output.toString(UTF_8);
+    }
+
+    private static void collect(
+        ByteArrayOutputStream output,
+        UnsafeBufferEx dst,
+        int length)
+    {
+        final byte[] produced = new byte[length];
+        dst.getBytes(0, produced);
+        output.write(produced, 0, length);
+    }
+
+    private static final class Run
+    {
+        private final List<String> sections = new ArrayList<>();
+        private final List<ModelStatus> statuses = new ArrayList<>();
+
+        private ModelStatus status = ModelStatus.UNDERFLOW;
     }
 
     private abstract static class Stage implements ModelPipeline

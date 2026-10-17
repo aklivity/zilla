@@ -371,6 +371,60 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.proxy.guardrail.transform.streaming/client",
+        "${app}/openai.proxy.guardrail.transform.streaming/server"})
+    public void shouldGuardOpenaiTransformStreamingNet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.transform.streaming.exit/client",
+        "${app}/openai.proxy.guardrail.transform.streaming.exit/server"})
+    public void shouldGuardOpenaiTransformStreamingExit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.transform.overlap/client",
+        "${app}/openai.proxy.guardrail.transform.overlap/server"})
+    public void shouldGuardOpenaiTransformOverlapNet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.transform.overlap.exit/client",
+        "${app}/openai.proxy.guardrail.transform.overlap.exit/server"})
+    public void shouldGuardOpenaiTransformOverlapExit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.rejected.streaming/client",
+        "${app}/openai.proxy.guardrail.response.rejected.streaming/server"})
+    public void shouldGuardOpenaiResponseRejectedStreamingNet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.rejected.streaming.exit/client",
+        "${app}/openai.proxy.guardrail.response.rejected.streaming.exit/server"})
+    public void shouldGuardOpenaiResponseRejectedStreamingExit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.proxy.guardrail.chain.accepted/client",
         "${app}/openai.proxy.guardrail.chain.accepted/server"})
     public void shouldGuardOpenaiChainAcceptedNet() throws Exception

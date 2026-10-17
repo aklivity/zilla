@@ -218,7 +218,7 @@ public class LlmBindingConfig
                     "guardrails %s: model %s transforms the section non-deterministically", name, stage.value.model));
             }
 
-            stages.add(new LlmGuardrailStage(sections, handler));
+            stages.add(new LlmGuardrailStage(sections, handler, stage.overlap));
         }
 
         return stages;

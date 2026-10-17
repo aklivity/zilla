@@ -31,13 +31,19 @@ import io.aklivity.zilla.runtime.engine.model.ModelRejection;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.util.Flags;
 
-final class LlmTextModelPipeline implements ModelPipeline
+// Each section of the run is a `{"text":…}` object, decoded on arrival and presented to the chain as one continuous
+// text value. A validating chain observes the decoded text while the original frames continue. A transforming chain
+// is fed all but the trailing overlap bytes of what has arrived, so a pattern straddling two deltas is seen whole;
+// what the chain produces for the bytes it was fed is embedded in an object of the section being delivered, and the
+// held bytes are fed when more text arrives or the run ends.
+final class LlmTextModelPipeline implements LlmRunPipeline
 {
     private static final byte[] PREFIX = "{\"text\":\"".getBytes(UTF_8);
     private static final byte[] SUFFIX = "\"}".getBytes(UTF_8);
     private static final int ESCAPE_EXPANSION = 6;
 
     private final ModelPipeline pipeline;
+    private final int overlap;
     private final LlmTextPipeline decoder;
     private final JsonGeneratorEx escaper;
     private final ModelPipelineResult result;
@@ -49,11 +55,14 @@ final class LlmTextModelPipeline implements ModelPipeline
     private int textLength;
     private int textProgress;
     private int emitted;
+    private boolean started;
 
     LlmTextModelPipeline(
-        ModelPipeline pipeline)
+        ModelPipeline pipeline,
+        int overlap)
     {
         this.pipeline = pipeline;
+        this.overlap = overlap;
         this.decoder = new LlmTextPipeline(this::onText);
         this.escaper = JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true));
         this.result = new ModelPipelineResult();
@@ -73,11 +82,29 @@ final class LlmTextModelPipeline implements ModelPipeline
     }
 
     @Override
-    public ModelPipelineResult transform(
+    public boolean identity()
+    {
+        return pipeline.identity();
+    }
+
+    @Override
+    public void reset()
+    {
+        pipeline.reset();
+        decoder.begin();
+        textLength = 0;
+        textProgress = 0;
+        emitted = 0;
+        started = false;
+    }
+
+    @Override
+    public ModelPipelineResult accept(
         long traceId,
         long bindingId,
         long authorization,
-        int flags,
+        boolean sectionInit,
+        boolean sectionFin,
         DirectBufferEx src,
         int srcIndex,
         int srcLimit,
@@ -87,41 +114,111 @@ final class LlmTextModelPipeline implements ModelPipeline
     {
         final int consumed = srcLimit - srcIndex;
 
-        ModelStatus status = ModelStatus.REJECTED;
+        if (sectionInit)
+        {
+            decoder.begin();
+        }
+
+        ModelPipelineResult outcome = null;
+
+        if (consumed > 0 && !decoder.feed(src, srcIndex, consumed, sectionFin))
+        {
+            outcome = result.set(ModelStatus.REJECTED, consumed, 0);
+        }
+        else
+        {
+            outcome = run(traceId, bindingId, authorization, 0, feedLimit(false), consumed, dst, dstIndex, dstLimit);
+        }
+
+        return outcome;
+    }
+
+    @Override
+    public ModelPipelineResult finish(
+        long traceId,
+        long bindingId,
+        long authorization,
+        MutableDirectBufferEx dst,
+        int dstIndex,
+        int dstLimit)
+    {
+        return run(traceId, bindingId, authorization, Flags.FIN, feedLimit(true), 0, dst, dstIndex, dstLimit);
+    }
+
+    @Override
+    public int closeWidth()
+    {
+        return PREFIX.length + SUFFIX.length;
+    }
+
+    @Override
+    public int close(
+        MutableDirectBufferEx dst,
+        int dstIndex)
+    {
+        int position = dstIndex;
+
+        if (emitted == 0)
+        {
+            dst.putBytes(position, PREFIX);
+            position += PREFIX.length;
+        }
+
+        dst.putBytes(position, SUFFIX);
+        position += SUFFIX.length;
+
+        emitted = 0;
+
+        return position - dstIndex;
+    }
+
+    private ModelPipelineResult run(
+        long traceId,
+        long bindingId,
+        long authorization,
+        int flags,
+        int limit,
+        int consumed,
+        MutableDirectBufferEx dst,
+        int dstIndex,
+        int dstLimit)
+    {
+        final boolean fin = Flags.hasFin(flags);
+
+        ModelStatus status = ModelStatus.UNDERFLOW;
         ModelRejection rejection = null;
         int produced = 0;
 
-        if (consumed == 0 || decoder.feed(src, srcIndex, consumed, Flags.hasFin(flags)))
+        if (limit > textProgress || fin)
         {
+            final int innerFlags = started ? flags : flags | Flags.INIT;
+
             if (pipeline.identity())
             {
-                final ModelPipelineResult inner = pipeline.transform(traceId, bindingId, authorization, flags,
-                    textBuffer, textProgress, textLength, dst, dstIndex, dstLimit);
+                final ModelPipelineResult inner = pipeline.transform(traceId, bindingId, authorization, innerFlags,
+                    textBuffer, textProgress, limit, dst, dstIndex, dstLimit);
 
                 status = inner.status();
                 rejection = inner.rejection();
                 textProgress += inner.consumed();
+                started = true;
             }
             else
             {
-                final int framing = (emitted == 0 ? PREFIX.length : 0) + SUFFIX.length;
-                final int room = Math.max(dstLimit - dstIndex - framing, 0) / ESCAPE_EXPANSION;
+                final int room = Math.max(dstLimit - dstIndex - (emitted == 0 ? PREFIX.length : 0), 0) / ESCAPE_EXPANSION;
 
                 if (room > 0)
                 {
                     reserveOutput(room);
 
-                    final ModelPipelineResult inner = pipeline.transform(traceId, bindingId, authorization, flags,
-                        textBuffer, textProgress, textLength, outputBuffer, 0, room);
+                    final ModelPipelineResult inner = pipeline.transform(traceId, bindingId, authorization, innerFlags,
+                        textBuffer, textProgress, limit, outputBuffer, 0, room);
 
                     status = inner.status();
                     rejection = inner.rejection();
                     textProgress += inner.consumed();
-
-                    if (inner.produced() > 0 || status == ModelStatus.COMPLETE)
-                    {
-                        produced = embed(inner.produced(), status == ModelStatus.COMPLETE, dst, dstIndex, dstLimit);
-                    }
+                    started = true;
+                    produced = embed(inner.produced(), dst, dstIndex, dstLimit);
                 }
                 else
                 {
@@ -135,51 +232,43 @@ final class LlmTextModelPipeline implements ModelPipeline
         return result.set(status, consumed, produced, rejection);
     }
 
-    @Override
-    public boolean identity()
+    private int feedLimit(
+        boolean flush)
     {
-        return pipeline.identity();
-    }
+        int limit = textLength;
 
-    @Override
-    public boolean deterministic()
-    {
-        return pipeline.deterministic();
-    }
+        if (!flush && !pipeline.identity())
+        {
+            limit = Math.max(textLength - overlap, textProgress);
 
-    @Override
-    public void reset()
-    {
-        pipeline.reset();
-        decoder.begin();
-        textLength = 0;
-        textProgress = 0;
-        emitted = 0;
+            while (limit > textProgress && limit < textLength && (textBytes[limit] & 0xC0) == 0x80)
+            {
+                limit--;
+            }
+        }
+
+        return limit;
     }
 
     private int embed(
         int length,
-        boolean complete,
         MutableDirectBufferEx dst,
         int dstIndex,
         int dstLimit)
     {
         int position = dstIndex;
 
-        if (emitted == 0)
+        if (length > 0)
         {
-            dst.putBytes(position, PREFIX);
-            position += PREFIX.length;
-        }
+            if (emitted == 0)
+            {
+                dst.putBytes(position, PREFIX);
+                position += PREFIX.length;
+            }
 
-        escaper.wrap(dst, position, dstLimit);
-        escaper.writeSegment(outputBuffer, 0, length);
-        position += escaper.length();
-
-        if (complete)
-        {
-            dst.putBytes(position, SUFFIX);
-            position += SUFFIX.length;
+            escaper.wrap(dst, position, dstLimit);
+            escaper.writeSegment(outputBuffer, 0, length);
+            position += escaper.length();
         }
 
         final int produced = position - dstIndex;

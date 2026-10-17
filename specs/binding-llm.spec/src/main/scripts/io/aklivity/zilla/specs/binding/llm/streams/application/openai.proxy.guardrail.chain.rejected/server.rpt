@@ -42,6 +42,8 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "{\"text\":\"Hola! world!\"}"
 
+read advised zilla:flush
+
 write zilla:reset.ext ${llm:resetEx()
                             .typeId(zilla:id("llm"))
                             .status(400)

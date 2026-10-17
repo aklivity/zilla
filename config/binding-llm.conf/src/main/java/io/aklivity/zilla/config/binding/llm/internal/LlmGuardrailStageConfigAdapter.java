@@ -31,6 +31,7 @@ public final class LlmGuardrailStageConfigAdapter extends ConfigAdapter<LlmGuard
 {
     private static final String SECTION_NAME = "section";
     private static final String VALUE_NAME = "value";
+    private static final String OVERLAP_NAME = "overlap";
 
     private final ModelConfigAdapter model = new ModelConfigAdapter();
 
@@ -46,6 +47,11 @@ public final class LlmGuardrailStageConfigAdapter extends ConfigAdapter<LlmGuard
         JsonObjectBuilder object = Json.createObjectBuilder();
         object.add(SECTION_NAME, sections);
         object.add(VALUE_NAME, model.adaptToJson(stage.value));
+
+        if (stage.overlap != 0)
+        {
+            object.add(OVERLAP_NAME, stage.overlap);
+        }
 
         return object.build();
     }
@@ -67,6 +73,11 @@ public final class LlmGuardrailStageConfigAdapter extends ConfigAdapter<LlmGuard
         }
 
         stage.value(model.adaptFromJson(object.get(VALUE_NAME)));
+
+        if (object.containsKey(OVERLAP_NAME))
+        {
+            stage.overlap(object.getInt(OVERLAP_NAME));
+        }
 
         return stage.build();
     }
