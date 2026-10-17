@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal;
 
+import static io.aklivity.zilla.runtime.binding.llm.internal.LlmConfiguration.LLM_GUARDRAIL_OVERLAP;
 import static io.aklivity.zilla.runtime.binding.llm.internal.LlmConfiguration.LLM_SIGNED_REQUEST_MAX_BYTES;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -26,6 +27,8 @@ import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class LlmConfigurationTest
 {
+    public static final String LLM_GUARDRAIL_OVERLAP_NAME = "zilla.binding.llm.guardrail.overlap";
+
     @Test
     public void shouldCreateConfiguration()
     {
@@ -38,6 +41,15 @@ public class LlmConfigurationTest
     public void shouldVerifyConstants()
     {
         assertThat(LLM_SIGNED_REQUEST_MAX_BYTES.name(), equalTo("zilla.binding.llm.signed.request.max.bytes"));
+        assertThat(LLM_GUARDRAIL_OVERLAP.name(), equalTo(LLM_GUARDRAIL_OVERLAP_NAME));
+    }
+
+    @Test
+    public void shouldDefaultGuardrailOverlap()
+    {
+        final LlmConfiguration config = new LlmConfiguration(new Configuration());
+
+        assertThat(config.guardrailOverlap(), equalTo(0));
     }
 
     @Test

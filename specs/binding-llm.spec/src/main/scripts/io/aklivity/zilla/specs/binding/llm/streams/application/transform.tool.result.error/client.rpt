@@ -41,7 +41,7 @@ write zilla:data.ext ${llm:dataEx()
                           .attribute("tool-call-id", "call_1")
                           .attribute("is-error", "true")
                           .build()}
-write "city not found"
+write "{\"text\":\"city not found\"}"
 write flush
 
 write advise zilla:flush

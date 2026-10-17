@@ -28,7 +28,7 @@ connected
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"assistant\",\"refusal\":\""
+write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"assistant\",\"refusal\":"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -36,14 +36,14 @@ write zilla:data.ext ${llm:dataEx()
                           .type("ASSISTANT_REFUSAL")
                           .message(0)
                           .build()}
-write "I cannot help with that"
+write "{\"text\":\"I cannot help with that\"}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
                           .build()}
-write "\"}]}"
+write "}]}"
 write flush
 
 write advise zilla:flush
@@ -58,20 +58,20 @@ read zilla:begin.ext ${llm:matchBeginEx()
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-read "{\"id\":\"chatcmpl_4\",\"object\":\"chat.completion\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":null,\"refusal\":\""
+read "{\"id\":\"chatcmpl_4\",\"object\":\"chat.completion\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":null,\"refusal\":"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_REFUSAL")
                           .message(0)
                           .build()}
-read "I cannot help with that."
+read "{\"text\":\"I cannot help with that.\"}"
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
                           .build()}
-read "\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":12,\"completion_tokens\":6,\"total_tokens\":18}}"
+read "},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":12,\"completion_tokens\":6,\"total_tokens\":18}}"
 
 read zilla:end.ext ${llm:matchEndEx()
                             .typeId(zilla:id("llm"))

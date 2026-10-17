@@ -467,6 +467,39 @@ decode slot before calling `decodeNetwork`.
 - Terminal/error decoders must always advance progress (consume all remaining
   bytes) so the loop terminates
 
+### Phase is expressed by decoder states, not boolean fields
+
+A **decoder state** is a `decode<StateName>` method (a method reference or
+lambda) assigned to the `decoder` field; the state machine is the set of these
+methods and the transitions between them. Which phase a stream or parse is in
+is expressed by which decoder state is current, together with the `XxxState`
+bitmask (`LlmState`, `HttpState`, and so on) for stream lifecycle.
+
+Some values must also be carried from an earlier decode step to a later one,
+such as the count of a repeated element, a captured identifier, or the type of
+the section being read. Keep these as fields, named for the value they hold.
+They are decoder context: data the next state needs, not a record of which
+phase you are in.
+
+A new `boolean` field that records "which phase are we in", "did this finish",
+"did this fail", or "is something pending" is almost always the wrong
+mechanism.
+
+- Before adding a field, ask whether the phase already exists: a failed stream
+  is the `decodeIgnore` decoder state, a deferred end is the `deferInitialEnd` /
+  `initialEndDeferred` state bits that `flushNetEnd` honors, and a section in
+  progress is a decoder state or a strategy selected when the section opens.
+- Model a phase as a `decode<StateName>` method assigned to `decoder`, or as a
+  strategy field chosen at the transition, and let the transition do the work.
+  Do not branch on a flag in every call.
+- Do not mirror phase that the decoder state, the state bitmask, or a queue
+  already carries; derive it. A boolean that duplicates it will drift from it.
+- When the code you are extending already uses a flag for the same concern,
+  that is not permission to add another. Follow the decoder-state or bitmask
+  pattern and, if the existing flag is in the way, say so rather than copying it.
+
+---
+
 ### Proxy binding patterns
 
 Proxy bindings connect two protocol sides and are implemented in two variants:
@@ -493,6 +526,33 @@ Proxy bindings connect two protocol sides and are implemented in two variants:
 
 All proxy implementations follow the same state tracking and safety guard
 patterns as server/client bindings, adapted to their two-sided model.
+
+---
+
+### Flow control is the contract
+
+Each direction of a stream has its own credit, and each side of a binding has
+its own decode and encode slot buffers, so the credit on one side is
+independent of the credit on the other. Honor it exactly; never emit more than
+the downstream credit allows and never rely on headroom or on rejecting an
+overshoot.
+
+- Consume input only as far as the downstream credit allows. Size the decode
+  window from the downstream credit (see `windowFor` and `available()` in the
+  llm server factories), leave the rest in the decode slot, and re-run decode
+  when the downstream WINDOW arrives.
+- For a transform whose output can be larger than its input, divide the
+  available credit by the worst-case growth of that transform when sizing the
+  window, so the output cannot exceed the credit. Derive the growth from the
+  transform, not from a guess.
+- When a condition that changes how the window is sized flips mid-window, end
+  the window there so the next window is sized for the new condition. The
+  `gated` check on stream creation in `decodeWindow` is the existing example.
+- Derive the upstream credit you grant from the room in your own slot, as the
+  client factories do with the encode slot, so buffering on one side never
+  leaks into the other.
+- Do not use fixed slack, a fraction of the credit, or a reject-on-overshoot
+  guard as a substitute for sizing by credit.
 
 ---
 

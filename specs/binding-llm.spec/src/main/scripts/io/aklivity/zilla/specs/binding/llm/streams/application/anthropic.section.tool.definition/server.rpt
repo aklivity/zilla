@@ -38,25 +38,25 @@ read zilla:data.ext ${llm:matchDataEx()
                           .message(-1)
                           .attribute("tool-name", "get_weather")
                           .build()}
-read "{\"name\":\"get_weather\",\"description\":\"Get the weather\",\"input_schema\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}}}}"
+read "{\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"description\":\"Get the weather\",\"parameters\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}}}}}"
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-read "],\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\""
+read "],\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-read "Weather in Paris?"
+read "{\"text\":\"Weather in Paris?\"}"
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
                           .build()}
-read "\"}]}]}"
+read "}]}]}"
 
 read advised zilla:flush
 
@@ -71,7 +71,7 @@ write flush
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-write "{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3-opus-20240229\",\"content\":[{\"type\":\"text\",\"text\":\""
+write "{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3-opus-20240229\",\"content\":[{\"type\":\"text\",\"text\":"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -79,14 +79,14 @@ write zilla:data.ext ${llm:dataEx()
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-write "Hello! How can I help you today?"
+write "{\"text\":\"Hello! How can I help you today?\"}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
                           .build()}
-write "\"}],\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"usage\":{\"input_tokens\":25,\"output_tokens\":15}}"
+write "}],\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"usage\":{\"input_tokens\":25,\"output_tokens\":15}}"
 write flush
 
 write zilla:end.ext ${llm:endEx()

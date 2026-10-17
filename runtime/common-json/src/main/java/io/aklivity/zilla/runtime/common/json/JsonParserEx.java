@@ -39,6 +39,41 @@ public interface JsonParserEx extends JsonParser
     String MAX_VALUE_SIZE = "io.aklivity.zilla.runtime.common.json.parser.maxValueSize";
 
     /**
+     * Config key (for {@link JsonEx#createParser(java.util.Map)}) whose {@link StringEventPositions} value selects
+     * where the stream position, as reported by {@link #remaining()}, lands after a value or key event.
+     * Absent ⇒ {@link StringEventPositions#UNQUOTED}.
+     */
+    String STRING_EVENT_POSITIONS = "io.aklivity.zilla.runtime.common.json.parser.stringEventPositions";
+
+    /**
+     * Where the position lands relative to a string value's quotes.
+     */
+    enum StringEventPositions
+    {
+        /**
+         * A key is positioned just past its closing quote, ahead of the separator, and a string value's
+         * position is not tied to its quotes, so a caller cannot rely on where they fall.
+         */
+        UNQUOTED,
+
+        /**
+         * A string value's quotes belong to the value, so positions fall on the boundaries of the quoted token:
+         * <ul>
+         * <li>after a {@link JsonEvent#KEY_NAME} the position is the start of the member's value token, past the
+         * separator and any whitespace around it and before the value's first byte, so a string value's opening
+         * quote is still ahead;</li>
+         * <li>after a complete value the position is just past its last byte, so a string value's closing quote is
+         * behind.</li>
+         * </ul>
+         * A key is delivered only once its separator, whitespace and the first byte of its value are in the window;
+         * otherwise the window ends before the key and the caller re-presents it with the next window. A key that is
+         * itself larger than the window is delivered in fragments, and its final fragment ends after the key's
+         * closing quote.
+         */
+        QUOTED
+    }
+
+    /**
      * Borrows {@code buffer} as the input window for the next pump, the half-open range
      * {@code [offset, limit)}. The buffer is read in place for the duration of the pump.
      * <p>

@@ -37,15 +37,15 @@ write zilla:data.ext ${llm:dataEx()
                           .message(-1)
                           .attribute("tool-name", "get_weather")
                           .build()}
-write "{\"name\":\"get_weather\",\"description\":\""
+write "{\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"description\":\""
       ${core:randomBase64(10000)}
-      "\",\"input_schema\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}}}}"
+      "\",\"parameters\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}}}}}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-write "],\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\""
+write "],\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -53,14 +53,14 @@ write zilla:data.ext ${llm:dataEx()
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-write "Weather in Paris?"
+write "{\"text\":\"Weather in Paris?\"}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
                           .build()}
-write "\"}]}]}"
+write "}]}]}"
 write flush
 
 write advise zilla:flush
@@ -75,20 +75,20 @@ read zilla:begin.ext ${llm:matchBeginEx()
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-read "{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3-opus-20240229\",\"content\":[{\"type\":\"text\",\"text\":\""
+read "{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3-opus-20240229\",\"content\":[{\"type\":\"text\",\"text\":"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-read "Hello! How can I help you today?"
+read "{\"text\":\"Hello! How can I help you today?\"}"
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
                           .build()}
-read "\"}],\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"usage\":{\"input_tokens\":25,\"output_tokens\":15}}"
+read "}],\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"usage\":{\"input_tokens\":25,\"output_tokens\":15}}"
 
 read zilla:end.ext ${llm:matchEndEx()
                             .typeId(zilla:id("llm"))

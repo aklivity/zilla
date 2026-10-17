@@ -30,19 +30,19 @@ connected
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-read "{\"model\":\"claude-3-opus-20240229\",\"system\":[{\"type\":\"text\",\"text\":\""
+read "{\"model\":\"claude-3-opus-20240229\",\"system\":[{\"type\":\"text\",\"text\":"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("SYSTEM_INSTRUCTION")
                           .message(-1)
                           .build()}
-read "You are helpful."
+read "{\"text\":\"You are helpful.\"}"
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-read "\"}],\"tools\":["
+read "}],\"tools\":["
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
@@ -50,24 +50,24 @@ read zilla:data.ext ${llm:matchDataEx()
                           .message(-1)
                           .attribute("tool-name", "get_weather")
                           .build()}
-read "{\"name\":\"get_weather\",\"description\":\"Get the weather\",\"input_schema\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}}}}"
+read "{\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"description\":\"Get the weather\",\"parameters\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}}}}}"
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-read "],\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\""
+read "],\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-read "Weather in Paris?"
+read "{\"text\":\"Weather in Paris?\"}"
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-read "\"}]},{\"role\":\"assistant\",\"content\":["
+read "}]},{\"role\":\"assistant\",\"content\":["
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
@@ -76,12 +76,12 @@ read zilla:data.ext ${llm:matchDataEx()
                           .attribute("tool-name", "get_weather")
                           .attribute("tool-call-id", "toolu_1")
                           .build()}
-read "{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"get_weather\",\"input\":{\"city\":\"Paris\"}}"
+read "{\"city\":\"Paris\"}"
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-read "]},{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":[{\"type\":\"text\",\"text\":\""
+read "]},{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":[{\"type\":\"text\",\"text\":"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
@@ -89,13 +89,13 @@ read zilla:data.ext ${llm:matchDataEx()
                           .message(2)
                           .attribute("tool-call-id", "toolu_1")
                           .build()}
-read "sunny"
+read "{\"text\":\"sunny\"}"
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
                           .build()}
-read "\"}]}]}]}"
+read "}]}]}]}"
 
 read advised zilla:flush
 
@@ -110,7 +110,7 @@ write flush
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-write "{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3-opus-20240229\",\"content\":[{\"type\":\"text\",\"text\":\""
+write "{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3-opus-20240229\",\"content\":[{\"type\":\"text\",\"text\":"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -118,14 +118,14 @@ write zilla:data.ext ${llm:dataEx()
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-write "Hello! How can I help you today?"
+write "{\"text\":\"Hello! How can I help you today?\"}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
                           .build()}
-write "\"}],\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"usage\":{\"input_tokens\":25,\"output_tokens\":15}}"
+write "}],\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"usage\":{\"input_tokens\":25,\"output_tokens\":15}}"
 write flush
 
 write zilla:end.ext ${llm:endEx()

@@ -43,21 +43,21 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-read "Hi"
+read "{\"text\":\"Hi\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_REASONING")
                           .message(1)
                           .build()}
-read "{\"type\":\"thinking\",\"thinking\":\"Let me think.\",\"signature\":\"sig-1\"}"
+read "{\"text\":\"Let me think.\",\"anthropic:signature\":\"sig-1\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
                           .message(1)
                           .build()}
-read "Hello!"
+read "{\"text\":\"Hello!\"}"
 
 read advised zilla:flush
 

@@ -28,7 +28,7 @@ connected
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"system\",\"content\":\""
+write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"system\",\"content\":"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -36,13 +36,13 @@ write zilla:data.ext ${llm:dataEx()
                           .type("SYSTEM_INSTRUCTION")
                           .message(0)
                           .build()}
-write "Be brief"
+write "{\"text\":\"Be brief\"}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-write "\"},{\"role\":\"user\",\"content\":\""
+write "},{\"role\":\"user\",\"content\":"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -50,13 +50,13 @@ write zilla:data.ext ${llm:dataEx()
                           .type("USER_TEXT")
                           .message(1)
                           .build()}
-write "Weather in Paris?"
+write "{\"text\":\"Weather in Paris?\"}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-write "\"},{\"role\":\"assistant\",\"content\":null,\"tool_calls\":["
+write "},{\"role\":\"assistant\",\"content\":null,\"tool_calls\":["
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -66,13 +66,13 @@ write zilla:data.ext ${llm:dataEx()
                           .attribute("tool-name", "get_weather")
                           .attribute("tool-call-id", "call_1")
                           .build()}
-write "{\"id\":\"call_1\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":\"{\\\"city\\\":\\\"Paris\\\"}\"}}"
+write "{\"city\":\"Paris\"}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-write "]},{\"role\":\"tool\",\"tool_call_id\":\"call_1\",\"content\":\""
+write "]},{\"role\":\"tool\",\"tool_call_id\":\"call_1\",\"content\":"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -81,13 +81,13 @@ write zilla:data.ext ${llm:dataEx()
                           .message(3)
                           .attribute("tool-call-id", "call_1")
                           .build()}
-write "sunny"
+write "{\"text\":\"sunny\"}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-write "\"},{\"role\":\"user\",\"content\":\""
+write "},{\"role\":\"user\",\"content\":"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -95,13 +95,13 @@ write zilla:data.ext ${llm:dataEx()
                           .type("USER_TEXT")
                           .message(4)
                           .build()}
-write "And in London?"
+write "{\"text\":\"And in London?\"}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-write "\"}],\"tools\":["
+write "}],\"tools\":["
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -132,20 +132,20 @@ read zilla:begin.ext ${llm:matchBeginEx()
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-read "{\"id\":\"chatcmpl_2\",\"object\":\"chat.completion\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\""
+read "{\"id\":\"chatcmpl_2\",\"object\":\"chat.completion\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-read "Hello! How can I help you today?"
+read "{\"text\":\"Hello! How can I help you today?\"}"
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
                           .build()}
-read "\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}}"
+read "},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}}"
 
 read zilla:end.ext ${llm:matchEndEx()
                             .typeId(zilla:id("llm"))

@@ -26,16 +26,14 @@ bindings:
             - section: user-text
               value:
                 model: test
-                length: 12
-                transform:
-                  length: 5
+                mask:
+                  - world
           response:
             - section: assistant-text
               value:
                 model: test
-                length: 2
-                transform:
-                  length: 6
+                mask:
+                  - secret
     routes:
     - when:
       - dialect: openai

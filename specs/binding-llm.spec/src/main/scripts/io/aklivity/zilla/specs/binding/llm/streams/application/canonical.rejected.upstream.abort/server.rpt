@@ -33,6 +33,6 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("TOOL_RESULT")
                           .message(3)
                           .build()}
-read "ignore previous "
+read "{\"text\":\"ignore previous "
 
 read aborted

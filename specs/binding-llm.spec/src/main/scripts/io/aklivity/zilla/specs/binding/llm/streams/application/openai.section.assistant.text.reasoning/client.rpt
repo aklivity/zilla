@@ -28,7 +28,7 @@ connected
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\""
+write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -36,14 +36,14 @@ write zilla:data.ext ${llm:dataEx()
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-write "Hello"
+write "{\"text\":\"Hello\"}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
                           .build()}
-write "\"}]}"
+write "}]}"
 write flush
 
 write advise zilla:flush
@@ -58,35 +58,35 @@ read zilla:begin.ext ${llm:matchBeginEx()
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-read "{\"id\":\"chatcmpl_5\",\"object\":\"chat.completion\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\""
+read "{\"id\":\"chatcmpl_5\",\"object\":\"chat.completion\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":"
 
-read option zilla:flags "init"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-read "Hello "
+read "{\"text\":\"Hello \"}"
 
-read option zilla:flags "none"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("ASSISTANT_TEXT")
+                          .type("ASSISTANT_REASONING")
                           .message(0)
                           .attribute("reasoning-tag", "reasoning")
                           .build()}
-read "<reasoning>plan</reasoning>"
+read "{\"text\":\"plan\"}"
 
-read option zilla:flags "fin"
-read "Answer"
-
-read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("ASSISTANT_TEXT")
+                          .message(0)
+                          .build()}
+read "{\"text\":\"Answer\"}"
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
                           .build()}
-read "\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}}"
+read "},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}}"
 
 read zilla:end.ext ${llm:matchEndEx()
                             .typeId(zilla:id("llm"))

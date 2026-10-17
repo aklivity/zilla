@@ -29,7 +29,7 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-write "{\"model\":\"claude-3-opus-20240229\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Weather in Paris?\"}]},{\"role\":\"assistant\",\"content\":[{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"get_weather\",\"input\":{\"query\":\"say \\\"hi\\\" \\\\ done\\nnext\",\"text\":\"caf\\u00e9 ✓ 😀\",\"nested\":{\"items\":[1,2.5,true,null,{\"k\":\"v\"}],\"empty\":{},\"list\":[]}}}]}]}"
+write "{\"model\":\"claude-3-opus-20240229\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Weather in Paris?\"}]},{\"role\":\"assistant\",\"content\":[{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"get_weather\",\"input\":{\"query\":\"say \\\"hi\\\" \\\\ done\\nnext\",\"text\":\"café ✓ 😀\",\"nested\":{\"items\":[1,2.5,true,null,{\"k\":\"v\"}],\"empty\":{},\"list\":[]}}}]}]}"
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()

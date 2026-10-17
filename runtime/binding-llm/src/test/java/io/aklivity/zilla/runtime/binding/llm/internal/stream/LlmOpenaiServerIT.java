@@ -218,6 +218,26 @@ public class LlmOpenaiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.section.user.text.empty/client",
+        "${app}/openai.section.user.text.empty/server"})
+    public void shouldDecodeOpenaiSectionUserTextEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.assistant.text.empty/client",
+        "${app}/openai.section.assistant.text.empty/server"})
+    public void shouldDecodeOpenaiSectionAssistantTextEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.section.user.image/client",
         "${app}/openai.section.user.image/server"})
     public void shouldDecodeOpenaiSectionUserImage() throws Exception
@@ -271,6 +291,26 @@ public class LlmOpenaiServerIT
         "${net}/openai.section.assistant.text/client",
         "${app}/openai.section.assistant.text/server"})
     public void shouldDecodeOpenaiSectionAssistantText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.assistant.text.annotations/client",
+        "${app}/openai.section.assistant.text.annotations/server"})
+    public void shouldDecodeOpenaiSectionAssistantTextAnnotations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.assistant.reasoning.history/client",
+        "${app}/openai.section.assistant.reasoning.history/server"})
+    public void shouldDecodeOpenaiSectionAssistantReasoningHistory() throws Exception
     {
         k3po.finish();
     }
@@ -826,6 +866,16 @@ public class LlmOpenaiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.section.assistant.reasoning.streaming.delta/client",
+        "${app}/openai.section.assistant.reasoning.streaming.delta/server"})
+    public void shouldStreamOpenaiSectionAssistantReasoningDelta() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.stream.options.absent/client",
         "${app}/openai.stream.options.absent/server"})
     public void shouldHandleOpenaiStreamOptionsAbsent() throws Exception
@@ -1133,6 +1183,17 @@ public class LlmOpenaiServerIT
         "${net}/openai.transform.response.reasoning.tag/client",
         "${app}/transform.response.reasoning.tag/server"})
     public void shouldTransformResponseReasoningTagFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai\""})
+    @Specification({
+        "${net}/openai.transform.response.streaming.reasoning/client",
+        "${app}/transform.response.reasoning/server"})
+    public void shouldTransformResponseStreamingReasoningFromOpenai() throws Exception
     {
         k3po.finish();
     }

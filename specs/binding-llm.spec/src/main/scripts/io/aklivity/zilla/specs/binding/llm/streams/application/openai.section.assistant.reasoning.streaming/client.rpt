@@ -28,7 +28,7 @@ connected
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\""
+write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":"
 
 write flush
 
@@ -37,7 +37,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-write "Hello"
+write "{\"text\":\"Hello\"}"
 
 write flush
 
@@ -45,7 +45,7 @@ write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
                           .build()}
-write "\"}],\"stream\":true,\"stream_options\":{\"include_usage\":true}}"
+write "}],\"stream\":true,\"stream_options\":{\"include_usage\":true}}"
 write flush
 
 write advise zilla:flush
@@ -60,37 +60,28 @@ read zilla:begin.ext ${llm:matchBeginEx()
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-read "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\""
-
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-read "<reasoning>"
+read "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"content\":"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_REASONING")
                           .message(0)
+                          .attribute("reasoning-tag", "reasoning")
                           .build()}
-read "café \"quoted\"\nnext	\\ end"
-
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-read "</reasoning>"
+read "{\"text\":\"café \\\"quoted\\\"\\nnext\\t\\\\ end\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-read "Hi"
+read "{\"text\":\"Hi\"}"
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
                           .build()}
-read "\"},\"finish_reason\":null}]}"
+read "},\"finish_reason\":null}]}"
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))

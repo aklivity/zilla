@@ -231,6 +231,16 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
+        "${app}/anthropic.section.server.tool.definition/client",
+        "${net}/anthropic.section.server.tool.definition/server"})
+    public void shouldEncodeAnthropicSectionServerToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
         "${app}/anthropic.section.other.blocks/client",
         "${net}/anthropic.section.other.blocks/server"})
     public void shouldEncodeAnthropicSectionOtherBlocks() throws Exception
@@ -284,6 +294,16 @@ public class LlmAnthropicClientIT
         "${app}/anthropic.section.assistant.text.citations/client",
         "${net}/anthropic.section.assistant.text.citations/server"})
     public void shouldEncodeAnthropicSectionAssistantTextCitations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.assistant.text.citations.url/client",
+        "${net}/anthropic.section.assistant.text.citations.url/server"})
+    public void shouldEncodeAnthropicSectionAssistantTextCitationsUrl() throws Exception
     {
         k3po.finish();
     }
@@ -501,6 +521,26 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
+        "${app}/anthropic.section.user.text.empty/client",
+        "${net}/anthropic.section.user.text.empty/server"})
+    public void shouldEncodeAnthropicSectionUserTextEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.assistant.text.empty/client",
+        "${net}/anthropic.section.assistant.text.empty/server"})
+    public void shouldEncodeAnthropicSectionAssistantTextEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
         "${app}/anthropic.section.user.text.100k/client",
         "${net}/anthropic.section.user.text.100k/server"})
     public void shouldEncodeAnthropicSectionUserText100k() throws Exception
@@ -552,9 +592,20 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/openai.transform.user.image/client",
+        "${app}/openai.transform.assistant.text.citations/client",
+        "${net}/anthropic.transform.assistant.text.citations/server"})
+    public void shouldTransformAssistantTextCitationsAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"target \"anthropic\""})
+    @Specification({
+        "${app}/transform.user.image/client",
         "${net}/anthropic.transform.user.image/server"})
-    public void shouldTransformOpenaiSectionUserImageAsAnthropic() throws Exception
+    public void shouldTransformUserImageAsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -563,9 +614,9 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/openai.transform.user.document.reference/client",
+        "${app}/transform.user.document.reference/client",
         "${net}/anthropic.transform.user.document.reference/server"})
-    public void shouldTransformOpenaiSectionUserDocumentReferenceAsAnthropic() throws Exception
+    public void shouldTransformUserDocumentReferenceAsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -574,9 +625,9 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/openai.transform.assistant.text.and.tool.call/client",
+        "${app}/transform.assistant.text.and.tool.call/client",
         "${net}/anthropic.transform.assistant.text.and.tool.call/server"})
-    public void shouldTransformOpenaiSectionAssistantTextAndToolCallAsAnthropic() throws Exception
+    public void shouldTransformAssistantTextAndToolCallAsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -585,9 +636,9 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/openai.transform.tool.definition/client",
+        "${app}/transform.tool.definition/client",
         "${net}/anthropic.transform.tool.definition/server"})
-    public void shouldTransformOpenaiSectionToolDefinitionAsAnthropic() throws Exception
+    public void shouldTransformToolDefinitionAsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -596,9 +647,9 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/openai.transform.mixed.content/client",
+        "${app}/transform.mixed.content/client",
         "${net}/anthropic.transform.mixed.content/server"})
-    public void shouldTransformOpenaiSectionMixedContentAsAnthropic() throws Exception
+    public void shouldTransformMixedContentAsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -698,9 +749,9 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/openai.transform.user.image.inline/client",
+        "${app}/transform.user.image.inline/client",
         "${net}/anthropic.transform.user.image.inline/server"})
-    public void shouldTransformOpenaiSectionUserImageInlineAsAnthropic() throws Exception
+    public void shouldTransformUserImageInlineAsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -709,9 +760,9 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/openai.transform.user.document.inline/client",
+        "${app}/transform.user.document.inline/client",
         "${net}/anthropic.transform.user.document.inline/server"})
-    public void shouldTransformOpenaiSectionUserDocumentInlineAsAnthropic() throws Exception
+    public void shouldTransformUserDocumentInlineAsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -720,9 +771,9 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/openai.transform.user.image.10k/client",
+        "${app}/transform.user.image.10k/client",
         "${net}/anthropic.transform.user.image.10k/server"})
-    public void shouldTransformOpenaiSectionUserImage10kAsAnthropic() throws Exception
+    public void shouldTransformUserImage10kAsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -751,9 +802,9 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/openai.transform.user.image.url.10k/client",
+        "${app}/transform.user.image.url.10k/client",
         "${net}/anthropic.transform.user.image.url.10k/server"})
-    public void shouldTransformOpenaiSectionUserImageUrl10kAsAnthropic() throws Exception
+    public void shouldTransformUserImageUrl10kAsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -762,9 +813,9 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/openai.transform.user.image.url.100k/client",
+        "${app}/transform.user.image.url.100k/client",
         "${net}/anthropic.transform.user.image.url.100k/server"})
-    public void shouldTransformOpenaiSectionUserImageUrl100kAsAnthropic() throws Exception
+    public void shouldTransformUserImageUrl100kAsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -775,6 +826,26 @@ public class LlmAnthropicClientIT
         "${app}/anthropic.section.assistant.text.streaming/client",
         "${net}/anthropic.section.assistant.text.streaming/server"})
     public void shouldEncodeAnthropicSectionAssistantTextStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.assistant.reasoning.streaming/client",
+        "${net}/anthropic.section.assistant.reasoning.streaming/server"})
+    public void shouldEncodeAnthropicSectionAssistantReasoningStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.assistant.reasoning.redacted.streaming/client",
+        "${net}/anthropic.section.assistant.reasoning.redacted.streaming/server"})
+    public void shouldEncodeAnthropicSectionAssistantReasoningRedactedStreaming() throws Exception
     {
         k3po.finish();
     }
@@ -923,9 +994,9 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/openai.transform.rejected.tool.call.arguments/client",
+        "${app}/transform.rejected.tool.call.arguments/client",
         "${net}/anthropic.transform.rejected.tool.call.arguments/server"})
-    public void shouldRejectOpenaiSectionToolCallArgumentsAsAnthropic() throws Exception
+    public void shouldRejectToolCallArgumentsAsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -934,9 +1005,9 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/openai.transform.rejected.tool.definition.name/client",
+        "${app}/transform.rejected.tool.definition.name/client",
         "${net}/anthropic.transform.rejected.tool.definition.name/server"})
-    public void shouldRejectOpenaiSectionToolDefinitionNameAsAnthropic() throws Exception
+    public void shouldRejectToolDefinitionNameAsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -945,9 +1016,9 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/openai.transform.assistant.tool.call/client",
+        "${app}/transform.assistant.tool.call/client",
         "${net}/anthropic.transform.assistant.tool.call/server"})
-    public void shouldTransformOpenaiSectionAssistantToolCallAsAnthropic() throws Exception
+    public void shouldTransformAssistantToolCallAsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -956,9 +1027,9 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/openai.transform.assistant.tool.call.100k/client",
+        "${app}/transform.assistant.tool.call.100k/client",
         "${net}/anthropic.transform.assistant.tool.call.100k/server"})
-    public void shouldTransformOpenaiSectionAssistantToolCall100kAsAnthropic() throws Exception
+    public void shouldTransformAssistantToolCall100kAsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -967,9 +1038,9 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/openai.transform.assistant.tool.call.10k/client",
+        "${app}/transform.assistant.tool.call.10k/client",
         "${net}/anthropic.transform.assistant.tool.call.10k/server"})
-    public void shouldTransformOpenaiSectionAssistantToolCall10kAsAnthropic() throws Exception
+    public void shouldTransformAssistantToolCall10kAsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -978,9 +1049,9 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/openai.transform.assistant.tool.call.escaped/client",
+        "${app}/transform.assistant.tool.call.escaped/client",
         "${net}/anthropic.transform.assistant.tool.call.escaped/server"})
-    public void shouldTransformOpenaiSectionAssistantToolCallEscapedAsAnthropic() throws Exception
+    public void shouldTransformAssistantToolCallEscapedAsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -989,9 +1060,9 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/openai.transform.assistant.tool.call.id.last/client",
+        "${app}/transform.assistant.tool.call.id.last/client",
         "${net}/anthropic.transform.assistant.tool.call.id.last/server"})
-    public void shouldTransformOpenaiSectionAssistantToolCallIdLastAsAnthropic() throws Exception
+    public void shouldTransformAssistantToolCallIdLastAsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -1000,9 +1071,9 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/openai.transform.assistant.tool.call.name.last/client",
+        "${app}/transform.assistant.tool.call.name.last/client",
         "${net}/anthropic.transform.assistant.tool.call.name.last/server"})
-    public void shouldTransformOpenaiSectionAssistantToolCallNameLastAsAnthropic() throws Exception
+    public void shouldTransformAssistantToolCallNameLastAsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -1011,9 +1082,9 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/openai.transform.tool.definition.100k/client",
+        "${app}/transform.tool.definition.100k/client",
         "${net}/anthropic.transform.tool.definition.100k/server"})
-    public void shouldTransformOpenaiSectionToolDefinition100kAsAnthropic() throws Exception
+    public void shouldTransformToolDefinition100kAsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -1022,9 +1093,9 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/openai.transform.tool.definition.10k/client",
+        "${app}/transform.tool.definition.10k/client",
         "${net}/anthropic.transform.tool.definition.10k/server"})
-    public void shouldTransformOpenaiSectionToolDefinition10kAsAnthropic() throws Exception
+    public void shouldTransformToolDefinition10kAsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -1033,9 +1104,9 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/openai.transform.tool.definition.name.last/client",
+        "${app}/transform.tool.definition.name.last/client",
         "${net}/anthropic.transform.tool.definition.name.last/server"})
-    public void shouldTransformOpenaiSectionToolDefinitionNameLastAsAnthropic() throws Exception
+    public void shouldTransformToolDefinitionNameLastAsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -1044,9 +1115,9 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/openai.transform.tool.definition.parameters.100k/client",
+        "${app}/transform.tool.definition.parameters.100k/client",
         "${net}/anthropic.transform.tool.definition.parameters.100k/server"})
-    public void shouldTransformOpenaiSectionToolDefinitionParameters100kAsAnthropic() throws Exception
+    public void shouldTransformToolDefinitionParameters100kAsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -1055,9 +1126,9 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/openai.transform.tool.definition.parameters.10k/client",
+        "${app}/transform.tool.definition.parameters.10k/client",
         "${net}/anthropic.transform.tool.definition.parameters.10k/server"})
-    public void shouldTransformOpenaiSectionToolDefinitionParameters10kAsAnthropic() throws Exception
+    public void shouldTransformToolDefinitionParameters10kAsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -1206,6 +1277,26 @@ public class LlmAnthropicClientIT
         "${app}/anthropic.section.assistant.reasoning/client",
         "${net}/anthropic.section.assistant.reasoning/server"})
     public void shouldEncodeAnthropicSectionAssistantReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.assistant.reasoning.signature.first/client",
+        "${net}/anthropic.section.assistant.reasoning.signature.first/server"})
+    public void shouldEncodeAnthropicSectionAssistantReasoningSignatureFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.assistant.reasoning.10k/client",
+        "${net}/anthropic.section.assistant.reasoning.10k/server"})
+    public void shouldEncodeAnthropicSectionAssistantReasoning10k() throws Exception
     {
         k3po.finish();
     }

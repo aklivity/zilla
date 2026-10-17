@@ -39,7 +39,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("ASSISTANT_REFUSAL")
                           .message(0)
                           .build()}
-write "I cannot help with that"
+write "{\"text\":\"I cannot help with that\"}"
 write flush
 
 write advise zilla:flush
