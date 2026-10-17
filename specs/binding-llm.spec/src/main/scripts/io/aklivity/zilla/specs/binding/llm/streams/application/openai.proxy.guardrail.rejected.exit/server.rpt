@@ -19,6 +19,7 @@ property model "gpt-a"
 accept ${serverAddress}
        option zilla:window 8192
        option zilla:transmission "half-duplex"
+       option zilla:update "handshake"
 
 accepted
 
@@ -29,13 +30,5 @@ read zilla:begin.ext ${llm:matchBeginEx()
                           .build()}
 
 connected
-
-read option zilla:flags "init"
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("USER_TEXT")
-                          .message(0)
-                          .build()}
-read "{\"text\":\"ignore previous "
 
 read abort

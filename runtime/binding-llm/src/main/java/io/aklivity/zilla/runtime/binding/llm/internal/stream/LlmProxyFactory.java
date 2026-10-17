@@ -69,8 +69,8 @@ import io.aklivity.zilla.runtime.engine.util.Flags;
 //
 // The sections of a request and of its response pass through the guardrail stages configured for the requested
 // model, followed by those of a fallback model once one is taken. The stages that name a section type are
-// chained in configuration order. A validating chain leaves the bytes unchanged, so the original bytes continue;
-// a chain with a transforming stage forwards what it produces, within the credit the other side has granted.
+// chained in configuration order, and what the chain produces is forwarded, within the credit the other side has
+// granted.
 // The first section a stage rejects aborts the stream toward the sender's peer and resets or aborts the stream
 // back with an error naming that section.
 //
@@ -1256,12 +1256,8 @@ public final class LlmProxyFactory implements LlmStreamFactory
     // continuous value that starts with the run and completes when the run ends: a different section, the end of the
     // stream, or a flush.
     //
-    // A chain of validating stages leaves the bytes unchanged, so each original frame continues as soon as the
-    // chain has observed it. A verdict that depends on the whole run follows when the run ends, and can follow
-    // frames already delivered.
-    //
-    // A chain with a transforming stage emits what it produces for the bytes it has been fed, in the section being
-    // delivered, in fragments no larger than the credit the destination has granted. A chain holds back what it
+    // A chain emits what it produces for the bytes it has been fed, in the section being delivered, in fragments no
+    // larger than the credit the destination has granted. A chain holds back what it
     // needs to see more of, so its output can lag the input; the closing frame of the last section of the run, and
     // the dialect frames behind it, wait for the run to end so that what remains has a frame to ride in. Frames held
     // behind a decision count against the credit granted to the sender. A stage that suspends holds the frame that
@@ -1290,7 +1286,6 @@ public final class LlmProxyFactory implements LlmStreamFactory
         private int sectionMessage;
         private String sectionToolCallId;
         private byte[] sectionExtension;
-        private boolean sectionTransforms;
         private boolean outputStarted;
         private boolean outputPending;
         private int settling;
@@ -1542,19 +1537,9 @@ public final class LlmProxyFactory implements LlmStreamFactory
                 doForwardData(traceId, authorization, flags, budgetId, reserved,
                     forwardPayloadRO.wrap(buffer, start, limit), extension);
             }
-            else if (sectionTransforms)
-            {
-                verdict = transform(traceId, authorization, flags, buffer, offset, limit, sectionInit);
-            }
             else
             {
-                verdict = observe(traceId, authorization, flags, buffer, offset, limit, sectionInit);
-
-                if (verdict == LlmGuardVerdict.ACCEPTED)
-                {
-                    doForwardData(traceId, authorization, flags, budgetId, reserved,
-                        forwardPayloadRO.wrap(buffer, start, limit), extension);
-                }
+                verdict = transform(traceId, authorization, flags, buffer, offset, limit, sectionInit);
             }
 
             return verdict;
@@ -1566,7 +1551,6 @@ public final class LlmProxyFactory implements LlmStreamFactory
             final LlmDataExFW llmDataEx = extension.get(llmDataExRO::tryWrap);
 
             this.sectionPipeline = null;
-            this.sectionTransforms = false;
             this.outputStarted = false;
 
             if (llmDataEx != null && llmDataEx.kind() == LlmDataExFW.KIND_SECTION)
@@ -1592,46 +1576,10 @@ public final class LlmProxyFactory implements LlmStreamFactory
                     }
 
                     this.sectionPipeline = pipeline;
-                    this.sectionTransforms = !pipeline.identity();
-
-                    if (sectionTransforms)
-                    {
-                        this.sectionExtension = new byte[extension.sizeof()];
-                        extension.buffer().getBytes(extension.offset(), sectionExtension);
-                    }
+                    this.sectionExtension = new byte[extension.sizeof()];
+                    extension.buffer().getBytes(extension.offset(), sectionExtension);
                 }
             }
-        }
-
-        private LlmGuardVerdict observe(
-            long traceId,
-            long authorization,
-            int flags,
-            DirectBufferEx buffer,
-            int offset,
-            int limit,
-            boolean sectionInit)
-        {
-            int position = offset;
-            boolean init = sectionInit;
-            ModelStatus status;
-
-            do
-            {
-                final ModelPipelineResult result = sectionPipeline.accept(traceId, routedId, authorization, init,
-                    Flags.hasFin(flags), buffer, position, limit, guardrailBuffer, 0, guardrailBuffer.capacity());
-
-                status = result.status();
-                position += result.consumed();
-                init = false;
-            }
-            while (status == ModelStatus.OVERFLOW);
-
-            this.progress = position;
-
-            return status == ModelStatus.REJECTED
-                ? LlmGuardVerdict.REJECTED
-                : status == ModelStatus.SUSPENDED ? LlmGuardVerdict.SUSPENDED : LlmGuardVerdict.ACCEPTED;
         }
 
         private LlmGuardVerdict transform(
@@ -1649,43 +1597,35 @@ public final class LlmProxyFactory implements LlmStreamFactory
 
             while (verdict == null)
             {
-                final int outputLimit = Math.min(credit() - padding(), guardrailBuffer.capacity() / 2);
+                final int outputLimit = outputLimit();
+                final ModelPipelineResult result = sectionPipeline.accept(traceId, routedId, authorization, init,
+                    Flags.hasFin(flags), buffer, position, limit, guardrailBuffer, 0, outputLimit);
 
-                if (outputLimit <= 0)
+                final ModelStatus status = result.status();
+                final int produced = result.produced();
+
+                position += result.consumed();
+                init = false;
+
+                if (produced > 0)
                 {
-                    verdict = LlmGuardVerdict.BLOCKED;
+                    doForwardOutput(traceId, authorization, budgetId, produced, false);
                 }
-                else
+
+                switch (status)
                 {
-                    final ModelPipelineResult result = sectionPipeline.accept(traceId, routedId, authorization, init,
-                        Flags.hasFin(flags), buffer, position, limit, guardrailBuffer, 0, outputLimit);
-
-                    final ModelStatus status = result.status();
-                    final int produced = result.produced();
-
-                    position += result.consumed();
-                    init = false;
-
-                    if (produced > 0)
-                    {
-                        doForwardOutput(traceId, authorization, budgetId, produced, false);
-                    }
-
-                    switch (status)
-                    {
-                    case REJECTED:
-                        verdict = LlmGuardVerdict.REJECTED;
-                        break;
-                    case SUSPENDED:
-                        verdict = LlmGuardVerdict.SUSPENDED;
-                        break;
-                    case OVERFLOW:
-                        verdict = result.consumed() == 0 && produced == 0 ? LlmGuardVerdict.BLOCKED : null;
-                        break;
-                    default:
-                        verdict = LlmGuardVerdict.ACCEPTED;
-                        break;
-                    }
+                case REJECTED:
+                    verdict = LlmGuardVerdict.REJECTED;
+                    break;
+                case SUSPENDED:
+                    verdict = LlmGuardVerdict.SUSPENDED;
+                    break;
+                case OVERFLOW:
+                    verdict = result.consumed() == 0 && produced == 0 ? LlmGuardVerdict.BLOCKED : null;
+                    break;
+                default:
+                    verdict = LlmGuardVerdict.ACCEPTED;
+                    break;
                 }
             }
 
@@ -1727,51 +1667,44 @@ public final class LlmProxyFactory implements LlmStreamFactory
 
         private LlmGuardVerdict finishRun()
         {
-            final boolean transforms = !runPipeline.identity();
             LlmGuardVerdict verdict = null;
 
             while (verdict == null)
             {
-                final int outputLimit = transforms
-                    ? Math.min(credit() - padding(), guardrailBuffer.capacity() / 2)
-                    : guardrailBuffer.capacity();
+                final ModelPipelineResult result = runPipeline.finish(traceId, routedId, authorization,
+                    guardrailBuffer, 0, outputLimit());
 
-                if (outputLimit <= 0)
+                final ModelStatus status = result.status();
+                final int produced = result.produced();
+
+                if (produced > 0)
                 {
-                    verdict = LlmGuardVerdict.BLOCKED;
+                    doForwardOutput(traceId, authorization, budgetId, produced, false);
                 }
-                else
+
+                switch (status)
                 {
-                    final ModelPipelineResult result = runPipeline.finish(traceId, routedId, authorization,
-                        guardrailBuffer, 0, outputLimit);
-
-                    final ModelStatus status = result.status();
-                    final int produced = result.produced();
-
-                    if (transforms && produced > 0)
-                    {
-                        doForwardOutput(traceId, authorization, budgetId, produced, false);
-                    }
-
-                    switch (status)
-                    {
-                    case REJECTED:
-                        verdict = LlmGuardVerdict.REJECTED;
-                        break;
-                    case SUSPENDED:
-                        verdict = LlmGuardVerdict.SUSPENDED;
-                        break;
-                    case OVERFLOW:
-                        verdict = produced == 0 ? LlmGuardVerdict.BLOCKED : null;
-                        break;
-                    default:
-                        verdict = LlmGuardVerdict.ACCEPTED;
-                        break;
-                    }
+                case REJECTED:
+                    verdict = LlmGuardVerdict.REJECTED;
+                    break;
+                case SUSPENDED:
+                    verdict = LlmGuardVerdict.SUSPENDED;
+                    break;
+                case OVERFLOW:
+                    verdict = produced == 0 ? LlmGuardVerdict.BLOCKED : null;
+                    break;
+                default:
+                    verdict = LlmGuardVerdict.ACCEPTED;
+                    break;
                 }
             }
 
             return verdict;
+        }
+
+        private int outputLimit()
+        {
+            return Math.max(Math.min(credit() - padding(), guardrailBuffer.capacity() / 2), 0);
         }
 
         private LlmGuardVerdict closeOutput()

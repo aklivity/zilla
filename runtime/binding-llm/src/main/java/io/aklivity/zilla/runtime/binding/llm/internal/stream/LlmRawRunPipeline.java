@@ -36,12 +36,6 @@ final class LlmRawRunPipeline implements LlmRunPipeline
     }
 
     @Override
-    public boolean identity()
-    {
-        return pipeline.identity();
-    }
-
-    @Override
     public void reset()
     {
         pipeline.reset();

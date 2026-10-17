@@ -21,6 +21,7 @@ final class LlmAnthropicCitationsToCanonical extends LlmToolTransform
 {
     private static final String DIALECT = "anthropic";
     private static final String TYPE_URL = "web_search_result_location";
+    private static final String TYPE_OTHER = DIALECT + ":type";
     private static final int KIND_NONE = 0;
     private static final int KIND_URL = 1;
     private static final int KIND_OTHER = 2;
@@ -71,7 +72,7 @@ final class LlmAnthropicCitationsToCanonical extends LlmToolTransform
                 else
                 {
                     openNested();
-                    target = key.toString();
+                    target = name(key);
                     action = matches(key, "title") ? PASS_STRING_OR_DROP : PASS_STRING;
                 }
             }
@@ -116,7 +117,7 @@ final class LlmAnthropicCitationsToCanonical extends LlmToolTransform
 
             kind = url ? KIND_URL : KIND_OTHER;
 
-            emit(JsonEvent.KEY_NAME, url ? "type" : DIALECT + ":type");
+            emit(JsonEvent.KEY_NAME, url ? "type" : TYPE_OTHER);
             emit(JsonEvent.VALUE_STRING, url ? "url_citation" : held());
         }
     }

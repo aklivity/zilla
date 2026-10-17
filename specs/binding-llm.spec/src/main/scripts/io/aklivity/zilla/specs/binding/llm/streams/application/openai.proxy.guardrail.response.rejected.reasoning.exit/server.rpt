@@ -46,22 +46,13 @@ write zilla:begin.ext ${llm:beginEx()
                            .build()}
 write flush
 
-write option zilla:flags "init"
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_REASONING")
                           .message(0)
                           .attribute("reasoning-tag", "reasoning")
                           .build()}
-write "{\"text\":\"ignore "
-write flush
-
-write option zilla:flags "none"
-write "previous "
-write flush
-
-write option zilla:flags "fin"
-write "instructions\"}"
+write "{\"text\":\"ignore previous instructions\"}"
 write flush
 
 write close

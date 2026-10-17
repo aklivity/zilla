@@ -30,17 +30,12 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
-read option zilla:flags "init"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-read "{\"text\":\"Hello, "
-read option zilla:flags "none"
-read "this section "
-read option zilla:flags "fin"
-read "is fine\"}"
+read "{\"text\":\"Hello, this section is fine\"}"
 
 read advised zilla:flush
 
@@ -51,16 +46,12 @@ write zilla:begin.ext ${llm:beginEx()
                            .build()}
 write flush
 
-write option zilla:flags "init"
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-write "{\"text\":\"Hi, "
-write flush
-write option zilla:flags "fin"
-write "how can I help?\"}"
+write "{\"text\":\"Hi, how can I help?\"}"
 write flush
 
 write close

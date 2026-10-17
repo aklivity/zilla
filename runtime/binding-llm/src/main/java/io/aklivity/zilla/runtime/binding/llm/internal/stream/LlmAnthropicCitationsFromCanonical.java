@@ -48,7 +48,7 @@ final class LlmAnthropicCitationsFromCanonical extends LlmToolTransform
         {
             if (matches(key, "url") || matches(key, "title"))
             {
-                target = key.toString();
+                target = name(key);
                 action = matches(key, "title") ? PASS_STRING_OR_DROP : PASS_STRING;
             }
             else

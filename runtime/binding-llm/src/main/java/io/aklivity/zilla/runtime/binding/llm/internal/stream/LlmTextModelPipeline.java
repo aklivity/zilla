@@ -32,10 +32,9 @@ import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.util.Flags;
 
 // Each section of the run is a `{"text":…}` object, decoded on arrival and presented to the chain as one continuous
-// text value. A validating chain observes the decoded text while the original frames continue. A transforming chain
-// is fed all but the trailing overlap bytes of what has arrived, so a pattern straddling two deltas is seen whole;
-// what the chain produces for the bytes it was fed is embedded in an object of the section being delivered, and the
-// held bytes are fed when more text arrives or the run ends.
+// text value. The chain is fed all but the trailing overlap bytes of what has arrived, so a pattern straddling two
+// deltas is seen whole; what the chain produces for the bytes it was fed is embedded in an object of the section being
+// delivered, and the held bytes are fed when more text arrives or the run ends.
 final class LlmTextModelPipeline implements LlmRunPipeline
 {
     private static final byte[] PREFIX = "{\"text\":\"".getBytes(UTF_8);
@@ -97,12 +96,6 @@ final class LlmTextModelPipeline implements LlmRunPipeline
     }
 
     @Override
-    public boolean identity()
-    {
-        return pipeline.identity();
-    }
-
-    @Override
     public void reset()
     {
         pipeline.reset();
@@ -134,11 +127,7 @@ final class LlmTextModelPipeline implements LlmRunPipeline
         {
             decoder.begin();
             residualLength = 0;
-
-            if (!pipeline.identity())
-            {
-                residual.begin(residualAttributes);
-            }
+            residual.begin(residualAttributes);
         }
 
         ModelPipelineResult outcome = null;
@@ -209,14 +198,8 @@ final class LlmTextModelPipeline implements LlmRunPipeline
         int length,
         boolean sectionFin)
     {
-        boolean accepted = decoder.feed(src, srcIndex, length, sectionFin);
-
-        if (accepted && !pipeline.identity())
-        {
-            accepted = residual.feed(src, srcIndex, length, sectionFin, residualOutput) && residualLength <= residualMax;
-        }
-
-        return accepted;
+        return decoder.feed(src, srcIndex, length, sectionFin) &&
+            residual.feed(src, srcIndex, length, sectionFin, residualOutput) && residualLength <= residualMax;
     }
 
     private void onResidual(
@@ -254,38 +237,18 @@ final class LlmTextModelPipeline implements LlmRunPipeline
         {
             final int innerFlags = started ? flags : flags | Flags.INIT;
 
-            if (pipeline.identity())
-            {
-                final ModelPipelineResult inner = pipeline.transform(traceId, bindingId, authorization, innerFlags,
-                    textBuffer, textProgress, limit, dst, dstIndex, dstLimit);
+            final int room = Math.max(dstLimit - dstIndex - (emitted == 0 ? PREFIX.length : 0), 0) / ESCAPE_EXPANSION;
 
-                status = inner.status();
-                rejection = inner.rejection();
-                textProgress += inner.consumed();
-                started = true;
-            }
-            else
-            {
-                final int room = Math.max(dstLimit - dstIndex - (emitted == 0 ? PREFIX.length : 0), 0) / ESCAPE_EXPANSION;
+            reserveOutput(room);
 
-                if (room > 0)
-                {
-                    reserveOutput(room);
+            final ModelPipelineResult inner = pipeline.transform(traceId, bindingId, authorization, innerFlags,
+                textBuffer, textProgress, limit, outputBuffer, 0, room);
 
-                    final ModelPipelineResult inner = pipeline.transform(traceId, bindingId, authorization, innerFlags,
-                        textBuffer, textProgress, limit, outputBuffer, 0, room);
-
-                    status = inner.status();
-                    rejection = inner.rejection();
-                    textProgress += inner.consumed();
-                    started = true;
-                    produced = embed(inner.produced(), dst, dstIndex, dstLimit);
-                }
-                else
-                {
-                    status = ModelStatus.OVERFLOW;
-                }
-            }
+            status = inner.status();
+            rejection = inner.rejection();
+            textProgress += inner.consumed();
+            started = true;
+            produced = embed(inner.produced(), dst, dstIndex, dstLimit);
 
             compact();
         }
@@ -298,7 +261,7 @@ final class LlmTextModelPipeline implements LlmRunPipeline
     {
         int limit = textLength;
 
-        if (!flush && !pipeline.identity())
+        if (!flush)
         {
             limit = Math.max(textLength - overlap, textProgress);
 

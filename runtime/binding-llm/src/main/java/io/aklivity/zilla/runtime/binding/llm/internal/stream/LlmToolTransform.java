@@ -54,6 +54,7 @@ abstract class LlmToolTransform implements JsonTransform
     private static final int NONE = -1;
     private static final int QUEUE_CAPACITY = 16;
     private static final int HELD_MAX = 4096;
+    private static final int NAMES_CAPACITY = 32;
 
     protected String target;
 
@@ -65,10 +66,12 @@ abstract class LlmToolTransform implements JsonTransform
     private final LiteralSource literalSource;
     private final LiteralControl literalControl;
     private final StringBuilder heldBuilder;
+    private final String[] names;
 
     private JsonController control;
     private JsonSource source;
     private JsonSink sink;
+    private int nameCount;
     private int queueHead;
     private int queueTail;
     private int depth;
@@ -101,6 +104,7 @@ abstract class LlmToolTransform implements JsonTransform
         this.literalSource = new LiteralSource();
         this.literalControl = new LiteralControl();
         this.heldBuilder = new StringBuilder();
+        this.names = new String[NAMES_CAPACITY];
         this.pending = NONE;
     }
 
@@ -196,7 +200,7 @@ abstract class LlmToolTransform implements JsonTransform
         String dialect,
         CharSequence key)
     {
-        target = dialect + ":" + key;
+        target = name(dialect, key);
 
         return PASS_VALUE;
     }
@@ -217,11 +221,11 @@ abstract class LlmToolTransform implements JsonTransform
 
         if (colon == length)
         {
-            target = key.toString();
+            target = name(null, key);
         }
-        else if (matches(key.subSequence(0, colon), dialect))
+        else if (regionMatches(key, 0, colon, dialect))
         {
-            target = key.subSequence(colon + 1, length).toString();
+            target = name(null, key, colon + 1, length);
         }
         else
         {
@@ -229,6 +233,80 @@ abstract class LlmToolTransform implements JsonTransform
         }
 
         return action;
+    }
+
+    protected final String name(
+        CharSequence value)
+    {
+        return name(null, value);
+    }
+
+    private String name(
+        String dialect,
+        CharSequence key)
+    {
+        return name(dialect, key, 0, key.length());
+    }
+
+    private String name(
+        String dialect,
+        CharSequence key,
+        int from,
+        int to)
+    {
+        final int prefixLength = dialect != null ? dialect.length() + 1 : 0;
+        final int length = prefixLength + to - from;
+        String found = null;
+
+        for (int index = 0; found == null && index < nameCount; index++)
+        {
+            final String candidate = names[index];
+
+            if (candidate.length() == length &&
+                (dialect == null || candidate.startsWith(dialect) && candidate.charAt(dialect.length()) == ':') &&
+                regionMatches(key, from, to, candidate, prefixLength))
+            {
+                found = candidate;
+            }
+        }
+
+        if (found == null)
+        {
+            found = (dialect != null ? dialect + ":" : "") + key.subSequence(from, to);
+
+            if (nameCount < NAMES_CAPACITY)
+            {
+                names[nameCount++] = found;
+            }
+        }
+
+        return found;
+    }
+
+    private static boolean regionMatches(
+        CharSequence value,
+        int from,
+        int to,
+        String expected)
+    {
+        return to - from == expected.length() && regionMatches(value, from, to, expected, 0);
+    }
+
+    private static boolean regionMatches(
+        CharSequence value,
+        int from,
+        int to,
+        String expected,
+        int expectedFrom)
+    {
+        boolean matches = true;
+
+        for (int index = from; matches && index < to; index++)
+        {
+            matches = value.charAt(index) == expected.charAt(expectedFrom + index - from);
+        }
+
+        return matches;
     }
 
     protected static boolean matches(
@@ -804,7 +882,7 @@ abstract class LlmToolTransform implements JsonTransform
 
             if (!holding)
             {
-                held = heldBuilder.toString();
+                held = name(heldBuilder);
                 heldBuilder.setLength(0);
                 status = Status.ADVANCED;
             }

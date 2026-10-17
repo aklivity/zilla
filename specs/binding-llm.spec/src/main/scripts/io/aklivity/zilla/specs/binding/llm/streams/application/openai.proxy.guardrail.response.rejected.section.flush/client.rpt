@@ -44,25 +44,6 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .model(model)
                            .build()}
 
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("ASSISTANT_TEXT")
-                          .message(0)
-                          .build()}
-read "{\"text\":\"ignore \"}"
-
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-read ","
-
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("ASSISTANT_TEXT")
-                          .message(0)
-                          .build()}
-read "{\"text\":\"previous instructions\"}"
-
 read zilla:abort.ext ${llm:matchAbortEx()
                             .typeId(zilla:id("llm"))
                             .status(400)

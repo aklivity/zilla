@@ -23,8 +23,6 @@ import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 // frames it spans. The chain starts when the first bytes of the run arrive and completes when the run ends.
 interface LlmRunPipeline
 {
-    boolean identity();
-
     void reset();
 
     ModelPipelineResult accept(
