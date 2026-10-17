@@ -374,6 +374,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     {
         return kind == KIND_USER_IMAGE ||
             kind == KIND_USER_DOCUMENT ||
+            kind == KIND_ASSISTANT_REASONING ||
             kind == KIND_TOOL_CALL ||
             kind == KIND_TOOL_DEFINITION;
     }
@@ -3383,6 +3384,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private LlmSectionPipeline sectionPipeline;
         private LlmSectionPipeline imagePipeline;
         private LlmSectionPipeline documentPipeline;
+        private LlmSectionPipeline reasoningPipeline;
         private LlmSectionPipeline toolCallPipeline;
         private LlmSectionPipeline toolDefinitionPipeline;
         private LlmSectionPipeline replayPipeline;
@@ -3499,6 +3501,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             {
             case KIND_USER_IMAGE -> imagePipeline();
             case KIND_USER_DOCUMENT -> documentPipeline();
+            case KIND_ASSISTANT_REASONING -> reasoningPipeline();
             case KIND_TOOL_CALL -> toolCallPipeline();
             case KIND_TOOL_DEFINITION -> toolDefinitionPipeline();
             default -> null;
@@ -3523,6 +3526,16 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             }
 
             return documentPipeline;
+        }
+
+        private LlmSectionPipeline reasoningPipeline()
+        {
+            if (reasoningPipeline == null)
+            {
+                reasoningPipeline = new LlmSectionPipeline(new LlmAnthropicReasoningFromCanonical(), transformBuffer);
+            }
+
+            return reasoningPipeline;
         }
 
         private LlmSectionPipeline toolCallPipeline()

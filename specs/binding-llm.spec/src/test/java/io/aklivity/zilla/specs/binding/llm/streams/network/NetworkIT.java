@@ -866,6 +866,24 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/anthropic.section.assistant.reasoning.signature.first/client",
+        "${net}/anthropic.section.assistant.reasoning.signature.first/server"})
+    public void shouldAnthropicSectionAssistantReasoningSignatureFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.assistant.reasoning.10k/client",
+        "${net}/anthropic.section.assistant.reasoning.10k/server"})
+    public void shouldAnthropicSectionAssistantReasoning10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/anthropic.section.assistant.reasoning.redacted/client",
         "${net}/anthropic.section.assistant.reasoning.redacted/server"})
     public void shouldAnthropicSectionAssistantReasoningRedacted() throws Exception

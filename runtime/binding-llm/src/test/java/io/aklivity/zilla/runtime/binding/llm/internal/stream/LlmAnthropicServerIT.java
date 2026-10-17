@@ -138,6 +138,26 @@ public class LlmAnthropicServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/anthropic.section.assistant.reasoning.signature.first/client",
+        "${app}/anthropic.section.assistant.reasoning.signature.first/server"})
+    public void shouldDecodeAnthropicSectionAssistantReasoningSignatureFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.assistant.reasoning.10k/client",
+        "${app}/anthropic.section.assistant.reasoning.10k/server"})
+    public void shouldDecodeAnthropicSectionAssistantReasoning10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/anthropic.section.assistant.reasoning.redacted/client",
         "${app}/anthropic.section.assistant.reasoning.redacted/server"})
     public void shouldDecodeAnthropicSectionAssistantReasoningRedacted() throws Exception

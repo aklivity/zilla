@@ -1037,6 +1037,24 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/anthropic.section.assistant.reasoning.signature.first/client",
+        "${app}/anthropic.section.assistant.reasoning.signature.first/server"})
+    public void shouldAnthropicSectionAssistantReasoningSignatureFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.assistant.reasoning.10k/client",
+        "${app}/anthropic.section.assistant.reasoning.10k/server"})
+    public void shouldAnthropicSectionAssistantReasoning10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/anthropic.section.assistant.reasoning.redacted/client",
         "${app}/anthropic.section.assistant.reasoning.redacted/server"})
     public void shouldAnthropicSectionAssistantReasoningRedacted() throws Exception

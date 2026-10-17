@@ -2359,6 +2359,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
         private LlmSectionPipeline toolPipeline;
         private LlmSectionPipeline toolUsePipeline;
+        private LlmSectionPipeline reasoningPipeline;
         private LlmSectionPipeline imagePipeline;
         private LlmSectionPipeline documentPipeline;
         private LlmSectionPipeline blockPipeline;
@@ -2981,7 +2982,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
             if (blockPipeline != null)
             {
-                blockPipeline.begin(probe.attributes());
+                blockPipeline.begin(LlmAnthropicAttributeProbe.carries(type) ? probe.attributes() : blockAttributes);
             }
         }
 
@@ -3028,6 +3029,14 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                         new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
                 }
                 pipeline = toolUsePipeline;
+                break;
+            case ASSISTANT_REASONING:
+                if (reasoningPipeline == null)
+                {
+                    reasoningPipeline = new LlmSectionPipeline(new LlmAnthropicReasoningToCanonical(),
+                        new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                }
+                pipeline = reasoningPipeline;
                 break;
             case USER_IMAGE:
                 if (imagePipeline == null)

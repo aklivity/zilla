@@ -50,7 +50,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("ASSISTANT_REASONING")
                           .message(1)
                           .build()}
-write "{\"type\":\"redacted_thinking\",\"data\":\"opaque\"}"
+write "{\"anthropic:data\":\"opaque\"}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()

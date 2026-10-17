@@ -1212,6 +1212,26 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.assistant.reasoning.signature.first/client",
+        "${net}/anthropic.section.assistant.reasoning.signature.first/server"})
+    public void shouldEncodeAnthropicSectionAssistantReasoningSignatureFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.assistant.reasoning.10k/client",
+        "${net}/anthropic.section.assistant.reasoning.10k/server"})
+    public void shouldEncodeAnthropicSectionAssistantReasoning10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
         "${app}/transform.response.text/client",
