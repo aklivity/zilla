@@ -2359,6 +2359,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
         private LlmSectionPipeline toolPipeline;
         private LlmSectionPipeline toolUsePipeline;
+        private LlmSectionPipeline imagePipeline;
+        private LlmSectionPipeline documentPipeline;
         private LlmSectionPipeline blockPipeline;
         private final LlmSectionPipeline.Output blockOutput = (buffer, offset, length, last) ->
             onDecodeSectionData(decodeTraceId, decodeAuthorization, buffer, offset, length, last);
@@ -2979,7 +2981,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
             if (blockPipeline != null)
             {
-                blockPipeline.begin(blockAttributes);
+                blockPipeline.begin(probe.attributes());
             }
         }
 
@@ -3026,6 +3028,22 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                         new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
                 }
                 pipeline = toolUsePipeline;
+                break;
+            case USER_IMAGE:
+                if (imagePipeline == null)
+                {
+                    imagePipeline = new LlmSectionPipeline(LlmAnthropicMediaToCanonical.image(),
+                        new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                }
+                pipeline = imagePipeline;
+                break;
+            case USER_DOCUMENT:
+                if (documentPipeline == null)
+                {
+                    documentPipeline = new LlmSectionPipeline(LlmAnthropicMediaToCanonical.document(),
+                        new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                }
+                pipeline = documentPipeline;
                 break;
             default:
                 break;

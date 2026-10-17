@@ -190,21 +190,11 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final String MEMBER_SYSTEM = "system";
     private static final String MEMBER_MAX_TOKENS = "max_tokens";
     private static final String MEMBER_TOOLS = "tools";
-    private static final String MEMBER_SOURCE = "source";
-    private static final String MEMBER_MEDIA_TYPE = "media_type";
-    private static final String MEMBER_DATA = "data";
-    private static final String MEMBER_URL = "url";
-    private static final String MEMBER_FILE_ID = "file_id";
     private static final String MEMBER_TOOL_USE_ID = "tool_use_id";
     private static final String MEMBER_IS_ERROR = "is_error";
     private static final String MEMBER_CITATIONS = "citations";
     private static final String PART_TEXT = "text";
-    private static final String PART_IMAGE = "image";
-    private static final String PART_DOCUMENT = "document";
     private static final String PART_TOOL_RESULT = "tool_result";
-    private static final String SOURCE_BASE64 = "base64";
-    private static final String SOURCE_URL = "url";
-    private static final String SOURCE_FILE = "file";
     private static final String ROLE_NAME_USER = "user";
     private static final String ROLE_NAME_ASSISTANT = "assistant";
 
@@ -386,12 +376,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             kind == KIND_USER_DOCUMENT ||
             kind == KIND_TOOL_CALL ||
             kind == KIND_TOOL_DEFINITION;
-    }
-
-    private static boolean media(
-        int kind)
-    {
-        return kind == KIND_USER_IMAGE || kind == KIND_USER_DOCUMENT;
     }
 
     private static int sectionKind(
@@ -3397,8 +3381,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private boolean sectionStreaming;
         private boolean rawOpen;
         private LlmSectionPipeline sectionPipeline;
-        private LlmSectionPipeline mediaDataPipeline;
-        private LlmSectionPipeline mediaUrlPipeline;
+        private LlmSectionPipeline imagePipeline;
+        private LlmSectionPipeline documentPipeline;
         private LlmSectionPipeline toolCallPipeline;
         private LlmSectionPipeline toolDefinitionPipeline;
         private LlmSectionPipeline replayPipeline;
@@ -3508,6 +3492,39 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             sectionKind = KIND_DROPPED;
         }
 
+        private LlmSectionPipeline pipelineFor(
+            int kind)
+        {
+            return switch (kind)
+            {
+            case KIND_USER_IMAGE -> imagePipeline();
+            case KIND_USER_DOCUMENT -> documentPipeline();
+            case KIND_TOOL_CALL -> toolCallPipeline();
+            case KIND_TOOL_DEFINITION -> toolDefinitionPipeline();
+            default -> null;
+            };
+        }
+
+        private LlmSectionPipeline imagePipeline()
+        {
+            if (imagePipeline == null)
+            {
+                imagePipeline = new LlmSectionPipeline(LlmAnthropicMediaFromCanonical.image(), transformBuffer);
+            }
+
+            return imagePipeline;
+        }
+
+        private LlmSectionPipeline documentPipeline()
+        {
+            if (documentPipeline == null)
+            {
+                documentPipeline = new LlmSectionPipeline(LlmAnthropicMediaFromCanonical.document(), transformBuffer);
+            }
+
+            return documentPipeline;
+        }
+
         private LlmSectionPipeline toolCallPipeline()
         {
             if (toolCallPipeline == null)
@@ -3549,12 +3566,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             LlmSectionType type)
         {
             replayEscaped = text(sectionKind(type));
-            replayPipeline = switch (type)
-            {
-            case TOOL_DEFINITION -> toolDefinitionPipeline();
-            case TOOL_CALL -> toolCallPipeline();
-            default -> null;
-            };
+            replayPipeline = pipelineFor(sectionKind(type));
 
             if (replayPipeline != null)
             {
@@ -3688,72 +3700,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private void beginTranslated(
             int kind)
         {
-            if (media(kind))
-            {
-                beginMedia(kind);
-            }
-            else if (kind == KIND_TOOL_CALL)
-            {
-                beginSectionStreaming(toolCallPipeline());
-            }
-            else
-            {
-                beginSectionStreaming(toolDefinitionPipeline());
-            }
-        }
-
-        private void beginMedia(
-            int kind)
-        {
-            final String source = sectionAttributes.source();
-            final String mediaType = sectionAttributes.mediaType();
-            final String refId = sectionAttributes.refId();
-            final String part = kind == KIND_USER_IMAGE ? PART_IMAGE : PART_DOCUMENT;
-
-            if (LlmSectionAttributes.SOURCE_INLINE.equals(source) && mediaType != null)
-            {
-                if (mediaDataPipeline == null)
-                {
-                    mediaDataPipeline = new LlmSectionPipeline(new LlmOpenaiMediaDataTransform(), transformBuffer);
-                }
-
-                beginSource(part, SOURCE_BASE64);
-                generator.write(MEMBER_MEDIA_TYPE, mediaType).writeKey(MEMBER_DATA);
-
-                beginSectionStreaming(mediaDataPipeline);
-            }
-            else if (kind == KIND_USER_IMAGE && LlmSectionAttributes.SOURCE_URL.equals(source))
-            {
-                if (mediaUrlPipeline == null)
-                {
-                    mediaUrlPipeline = new LlmSectionPipeline(new LlmOpenaiMediaUrlTransform(), transformBuffer);
-                }
-
-                beginSource(part, SOURCE_URL);
-                generator.writeKey(MEMBER_URL);
-
-                beginSectionStreaming(mediaUrlPipeline);
-            }
-            else if (kind == KIND_USER_DOCUMENT && LlmSectionAttributes.SOURCE_REFERENCE.equals(source) && refId != null)
-            {
-                beginSource(part, SOURCE_FILE);
-                generator.write(MEMBER_FILE_ID, refId);
-                generator.writeEnd().writeEnd();
-            }
-            else
-            {
-                encodeFailed = true;
-            }
-        }
-
-        private void beginSource(
-            String part,
-            String type)
-        {
-            generator.writeStartObject()
-                .write(MEMBER_TYPE, part)
-                .writeStartObject(MEMBER_SOURCE)
-                .write(MEMBER_TYPE, type);
+            beginSectionStreaming(pipelineFor(kind));
         }
 
         private void beginSectionStreaming(
@@ -3998,17 +3945,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
             if (sectionKind != 0 && sectionKind != KIND_DROPPED && beginEncode(ENCODE_STRUCTURE))
             {
-                if (sectionStreaming)
-                {
-                    if (media(sectionKind))
-                    {
-                        generator.writeSegment(EMPTY_BUFFER, 0, 0, Completion.COMPLETE);
-                        rawOpen = false;
-                        generator.writeEnd().writeEnd();
-                    }
-
-                    sectionStreaming = false;
-                }
+                sectionStreaming = false;
 
                 translated = false;
 

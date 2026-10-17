@@ -159,8 +159,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private static final int NO_MAX_OUTPUT_TOKENS = -1;
 
     private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx(new byte[0]);
-    private static final DirectBufferEx DATA_URL_PREFIX = new UnsafeBufferEx("data:".getBytes(UTF_8));
-    private static final DirectBufferEx BASE64_MARKER = new UnsafeBufferEx(";base64,".getBytes(UTF_8));
 
     private static final String MEMBER_MODEL = "model";
     private static final String MEMBER_MAX_COMPLETION_TOKENS = "max_completion_tokens";
@@ -168,16 +166,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private static final String MEMBER_TOOLS = "tools";
     private static final String MEMBER_TOOL_CALL_ID = "tool_call_id";
     private static final String MEMBER_TEXT = "text";
-    private static final String MEMBER_URL = "url";
-    private static final String MEMBER_FILE_DATA = "file_data";
-    private static final String MEMBER_FILE_ID = "file_id";
     private static final String PART_TEXT = "text";
-    private static final String PART_IMAGE_URL = "image_url";
-    private static final String PART_FILE = "file";
 
-    private static final int MEDIA_NONE = 0;
-    private static final int MEDIA_DATA = 1;
-    private static final int MEDIA_URL = 2;
 
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
 
@@ -353,14 +343,9 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     {
         return kind == KIND_USER_IMAGE ||
             kind == KIND_USER_DOCUMENT ||
+            kind == KIND_USER_AUDIO ||
             kind == KIND_TOOL_CALL ||
             kind == KIND_TOOL_DEFINITION;
-    }
-
-    private static boolean media(
-        int kind)
-    {
-        return kind == KIND_USER_IMAGE || kind == KIND_USER_DOCUMENT;
     }
 
     private static int sectionKind(
@@ -3333,7 +3318,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private int holdLength;
         private boolean bodyHeld;
         private boolean rawOpen;
-        private int mediaScope;
         private boolean encodeFailed;
         private boolean sectionsStarted;
 
@@ -3346,17 +3330,16 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private boolean toolsClosed;
         private boolean translated;
         private boolean sectionStreaming;
-        private boolean mediaDropQuote;
         private LlmSectionPipeline sectionPipeline;
         private LlmSectionPipeline.Output sectionOutput;
-        private LlmSectionPipeline mediaDataPipeline;
-        private LlmSectionPipeline mediaUrlPipeline;
+        private LlmSectionPipeline imagePipeline;
+        private LlmSectionPipeline documentPipeline;
+        private LlmSectionPipeline audioPipeline;
         private LlmSectionPipeline toolCallPipeline;
         private LlmSectionPipeline toolDefinitionPipeline;
         private LlmSectionPipeline replayPipeline;
         private final LlmSectionPipeline.Output replayOutput =
             (buffer, offset, length, last) -> putReplay(buffer, offset, length);
-        private final LlmSectionPipeline.Output mediaOutput = this::putMedia;
         private final LlmSectionPipeline.Output rawOutput = (buffer, offset, length, last) -> putRaw(buffer, offset, length);
         private String messageRole;
         private String messageToolId;
@@ -3465,6 +3448,50 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             sectionKind = KIND_DROPPED;
         }
 
+        private LlmSectionPipeline pipelineFor(
+            int kind)
+        {
+            return switch (kind)
+            {
+            case KIND_USER_IMAGE -> imagePipeline();
+            case KIND_USER_DOCUMENT -> documentPipeline();
+            case KIND_USER_AUDIO -> audioPipeline();
+            case KIND_TOOL_CALL -> toolCallPipeline();
+            case KIND_TOOL_DEFINITION -> toolDefinitionPipeline();
+            default -> null;
+            };
+        }
+
+        private LlmSectionPipeline imagePipeline()
+        {
+            if (imagePipeline == null)
+            {
+                imagePipeline = new LlmSectionPipeline(LlmOpenaiMediaFromCanonical.image(), transformBuffer);
+            }
+
+            return imagePipeline;
+        }
+
+        private LlmSectionPipeline documentPipeline()
+        {
+            if (documentPipeline == null)
+            {
+                documentPipeline = new LlmSectionPipeline(LlmOpenaiMediaFromCanonical.document(), transformBuffer);
+            }
+
+            return documentPipeline;
+        }
+
+        private LlmSectionPipeline audioPipeline()
+        {
+            if (audioPipeline == null)
+            {
+                audioPipeline = new LlmSectionPipeline(LlmOpenaiMediaFromCanonical.audio(), transformBuffer);
+            }
+
+            return audioPipeline;
+        }
+
         private LlmSectionPipeline toolCallPipeline()
         {
             if (toolCallPipeline == null)
@@ -3511,12 +3538,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 type == LlmSectionType.ASSISTANT_REFUSAL ||
                 type == LlmSectionType.TOOL_RESULT;
 
-            replayPipeline = switch (type)
-            {
-            case TOOL_DEFINITION -> toolDefinitionPipeline();
-            case TOOL_CALL -> toolCallPipeline();
-            default -> null;
-            };
+            replayPipeline = pipelineFor(sectionKind(type));
 
             if (replayPipeline != null)
             {
@@ -3642,77 +3664,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private void beginTranslated(
             int kind)
         {
-            if (media(kind))
-            {
-                beginMedia(kind);
-            }
-            else if (kind == KIND_TOOL_CALL)
-            {
-                beginSectionStreaming(toolCallPipeline(), rawOutput);
-            }
-            else
-            {
-                beginSectionStreaming(toolDefinitionPipeline(), rawOutput);
-            }
-        }
-
-        private void beginMedia(
-            int kind)
-        {
-            final String source = sectionAttributes.source();
-            final String mediaType = sectionAttributes.mediaType();
-            final String refId = sectionAttributes.refId();
-            final boolean image = kind == KIND_USER_IMAGE;
-
-            if (LlmSectionAttributes.SOURCE_INLINE.equals(source) && mediaType != null)
-            {
-                if (mediaDataPipeline == null)
-                {
-                    mediaDataPipeline = new LlmSectionPipeline(new LlmAnthropicMediaDataTransform(), transformBuffer);
-                }
-
-                beginMediaPart(image, image ? MEMBER_URL : MEMBER_FILE_DATA);
-                generator.writeStartEscaped();
-                generator.writeSegment(DATA_URL_PREFIX, 0, DATA_URL_PREFIX.capacity());
-                generator.writeSegment(new UnsafeBufferEx(mediaType.getBytes(UTF_8)), 0, mediaType.length());
-                generator.writeSegment(BASE64_MARKER, 0, BASE64_MARKER.capacity());
-
-                mediaScope = MEDIA_DATA;
-                beginSectionStreaming(mediaDataPipeline, mediaOutput);
-                mediaDropQuote = true;
-            }
-            else if (image && LlmSectionAttributes.SOURCE_URL.equals(source))
-            {
-                if (mediaUrlPipeline == null)
-                {
-                    mediaUrlPipeline = new LlmSectionPipeline(new LlmAnthropicMediaUrlTransform(), transformBuffer);
-                }
-
-                beginMediaPart(true, MEMBER_URL);
-
-                mediaScope = MEDIA_URL;
-                beginSectionStreaming(mediaUrlPipeline, rawOutput);
-            }
-            else if (kind == KIND_USER_DOCUMENT && LlmSectionAttributes.SOURCE_REFERENCE.equals(source) && refId != null)
-            {
-                beginMediaPart(false, MEMBER_FILE_ID);
-                generator.write(refId);
-                generator.writeEnd().writeEnd();
-            }
-            else
-            {
-                encodeFailed = true;
-            }
-        }
-
-        private void beginMediaPart(
-            boolean image,
-            String member)
-        {
-            generator.writeStartObject()
-                .write(MEMBER_TYPE, image ? PART_IMAGE_URL : PART_FILE)
-                .writeStartObject(image ? PART_IMAGE_URL : PART_FILE)
-                .writeKey(member);
+            beginSectionStreaming(pipelineFor(kind), rawOutput);
         }
 
         private void beginSectionStreaming(
@@ -3723,23 +3675,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             sectionOutput = output;
             sectionPipeline.begin(sectionAttributes);
             sectionStreaming = true;
-        }
-
-        private void putMedia(
-            DirectBufferEx buffer,
-            int offset,
-            int length,
-            boolean last)
-        {
-            final int from = mediaDropQuote ? offset + 1 : offset;
-            final int to = last ? offset + length - 1 : offset + length;
-
-            mediaDropQuote = false;
-
-            if (to > from)
-            {
-                putEscaped(buffer, from, to - from);
-            }
         }
 
         private void putRaw(
@@ -3930,11 +3865,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             if (sectionKind != 0 && sectionKind != KIND_DROPPED && beginEncode(ENCODE_STRUCTURE))
             {
-                if (sectionStreaming)
-                {
-                    endMedia();
-                    sectionStreaming = false;
-                }
+                sectionStreaming = false;
 
                 translated = false;
 
@@ -3962,22 +3893,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             }
 
             sectionKind = 0;
-        }
-
-        private void endMedia()
-        {
-            if (mediaScope == MEDIA_DATA)
-            {
-                generator.writeEndEscaped().writeEnd().writeEnd();
-            }
-            else if (mediaScope == MEDIA_URL)
-            {
-                generator.writeSegment(EMPTY_BUFFER, 0, 0, Completion.COMPLETE);
-                rawOpen = false;
-                generator.writeEnd().writeEnd();
-            }
-
-            mediaScope = MEDIA_NONE;
         }
 
         private void doEncodeRequestEnd(
