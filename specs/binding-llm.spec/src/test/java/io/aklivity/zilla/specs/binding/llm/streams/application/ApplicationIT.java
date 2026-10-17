@@ -1127,6 +1127,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/anthropic.section.server.tool.definition/client",
+        "${app}/anthropic.section.server.tool.definition/server"})
+    public void shouldAnthropicSectionServerToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/anthropic.section.other.blocks/client",
         "${app}/anthropic.section.other.blocks/server"})
     public void shouldAnthropicSectionOtherBlocks() throws Exception

@@ -28,33 +28,27 @@ final class LlmAnthropicAttributeProbe extends LlmAttributeProbe
     private static final int KEY_ID = 7;
     private static final int KEY_NAME = 8;
     private static final int KEY_TOOL_USE_ID = 9;
+    private static final int KEY_TYPE = 10;
 
     private static final int SECTION_NONE = 0;
     private static final int SECTION_MEDIA = 1;
     private static final int SECTION_TOOL_CALL = 2;
-    private static final int SECTION_SERVER_TOOL_USE = 3;
-    private static final int SECTION_SERVER_TOOL_RESULT = 4;
-    private static final int SECTION_TOOL_DEFINITION = 5;
+    private static final int SECTION_SERVER_TOOL_RESULT = 3;
+    private static final int SECTION_TOOL_DEFINITION = 4;
 
     private int section;
 
     static boolean carries(
         LlmSectionType type)
     {
-        return sectionOf(type, null) != SECTION_NONE;
+        return sectionOf(type) != SECTION_NONE;
     }
 
     @Override
     protected void onBegin(
-        LlmSectionType type,
-        String blockType)
+        LlmSectionType type)
     {
-        section = sectionOf(type, blockType);
-
-        if (type == LlmSectionType.SERVER_TOOL_RESULT)
-        {
-            attributes.providerExecuted(true);
-        }
+        section = sectionOf(type);
     }
 
     @Override
@@ -100,6 +94,10 @@ final class LlmAnthropicAttributeProbe extends LlmAttributeProbe
         {
             code = KEY_TOOL_USE_ID;
         }
+        else if (matches(key, "type"))
+        {
+            code = KEY_TYPE;
+        }
         else
         {
             code = KEY_OTHER;
@@ -131,7 +129,6 @@ final class LlmAnthropicAttributeProbe extends LlmAttributeProbe
             onMedia(depth, value, deferred);
             break;
         case SECTION_TOOL_CALL:
-        case SECTION_SERVER_TOOL_USE:
             onToolUse(depth, value, deferred);
             break;
         case SECTION_SERVER_TOOL_RESULT:
@@ -223,6 +220,10 @@ final class LlmAnthropicAttributeProbe extends LlmAttributeProbe
             attributes.toolName(text(value, deferred));
             resolve();
         }
+        else if (depth == 1 && key(1) == KEY_TYPE && attributes.toolName() == null && !matches(value, "custom"))
+        {
+            retype(LlmSectionType.SERVER_TOOL_DEFINITION);
+        }
     }
 
     private String text(
@@ -244,16 +245,14 @@ final class LlmAnthropicAttributeProbe extends LlmAttributeProbe
     }
 
     private static int sectionOf(
-        LlmSectionType type,
-        String blockType)
+        LlmSectionType type)
     {
         return switch (type)
         {
         case USER_IMAGE, USER_DOCUMENT -> SECTION_MEDIA;
-        case TOOL_CALL -> SECTION_TOOL_CALL;
+        case TOOL_CALL, SERVER_TOOL_CALL -> SECTION_TOOL_CALL;
         case TOOL_DEFINITION -> SECTION_TOOL_DEFINITION;
-        case SERVER_TOOL_RESULT -> "server_tool_use".equals(blockType) ? SECTION_SERVER_TOOL_USE
-            : SECTION_SERVER_TOOL_RESULT;
+        case SERVER_TOOL_RESULT -> SECTION_SERVER_TOOL_RESULT;
         default -> SECTION_NONE;
         };
     }

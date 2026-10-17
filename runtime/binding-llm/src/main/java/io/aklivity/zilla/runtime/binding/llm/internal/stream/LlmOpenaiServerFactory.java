@@ -2211,7 +2211,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
         private LlmOpenaiServerDecoder probeCapture;
         private LlmOpenaiServerDecoder probeThen;
-        private LlmSectionType probeType;
         private int probeMessage;
 
         private LlmOpenaiServerDecoder captureThen;
@@ -2678,11 +2677,10 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             LlmOpenaiServerDecoder capturing,
             LlmOpenaiServerDecoder then)
         {
-            probeType = type;
             probeMessage = message;
             probeCapture = capturing;
             probeThen = then;
-            probe.begin(type, null);
+            probe.begin(type);
         }
 
         private void hold()
@@ -2715,7 +2713,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
         private void captureProbed()
         {
-            captureHeld(probeType, probeMessage, probeThen, probe.depth());
+            captureHeld(probe.type(), probeMessage, probeThen, probe.depth());
             probing = true;
             decoder = probeCapture;
         }

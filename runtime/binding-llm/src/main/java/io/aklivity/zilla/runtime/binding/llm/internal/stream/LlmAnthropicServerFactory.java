@@ -992,7 +992,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             {
             case START_OBJECT:
                 server.hold();
-                server.probe(LlmSectionType.TOOL_DEFINITION, -1, null, null, decodeTool, decodeTools);
+                server.probe(LlmSectionType.TOOL_DEFINITION, -1, null, decodeTool, decodeTools);
                 server.decoder = decodeAttributes;
                 break;
             case END_ARRAY:
@@ -1132,7 +1132,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                     final LlmAnthropicServerDecoder decodeTypedBlock = switch (blockType)
                     {
                     case ASSISTANT_REASONING -> decodeThinkingBlock;
-                    case TOOL_CALL -> decodeToolUseBlock;
+                    case TOOL_CALL, SERVER_TOOL_CALL -> decodeToolUseBlock;
                     case USER_IMAGE -> decodeImageBlock;
                     case USER_DOCUMENT -> decodeDocumentBlock;
                     case SERVER_TOOL_RESULT -> decodeServerToolBlock;
@@ -1141,7 +1141,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
                     if (LlmAnthropicAttributeProbe.carries(blockType))
                     {
-                        server.probe(blockType, textMessage(server), extension, type, decodeTypedBlock, decodeParts);
+                        server.probe(blockType, textMessage(server), extension, decodeTypedBlock, decodeParts);
                         server.decoder = decodeAttributes;
                     }
                     else
@@ -2072,7 +2072,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             case "tool_use" -> LlmSectionType.TOOL_CALL;
             case "image" -> LlmSectionType.USER_IMAGE;
             case "document" -> LlmSectionType.USER_DOCUMENT;
-            case "server_tool_use" -> LlmSectionType.SERVER_TOOL_RESULT;
+            case "server_tool_use" -> LlmSectionType.SERVER_TOOL_CALL;
             default -> type.endsWith(SUFFIX_TOOL_RESULT) ? LlmSectionType.SERVER_TOOL_RESULT : LlmSectionType.UNKNOWN;
             };
         }
@@ -2359,7 +2359,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
         private LlmAnthropicServerDecoder probeCapture;
         private LlmAnthropicServerDecoder probeThen;
-        private LlmSectionType probeType;
         private int probeMessage;
         private String probeExtension;
 
@@ -2827,16 +2826,14 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             LlmSectionType type,
             int message,
             String extension,
-            String nativeType,
             LlmAnthropicServerDecoder capturing,
             LlmAnthropicServerDecoder then)
         {
-            probeType = type;
             probeMessage = message;
             probeExtension = extension;
             probeCapture = capturing;
             probeThen = then;
-            probe.begin(type, nativeType);
+            probe.begin(type);
         }
 
         private void hold()
@@ -2914,7 +2911,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
         private void captureProbed()
         {
-            captureHeld(probeType, probeMessage, probeExtension, probeThen, probe.depth());
+            captureHeld(probe.type(), probeMessage, probeExtension, probeThen, probe.depth());
             probing = true;
             decoder = probeCapture;
         }
@@ -3070,7 +3067,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 }
                 pipeline = toolPipeline;
                 break;
-            case TOOL_CALL:
+            case TOOL_CALL, SERVER_TOOL_CALL:
                 if (toolUsePipeline == null)
                 {
                     toolUsePipeline = new LlmSectionPipeline(new LlmAnthropicToolCallToCanonical(),

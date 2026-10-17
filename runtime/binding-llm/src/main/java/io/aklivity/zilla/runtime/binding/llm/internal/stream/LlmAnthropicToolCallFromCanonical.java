@@ -19,12 +19,16 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 final class LlmAnthropicToolCallFromCanonical extends LlmToolTransform
 {
+    private final String type;
+
     private String toolCallId;
     private String toolName;
 
-    LlmAnthropicToolCallFromCanonical()
+    LlmAnthropicToolCallFromCanonical(
+        String type)
     {
         super(MODE_VALUE);
+        this.type = type;
     }
 
     @Override
@@ -63,7 +67,7 @@ final class LlmAnthropicToolCallFromCanonical extends LlmToolTransform
 
         emit(JsonEvent.START_OBJECT);
         emit(JsonEvent.KEY_NAME, "type");
-        emit(JsonEvent.VALUE_STRING, "tool_use");
+        emit(JsonEvent.VALUE_STRING, type);
 
         if (toolCallId != null)
         {

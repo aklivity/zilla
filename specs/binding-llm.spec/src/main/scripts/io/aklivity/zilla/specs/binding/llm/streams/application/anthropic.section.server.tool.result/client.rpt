@@ -47,14 +47,12 @@ write flush
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .type("SERVER_TOOL_RESULT")
+                          .type("SERVER_TOOL_CALL")
                           .message(1)
-                          .extension("server_tool_use")
                           .attribute("tool-name", "web_search")
                           .attribute("tool-call-id", "srvtoolu_1")
-                          .attribute("provider-executed", "true")
                           .build()}
-write "{\"type\":\"server_tool_use\",\"id\":\"srvtoolu_1\",\"name\":\"web_search\",\"input\":{\"query\":\"paris weather\"}}"
+write "{\"query\":\"paris weather\"}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
@@ -69,7 +67,6 @@ write zilla:data.ext ${llm:dataEx()
                           .message(1)
                           .extension("web_search_tool_result")
                           .attribute("tool-call-id", "srvtoolu_1")
-                          .attribute("provider-executed", "true")
                           .build()}
 write "{\"type\":\"web_search_tool_result\",\"tool_use_id\":\"srvtoolu_1\",\"content\":[{\"type\":\"web_search_result\",\"url\":\"https://example.com\",\"title\":\"Example\"}]}"
 write flush

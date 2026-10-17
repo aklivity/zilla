@@ -26,7 +26,7 @@ public class LlmAnthropicToolCallFromCanonicalTest
 {
     private static final String HUGE = "x".repeat(5000);
 
-    private final LlmAnthropicToolCallFromCanonical transform = new LlmAnthropicToolCallFromCanonical();
+    private final LlmAnthropicToolCallFromCanonical transform = new LlmAnthropicToolCallFromCanonical("tool_use");
 
     private final Consumer<LlmSectionAttributes> id = attributes -> attributes.toolCallId("toolu_1");
     private final Consumer<LlmSectionAttributes> name = attributes -> attributes.toolName("get_weather");
@@ -38,6 +38,14 @@ public class LlmAnthropicToolCallFromCanonicalTest
         assertTransforms(transform, both, null,
             json("{'city':'Paris'}"),
             json("{'type':'tool_use','id':'toolu_1','name':'get_weather','input':{'city':'Paris'}}"));
+    }
+
+    @Test
+    public void shouldWrapInputAsServerToolUse()
+    {
+        assertTransforms(new LlmAnthropicToolCallFromCanonical("server_tool_use"), both, null,
+            json("{'query':'zilla'}"),
+            json("{'type':'server_tool_use','id':'toolu_1','name':'get_weather','input':{'query':'zilla'}}"));
     }
 
     @Test

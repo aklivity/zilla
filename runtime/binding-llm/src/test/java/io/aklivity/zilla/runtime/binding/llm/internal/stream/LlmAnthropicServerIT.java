@@ -228,6 +228,16 @@ public class LlmAnthropicServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/anthropic.section.server.tool.definition/client",
+        "${app}/anthropic.section.server.tool.definition/server"})
+    public void shouldDecodeAnthropicSectionServerToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/anthropic.section.other.blocks/client",
         "${app}/anthropic.section.other.blocks/server"})
     public void shouldDecodeAnthropicSectionOtherBlocks() throws Exception

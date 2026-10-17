@@ -46,14 +46,12 @@ read "\"}]},{\"role\":\"assistant\",\"content\":["
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("SERVER_TOOL_RESULT")
+                          .type("SERVER_TOOL_CALL")
                           .message(1)
-                          .extension("server_tool_use")
                           .attribute("tool-name", "web_search")
                           .attribute("tool-call-id", "srvtoolu_1")
-                          .attribute("provider-executed", "true")
                           .build()}
-read "{\"type\":\"server_tool_use\",\"id\":\"srvtoolu_1\",\"name\":\"web_search\",\"input\":{\"query\":\"paris weather\"}}"
+read "{\"query\":\"paris weather\"}"
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
@@ -66,7 +64,6 @@ read zilla:data.ext ${llm:matchDataEx()
                           .message(1)
                           .extension("web_search_tool_result")
                           .attribute("tool-call-id", "srvtoolu_1")
-                          .attribute("provider-executed", "true")
                           .build()}
 read "{\"type\":\"web_search_tool_result\",\"tool_use_id\":\"srvtoolu_1\",\"content\":[{\"type\":\"web_search_result\",\"url\":\"https://example.com\",\"title\":\"Example\"}]}"
 

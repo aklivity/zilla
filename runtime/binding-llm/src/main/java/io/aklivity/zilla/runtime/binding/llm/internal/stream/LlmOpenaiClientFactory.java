@@ -367,7 +367,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         case TOOL_DEFINITION -> KIND_TOOL_DEFINITION;
         case TOOL_CALL -> KIND_TOOL_CALL;
         case TOOL_RESULT -> KIND_TOOL_RESULT;
-        case ASSISTANT_REASONING, SERVER_TOOL_RESULT, CITATIONS -> KIND_DROPPED;
+        case ASSISTANT_REASONING, SERVER_TOOL_CALL, SERVER_TOOL_RESULT, CITATIONS -> KIND_DROPPED;
         case UNKNOWN -> KIND_UNKNOWN;
         default -> 0;
         };
@@ -2748,7 +2748,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 parser.consumed(take);
             }
 
-            contentContinued = !finished;
+            contentContinued = !finished && (contentContinued || take > 0);
 
             return take < length;
         }

@@ -128,7 +128,9 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final int KIND_SERVER_TOOL_RESULT = 12;
     private static final int KIND_CITATIONS = 13;
     private static final int KIND_UNKNOWN = 14;
+    private static final int KIND_SERVER_TOOL_CALL = 15;
     private static final int KIND_DROPPED = 16;
+    private static final int KIND_SERVER_TOOL_DEFINITION = 17;
 
     private static final int ROLE_NONE = 0;
     private static final int ROLE_USER = 1;
@@ -155,6 +157,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final int REASONING_FRAMING = 48;
 
     private static final String BLOCK_TOOL_USE = "tool_use";
+    private static final String BLOCK_SERVER_TOOL_USE = "server_tool_use";
     private static final String BLOCK_OTHER = "other";
     private static final String BLOCK_THINKING = "thinking";
     private static final String BLOCK_REDACTED_THINKING = "redacted_thinking";
@@ -386,6 +389,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             kind == KIND_USER_DOCUMENT ||
             kind == KIND_ASSISTANT_REASONING ||
             kind == KIND_TOOL_CALL ||
+            kind == KIND_SERVER_TOOL_CALL ||
             kind == KIND_TOOL_DEFINITION;
     }
 
@@ -405,6 +409,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         case TOOL_DEFINITION -> KIND_TOOL_DEFINITION;
         case TOOL_CALL -> KIND_TOOL_CALL;
         case TOOL_RESULT -> KIND_TOOL_RESULT;
+        case SERVER_TOOL_DEFINITION -> KIND_SERVER_TOOL_DEFINITION;
+        case SERVER_TOOL_CALL -> KIND_SERVER_TOOL_CALL;
         case SERVER_TOOL_RESULT -> KIND_SERVER_TOOL_RESULT;
         case CITATIONS -> KIND_CITATIONS;
         case UNKNOWN -> KIND_UNKNOWN;
@@ -419,7 +425,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         return switch (kind)
         {
         case KIND_ASSISTANT_TEXT, KIND_ASSISTANT_REFUSAL, KIND_ASSISTANT_REASONING, KIND_TOOL_CALL,
-            KIND_SERVER_TOOL_RESULT -> ROLE_ASSISTANT;
+            KIND_SERVER_TOOL_CALL, KIND_SERVER_TOOL_RESULT -> ROLE_ASSISTANT;
         case KIND_UNKNOWN -> current != ROLE_NONE ? current : ROLE_USER;
         default -> ROLE_USER;
         };
@@ -3589,6 +3595,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private LlmSectionPipeline documentPipeline;
         private LlmSectionPipeline reasoningPipeline;
         private LlmSectionPipeline toolCallPipeline;
+        private LlmSectionPipeline serverToolCallPipeline;
         private LlmSectionPipeline toolDefinitionPipeline;
         private LlmSectionPipeline replayPipeline;
         private final LlmSectionPipeline.Output replayOutput =
@@ -3706,6 +3713,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             case KIND_USER_DOCUMENT -> documentPipeline();
             case KIND_ASSISTANT_REASONING -> reasoningPipeline();
             case KIND_TOOL_CALL -> toolCallPipeline();
+            case KIND_SERVER_TOOL_CALL -> serverToolCallPipeline();
             case KIND_TOOL_DEFINITION -> toolDefinitionPipeline();
             default -> null;
             };
@@ -3745,10 +3753,22 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             if (toolCallPipeline == null)
             {
-                toolCallPipeline = new LlmSectionPipeline(new LlmAnthropicToolCallFromCanonical(), transformBuffer);
+                toolCallPipeline = new LlmSectionPipeline(new LlmAnthropicToolCallFromCanonical(BLOCK_TOOL_USE),
+                    transformBuffer);
             }
 
             return toolCallPipeline;
+        }
+
+        private LlmSectionPipeline serverToolCallPipeline()
+        {
+            if (serverToolCallPipeline == null)
+            {
+                serverToolCallPipeline = new LlmSectionPipeline(new LlmAnthropicToolCallFromCanonical(BLOCK_SERVER_TOOL_USE),
+                    transformBuffer);
+            }
+
+            return serverToolCallPipeline;
         }
 
         private LlmSectionPipeline toolDefinitionPipeline()
@@ -3888,7 +3908,12 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             sectionOpen = false;
             translated = translatable(kind);
 
-            if (kind == 0 || kind == KIND_USER_AUDIO || kind == KIND_UNKNOWN)
+            if (kind == KIND_SERVER_TOOL_CALL || kind == KIND_SERVER_TOOL_RESULT)
+            {
+                sectionKind = KIND_DROPPED;
+                translated = false;
+            }
+            else if (kind == 0 || kind == KIND_USER_AUDIO || kind == KIND_UNKNOWN || kind == KIND_SERVER_TOOL_DEFINITION)
             {
                 encodeFailed = true;
             }

@@ -38,6 +38,7 @@ abstract class LlmAttributeProbe
 
     private final int[] keys;
 
+    private LlmSectionType type;
     private int depth;
     private boolean resolved;
     private boolean rejected;
@@ -51,9 +52,9 @@ abstract class LlmAttributeProbe
     }
 
     final void begin(
-        LlmSectionType type,
-        String blockType)
+        LlmSectionType type)
     {
+        this.type = type;
         attributes.clear();
         depth = 1;
         resolved = false;
@@ -62,12 +63,17 @@ abstract class LlmAttributeProbe
         continued = false;
         keys[1] = NO_KEY;
 
-        onBegin(type, blockType);
+        onBegin(type);
     }
 
     final LlmSectionAttributes attributes()
     {
         return attributes;
+    }
+
+    final LlmSectionType type()
+    {
+        return type;
     }
 
     final int depth()
@@ -126,8 +132,7 @@ abstract class LlmAttributeProbe
     }
 
     protected abstract void onBegin(
-        LlmSectionType type,
-        String blockType);
+        LlmSectionType type);
 
     protected abstract int onKey(
         int depth,
@@ -147,6 +152,12 @@ abstract class LlmAttributeProbe
         int depth)
     {
         return depth > 0 && depth < MAX_DEPTH ? keys[depth] : NO_KEY;
+    }
+
+    protected final void retype(
+        LlmSectionType type)
+    {
+        this.type = type;
     }
 
     protected final void resolve()

@@ -231,6 +231,16 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
+        "${app}/anthropic.section.server.tool.definition/client",
+        "${net}/anthropic.section.server.tool.definition/server"})
+    public void shouldEncodeAnthropicSectionServerToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
         "${app}/anthropic.section.other.blocks/client",
         "${net}/anthropic.section.other.blocks/server"})
     public void shouldEncodeAnthropicSectionOtherBlocks() throws Exception

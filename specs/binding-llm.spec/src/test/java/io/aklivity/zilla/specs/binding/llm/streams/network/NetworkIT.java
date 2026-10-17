@@ -956,6 +956,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/anthropic.section.server.tool.definition/client",
+        "${net}/anthropic.section.server.tool.definition/server"})
+    public void shouldAnthropicSectionServerToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/anthropic.section.other.blocks/client",
         "${net}/anthropic.section.other.blocks/server"})
     public void shouldAnthropicSectionOtherBlocks() throws Exception
