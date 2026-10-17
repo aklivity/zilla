@@ -69,6 +69,20 @@ public class LlmTextModelPipelineTest
     }
 
     @Test
+    public void shouldRetainUnconsumedDecodedTail()
+    {
+        for (int fragment : FRAGMENTS)
+        {
+            final ByteArrayOutputStream output = new ByteArrayOutputStream();
+            final ModelStatus status = drive(new LlmTextModelPipeline(new Pairs()), "{\"text\":\"abcdefg\"}", fragment, 64,
+                output);
+
+            assertThat("fragment " + fragment, status, is(ModelStatus.COMPLETE));
+            assertThat("fragment " + fragment, output.toString(UTF_8), equalTo("{\"text\":\"ABCDEFG\"}"));
+        }
+    }
+
+    @Test
     public void shouldValidateDecodedTextWithoutEmbedding()
     {
         for (int fragment : FRAGMENTS)
@@ -207,6 +221,39 @@ public class LlmTextModelPipelineTest
                 : Flags.hasFin(flags) ? ModelStatus.COMPLETE : ModelStatus.UNDERFLOW;
 
             return result.set(status, length, length);
+        }
+
+        @Override
+        public boolean identity()
+        {
+            return false;
+        }
+    }
+
+    private static final class Pairs extends Stage
+    {
+        @Override
+        public ModelPipelineResult transform(
+            long traceId,
+            long bindingId,
+            long authorization,
+            int flags,
+            DirectBufferEx src,
+            int srcIndex,
+            int srcLimit,
+            MutableDirectBufferEx dst,
+            int dstIndex,
+            int dstLimit)
+        {
+            final int available = srcLimit - srcIndex;
+            final int length = Flags.hasFin(flags) ? available : available & ~1;
+
+            for (int index = 0; index < length; index++)
+            {
+                dst.putByte(dstIndex + index, (byte) Character.toUpperCase(src.getByte(srcIndex + index)));
+            }
+
+            return result.set(Flags.hasFin(flags) ? ModelStatus.COMPLETE : ModelStatus.UNDERFLOW, length, length);
         }
 
         @Override
