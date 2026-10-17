@@ -534,6 +534,17 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
+        "${app}/anthropic.transform.tool.definition.cache.control/client",
+        "${net}/openai.transform.tool.definition/server"})
+    public void shouldDropAnthropicToolDefinitionCacheControlAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
         "${app}/transform.mixed.content/client",
         "${net}/openai.transform.mixed.content/server"})
     public void shouldTransformMixedContentAsOpenai() throws Exception

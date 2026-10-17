@@ -2351,6 +2351,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/anthropic.transform.tool.definition.cache.control/client",
+        "${app}/anthropic.transform.tool.definition.cache.control/server"})
+    public void shouldAnthropicTransformToolDefinitionCacheControl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/transform.tool.definition.100k/client",
         "${app}/transform.tool.definition.100k/server"})
     public void shouldTransformToolDefinition100k() throws Exception
