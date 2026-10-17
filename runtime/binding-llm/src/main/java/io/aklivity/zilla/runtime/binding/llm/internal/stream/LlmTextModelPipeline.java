@@ -117,7 +117,11 @@ final class LlmTextModelPipeline implements ModelPipeline
                     status = inner.status();
                     rejection = inner.rejection();
                     textProgress += inner.consumed();
-                    produced = embed(inner.produced(), status == ModelStatus.COMPLETE, dst, dstIndex, dstLimit);
+
+                    if (inner.produced() > 0 || status == ModelStatus.COMPLETE)
+                    {
+                        produced = embed(inner.produced(), status == ModelStatus.COMPLETE, dst, dstIndex, dstLimit);
+                    }
                 }
                 else
                 {

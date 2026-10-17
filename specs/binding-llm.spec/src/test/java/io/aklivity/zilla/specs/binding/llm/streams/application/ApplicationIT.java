@@ -542,6 +542,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/canonical.user.video/client",
+        "${app}/canonical.user.video/server"})
+    public void shouldCanonicalUserVideo() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/canonical.block.fragmented/client",
         "${app}/canonical.block.fragmented/server"})
     public void shouldCanonicalBlockFragmented() throws Exception
