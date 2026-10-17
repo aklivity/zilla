@@ -469,6 +469,12 @@ public final class JsonPipelineImpl implements JsonPipeline
             parser.consumed(sourceBytes);
         }
 
+        @Override
+        public void verbatim()
+        {
+            parser.verbatim();
+        }
+
         private Mode mode()
         {
             Mode mode = segmented ? Mode.SEGMENTED : Mode.STRUCTURED;

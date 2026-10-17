@@ -816,6 +816,16 @@ public class LlmOpenaiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.section.assistant.reasoning.streaming/client",
+        "${app}/openai.section.assistant.reasoning.streaming/server"})
+    public void shouldStreamOpenaiSectionAssistantReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.stream.options.absent/client",
         "${app}/openai.stream.options.absent/server"})
     public void shouldHandleOpenaiStreamOptionsAbsent() throws Exception
@@ -972,6 +982,16 @@ public class LlmOpenaiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.section.assistant.reasoning.escaped/client",
+        "${app}/openai.section.assistant.reasoning.escaped/server"})
+    public void shouldDecodeOpenaiSectionAssistantReasoningEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.section.assistant.text.logprobs/client",
         "${app}/openai.section.assistant.text.logprobs/server"})
     public void shouldDecodeOpenaiSectionAssistantTextLogprobs() throws Exception
@@ -1110,6 +1130,93 @@ public class LlmOpenaiServerIT
     @Configuration("server.yaml")
     @ScriptProperty({"source \"openai\""})
     @Specification({
+        "${net}/openai.transform.response.reasoning.tag/client",
+        "${app}/transform.response.reasoning.tag/server"})
+    public void shouldTransformResponseReasoningTagFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai\""})
+    @Specification({
+        "${net}/openai.transform.response.streaming.reasoning.tag/client",
+        "${app}/transform.response.reasoning.tag/server"})
+    public void shouldTransformResponseStreamingReasoningTagFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai\""})
+    @Specification({
+        "${net}/openai.transform.response.reasoning.tag.fragmented/client",
+        "${app}/transform.response.reasoning.tag.fragmented/server"})
+    public void shouldTransformResponseReasoningTagFragmentedFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai\""})
+    @Specification({
+        "${net}/openai.transform.response.streaming.reasoning.tag.fragmented/client",
+        "${app}/transform.response.reasoning.tag.fragmented/server"})
+    public void shouldTransformResponseStreamingReasoningTagFragmentedFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai\""})
+    @Specification({
+        "${net}/openai.transform.response.reasoning.tag.multiple/client",
+        "${app}/transform.response.reasoning.tag.multiple/server"})
+    public void shouldTransformResponseReasoningTagMultipleFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai\""})
+    @Specification({
+        "${net}/openai.transform.response.reasoning.tag.unclosed/client",
+        "${app}/transform.response.reasoning.tag.unclosed/server"})
+    public void shouldTransformResponseReasoningTagUnclosedFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai\""})
+    @Specification({
+        "${net}/openai.transform.response.reasoning.tag.absent/client",
+        "${app}/transform.response.reasoning.tag.absent/server"})
+    public void shouldTransformResponseReasoningTagAbsentFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.assistant.text.reasoning/client",
+        "${app}/openai.section.assistant.text.reasoning/server"})
+    public void shouldDecodeOpenaiSectionAssistantTextReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai\""})
+    @Specification({
         "${net}/openai.transform.response.refusal/client",
         "${app}/transform.response.refusal/server"})
     public void shouldTransformResponseRefusalFromOpenai() throws Exception
@@ -1157,6 +1264,46 @@ public class LlmOpenaiServerIT
         "${net}/openai.transform.request.max.output.tokens/client",
         "${app}/transform.request.max.output.tokens/server"})
     public void shouldTransformRequestMaxOutputTokensFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.guarded.route.yaml")
+    @Specification({
+        "${net}/openai.authorized/client",
+        "${app}/openai.authorized/server"})
+    public void shouldForwardOpenaiRequestRoutedByGuardAuthorization() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.content.type.charset/client",
+        "${app}/openai.content.type.charset/server"})
+    public void shouldDetectOpenaiDialectFromContentTypeWithParameters() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.rejected.error.code/client",
+        "${app}/openai.rejected.error.code/server"})
+    public void shouldPreserveOpenaiRejectedErrorCode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.rejected.streaming.error.code/client",
+        "${app}/openai.rejected.streaming.error.code/server"})
+    public void shouldPreserveOpenaiRejectedStreamingErrorCode() throws Exception
     {
         k3po.finish();
     }

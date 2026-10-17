@@ -826,6 +826,112 @@ public class LlmFunctionsTest
     }
 
     @Test
+    public void shouldGenerateAndMatchResetExCode() throws Exception
+    {
+        byte[] bytes = LlmFunctions.resetEx()
+            .typeId(0)
+            .status(429)
+            .type("insufficient_quota")
+            .code("insufficient_quota")
+            .build();
+
+        LlmResetExFW resetEx = new LlmResetExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+        assertEquals("insufficient_quota", resetEx.error().code().asString());
+
+        BytesMatcher matcher = LlmFunctions.matchResetEx()
+            .typeId(0)
+            .code("insufficient_quota")
+            .build();
+
+        assertNotNull(matcher.match(ByteBuffer.wrap(bytes)));
+    }
+
+    @Test
+    public void shouldMatchResetExCodeNull() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchResetEx()
+            .typeId(0)
+            .codeNull()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.resetEx()
+            .typeId(0)
+            .status(400)
+            .build());
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchResetExCodeMismatch() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchResetEx()
+            .typeId(0)
+            .code("a")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.resetEx()
+            .typeId(0)
+            .code("b")
+            .build());
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateAndMatchAbortExCode() throws Exception
+    {
+        byte[] bytes = LlmFunctions.abortEx()
+            .typeId(0)
+            .status(429)
+            .type("insufficient_quota")
+            .code("insufficient_quota")
+            .build();
+
+        LlmAbortExFW abortEx = new LlmAbortExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+        assertEquals("insufficient_quota", abortEx.error().code().asString());
+
+        BytesMatcher matcher = LlmFunctions.matchAbortEx()
+            .typeId(0)
+            .code("insufficient_quota")
+            .build();
+
+        assertNotNull(matcher.match(ByteBuffer.wrap(bytes)));
+    }
+
+    @Test
+    public void shouldMatchAbortExCodeNull() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchAbortEx()
+            .typeId(0)
+            .codeNull()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.abortEx()
+            .typeId(0)
+            .status(400)
+            .build());
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchErrorNoneWhenCodePresent() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchAbortEx()
+            .typeId(0)
+            .errorNone()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.abortEx()
+            .typeId(0)
+            .code("a")
+            .build());
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
     public void shouldGenerateEndExWithAllFields()
     {
         byte[] bytes = LlmFunctions.endEx()

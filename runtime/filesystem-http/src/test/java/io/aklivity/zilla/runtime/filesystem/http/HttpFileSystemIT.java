@@ -32,6 +32,7 @@ import java.nio.file.Path;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
 import java.util.Map;
 
@@ -97,6 +98,32 @@ public class HttpFileSystemIT
             // THEN
             assertThat(helloBody1, equalTo("Hello World!"));
             assertThat(helloBody2, equalTo("Hello World!"));
+        }
+    }
+
+    @Test
+    @Specification({
+        "${app}/read.success.etag.modified/server",
+    })
+    public void shouldReadEtagAsFileKey() throws Exception
+    {
+        // GIVEN
+        URI helloURI = URI.create("http://localhost:8080/hello.txt");
+        try (FileSystem fs = FileSystems.newFileSystem(helloURI, Map.of()))
+        {
+            Path helloPath = fs.getPath(helloURI.toString());
+
+            // WHEN
+            k3po.start();
+            Files.readString(helloPath);
+            Object fileKey1 = Files.readAttributes(helloPath, BasicFileAttributes.class).fileKey();
+            Files.readString(helloPath);
+            Object fileKey2 = Files.readAttributes(helloPath, BasicFileAttributes.class).fileKey();
+            k3po.finish();
+
+            // THEN
+            assertThat(fileKey1, equalTo("AAAAAAA"));
+            assertThat(fileKey2, equalTo("BBBBBBB"));
         }
     }
 
@@ -265,6 +292,7 @@ public class HttpFileSystemIT
 
                 WatchKey key1 = watcher.take();
                 List<WatchEvent<?>> events1 = key1.pollEvents();
+                boolean reset1 = key1.reset();
 
                 k3po.notifyBarrier("RECEIVED_UPDATE");
 
@@ -277,6 +305,8 @@ public class HttpFileSystemIT
                 assertThat(events1.size(), equalTo(1));
                 assertThat(events1.get(0).kind(), equalTo(ENTRY_CREATE));
                 assertThat(events1.get(0).context(), equalTo(path));
+                assertThat(reset1, equalTo(true));
+                assertThat(key2, equalTo(key1));
                 assertThat(events2.size(), equalTo(1));
                 assertThat(events2.get(0).kind(), equalTo(ENTRY_MODIFY));
                 assertThat(events2.get(0).context(), equalTo(path));

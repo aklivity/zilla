@@ -81,7 +81,7 @@ public abstract class EngineConfigWatchTask implements AutoCloseable, Callable<V
     @Override
     public final Void call() throws IOException
     {
-        watcher.register(configPath, ENTRY_MODIFY, ENTRY_CREATE, ENTRY_DELETE);
+        registerConfigPath();
 
         while (true)
         {
@@ -91,7 +91,13 @@ public abstract class EngineConfigWatchTask implements AutoCloseable, Callable<V
                 if (key != null)
                 {
                     final Path watchable = (Path) key.watchable();
+                    key.pollEvents();
                     onPathChanged(watchable);
+
+                    if (!key.reset() && configPath.equals(watchable))
+                    {
+                        registerConfigPath();
+                    }
                 }
             }
             catch (InterruptedException ex)
@@ -112,4 +118,9 @@ public abstract class EngineConfigWatchTask implements AutoCloseable, Callable<V
 
     protected abstract void onPathChanged(
         Path watchedPath);
+
+    private void registerConfigPath() throws IOException
+    {
+        watcher.register(configPath, ENTRY_MODIFY, ENTRY_CREATE, ENTRY_DELETE);
+    }
 }

@@ -2552,6 +2552,12 @@ public final class JsonSchemaImpl implements JsonSchema
         }
 
         @Override
+        public void verbatim()
+        {
+            delegateEx.verbatim();
+        }
+
+        @Override
         public boolean deferredBytes()
         {
             return delegateEx.deferredBytes();

@@ -164,6 +164,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private final LlmBeginExFW.Builder llmBeginExRW = new LlmBeginExFW.Builder();
     private final LlmDataExFW llmDataExRO = new LlmDataExFW();
     private final LlmSectionAttributes replyAttributes = new LlmSectionAttributes();
+    private final LlmSectionAttributes fragmentAttributes = new LlmSectionAttributes();
     private final LlmDataExFW.Builder llmDataExRW = new LlmDataExFW.Builder();
     private final LlmFlushExFW.Builder llmFlushExRW = new LlmFlushExFW.Builder();
     private final LlmResetExFW llmResetExRO = new LlmResetExFW();
@@ -282,11 +283,10 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         final HttpBeginExFW httpBeginEx = begin.extension().get(httpBeginExRO::tryWrap);
 
         final LlmBindingConfig binding = bindings.get(routedId);
-        final LlmRouteConfig route = binding != null ? binding.resolve(authorization) : null;
 
         MessageConsumer newStream = null;
 
-        if (route != null && httpBeginEx != null)
+        if (binding != null && httpBeginEx != null)
         {
             final LlmRequestHeaders headers = LlmRequestHeaders.of(httpBeginEx);
             final String contentType = header(headers, HEADER_CONTENT_TYPE);
@@ -297,7 +297,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             {
                 newStream = new LlmAnthropicRejectHandler(network, originId, routedId, initialId,
                     Integer.toString(STATUS_UNSUPPORTED_MEDIA_TYPE),
-                    errorBody(STATUS_UNSUPPORTED_MEDIA_TYPE, null))::onNetMessage;
+                    errorBody(STATUS_UNSUPPORTED_MEDIA_TYPE, null, null))::onNetMessage;
             }
             else
             {
@@ -313,22 +313,31 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 {
                     newStream = new LlmAnthropicRejectHandler(network, originId, routedId, initialId,
                         Integer.toString(STATUS_BAD_REQUEST),
-                        errorBody(STATUS_BAD_REQUEST, version == null
+                        errorBody(STATUS_BAD_REQUEST, null, version == null
                             ? "anthropic-version: header is required"
                             : "anthropic-version: unsupported version " + version))::onNetMessage;
                 }
                 else
                 {
-                    newStream = new LlmAnthropicServer(
-                            network,
-                            originId,
-                            routedId,
-                            initialId,
-                            route.id,
-                            authResult.authorization(),
-                            contentType,
-                            beta,
-                            authResult.deauthorize())::onNetMessage;
+                    final LlmRouteConfig route = binding.resolve(authResult.authorization());
+
+                    if (route != null)
+                    {
+                        newStream = new LlmAnthropicServer(
+                                network,
+                                originId,
+                                routedId,
+                                initialId,
+                                route.id,
+                                authResult.authorization(),
+                                contentType,
+                                beta,
+                                authResult.deauthorize())::onNetMessage;
+                    }
+                    else
+                    {
+                        authResult.deauthorize().run();
+                    }
                 }
             }
         }
@@ -374,12 +383,13 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
     private static String errorBody(
         int status,
+        String type,
         String message)
     {
         return Json.createObjectBuilder()
             .add("type", "error")
             .add("error", Json.createObjectBuilder()
-                .add("type", errorType(status))
+                .add("type", type != null ? type : errorType(status))
                 .add("message", message != null ? message : reason(status)))
             .build()
             .toString();
@@ -2800,7 +2810,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         {
             final int status = error.status() != -1 ? error.status() : STATUS_INTERNAL_SERVER_ERROR;
 
-            doNetError(traceId, authorization, status, error.message().asString());
+            doNetError(traceId, authorization, status, error.type().asString(), error.message().asString());
         }
 
         private void doNetError(
@@ -2809,7 +2819,17 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             int status,
             String message)
         {
-            final DirectBufferEx body = asBuffer(errorBody(status, message));
+            doNetError(traceId, authorization, status, null, message);
+        }
+
+        private void doNetError(
+            long traceId,
+            long authorization,
+            int status,
+            String type,
+            String message)
+        {
+            final DirectBufferEx body = asBuffer(errorBody(status, type, message));
 
             cleanupDecodeSlot();
 
@@ -3311,6 +3331,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private final class LlmAnthropicStream
     {
         private final LlmAnthropicServer server;
+        private final LlmReasoningSplitter splitter;
+        private final LlmReasoningSplitter.Visitor reasoningVisitor;
 
         private MessageConsumer app;
         private long initialId;
@@ -3345,6 +3367,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             this.eventAttributeOffsets = new int[EVENT_CAPACITY];
             this.eventAttributeLengths = new int[EVENT_CAPACITY];
             this.eventStart = NO_EVENT;
+            this.splitter = new LlmReasoningSplitter();
+            this.reasoningVisitor = this::doEncodeData;
         }
 
         private long initialAvailable()
@@ -3570,13 +3594,27 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             }
             else if (replyKind == LlmDataExFW.KIND_SECTION)
             {
-                if (payload.sizeof() > 0)
+                final LlmDataExFW fragmentEx = data.extension().get(llmDataExRO::tryWrap);
+
+                fragmentAttributes.readFrom(fragmentEx != null && fragmentEx.kind() == LlmDataExFW.KIND_SECTION
+                    ? fragmentEx.section()
+                    : null);
+
+                if (Flags.hasInit(flags))
                 {
-                    doEncodeData(payload.buffer(), payload.offset(), payload.sizeof());
+                    splitter.begin();
                 }
+
+                if (fragmentAttributes.reasoningTag() != null)
+                {
+                    splitter.activate(fragmentAttributes.reasoningTag());
+                }
+
+                splitter.accept(payload.buffer(), payload.offset(), payload.sizeof(), reasoningVisitor);
 
                 if (Flags.hasFin(flags))
                 {
+                    splitter.end(reasoningVisitor);
                     doEncodeEnd();
                 }
             }
@@ -4043,6 +4081,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private int eventStart;
 
         private int kind;
+        private boolean textSection;
+        private boolean blockOpen;
         private int blocks;
         private boolean inputWritten;
         private int toolCalls;
@@ -4077,30 +4117,37 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             String toolName)
         {
             kind = message == MESSAGE_FIRST && envelope != ENVELOPE_TAIL ? kindOf(type) : KIND_SKIPPED;
+            textSection = kind == KIND_TEXT;
+            blockOpen = false;
 
-            if (kind != KIND_SKIPPED)
+            if (kind != KIND_SKIPPED && !textSection)
             {
-                if (envelope == ENVELOPE_PRELUDE)
-                {
-                    closePrelude();
-                }
-
-                if (server.streaming)
-                {
-                    sectionStream(toolCallId, toolName);
-                }
-                else
-                {
-                    sectionBlock(toolCallId, toolName);
-                }
+                openBlock(toolCallId, toolName);
             }
         }
 
         private void doEncodeData(
+            boolean reasoning,
             DirectBufferEx payload,
             int payloadOffset,
             int payloadLength)
         {
+            if (textSection)
+            {
+                final int fragmentKind = reasoning ? KIND_REASONING : KIND_TEXT;
+
+                if (blockOpen && kind != fragmentKind)
+                {
+                    closeBlock();
+                }
+
+                if (!blockOpen)
+                {
+                    kind = fragmentKind;
+                    openBlock(null, null);
+                }
+            }
+
             if (kind != KIND_NONE && kind != KIND_SKIPPED)
             {
                 if (server.streaming)
@@ -4121,24 +4168,59 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
         private void doEncodeEnd()
         {
-            if (kind != KIND_NONE && kind != KIND_SKIPPED)
+            if (textSection && !blockOpen)
             {
-                if (server.streaming)
-                {
-                    eventBegin(generator.length(), EVENT_BLOCK_STOP);
-                    generator.writeStartObject()
-                        .write("type", EVENT_BLOCK_STOP)
-                        .writeKey("index").write(blocks - 1)
-                        .writeEnd();
-                    eventEnd(generator.length());
-                }
-                else
-                {
-                    sectionBlockEnd();
-                }
+                kind = KIND_TEXT;
+                openBlock(null, null);
+            }
+
+            if (blockOpen)
+            {
+                closeBlock();
             }
 
             kind = KIND_NONE;
+            textSection = false;
+        }
+
+        private void openBlock(
+            String toolCallId,
+            String toolName)
+        {
+            if (envelope == ENVELOPE_PRELUDE)
+            {
+                closePrelude();
+            }
+
+            if (server.streaming)
+            {
+                sectionStream(toolCallId, toolName);
+            }
+            else
+            {
+                sectionBlock(toolCallId, toolName);
+            }
+
+            blockOpen = true;
+        }
+
+        private void closeBlock()
+        {
+            if (server.streaming)
+            {
+                eventBegin(generator.length(), EVENT_BLOCK_STOP);
+                generator.writeStartObject()
+                    .write("type", EVENT_BLOCK_STOP)
+                    .writeKey("index").write(blocks - 1)
+                    .writeEnd();
+                eventEnd(generator.length());
+            }
+            else
+            {
+                sectionBlockEnd();
+            }
+
+            blockOpen = false;
         }
 
         private void doEncodeFinish(

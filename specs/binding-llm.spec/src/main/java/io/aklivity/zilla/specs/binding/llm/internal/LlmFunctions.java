@@ -1214,6 +1214,7 @@ public final class LlmFunctions
         private String type;
         private String param;
         private String message;
+        private String code;
 
         private LlmAbortExBuilder()
         {
@@ -1305,6 +1306,13 @@ public final class LlmFunctions
             return this;
         }
 
+        public LlmAbortExBuilder code(
+            String code)
+        {
+            this.code = code;
+            return this;
+        }
+
         public byte[] build()
         {
             abortExRW.usage(u ->
@@ -1317,7 +1325,7 @@ public final class LlmFunctions
                 u.totalTokens(totalTokens != null ? totalTokens : -1);
                 u.nativeUsage(nativeUsage);
             });
-            abortExRW.error(e -> e.status(status).type(type).param(param).message(message));
+            abortExRW.error(e -> e.status(status).type(type).param(param).message(message).code(code));
             final LlmAbortExFW abortEx = abortExRW.build();
             final byte[] array = new byte[abortEx.sizeof()];
             abortEx.buffer().getBytes(abortEx.offset(), array);
@@ -1438,6 +1446,19 @@ public final class LlmFunctions
             return this;
         }
 
+        public LlmAbortExMatcherBuilder code(
+            String code)
+        {
+            error.code = code;
+            return this;
+        }
+
+        public LlmAbortExMatcherBuilder codeNull()
+        {
+            error.codeNull = true;
+            return this;
+        }
+
         public LlmAbortExMatcherBuilder errorNone()
         {
             error.none = true;
@@ -1537,6 +1558,7 @@ public final class LlmFunctions
         private String type;
         private String param;
         private String message;
+        private String code;
 
         private LlmResetExBuilder()
         {
@@ -1579,10 +1601,17 @@ public final class LlmFunctions
             return this;
         }
 
+        public LlmResetExBuilder code(
+            String code)
+        {
+            this.code = code;
+            return this;
+        }
+
         public byte[] build()
         {
             final LlmResetExFW resetEx = resetExRW
-                .error(e -> e.status(status).type(type).param(param).message(message))
+                .error(e -> e.status(status).type(type).param(param).message(message).code(code))
                 .build();
             final byte[] array = new byte[resetEx.sizeof()];
             resetEx.buffer().getBytes(resetEx.offset(), array);
@@ -1647,6 +1676,19 @@ public final class LlmFunctions
             return this;
         }
 
+        public LlmResetExMatcherBuilder code(
+            String code)
+        {
+            error.code = code;
+            return this;
+        }
+
+        public LlmResetExMatcherBuilder codeNull()
+        {
+            error.codeNull = true;
+            return this;
+        }
+
         public LlmResetExMatcherBuilder messageNull()
         {
             error.messageNull = true;
@@ -1690,6 +1732,8 @@ public final class LlmFunctions
         private boolean paramNull;
         private String message;
         private boolean messageNull;
+        private String code;
+        private boolean codeNull;
         private boolean none;
 
         private boolean matches(
@@ -1698,13 +1742,16 @@ public final class LlmFunctions
             final String errorType = error.type().asString();
             final String errorParam = error.param().asString();
             final String errorMessage = error.message().asString();
+            final String errorCode = error.code().asString();
 
             return none
-                ? error.status() == -1 && errorType == null && errorParam == null && errorMessage == null
+                ? error.status() == -1 && errorType == null && errorParam == null && errorMessage == null &&
+                    errorCode == null
                 : (status == null || status == error.status()) &&
                     (typeNull ? errorType == null : type == null || type.equals(errorType)) &&
                     (paramNull ? errorParam == null : param == null || param.equals(errorParam)) &&
-                    (messageNull ? errorMessage == null : message == null || message.equals(errorMessage));
+                    (messageNull ? errorMessage == null : message == null || message.equals(errorMessage)) &&
+                    (codeNull ? errorCode == null : code == null || code.equals(errorCode));
         }
     }
 
