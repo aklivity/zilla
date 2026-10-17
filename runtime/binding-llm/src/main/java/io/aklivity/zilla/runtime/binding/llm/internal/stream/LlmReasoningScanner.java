@@ -82,6 +82,16 @@ final class LlmReasoningScanner
         return minBlock;
     }
 
+    int pending()
+    {
+        return heldLength;
+    }
+
+    int capacity()
+    {
+        return held.length;
+    }
+
     String tag()
     {
         return inside != OUTSIDE ? tags[inside] : null;
