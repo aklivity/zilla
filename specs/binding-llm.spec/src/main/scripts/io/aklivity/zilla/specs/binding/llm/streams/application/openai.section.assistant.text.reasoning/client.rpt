@@ -60,7 +60,6 @@ read zilla:data.ext ${llm:matchDialectDataEx()
                           .build()}
 read "{\"id\":\"chatcmpl_5\",\"object\":\"chat.completion\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\""
 
-read option zilla:flags "init"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
@@ -68,19 +67,20 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "Hello "
 
-read option zilla:flags "none"
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("ASSISTANT_REASONING")
+                          .message(0)
+                          .attribute("reasoning-tag", "reasoning")
+                          .build()}
+read "{\"text\":\"plan\"}"
+
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
                           .message(0)
-                          .attribute("reasoning-tag", "reasoning")
                           .build()}
-read "<reasoning>plan</reasoning>"
-
-read option zilla:flags "fin"
 read "Answer"
-
-read option zilla:flags "init fin"
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))

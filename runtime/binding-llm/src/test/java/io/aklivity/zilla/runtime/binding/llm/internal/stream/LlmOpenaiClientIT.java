@@ -1128,6 +1128,36 @@ public class LlmOpenaiClientIT
 
     @Test
     @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.assistant.reasoning.escaped/client",
+        "${net}/openai.section.assistant.reasoning.escaped/server"})
+    public void shouldEncodeOpenaiSectionAssistantReasoningEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.assistant.reasoning.streaming/client",
+        "${net}/openai.section.assistant.reasoning.streaming/server"})
+    public void shouldStreamOpenaiSectionAssistantReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.assistant.text.reasoning/client",
+        "${net}/openai.section.assistant.text.reasoning/server"})
+    public void shouldEncodeOpenaiSectionAssistantTextReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
         "${app}/transform.tool.result.blocks/client",

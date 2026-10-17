@@ -3468,11 +3468,25 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         }
     }
 
+    @FunctionalInterface
+    private interface LlmOpenaiReplay
+    {
+        void put(
+            DirectBufferEx payload,
+            int offset,
+            int length,
+            boolean fin);
+    }
+
     private final class LlmOpenaiStream
     {
         private final LlmOpenaiServer server;
         private final LlmReasoningSplitter splitter;
         private final LlmReasoningSplitter.Visitor reasoningVisitor;
+        private final LlmTextPipeline reasoningText;
+        private final LlmOpenaiReplay replayCopy = this::onReplayCopy;
+        private final LlmOpenaiReplay replayEscape = this::onReplayEscape;
+        private final LlmOpenaiReplay replayReasoning = this::onReplayReasoning;
 
         private MessageConsumer app;
         private long initialId;
@@ -3508,6 +3522,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             this.eventStart = NO_EVENT;
             this.splitter = new LlmReasoningSplitter();
             this.reasoningVisitor = this::onReasoning;
+            this.reasoningText = new LlmTextPipeline(this::onReplayText);
+            this.replayData = replayCopy;
         }
 
         private void onReasoning(
@@ -4221,7 +4237,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private boolean messageClosed;
 
         private int replayPosition;
-        private boolean replayEscaped;
+        private LlmOpenaiReplay replayData;
+        private String reasoningTag;
         private boolean replyComplete;
 
         private void doEncodeBegin()
@@ -4408,21 +4425,35 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private void doReplaySection(
             LlmSectionType type)
         {
-            replayEscaped = type == LlmSectionType.ASSISTANT_TEXT ||
-                type == LlmSectionType.ASSISTANT_REASONING ||
-                type == LlmSectionType.ASSISTANT_REFUSAL ||
-                type == LlmSectionType.TOOL_CALL;
-
             if (server.streaming && !eventOpen)
             {
                 eventBegin(replayPosition);
+            }
+
+            if (type == LlmSectionType.ASSISTANT_REASONING)
+            {
+                openReasoning(replyAttributes.reasoningTag());
+                reasoningText.begin();
+                replayData = replayReasoning;
+            }
+            else
+            {
+                closeReasoning();
+                replayData = type == LlmSectionType.ASSISTANT_TEXT ||
+                    type == LlmSectionType.ASSISTANT_REFUSAL ||
+                    type == LlmSectionType.TOOL_CALL ? replayEscape : replayCopy;
             }
         }
 
         private void doReplayDialect(
             LlmDialectDataExFW dialect)
         {
-            replayEscaped = false;
+            replayData = replayCopy;
+
+            if (!server.streaming)
+            {
+                closeReasoning();
+            }
 
             if (server.streaming && !server.usageRequested && dialect.usageOnly() != 0)
             {
@@ -4449,19 +4480,9 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             int length,
             boolean fin)
         {
-            if (length > 0 && !eventSkipped)
+            if (!eventSkipped)
             {
-                if (replayEscaped)
-                {
-                    escaper.wrap(copyBuffer, replayPosition, copyBuffer.capacity());
-                    escaper.writeSegment(payload, offset, length);
-                    replayPosition += escaper.length();
-                }
-                else
-                {
-                    copyBuffer.putBytes(replayPosition, payload, offset, length);
-                    replayPosition += length;
-                }
+                replayData.put(payload, offset, length, fin);
             }
 
             if (fin && replyComplete && replyKind == LlmDataExFW.KIND_DIALECT)
@@ -4470,6 +4491,83 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 eventSkipped = false;
                 eventEnd(replayPosition);
             }
+        }
+
+        private void onReplayCopy(
+            DirectBufferEx payload,
+            int offset,
+            int length,
+            boolean fin)
+        {
+            if (length > 0)
+            {
+                copyBuffer.putBytes(replayPosition, payload, offset, length);
+                replayPosition += length;
+            }
+        }
+
+        private void onReplayEscape(
+            DirectBufferEx payload,
+            int offset,
+            int length,
+            boolean fin)
+        {
+            if (length > 0)
+            {
+                onReplayText(payload, offset, length);
+            }
+        }
+
+        private void onReplayReasoning(
+            DirectBufferEx payload,
+            int offset,
+            int length,
+            boolean fin)
+        {
+            reasoningText.feed(payload, offset, length, fin);
+        }
+
+        private void onReplayText(
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            escaper.wrap(copyBuffer, replayPosition, copyBuffer.capacity());
+            escaper.writeSegment(buffer, offset, length);
+            replayPosition += escaper.length();
+        }
+
+        private void openReasoning(
+            String tag)
+        {
+            if (reasoningTag == null)
+            {
+                reasoningTag = tag != null ? tag : LlmReasoningTags.DEFAULT;
+                replayPosition = putDelimiter("<", reasoningTag, replayPosition);
+            }
+        }
+
+        private void closeReasoning()
+        {
+            if (reasoningTag != null)
+            {
+                replayPosition = putDelimiter("</", reasoningTag, replayPosition);
+                reasoningTag = null;
+            }
+        }
+
+        private int putDelimiter(
+            String prefix,
+            String tag,
+            int position)
+        {
+            int next = position;
+
+            next += copyBuffer.putStringWithoutLengthAscii(next, prefix);
+            next += copyBuffer.putStringWithoutLengthAscii(next, tag);
+            next += copyBuffer.putStringWithoutLengthAscii(next, ">");
+
+            return next;
         }
 
         private void doReplayEnd()

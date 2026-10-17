@@ -18,6 +18,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.nullValue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -214,6 +216,61 @@ public class LlmReasoningScannerTest
         scanner.end(visitor);
 
         assertThat(pieces, contains("text:hi ", "text:<thi"));
+    }
+
+    @Test
+    public void shouldFlushHeldOpeningPrefixAsTextAndScanOn()
+    {
+        scanner.begin();
+        accept("a <thi");
+        scanner.flush(visitor);
+        accept("nk>x");
+        scanner.end(visitor);
+
+        assertThat(merged(pieces), contains("text:a <think>x"));
+    }
+
+    @Test
+    public void shouldFlushHeldClosingPrefixAsReasoningAndKeepBlockOpen()
+    {
+        scanner.begin();
+        accept("<think>x</thi");
+        scanner.flush(visitor);
+        accept("y</think>z");
+        scanner.end(visitor);
+
+        assertThat(merged(pieces), contains("begin:think", "reasoning:x</thiy", "end", "text:z"));
+    }
+
+    @Test
+    public void shouldKeepBlockOpenAcrossFrames()
+    {
+        scanner.begin();
+        accept("<think>x");
+        scanner.flush(visitor);
+        accept("y");
+        scanner.flush(visitor);
+        accept("</think>z");
+        scanner.end(visitor);
+
+        assertThat(merged(pieces), contains("begin:think", "reasoning:xy", "end", "text:z"));
+    }
+
+    @Test
+    public void shouldExposeTagWhileInsideBlock()
+    {
+        scanner.begin();
+        assertThat(scanner.tag(), nullValue());
+        accept("<think>x");
+        assertThat(scanner.tag(), equalTo("think"));
+        accept("</think>");
+        assertThat(scanner.tag(), nullValue());
+    }
+
+    @Test
+    public void shouldReportShortestBlockLength()
+    {
+        assertThat(new LlmReasoningScanner(Set.of("think", "ab")).minBlock(), equalTo(9));
     }
 
     @Test

@@ -49,6 +49,7 @@ final class LlmReasoningScanner
     private final byte[][] closeDelimiters;
     private final byte[] held;
     private final DirectBufferEx heldBuffer;
+    private final int minBlock;
 
     private int heldLength;
     private int inside;
@@ -61,16 +62,29 @@ final class LlmReasoningScanner
         this.closeDelimiters = new byte[this.tags.length][];
 
         int capacity = 0;
+        int minBlock = Integer.MAX_VALUE;
         for (int index = 0; index < this.tags.length; index++)
         {
             openDelimiters[index] = ("<" + this.tags[index] + ">").getBytes(US_ASCII);
             closeDelimiters[index] = ("</" + this.tags[index] + ">").getBytes(US_ASCII);
             capacity = Math.max(capacity, closeDelimiters[index].length);
+            minBlock = Math.min(minBlock, openDelimiters[index].length + closeDelimiters[index].length);
         }
 
+        this.minBlock = minBlock;
         this.held = new byte[capacity];
         this.heldBuffer = new UnsafeBufferEx(held);
         this.inside = OUTSIDE;
+    }
+
+    int minBlock()
+    {
+        return minBlock;
+    }
+
+    String tag()
+    {
+        return inside != OUTSIDE ? tags[inside] : null;
     }
 
     void begin()
@@ -109,10 +123,17 @@ final class LlmReasoningScanner
         emit(visitor, payload, run, limit - run);
     }
 
-    void end(
+    void flush(
         Visitor visitor)
     {
         emit(visitor, heldBuffer, 0, heldLength);
+        heldLength = 0;
+    }
+
+    void end(
+        Visitor visitor)
+    {
+        flush(visitor);
 
         if (inside != OUTSIDE)
         {

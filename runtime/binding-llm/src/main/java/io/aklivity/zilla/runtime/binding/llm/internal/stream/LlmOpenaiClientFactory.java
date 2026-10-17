@@ -127,6 +127,9 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private static final String MEMBER_ARGUMENTS = "arguments";
     private static final String MEMBER_TYPE = "type";
     private static final int EVENT_FRAMES = 4;
+    private static final int REASONING_ESCAPE_EXPANSION = 6;
+    private static final byte[] REASONING_PREFIX = "{\"text\":\"".getBytes(UTF_8);
+    private static final byte[] REASONING_SUFFIX = "\"}".getBytes(UTF_8);
     private static final int FRAMING_CAPABILITIES_MASK = 1 << Capability.FRAMING.ordinal();
     private static final int EVENT_ATTRIBUTES_CAPACITY = 256;
     private static final int QUEUE_ENTRY_OVERHEAD = 5 * Integer.BYTES + 3 * Long.BYTES + Byte.BYTES;
@@ -427,7 +430,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         }
     }
 
-    private final class LlmOpenaiStream
+    private final class LlmOpenaiStream implements LlmReasoningScanner.Visitor
     {
         private final MessageConsumer app;
         private final long originId;
@@ -442,6 +445,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private final String dialect;
         private final LlmOpenaiHttpStream http;
         private final JsonParserEx parser;
+        private final LlmReasoningScanner scanner;
         private final StringBuilder usagePath;
         private final int[] usageMark;
         private final LlmOpenaiResponseDecoder decodeStart = this::decodeStart;
@@ -555,9 +559,15 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private String sectionToolId;
         private String sectionToolName;
 
+        private String sectionTag;
+        private int scanFrom;
+        private int scanChoice;
+
         private char highSurrogate;
         private byte[] textBytes;
         private UnsafeBufferEx textBuffer;
+        private byte[] pieceBytes;
+        private UnsafeBufferEx pieceBuffer;
         private int encodeSlot = NO_SLOT;
         private int encodeSlotOffset;
 
@@ -603,6 +613,9 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             this.usageMark = new int[8];
             this.textBytes = new byte[1024];
             this.textBuffer = new UnsafeBufferEx(textBytes);
+            this.pieceBytes = new byte[1024];
+            this.pieceBuffer = new UnsafeBufferEx(pieceBytes);
+            this.scanner = new LlmReasoningScanner(LlmReasoningTags.DEFAULTS);
             this.sectionTool = NONE;
             this.decoder = decodeStart;
             this.dialectActive = true;
@@ -941,6 +954,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int message,
             String toolCallId,
             String toolName,
+            String reasoningTag,
             DirectBufferEx buffer,
             int offset,
             int length)
@@ -994,6 +1008,11 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                         {
                             x.attributesItem(a -> a.name(LlmSectionAttributes.TOOL_CALL_ID).value(toolCallId));
                         }
+
+                        if (reasoningTag != null)
+                        {
+                            x.attributesItem(a -> a.name(LlmSectionAttributes.REASONING_TAG).value(reasoningTag));
+                        }
                     });
                 }
 
@@ -1032,7 +1051,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             if (begun() && !draining)
             {
-                doAppFrame(traceId, Flags.COMPLETE, true, true, null, NO_MESSAGE, null, null, buffer, offset, length);
+                doAppFrame(traceId, Flags.COMPLETE, true, true, null, NO_MESSAGE, null, null, null, buffer, offset, length);
             }
         }
 
@@ -1149,7 +1168,10 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             sectionOpen = false;
             sectionStarted = false;
             sectionTool = NONE;
+            sectionTag = null;
             highSurrogate = 0;
+            scanner.begin();
+            scanChoice = NONE;
             cleanupEncodeSlot();
             knownToolIndex = NONE;
             knownToolId = null;
@@ -1356,7 +1378,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             if (encodeSlot != NO_SLOT)
             {
-                writeSection(encodePool.buffer(encodeSlot), encodeSlotOffset, false);
+                writeSection(encodePool.buffer(encodeSlot), 0, encodeSlotOffset, false);
                 cleanupEncodeSlot();
             }
         }
@@ -2667,14 +2689,18 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             final CharSequence chars = parser.getStringView();
             final int length = chars.length();
 
-            if (length > 0 || highSurrogate != 0 || !deferred && sectionOpen)
+            if (textType == LlmSectionType.ASSISTANT_TEXT)
+            {
+                scanText(chars, deferred, eventFrom);
+            }
+            else if (length > 0 || highSurrogate != 0 || !deferred && sectionOpen)
             {
                 if (!sectionOpen)
                 {
                     openSection(textType, choiceIndex, null, null, NONE, contentFrom(eventFrom));
                 }
 
-                emitSection(encodeText(chars, !deferred), !deferred);
+                emitSection(textBuffer, 0, encodeText(chars, !deferred), !deferred);
             }
 
             if (!deferred)
@@ -2687,6 +2713,83 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             }
 
             contentContinued = deferred;
+        }
+
+        private void scanText(
+            CharSequence chars,
+            boolean deferred,
+            int eventFrom)
+        {
+            if (scanChoice != choiceIndex)
+            {
+                scanner.begin();
+                scanChoice = choiceIndex;
+            }
+
+            scanFrom = contentFrom(eventFrom);
+
+            if (chars.length() > 0 || highSurrogate != 0)
+            {
+                scanner.accept(textBuffer, 0, encodeText(chars, !deferred), this);
+            }
+
+            if (!deferred)
+            {
+                scanner.flush(this);
+                closeSection();
+            }
+        }
+
+        @Override
+        public void text(
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            if (sectionOpen && sectionType != LlmSectionType.ASSISTANT_TEXT)
+            {
+                closeSection();
+            }
+
+            if (!sectionOpen)
+            {
+                openSection(LlmSectionType.ASSISTANT_TEXT, choiceIndex, null, null, NONE, scanFrom);
+            }
+
+            emitSection(buffer, offset, length, false);
+        }
+
+        @Override
+        public void reasoningBegin(
+            String tag)
+        {
+            closeSection();
+        }
+
+        @Override
+        public void reasoning(
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            if (sectionOpen && sectionType != LlmSectionType.ASSISTANT_REASONING)
+            {
+                closeSection();
+            }
+
+            if (!sectionOpen)
+            {
+                openSection(LlmSectionType.ASSISTANT_REASONING, choiceIndex, null, null, NONE, scanFrom);
+                sectionTag = scanner.tag();
+            }
+
+            emitSection(pieceBuffer, 0, encodeReasoning(buffer, offset, length), false);
+        }
+
+        @Override
+        public void reasoningEnd()
+        {
+            closeSection();
         }
 
         private void emitArguments(
@@ -2706,7 +2809,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                         contentFrom(eventFrom));
                 }
 
-                emitSection(encodeText(chars, !deferred), !deferred);
+                emitSection(textBuffer, 0, encodeText(chars, !deferred), !deferred);
             }
 
             if (!deferred)
@@ -2789,7 +2892,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                     final int flags = dialectOpen ? Flags.NONE : Flags.INIT;
 
                     doAppFrame(http.decodeTraceId, fin ? Flags.fin(flags) : flags, true, complete, null, NO_MESSAGE, null, null,
-                        decodeInput, dialectFrom, length);
+                        null, decodeInput, dialectFrom, length);
 
                     dialectOpen = !fin;
                 }
@@ -2817,19 +2920,24 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             sectionTool = tool;
             sectionToolId = toolCallId;
             sectionToolName = toolName;
+            sectionTag = null;
         }
 
         private void closeSection()
         {
             if (sectionOpen && sectionStarted)
             {
-                emitSection(0, true);
+                final int length = sectionType == LlmSectionType.ASSISTANT_REASONING ? encodeReasoningEnd() : 0;
+
+                emitSection(pieceBuffer, 0, length, true);
             }
 
             sectionOpen = false;
         }
 
         private void emitSection(
+            DirectBufferEx buffer,
+            int offset,
             int length,
             boolean fin)
         {
@@ -2838,17 +2946,19 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 sectionStarted = true;
                 sectionOpen = !fin;
 
-                emitAtomicSection(length, fin);
+                emitAtomicSection(buffer, offset, length, fin);
             }
         }
 
         private void emitAtomicSection(
+            DirectBufferEx buffer,
+            int offset,
             int length,
             boolean fin)
         {
             if (encodeSlot != NO_SLOT && fin && length == 0)
             {
-                writeSection(encodePool.buffer(encodeSlot), encodeSlotOffset, true);
+                writeSection(encodePool.buffer(encodeSlot), 0, encodeSlotOffset, true);
                 cleanupEncodeSlot();
             }
             else
@@ -2857,16 +2967,18 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
                 if (fin)
                 {
-                    writeSection(textBuffer, length, true);
+                    writeSection(buffer, offset, length, true);
                 }
                 else
                 {
-                    holdSection(length);
+                    holdSection(buffer, offset, length);
                 }
             }
         }
 
         private void holdSection(
+            DirectBufferEx buffer,
+            int offset,
             int length)
         {
             if (length <= encodeMax)
@@ -2880,7 +2992,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             }
             else
             {
-                encodePool.buffer(encodeSlot).putBytes(0, textBuffer, 0, length);
+                encodePool.buffer(encodeSlot).putBytes(0, buffer, offset, length);
                 encodeSlotOffset = length;
             }
         }
@@ -2897,6 +3009,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
         private void writeSection(
             DirectBufferEx buffer,
+            int offset,
             int length,
             boolean fin)
         {
@@ -2905,7 +3018,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             sectionWritten = true;
 
             doAppFrame(http.decodeTraceId, fin ? Flags.fin(flags) : flags, false, false, sectionType, sectionMessage,
-                sectionToolId, sectionToolName, buffer, 0, length);
+                sectionToolId, sectionToolName, sectionTag, buffer, offset, length);
         }
 
         private void commitDocument()
@@ -2934,6 +3047,95 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             documentServedModel = null;
             documentFinishReason = null;
             documentUsageOnly = false;
+        }
+
+        private int encodeReasoning(
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            final int capacity = REASONING_PREFIX.length + length * REASONING_ESCAPE_EXPANSION;
+
+            if (pieceBytes.length < capacity)
+            {
+                pieceBytes = new byte[capacity];
+                pieceBuffer = new UnsafeBufferEx(pieceBytes);
+            }
+
+            int position = 0;
+
+            if (!sectionStarted)
+            {
+                System.arraycopy(REASONING_PREFIX, 0, pieceBytes, 0, REASONING_PREFIX.length);
+                position = REASONING_PREFIX.length;
+            }
+
+            for (int index = 0; index < length; index++)
+            {
+                position = putEscaped(buffer.getByte(offset + index), position);
+            }
+
+            return position;
+        }
+
+        private int encodeReasoningEnd()
+        {
+            System.arraycopy(REASONING_SUFFIX, 0, pieceBytes, 0, REASONING_SUFFIX.length);
+
+            return REASONING_SUFFIX.length;
+        }
+
+        private int putEscaped(
+            byte b,
+            int position)
+        {
+            int next = position;
+
+            switch (b)
+            {
+            case '"':
+            case '\\':
+                pieceBytes[next++] = '\\';
+                pieceBytes[next++] = b;
+                break;
+            case '\n':
+                pieceBytes[next++] = '\\';
+                pieceBytes[next++] = 'n';
+                break;
+            case '\r':
+                pieceBytes[next++] = '\\';
+                pieceBytes[next++] = 'r';
+                break;
+            case '\t':
+                pieceBytes[next++] = '\\';
+                pieceBytes[next++] = 't';
+                break;
+            case '\b':
+                pieceBytes[next++] = '\\';
+                pieceBytes[next++] = 'b';
+                break;
+            case '\f':
+                pieceBytes[next++] = '\\';
+                pieceBytes[next++] = 'f';
+                break;
+            default:
+                if (b >= 0 && b < 0x20)
+                {
+                    pieceBytes[next++] = '\\';
+                    pieceBytes[next++] = 'u';
+                    pieceBytes[next++] = '0';
+                    pieceBytes[next++] = '0';
+                    pieceBytes[next++] = (byte) Character.forDigit(b >> 4, 16);
+                    pieceBytes[next++] = (byte) Character.forDigit(b & 0xF, 16);
+                }
+                else
+                {
+                    pieceBytes[next++] = b;
+                }
+                break;
+            }
+
+            return next;
         }
 
         private int encodeText(

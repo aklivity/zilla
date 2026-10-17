@@ -61,24 +61,13 @@ write zilla:data.ext ${llm:dialectDataEx()
 write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\""
 write flush
 
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-write "<reasoning>"
-write flush
-
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_REASONING")
                           .message(0)
+                          .attribute("reasoning-tag", "reasoning")
                           .build()}
-write "café \"quoted\"\nnext	\\ end"
-write flush
-
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-write "</reasoning>"
+write "{\"text\":\"café \\\"quoted\\\"\\nnext\\t\\\\ end\"}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
