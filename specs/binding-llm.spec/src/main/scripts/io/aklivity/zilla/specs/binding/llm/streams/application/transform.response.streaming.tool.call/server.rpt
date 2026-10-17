@@ -61,10 +61,10 @@ write zilla:data.ext ${llm:dataEx()
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-write "{\"text\":\"Let me check\"}"
+write "{\"text\":\"Let me check"
 write flush
 write option zilla:flags "fin"
-write zilla:data.empty
+write "\"}"
 write flush
 
 write option zilla:flags "init"

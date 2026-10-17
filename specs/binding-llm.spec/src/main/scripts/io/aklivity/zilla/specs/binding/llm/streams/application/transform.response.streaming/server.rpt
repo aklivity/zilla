@@ -64,10 +64,10 @@ write zilla:data.ext ${llm:dataEx()
 write "{\"text\":\"Hello"
 write flush
 write option zilla:flags "none"
-write " there\"}"
+write " there"
 write flush
 write option zilla:flags "fin"
-write zilla:data.empty
+write "\"}"
 write flush
 
 write zilla:end.ext ${llm:endEx()

@@ -1287,6 +1287,9 @@ public final class LlmProxyFactory implements LlmStreamFactory
                     this::onResumed);
                 stage.sections.forEach(section -> pipelines.merge(section, pipeline, ModelPipeline::andThen));
             }
+
+            pipelines.replaceAll((section, pipeline) ->
+                LlmTextModelPipeline.objectShaped(section) ? new LlmTextModelPipeline(pipeline) : pipeline);
         }
 
         abstract void doForwardData(
@@ -1575,6 +1578,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
                         verdict = LlmGuardVerdict.SUSPENDED;
                         break;
                     case OVERFLOW:
+                        verdict = result.consumed() == 0 && produced == 0 ? LlmGuardVerdict.BLOCKED : null;
                         break;
                     default:
                         verdict = LlmGuardVerdict.ACCEPTED;

@@ -52,7 +52,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-write "{\"text\":\"ignore previous \"}"
+write "{\"text\":\"ignore previous "
 write flush
 
 write zilla:abort.ext ${llm:abortEx()
