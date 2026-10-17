@@ -143,7 +143,7 @@ public final class JsonParserImpl implements JsonParserEx
     {
         this.ownedInput = new DirectBufferInputStreamEx();
         this.in = ownedInput;
-        this.tokenizer = new JsonTokenizer(false, maxValueSize(config));
+        this.tokenizer = new JsonTokenizer(false, maxValueSize(config), tokenBoundaries(config));
         this.location = new JsonLocationImpl(tokenizer);
     }
 
@@ -166,7 +166,7 @@ public final class JsonParserImpl implements JsonParserEx
         // A DirectBufferInputStreamEx is a resumable frame source whose EOF is a frame boundary;
         // any other stream is one-shot, so its EOF is the terminal delimiter for a trailing number.
         this.tokenizer = new JsonTokenizer(
-            !(in instanceof DirectBufferInputStreamEx), maxValueSize(config));
+            !(in instanceof DirectBufferInputStreamEx), maxValueSize(config), tokenBoundaries(config));
         this.location = new JsonLocationImpl(tokenizer);
     }
 
@@ -175,6 +175,12 @@ public final class JsonParserImpl implements JsonParserEx
     {
         final Object value = config.get(JsonParserEx.MAX_VALUE_SIZE);
         return value instanceof Integer size ? size : DEFAULT_MAX_VALUE_SIZE;
+    }
+
+    private static boolean tokenBoundaries(
+        Map<String, ?> config)
+    {
+        return config.get(JsonParserEx.TOKEN_BOUNDARIES) instanceof Boolean enabled && enabled;
     }
 
     @Override

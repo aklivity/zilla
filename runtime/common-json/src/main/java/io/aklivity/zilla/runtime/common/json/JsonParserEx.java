@@ -39,6 +39,23 @@ public interface JsonParserEx extends JsonParser
     String MAX_VALUE_SIZE = "io.aklivity.zilla.runtime.common.json.parser.maxValueSize";
 
     /**
+     * Config key (for {@link JsonEx#createParser(java.util.Map)}) whose {@link Boolean} value, when {@code true},
+     * makes the stream position reported after an event land on a token boundary:
+     * <ul>
+     * <li>after a {@link JsonEvent#KEY_NAME} the position is the start of the member's value token, past the
+     * separator and any whitespace around it and before the value's first byte, so a string value's opening
+     * quote is still ahead;</li>
+     * <li>after a complete scalar or container value the position is just past its last byte, so a string value's
+     * closing quote is behind.</li>
+     * </ul>
+     * A key is delivered only once its separator, whitespace and the first byte of its value are in the window;
+     * otherwise the window ends before the key and the caller re-presents it with the next window. A key that is
+     * itself larger than the window is delivered in fragments, and its final fragment ends after the key's closing
+     * quote. Absent or {@code false} ⇒ a key is positioned just past its closing quote, ahead of the separator.
+     */
+    String TOKEN_BOUNDARIES = "io.aklivity.zilla.runtime.common.json.parser.tokenBoundaries";
+
+    /**
      * Borrows {@code buffer} as the input window for the next pump, the half-open range
      * {@code [offset, limit)}. The buffer is read in place for the duration of the pump.
      * <p>
