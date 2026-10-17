@@ -389,6 +389,24 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.proxy.guardrail.transform.block.stop/client",
+        "${app}/openai.proxy.guardrail.transform.block.stop/server"})
+    public void shouldGuardOpenaiTransformBlockStopNet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.transform.block.stop.exit/client",
+        "${app}/openai.proxy.guardrail.transform.block.stop.exit/server"})
+    public void shouldGuardOpenaiTransformBlockStopExit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.proxy.guardrail.transform.overlap/client",
         "${app}/openai.proxy.guardrail.transform.overlap/server"})
     public void shouldGuardOpenaiTransformOverlapNet() throws Exception
@@ -428,6 +446,24 @@ public class ApplicationIT
         "${app}/openai.proxy.guardrail.response.rejected.streaming/client",
         "${app}/openai.proxy.guardrail.response.rejected.streaming/server"})
     public void shouldGuardOpenaiResponseRejectedStreamingNet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.rejected.block.stop/client",
+        "${app}/openai.proxy.guardrail.response.rejected.block.stop/server"})
+    public void shouldGuardOpenaiResponseRejectedBlockStopNet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.rejected.block.stop.exit/client",
+        "${app}/openai.proxy.guardrail.response.rejected.block.stop.exit/server"})
+    public void shouldGuardOpenaiResponseRejectedBlockStopExit() throws Exception
     {
         k3po.finish();
     }
