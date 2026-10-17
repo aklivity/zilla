@@ -13,9 +13,6 @@
 # specific language governing permissions and limitations under the License.
 #
 
-# Streaming: the text deltas of an upstream stream are fragments of one assistant-text section, the init flag on the first
-# and an empty fin on the last, once the stream moves on to something else or ends.
-
 accept "zilla://streams/app0"
        option zilla:window 8192
        option zilla:transmission "half-duplex"

@@ -13,9 +13,6 @@
 # specific language governing permissions and limitations under the License.
 #
 
-# Streaming: the first delta of a tool call opens a tool-call section with its call id and tool name, and the argument deltas
-# that follow are fragments of that section, closed by an empty fin when the stream moves on or ends.
-
 connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"

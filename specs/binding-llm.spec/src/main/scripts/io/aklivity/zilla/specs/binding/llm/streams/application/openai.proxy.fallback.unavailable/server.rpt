@@ -19,6 +19,4 @@ accept ${serverAddress}
        option zilla:window 8192
        option zilla:transmission "half-duplex"
 
-# the route has no fallback, so a refused stream is relayed to the caller
-
 rejected

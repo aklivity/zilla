@@ -13,9 +13,6 @@
 # specific language governing permissions and limitations under the License.
 #
 
-# Routing considers the begin extension (dialect and model) alone. Sections that no route anticipated, including
-# types the exit's dialect cannot represent, are relayed unchanged and never prune or change the resolved route.
-
 property clientAddress "zilla://streams/app0"
 property model "gpt-a"
 

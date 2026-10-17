@@ -13,8 +13,6 @@
 # specific language governing permissions and limitations under the License.
 #
 
-# Logprobs: a non-streaming response carries the logprobs of the choice as an after block following the text section.
-
 accept "zilla://streams/app0"
        option zilla:window 8192
        option zilla:transmission "half-duplex"

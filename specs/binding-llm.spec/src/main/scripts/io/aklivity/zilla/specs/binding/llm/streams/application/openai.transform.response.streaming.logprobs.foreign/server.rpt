@@ -13,11 +13,6 @@
 # specific language governing permissions and limitations under the License.
 #
 
-# Logprobs: when the request asks for logprobs, each fragment of the text the upstream delivers is a section of its own,
-# announced by the follow marker on the section data extension, and followed by an after block carrying the logprobs of
-# that fragment. The after block is a single frame with the init and fin flags, owned by the section (the default owner),
-# and has an empty payload when the upstream reported no logprobs for the fragment.
-
 accept "zilla://streams/app0"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
