@@ -23,12 +23,6 @@
 # the call id as extension and the tool name as attributes); the last has the fin flag, possibly with an empty payload.
 # Fragment boundaries within a section are not significant. Sections are never interleaved.
 #
-# An assistant-reasoning section holds the reasoning of the model as an object whose text member carries the reasoning text,
-# followed by any provider-specific members under a dialect prefix. When a provider delimits reasoning inline in its text,
-# as <name>...</name>, each delimited block is split out of the assistant-text into assistant-reasoning sections, and the
-# first data frame of each carries the reasoning-tag attribute set to the name, such as reasoning. A consumer renders the
-# delimiters from that attribute, or as think when it is absent, and ends a block at the next section of another type.
-#
 # Section types: assistant-text, assistant-reasoning, assistant-refusal (utf-8 text) and tool-call (the arguments).
 # The message is the index of the assistant message, 0 for the first.
 #
