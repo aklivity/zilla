@@ -169,7 +169,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private final LlmBeginExFW.Builder llmBeginExRW = new LlmBeginExFW.Builder();
     private final LlmDataExFW llmDataExRO = new LlmDataExFW();
     private final LlmSectionAttributes replyAttributes = new LlmSectionAttributes();
-    private final LlmSectionAttributes fragmentAttributes = new LlmSectionAttributes();
     private final LlmDataExFW.Builder llmDataExRW = new LlmDataExFW.Builder();
     private final LlmFlushExFW.Builder llmFlushExRW = new LlmFlushExFW.Builder();
     private final LlmResetExFW llmResetExRO = new LlmResetExFW();
@@ -3697,8 +3696,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private final class LlmAnthropicStream
     {
         private final LlmAnthropicServer server;
-        private final LlmReasoningSplitter splitter;
-        private final LlmReasoningSplitter.Visitor reasoningVisitor;
         private final LlmSectionPipeline.Output reasoningOutput;
         private final LlmSectionPipeline.Output replayOutput;
 
@@ -3747,8 +3744,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             this.eventAttributeOffsets = new int[EVENT_CAPACITY];
             this.eventAttributeLengths = new int[EVENT_CAPACITY];
             this.eventStart = NO_EVENT;
-            this.splitter = new LlmReasoningSplitter();
-            this.reasoningVisitor = this::doEncodeData;
             this.reasoningOutput = (buffer, offset, length, last) ->
                 generator.writeSegment(buffer, offset, length, Completion.INCOMPLETE);
             this.replayOutput = (buffer, offset, length, last) -> putReplay(buffer, offset, length);
@@ -3987,12 +3982,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             }
             else if (replyKind == LlmDataExFW.KIND_SECTION)
             {
-                final LlmDataExFW fragmentEx = data.extension().get(llmDataExRO::tryWrap);
-
-                fragmentAttributes.readFrom(fragmentEx != null && fragmentEx.kind() == LlmDataExFW.KIND_SECTION
-                    ? fragmentEx.section()
-                    : null);
-
                 if (!textSection && kind == KIND_REASONING)
                 {
                     if (!reasoningPipeline.feed(payload.buffer(), payload.offset(), payload.sizeof(), Flags.hasFin(flags),
@@ -4000,31 +3989,15 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                     {
                         server.cleanup(traceId);
                     }
-
-                    if (Flags.hasFin(flags))
-                    {
-                        doEncodeEnd();
-                    }
                 }
                 else
                 {
-                    if (Flags.hasInit(flags))
-                    {
-                        splitter.begin();
-                    }
+                    doEncodeData(payload.buffer(), payload.offset(), payload.sizeof());
+                }
 
-                    if (fragmentAttributes.reasoningTag() != null)
-                    {
-                        splitter.activate(fragmentAttributes.reasoningTag());
-                    }
-
-                    splitter.accept(payload.buffer(), payload.offset(), payload.sizeof(), reasoningVisitor);
-
-                    if (Flags.hasFin(flags))
-                    {
-                        splitter.end(reasoningVisitor);
-                        doEncodeEnd();
-                    }
+                if (Flags.hasFin(flags))
+                {
+                    doEncodeEnd();
                 }
             }
 
@@ -4676,28 +4649,16 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         }
 
         private void doEncodeData(
-            boolean reasoning,
             DirectBufferEx payload,
             int payloadOffset,
             int payloadLength)
         {
-            if (textSection)
+            if (textSection && !blockOpen)
             {
-                final int fragmentKind = reasoning ? KIND_REASONING : KIND_TEXT;
-
-                if (blockOpen && kind != fragmentKind)
-                {
-                    closeBlock();
-                }
-
-                if (!blockOpen)
-                {
-                    kind = fragmentKind;
-                    openBlock(null, null);
-                }
+                openBlock(null, null);
             }
 
-            if (kind != KIND_NONE && kind != KIND_SKIPPED)
+            if (payloadLength > 0 && kind != KIND_NONE && kind != KIND_SKIPPED)
             {
                 if (server.streaming)
                 {
