@@ -16,11 +16,11 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
-final class LlmAnthropicReasoningToContent extends LlmToolTransform
+final class LlmAnthropicReasoningToValue extends LlmToolTransform
 {
     private boolean extracted;
 
-    LlmAnthropicReasoningToContent()
+    LlmAnthropicReasoningToValue()
     {
         super(MODE_EXTRACT);
     }

@@ -14,54 +14,54 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmToolTransformRunner.assertEscapes;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmToolTransformRunner.assertTransforms;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmToolTransformRunner.json;
 
 import org.junit.Test;
 
-public class LlmAnthropicReasoningToContentTest
+public class LlmAnthropicReasoningToValueTest
 {
     private static final String TEXT = "Let me think. ".repeat(400);
 
-    private final LlmAnthropicReasoningToContent content = new LlmAnthropicReasoningToContent();
+    private final LlmAnthropicReasoningToValue value = new LlmAnthropicReasoningToValue();
 
     @Test
     public void shouldExtractTextContent()
     {
-        assertEscapes(content, json("{'text':'Let me think.'}"), "Let me think.");
+        assertTransforms(value, json("{'text':'Let me think.'}"), json("'Let me think.'"));
     }
 
     @Test
     public void shouldExtractSignatureContent()
     {
-        assertEscapes(content, json("{'anthropic:signature':'sig-1'}"), "sig-1");
+        assertTransforms(value, json("{'anthropic:signature':'sig-1'}"), json("'sig-1'"));
     }
 
     @Test
     public void shouldExtractRedactedContent()
     {
-        assertEscapes(content, json("{'anthropic:data':'opaque'}"), "opaque");
+        assertTransforms(value, json("{'anthropic:data':'opaque'}"), json("'opaque'"));
     }
 
     @Test
-    public void shouldExtractEscapedContentWithoutQuotes()
+    public void shouldExtractEscapedValue()
     {
-        assertEscapes(content,
+        assertTransforms(value,
             json("{'text':'line one\\nline \\\"two\\\"'}"),
-            "line one\\nline \\\"two\\\"");
+            json("'line one\\nline \\\"two\\\"'"));
     }
 
     @Test
     public void shouldExtractContentLargerThanWindow()
     {
-        assertEscapes(content, json("{'text':'" + TEXT + "'}"), TEXT);
+        assertTransforms(value, json("{'text':'" + TEXT + "'}"), json("'" + TEXT + "'"));
     }
 
     @Test
     public void shouldDropOtherMembers()
     {
-        assertEscapes(content,
+        assertTransforms(value,
             json("{'openai:note':{'a':[1,2]},'text':'t','anthropic:cache_control':'x'}"),
-            "t");
+            json("'t'"));
     }
 }

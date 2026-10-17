@@ -3708,7 +3708,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private LlmAnthropicReasoningToDelta reasoningDeltaTransform;
         private LlmSectionPipeline replayPipeline;
         private LlmSectionPipeline replayReasoning;
-        private LlmSectionPipeline replayContent;
+        private LlmSectionPipeline replayValue;
         private MessageConsumer app;
         private long initialId;
         private long replyId;
@@ -5095,14 +5095,13 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
             if (server.streaming)
             {
-                if (replayContent == null)
+                if (replayValue == null)
                 {
-                    replayContent = new LlmSectionPipeline(new LlmAnthropicReasoningToContent(),
-                        JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true)),
+                    replayValue = new LlmSectionPipeline(new LlmAnthropicReasoningToValue(),
                         new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
                 }
 
-                pipeline = replayContent;
+                pipeline = replayValue;
             }
             else
             {

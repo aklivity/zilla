@@ -20,13 +20,10 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
 import java.io.ByteArrayOutputStream;
-import java.util.Map;
 import java.util.function.Consumer;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-import io.aklivity.zilla.runtime.common.json.JsonEx;
-import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 final class LlmToolTransformRunner
@@ -43,24 +40,6 @@ final class LlmToolTransformRunner
         assertTransforms(transform, null, null, json, expected);
     }
 
-    static void assertEscapes(
-        JsonTransform transform,
-        String json,
-        String expected)
-    {
-        for (int window : WINDOWS)
-        {
-            for (int bound : BOUNDS)
-            {
-                final ByteArrayOutputStream output = new ByteArrayOutputStream();
-                final boolean accepted = run(transform, null, null, json, window, bound, false, true, output);
-
-                assertThat("accepted window " + window + " bound " + bound, accepted, is(true));
-                assertThat("window " + window + " bound " + bound, output.toString(UTF_8), equalTo(expected));
-            }
-        }
-    }
-
     static void assertTransforms(
         JsonTransform transform,
         Consumer<LlmSectionAttributes> early,
@@ -75,7 +54,7 @@ final class LlmToolTransformRunner
                 for (boolean emptyLast : new boolean[] {false, true})
                 {
                     final ByteArrayOutputStream output = new ByteArrayOutputStream();
-                    final boolean accepted = run(transform, early, late, json, window, bound, emptyLast, false, output);
+                    final boolean accepted = run(transform, early, late, json, window, bound, emptyLast, output);
 
                     assertThat("accepted window " + window + " bound " + bound + " emptyLast " + emptyLast,
                         accepted, is(true));
@@ -96,12 +75,12 @@ final class LlmToolTransformRunner
             for (int bound : BOUNDS)
             {
                 final ByteArrayOutputStream canonical = new ByteArrayOutputStream();
-                final boolean encoded = run(toCanonical, null, null, json, window, bound, false, false, canonical);
+                final boolean encoded = run(toCanonical, null, null, json, window, bound, false, canonical);
 
                 assertThat("encoded window " + window + " bound " + bound, encoded, is(true));
 
                 final ByteArrayOutputStream nativeOutput = new ByteArrayOutputStream();
-                final boolean decoded = run(fromCanonical, null, null, canonical.toString(UTF_8), window, bound, false, false,
+                final boolean decoded = run(fromCanonical, null, null, canonical.toString(UTF_8), window, bound, false,
                     nativeOutput);
 
                 assertThat("decoded window " + window + " bound " + bound, decoded, is(true));
@@ -125,8 +104,7 @@ final class LlmToolTransformRunner
     {
         for (int window : WINDOWS)
         {
-            final boolean accepted = run(transform, early, late, json, window, REJECT_BOUND, false, false,
-                new ByteArrayOutputStream());
+            final boolean accepted = run(transform, early, late, json, window, REJECT_BOUND, false, new ByteArrayOutputStream());
 
             assertThat("rejected window " + window, accepted, is(false));
         }
@@ -152,13 +130,9 @@ final class LlmToolTransformRunner
         int window,
         int bound,
         boolean emptyLast,
-        boolean escaped,
         ByteArrayOutputStream output)
     {
-        final LlmSectionPipeline pipeline = escaped
-            ? new LlmSectionPipeline(transform, JsonEx.createGenerator(Map.of(JsonGeneratorEx.GENERATE_ESCAPED, true)),
-                new UnsafeBufferEx(new byte[bound]))
-            : new LlmSectionPipeline(transform, new UnsafeBufferEx(new byte[bound]));
+        final LlmSectionPipeline pipeline = new LlmSectionPipeline(transform, new UnsafeBufferEx(new byte[bound]));
         final byte[] bytes = json.getBytes(UTF_8);
         final UnsafeBufferEx input = new UnsafeBufferEx(bytes);
 

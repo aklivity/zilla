@@ -75,13 +75,16 @@ final class LlmAnthropicReasoningToDelta extends LlmToolTransform
     protected Status onClose(
         int depth)
     {
+        Status status = Status.COMPLETED;
+
         if (opened)
         {
             emit(JsonEvent.END_OBJECT);
             emit(JsonEvent.END_OBJECT);
+            status = Status.ADVANCED;
         }
 
-        return Status.ADVANCED;
+        return status;
     }
 
     private void open(

@@ -75,7 +75,7 @@ write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .attribute("type", "content_block_delta")
                           .build()}
-write "{\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"thinking_delta\",\"thinking\":\""
+write "{\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"thinking_delta\",\"thinking\":"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -90,14 +90,14 @@ write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
                           .build()}
-write "\"}}"
+write "}}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .attribute("type", "content_block_delta")
                           .build()}
-write "{\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"thinking_delta\",\"thinking\":\""
+write "{\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"thinking_delta\",\"thinking\":"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -112,14 +112,14 @@ write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
                           .build()}
-write "\"}}"
+write "}}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .attribute("type", "content_block_delta")
                           .build()}
-write "{\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"signature_delta\",\"signature\":\""
+write "{\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"signature_delta\",\"signature\":"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -134,7 +134,7 @@ write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
                           .build()}
-write "\"}}"
+write "}}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()

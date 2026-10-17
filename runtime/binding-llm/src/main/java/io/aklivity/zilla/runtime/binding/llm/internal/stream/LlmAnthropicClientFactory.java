@@ -2780,7 +2780,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             {
                 if (!sectionOpen)
                 {
-                    openSection(textType, null, null, contentFrom(eventFrom));
+                    openSection(textType, null, null, valueFrom(eventFrom));
                 }
 
                 emitSection(encodeText(chars, !deferred), !deferred);
@@ -2788,7 +2788,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
             if (!deferred)
             {
-                dialectResume(position() - 1);
+                dialectResume(valueTo());
             }
             else
             {
@@ -2825,6 +2825,21 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             }
 
             contentContinued = deferred;
+        }
+
+        private int valueFrom(
+            int eventFrom)
+        {
+            final int from = contentFrom(eventFrom);
+
+            return textType == LlmSectionType.ASSISTANT_REASONING ? from - 1 : from;
+        }
+
+        private int valueTo()
+        {
+            final int to = position();
+
+            return textType == LlmSectionType.ASSISTANT_REASONING ? to : to - 1;
         }
 
         private int contentFrom(
