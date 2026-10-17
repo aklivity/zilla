@@ -74,7 +74,7 @@ public final class JsonTokenizer
     // cap on the decoded chars retained for one value/key; appendScratch fails closed past it so a
     // consumer that declines fragments cannot grow scratch without bound
     private final int maxValueSize;
-    private final boolean includeQuotes;
+    private final boolean quoted;
     private boolean terminalEof;
     // byte length of the current input window; a value whose own bytes reach this length without
     // completing fills the window and is delivered as fragments rather than reassembled across windows.
@@ -174,16 +174,16 @@ public final class JsonTokenizer
     // only matters for numbers, which unlike strings and the true/false/null literals are not
     // self-terminating and need a following non-digit byte to know they have ended.
     // maxValueSize caps the decoded chars retained for one value/key; growth past it fails closed.
-    // includeQuotes holds a key back until its separator, whitespace and the value's first byte are in the
+    // quoted holds a key back until its separator, whitespace and the value's first byte are in the
     // window, so the position after a key is the start of its (possibly quoted) value token.
     public JsonTokenizer(
         boolean terminalEof,
         int maxValueSize,
-        boolean includeQuotes)
+        boolean quoted)
     {
         this.terminalEof = terminalEof;
         this.maxValueSize = maxValueSize;
-        this.includeQuotes = includeQuotes;
+        this.quoted = quoted;
         for (int i = 0; i < MAX_DEPTH; i++)
         {
             pathKeyChars[i] = new StringBuilder();
@@ -1024,7 +1024,7 @@ public final class JsonTokenizer
         {
             finishKeyValue();
 
-            if (includeQuotes)
+            if (quoted)
             {
                 alignKeyBoundary(in);
             }

@@ -143,7 +143,7 @@ public final class JsonParserImpl implements JsonParserEx
     {
         this.ownedInput = new DirectBufferInputStreamEx();
         this.in = ownedInput;
-        this.tokenizer = new JsonTokenizer(false, maxValueSize(config), includeQuotes(config));
+        this.tokenizer = new JsonTokenizer(false, maxValueSize(config), quoted(config));
         this.location = new JsonLocationImpl(tokenizer);
     }
 
@@ -166,7 +166,7 @@ public final class JsonParserImpl implements JsonParserEx
         // A DirectBufferInputStreamEx is a resumable frame source whose EOF is a frame boundary;
         // any other stream is one-shot, so its EOF is the terminal delimiter for a trailing number.
         this.tokenizer = new JsonTokenizer(
-            !(in instanceof DirectBufferInputStreamEx), maxValueSize(config), includeQuotes(config));
+            !(in instanceof DirectBufferInputStreamEx), maxValueSize(config), quoted(config));
         this.location = new JsonLocationImpl(tokenizer);
     }
 
@@ -177,10 +177,10 @@ public final class JsonParserImpl implements JsonParserEx
         return value instanceof Integer size ? size : DEFAULT_MAX_VALUE_SIZE;
     }
 
-    private static boolean includeQuotes(
+    private static boolean quoted(
         Map<String, ?> config)
     {
-        return config.get(JsonParserEx.VALUE_EVENT_POSITION) == JsonParserEx.ValueEventPosition.INCLUDE_QUOTES;
+        return config.get(JsonParserEx.STRING_EVENT_POSITIONS) == JsonParserEx.StringEventPositions.QUOTED;
     }
 
     @Override

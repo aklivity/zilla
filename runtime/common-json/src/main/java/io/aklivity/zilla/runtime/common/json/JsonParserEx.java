@@ -39,22 +39,22 @@ public interface JsonParserEx extends JsonParser
     String MAX_VALUE_SIZE = "io.aklivity.zilla.runtime.common.json.parser.maxValueSize";
 
     /**
-     * Config key (for {@link JsonEx#createParser(java.util.Map)}) whose {@link ValueEventPosition} value selects
+     * Config key (for {@link JsonEx#createParser(java.util.Map)}) whose {@link StringEventPositions} value selects
      * where the stream position, as reported by {@link #remaining()}, lands after a value or key event.
-     * Absent ⇒ {@link ValueEventPosition#EXCLUDE_QUOTES}.
+     * Absent ⇒ {@link StringEventPositions#UNQUOTED}.
      */
-    String VALUE_EVENT_POSITION = "io.aklivity.zilla.runtime.common.json.parser.valueEventPosition";
+    String STRING_EVENT_POSITIONS = "io.aklivity.zilla.runtime.common.json.parser.stringEventPositions";
 
     /**
      * Where the position lands relative to a string value's quotes.
      */
-    enum ValueEventPosition
+    enum StringEventPositions
     {
         /**
          * A key is positioned just past its closing quote, ahead of the separator, and a string value's
          * position is not tied to its quotes, so a caller cannot rely on where they fall.
          */
-        EXCLUDE_QUOTES,
+        UNQUOTED,
 
         /**
          * A string value's quotes belong to the value, so positions fall on the boundaries of the quoted token:
@@ -70,7 +70,7 @@ public interface JsonParserEx extends JsonParser
          * itself larger than the window is delivered in fragments, and its final fragment ends after the key's
          * closing quote.
          */
-        INCLUDE_QUOTES
+        QUOTED
     }
 
     /**
