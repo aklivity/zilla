@@ -49,6 +49,7 @@ write zilla:data.ext ${llm:dataEx()
 write ",\"format\":\"wav\"}}"
 write flush
 
+write option zilla:flags "init fin"
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
