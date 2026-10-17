@@ -2402,6 +2402,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private LlmSectionPipeline toolPipeline;
         private LlmSectionPipeline toolUsePipeline;
         private LlmSectionPipeline reasoningPipeline;
+        private LlmSectionPipeline citationsPipeline;
         private LlmSectionPipeline imagePipeline;
         private LlmSectionPipeline documentPipeline;
         private LlmSectionPipeline blockPipeline;
@@ -3074,6 +3075,14 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                         new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
                 }
                 pipeline = toolUsePipeline;
+                break;
+            case CITATIONS:
+                if (citationsPipeline == null)
+                {
+                    citationsPipeline = new LlmSectionPipeline(new LlmAnthropicCitationsToCanonical(),
+                        new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                }
+                pipeline = citationsPipeline;
                 break;
             case ASSISTANT_REASONING:
                 if (reasoningPipeline == null)

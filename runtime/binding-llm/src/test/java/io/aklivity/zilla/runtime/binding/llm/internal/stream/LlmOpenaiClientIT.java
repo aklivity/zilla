@@ -360,6 +360,16 @@ public class LlmOpenaiClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
+        "${app}/openai.section.assistant.text.annotations/client",
+        "${net}/openai.section.assistant.text.annotations/server"})
+    public void shouldEncodeOpenaiSectionAssistantTextAnnotations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
         "${app}/openai.section.assistant.reasoning.history/client",
         "${net}/openai.section.assistant.reasoning.history/server"})
     public void shouldEncodeOpenaiSectionAssistantReasoningHistory() throws Exception
@@ -549,6 +559,17 @@ public class LlmOpenaiClientIT
         "${app}/anthropic.transform.assistant.text.citations/client",
         "${net}/openai.transform.assistant.text.citations/server"})
     public void shouldTransformAssistantTextCitationsAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
+        "${app}/anthropic.transform.assistant.text.citations.skipped/client",
+        "${net}/openai.transform.assistant.text.citations.skipped/server"})
+    public void shouldTransformAssistantTextCitationsAsOpenaiSkipped() throws Exception
     {
         k3po.finish();
     }

@@ -47,6 +47,7 @@ abstract class LlmToolTransform implements JsonTransform
     protected static final int MODE_OBJECT = 0;
     protected static final int MODE_EXTRACT = 1;
     protected static final int MODE_VALUE = 2;
+    protected static final int MODE_ARRAY = 3;
 
     private static final String DATA_URI_PREFIX = "data:";
     private static final String BASE64_MARKER = ";base64,";
@@ -80,6 +81,8 @@ abstract class LlmToolTransform implements JsonTransform
     private boolean holding;
     private boolean awaitingContent;
     private boolean valueStarted;
+    private boolean arrayOpen;
+    private boolean elementPending;
     private String held;
 
     protected LlmToolTransform()
@@ -140,6 +143,11 @@ abstract class LlmToolTransform implements JsonTransform
     protected final String held()
     {
         return held;
+    }
+
+    protected final void clearHeld()
+    {
+        held = null;
     }
 
     protected final void pass(
@@ -241,6 +249,8 @@ abstract class LlmToolTransform implements JsonTransform
         holding = false;
         awaitingContent = false;
         valueStarted = false;
+        arrayOpen = false;
+        elementPending = false;
         held = null;
         heldBuilder.setLength(0);
     }
@@ -418,9 +428,19 @@ abstract class LlmToolTransform implements JsonTransform
     {
         Status status = Status.REJECTED;
 
-        if (event == JsonEvent.START_OBJECT && depth == 0)
+        if (mode == MODE_ARRAY && event == JsonEvent.START_ARRAY && depth == 0 && !arrayOpen)
         {
-            if (mode != MODE_EXTRACT)
+            pass(event);
+            arrayOpen = true;
+            status = Status.ADVANCED;
+        }
+        else if (event == JsonEvent.START_OBJECT && depth == 0 && (mode != MODE_ARRAY || arrayOpen))
+        {
+            if (mode == MODE_ARRAY)
+            {
+                elementPending = true;
+            }
+            else if (mode != MODE_EXTRACT)
             {
                 pass(event);
             }
@@ -432,7 +452,24 @@ abstract class LlmToolTransform implements JsonTransform
         else if (event == JsonEvent.END_OBJECT && depth > 0)
         {
             status = onClose(depth);
+
+            if (mode == MODE_ARRAY && depth == 1)
+            {
+                if (!elementPending)
+                {
+                    emit(JsonEvent.END_OBJECT);
+                }
+
+                elementPending = false;
+            }
+
             depth--;
+        }
+        else if (mode == MODE_ARRAY && event == JsonEvent.END_ARRAY && depth == 0 && arrayOpen)
+        {
+            pass(event);
+            arrayOpen = false;
+            status = Status.ADVANCED;
         }
 
         return status;
@@ -761,6 +798,21 @@ abstract class LlmToolTransform implements JsonTransform
     }
 
     private void enqueue(
+        JsonEvent event,
+        String text,
+        boolean fromSource,
+        boolean fragment)
+    {
+        if (elementPending)
+        {
+            elementPending = false;
+            store(JsonEvent.START_OBJECT, null, false, false);
+        }
+
+        store(event, text, fromSource, fragment);
+    }
+
+    private void store(
         JsonEvent event,
         String text,
         boolean fromSource,

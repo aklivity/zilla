@@ -64,7 +64,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CITATIONS")
                           .message(1)
                           .build()}
-write "[{\"type\":\"char_location\",\"cited_text\":\"blue\",\"document_index\":0,\"start_char_index\":0,\"end_char_index\":4}]"
+write "[{\"anthropic:type\":\"char_location\",\"anthropic:cited_text\":\"blue\",\"anthropic:document_index\":0,\"anthropic:start_char_index\":0,\"anthropic:end_char_index\":4}]"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()

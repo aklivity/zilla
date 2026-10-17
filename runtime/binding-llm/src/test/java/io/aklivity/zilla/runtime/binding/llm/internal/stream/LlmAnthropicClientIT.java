@@ -301,6 +301,16 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
+        "${app}/anthropic.section.assistant.text.citations.url/client",
+        "${net}/anthropic.section.assistant.text.citations.url/server"})
+    public void shouldEncodeAnthropicSectionAssistantTextCitationsUrl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
         "${app}/anthropic.section.assistant.tool.call/client",
         "${net}/anthropic.section.assistant.tool.call/server"})
     public void shouldEncodeAnthropicSectionAssistantToolCall() throws Exception
@@ -554,6 +564,17 @@ public class LlmAnthropicClientIT
         "${app}/anthropic.section.user.text.multibyte/client",
         "${net}/anthropic.section.user.text.multibyte/server"})
     public void shouldEncodeAnthropicSectionUserTextMultibyte() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"target \"anthropic\""})
+    @Specification({
+        "${app}/openai.transform.assistant.text.citations/client",
+        "${net}/anthropic.transform.assistant.text.citations/server"})
+    public void shouldTransformAssistantTextCitationsAsAnthropic() throws Exception
     {
         k3po.finish();
     }

@@ -202,6 +202,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final LlmOpenaiServerDecoder decodeRefusal = this::decodeRefusal;
     private final LlmOpenaiServerDecoder decodeToolCallsStart = this::decodeToolCallsStart;
     private final LlmOpenaiServerDecoder decodeToolCalls = this::decodeToolCalls;
+    private final LlmOpenaiServerDecoder decodeAnnotationsStart = this::decodeAnnotationsStart;
+    private final LlmOpenaiServerDecoder decodeAnnotations = this::decodeAnnotations;
     private final LlmOpenaiServerDecoder decodeToolsStart = this::decodeToolsStart;
     private final LlmOpenaiServerDecoder decodeTools = this::decodeTools;
     private final LlmOpenaiServerDecoder decodeParts = this::decodeParts;
@@ -798,6 +800,10 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 {
                     server.decoder = decodeToolCallsStart;
                 }
+                else if (matches(key, "annotations"))
+                {
+                    server.decoder = decodeAnnotationsStart;
+                }
                 else
                 {
                     server.skip(decodeMessage);
@@ -960,6 +966,89 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 break decode;
             }
 
+        }
+
+        return server.position();
+    }
+
+    private int decodeAnnotationsStart(
+        LlmOpenaiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        decode:
+        if (parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            switch (event)
+            {
+            case START_ARRAY:
+                server.capture(LlmSectionType.CITATIONS, server.message, decodeMessage);
+                server.decoder = decodeAnnotations;
+                break;
+            case VALUE_NULL:
+                server.decoder = decodeMessage;
+                break;
+            default:
+                server.onDecodeParseError(traceId);
+                break decode;
+            }
+
+        }
+
+        return server.position();
+    }
+
+    private int decodeAnnotations(
+        LlmOpenaiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        while (server.decoder == decodeAnnotations && parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            final boolean deferred = event == JsonEvent.VALUE_STRING && parser.deferredBytes();
+
+            switch (event)
+            {
+            case START_OBJECT:
+            case START_ARRAY:
+                server.captureDepth++;
+                break;
+            case END_OBJECT:
+            case END_ARRAY:
+                server.captureDepth--;
+                break;
+            case VALUE_STRING:
+                if (deferred)
+                {
+                    parser.consumed(parser.getStringView().length());
+                }
+                break;
+            default:
+                break;
+            }
+
+            if (server.captureDepth == 0 && !deferred)
+            {
+                server.endCapture(traceId, authorization);
+            }
         }
 
         return server.position();
@@ -2694,6 +2783,21 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         {
             holding = false;
             retained = 0;
+        }
+
+        private void capture(
+            LlmSectionType type,
+            int blockMessage,
+            LlmOpenaiServerDecoder then)
+        {
+            final int from = position() - 1;
+
+            onDecodeBlock(type, blockMessage, null, from);
+
+            captureThen = then;
+            captureOpen = true;
+            captureDepth = 1;
+            captureFrom = from;
         }
 
         private void captureHeld(

@@ -722,6 +722,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.section.assistant.text.annotations/client",
+        "${app}/openai.section.assistant.text.annotations/server"})
+    public void shouldOpenaiSectionAssistantTextAnnotations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.section.assistant.reasoning.history/client",
         "${app}/openai.section.assistant.reasoning.history/server"})
     public void shouldDecodeOpenaiSectionAssistantReasoningHistory() throws Exception
@@ -1184,6 +1193,15 @@ public class ApplicationIT
         "${app}/anthropic.section.assistant.text.citations/client",
         "${app}/anthropic.section.assistant.text.citations/server"})
     public void shouldAnthropicSectionAssistantTextCitations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.assistant.text.citations.url/client",
+        "${app}/anthropic.section.assistant.text.citations.url/server"})
+    public void shouldAnthropicSectionAssistantTextCitationsUrl() throws Exception
     {
         k3po.finish();
     }
@@ -2165,6 +2183,24 @@ public class ApplicationIT
         "${app}/anthropic.transform.assistant.text.citations/client",
         "${app}/anthropic.transform.assistant.text.citations/server"})
     public void shouldCarryOpenaiTransformAnthropicAssistantTextCitations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.transform.assistant.text.citations/client",
+        "${app}/openai.transform.assistant.text.citations/server"})
+    public void shouldCarryAnthropicTransformOpenaiAssistantTextCitations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.transform.assistant.text.citations.skipped/client",
+        "${app}/anthropic.transform.assistant.text.citations.skipped/server"})
+    public void shouldCarryOpenaiTransformAnthropicAssistantTextCitationsSkipped() throws Exception
     {
         k3po.finish();
     }

@@ -524,6 +524,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.section.assistant.text.annotations/client",
+        "${net}/openai.section.assistant.text.annotations/server"})
+    public void shouldOpenaiSectionAssistantTextAnnotations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.section.assistant.reasoning.history/client",
         "${net}/openai.section.assistant.reasoning.history/server"})
     public void shouldDecodeOpenaiSectionAssistantReasoningHistory() throws Exception
@@ -1019,6 +1028,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/anthropic.section.assistant.text.citations.url/client",
+        "${net}/anthropic.section.assistant.text.citations.url/server"})
+    public void shouldAnthropicSectionAssistantTextCitationsUrl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/anthropic.section.assistant.tool.call/client",
         "${net}/anthropic.section.assistant.tool.call/server"})
     public void shouldAnthropicSectionAssistantToolCall() throws Exception
@@ -1436,6 +1454,24 @@ public class NetworkIT
         "${net}/openai.transform.assistant.text.citations/client",
         "${net}/openai.transform.assistant.text.citations/server"})
     public void shouldOpenaiTransformAnthropicAssistantTextCitations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.assistant.text.citations/client",
+        "${net}/anthropic.transform.assistant.text.citations/server"})
+    public void shouldAnthropicTransformOpenaiAssistantTextCitations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.assistant.text.citations.skipped/client",
+        "${net}/openai.transform.assistant.text.citations.skipped/server"})
+    public void shouldOpenaiTransformAnthropicAssistantTextCitationsSkipped() throws Exception
     {
         k3po.finish();
     }

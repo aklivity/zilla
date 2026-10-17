@@ -390,6 +390,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             kind == KIND_ASSISTANT_REASONING ||
             kind == KIND_TOOL_CALL ||
             kind == KIND_SERVER_TOOL_CALL ||
+            kind == KIND_CITATIONS ||
             kind == KIND_TOOL_DEFINITION;
     }
 
@@ -3596,6 +3597,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private LlmSectionPipeline reasoningPipeline;
         private LlmSectionPipeline toolCallPipeline;
         private LlmSectionPipeline serverToolCallPipeline;
+        private LlmSectionPipeline citationsPipeline;
         private LlmSectionPipeline toolDefinitionPipeline;
         private LlmSectionPipeline replayPipeline;
         private final LlmSectionPipeline.Output replayOutput =
@@ -3714,6 +3716,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             case KIND_ASSISTANT_REASONING -> reasoningPipeline();
             case KIND_TOOL_CALL -> toolCallPipeline();
             case KIND_SERVER_TOOL_CALL -> serverToolCallPipeline();
+            case KIND_CITATIONS -> citationsPipeline();
             case KIND_TOOL_DEFINITION -> toolDefinitionPipeline();
             default -> null;
             };
@@ -3758,6 +3761,16 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             }
 
             return toolCallPipeline;
+        }
+
+        private LlmSectionPipeline citationsPipeline()
+        {
+            if (citationsPipeline == null)
+            {
+                citationsPipeline = new LlmSectionPipeline(new LlmAnthropicCitationsFromCanonical(), transformBuffer);
+            }
+
+            return citationsPipeline;
         }
 
         private LlmSectionPipeline serverToolCallPipeline()

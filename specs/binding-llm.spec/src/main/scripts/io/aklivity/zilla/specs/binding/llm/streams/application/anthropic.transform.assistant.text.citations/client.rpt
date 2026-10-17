@@ -54,7 +54,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CITATIONS")
                           .message(1)
                           .build()}
-write "[{\"type\":\"char_location\",\"cited_text\":\"blue\",\"document_index\":0,\"start_char_index\":0,\"end_char_index\":4}]"
+write "[{\"type\":\"url_citation\",\"url_citation\":{\"url\":\"https://example.com\",\"title\":\"Example\"},\"anthropic:encrypted_index\":\"idx\",\"anthropic:cited_text\":\"blue\"}]"
 write flush
 
 write advise zilla:flush

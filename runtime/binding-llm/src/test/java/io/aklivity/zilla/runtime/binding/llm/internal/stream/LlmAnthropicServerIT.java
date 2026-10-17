@@ -298,6 +298,16 @@ public class LlmAnthropicServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/anthropic.section.assistant.text.citations.url/client",
+        "${app}/anthropic.section.assistant.text.citations.url/server"})
+    public void shouldDecodeAnthropicSectionAssistantTextCitationsUrl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/anthropic.section.assistant.tool.call/client",
         "${app}/anthropic.section.assistant.tool.call/server"})
     public void shouldDecodeAnthropicSectionAssistantToolCall() throws Exception

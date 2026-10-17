@@ -278,6 +278,16 @@ public class LlmOpenaiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.section.assistant.text.annotations/client",
+        "${app}/openai.section.assistant.text.annotations/server"})
+    public void shouldDecodeOpenaiSectionAssistantTextAnnotations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.section.assistant.reasoning.history/client",
         "${app}/openai.section.assistant.reasoning.history/server"})
     public void shouldDecodeOpenaiSectionAssistantReasoningHistory() throws Exception

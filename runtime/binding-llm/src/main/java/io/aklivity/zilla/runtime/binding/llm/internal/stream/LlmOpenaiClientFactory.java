@@ -120,6 +120,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private static final String MEMBER_CODE = "code";
     private static final String MEMBER_CONTENT = "content";
     private static final String MEMBER_REFUSAL = "refusal";
+    private static final String MEMBER_ANNOTATIONS = "annotations";
     private static final String MEMBER_TOOL_CALLS = "tool_calls";
     private static final String MEMBER_ROLE = "role";
     private static final String MEMBER_FUNCTION = "function";
@@ -148,6 +149,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private static final int KIND_TOOL_RESULT = 10;
     private static final int KIND_UNKNOWN = 11;
     private static final int KIND_DROPPED = 12;
+    private static final int KIND_CITATIONS = 13;
 
     private static final int CONTENT_NONE = 0;
     private static final int CONTENT_HELD = 1;
@@ -349,6 +351,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             kind == KIND_USER_DOCUMENT ||
             kind == KIND_USER_AUDIO ||
             kind == KIND_TOOL_CALL ||
+            kind == KIND_CITATIONS ||
             kind == KIND_TOOL_DEFINITION;
     }
 
@@ -367,7 +370,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         case TOOL_DEFINITION -> KIND_TOOL_DEFINITION;
         case TOOL_CALL -> KIND_TOOL_CALL;
         case TOOL_RESULT -> KIND_TOOL_RESULT;
-        case ASSISTANT_REASONING, SERVER_TOOL_CALL, SERVER_TOOL_RESULT, CITATIONS -> KIND_DROPPED;
+        case CITATIONS -> KIND_CITATIONS;
+        case ASSISTANT_REASONING, SERVER_TOOL_CALL, SERVER_TOOL_RESULT -> KIND_DROPPED;
         case UNKNOWN -> KIND_UNKNOWN;
         default -> 0;
         };
@@ -379,7 +383,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         return switch (kind)
         {
         case KIND_SYSTEM_INSTRUCTION -> "system";
-        case KIND_ASSISTANT_TEXT, KIND_ASSISTANT_REFUSAL, KIND_TOOL_CALL -> "assistant";
+        case KIND_ASSISTANT_TEXT, KIND_ASSISTANT_REFUSAL, KIND_TOOL_CALL, KIND_CITATIONS -> "assistant";
         case KIND_TOOL_RESULT -> "tool";
         default -> "user";
         };
@@ -3607,6 +3611,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private LlmSectionPipeline audioPipeline;
         private LlmSectionPipeline toolCallPipeline;
         private LlmSectionPipeline toolDefinitionPipeline;
+        private LlmSectionPipeline citationsPipeline;
         private LlmSectionPipeline replayPipeline;
         private LlmTextPipeline replayText;
         private LlmTextPipeline encodeText;
@@ -3732,6 +3737,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             case KIND_USER_AUDIO -> audioPipeline();
             case KIND_TOOL_CALL -> toolCallPipeline();
             case KIND_TOOL_DEFINITION -> toolDefinitionPipeline();
+            case KIND_CITATIONS -> citationsPipeline();
             default -> null;
             };
         }
@@ -3774,6 +3780,16 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             }
 
             return toolCallPipeline;
+        }
+
+        private LlmSectionPipeline citationsPipeline()
+        {
+            if (citationsPipeline == null)
+            {
+                citationsPipeline = new LlmSectionPipeline(new LlmOpenaiCitationsFromCanonical(), transformBuffer);
+            }
+
+            return citationsPipeline;
         }
 
         private LlmSectionPipeline toolDefinitionPipeline()
@@ -4095,6 +4111,11 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             else if (part(kind))
             {
                 beginPart();
+            }
+            else if (kind == KIND_CITATIONS)
+            {
+                closeContent(!refusalWritten);
+                generator.writeKey(MEMBER_ANNOTATIONS);
             }
             else if (kind == KIND_ASSISTANT_REFUSAL)
             {
