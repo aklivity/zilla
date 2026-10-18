@@ -274,6 +274,8 @@
                     "tool-definition",
                     "tool-call",
                     "tool-result",
+                    "server-tool-definition",
+                    "server-tool-call",
                     "server-tool-result",
                     "citations"
                 ]

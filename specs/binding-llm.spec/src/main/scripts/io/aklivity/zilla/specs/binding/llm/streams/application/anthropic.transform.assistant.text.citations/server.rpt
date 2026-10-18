@@ -40,21 +40,21 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-read "Sky colour?"
+read "{\"text\":\"Sky colour?\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
                           .message(1)
                           .build()}
-read "The sky is blue."
+read "{\"text\":\"The sky is blue.\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("CITATIONS")
                           .message(1)
                           .build()}
-read "[{\"type\":\"char_location\",\"cited_text\":\"blue\",\"document_index\":0,\"start_char_index\":0,\"end_char_index\":4}]"
+read "[{\"type\":\"url_citation\",\"url_citation\":{\"url\":\"https://example.com\",\"title\":\"Example\"},\"anthropic:encrypted_index\":\"idx\",\"anthropic:cited_text\":\"blue\"}]"
 
 read advised zilla:flush
 

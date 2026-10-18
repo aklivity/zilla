@@ -13,9 +13,6 @@
 # specific language governing permissions and limitations under the License.
 #
 
-# Routing considers the begin extension (dialect and model) alone. Sections that no route anticipated, including
-# types the exit's dialect cannot represent, are relayed unchanged and never prune or change the resolved route.
-
 property clientAddress "zilla://streams/app0"
 property model "gpt-a"
 
@@ -55,7 +52,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-write "Hello"
+write "{\"text\":\"Hello\"}"
 write flush
 
 write advise zilla:flush
@@ -72,7 +69,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-read "Hello! How can I help you today?"
+read "{\"text\":\"Hello! How can I help you today?\"}"
 
 read closed
 

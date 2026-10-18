@@ -13,6 +13,8 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property model "claude-3-opus-20240229"
+
 connect "zilla://streams/net0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
@@ -29,7 +31,9 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-write "{\"model\":\"claude-3-opus-20240229\",\"stream\":true,\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Hello\"}]}]}"
+write "{\"model\":\""
+      ${model}
+      "\",\"stream\":true,\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Hello\"}]}]}"
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()
@@ -42,7 +46,9 @@ read zilla:data.ext ${http:matchDataEx()
                          .typeId(zilla:id("http"))
                          .header("type", "message_start")
                          .build()}
-read "{\"type\":\"message_start\",\"message\":{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3-opus-20240229\",\"content\":[],\"stop_reason\":null,\"stop_sequence\":null,\"usage\":{\"input_tokens\":25,\"output_tokens\":1}}}"
+read "{\"type\":\"message_start\",\"message\":{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\""
+     ${model}
+     "\",\"content\":[],\"stop_reason\":null,\"stop_sequence\":null,\"usage\":{\"input_tokens\":25,\"output_tokens\":1}}}"
 read zilla:data.ext ${http:matchDataEx()
                          .typeId(zilla:id("http"))
                          .header("type", "content_block_start")

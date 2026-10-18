@@ -30,7 +30,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-write "Hello"
+write "{\"text\":\"Hello\"}"
 write flush
 
 write advise zilla:flush
@@ -46,7 +46,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-read "Hi there"
+read "{\"text\":\"Hi there\"}"
 
 read closed
 

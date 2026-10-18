@@ -45,6 +45,7 @@ public class TestModelHandler implements ModelHandler
     private final List<Long> transformAuthorizations;
     private final List<String> reject;
     private final List<String> withhold;
+    private final List<String> mask;
     private final boolean suspend;
     private final EngineContext context;
     private final List<Long> discloseAuthorized;
@@ -72,6 +73,7 @@ public class TestModelHandler implements ModelHandler
         this.transformAuthorizations = config.transformAuthorizations;
         this.reject = config.reject;
         this.withhold = config.withhold;
+        this.mask = config.mask;
         this.suspend = config.suspend;
         this.context = context;
         this.discloseAuthorized = config.discloseAuthorized;
@@ -115,8 +117,19 @@ public class TestModelHandler implements ModelHandler
         ModelTransform transform,
         Runnable resumed)
     {
-        return new TestModelPipeline(length, transformLength, fields, encodeLenient, envelope, transform, this,
-            reject, withhold, suspend, resumed, context, null, null, null, deterministic);
+        final ModelPipeline pipeline;
+
+        if (mask != null)
+        {
+            pipeline = new TestModelMaskPipeline(mask);
+        }
+        else
+        {
+            pipeline = new TestModelPipeline(length, transformLength, fields, encodeLenient, envelope, transform, this,
+                reject, withhold, suspend, resumed, context, null, null, null, deterministic);
+        }
+
+        return pipeline;
     }
 
     private ModelPipeline supplyDecoder(
@@ -125,12 +138,25 @@ public class TestModelHandler implements ModelHandler
         Runnable resumed,
         ModelCache cache)
     {
-        return cache == ModelCache.WRITE
-            ? new TestModelPipeline(length, transformLength, fields, decodeLenient, envelope, transform, this,
-                null, null, false, resumed, context, null, null, null, deterministic)
-            : new TestModelPipeline(length, transformLength, fields, decodeLenient, envelope, transform, this,
+        final ModelPipeline pipeline;
+
+        if (cache == ModelCache.WRITE)
+        {
+            pipeline = new TestModelPipeline(length, transformLength, fields, decodeLenient, envelope, transform, this,
+                null, null, false, resumed, context, null, null, null, deterministic);
+        }
+        else if (mask != null)
+        {
+            pipeline = new TestModelMaskPipeline(mask);
+        }
+        else
+        {
+            pipeline = new TestModelPipeline(length, transformLength, fields, decodeLenient, envelope, transform, this,
                 reject, withhold, suspend, resumed, context, discloseAuthorized, discloseRedacted, envelopeDiscloseName,
                 deterministic);
+        }
+
+        return pipeline;
     }
 
     Long nextTransformAuthorization()

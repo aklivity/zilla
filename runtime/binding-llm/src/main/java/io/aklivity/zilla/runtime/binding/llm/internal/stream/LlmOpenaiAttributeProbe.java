@@ -50,8 +50,7 @@ final class LlmOpenaiAttributeProbe extends LlmAttributeProbe
 
     @Override
     protected void onBegin(
-        LlmSectionType type,
-        String blockType)
+        LlmSectionType type)
     {
         section = sectionOf(type);
     }

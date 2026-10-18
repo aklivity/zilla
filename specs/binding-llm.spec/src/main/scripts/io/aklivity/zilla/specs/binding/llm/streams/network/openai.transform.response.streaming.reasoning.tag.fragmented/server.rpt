@@ -42,6 +42,10 @@ write zilla:begin.ext ${http:beginEx()
 write flush
 
 write "{\"id\":\"id_1\",\"object\":\"chat.completion.chunk\",\"model\":\"model\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\"},\"finish_reason\":null}]}"
+write "{\"id\":\"id_1\",\"object\":\"chat.completion.chunk\",\"model\":\"model\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"<reasoning>\"},\"finish_reason\":null}]}"
+write "{\"id\":\"id_1\",\"object\":\"chat.completion.chunk\",\"model\":\"model\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Let me th\"},\"finish_reason\":null}]}"
+write "{\"id\":\"id_1\",\"object\":\"chat.completion.chunk\",\"model\":\"model\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"ink.\"},\"finish_reason\":null}]}"
+write "{\"id\":\"id_1\",\"object\":\"chat.completion.chunk\",\"model\":\"model\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"</reasoning>\"},\"finish_reason\":null}]}"
 write "{\"id\":\"id_1\",\"object\":\"chat.completion.chunk\",\"model\":\"model\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Hello\"},\"finish_reason\":null}]}"
 write "{\"id\":\"id_1\",\"object\":\"chat.completion.chunk\",\"model\":\"model\",\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}"
 write "{\"id\":\"id_1\",\"object\":\"chat.completion.chunk\",\"model\":\"model\",\"choices\":[],\"usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}}"

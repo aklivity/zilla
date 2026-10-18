@@ -26,17 +26,15 @@ bindings:
             - section: user-text
               value:
                 model: test
-                length: 12
-                transform:
-                  length: 5
+                mask:
+                  - world
         gpt-b:
           request:
             - section: user-text
               value:
                 model: test
-                length: 5
-                transform:
-                  length: 8
+                mask:
+                  - Hello
     routes:
     - when:
       - dialect: openai

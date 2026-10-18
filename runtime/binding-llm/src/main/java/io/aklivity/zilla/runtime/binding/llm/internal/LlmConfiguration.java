@@ -20,6 +20,7 @@ public class LlmConfiguration extends Configuration
 {
     public static final IntPropertyDef LLM_SIGNED_REQUEST_MAX_BYTES;
     public static final IntPropertyDef LLM_ANTHROPIC_MAX_TOKENS;
+    public static final IntPropertyDef LLM_GUARDRAIL_OVERLAP;
 
     private static final ConfigurationDef LLM_CONFIG;
 
@@ -28,6 +29,7 @@ public class LlmConfiguration extends Configuration
         final ConfigurationDef config = new ConfigurationDef(String.format("zilla.binding.%s", LlmBinding.NAME));
         LLM_SIGNED_REQUEST_MAX_BYTES = config.property("signed.request.max.bytes", 10 * 1024 * 1024);
         LLM_ANTHROPIC_MAX_TOKENS = config.property("anthropic.max.tokens", 4096);
+        LLM_GUARDRAIL_OVERLAP = config.property("guardrail.overlap", 0);
         LLM_CONFIG = config;
     }
 
@@ -45,5 +47,10 @@ public class LlmConfiguration extends Configuration
     public int anthropicMaxTokens()
     {
         return LLM_ANTHROPIC_MAX_TOKENS.get(this);
+    }
+
+    public int guardrailOverlap()
+    {
+        return LLM_GUARDRAIL_OVERLAP.get(this);
     }
 }

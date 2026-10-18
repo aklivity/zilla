@@ -31,7 +31,7 @@ connected
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-write "{\"model\":\"gpt-a\",\"messages\":[{\"role\":\"user\",\"content\":\""
+write "{\"model\":\"gpt-a\",\"messages\":[{\"role\":\"user\",\"content\":"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -39,8 +39,10 @@ write zilla:data.ext ${llm:dataEx()
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-write "Hola! world!"
+write "{\"text\":\"Hola! world!\"}"
 write flush
+
+write advise zilla:flush
 
 read zilla:reset.ext ${llm:matchResetEx()
                            .typeId(zilla:id("llm"))

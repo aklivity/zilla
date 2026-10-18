@@ -43,14 +43,14 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("SYSTEM_INSTRUCTION")
                           .message(-1)
                           .build()}
-read "You are helpful."
+read "{\"text\":\"You are helpful.\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-read "Hello"
+read "{\"text\":\"Hello\"}"
 
 read advised zilla:flush
 

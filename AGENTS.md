@@ -101,6 +101,21 @@ without properly saying goodbye", event-assertion mismatches) is a symptom of
 this same root cause, not a real bug — before spending time diagnosing a
 crash from an `*IT` run, confirm it was launched with `verify`.
 
+### Docker
+
+Cloud sessions have Docker installed but the daemon is not running at start,
+so `docker info` fails with `Cannot connect to the Docker daemon`. That does
+not mean Docker is unavailable: start the daemon yourself and carry on.
+
+```bash
+(nohup dockerd > /tmp/dockerd.log 2>&1 &); sleep 8; docker info
+```
+
+Do this before concluding that an example (`examples/*/.github/test.sh`,
+`docker compose`) or a Docker image build cannot be run locally. Run the
+example's own check rather than only the ITs when a change affects what the
+example exercises.
+
 The Maven plugin in `build/flyweight-maven-plugin/` generates flyweight Java
 classes from `.idl` files. Always run a full build after modifying any `.idl`
 file. It is a peer reactor module, not a published remote artifact — it comes
@@ -320,6 +335,39 @@ change should never cite `model-avro`'s use case as its motivation, an engine
 SPI change should never cite a specific binding's or model extension's use
 case, and this repo's own changes should never cite a downstream or
 commercial consumer's feature as their reason for existing.
+
+---
+
+## Implementing against established patterns
+
+Get it right the first time by adopting the pattern the codebase already uses
+for the concern in front of you, not by inventing a mechanism and iterating.
+
+- Before writing code for a concern (flow control, buffering, decode/encode
+  slots, stream pipelines, section handling, window sizing), find the closest
+  existing implementation in the same module and in sibling modules, read how
+  it solves that exact problem, and mirror it. Say which implementation you are
+  mirroring before you start.
+- A first draft that needs a reserve, a fixed slack, a fudge fraction, a
+  "reject if it overshoots" guard, a flag that only exists to dodge a case, or a
+  change to a test script so it fits the implementation, means the established
+  pattern was missed. Stop and find the pattern. Do not ship the workaround
+  and do not offer it as an option to be replaced later.
+- Correctness comes from honoring the protocol contract, not from margins.
+  Flow control credit is a contract in every direction; see
+  [runtime/AGENTS.md](runtime/AGENTS.md) for how it is honored.
+- Do not defer a correctness fix as a "larger change, say if you want it".
+  Build the proper behavior in the first change.
+- Do not add a boolean field to track which phase you are in. Phase is
+  expressed by decoder states (the `decode<StateName>` methods) and the
+  `XxxState` bitmask; values carried to a later decode step stay as named
+  fields. See [runtime/AGENTS.md](runtime/AGENTS.md). Before adding any field,
+  check whether that phase already exists somewhere and derive it instead.
+- If you cannot find an established pattern for the concern, ask before
+  inventing one.
+- Fix a spec script only when it violates the protocol, such as a frame that
+  carries a new extension without the init flag; never bend a script to fit
+  implementation behavior.
 
 ---
 

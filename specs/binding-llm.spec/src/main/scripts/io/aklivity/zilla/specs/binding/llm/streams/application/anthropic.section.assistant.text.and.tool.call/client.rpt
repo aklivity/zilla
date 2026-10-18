@@ -13,6 +13,8 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property model "claude-3-opus-20240229"
+
 connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
@@ -20,7 +22,7 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("anthropic")
-                           .model("claude-3-opus-20240229")
+                           .model(model)
                            .build()}
 
 connected
@@ -28,7 +30,9 @@ connected
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-write "{\"model\":\"claude-3-opus-20240229\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\""
+write "{\"model\":\""
+      ${model}
+      "\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -36,13 +40,13 @@ write zilla:data.ext ${llm:dataEx()
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-write "Weather in Paris?"
+write "{\"text\":\"Weather in Paris?\"}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-write "\"}]},{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\""
+write "}]},{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -50,13 +54,13 @@ write zilla:data.ext ${llm:dataEx()
                           .type("ASSISTANT_TEXT")
                           .message(1)
                           .build()}
-write "Checking."
+write "{\"text\":\"Checking.\"}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-write "\"},"
+write "},"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -66,7 +70,7 @@ write zilla:data.ext ${llm:dataEx()
                           .attribute("tool-name", "get_weather")
                           .attribute("tool-call-id", "toolu_1")
                           .build()}
-write "{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"get_weather\",\"input\":{\"city\":\"Paris\"}}"
+write "{\"city\":\"Paris\"}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
@@ -81,26 +85,28 @@ write advise zilla:flush
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("anthropic")
-                           .model("claude-3-opus-20240229")
+                           .model(model)
                            .id("msg_01")
                            .build()}
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-read "{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3-opus-20240229\",\"content\":[{\"type\":\"text\",\"text\":\""
+read "{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\""
+     ${model}
+     "\",\"content\":[{\"type\":\"text\",\"text\":"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-read "Let me check both cities."
+read "{\"text\":\"Let me check both cities.\"}"
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-read "\"},{\"type\":\"tool_use\",\"id\":\"call_1\",\"name\":\"get_weather\",\"input\":"
+read "},{\"type\":\"tool_use\",\"id\":\"call_1\",\"name\":\"get_weather\",\"input\":"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))

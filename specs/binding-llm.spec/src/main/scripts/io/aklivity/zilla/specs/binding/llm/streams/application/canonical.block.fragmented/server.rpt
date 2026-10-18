@@ -34,11 +34,11 @@ read zilla:data.ext ${llm:matchDataEx()
                           .message(0)
                           .extension("ext-user-text")
                           .build()}
-read "Hello, "
+read "{\"text\":\"Hello, "
 read option zilla:flags "none"
 read "this block "
 read option zilla:flags "fin"
-read "spans several frames"
+read "spans several frames\"}"
 
 read advised zilla:flush
 
@@ -56,13 +56,13 @@ write zilla:data.ext ${llm:dataEx()
                           .message(0)
                           .extension("ext-assistant-text")
                           .build()}
-write "Hi, "
+write "{\"text\":\"Hi, "
 write flush
 write option zilla:flags "none"
 write "and this one "
 write flush
 write option zilla:flags "fin"
-write "does too"
+write "does too\"}"
 write flush
 
 write close

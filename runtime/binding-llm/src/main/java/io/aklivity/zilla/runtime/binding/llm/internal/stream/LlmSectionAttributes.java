@@ -28,7 +28,6 @@ final class LlmSectionAttributes
     static final String TOOL_NAME = "tool-name";
     static final String TOOL_CALL_ID = "tool-call-id";
     static final String IS_ERROR = "is-error";
-    static final String PROVIDER_EXECUTED = "provider-executed";
     static final String REASONING_TAG = "reasoning-tag";
 
     static final String SOURCE_INLINE = "inline";
@@ -47,7 +46,6 @@ final class LlmSectionAttributes
     private String toolName;
     private String toolCallId;
     private String isError;
-    private String providerExecuted;
     private String reasoningTag;
 
     void clear()
@@ -59,7 +57,6 @@ final class LlmSectionAttributes
         toolName = null;
         toolCallId = null;
         isError = null;
-        providerExecuted = null;
         reasoningTag = null;
     }
 
@@ -82,7 +79,7 @@ final class LlmSectionAttributes
     boolean present()
     {
         return mediaType != null || source != null || refId != null || filename != null ||
-            toolName != null || toolCallId != null || isError != null || providerExecuted != null ||
+            toolName != null || toolCallId != null || isError != null ||
             reasoningTag != null;
     }
 
@@ -97,7 +94,6 @@ final class LlmSectionAttributes
         toolName = changed(current.toolName, previous.toolName);
         toolCallId = changed(current.toolCallId, previous.toolCallId);
         isError = changed(current.isError, previous.isError);
-        providerExecuted = changed(current.providerExecuted, previous.providerExecuted);
         reasoningTag = changed(current.reasoningTag, previous.reasoningTag);
     }
 
@@ -111,7 +107,6 @@ final class LlmSectionAttributes
         toolName = that.toolName;
         toolCallId = that.toolCallId;
         isError = that.isError;
-        providerExecuted = that.providerExecuted;
         reasoningTag = that.reasoningTag;
     }
 
@@ -127,7 +122,6 @@ final class LlmSectionAttributes
         case TOOL_NAME -> toolName;
         case TOOL_CALL_ID -> toolCallId;
         case IS_ERROR -> isError;
-        case PROVIDER_EXECUTED -> providerExecuted;
         case REASONING_TAG -> reasoningTag;
         default -> null;
         };
@@ -166,11 +160,6 @@ final class LlmSectionAttributes
     String isError()
     {
         return isError;
-    }
-
-    String providerExecuted()
-    {
-        return providerExecuted;
     }
 
     String reasoningTag()
@@ -214,6 +203,12 @@ final class LlmSectionAttributes
         this.toolCallId = toolCallId;
     }
 
+    void reasoningTag(
+        String reasoningTag)
+    {
+        this.reasoningTag = reasoningTag;
+    }
+
     void isError(
         boolean isError)
     {
@@ -224,12 +219,6 @@ final class LlmSectionAttributes
         String isError)
     {
         this.isError = isError;
-    }
-
-    void providerExecuted(
-        boolean providerExecuted)
-    {
-        this.providerExecuted = providerExecuted ? TRUE : FALSE;
     }
 
     void inline(
@@ -261,7 +250,6 @@ final class LlmSectionAttributes
         write(builder, TOOL_NAME, toolName);
         write(builder, TOOL_CALL_ID, toolCallId);
         write(builder, IS_ERROR, isError);
-        write(builder, PROVIDER_EXECUTED, providerExecuted);
         write(builder, REASONING_TAG, reasoningTag);
     }
 
@@ -299,9 +287,6 @@ final class LlmSectionAttributes
             break;
         case IS_ERROR:
             isError = value;
-            break;
-        case PROVIDER_EXECUTED:
-            providerExecuted = value;
             break;
         case REASONING_TAG:
             reasoningTag = value;
