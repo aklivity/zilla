@@ -3212,4 +3212,67 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.text.sse/client",
+        "${net}/openai.transform.response.text.sse/server"})
+    public void shouldOpenaiTransformResponseTextSse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.reasoning.sse/client",
+        "${net}/openai.transform.response.reasoning.sse/server"})
+    public void shouldOpenaiTransformResponseReasoningSse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.text.and.tool.call.sse/client",
+        "${net}/openai.transform.response.text.and.tool.call.sse/server"})
+    public void shouldOpenaiTransformResponseTextAndToolCallSse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.text.sse/client",
+        "${net}/anthropic.transform.response.text.sse/server"})
+    public void shouldAnthropicTransformResponseTextSse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.reasoning.sse/client",
+        "${net}/anthropic.transform.response.reasoning.sse/server"})
+    public void shouldAnthropicTransformResponseReasoningSse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.text.and.tool.call.sse/client",
+        "${net}/anthropic.transform.response.text.and.tool.call.sse/server"})
+    public void shouldAnthropicTransformResponseTextAndToolCallSse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.refusal.sse/client",
+        "${net}/openai.transform.response.refusal.sse/server"})
+    public void shouldOpenaiTransformResponseRefusalSse() throws Exception
+    {
+        k3po.finish();
+    }
 }

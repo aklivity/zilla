@@ -1450,4 +1450,37 @@ public class LlmAnthropicClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"target \"anthropic\""})
+    @Specification({
+        "${app}/transform.response.text/client",
+        "${net}/anthropic.transform.response.text.sse/server"})
+    public void shouldTransformResponseTextSseAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"target \"anthropic\""})
+    @Specification({
+        "${app}/transform.response.reasoning/client",
+        "${net}/anthropic.transform.response.reasoning.sse/server"})
+    public void shouldTransformResponseReasoningSseAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"target \"anthropic\""})
+    @Specification({
+        "${app}/transform.response.text.and.tool.call/client",
+        "${net}/anthropic.transform.response.text.and.tool.call.sse/server"})
+    public void shouldTransformResponseTextAndToolCallSseAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -1493,4 +1493,48 @@ public class LlmOpenaiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
+        "${app}/transform.response.text/client",
+        "${net}/openai.transform.response.text.sse/server"})
+    public void shouldTransformResponseTextSseAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
+        "${app}/transform.response.reasoning/client",
+        "${net}/openai.transform.response.reasoning.sse/server"})
+    public void shouldTransformResponseReasoningSseAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
+        "${app}/transform.response.text.and.tool.call/client",
+        "${net}/openai.transform.response.text.and.tool.call.sse/server"})
+    public void shouldTransformResponseTextAndToolCallSseAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
+        "${app}/transform.response.refusal/client",
+        "${net}/openai.transform.response.refusal.sse/server"})
+    public void shouldTransformResponseRefusalSseAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
 }
