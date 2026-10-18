@@ -72,7 +72,6 @@ write flush
 write option zilla:flags "fin"
 write "ather\",\"input\":{}}}"
 write flush
-write option zilla:flags "init fin"
 write option zilla:flags "init"
 write zilla:data.ext ${http:dataEx()
                           .typeId(zilla:id("http"))
@@ -83,7 +82,6 @@ write flush
 write option zilla:flags "fin"
 write "ty\\\":\"}}"
 write flush
-write option zilla:flags "init fin"
 write option zilla:flags "init"
 write zilla:data.ext ${http:dataEx()
                           .typeId(zilla:id("http"))

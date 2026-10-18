@@ -68,7 +68,6 @@ read zilla:data.ext ${http:matchDataEx()
 read "{\"type\":\"content_block_start\",\"index\":1,\"content_block\":{\"type\":\"tool_use\",\"id\":\"call_1\",\"name\":\"get_we"
 read option zilla:flags "fin"
 read "ather\",\"input\":{}}}"
-read option zilla:flags "init fin"
 read option zilla:flags "init"
 read zilla:data.ext ${http:matchDataEx()
                          .typeId(zilla:id("http"))
@@ -77,7 +76,6 @@ read zilla:data.ext ${http:matchDataEx()
 read "{\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"ci"
 read option zilla:flags "fin"
 read "ty\\\":\"}}"
-read option zilla:flags "init fin"
 read option zilla:flags "init"
 read zilla:data.ext ${http:matchDataEx()
                          .typeId(zilla:id("http"))

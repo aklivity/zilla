@@ -48,14 +48,12 @@ write flush
 write option zilla:flags "fin"
 write "ther\",\"arguments\":\"\"}}]},\"finish_reason\":null}]}"
 write flush
-write option zilla:flags "init fin"
 write option zilla:flags "init"
 write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"func"
 write flush
 write option zilla:flags "fin"
 write "tion\":{\"arguments\":\"{\\\"city\\\":\"}}]},\"finish_reason\":null}]}"
 write flush
-write option zilla:flags "init fin"
 write option zilla:flags "init"
 write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\"\\\"Pa"
 write flush
