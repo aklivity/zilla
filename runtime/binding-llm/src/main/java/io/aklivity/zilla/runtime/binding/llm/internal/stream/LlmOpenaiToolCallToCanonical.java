@@ -19,13 +19,10 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 final class LlmOpenaiToolCallToCanonical extends LlmToolTransform
 {
+    private static final String DIALECT = "openai";
+
     private boolean functioned;
     private boolean argumented;
-
-    LlmOpenaiToolCallToCanonical()
-    {
-        super(MODE_EXTRACT);
-    }
 
     @Override
     public void reset()
@@ -42,13 +39,21 @@ final class LlmOpenaiToolCallToCanonical extends LlmToolTransform
     {
         int action = DROP;
 
-        if (depth == 1 && matches(key, "function"))
+        if (depth == 1)
         {
-            functioned = true;
-            action = DESCEND;
+            if (matches(key, "function"))
+            {
+                functioned = true;
+                action = DESCEND;
+            }
+            else if (!matches(key, "id") && !matches(key, "type"))
+            {
+                action = prefix(DIALECT, key);
+            }
         }
-        else if (depth == 2 && matches(key, "arguments"))
+        else if (matches(key, "arguments"))
         {
+            target = "arguments";
             argumented = true;
             action = UNESCAPE_OBJECT;
         }
@@ -71,11 +76,16 @@ final class LlmOpenaiToolCallToCanonical extends LlmToolTransform
         {
             if (!argumented)
             {
+                emit(JsonEvent.KEY_NAME, "arguments");
                 emit(JsonEvent.START_OBJECT);
                 emit(JsonEvent.END_OBJECT);
             }
         }
-        else if (!functioned)
+        else if (functioned)
+        {
+            pass(JsonEvent.END_OBJECT);
+        }
+        else
         {
             status = Status.REJECTED;
         }

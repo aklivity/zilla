@@ -65,9 +65,50 @@ final class LlmToolTransformRunner
         }
     }
 
+    static void assertTransformsCompletedBeforeLate(
+        JsonTransform transform,
+        Consumer<LlmSectionAttributes> early,
+        Consumer<LlmSectionAttributes> late,
+        String json,
+        String expected)
+    {
+        final ByteArrayOutputStream output = new ByteArrayOutputStream();
+        final LlmSectionPipeline pipeline = new LlmSectionPipeline(transform, new UnsafeBufferEx(new byte[REJECT_BOUND]));
+        final byte[] bytes = json.getBytes(UTF_8);
+        final UnsafeBufferEx input = new UnsafeBufferEx(bytes);
+        final LlmSectionAttributes attributes = new LlmSectionAttributes();
+
+        if (early != null)
+        {
+            early.accept(attributes);
+        }
+
+        pipeline.begin(attributes);
+
+        boolean accepted = pipeline.feed(input, 0, bytes.length, false,
+            (buffer, index, size, done) -> collect(output, buffer, index, size));
+
+        late.accept(attributes);
+
+        accepted &= pipeline.feed(input, bytes.length, 0, true,
+            (buffer, index, size, done) -> collect(output, buffer, index, size));
+
+        assertThat("accepted", accepted, is(true));
+        assertThat(output.toString(UTF_8), equalTo(expected));
+    }
+
     static void assertRoundTrips(
         JsonTransform toCanonical,
         JsonTransform fromCanonical,
+        String json)
+    {
+        assertRoundTrips(toCanonical, fromCanonical, null, json);
+    }
+
+    static void assertRoundTrips(
+        JsonTransform toCanonical,
+        JsonTransform fromCanonical,
+        Consumer<LlmSectionAttributes> attributes,
         String json)
     {
         for (int window : WINDOWS)
@@ -80,7 +121,7 @@ final class LlmToolTransformRunner
                 assertThat("encoded window " + window + " bound " + bound, encoded, is(true));
 
                 final ByteArrayOutputStream nativeOutput = new ByteArrayOutputStream();
-                final boolean decoded = run(fromCanonical, null, null, canonical.toString(UTF_8), window, bound, false,
+                final boolean decoded = run(fromCanonical, attributes, null, canonical.toString(UTF_8), window, bound, false,
                     nativeOutput);
 
                 assertThat("decoded window " + window + " bound " + bound, decoded, is(true));

@@ -2576,6 +2576,33 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.transform.system.instruction.last/client",
+        "${net}/openai.transform.system.instruction.last/server"})
+    public void shouldOpenaiTransformSystemInstructionLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.system.instruction.last.100k/client",
+        "${net}/openai.transform.system.instruction.last.100k/server"})
+    public void shouldOpenaiTransformSystemInstructionLast100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.rejected.system.instruction.after.tool.definition/client",
+        "${net}/openai.transform.rejected.system.instruction.after.tool.definition/server"})
+    public void shouldOpenaiTransformRejectedSystemInstructionAfterToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/anthropic.transform.system.instruction/client",
         "${net}/anthropic.transform.system.instruction/server"})
     public void shouldAnthropicTransformSystemInstruction() throws Exception
@@ -3128,6 +3155,60 @@ public class NetworkIT
         "${net}/openai.rejected.streaming.error.code/client",
         "${net}/openai.rejected.streaming.error.code/server"})
     public void shouldPreserveOpenaiRejectedStreamingErrorCode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.cache.control/client",
+        "${net}/anthropic.section.assistant.tool.call.cache.control/server"})
+    public void shouldAnthropicSectionAssistantToolCallCacheControl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.tool.call.members/client",
+        "${net}/openai.section.tool.call.members/server"})
+    public void shouldOpenaiSectionToolCallMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.assistant.tool.call.streaming.split/client",
+        "${net}/openai.section.assistant.tool.call.streaming.split/server"})
+    public void shouldOpenaiSectionAssistantToolCallStreamingSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.streaming.split/client",
+        "${net}/anthropic.section.assistant.tool.call.streaming.split/server"})
+    public void shouldAnthropicSectionAssistantToolCallStreamingSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.assistant.tool.call.streaming.error/client",
+        "${net}/openai.section.assistant.tool.call.streaming.error/server"})
+    public void shouldOpenaiSectionAssistantToolCallStreamingError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.streaming.error/client",
+        "${net}/anthropic.section.assistant.tool.call.streaming.error/server"})
+    public void shouldAnthropicSectionAssistantToolCallStreamingError() throws Exception
     {
         k3po.finish();
     }

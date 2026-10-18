@@ -42,7 +42,7 @@ write zilla:data.ext ${llm:dataEx()
                           .message(0)
                           .attribute("tool-call-id", "call_1")
                           .build()}
-write "{\"city\":\""
+write "{\"arguments\":{\"city\":\""
       ${core:randomBase64(1000)}
       "\"}"
 write flush
@@ -52,7 +52,7 @@ write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .attribute("tool-name", "get_weather")
                           .build()}
-write zilla:data.empty
+write "}"
 write flush
 
 write option zilla:flags "init fin"

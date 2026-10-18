@@ -41,7 +41,7 @@ write zilla:data.ext ${llm:dataEx()
                           .attribute("tool-name", "get_weather")
                           .attribute("tool-call-id", "call_1")
                           .build()}
-write "{oops"
+write "{\"arguments\":{oops"
 write flush
 
 read zilla:reset.ext ${llm:matchResetEx()

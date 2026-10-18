@@ -3850,8 +3850,12 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private final LlmOpenaiServer server;
         private final LlmTextPipeline textPipeline;
         private final LlmOpenaiReplay replayCopy = this::onReplayCopy;
-        private final LlmOpenaiReplay replayEscape = this::onReplayEscape;
         private final LlmOpenaiReplay replayReasoning = this::onReplayReasoning;
+        private final LlmOpenaiReplay replayArguments = this::onReplayArguments;
+        private final LlmSectionPipeline.Output encodeArguments = (buffer, offset, length, last) ->
+            onEncodeArguments(buffer, offset, length);
+        private final LlmSectionPipeline.Output replayArgumentsOutput = (buffer, offset, length, last) ->
+            onReplayEscape(buffer, offset, length, last);
 
         private MessageConsumer app;
         private long initialId;
@@ -3868,9 +3872,12 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
         private int state;
 
+        private LlmSectionPipeline argumentsPipeline;
+
         private boolean replyDialect;
         private boolean crossDialect;
         private int replyKind;
+        private LlmSectionType replyType;
         private boolean flushed;
 
         private LlmOpenaiStream(
@@ -4074,8 +4081,9 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                     final LlmSectionType type = section != null ? section.type().get() : LlmSectionType.NONE;
 
                     replyAttributes.readFrom(section);
+                    replyType = type;
 
-                    if (replyDialect)
+                    if (replaying())
                     {
                         doReplaySection(type);
                     }
@@ -4091,6 +4099,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 }
                 else if (replyDialect)
                 {
+                    replyType = LlmSectionType.NONE;
                     doReplayDialect(llmDataEx.dialect());
                 }
             }
@@ -4102,13 +4111,13 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                     llmDataEx.dialect().complete() != 0;
             }
 
-            if (replyDialect)
+            if (replaying())
             {
                 doReplayData(payload.buffer(), payload.offset(), payload.sizeof(), Flags.hasFin(flags));
             }
             else if (replyKind == LlmDataExFW.KIND_SECTION)
             {
-                doEncodeData(payload.buffer(), payload.offset(), payload.sizeof(), Flags.hasFin(flags));
+                doEncodeData(traceId, payload.buffer(), payload.offset(), payload.sizeof(), Flags.hasFin(flags));
 
                 if (Flags.hasFin(flags))
                 {
@@ -4640,6 +4649,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 break;
             case KIND_TOOL_CALL:
                 sectionToolCall(toolCallId, toolName);
+                argumentsPipeline().begin(replyAttributes);
                 break;
             default:
                 break;
@@ -4652,6 +4662,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         }
 
         private void doEncodeData(
+            long traceId,
             DirectBufferEx payload,
             int payloadOffset,
             int payloadLength,
@@ -4661,9 +4672,32 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             {
                 textPipeline.feed(payload, payloadOffset, payloadLength, fin);
             }
-            else if (payloadLength > 0 && kind == KIND_TOOL_CALL)
+            else if (kind == KIND_TOOL_CALL &&
+                !argumentsPipeline.feed(payload, payloadOffset, payloadLength, fin, encodeArguments))
             {
-                onEncodeText(payload, payloadOffset, payloadLength);
+                server.cleanup(traceId);
+            }
+        }
+
+        private LlmSectionPipeline argumentsPipeline()
+        {
+            if (argumentsPipeline == null)
+            {
+                argumentsPipeline = new LlmSectionPipeline(new LlmToolCallToValue(),
+                    new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+            }
+
+            return argumentsPipeline;
+        }
+
+        private void onEncodeArguments(
+            DirectBufferEx payload,
+            int offset,
+            int length)
+        {
+            if (length > 0)
+            {
+                onEncodeText(payload, offset, length);
             }
         }
 
@@ -4850,9 +4884,14 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             eventEnd(generator.length());
         }
 
+        private boolean replaying()
+        {
+            return replyDialect && !(server.streaming && replyType == LlmSectionType.TOOL_CALL);
+        }
+
         private int encodeLength()
         {
-            return replyDialect ? replayPosition : generator.length();
+            return replaying() ? replayPosition : generator.length();
         }
 
         private void doReplaySection(
@@ -4882,10 +4921,11 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 if (type == LlmSectionType.TOOL_CALL)
                 {
                     openString();
+                    argumentsPipeline().begin(replyAttributes);
                 }
 
                 closeReasoning();
-                replayData = type == LlmSectionType.TOOL_CALL ? replayEscape : replayCopy;
+                replayData = type == LlmSectionType.TOOL_CALL ? replayArguments : replayCopy;
             }
         }
 
@@ -4962,6 +5002,15 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             {
                 onReplayText(payload, offset, length);
             }
+        }
+
+        private void onReplayArguments(
+            DirectBufferEx payload,
+            int offset,
+            int length,
+            boolean fin)
+        {
+            argumentsPipeline.feed(payload, offset, length, fin, replayArgumentsOutput);
         }
 
         private void onReplayReasoning(

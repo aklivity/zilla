@@ -136,6 +136,15 @@ abstract class LlmToolTransform implements JsonTransform
         return Status.ADVANCED;
     }
 
+    protected void onEscapedEnd()
+    {
+    }
+
+    protected Status onEndObject()
+    {
+        return Status.ADVANCED;
+    }
+
     protected final String attribute(
         String name)
     {
@@ -368,7 +377,7 @@ abstract class LlmToolTransform implements JsonTransform
             pass(event);
             break;
         case END_DOCUMENT:
-            status = mode == MODE_VALUE ? valueEnd() : Status.ADVANCED;
+            status = mode == MODE_VALUE ? valueEnd() : onEndObject();
             pass(event);
             break;
         case KEY_NAME:
@@ -787,6 +796,7 @@ abstract class LlmToolTransform implements JsonTransform
         {
             passEscaped = false;
             emit(JsonEvent.END_ESCAPED);
+            onEscapedEnd();
         }
 
         if (!passing && mode == MODE_VALUE)
