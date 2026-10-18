@@ -2504,6 +2504,24 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/transform.system.instruction.last.100k/client",
+        "${app}/transform.system.instruction.last.100k/server"})
+    public void shouldTransformSystemInstructionLast100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.system.instruction.after.tool.definition/client",
+        "${app}/transform.rejected.system.instruction.after.tool.definition/server"})
+    public void shouldTransformRejectedSystemInstructionAfterToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/anthropic.transform.system.instruction.last/client",
         "${app}/anthropic.transform.system.instruction.last/server"})
     public void shouldAnthropicTransformSystemInstructionLast() throws Exception

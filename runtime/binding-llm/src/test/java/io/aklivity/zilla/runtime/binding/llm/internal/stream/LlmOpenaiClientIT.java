@@ -1203,6 +1203,28 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
+        "${app}/transform.system.instruction.last.100k/client",
+        "${net}/openai.transform.system.instruction.last.100k/server"})
+    public void shouldTransformSystemInstructionLast100kAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
+        "${app}/transform.rejected.system.instruction.after.tool.definition/client",
+        "${net}/openai.transform.rejected.system.instruction.after.tool.definition/server"})
+    public void shouldRejectSystemInstructionAfterToolDefinitionAsOpenaiNamingSectionAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
         "${app}/transform.assistant.text/client",
         "${net}/openai.transform.assistant.text/server"})
     public void shouldTransformAssistantTextAsOpenai() throws Exception

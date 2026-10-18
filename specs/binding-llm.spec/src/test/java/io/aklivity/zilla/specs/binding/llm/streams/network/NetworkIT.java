@@ -2585,6 +2585,24 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.transform.system.instruction.last.100k/client",
+        "${net}/openai.transform.system.instruction.last.100k/server"})
+    public void shouldOpenaiTransformSystemInstructionLast100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.rejected.system.instruction.after.tool.definition/client",
+        "${net}/openai.transform.rejected.system.instruction.after.tool.definition/server"})
+    public void shouldOpenaiTransformRejectedSystemInstructionAfterToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/anthropic.transform.system.instruction/client",
         "${net}/anthropic.transform.system.instruction/server"})
     public void shouldAnthropicTransformSystemInstruction() throws Exception
