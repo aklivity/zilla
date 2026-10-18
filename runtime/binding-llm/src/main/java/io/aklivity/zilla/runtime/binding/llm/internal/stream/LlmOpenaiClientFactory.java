@@ -2748,6 +2748,11 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             final CharSequence chars = parser.getStringView();
             final int length = chars.length();
 
+            if (http.framing && length == 0 && !deferred && !sectionOpen)
+            {
+                return false;
+            }
+
             if (scanChoice != choiceIndex)
             {
                 scanner.begin();
@@ -3175,9 +3180,9 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 }
                 else if (length > 0 || fin && (dialectOpen || dialectSlot != NO_SLOT))
                 {
-                    if (length > 0 && replay && sectionOpen && sectionType == LlmSectionType.TOOL_CALL)
+                    if (length > 0 && replay && http.framing && sectionOpen)
                     {
-                        closeSection();
+                        closeText();
                     }
 
                     emitHeldDialect();

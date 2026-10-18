@@ -1483,4 +1483,92 @@ public class LlmAnthropicClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"target \"anthropic\""})
+    @Specification({
+        "${app}/transform.response.tool.call/client",
+        "${net}/anthropic.transform.response.tool.call/server"})
+    public void shouldTransformResponseToolCallAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"target \"anthropic\""})
+    @Specification({
+        "${app}/transform.response.tool.call/client",
+        "${net}/anthropic.transform.response.tool.call.sse/server"})
+    public void shouldTransformResponseToolCallSseAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"target \"anthropic\""})
+    @Specification({
+        "${app}/transform.response.tool.calls/client",
+        "${net}/anthropic.transform.response.tool.calls/server"})
+    public void shouldTransformResponseToolCallsAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"target \"anthropic\""})
+    @Specification({
+        "${app}/transform.response.tool.calls/client",
+        "${net}/anthropic.transform.response.tool.calls.sse/server"})
+    public void shouldTransformResponseToolCallsSseAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"target \"anthropic\""})
+    @Specification({
+        "${app}/transform.response.text.error/client",
+        "${net}/anthropic.transform.response.text.error.sse/server"})
+    public void shouldTransformResponseTextErrorSseAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"target \"anthropic\""})
+    @Specification({
+        "${app}/transform.response.tool.call.error/client",
+        "${net}/anthropic.transform.response.tool.call.error.sse/server"})
+    public void shouldTransformResponseToolCallErrorSseAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"target \"anthropic\""})
+    @Specification({
+        "${app}/transform.response.tool.call.empty/client",
+        "${net}/anthropic.transform.response.tool.call.empty/server"})
+    public void shouldTransformResponseToolCallEmptyAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"target \"anthropic\""})
+    @Specification({
+        "${app}/transform.response.tool.call.empty/client",
+        "${net}/anthropic.transform.response.tool.call.empty.sse/server"})
+    public void shouldTransformResponseToolCallEmptySseAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
 }

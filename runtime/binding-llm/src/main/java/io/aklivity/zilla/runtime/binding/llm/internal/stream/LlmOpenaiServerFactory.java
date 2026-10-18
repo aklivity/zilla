@@ -4884,9 +4884,18 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             eventEnd(generator.length());
         }
 
+        private static boolean regenerated(
+            LlmSectionType type)
+        {
+            return type == LlmSectionType.TOOL_CALL ||
+                type == LlmSectionType.ASSISTANT_TEXT ||
+                type == LlmSectionType.ASSISTANT_REFUSAL ||
+                type == LlmSectionType.ASSISTANT_REASONING;
+        }
+
         private boolean replaying()
         {
-            return replyDialect && !(server.streaming && replyType == LlmSectionType.TOOL_CALL);
+            return replyDialect && !(server.streaming && regenerated(replyType));
         }
 
         private int encodeLength()

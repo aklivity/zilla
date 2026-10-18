@@ -3131,4 +3131,49 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/transform.response.tool.call/client",
+        "${app}/transform.response.tool.call/server"})
+    public void shouldTransformResponseToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.response.tool.calls/client",
+        "${app}/transform.response.tool.calls/server"})
+    public void shouldTransformResponseToolCalls() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.response.text.error/client",
+        "${app}/transform.response.text.error/server"})
+    public void shouldTransformResponseTextError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.response.tool.call.error/client",
+        "${app}/transform.response.tool.call.error/server"})
+    public void shouldTransformResponseToolCallError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.response.tool.call.empty/client",
+        "${app}/transform.response.tool.call.empty/server"})
+    public void shouldTransformResponseToolCallEmpty() throws Exception
+    {
+        k3po.finish();
+    }
 }

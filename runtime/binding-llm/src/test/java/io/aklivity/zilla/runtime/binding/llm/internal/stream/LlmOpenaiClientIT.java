@@ -1537,4 +1537,147 @@ public class LlmOpenaiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
+        "${app}/transform.response.tool.call/client",
+        "${net}/openai.transform.response.tool.call/server"})
+    public void shouldTransformResponseToolCallAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
+        "${app}/transform.response.tool.call/client",
+        "${net}/openai.transform.response.tool.call.sse/server"})
+    public void shouldTransformResponseToolCallSseAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
+        "${app}/transform.response.tool.calls/client",
+        "${net}/openai.transform.response.tool.calls/server"})
+    public void shouldTransformResponseToolCallsAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
+        "${app}/transform.response.tool.calls/client",
+        "${net}/openai.transform.response.tool.calls.sse/server"})
+    public void shouldTransformResponseToolCallsSseAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
+        "${app}/transform.response.tool.calls/client",
+        "${net}/openai.transform.response.tool.calls.reused.index.sse/server"})
+    public void shouldTransformResponseToolCallsReusedIndexSseAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
+        "${app}/transform.response.tool.calls/client",
+        "${net}/openai.transform.response.tool.calls.whole.sse/server"})
+    public void shouldTransformResponseToolCallsWholeSseAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
+        "${app}/transform.response.tool.calls/client",
+        "${net}/openai.transform.response.tool.calls.omitted.sse/server"})
+    public void shouldTransformResponseToolCallsOmittedSseAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
+        "${app}/transform.response.tool.calls/client",
+        "${net}/openai.transform.response.tool.calls.interleaved.sse/server"})
+    public void shouldTransformResponseToolCallsInterleavedSseAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
+        "${app}/transform.response.text.error/client",
+        "${net}/openai.transform.response.text.error.sse/server"})
+    public void shouldTransformResponseTextErrorSseAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
+        "${app}/transform.response.tool.call.error/client",
+        "${net}/openai.transform.response.tool.call.error.sse/server"})
+    public void shouldTransformResponseToolCallErrorSseAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
+        "${app}/transform.response.tool.call.empty/client",
+        "${net}/openai.transform.response.tool.call.empty/server"})
+    public void shouldTransformResponseToolCallEmptyAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
+        "${app}/transform.response.tool.call.empty/client",
+        "${net}/openai.transform.response.tool.call.empty.sse/server"})
+    public void shouldTransformResponseToolCallEmptySseAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
+        "${app}/transform.response.usage/client",
+        "${net}/openai.transform.response.usage.sse/server"})
+    public void shouldTransformResponseUsageSseAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
 }

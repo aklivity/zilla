@@ -164,6 +164,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final String BLOCK_TOOL_USE = "tool_use";
     private static final String BLOCK_SERVER_TOOL_USE = "server_tool_use";
     private static final String BLOCK_OTHER = "other";
+    private static final String BLOCK_TEXT = "text";
     private static final String BLOCK_THINKING = "thinking";
     private static final String BLOCK_REDACTED_THINKING = "redacted_thinking";
     private static final String KEY_STOP_REASON = "stop_reason";
@@ -461,6 +462,13 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         return type == LlmSectionType.ASSISTANT_REASONING || type == LlmSectionType.SYSTEM_INSTRUCTION ||
             type == LlmSectionType.USER_TEXT || type == LlmSectionType.ASSISTANT_TEXT ||
             type == LlmSectionType.ASSISTANT_REFUSAL || type == LlmSectionType.TOOL_RESULT;
+    }
+
+    private static boolean streamedBlock(
+        String blockType)
+    {
+        return BLOCK_TOOL_USE.equals(blockType) || BLOCK_TEXT.equals(blockType) ||
+            BLOCK_THINKING.equals(blockType) || BLOCK_REDACTED_THINKING.equals(blockType);
     }
 
     private static boolean textual(
@@ -1685,7 +1693,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                     documentType = eventType(parser.getStringView());
                     decoder = decodeRoot;
 
-                    if (TYPE_PING.equals(documentType) && dialectActive && sectionOpen && sectionType == LlmSectionType.TOOL_CALL)
+                    if (TYPE_PING.equals(documentType) && dialectActive && sectionOpen)
                     {
                         dropDialect();
                     }
@@ -1693,12 +1701,18 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                     if (TYPE_CONTENT_BLOCK_STOP.equals(documentType) || TYPE_MESSAGE_DELTA.equals(documentType) ||
                         TYPE_MESSAGE_STOP.equals(documentType))
                     {
-                        if (dialectActive && sectionOpen && sectionType == LlmSectionType.TOOL_CALL)
+                        if (dialectActive && (sectionOpen && sectionType == LlmSectionType.TOOL_CALL ||
+                            http.framing && TYPE_CONTENT_BLOCK_STOP.equals(documentType) && streamedBlock(blockType)))
                         {
                             dropDialect();
                         }
 
                         closeSection();
+                    }
+
+                    if (TYPE_CONTENT_BLOCK_STOP.equals(documentType))
+                    {
+                        blockType = null;
                     }
                 }
                 else
@@ -1987,6 +2001,10 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
                         beginToolCall();
                     }
+                    else if (http.framing && dialectActive && streamedBlock(blockType))
+                    {
+                        dropDialect();
+                    }
 
                     decoder = decodeRoot;
                 }
@@ -2041,7 +2059,9 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                     final CharSequence type = parser.getStringView();
 
                     blockType = BLOCK_TOOL_USE.contentEquals(type) ? BLOCK_TOOL_USE
-                        : BLOCK_REDACTED_THINKING.contentEquals(type) ? BLOCK_REDACTED_THINKING : BLOCK_OTHER;
+                        : BLOCK_REDACTED_THINKING.contentEquals(type) ? BLOCK_REDACTED_THINKING
+                        : BLOCK_TEXT.contentEquals(type) ? BLOCK_TEXT
+                        : BLOCK_THINKING.contentEquals(type) ? BLOCK_THINKING : BLOCK_OTHER;
 
                     if (blockThen == decodeContentItem &&
                         (BLOCK_THINKING.contentEquals(type) || BLOCK_REDACTED_THINKING.contentEquals(type)))
@@ -3000,7 +3020,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 }
                 else if (length > 0 || fin && (dialectOpen || dialectSlot != NO_SLOT))
                 {
-                    if (length > 0 && replay && sectionOpen && sectionType == LlmSectionType.TOOL_CALL)
+                    if (length > 0 && replay && http.framing && sectionOpen)
                     {
                         closeSection();
                     }

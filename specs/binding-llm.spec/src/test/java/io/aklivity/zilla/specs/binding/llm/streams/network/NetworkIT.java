@@ -3275,4 +3275,193 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.tool.call/client",
+        "${net}/openai.transform.response.tool.call/server"})
+    public void shouldOpenaiTransformResponseToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.tool.call.sse/client",
+        "${net}/openai.transform.response.tool.call.sse/server"})
+    public void shouldOpenaiTransformResponseToolCallSse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.tool.call/client",
+        "${net}/anthropic.transform.response.tool.call/server"})
+    public void shouldAnthropicTransformResponseToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.tool.call.sse/client",
+        "${net}/anthropic.transform.response.tool.call.sse/server"})
+    public void shouldAnthropicTransformResponseToolCallSse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.tool.calls/client",
+        "${net}/openai.transform.response.tool.calls/server"})
+    public void shouldOpenaiTransformResponseToolCalls() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.tool.calls.sse/client",
+        "${net}/openai.transform.response.tool.calls.sse/server"})
+    public void shouldOpenaiTransformResponseToolCallsSse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.tool.calls/client",
+        "${net}/anthropic.transform.response.tool.calls/server"})
+    public void shouldAnthropicTransformResponseToolCalls() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.tool.calls.sse/client",
+        "${net}/anthropic.transform.response.tool.calls.sse/server"})
+    public void shouldAnthropicTransformResponseToolCallsSse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.tool.calls.reused.index.sse/client",
+        "${net}/openai.transform.response.tool.calls.reused.index.sse/server"})
+    public void shouldOpenaiTransformResponseToolCallsReusedIndexSse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.tool.calls.whole.sse/client",
+        "${net}/openai.transform.response.tool.calls.whole.sse/server"})
+    public void shouldOpenaiTransformResponseToolCallsWholeSse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.tool.calls.omitted.sse/client",
+        "${net}/openai.transform.response.tool.calls.omitted.sse/server"})
+    public void shouldOpenaiTransformResponseToolCallsOmittedSse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.tool.calls.interleaved.sse/client",
+        "${net}/openai.transform.response.tool.calls.interleaved.sse/server"})
+    public void shouldOpenaiTransformResponseToolCallsInterleavedSse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.text.error.sse/client",
+        "${net}/openai.transform.response.text.error.sse/server"})
+    public void shouldOpenaiTransformResponseTextErrorSse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.text.error.sse/client",
+        "${net}/anthropic.transform.response.text.error.sse/server"})
+    public void shouldAnthropicTransformResponseTextErrorSse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.tool.call.error.sse/client",
+        "${net}/openai.transform.response.tool.call.error.sse/server"})
+    public void shouldOpenaiTransformResponseToolCallErrorSse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.tool.call.error.sse/client",
+        "${net}/anthropic.transform.response.tool.call.error.sse/server"})
+    public void shouldAnthropicTransformResponseToolCallErrorSse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.tool.call.empty/client",
+        "${net}/openai.transform.response.tool.call.empty/server"})
+    public void shouldOpenaiTransformResponseToolCallEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.tool.call.empty.sse/client",
+        "${net}/openai.transform.response.tool.call.empty.sse/server"})
+    public void shouldOpenaiTransformResponseToolCallEmptySse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.tool.call.empty/client",
+        "${net}/anthropic.transform.response.tool.call.empty/server"})
+    public void shouldAnthropicTransformResponseToolCallEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.tool.call.empty.sse/client",
+        "${net}/anthropic.transform.response.tool.call.empty.sse/server"})
+    public void shouldAnthropicTransformResponseToolCallEmptySse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.usage.sse/client",
+        "${net}/openai.transform.response.usage.sse/server"})
+    public void shouldOpenaiTransformResponseUsageSse() throws Exception
+    {
+        k3po.finish();
+    }
 }
