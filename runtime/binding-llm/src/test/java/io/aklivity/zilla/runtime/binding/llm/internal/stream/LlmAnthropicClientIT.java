@@ -1430,4 +1430,14 @@ public class LlmAnthropicClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.assistant.tool.call.streaming/client",
+        "${net}/anthropic.section.assistant.tool.call.streaming.split/server"})
+    public void shouldEncodeAnthropicSectionAssistantToolCallStreamingSplit() throws Exception
+    {
+        k3po.finish();
+    }
 }

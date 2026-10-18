@@ -3176,4 +3176,22 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.assistant.tool.call.streaming.split/client",
+        "${net}/openai.section.assistant.tool.call.streaming.split/server"})
+    public void shouldOpenaiSectionAssistantToolCallStreamingSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.streaming.split/client",
+        "${net}/anthropic.section.assistant.tool.call.streaming.split/server"})
+    public void shouldAnthropicSectionAssistantToolCallStreamingSplit() throws Exception
+    {
+        k3po.finish();
+    }
 }

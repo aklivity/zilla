@@ -1473,4 +1473,14 @@ public class LlmOpenaiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.assistant.tool.call.streaming/client",
+        "${net}/openai.section.assistant.tool.call.streaming.split/server"})
+    public void shouldEncodeOpenaiSectionAssistantToolCallStreamingSplit() throws Exception
+    {
+        k3po.finish();
+    }
 }
