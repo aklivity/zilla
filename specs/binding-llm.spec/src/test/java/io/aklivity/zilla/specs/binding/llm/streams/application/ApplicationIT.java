@@ -2495,6 +2495,24 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/transform.system.instruction.last/client",
+        "${app}/transform.system.instruction.last/server"})
+    public void shouldTransformSystemInstructionLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.transform.system.instruction.last/client",
+        "${app}/anthropic.transform.system.instruction.last/server"})
+    public void shouldAnthropicTransformSystemInstructionLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/transform.assistant.text/client",
         "${app}/transform.assistant.text/server"})
     public void shouldTransformAssistantText() throws Exception
