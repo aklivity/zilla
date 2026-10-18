@@ -8,6 +8,7 @@
 
 - Engine config watcher stops reloading after a no-op change \(WatchKey never reset\) [\#2624](https://github.com/aklivity/zilla/issues/2624) ([akrambek](https://github.com/akrambek))
 - mcp-kafka: consume data frames use INIT and FIN flag values that are swapped relative to the stream frame flags [\#2649](https://github.com/aklivity/zilla/issues/2649) ([jfallows](https://github.com/jfallows))
+- binding-llm: openai client rejects a system instruction that follows the messages [\#2739](https://github.com/aklivity/zilla/issues/2739) ([jfallows](https://github.com/jfallows))
 
 **Closed issues:**
 
@@ -161,6 +162,7 @@
 - fix\(binding-llm\): gate same-dialect response decoding on reply credit per event [\#2732](https://github.com/aklivity/zilla/pull/2732) ([jfallows](https://github.com/jfallows))
 - fix\(binding-llm\): authorize before routing, detect on media type, preserve upstream error code and type [\#2733](https://github.com/aklivity/zilla/pull/2733) ([jfallows](https://github.com/jfallows))
 - feat\(binding-llm\): canonical payloads for tool, server tool and media sections [\#2738](https://github.com/aklivity/zilla/pull/2738) ([jfallows](https://github.com/jfallows))
+- fix\(binding-llm\): write a system instruction that follows the messages in the openai client [\#2740](https://github.com/aklivity/zilla/pull/2740) ([jfallows](https://github.com/jfallows))
 
 ## [2.4.7](https://github.com/aklivity/zilla/tree/2.4.7) (2026-09-30)
 
