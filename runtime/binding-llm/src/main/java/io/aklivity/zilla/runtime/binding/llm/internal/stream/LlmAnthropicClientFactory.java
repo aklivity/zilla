@@ -3543,6 +3543,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
                     app.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
                     cleanupEncodeSlot();
+                    cleanupDialectSlot();
                 }
             }
         }
@@ -3576,6 +3577,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
                 app.accept(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
                 cleanupEncodeSlot();
+                cleanupDialectSlot();
             }
         }
 

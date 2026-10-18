@@ -3113,4 +3113,22 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.assistant.tool.call.streaming.error/client",
+        "${app}/openai.section.assistant.tool.call.streaming.error/server"})
+    public void shouldOpenaiSectionAssistantToolCallStreamingError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.assistant.tool.call.streaming.error/client",
+        "${app}/anthropic.section.assistant.tool.call.streaming.error/server"})
+    public void shouldAnthropicSectionAssistantToolCallStreamingError() throws Exception
+    {
+        k3po.finish();
+    }
 }

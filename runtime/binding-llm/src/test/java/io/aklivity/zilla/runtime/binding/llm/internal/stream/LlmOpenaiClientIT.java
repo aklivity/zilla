@@ -1483,4 +1483,14 @@ public class LlmOpenaiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.assistant.tool.call.streaming.error/client",
+        "${net}/openai.section.assistant.tool.call.streaming.error/server"})
+    public void shouldAbortOpenaiSectionAssistantToolCallStreamingError() throws Exception
+    {
+        k3po.finish();
+    }
 }

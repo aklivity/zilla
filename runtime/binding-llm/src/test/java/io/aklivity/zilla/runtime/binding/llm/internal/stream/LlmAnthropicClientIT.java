@@ -1440,4 +1440,14 @@ public class LlmAnthropicClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.assistant.tool.call.streaming.error/client",
+        "${net}/anthropic.section.assistant.tool.call.streaming.error/server"})
+    public void shouldAbortAnthropicSectionAssistantToolCallStreamingError() throws Exception
+    {
+        k3po.finish();
+    }
 }
