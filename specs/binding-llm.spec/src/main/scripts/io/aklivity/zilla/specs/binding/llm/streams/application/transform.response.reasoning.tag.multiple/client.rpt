@@ -13,30 +13,6 @@
 # specific language governing permissions and limitations under the License.
 #
 
-# Canonical response contract (dialect-neutral).
-#
-# The response begin names the dialect that served the response (dialect), the served model (model) and the response
-# identifier the upstream reported (id). The response is always sections, with no content type, whether or not the serving
-# dialect is the request's own dialect. Detail a section cannot express is left to dialect extensions.
-#
-# A section is a run of data frames. The first has the init flag and the data extension (type, message and, for a tool call,
-# the call id as extension and the tool name as attributes); the last has the fin flag, possibly with an empty payload.
-# Fragment boundaries within a section are not significant. Sections are never interleaved.
-#
-# An assistant-text section may hold reasoning that a provider inlines in its text, delimited as <name>...</name>. The first
-# data frame that contains the opening delimiter carries the data extension with the reasoning-tag attribute set to the
-# name, such as reasoning. The section stays one contiguous run: the delimiters and the reasoning stay in the payload bytes
-# unchanged, so a consumer that reads the frames by flags sees the whole text. A consumer that converts or drops reasoning
-# for a client of another dialect reads the section from the frame with the attribute through its fin, for any number of
-# delimited blocks, and a block that is still open at the fin ends there. A frame before it holds no delimiter, and a section
-# with no such frame is plain text. A response to a client of the same dialect replays the payload bytes as they are.
-#
-# Section types: assistant-text, assistant-reasoning, assistant-refusal (utf-8 text) and tool-call (the arguments).
-# The message is the index of the assistant message, 0 for the first.
-#
-# The end carries the usage and the finish reason (stop, length, tool-call or content-filter).
-# A failure before the begin is a reset; a failure after it is an abort. Both carry the error.
-
 property source "source"
 property target "target"
 property model "model"
@@ -63,7 +39,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-write "Hello"
+write "{\"text\":\"Hello\"}"
 write flush
 
 write advise zilla:flush
@@ -79,9 +55,35 @@ read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
                           .message(0)
+                          .build()}
+read "{\"text\":\"A\"}"
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("ASSISTANT_REASONING")
+                          .message(0)
                           .attribute("reasoning-tag", "reasoning")
                           .build()}
-read "A<reasoning>x</reasoning>B<reasoning>y</reasoning>C"
+read "{\"text\":\"x\"}"
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("ASSISTANT_TEXT")
+                          .message(0)
+                          .build()}
+read "{\"text\":\"B\"}"
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("ASSISTANT_REASONING")
+                          .message(0)
+                          .attribute("reasoning-tag", "reasoning")
+                          .build()}
+read "{\"text\":\"y\"}"
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("ASSISTANT_TEXT")
+                          .message(0)
+                          .build()}
+read "{\"text\":\"C\"}"
+
 read zilla:end.ext ${llm:matchEndEx()
                             .typeId(zilla:id("llm"))
                             .inputTokens(25)

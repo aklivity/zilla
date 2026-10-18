@@ -300,6 +300,37 @@ public class LlmOpenaiClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
+        "${app}/openai.section.user.text/client",
+        "${net}/openai.section.user.text/server"})
+    @ScriptProperty({"model \"gpt-4o\""})
+    public void shouldEncodeOpenaiSectionUserTextModelOverride() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.user.text.empty/client",
+        "${net}/openai.section.user.text.empty/server"})
+    public void shouldEncodeOpenaiSectionUserTextEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.assistant.text.empty/client",
+        "${net}/openai.section.assistant.text.empty/server"})
+    public void shouldEncodeOpenaiSectionAssistantTextEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
         "${app}/openai.section.user.image/client",
         "${net}/openai.section.user.image/server"})
     public void shouldEncodeOpenaiSectionUserImage() throws Exception
@@ -353,6 +384,26 @@ public class LlmOpenaiClientIT
         "${app}/openai.section.assistant.text/client",
         "${net}/openai.section.assistant.text/server"})
     public void shouldEncodeOpenaiSectionAssistantText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.assistant.text.annotations/client",
+        "${net}/openai.section.assistant.text.annotations/server"})
+    public void shouldEncodeOpenaiSectionAssistantTextAnnotations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.assistant.reasoning.history/client",
+        "${net}/openai.section.assistant.reasoning.history/server"})
+    public void shouldEncodeOpenaiSectionAssistantReasoningHistory() throws Exception
     {
         k3po.finish();
     }
@@ -481,9 +532,9 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/anthropic.transform.user.image/client",
+        "${app}/transform.user.image/client",
         "${net}/openai.transform.user.image/server"})
-    public void shouldTransformAnthropicSectionUserImageAsOpenai() throws Exception
+    public void shouldTransformUserImageAsOpenai() throws Exception
     {
         k3po.finish();
     }
@@ -492,9 +543,9 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/anthropic.transform.assistant.tool.call/client",
+        "${app}/transform.assistant.tool.call/client",
         "${net}/openai.transform.assistant.tool.call/server"})
-    public void shouldTransformAnthropicSectionAssistantToolCallAsOpenai() throws Exception
+    public void shouldTransformAssistantToolCallAsOpenai() throws Exception
     {
         k3po.finish();
     }
@@ -503,9 +554,9 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/anthropic.transform.tool.definition/client",
+        "${app}/transform.tool.definition/client",
         "${net}/openai.transform.tool.definition/server"})
-    public void shouldTransformAnthropicSectionToolDefinitionAsOpenai() throws Exception
+    public void shouldTransformToolDefinitionAsOpenai() throws Exception
     {
         k3po.finish();
     }
@@ -514,9 +565,20 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/anthropic.transform.mixed.content/client",
+        "${app}/anthropic.transform.tool.definition.cache.control/client",
+        "${net}/openai.transform.tool.definition/server"})
+    public void shouldDropAnthropicToolDefinitionCacheControlAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
+        "${app}/transform.mixed.content/client",
         "${net}/openai.transform.mixed.content/server"})
-    public void shouldTransformAnthropicSectionMixedContentAsOpenai() throws Exception
+    public void shouldTransformMixedContentAsOpenai() throws Exception
     {
         k3po.finish();
     }
@@ -538,7 +600,18 @@ public class LlmOpenaiClientIT
     @Specification({
         "${app}/anthropic.transform.assistant.text.citations/client",
         "${net}/openai.transform.assistant.text.citations/server"})
-    public void shouldTransformAnthropicSectionAssistantTextCitationsAsOpenai() throws Exception
+    public void shouldTransformAssistantTextCitationsAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
+        "${app}/anthropic.transform.assistant.text.citations.skipped/client",
+        "${net}/openai.transform.assistant.text.citations.skipped/server"})
+    public void shouldTransformAssistantTextCitationsAsOpenaiSkipped() throws Exception
     {
         k3po.finish();
     }
@@ -597,9 +670,9 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/anthropic.transform.user.image.inline/client",
+        "${app}/transform.user.image.inline/client",
         "${net}/openai.transform.user.image.inline/server"})
-    public void shouldTransformAnthropicSectionUserImageInlineAsOpenai() throws Exception
+    public void shouldTransformUserImageInlineAsOpenai() throws Exception
     {
         k3po.finish();
     }
@@ -608,9 +681,9 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/anthropic.transform.user.document.inline/client",
+        "${app}/transform.user.document.inline/client",
         "${net}/openai.transform.user.document.inline/server"})
-    public void shouldTransformAnthropicSectionUserDocumentInlineAsOpenai() throws Exception
+    public void shouldTransformUserDocumentInlineAsOpenai() throws Exception
     {
         k3po.finish();
     }
@@ -619,9 +692,9 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/anthropic.transform.user.document.reference/client",
+        "${app}/transform.user.document.reference/client",
         "${net}/openai.transform.user.document.reference/server"})
-    public void shouldTransformAnthropicSectionUserDocumentReferenceAsOpenai() throws Exception
+    public void shouldTransformUserDocumentReferenceAsOpenai() throws Exception
     {
         k3po.finish();
     }
@@ -630,9 +703,9 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/anthropic.transform.user.image.10k/client",
+        "${app}/transform.user.image.10k/client",
         "${net}/openai.transform.user.image.10k/server"})
-    public void shouldTransformAnthropicSectionUserImage10kAsOpenai() throws Exception
+    public void shouldTransformUserImage10kAsOpenai() throws Exception
     {
         k3po.finish();
     }
@@ -661,9 +734,9 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/anthropic.transform.user.image.url.10k/client",
+        "${app}/transform.user.image.url.10k/client",
         "${net}/openai.transform.user.image.url.10k/server"})
-    public void shouldTransformAnthropicSectionUserImageUrl10kAsOpenai() throws Exception
+    public void shouldTransformUserImageUrl10kAsOpenai() throws Exception
     {
         k3po.finish();
     }
@@ -672,9 +745,9 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/anthropic.transform.user.image.url.100k/client",
+        "${app}/transform.user.image.url.100k/client",
         "${net}/openai.transform.user.image.url.100k/server"})
-    public void shouldTransformAnthropicSectionUserImageUrl100kAsOpenai() throws Exception
+    public void shouldTransformUserImageUrl100kAsOpenai() throws Exception
     {
         k3po.finish();
     }
@@ -725,6 +798,17 @@ public class LlmOpenaiClientIT
         "${app}/openai.rejected.streaming/client",
         "${net}/openai.rejected.streaming/server"})
     public void shouldEncodeOpenaiRejectedStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.rejected.streaming/client",
+        "${net}/openai.rejected.streaming/server"})
+    @ScriptProperty({"model \"gpt-4o\""})
+    public void shouldEncodeOpenaiRejectedStreamingModelOverride() throws Exception
     {
         k3po.finish();
     }
@@ -843,9 +927,9 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/anthropic.transform.assistant.tool.call.100k/client",
+        "${app}/transform.assistant.tool.call.100k/client",
         "${net}/openai.transform.assistant.tool.call.100k/server"})
-    public void shouldTransformAnthropicSectionAssistantToolCall100kAsOpenai() throws Exception
+    public void shouldTransformAssistantToolCall100kAsOpenai() throws Exception
     {
         k3po.finish();
     }
@@ -854,9 +938,9 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/anthropic.transform.assistant.tool.call.10k/client",
+        "${app}/transform.assistant.tool.call.10k/client",
         "${net}/openai.transform.assistant.tool.call.10k/server"})
-    public void shouldTransformAnthropicSectionAssistantToolCall10kAsOpenai() throws Exception
+    public void shouldTransformAssistantToolCall10kAsOpenai() throws Exception
     {
         k3po.finish();
     }
@@ -865,9 +949,9 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/anthropic.transform.assistant.tool.call.escaped/client",
+        "${app}/transform.assistant.tool.call.escaped/client",
         "${net}/openai.transform.assistant.tool.call.escaped/server"})
-    public void shouldTransformAnthropicSectionAssistantToolCallEscapedAsOpenai() throws Exception
+    public void shouldTransformAssistantToolCallEscapedAsOpenai() throws Exception
     {
         k3po.finish();
     }
@@ -876,9 +960,9 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/anthropic.transform.assistant.tool.call.id.last/client",
+        "${app}/transform.assistant.tool.call.id.last/client",
         "${net}/openai.transform.assistant.tool.call.id.last/server"})
-    public void shouldTransformAnthropicSectionAssistantToolCallIdLastAsOpenai() throws Exception
+    public void shouldTransformAssistantToolCallIdLastAsOpenai() throws Exception
     {
         k3po.finish();
     }
@@ -887,9 +971,9 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/anthropic.transform.assistant.tool.call.name.last/client",
+        "${app}/transform.assistant.tool.call.name.last/client",
         "${net}/openai.transform.assistant.tool.call.name.last/server"})
-    public void shouldTransformAnthropicSectionAssistantToolCallNameLastAsOpenai() throws Exception
+    public void shouldTransformAssistantToolCallNameLastAsOpenai() throws Exception
     {
         k3po.finish();
     }
@@ -898,9 +982,9 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/anthropic.transform.rejected.tool.call.name/client",
+        "${app}/transform.rejected.tool.call.name/client",
         "${net}/openai.transform.rejected.tool.call.name/server"})
-    public void shouldRejectAnthropicSectionToolCallNameAsOpenai() throws Exception
+    public void shouldRejectToolCallNameAsOpenai() throws Exception
     {
         k3po.finish();
     }
@@ -920,9 +1004,9 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/anthropic.transform.tool.definition.100k/client",
+        "${app}/transform.tool.definition.100k/client",
         "${net}/openai.transform.tool.definition.100k/server"})
-    public void shouldTransformAnthropicSectionToolDefinition100kAsOpenai() throws Exception
+    public void shouldTransformToolDefinition100kAsOpenai() throws Exception
     {
         k3po.finish();
     }
@@ -931,9 +1015,9 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/anthropic.transform.tool.definition.10k/client",
+        "${app}/transform.tool.definition.10k/client",
         "${net}/openai.transform.tool.definition.10k/server"})
-    public void shouldTransformAnthropicSectionToolDefinition10kAsOpenai() throws Exception
+    public void shouldTransformToolDefinition10kAsOpenai() throws Exception
     {
         k3po.finish();
     }
@@ -942,9 +1026,9 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/anthropic.transform.tool.definition.name.last/client",
+        "${app}/transform.tool.definition.name.last/client",
         "${net}/openai.transform.tool.definition.name.last/server"})
-    public void shouldTransformAnthropicSectionToolDefinitionNameLastAsOpenai() throws Exception
+    public void shouldTransformToolDefinitionNameLastAsOpenai() throws Exception
     {
         k3po.finish();
     }
@@ -953,9 +1037,9 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/anthropic.transform.tool.definition.parameters.100k/client",
+        "${app}/transform.tool.definition.parameters.100k/client",
         "${net}/openai.transform.tool.definition.parameters.100k/server"})
-    public void shouldTransformAnthropicSectionToolDefinitionParameters100kAsOpenai() throws Exception
+    public void shouldTransformToolDefinitionParameters100kAsOpenai() throws Exception
     {
         k3po.finish();
     }
@@ -964,9 +1048,9 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/anthropic.transform.tool.definition.parameters.10k/client",
+        "${app}/transform.tool.definition.parameters.10k/client",
         "${net}/openai.transform.tool.definition.parameters.10k/server"})
-    public void shouldTransformAnthropicSectionToolDefinitionParameters10kAsOpenai() throws Exception
+    public void shouldTransformToolDefinitionParameters10kAsOpenai() throws Exception
     {
         k3po.finish();
     }
@@ -1122,6 +1206,46 @@ public class LlmOpenaiClientIT
         "${app}/transform.assistant.reasoning/client",
         "${net}/openai.transform.assistant.reasoning/server"})
     public void shouldTransformAssistantReasoningAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.assistant.reasoning.escaped/client",
+        "${net}/openai.section.assistant.reasoning.escaped/server"})
+    public void shouldEncodeOpenaiSectionAssistantReasoningEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.assistant.reasoning.streaming/client",
+        "${net}/openai.section.assistant.reasoning.streaming/server"})
+    public void shouldStreamOpenaiSectionAssistantReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.assistant.reasoning.streaming.delta/client",
+        "${net}/openai.section.assistant.reasoning.streaming.delta/server"})
+    public void shouldStreamOpenaiSectionAssistantReasoningDelta() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.assistant.text.reasoning/client",
+        "${net}/openai.section.assistant.text.reasoning/server"})
+    public void shouldEncodeOpenaiSectionAssistantTextReasoning() throws Exception
     {
         k3po.finish();
     }

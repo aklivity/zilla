@@ -29,8 +29,6 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 final class LlmSectionPipeline
 {
-    private static final int MIN_WINDOW = 64;
-
     @FunctionalInterface
     interface Output
     {
@@ -49,6 +47,7 @@ final class LlmSectionPipeline
     private byte[] window;
     private int tailLength;
     private boolean completed;
+    private boolean closed;
 
     LlmSectionPipeline(
         JsonTransform stage,
@@ -71,6 +70,7 @@ final class LlmSectionPipeline
         pipeline.reset();
         tailLength = 0;
         completed = false;
+        closed = false;
     }
 
     boolean feed(
@@ -84,12 +84,11 @@ final class LlmSectionPipeline
 
         if (completed)
         {
-            return true;
-        }
-
-        if (!last && windowLength < MIN_WINDOW)
-        {
-            retain(buffer, offset, length);
+            if (last && !closed)
+            {
+                output.put(outputBuffer, 0, 0, true);
+                closed = true;
+            }
 
             return true;
         }
@@ -117,9 +116,12 @@ final class LlmSectionPipeline
                 outputBuffer, 0, outputBuffer.capacity());
             status = result.status();
 
-            if (result.produced() > 0)
+            final boolean done = status == Status.COMPLETED && last;
+
+            if (result.produced() > 0 || done)
             {
-                output.put(outputBuffer, 0, result.produced(), status == Status.COMPLETED);
+                output.put(outputBuffer, 0, result.produced(), done);
+                closed |= done;
             }
 
             progress += result.consumed();
@@ -143,16 +145,6 @@ final class LlmSectionPipeline
         }
 
         return status != Status.REJECTED;
-    }
-
-    private void retain(
-        DirectBufferEx buffer,
-        int offset,
-        int length)
-    {
-        reserve(tailLength + length);
-        buffer.getBytes(offset, window, tailLength, length);
-        tailLength += length;
     }
 
     private void reserve(

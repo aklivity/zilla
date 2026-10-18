@@ -27,31 +27,39 @@ final class LlmAttributeProbeRunner
     static final int WHOLE = 0;
 
     private static final int PART_PREFIX_EVENTS = 3;
+    private static final int OBJECT_PREFIX_EVENTS = 2;
 
     static LlmAttributeProbe.Status run(
         LlmAttributeProbe probe,
         LlmSectionType type,
-        String blockType,
         String json,
         int window)
     {
-        return run(probe, type, blockType, json, window, false);
+        return run(probe, type, json, window, false, PART_PREFIX_EVENTS);
+    }
+
+    static LlmAttributeProbe.Status runObject(
+        LlmAttributeProbe probe,
+        LlmSectionType type,
+        String json,
+        int window,
+        boolean toEnd)
+    {
+        return run(probe, type, json, window, toEnd, OBJECT_PREFIX_EVENTS);
     }
 
     static LlmAttributeProbe.Status runToEnd(
         LlmAttributeProbe probe,
         LlmSectionType type,
-        String blockType,
         String json,
         int window)
     {
-        return run(probe, type, blockType, json, window, true);
+        return run(probe, type, json, window, true, PART_PREFIX_EVENTS);
     }
 
     static LlmAttributeProbe.Status runResumed(
         LlmAttributeProbe probe,
         LlmSectionType type,
-        String blockType,
         String json,
         int window)
     {
@@ -66,7 +74,7 @@ final class LlmAttributeProbeRunner
             parser.nextEvent();
         }
 
-        probe.begin(type, blockType);
+        probe.begin(type);
 
         LlmAttributeProbe.Status status = drain(probe, parser, false);
 
@@ -82,10 +90,10 @@ final class LlmAttributeProbeRunner
     private static LlmAttributeProbe.Status run(
         LlmAttributeProbe probe,
         LlmSectionType type,
-        String blockType,
         String json,
         int window,
-        boolean toEnd)
+        boolean toEnd,
+        int prefixEvents)
     {
         final byte[] bytes = json.getBytes(UTF_8);
         final UnsafeBufferEx buffer = new UnsafeBufferEx(bytes);
@@ -100,12 +108,12 @@ final class LlmAttributeProbeRunner
             parser.wrap(buffer, 0, Math.min(window, bytes.length), false);
         }
 
-        for (int event = 0; event < PART_PREFIX_EVENTS; event++)
+        for (int event = 0; event < prefixEvents; event++)
         {
             parser.nextEvent();
         }
 
-        probe.begin(type, blockType);
+        probe.begin(type);
 
         return drain(probe, parser, toEnd);
     }

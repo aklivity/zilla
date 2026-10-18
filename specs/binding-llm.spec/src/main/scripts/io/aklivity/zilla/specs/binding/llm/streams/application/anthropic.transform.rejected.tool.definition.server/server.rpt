@@ -37,7 +37,7 @@ read advise zilla:challenge ${llm:challengeEx()
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("TOOL_DEFINITION")
+                          .type("SERVER_TOOL_DEFINITION")
                           .message(-1)
                           .attribute("tool-name", "web_search")
                           .build()}
@@ -47,7 +47,7 @@ write zilla:reset.ext ${llm:resetEx()
                             .typeId(zilla:id("llm"))
                             .status(400)
                             .type("invalid_request_error")
-                            .message("tool-definition cannot be converted from anthropic to %s".formatted(target))
+                            .message("server-tool-definition cannot be converted from anthropic to %s".formatted(target))
                             .build()}
 
 read abort

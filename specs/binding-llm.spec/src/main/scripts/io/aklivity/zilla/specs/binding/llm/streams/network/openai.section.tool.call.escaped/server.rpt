@@ -30,7 +30,7 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-read "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"call_1\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":\"{\\\"query\\\":\\\"say \\\\\\\"hi\\\\\\\" \\\\\\\\ done\\\\nnext\\\",\\\"text\\\":\\\"caf\\\\u00e9 ✓ 😀\\\",\\\"nested\\\":{\\\"items\\\":[1,2.5,true,null,{\\\"k\\\":\\\"v\\\"}],\\\"empty\\\":{},\\\"list\\\":[]}}\"}}]}]}"
+read "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"call_1\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":\"{\\\"query\\\":\\\"say \\\\\\\"hi\\\\\\\" \\\\\\\\ done\\\\nnext\\\",\\\"text\\\":\\\"café ✓ 😀\\\",\\\"nested\\\":{\\\"items\\\":[1,2.5,true,null,{\\\"k\\\":\\\"v\\\"}],\\\"empty\\\":{},\\\"list\\\":[]}}\"}}]}]}"
 
 read closed
 

@@ -106,6 +106,14 @@
                             "type": "string"
                         }
                     },
+                    "mask":
+                    {
+                        "type": "array",
+                        "items":
+                        {
+                            "type": "string"
+                        }
+                    },
                     "suspend":
                     {
                         "type": "boolean"

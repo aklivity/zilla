@@ -13,6 +13,8 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property model "claude-3-opus-20240229"
+
 connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
@@ -20,7 +22,7 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("anthropic")
-                           .model("claude-3-opus-20240229")
+                           .model(model)
                            .build()}
 
 connected
@@ -28,7 +30,9 @@ connected
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-write "{\"model\":\"claude-3-opus-20240229\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\""
+write "{\"model\":\""
+      ${model}
+      "\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -36,13 +40,13 @@ write zilla:data.ext ${llm:dataEx()
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-write "Sky colour?"
+write "{\"text\":\"Sky colour?\"}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-write "\"}]},{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\""
+write "}]},{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -50,13 +54,13 @@ write zilla:data.ext ${llm:dataEx()
                           .type("ASSISTANT_TEXT")
                           .message(1)
                           .build()}
-write "The sky is blue."
+write "{\"text\":\"The sky is blue.\"}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-write "\",\"citations\":"
+write ",\"citations\":"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -64,7 +68,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CITATIONS")
                           .message(1)
                           .build()}
-write "[{\"type\":\"char_location\",\"cited_text\":\"blue\",\"document_index\":0,\"start_char_index\":0,\"end_char_index\":4}]"
+write "[{\"anthropic:type\":\"char_location\",\"anthropic:cited_text\":\"blue\",\"anthropic:document_index\":0,\"anthropic:start_char_index\":0,\"anthropic:end_char_index\":4}]"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
@@ -79,27 +83,29 @@ write advise zilla:flush
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("anthropic")
-                           .model("claude-3-opus-20240229")
+                           .model(model)
                            .id("msg_01")
                            .build()}
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-read "{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3-opus-20240229\",\"content\":[{\"type\":\"text\",\"text\":\""
+read "{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\""
+     ${model}
+     "\",\"content\":[{\"type\":\"text\",\"text\":"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-read "Hello! How can I help you today?"
+read "{\"text\":\"Hello! How can I help you today?\"}"
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
                           .build()}
-read "\"}],\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"usage\":{\"input_tokens\":25,\"output_tokens\":15}}"
+read "}],\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"usage\":{\"input_tokens\":25,\"output_tokens\":15}}"
 
 read zilla:end.ext ${llm:matchEndEx()
                             .typeId(zilla:id("llm"))

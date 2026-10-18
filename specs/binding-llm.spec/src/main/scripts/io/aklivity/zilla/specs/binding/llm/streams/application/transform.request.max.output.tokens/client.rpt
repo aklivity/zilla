@@ -39,10 +39,10 @@ write zilla:data.ext ${llm:dataEx()
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-write "Hello"
+write "{\"text\":\"Hello\"}"
 write flush
 
-write advise zilla:flush ${llm:flushEx()
+write advise zilla:flush ${llm:dialectFlushEx()
                                .typeId(zilla:id("llm"))
                                .maxOutputTokens(2048)
                                .build()}

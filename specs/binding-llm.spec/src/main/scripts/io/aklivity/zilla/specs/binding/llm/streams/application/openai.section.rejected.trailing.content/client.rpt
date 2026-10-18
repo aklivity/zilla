@@ -13,6 +13,8 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property model "gpt-4"
+
 connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
@@ -20,7 +22,7 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("openai")
-                           .model("gpt-4")
+                           .model(model)
                            .build()}
 
 connected
@@ -28,7 +30,9 @@ connected
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\""
+write "{\"model\":\""
+      ${model}
+      "\",\"messages\":[{\"role\":\"user\",\"content\":"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -36,14 +40,14 @@ write zilla:data.ext ${llm:dataEx()
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-write "Hello"
+write "{\"text\":\"Hello\"}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
                           .build()}
-write "\"}]}"
+write "}]}"
 write flush
 
 write abort

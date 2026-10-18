@@ -40,14 +40,14 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("SYSTEM_INSTRUCTION")
                           .message(0)
                           .build()}
-read "Be brief"
+read "{\"text\":\"Be brief\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("USER_TEXT")
                           .message(1)
                           .build()}
-read "Weather in Paris?"
+read "{\"text\":\"Weather in Paris?\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
@@ -56,7 +56,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .attribute("tool-name", "get_weather")
                           .attribute("tool-call-id", "call_1")
                           .build()}
-read "{\"id\":\"call_1\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":\"{\\\"city\\\":\\\"Paris\\\"}\"}}"
+read "{\"city\":\"Paris\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
@@ -64,14 +64,14 @@ read zilla:data.ext ${llm:matchDataEx()
                           .message(3)
                           .attribute("tool-call-id", "call_1")
                           .build()}
-read "sunny"
+read "{\"text\":\"sunny\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("USER_TEXT")
                           .message(4)
                           .build()}
-read "And in London?"
+read "{\"text\":\"And in London?\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))

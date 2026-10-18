@@ -44,7 +44,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .message(0)
                           .attribute("tool-call-id", "call_1")
                           .build()}
-read "sunny"
+read "{\"text\":\"sunny\"}"
 
 read advised zilla:flush
 

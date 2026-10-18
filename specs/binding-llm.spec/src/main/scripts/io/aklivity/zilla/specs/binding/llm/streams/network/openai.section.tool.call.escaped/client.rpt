@@ -13,6 +13,8 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property model "gpt-4"
+
 connect "zilla://streams/net0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
@@ -28,7 +30,7 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"call_1\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":\"{\\\"query\\\":\\\"say \\\\\\\"hi\\\\\\\" \\\\\\\\ done\\\\nnext\\\",\\\"text\\\":\\\"caf\\\\u00e9 ✓ 😀\\\",\\\"nested\\\":{\\\"items\\\":[1,2.5,true,null,{\\\"k\\\":\\\"v\\\"}],\\\"empty\\\":{},\\\"list\\\":[]}}\"}}]}]}"
+write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"call_1\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":\"{\\\"query\\\":\\\"say \\\\\\\"hi\\\\\\\" \\\\\\\\ done\\\\nnext\\\",\\\"text\\\":\\\"café ✓ 😀\\\",\\\"nested\\\":{\\\"items\\\":[1,2.5,true,null,{\\\"k\\\":\\\"v\\\"}],\\\"empty\\\":{},\\\"list\\\":[]}}\"}}]}]}"
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()

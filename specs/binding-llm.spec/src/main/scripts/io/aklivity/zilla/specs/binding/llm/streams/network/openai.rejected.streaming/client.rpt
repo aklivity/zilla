@@ -13,6 +13,8 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property model "gpt-4"
+
 connect "zilla://streams/net0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
@@ -28,7 +30,9 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-write "{\"model\":\"gpt-4\",\"stream\":true,\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}"
+write "{\"model\":\""
+      ${model}
+      "\",\"stream\":true,\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}"
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()
@@ -37,7 +41,9 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("content-type", "text/event-stream")
                            .build()}
 
-read "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"Hello\"},\"finish_reason\":null}]}"
+read "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\""
+     ${model}
+     "\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"Hello\"},\"finish_reason\":null}]}"
 read "{\"error\":{\"message\":\"The server had an error while processing your request.\",\"type\":\"server_error\",\"param\":null,\"code\":null}}"
 read "[DONE]"
 

@@ -63,6 +63,18 @@ public final class LlmFunctions
     }
 
     @Function
+    public static LlmDialectFlushExBuilder dialectFlushEx()
+    {
+        return new LlmDialectFlushExBuilder();
+    }
+
+    @Function
+    public static LlmDialectFlushExMatcherBuilder matchDialectFlushEx()
+    {
+        return new LlmDialectFlushExMatcherBuilder();
+    }
+
+    @Function
     public static LlmFlushExBuilder flushEx()
     {
         return new LlmFlushExBuilder();
@@ -984,32 +996,36 @@ public final class LlmFunctions
 
     }
 
-    public static final class LlmFlushExBuilder
+    public static final class LlmDialectFlushExBuilder
     {
         private final LlmFlushExFW.Builder flushExRW;
 
-        private LlmFlushExBuilder()
+        private int maxOutputTokens = -1;
+
+        private LlmDialectFlushExBuilder()
         {
             MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024]);
             this.flushExRW = new LlmFlushExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
-        public LlmFlushExBuilder typeId(
+        public LlmDialectFlushExBuilder typeId(
             int typeId)
         {
             flushExRW.typeId(typeId);
             return this;
         }
 
-        public LlmFlushExBuilder maxOutputTokens(
+        public LlmDialectFlushExBuilder maxOutputTokens(
             int maxOutputTokens)
         {
-            flushExRW.maxOutputTokens(maxOutputTokens);
+            this.maxOutputTokens = maxOutputTokens;
             return this;
         }
 
         public byte[] build()
         {
+            flushExRW.dialect(d -> d.maxOutputTokens(maxOutputTokens));
+
             final LlmFlushExFW flushEx = flushExRW.build();
             final byte[] array = new byte[flushEx.sizeof()];
             flushEx.buffer().getBytes(flushEx.offset(), array);
@@ -1017,7 +1033,7 @@ public final class LlmFunctions
         }
     }
 
-    public static final class LlmFlushExMatcherBuilder
+    public static final class LlmDialectFlushExMatcherBuilder
     {
         private final DirectBufferEx bufferRO = new UnsafeBufferEx();
 
@@ -1026,14 +1042,14 @@ public final class LlmFunctions
         private Integer typeId;
         private Integer maxOutputTokens;
 
-        public LlmFlushExMatcherBuilder typeId(
+        public LlmDialectFlushExMatcherBuilder typeId(
             int typeId)
         {
             this.typeId = typeId;
             return this;
         }
 
-        public LlmFlushExMatcherBuilder maxOutputTokens(
+        public LlmDialectFlushExMatcherBuilder maxOutputTokens(
             int maxOutputTokens)
         {
             this.maxOutputTokens = maxOutputTokens;
@@ -1057,6 +1073,7 @@ public final class LlmFunctions
             final LlmFlushExFW flushEx = flushExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.limit());
 
             if (flushEx != null &&
+                flushEx.kind() == LlmFlushExFW.KIND_DIALECT &&
                 matchTypeId(flushEx) &&
                 matchMaxOutputTokens(flushEx))
             {
@@ -1076,7 +1093,142 @@ public final class LlmFunctions
         private boolean matchMaxOutputTokens(
             LlmFlushExFW flushEx)
         {
-            return maxOutputTokens == null || maxOutputTokens == flushEx.maxOutputTokens();
+            return maxOutputTokens == null || maxOutputTokens == flushEx.dialect().maxOutputTokens();
+        }
+    }
+
+    public static final class LlmFlushExBuilder
+    {
+        private final LlmFlushExFW.Builder flushExRW;
+
+        private LlmSectionType type;
+        private Integer message;
+
+        private LlmFlushExBuilder()
+        {
+            MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024]);
+            this.flushExRW = new LlmFlushExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public LlmFlushExBuilder typeId(
+            int typeId)
+        {
+            flushExRW.typeId(typeId);
+            return this;
+        }
+
+        public LlmFlushExBuilder type(
+            String type)
+        {
+            this.type = LlmSectionType.valueOf(type);
+            return this;
+        }
+
+        public LlmFlushExBuilder message(
+            int message)
+        {
+            this.message = message;
+            return this;
+        }
+
+        public byte[] build()
+        {
+            flushExRW.section(s ->
+            {
+                if (type != null)
+                {
+                    s.type(t -> t.set(type));
+                }
+
+                if (message != null)
+                {
+                    s.message(message);
+                }
+            });
+
+            final LlmFlushExFW flushEx = flushExRW.build();
+            final byte[] array = new byte[flushEx.sizeof()];
+            flushEx.buffer().getBytes(flushEx.offset(), array);
+            return array;
+        }
+    }
+
+    public static final class LlmFlushExMatcherBuilder
+    {
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
+
+        private final LlmFlushExFW flushExRO = new LlmFlushExFW();
+
+        private Integer typeId;
+        private LlmSectionType type;
+        private Integer message;
+
+        public LlmFlushExMatcherBuilder typeId(
+            int typeId)
+        {
+            this.typeId = typeId;
+            return this;
+        }
+
+        public LlmFlushExMatcherBuilder type(
+            String type)
+        {
+            this.type = LlmSectionType.valueOf(type);
+            return this;
+        }
+
+        public LlmFlushExMatcherBuilder message(
+            int message)
+        {
+            this.message = message;
+            return this;
+        }
+
+        public BytesMatcher build()
+        {
+            return this::match;
+        }
+
+        private LlmFlushExFW match(
+            ByteBuffer byteBuf) throws Exception
+        {
+            if (!byteBuf.hasRemaining())
+            {
+                return null;
+            }
+
+            bufferRO.wrap(byteBuf);
+            final LlmFlushExFW flushEx = flushExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.limit());
+
+            if (flushEx != null &&
+                flushEx.kind() == LlmFlushExFW.KIND_SECTION &&
+                matchTypeId(flushEx) &&
+                matchType(flushEx) &&
+                matchMessage(flushEx))
+            {
+                byteBuf.position(byteBuf.position() + flushEx.sizeof());
+                return flushEx;
+            }
+
+            throw new Exception(String.valueOf(flushEx));
+        }
+
+        private boolean matchTypeId(
+            LlmFlushExFW flushEx)
+        {
+            return typeId == null || typeId == flushEx.typeId();
+        }
+
+        private boolean matchType(
+            LlmFlushExFW flushEx)
+        {
+            return type == null || type == flushEx.section().type().get();
+        }
+
+        private boolean matchMessage(
+            LlmFlushExFW flushEx)
+        {
+            return message == null || message == flushEx.section().message();
         }
     }
 

@@ -74,6 +74,7 @@ public final class JsonTokenizer
     // cap on the decoded chars retained for one value/key; appendScratch fails closed past it so a
     // consumer that declines fragments cannot grow scratch without bound
     private final int maxValueSize;
+    private final boolean quoted;
     private boolean terminalEof;
     // byte length of the current input window; a value whose own bytes reach this length without
     // completing fills the window and is delivered as fragments rather than reassembled across windows.
@@ -165,7 +166,7 @@ public final class JsonTokenizer
     public JsonTokenizer(
         boolean terminalEof)
     {
-        this(terminalEof, Integer.MAX_VALUE);
+        this(terminalEof, Integer.MAX_VALUE, false);
     }
 
     // terminalEof distinguishes a one-shot stream (EOF is the final delimiter) from the chunked
@@ -173,12 +174,16 @@ public final class JsonTokenizer
     // only matters for numbers, which unlike strings and the true/false/null literals are not
     // self-terminating and need a following non-digit byte to know they have ended.
     // maxValueSize caps the decoded chars retained for one value/key; growth past it fails closed.
+    // quoted holds a key back until its separator, whitespace and the value's first byte are in the
+    // window, so the position after a key is the start of its (possibly quoted) value token.
     public JsonTokenizer(
         boolean terminalEof,
-        int maxValueSize)
+        int maxValueSize,
+        boolean quoted)
     {
         this.terminalEof = terminalEof;
         this.maxValueSize = maxValueSize;
+        this.quoted = quoted;
         for (int i = 0; i < MAX_DEPTH; i++)
         {
             pathKeyChars[i] = new StringBuilder();
@@ -1018,6 +1023,56 @@ public final class JsonTokenizer
         if (!starved)
         {
             finishKeyValue();
+
+            if (quoted)
+            {
+                alignKeyBoundary(in);
+            }
+        }
+    }
+
+    // Moves past the separator and whitespace to the first byte of the member's value, leaving that byte
+    // unread. A non-final window that ends before it takes the key back to its opening quote, in the state that
+    // preceded it, so the key is delivered only when the position after it can be a token boundary.
+    private void alignKeyBoundary(
+        InputStream in) throws IOException
+    {
+        consumeColon(in);
+
+        boolean aligned = false;
+
+        while (!starved && !aligned)
+        {
+            in.mark(1);
+            final int c = in.read();
+
+            if (c == -1)
+            {
+                starved = true;
+            }
+            else if (c == ' ' || c == '\t' || c == '\n' || c == '\r')
+            {
+                streamOffset++;
+                advance(c);
+            }
+            else
+            {
+                in.reset();
+                aligned = true;
+            }
+        }
+
+        if (starved && !terminalEof)
+        {
+            streamOffset = valueStreamStart;
+            line = valueLine;
+            column = valueColumn;
+            state = memberSeparated ? ParseState.OBJ_AFTER_COMMA : ParseState.OBJ_AFTER_OPEN;
+            scratch.setLength(0);
+            scratchConsumed = 0;
+            pendingEvent = null;
+            pendingString = null;
+            valuePending = false;
         }
     }
 

@@ -53,7 +53,7 @@ public class LlmAnthropicAttributeProbeTest
     {
         final String json = "{\"type\":\"image\",\"source\":{\"type\":\"url\",\"url\":\"https://example.com/cat.png\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_IMAGE, null, json, WHOLE), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_IMAGE, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().source(), equalTo("url"));
         assertThat(probe.attributes().mediaType(), nullValue());
     }
@@ -64,7 +64,7 @@ public class LlmAnthropicAttributeProbeTest
         final String json = "{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image/png\"," +
             "\"data\":\"AAAA\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_IMAGE, null, json, WHOLE), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_IMAGE, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().source(), equalTo("inline"));
         assertThat(probe.attributes().mediaType(), equalTo("image/png"));
     }
@@ -75,7 +75,7 @@ public class LlmAnthropicAttributeProbeTest
         final String json = "{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image/jpeg\"," +
             "\"data\":\"" + "A".repeat(4096) + "\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_IMAGE, null, json, 96), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_IMAGE, json, 96), equalTo(RESOLVED));
         assertThat(probe.attributes().source(), equalTo("inline"));
         assertThat(probe.attributes().mediaType(), equalTo("image/jpeg"));
     }
@@ -85,7 +85,7 @@ public class LlmAnthropicAttributeProbeTest
     {
         final String json = "{\"type\":\"image\",\"source\":{\"type\":\"file\",\"file_id\":\"file_011abc\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_IMAGE, null, json, WHOLE), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_IMAGE, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().source(), equalTo("reference"));
         assertThat(probe.attributes().refId(), equalTo("file_011abc"));
     }
@@ -96,7 +96,7 @@ public class LlmAnthropicAttributeProbeTest
         final String json = "{\"type\":\"document\",\"title\":\"Contract\",\"source\":{\"type\":\"url\"," +
             "\"url\":\"https://example.com/contract.pdf\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_DOCUMENT, null, json, WHOLE), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_DOCUMENT, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().source(), equalTo("url"));
         assertThat(probe.attributes().filename(), nullValue());
     }
@@ -107,7 +107,7 @@ public class LlmAnthropicAttributeProbeTest
         final String json = "{\"type\":\"document\",\"source\":{\"type\":\"text\",\"media_type\":\"text/plain\"," +
             "\"data\":\"hello\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_DOCUMENT, null, json, WHOLE), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_DOCUMENT, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().source(), equalTo("inline"));
         assertThat(probe.attributes().mediaType(), equalTo("text/plain"));
     }
@@ -118,7 +118,7 @@ public class LlmAnthropicAttributeProbeTest
         final String json = "{\"type\":\"document\",\"source\":{\"type\":\"content\",\"content\":[" +
             "{\"type\":\"text\",\"text\":\"hello\"}]}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_DOCUMENT, null, json, WHOLE), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_DOCUMENT, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().source(), equalTo("inline"));
         assertThat(probe.attributes().mediaType(), nullValue());
     }
@@ -129,7 +129,7 @@ public class LlmAnthropicAttributeProbeTest
         final String json = "{\"type\":\"image\",\"source\":{\"type\":\"url\",\"url\":\"https://example.com/" +
             "a".repeat(4096) + "\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_IMAGE, null, json, 96), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_IMAGE, json, 96), equalTo(RESOLVED));
         assertThat(probe.attributes().source(), equalTo("url"));
     }
 
@@ -139,7 +139,7 @@ public class LlmAnthropicAttributeProbeTest
         final String json = "{\"type\":\"image\",\"source\":{\"type\":\"file\",\"file_id\":\"" +
             "a".repeat(4096) + "\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_IMAGE, null, json, 96), equalTo(REJECTED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_IMAGE, json, 96), equalTo(REJECTED));
     }
 
     @Test
@@ -147,7 +147,7 @@ public class LlmAnthropicAttributeProbeTest
     {
         final String json = "{\"type\":\"image\",\"source\":{\"type\":\"base64\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_IMAGE, null, json, WHOLE), equalTo(COMPLETE));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_IMAGE, json, WHOLE), equalTo(COMPLETE));
         assertThat(probe.attributes().source(), nullValue());
     }
 
@@ -157,10 +157,9 @@ public class LlmAnthropicAttributeProbeTest
         final String json = "{\"type\":\"tool_use\",\"id\":\"toolu_01\",\"name\":\"get_weather\"," +
             "\"input\":{\"location\":\"Paris\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.TOOL_CALL, null, json, WHOLE), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.TOOL_CALL, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().toolCallId(), equalTo("toolu_01"));
         assertThat(probe.attributes().toolName(), equalTo("get_weather"));
-        assertThat(probe.attributes().providerExecuted(), nullValue());
     }
 
     @Test
@@ -169,7 +168,7 @@ public class LlmAnthropicAttributeProbeTest
         final String json = "{\"type\":\"tool_use\",\"id\":\"toolu_01\",\"input\":{\"name\":\"nested\"}," +
             "\"name\":\"get_weather\"}";
 
-        assertThat(runToEnd(probe, LlmSectionType.TOOL_CALL, null, json, WHOLE), equalTo(COMPLETE));
+        assertThat(runToEnd(probe, LlmSectionType.TOOL_CALL, json, WHOLE), equalTo(COMPLETE));
         assertThat(probe.attributes().toolCallId(), equalTo("toolu_01"));
         assertThat(probe.attributes().toolName(), equalTo("get_weather"));
     }
@@ -180,7 +179,7 @@ public class LlmAnthropicAttributeProbeTest
         final String json = "{\"type\":\"custom\",\"description\":\"" + "x".repeat(4096) +
             "\",\"name\":\"get_weather\",\"input_schema\":{\"type\":\"object\"}}";
 
-        assertThat(runToEnd(probe, LlmSectionType.TOOL_DEFINITION, null, json, WHOLE), equalTo(COMPLETE));
+        assertThat(runToEnd(probe, LlmSectionType.TOOL_DEFINITION, json, WHOLE), equalTo(COMPLETE));
         assertThat(probe.attributes().toolName(), equalTo("get_weather"));
     }
 
@@ -190,11 +189,9 @@ public class LlmAnthropicAttributeProbeTest
         final String json = "{\"type\":\"server_tool_use\",\"id\":\"srvtoolu_01\",\"name\":\"web_search\"," +
             "\"input\":{\"query\":\"zilla\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.SERVER_TOOL_RESULT, "server_tool_use", json, WHOLE),
-            equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.SERVER_TOOL_CALL, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().toolCallId(), equalTo("srvtoolu_01"));
         assertThat(probe.attributes().toolName(), equalTo("web_search"));
-        assertThat(probe.attributes().providerExecuted(), equalTo("true"));
     }
 
     @Test
@@ -202,11 +199,9 @@ public class LlmAnthropicAttributeProbeTest
     {
         final String json = "{\"type\":\"web_search_tool_result\",\"tool_use_id\":\"srvtoolu_01\",\"content\":[]}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.SERVER_TOOL_RESULT, "web_search_tool_result", json, WHOLE),
-            equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.SERVER_TOOL_RESULT, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().toolCallId(), equalTo("srvtoolu_01"));
         assertThat(probe.attributes().toolName(), nullValue());
-        assertThat(probe.attributes().providerExecuted(), equalTo("true"));
     }
 
     @Test
@@ -215,9 +210,32 @@ public class LlmAnthropicAttributeProbeTest
         final String json = "{\"type\":\"custom\",\"name\":\"get_weather\",\"description\":\"Weather\"," +
             "\"input_schema\":{\"type\":\"object\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.TOOL_DEFINITION, null, json, WHOLE), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.TOOL_DEFINITION, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().toolName(), equalTo("get_weather"));
         assertThat(probe.attributes().toolCallId(), nullValue());
+        assertThat(probe.type(), equalTo(LlmSectionType.TOOL_DEFINITION));
+    }
+
+    @Test
+    public void shouldProbeServerToolDefinition()
+    {
+        final String json = "{\"type\":\"web_search_20250305\",\"name\":\"web_search\",\"max_uses\":5}";
+
+        assertThat(LlmAttributeProbeRunner.runObject(probe, LlmSectionType.TOOL_DEFINITION, json, WHOLE, false),
+            equalTo(RESOLVED));
+        assertThat(probe.attributes().toolName(), equalTo("web_search"));
+        assertThat(probe.type(), equalTo(LlmSectionType.SERVER_TOOL_DEFINITION));
+    }
+
+    @Test
+    public void shouldProbeToolDefinitionTypeAfterName()
+    {
+        final String json = "{\"name\":\"web_search\",\"type\":\"web_search_20250305\"}";
+
+        assertThat(LlmAttributeProbeRunner.runObject(probe, LlmSectionType.TOOL_DEFINITION, json, WHOLE, true),
+            equalTo(COMPLETE));
+        assertThat(probe.attributes().toolName(), equalTo("web_search"));
+        assertThat(probe.type(), equalTo(LlmSectionType.TOOL_DEFINITION));
     }
 
     @Test
@@ -226,11 +244,10 @@ public class LlmAnthropicAttributeProbeTest
         final String json = "{\"type\":\"thinking\",\"id\":\"toolu_01\",\"name\":\"get_weather\"," +
             "\"source\":{\"type\":\"url\",\"url\":\"https://example.com/cat.png\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.ASSISTANT_REASONING, null, json, WHOLE), equalTo(COMPLETE));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.ASSISTANT_REASONING, json, WHOLE), equalTo(COMPLETE));
         assertThat(probe.attributes().source(), nullValue());
         assertThat(probe.attributes().toolCallId(), nullValue());
         assertThat(probe.attributes().toolName(), nullValue());
-        assertThat(probe.attributes().providerExecuted(), nullValue());
     }
 
     @Test
@@ -239,10 +256,10 @@ public class LlmAnthropicAttributeProbeTest
         final String serverToolUse = "{\"type\":\"server_tool_use\",\"id\":\"srvtoolu_01\",\"name\":\"web_search\"}";
         final String toolUse = "{\"type\":\"tool_use\",\"id\":\"toolu_01\",\"name\":\"get_weather\"}";
 
-        LlmAttributeProbeRunner.run(probe, LlmSectionType.SERVER_TOOL_RESULT, "server_tool_use", serverToolUse, WHOLE);
-        LlmAttributeProbeRunner.run(probe, LlmSectionType.TOOL_CALL, null, toolUse, WHOLE);
+        LlmAttributeProbeRunner.run(probe, LlmSectionType.SERVER_TOOL_CALL, serverToolUse, WHOLE);
+        LlmAttributeProbeRunner.run(probe, LlmSectionType.TOOL_CALL, toolUse, WHOLE);
 
         assertThat(probe.attributes().toolCallId(), equalTo("toolu_01"));
-        assertThat(probe.attributes().providerExecuted(), nullValue());
+        assertThat(probe.attributes().toolName(), equalTo("get_weather"));
     }
 }

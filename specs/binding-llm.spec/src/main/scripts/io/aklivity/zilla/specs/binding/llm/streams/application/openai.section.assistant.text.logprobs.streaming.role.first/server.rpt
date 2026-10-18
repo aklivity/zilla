@@ -13,11 +13,6 @@
 # specific language governing permissions and limitations under the License.
 #
 
-# Logprobs: when the request asks for logprobs, each fragment of the text the upstream delivers is a section of its own,
-# announced by the follow marker on the section data extension, and followed by an after block carrying the logprobs of
-# that fragment. The after block is a single frame with the init and fin flags, owned by the section (the default owner),
-# and has an empty payload when the upstream reported no logprobs for the fragment.
-
 accept "zilla://streams/app0"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
@@ -27,7 +22,7 @@ accepted
 read zilla:begin.ext ${llm:matchBeginEx()
                          .typeId(zilla:id("llm"))
                          .dialect("openai")
-                         .model("gpt-4")
+                         .model(model)
                          .build()}
 
 connected
@@ -35,27 +30,29 @@ connected
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-read "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\""
+read "{\"model\":\""
+     ${model}
+     "\",\"messages\":[{\"role\":\"user\",\"content\":"
 
 read zilla:data.ext ${llm:matchDataEx()
                         .typeId(zilla:id("llm"))
                         .type("USER_TEXT")
                         .message(0)
                         .build()}
-read "Hello"
+read "{\"text\":\"Hello\"}"
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
                           .build()}
-read "\"}],\"logprobs\":true,\"stream\":true,\"stream_options\":{\"include_usage\":true}}"
+read "}],\"logprobs\":true,\"stream\":true,\"stream_options\":{\"include_usage\":true}}"
 
 read advised zilla:flush
 
 write zilla:begin.ext ${llm:beginEx()
                           .typeId(zilla:id("llm"))
                           .dialect("openai")
-                          .model("gpt-4")
+                          .model(model)
                           .id("chatcmpl_1")
                           .build()}
 write flush
@@ -64,13 +61,17 @@ write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
                           .build()}
-write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\"},\"finish_reason\":null}]}"
+write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\""
+      ${model}
+      "\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\"},\"finish_reason\":null}]}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\""
+write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\""
+      ${model}
+      "\",\"choices\":[{\"index\":0,\"delta\":{\"content\":"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -78,20 +79,22 @@ write zilla:data.ext ${llm:dataEx()
                          .type("ASSISTANT_TEXT")
                          .message(0)
                          .build()}
-write "Hello"
+write "{\"text\":\"Hello\"}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
                           .build()}
-write "\"},\"logprobs\":{\"content\":[{\"token\":\"Hello\",\"logprob\":-0.5,\"bytes\":[72,101,108,108,111],\"top_logprobs\":[{\"token\":\"Hello\",\"logprob\":-0.5,\"bytes\":[72,101,108,108,111]}]}],\"refusal\":null},\"finish_reason\":null}]}"
+write "},\"logprobs\":{\"content\":[{\"token\":\"Hello\",\"logprob\":-0.5,\"bytes\":[72,101,108,108,111],\"top_logprobs\":[{\"token\":\"Hello\",\"logprob\":-0.5,\"bytes\":[72,101,108,108,111]}]}],\"refusal\":null},\"finish_reason\":null}]}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\""
+write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\""
+      ${model}
+      "\",\"choices\":[{\"index\":0,\"delta\":{\"content\":"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -99,20 +102,22 @@ write zilla:data.ext ${llm:dataEx()
                          .type("ASSISTANT_TEXT")
                          .message(0)
                          .build()}
-write " there"
+write "{\"text\":\" there\"}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
                           .build()}
-write "\"},\"logprobs\":null,\"finish_reason\":null}]}"
+write "},\"logprobs\":null,\"finish_reason\":null}]}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
-write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\""
+write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\""
+      ${model}
+      "\",\"choices\":[{\"index\":0,\"delta\":{\"content\":"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -120,28 +125,32 @@ write zilla:data.ext ${llm:dataEx()
                          .type("ASSISTANT_TEXT")
                          .message(0)
                          .build()}
-write "!"
+write "{\"text\":\"!\"}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
                           .build()}
-write "\"},\"logprobs\":{\"content\":[{\"token\":\"!\",\"logprob\":-1.25,\"bytes\":[33],\"top_logprobs\":[]}],\"refusal\":null},\"finish_reason\":null}]}"
+write "},\"logprobs\":{\"content\":[{\"token\":\"!\",\"logprob\":-1.25,\"bytes\":[33],\"top_logprobs\":[]}],\"refusal\":null},\"finish_reason\":null}]}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
                           .build()}
-write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}"
+write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\""
+      ${model}
+      "\",\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
                           .build()}
-write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[],\"usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}}"
+write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\""
+      ${model}
+      "\",\"choices\":[],\"usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()

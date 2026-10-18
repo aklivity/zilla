@@ -41,7 +41,7 @@ write zilla:data.ext ${llm:dataEx()
                           .attribute("media-type", "video/mp4")
                           .attribute("source", "inline")
                           .build()}
-write "dmlkZW8="
+write "{\"type\":\"input_video\",\"input_video\":{\"data\":\"dmlkZW8=\",\"format\":\"mp4\"}}"
 write flush
 
 read zilla:reset.ext ${llm:matchResetEx()

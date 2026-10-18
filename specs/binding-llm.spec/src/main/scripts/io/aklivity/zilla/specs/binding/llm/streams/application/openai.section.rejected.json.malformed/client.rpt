@@ -13,6 +13,8 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property model "gpt-4"
+
 connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
@@ -20,7 +22,7 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("openai")
-                           .model("gpt-4")
+                           .model(model)
                            .build()}
 
 connected

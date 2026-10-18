@@ -39,7 +39,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-write "Hi"
+write "{\"text\":\"Hi\"}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -47,7 +47,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("ASSISTANT_REASONING")
                           .message(1)
                           .build()}
-write "{\"type\":\"thinking\",\"thinking\":\"Let me think.\",\"signature\":\"sig-1\"}"
+write "{\"text\":\"Let me think.\",\"anthropic:signature\":\"sig-1\"}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -55,7 +55,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("ASSISTANT_TEXT")
                           .message(1)
                           .build()}
-write "Hello!"
+write "{\"text\":\"Hello!\"}"
 write flush
 
 write advise zilla:flush

@@ -34,6 +34,16 @@ bindings:
                 model: test
                 reject:
                   - ignore previous instructions
+            - section: assistant-reasoning
+              value:
+                model: test
+                reject:
+                  - ignore previous instructions
+            - section: tool-call
+              value:
+                model: test
+                reject:
+                  - '{"city":"ignore previous instructions"}'
     routes:
     - when:
       - dialect: openai

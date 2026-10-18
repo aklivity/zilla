@@ -48,7 +48,9 @@ scope llm
             SERVER_TOOL_RESULT(12),
             CITATIONS(13),
             USER_VIDEO(14),
-            UNKNOWN(15)
+            SERVER_TOOL_CALL(15),
+            SERVER_TOOL_DEFINITION(16),
+            UNKNOWN(17)
         }
 
         struct LlmSectionDataEx
@@ -98,9 +100,21 @@ scope llm
             string16 model = null;
         }
 
-        struct LlmFlushEx extends core::stream::Extension
+        struct LlmSectionFlushEx
+        {
+            LlmSectionType type = NONE;
+            int32 message = -1;
+        }
+
+        struct LlmDialectFlushEx
         {
             int32 maxOutputTokens = -1;
+        }
+
+        union LlmFlushEx switch (uint8) extends core::stream::Extension
+        {
+            case 0: llm::stream::LlmSectionFlushEx section;
+            case 1: llm::stream::LlmDialectFlushEx dialect;
         }
 
         struct LlmEndEx extends core::stream::Extension

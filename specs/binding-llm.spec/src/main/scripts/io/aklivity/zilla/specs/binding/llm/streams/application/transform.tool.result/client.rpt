@@ -40,7 +40,7 @@ write zilla:data.ext ${llm:dataEx()
                           .message(0)
                           .attribute("tool-call-id", "call_1")
                           .build()}
-write "sunny"
+write "{\"text\":\"sunny\"}"
 write flush
 
 write advise zilla:flush
