@@ -160,6 +160,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final byte[] ARGUMENTS_PREFIX = "{\"arguments\":".getBytes(UTF_8);
     private static final byte[] ARGUMENTS_EMPTY = "{}".getBytes(UTF_8);
     private static final byte[] ARGUMENTS_SUFFIX = "}".getBytes(UTF_8);
+    private static final byte[] SECTION_SUFFIX = "\"}".getBytes(UTF_8);
 
     private static final String BLOCK_TOOL_USE = "tool_use";
     private static final String BLOCK_SERVER_TOOL_USE = "server_tool_use";
@@ -700,7 +701,27 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private int replyWindow()
         {
             return Math.max(0, replyMax - (int) (replySeq - replyAck) - encodeSlotOffset - dialectSlotOffset -
-                EVENT_FRAMES * replyPad);
+                EVENT_FRAMES * replyPad - sectionClosing());
+        }
+
+        private int sectionClosing()
+        {
+            final int closing;
+
+            if (!sectionOpen || !http.framing)
+            {
+                closing = 0;
+            }
+            else if (sectionType == LlmSectionType.TOOL_CALL)
+            {
+                closing = ARGUMENTS_EMPTY.length + ARGUMENTS_SUFFIX.length + replyPad;
+            }
+            else
+            {
+                closing = objectShaped(sectionType) ? SECTION_SUFFIX.length + replyPad : 0;
+            }
+
+            return closing;
         }
 
         private boolean replyAvailable()
@@ -1436,7 +1457,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             final int pending = dialectActive ? position() - dialectFrom : 0;
 
             return replyMax - (int) (replySeq - replyAck) - encodeSlotOffset - dialectSlotOffset - pending -
-                parser.remaining() * decodeGrowth();
+                parser.remaining() * decodeGrowth() - sectionClosing();
         }
 
         private int decodeGrowth()

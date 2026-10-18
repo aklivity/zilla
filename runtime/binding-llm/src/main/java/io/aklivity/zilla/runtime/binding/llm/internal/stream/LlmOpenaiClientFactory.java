@@ -658,12 +658,27 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private int replyWindow()
         {
             return Math.max(0, replyMax - (int) (replySeq - replyAck) - encodeSlotOffset - dialectSlotOffset -
-                EVENT_FRAMES * replyPad - argumentsClosing());
+                EVENT_FRAMES * replyPad - sectionClosing());
         }
 
-        private int argumentsClosing()
+        private int sectionClosing()
         {
-            return sectionOpen && sectionType == LlmSectionType.TOOL_CALL ? ARGUMENTS_CLOSING + replyPad : 0;
+            final int closing;
+
+            if (!sectionOpen)
+            {
+                closing = 0;
+            }
+            else if (sectionType == LlmSectionType.TOOL_CALL)
+            {
+                closing = ARGUMENTS_CLOSING + replyPad;
+            }
+            else
+            {
+                closing = http.framing && objectShaped(sectionType) ? REASONING_SUFFIX.length + replyPad + scanner.capacity() : 0;
+            }
+
+            return closing;
         }
 
         private boolean replyAvailable()
@@ -1429,7 +1444,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             final int pending = dialectActive ? position() - dialectFrom : 0;
 
             return replyMax - (int) (replySeq - replyAck) - encodeSlotOffset - dialectSlotOffset - pending -
-                parser.remaining() - argumentsClosing();
+                parser.remaining() - sectionClosing();
         }
 
         private void flushHeld()
