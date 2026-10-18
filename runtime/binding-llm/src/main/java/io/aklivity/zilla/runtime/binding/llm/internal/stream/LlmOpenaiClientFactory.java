@@ -1190,7 +1190,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
         private void finish()
         {
-            closeSection();
+            closeText();
         }
 
         private void resetDocument()
@@ -2756,7 +2756,14 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
             if (dialectActive)
             {
-                detachDialect(eventFrom);
+                if (http.framing)
+                {
+                    dropDialect();
+                }
+                else
+                {
+                    detachDialect(eventFrom);
+                }
             }
 
             final int take = textAllowance(chars, deferred);
@@ -2776,7 +2783,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 }
             }
 
-            if (finished)
+            if (finished && !http.framing)
             {
                 scanner.flush(this);
 
@@ -2789,12 +2796,18 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 valueSections = 0;
                 dialectResume(position());
             }
-            else if (take > 0)
+            else if (!finished && take > 0)
             {
                 parser.consumed(take);
             }
 
             return take < length;
+        }
+
+        private void closeText()
+        {
+            scanner.flush(this);
+            closeSection();
         }
 
         private int textAllowance(
@@ -2822,8 +2835,9 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 final int escaped = pair ? 4 : escapedWidth(c);
                 final int next = cost + escaped + (c == '<' ? boundary : 0);
                 final boolean last = index + width == length;
+                final boolean closes = http.framing || last && !deferred;
 
-                fits = next + (last && !deferred ? REASONING_SUFFIX.length + replyPad + closing : 0) <= credit;
+                fits = next + (closes ? REASONING_SUFFIX.length + replyPad + closing : 0) <= credit;
 
                 if (fits)
                 {
@@ -2833,7 +2847,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 }
             }
 
-            if (length == 0 && !deferred &&
+            if (length == 0 && !deferred && !http.framing &&
                 cost + REASONING_SUFFIX.length + replyPad + closing > credit)
             {
                 take = -1;
@@ -2877,7 +2891,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int length)
         {
-            if (sectionOpen && sectionType != textType)
+            if (sectionOpen && (sectionType != textType || sectionMessage != choiceIndex))
             {
                 closeSection();
             }
@@ -2950,7 +2964,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
             if (!continuesToolCall())
             {
-                closeSection();
+                closeText();
                 openSection(LlmSectionType.TOOL_CALL, choiceIndex, toolCallId(), toolCallName(), toolIndex);
                 argumentsLength = 0;
             }
@@ -3017,7 +3031,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 final int width = pair ? 2 : 1;
                 final int next = cost + (pair ? 4 : utf8Width(c));
                 final boolean last = index + width == length;
-
                 fits = next + (last && !deferred ? closing : 0) <= credit;
 
                 if (fits)
