@@ -18,10 +18,9 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 
-// Presents the sections of one run to a guardrail chain as a single continuous value. A run is the maximal
-// sequence of consecutive sections of the same type, message and tool call, however many DATA frames and dialect
-// frames it spans. The chain starts when the first bytes of the run arrive and completes when the run ends.
-interface LlmRunPipeline
+// Presents one section to a guardrail chain as a single continuous value, however many DATA frames it spans. The
+// chain starts with the init fragment of the section and completes with its fin fragment.
+interface LlmGuardPipeline
 {
     void reset();
 

@@ -1102,6 +1102,11 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             if (begun() && !draining)
             {
+                if (replay && sectionOpen)
+                {
+                    closeText();
+                }
+
                 doAppFrame(traceId, Flags.COMPLETE, true, true, null, NO_MESSAGE, null, null, null, buffer, offset, length);
             }
         }
@@ -2840,7 +2845,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 final int escaped = pair ? 4 : escapedWidth(c);
                 final int next = cost + escaped + (c == '<' ? boundary : 0);
                 final boolean last = index + width == length;
-                final boolean closes = http.framing || last && !deferred;
+                final boolean closes = last && !deferred && !http.framing;
 
                 fits = next + (closes ? REASONING_SUFFIX.length + replyPad + closing : 0) <= credit;
 

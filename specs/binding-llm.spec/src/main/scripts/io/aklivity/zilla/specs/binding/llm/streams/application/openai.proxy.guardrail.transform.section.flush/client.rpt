@@ -75,11 +75,6 @@ read option zilla:flags "none"
 read " is"
 read option zilla:flags "fin"
 read "\"}"
-read advised zilla:flush ${llm:matchFlushEx()
-                                .typeId(zilla:id("llm"))
-                                .type("ASSISTANT_TEXT")
-                                .message(0)
-                                .build()}
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)

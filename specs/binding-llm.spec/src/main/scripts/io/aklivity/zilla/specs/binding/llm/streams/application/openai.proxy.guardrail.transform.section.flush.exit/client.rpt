@@ -73,11 +73,6 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "{\"text\":\"ret is\"}"
 
-read advised zilla:flush ${llm:matchFlushEx()
-                                .typeId(zilla:id("llm"))
-                                .type("ASSISTANT_TEXT")
-                                .message(0)
-                                .build()}
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)

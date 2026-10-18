@@ -4164,6 +4164,11 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
             if (replyDialect)
             {
+                if (server.streaming)
+                {
+                    closeEncodedReasoning();
+                }
+
                 doReplayEnd();
             }
             else
@@ -4721,7 +4726,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             int offset,
             int length)
         {
-            if (replyDialect)
+            if (replaying())
             {
                 onReplayText(payload, offset, length);
             }
@@ -4943,7 +4948,11 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         {
             replayData = replayCopy;
 
-            if (!server.streaming)
+            if (server.streaming)
+            {
+                closeEncodedReasoning();
+            }
+            else
             {
                 closeReasoning();
             }

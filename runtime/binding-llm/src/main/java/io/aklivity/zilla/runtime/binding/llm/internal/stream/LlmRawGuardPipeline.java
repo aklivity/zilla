@@ -21,7 +21,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.util.Flags;
 
-final class LlmRawRunPipeline implements LlmRunPipeline
+final class LlmRawGuardPipeline implements LlmGuardPipeline
 {
     private static final DirectBufferEx EMPTY = new UnsafeBufferEx(new byte[0]);
 
@@ -29,7 +29,7 @@ final class LlmRawRunPipeline implements LlmRunPipeline
 
     private boolean started;
 
-    LlmRawRunPipeline(
+    LlmRawGuardPipeline(
         ModelPipeline pipeline)
     {
         this.pipeline = pipeline;
