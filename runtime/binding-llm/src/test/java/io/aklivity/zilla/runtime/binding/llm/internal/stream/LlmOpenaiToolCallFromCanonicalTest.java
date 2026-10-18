@@ -34,34 +34,42 @@ public class LlmOpenaiToolCallFromCanonicalTest
     private final Consumer<LlmSectionAttributes> both = id.andThen(name);
 
     @Test
-    public void shouldWrapArgumentsWithAttributesKnownAtBegin()
+    public void shouldEscapeArgumentsWithAttributesKnownAtBegin()
     {
         assertTransforms(transform, both, null,
-            json("{'city':'Paris'}"),
+            json("{'arguments':{'city':'Paris'}}"),
             json("{'id':'call_1','type':'function','function':{'name':'get_weather','arguments':") +
                 quote(json("{'city':'Paris'}")) + "}}");
     }
 
     @Test
-    public void shouldWrapEscapedAndNestedArguments()
+    public void shouldEscapeNestedArguments()
     {
         final String arguments = "{\"q\":\"say \\\"hi\\\" \\\\ \u00e9 \\n\",\"n\":[1,2.5,true,null,{\"k\":\"v\"}],\"e\":{}}";
 
         assertTransforms(transform, both, null,
-            arguments,
+            "{\"arguments\":" + arguments + "}",
             json("{'id':'call_1','type':'function','function':{'name':'get_weather','arguments':") +
                 quote(arguments) + "}}");
     }
 
     @Test
-    public void shouldWrapValueLargerThanWindow()
+    public void shouldEscapeValueLargerThanWindow()
     {
         final String arguments = json("{'text':'" + HUGE + "'}");
 
         assertTransforms(transform, both, null,
-            arguments,
+            "{\"arguments\":" + arguments + "}",
             json("{'id':'call_1','type':'function','function':{'name':'get_weather','arguments':") +
                 quote(arguments) + "}}");
+    }
+
+    @Test
+    public void shouldWriteEmptyArgumentsWhenAbsent()
+    {
+        assertTransforms(transform, both, null,
+            json("{}"),
+            json("{'id':'call_1','type':'function','function':{'name':'get_weather','arguments':'{}'}}"));
     }
 
     @Test
@@ -70,7 +78,7 @@ public class LlmOpenaiToolCallFromCanonicalTest
         final String arguments = json("{'text':'" + HUGE + "'}");
 
         assertTransforms(transform, name, id,
-            arguments,
+            "{\"arguments\":" + arguments + "}",
             json("{'type':'function','function':{'name':'get_weather','arguments':") + quote(arguments) +
                 json("},'id':'call_1'}"));
     }
@@ -81,7 +89,7 @@ public class LlmOpenaiToolCallFromCanonicalTest
         final String arguments = json("{'text':'" + HUGE + "'}");
 
         assertTransforms(transform, id, name,
-            arguments,
+            "{\"arguments\":" + arguments + "}",
             json("{'id':'call_1','type':'function','function':{'arguments':") + quote(arguments) +
                 json(",'name':'get_weather'}}"));
     }
@@ -92,34 +100,54 @@ public class LlmOpenaiToolCallFromCanonicalTest
         final String arguments = json("{'text':'" + HUGE + "'}");
 
         assertTransforms(transform, null, both,
-            arguments,
+            "{\"arguments\":" + arguments + "}",
             json("{'type':'function','function':{'arguments':") + quote(arguments) +
                 json(",'name':'get_weather'},'id':'call_1'}"));
     }
 
     @Test
+    public void shouldRestoreOwnMembersBeforeAndAfterArguments()
+    {
+        assertTransforms(transform, both, null,
+            json("{'openai:index':0,'arguments':{'a':1},'openai:note':'" + HUGE + "'}"),
+            json("{'id':'call_1','type':'function','index':0,'function':{'name':'get_weather','arguments':") +
+                quote(json("{'a':1}")) + json("},'note':'" + HUGE + "'}"));
+    }
+
+    @Test
+    public void shouldDropOtherDialectMembersAndKeepUnprefixedMembers()
+    {
+        assertTransforms(transform, both, null,
+            json("{'anthropic:cache_control':{'type':'ephemeral'},'arguments':{'a':1},'kept':true}"),
+            json("{'id':'call_1','type':'function','function':{'name':'get_weather','arguments':") +
+                quote(json("{'a':1}")) + json("},'kept':true}"));
+    }
+
+    @Test
     public void shouldRejectMissingId()
     {
-        assertRejects(transform, name, null, json("{'city':'Paris'}"));
+        assertRejects(transform, name, null, json("{'arguments':{'city':'Paris'}}"));
     }
 
     @Test
     public void shouldRejectMissingName()
     {
-        assertRejects(transform, id, null, json("{'city':'Paris'}"));
+        assertRejects(transform, id, null, json("{'arguments':{'city':'Paris'}}"));
     }
 
     @Test
     public void shouldRejectArgumentsThatAreNotAnObject()
     {
-        assertRejects(transform, both, null, json("[1]"));
-        assertRejects(transform, both, null, json("5"));
-        assertRejects(transform, both, null, json("'x'"));
+        assertRejects(transform, both, null, json("{'arguments':[1]}"));
+        assertRejects(transform, both, null, json("{'arguments':5}"));
+        assertRejects(transform, both, null, json("{'arguments':'x'}"));
     }
 
     @Test
-    public void shouldRejectMissingArguments()
+    public void shouldRejectToolCallThatIsNotAnObject()
     {
+        assertRejects(transform, both, null, json("[1]"));
+        assertRejects(transform, both, null, json("5"));
         assertRejects(transform, both, null, " ");
     }
 }

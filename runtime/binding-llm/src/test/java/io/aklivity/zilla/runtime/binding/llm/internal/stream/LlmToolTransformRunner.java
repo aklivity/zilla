@@ -70,6 +70,15 @@ final class LlmToolTransformRunner
         JsonTransform fromCanonical,
         String json)
     {
+        assertRoundTrips(toCanonical, fromCanonical, null, json);
+    }
+
+    static void assertRoundTrips(
+        JsonTransform toCanonical,
+        JsonTransform fromCanonical,
+        Consumer<LlmSectionAttributes> attributes,
+        String json)
+    {
         for (int window : WINDOWS)
         {
             for (int bound : BOUNDS)
@@ -80,7 +89,7 @@ final class LlmToolTransformRunner
                 assertThat("encoded window " + window + " bound " + bound, encoded, is(true));
 
                 final ByteArrayOutputStream nativeOutput = new ByteArrayOutputStream();
-                final boolean decoded = run(fromCanonical, null, null, canonical.toString(UTF_8), window, bound, false,
+                final boolean decoded = run(fromCanonical, attributes, null, canonical.toString(UTF_8), window, bound, false,
                     nativeOutput);
 
                 assertThat("decoded window " + window + " bound " + bound, decoded, is(true));

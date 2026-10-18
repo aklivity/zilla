@@ -19,15 +19,17 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 final class LlmAnthropicToolCallFromCanonical extends LlmToolTransform
 {
+    private static final String DIALECT = "anthropic";
+
     private final String type;
 
     private String toolCallId;
     private String toolName;
+    private boolean argumented;
 
     LlmAnthropicToolCallFromCanonical(
         String type)
     {
-        super(MODE_VALUE);
         this.type = type;
     }
 
@@ -37,6 +39,7 @@ final class LlmAnthropicToolCallFromCanonical extends LlmToolTransform
         super.reset();
         toolCallId = null;
         toolName = null;
+        argumented = false;
     }
 
     @Override
@@ -44,28 +47,28 @@ final class LlmAnthropicToolCallFromCanonical extends LlmToolTransform
         int depth,
         CharSequence key)
     {
-        return DROP;
+        int action;
+
+        if (matches(key, "arguments"))
+        {
+            target = "input";
+            argumented = true;
+            action = PASS_OBJECT;
+        }
+        else
+        {
+            action = unprefix(DIALECT, key);
+        }
+
+        return action;
     }
 
     @Override
     protected void onOpen()
     {
-    }
-
-    @Override
-    protected Status onClose(
-        int depth)
-    {
-        return Status.ADVANCED;
-    }
-
-    @Override
-    protected void onBegin()
-    {
         toolCallId = attribute("tool-call-id");
         toolName = attribute("tool-name");
 
-        emit(JsonEvent.START_OBJECT);
         emit(JsonEvent.KEY_NAME, "type");
         emit(JsonEvent.VALUE_STRING, type);
 
@@ -80,42 +83,48 @@ final class LlmAnthropicToolCallFromCanonical extends LlmToolTransform
             emit(JsonEvent.KEY_NAME, "name");
             emit(JsonEvent.VALUE_STRING, toolName);
         }
-
-        emit(JsonEvent.KEY_NAME, "input");
     }
 
     @Override
-    protected void onValueEnd()
+    protected Status onClose(
+        int depth)
     {
-        if (toolCallId != null && toolName != null)
+        if (!argumented)
         {
-            emit(JsonEvent.END_OBJECT);
-        }
-    }
-
-    @Override
-    protected Status onEnd()
-    {
-        final String id = toolCallId != null ? toolCallId : attribute("tool-call-id");
-        final String name = toolName != null ? toolName : attribute("tool-name");
-
-        if (toolCallId == null && id != null)
-        {
-            emit(JsonEvent.KEY_NAME, "id");
-            emit(JsonEvent.VALUE_STRING, id);
-        }
-
-        if (toolName == null && name != null)
-        {
-            emit(JsonEvent.KEY_NAME, "name");
-            emit(JsonEvent.VALUE_STRING, name);
-        }
-
-        if (toolCallId == null || toolName == null)
-        {
+            emit(JsonEvent.KEY_NAME, "input");
+            emit(JsonEvent.START_OBJECT);
             emit(JsonEvent.END_OBJECT);
         }
 
-        return id != null && name != null ? Status.ADVANCED : Status.REJECTED;
+        if (toolCallId == null)
+        {
+            toolCallId = attribute("tool-call-id");
+
+            if (toolCallId != null)
+            {
+                emit(JsonEvent.KEY_NAME, "id");
+                emit(JsonEvent.VALUE_STRING, toolCallId);
+            }
+        }
+
+        if (toolName == null)
+        {
+            toolName = attribute("tool-name");
+
+            if (toolName != null)
+            {
+                emit(JsonEvent.KEY_NAME, "name");
+                emit(JsonEvent.VALUE_STRING, toolName);
+            }
+        }
+
+        final boolean resolved = toolCallId != null && toolName != null;
+
+        if (resolved)
+        {
+            pass(JsonEvent.END_OBJECT);
+        }
+
+        return resolved ? Status.ADVANCED : Status.REJECTED;
     }
 }

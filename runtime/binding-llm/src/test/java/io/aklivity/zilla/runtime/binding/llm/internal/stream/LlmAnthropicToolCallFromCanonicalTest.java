@@ -33,42 +33,50 @@ public class LlmAnthropicToolCallFromCanonicalTest
     private final Consumer<LlmSectionAttributes> both = id.andThen(name);
 
     @Test
-    public void shouldWrapInputWithAttributesKnownAtBegin()
+    public void shouldWriteInputWithAttributesKnownAtBegin()
     {
         assertTransforms(transform, both, null,
-            json("{'city':'Paris'}"),
+            json("{'arguments':{'city':'Paris'}}"),
             json("{'type':'tool_use','id':'toolu_1','name':'get_weather','input':{'city':'Paris'}}"));
     }
 
     @Test
-    public void shouldWrapInputAsServerToolUse()
+    public void shouldWriteInputAsServerToolUse()
     {
         assertTransforms(new LlmAnthropicToolCallFromCanonical("server_tool_use"), both, null,
-            json("{'query':'zilla'}"),
+            json("{'arguments':{'query':'zilla'}}"),
             json("{'type':'server_tool_use','id':'toolu_1','name':'get_weather','input':{'query':'zilla'}}"));
     }
 
     @Test
-    public void shouldWrapNestedInput()
+    public void shouldWriteNestedInput()
     {
         assertTransforms(transform, both, null,
-            json("{'n':[1,2.5,true,null,{'k':'v'}],'e':{}}"),
+            json("{'arguments':{'n':[1,2.5,true,null,{'k':'v'}],'e':{}}}"),
             json("{'type':'tool_use','id':'toolu_1','name':'get_weather','input':{'n':[1,2.5,true,null,{'k':'v'}],'e':{}}}"));
     }
 
     @Test
-    public void shouldWrapValueLargerThanWindow()
+    public void shouldWriteValueLargerThanWindow()
     {
         assertTransforms(transform, both, null,
-            json("{'text':'" + HUGE + "'}"),
+            json("{'arguments':{'text':'" + HUGE + "'}}"),
             json("{'type':'tool_use','id':'toolu_1','name':'get_weather','input':{'text':'" + HUGE + "'}}"));
+    }
+
+    @Test
+    public void shouldWriteEmptyInputWhenArgumentsAbsent()
+    {
+        assertTransforms(transform, both, null,
+            json("{}"),
+            json("{'type':'tool_use','id':'toolu_1','name':'get_weather','input':{}}"));
     }
 
     @Test
     public void shouldWriteNameAfterInputWhenKnownLate()
     {
         assertTransforms(transform, id, name,
-            json("{'text':'" + HUGE + "'}"),
+            json("{'arguments':{'text':'" + HUGE + "'}}"),
             json("{'type':'tool_use','id':'toolu_1','input':{'text':'" + HUGE + "'},'name':'get_weather'}"));
     }
 
@@ -76,7 +84,7 @@ public class LlmAnthropicToolCallFromCanonicalTest
     public void shouldWriteIdAfterInputWhenKnownLate()
     {
         assertTransforms(transform, name, id,
-            json("{'text':'" + HUGE + "'}"),
+            json("{'arguments':{'text':'" + HUGE + "'}}"),
             json("{'type':'tool_use','name':'get_weather','input':{'text':'" + HUGE + "'},'id':'toolu_1'}"));
     }
 
@@ -84,33 +92,52 @@ public class LlmAnthropicToolCallFromCanonicalTest
     public void shouldWriteIdAndNameAfterInputWhenKnownLate()
     {
         assertTransforms(transform, null, both,
-            json("{'text':'" + HUGE + "'}"),
+            json("{'arguments':{'text':'" + HUGE + "'}}"),
             json("{'type':'tool_use','input':{'text':'" + HUGE + "'},'id':'toolu_1','name':'get_weather'}"));
+    }
+
+    @Test
+    public void shouldRestoreOwnMembersBeforeAndAfterInput()
+    {
+        assertTransforms(transform, both, null,
+            json("{'anthropic:cache_control':{'type':'ephemeral'},'arguments':{'a':1},'anthropic:note':'" + HUGE + "'}"),
+            json("{'type':'tool_use','id':'toolu_1','name':'get_weather','cache_control':{'type':'ephemeral'}," +
+                "'input':{'a':1},'note':'" + HUGE + "'}"));
+    }
+
+    @Test
+    public void shouldDropOtherDialectMembersAndKeepUnprefixedMembers()
+    {
+        assertTransforms(transform, both, null,
+            json("{'openai:index':0,'arguments':{'a':1},'kept':true,'openai:top':{'b':[1]}}"),
+            json("{'type':'tool_use','id':'toolu_1','name':'get_weather','input':{'a':1},'kept':true}"));
     }
 
     @Test
     public void shouldRejectMissingId()
     {
-        assertRejects(transform, name, null, json("{'city':'Paris'}"));
+        assertRejects(transform, name, null, json("{'arguments':{'city':'Paris'}}"));
     }
 
     @Test
     public void shouldRejectMissingName()
     {
-        assertRejects(transform, id, null, json("{'city':'Paris'}"));
+        assertRejects(transform, id, null, json("{'arguments':{'city':'Paris'}}"));
     }
 
     @Test
-    public void shouldRejectInputThatIsNotAnObject()
+    public void shouldRejectArgumentsThatAreNotAnObject()
+    {
+        assertRejects(transform, both, null, json("{'arguments':[1]}"));
+        assertRejects(transform, both, null, json("{'arguments':5}"));
+        assertRejects(transform, both, null, json("{'arguments':'x'}"));
+    }
+
+    @Test
+    public void shouldRejectToolCallThatIsNotAnObject()
     {
         assertRejects(transform, both, null, json("[1]"));
         assertRejects(transform, both, null, json("5"));
-        assertRejects(transform, both, null, json("'x'"));
-    }
-
-    @Test
-    public void shouldRejectMissingInput()
-    {
         assertRejects(transform, both, null, " ");
     }
 }
