@@ -62,6 +62,7 @@
 - Add `classifier-patterns`: label values by regular expression and entropy [\#2689](https://github.com/aklivity/zilla/issues/2689) ([jfallows](https://github.com/jfallows))
 - Add `classifier-presidio`: label personal data using a Presidio analyzer [\#2690](https://github.com/aklivity/zilla/issues/2690) ([jfallows](https://github.com/jfallows))
 - Remove incubator `model-vector` in favor of `model: classify` and `classifier-semantic` [\#2694](https://github.com/aklivity/zilla/issues/2694) ([jfallows](https://github.com/jfallows))
+- binding-llm: canonical payloads for tool, server tool and media sections [\#2736](https://github.com/aklivity/zilla/issues/2736) ([jfallows](https://github.com/jfallows))
 
 **Merged pull requests:**
 
@@ -159,6 +160,7 @@
 - fix\(binding-mcp\): preserve element keys that fragment across windows in scheme exclusion [\#2731](https://github.com/aklivity/zilla/pull/2731) ([jfallows](https://github.com/jfallows))
 - fix\(binding-llm\): gate same-dialect response decoding on reply credit per event [\#2732](https://github.com/aklivity/zilla/pull/2732) ([jfallows](https://github.com/jfallows))
 - fix\(binding-llm\): authorize before routing, detect on media type, preserve upstream error code and type [\#2733](https://github.com/aklivity/zilla/pull/2733) ([jfallows](https://github.com/jfallows))
+- feat\(binding-llm\): canonical payloads for tool, server tool and media sections [\#2738](https://github.com/aklivity/zilla/pull/2738) ([jfallows](https://github.com/jfallows))
 
 ## [2.4.7](https://github.com/aklivity/zilla/tree/2.4.7) (2026-09-30)
 
