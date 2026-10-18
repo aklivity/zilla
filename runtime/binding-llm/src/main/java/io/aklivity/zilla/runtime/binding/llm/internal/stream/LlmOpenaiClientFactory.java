@@ -101,6 +101,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private static final String MESSAGE_MODEL_MISSING = "Missing required parameter: 'model'.";
     private static final String MESSAGE_SECTION_INVALID = "Invalid request section.";
     private static final String MESSAGE_SECTION_CONVERT = "%s cannot be converted from %s to %s";
+    private static final String MESSAGE_SECTION_CONVERT_AFTER_TOOLS =
+        "%s cannot be converted from %s to %s after tool-definition";
     private static final Set<String> RESPONSE_CONTENT_TYPES = Set.of(CONTENT_TYPE_JSON, CONTENT_TYPE_EVENT_STREAM);
     private static final DirectBufferEx RESPONSE_TERMINATOR = new UnsafeBufferEx("[DONE]".getBytes(UTF_8));
     private static final int STATUS_OK = 200;
@@ -158,7 +160,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private static final int CONTENT_CLOSED = 3;
 
     private static final int NO_MESSAGE = -2;
-    private static final int TOP_LEVEL = -1;
     private static final int ESCAPE_EXPANSION = 6;
     private static final int ENCODE_SLACK = 256;
     private static final int ENCODE_STRUCTURE = 128;
@@ -895,9 +896,23 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
         private String rejection()
         {
-            return replay || requestSection == null || requestSection == LlmSectionType.NONE
-                ? MESSAGE_SECTION_INVALID
-                : MESSAGE_SECTION_CONVERT.formatted(requestSection.name().toLowerCase().replace('_', '-'), dialect, NAME);
+            final String message;
+
+            if (replay || requestSection == null || requestSection == LlmSectionType.NONE)
+            {
+                message = MESSAGE_SECTION_INVALID;
+            }
+            else
+            {
+                final String section = requestSection.name().toLowerCase().replace('_', '-');
+                final int kind = sectionKind(requestSection);
+
+                message = http.messagesClosed && kind != KIND_TOOL_DEFINITION && kind != KIND_UNKNOWN
+                    ? MESSAGE_SECTION_CONVERT_AFTER_TOOLS.formatted(section, dialect, NAME)
+                    : MESSAGE_SECTION_CONVERT.formatted(section, dialect, NAME);
+            }
+
+            return message;
         }
 
         private void flushAppWindow(
@@ -3589,7 +3604,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private boolean encodeFailed;
         private boolean sectionsStarted;
 
-        private int messageCount;
         private int messageIndex = NO_MESSAGE;
         private boolean messagesOpened;
         private boolean messagesClosed;
@@ -3993,10 +4007,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             {
                 encodeFailed = true;
             }
-            else if (kind == KIND_SYSTEM_INSTRUCTION && message == TOP_LEVEL && messageCount > 0)
-            {
-                encodeFailed = true;
-            }
             else if (beginEncode(ENCODE_STRUCTURE + sectionRoom(extension)))
             {
                 if (kind == KIND_TOOL_DEFINITION)
@@ -4328,8 +4338,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int message,
             String extension)
         {
-            messageCount++;
-
             generator.writeStartObject().write(MEMBER_ROLE, role);
 
             if (kind == KIND_TOOL_RESULT)
