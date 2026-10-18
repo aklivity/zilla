@@ -1001,6 +1001,7 @@ public final class LlmFunctions
         private final LlmFlushExFW.Builder flushExRW;
 
         private int maxOutputTokens = -1;
+        private boolean streaming;
 
         private LlmDialectFlushExBuilder()
         {
@@ -1022,9 +1023,16 @@ public final class LlmFunctions
             return this;
         }
 
+        public LlmDialectFlushExBuilder streaming(
+            boolean streaming)
+        {
+            this.streaming = streaming;
+            return this;
+        }
+
         public byte[] build()
         {
-            flushExRW.dialect(d -> d.maxOutputTokens(maxOutputTokens));
+            flushExRW.dialect(d -> d.maxOutputTokens(maxOutputTokens).streaming(streaming ? 1 : 0));
 
             final LlmFlushExFW flushEx = flushExRW.build();
             final byte[] array = new byte[flushEx.sizeof()];
@@ -1041,6 +1049,7 @@ public final class LlmFunctions
 
         private Integer typeId;
         private Integer maxOutputTokens;
+        private Boolean streaming;
 
         public LlmDialectFlushExMatcherBuilder typeId(
             int typeId)
@@ -1053,6 +1062,13 @@ public final class LlmFunctions
             int maxOutputTokens)
         {
             this.maxOutputTokens = maxOutputTokens;
+            return this;
+        }
+
+        public LlmDialectFlushExMatcherBuilder streaming(
+            boolean streaming)
+        {
+            this.streaming = streaming;
             return this;
         }
 
@@ -1075,7 +1091,8 @@ public final class LlmFunctions
             if (flushEx != null &&
                 flushEx.kind() == LlmFlushExFW.KIND_DIALECT &&
                 matchTypeId(flushEx) &&
-                matchMaxOutputTokens(flushEx))
+                matchMaxOutputTokens(flushEx) &&
+                matchStreaming(flushEx))
             {
                 byteBuf.position(byteBuf.position() + flushEx.sizeof());
                 return flushEx;
@@ -1094,6 +1111,12 @@ public final class LlmFunctions
             LlmFlushExFW flushEx)
         {
             return maxOutputTokens == null || maxOutputTokens == flushEx.dialect().maxOutputTokens();
+        }
+
+        private boolean matchStreaming(
+            LlmFlushExFW flushEx)
+        {
+            return streaming == null || streaming == (flushEx.dialect().streaming() != 0);
         }
     }
 

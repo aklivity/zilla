@@ -109,6 +109,7 @@ scope llm
         struct LlmDialectFlushEx
         {
             int32 maxOutputTokens = -1;
+            uint8 streaming = 0;
         }
 
         union LlmFlushEx switch (uint8) extends core::stream::Extension

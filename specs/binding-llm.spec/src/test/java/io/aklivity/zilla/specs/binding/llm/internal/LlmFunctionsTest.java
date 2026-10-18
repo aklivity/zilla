@@ -307,6 +307,90 @@ public class LlmFunctionsTest
     }
 
     @Test
+    public void shouldGenerateDialectFlushExStreaming()
+    {
+        byte[] bytes = LlmFunctions.dialectFlushEx()
+            .typeId(0)
+            .streaming(true)
+            .build();
+
+        final LlmFlushExFW flushEx = new LlmFlushExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+
+        assertEquals(LlmFlushExFW.KIND_DIALECT, flushEx.kind());
+        assertEquals(-1, flushEx.dialect().maxOutputTokens());
+        assertEquals(1, flushEx.dialect().streaming());
+    }
+
+    @Test
+    public void shouldGenerateDialectFlushExNotStreamingByDefault()
+    {
+        byte[] bytes = LlmFunctions.dialectFlushEx()
+            .typeId(0)
+            .maxOutputTokens(2048)
+            .build();
+
+        final LlmFlushExFW flushEx = new LlmFlushExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+
+        assertEquals(0, flushEx.dialect().streaming());
+    }
+
+    @Test
+    public void shouldMatchDialectFlushExStreaming() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchDialectFlushEx()
+            .typeId(0)
+            .streaming(true)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new LlmFlushExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .dialect(x -> x.streaming(1))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchDialectFlushExStreamingMismatch() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchDialectFlushEx()
+            .typeId(0)
+            .streaming(true)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new LlmFlushExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .dialect(x -> x.maxOutputTokens(2048))
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchDialectFlushExWithoutStreaming() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchDialectFlushEx()
+            .typeId(0)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new LlmFlushExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .dialect(x -> x.streaming(1))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
     public void shouldGenerateChallengeExWithModel()
     {
         byte[] bytes = LlmFunctions.challengeEx()
