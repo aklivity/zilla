@@ -68,8 +68,15 @@ public class LlmSectionPipelineBM
 
     private static final String TOOL_CALL_NATIVE =
         "{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"get_weather\",\"input\":{\"city\":\"Paris\"," +
-        "\"unit\":\"c\",\"days\":[1,2,3]}}";
-    private static final String TOOL_CALL_CANONICAL = "{\"city\":\"Paris\",\"unit\":\"c\",\"days\":[1,2,3]}";
+        "\"unit\":\"c\",\"days\":[1,2,3]},\"cache_control\":{\"type\":\"ephemeral\"}}";
+    private static final String TOOL_CALL_CANONICAL =
+        "{\"arguments\":{\"city\":\"Paris\",\"unit\":\"c\",\"days\":[1,2,3]}," +
+        "\"anthropic:cache_control\":{\"type\":\"ephemeral\"}}";
+    private static final String TOOL_CALL_OPENAI_NATIVE =
+        "{\"id\":\"call_1\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":" +
+        "\"{\\\"city\\\":\\\"Paris\\\",\\\"unit\\\":\\\"c\\\",\\\"days\\\":[1,2,3]}\"}}";
+    private static final String TOOL_CALL_OPENAI_CANONICAL =
+        "{\"arguments\":{\"city\":\"Paris\",\"unit\":\"c\",\"days\":[1,2,3]}}";
 
     private static final String IMAGE_NATIVE =
         "{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image/png\",\"data\":\"" + DATA + "\"}}";
@@ -103,6 +110,8 @@ public class LlmSectionPipelineBM
     private LlmSectionPipeline toolDefinitionFromOpenai;
     private LlmSectionPipeline toolCallToCanonical;
     private LlmSectionPipeline toolCallFromCanonical;
+    private LlmSectionPipeline toolCallOpenaiToCanonical;
+    private LlmSectionPipeline toolCallOpenaiFromCanonical;
     private LlmSectionPipeline imageToCanonical;
     private LlmSectionPipeline imageFromAnthropic;
     private LlmSectionPipeline citationsToCanonical;
@@ -113,6 +122,8 @@ public class LlmSectionPipelineBM
     private UnsafeBufferEx toolDefinitionCanonical;
     private UnsafeBufferEx toolCallNative;
     private UnsafeBufferEx toolCallCanonical;
+    private UnsafeBufferEx toolCallOpenaiNative;
+    private UnsafeBufferEx toolCallOpenaiCanonical;
     private UnsafeBufferEx imageNative;
     private UnsafeBufferEx imageCanonical;
     private UnsafeBufferEx citationsNative;
@@ -127,6 +138,8 @@ public class LlmSectionPipelineBM
         toolDefinitionFromOpenai = pipeline(new LlmOpenaiToolDefinitionFromCanonical());
         toolCallToCanonical = pipeline(new LlmAnthropicToolCallToCanonical());
         toolCallFromCanonical = pipeline(new LlmAnthropicToolCallFromCanonical("tool_use"));
+        toolCallOpenaiToCanonical = pipeline(new LlmOpenaiToolCallToCanonical());
+        toolCallOpenaiFromCanonical = pipeline(new LlmOpenaiToolCallFromCanonical());
         imageToCanonical = pipeline(LlmAnthropicMediaToCanonical.image());
         imageFromAnthropic = pipeline(LlmAnthropicMediaFromCanonical.image());
         citationsToCanonical = pipeline(new LlmAnthropicCitationsToCanonical());
@@ -142,6 +155,8 @@ public class LlmSectionPipelineBM
         toolDefinitionCanonical = buffer(TOOL_DEFINITION_CANONICAL);
         toolCallNative = buffer(TOOL_CALL_NATIVE);
         toolCallCanonical = buffer(TOOL_CALL_CANONICAL);
+        toolCallOpenaiNative = buffer(TOOL_CALL_OPENAI_NATIVE);
+        toolCallOpenaiCanonical = buffer(TOOL_CALL_OPENAI_CANONICAL);
         imageNative = buffer(IMAGE_NATIVE);
         imageCanonical = buffer(IMAGE_CANONICAL);
         citationsNative = buffer(CITATIONS_NATIVE);
@@ -183,6 +198,37 @@ public class LlmSectionPipelineBM
     public int toolCallFromCanonical()
     {
         return run(toolCallFromCanonical, toolCallAttributes, toolCallCanonical, toolCallCanonical.capacity());
+    }
+
+    @Benchmark
+    public int toolCallToCanonicalFragmented()
+    {
+        return run(toolCallToCanonical, toolCallAttributes, toolCallNative, WINDOW);
+    }
+
+    @Benchmark
+    public int toolCallFromCanonicalFragmented()
+    {
+        return run(toolCallFromCanonical, toolCallAttributes, toolCallCanonical, WINDOW);
+    }
+
+    @Benchmark
+    public int toolCallToCanonicalOpenai()
+    {
+        return run(toolCallOpenaiToCanonical, toolCallAttributes, toolCallOpenaiNative, toolCallOpenaiNative.capacity());
+    }
+
+    @Benchmark
+    public int toolCallFromCanonicalOpenai()
+    {
+        return run(toolCallOpenaiFromCanonical, toolCallAttributes, toolCallOpenaiCanonical,
+            toolCallOpenaiCanonical.capacity());
+    }
+
+    @Benchmark
+    public int toolCallToCanonicalOpenaiFragmented()
+    {
+        return run(toolCallOpenaiToCanonical, toolCallAttributes, toolCallOpenaiNative, WINDOW);
     }
 
     @Benchmark

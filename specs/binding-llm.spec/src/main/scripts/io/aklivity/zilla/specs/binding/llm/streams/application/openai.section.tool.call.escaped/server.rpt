@@ -41,7 +41,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .attribute("tool-name", "get_weather")
                           .attribute("tool-call-id", "call_1")
                           .build()}
-read "{\"query\":\"say \\\"hi\\\" \\\\ done\\nnext\",\"text\":\"café ✓ 😀\",\"nested\":{\"items\":[1,2.5,true,null,{\"k\":\"v\"}],\"empty\":{},\"list\":[]}}"
+read "{\"arguments\":{\"query\":\"say \\\"hi\\\" \\\\ done\\nnext\",\"text\":\"café ✓ 😀\",\"nested\":{\"items\":[1,2.5,true,null,{\"k\":\"v\"}],\"empty\":{},\"list\":[]}}}"
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))

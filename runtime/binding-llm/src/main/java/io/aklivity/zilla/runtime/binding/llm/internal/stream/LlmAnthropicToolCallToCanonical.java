@@ -19,12 +19,9 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 final class LlmAnthropicToolCallToCanonical extends LlmToolTransform
 {
-    private boolean inputted;
+    private static final String DIALECT = "anthropic";
 
-    LlmAnthropicToolCallToCanonical()
-    {
-        super(MODE_EXTRACT);
-    }
+    private boolean inputted;
 
     @Override
     public void reset()
@@ -38,12 +35,21 @@ final class LlmAnthropicToolCallToCanonical extends LlmToolTransform
         int depth,
         CharSequence key)
     {
-        int action = DROP;
+        int action;
 
-        if (matches(key, "input"))
+        if (matches(key, "type") || matches(key, "id") || matches(key, "name"))
         {
+            action = DROP;
+        }
+        else if (matches(key, "input"))
+        {
+            target = "arguments";
             inputted = true;
             action = PASS_OBJECT;
+        }
+        else
+        {
+            action = prefix(DIALECT, key);
         }
 
         return action;
@@ -60,9 +66,12 @@ final class LlmAnthropicToolCallToCanonical extends LlmToolTransform
     {
         if (!inputted)
         {
+            emit(JsonEvent.KEY_NAME, "arguments");
             emit(JsonEvent.START_OBJECT);
             emit(JsonEvent.END_OBJECT);
         }
+
+        pass(JsonEvent.END_OBJECT);
 
         return Status.ADVANCED;
     }

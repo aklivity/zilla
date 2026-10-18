@@ -43,7 +43,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .attribute("tool-name", "get_weather")
                           .attribute("tool-call-id", "call_1")
                           .build()}
-read "{oops"
+read "{\"arguments\":{oops"
 
 write zilla:reset.ext ${llm:resetEx()
                             .typeId(zilla:id("llm"))

@@ -28,60 +28,85 @@ public class LlmAnthropicToolCallToCanonicalTest
     private final LlmAnthropicToolCallToCanonical transform = new LlmAnthropicToolCallToCanonical();
 
     @Test
-    public void shouldExtractInput()
+    public void shouldWrapInputAsArguments()
     {
         assertTransforms(transform,
             json("{'type':'tool_use','id':'toolu_1','name':'get_weather','input':{'city':'Paris'}}"),
-            json("{'city':'Paris'}"));
+            json("{'arguments':{'city':'Paris'}}"));
     }
 
     @Test
-    public void shouldExtractAbsentInputAsEmptyObject()
+    public void shouldWrapAbsentInputAsEmptyArguments()
     {
         assertTransforms(transform,
             json("{'type':'tool_use','id':'toolu_1','name':'ping'}"),
-            json("{}"));
+            json("{'arguments':{}}"));
     }
 
     @Test
-    public void shouldExtractInputInAnyOrder()
+    public void shouldWrapInputInAnyOrder()
     {
         assertTransforms(transform,
             json("{'input':{'a':1},'name':'ping','id':'toolu_1','type':'tool_use'}"),
-            json("{'a':1}"));
+            json("{'arguments':{'a':1}}"));
     }
 
     @Test
-    public void shouldExtractNestedInput()
+    public void shouldWrapNestedInput()
     {
         assertTransforms(transform,
             json("{'type':'tool_use','id':'toolu_1','name':'ping','input':{'n':[1,2.5,true,null,{'k':'v'}],'e':{}}}"),
-            json("{'n':[1,2.5,true,null,{'k':'v'}],'e':{}}"));
+            json("{'arguments':{'n':[1,2.5,true,null,{'k':'v'}],'e':{}}}"));
     }
 
     @Test
-    public void shouldExtractLongValues()
+    public void shouldWrapLongValues()
     {
         assertTransforms(transform,
             json("{'type':'tool_use','id':'" + LONG + "','name':'" + LONG + "','input':{'text':'" + LONG + "'}}"),
-            json("{'text':'" + LONG + "'}"));
+            json("{'arguments':{'text':'" + LONG + "'}}"));
     }
 
     @Test
-    public void shouldExtractValueLargerThanWindow()
+    public void shouldWrapValueLargerThanWindow()
     {
         assertTransforms(transform,
             json("{'type':'tool_use','id':'toolu_1','name':'ping','input':{'text':'" + HUGE + "'}}"),
-            json("{'text':'" + HUGE + "'}"));
+            json("{'arguments':{'text':'" + HUGE + "'}}"));
     }
 
     @Test
-    public void shouldDropOtherMembers()
+    public void shouldCarryCacheControlBeforeInput()
+    {
+        assertTransforms(transform,
+            json("{'cache_control':{'type':'ephemeral'},'type':'tool_use','id':'toolu_1','name':'ping','input':{'a':1}}"),
+            json("{'anthropic:cache_control':{'type':'ephemeral'},'arguments':{'a':1}}"));
+    }
+
+    @Test
+    public void shouldCarryCacheControlAfterInput()
+    {
+        assertTransforms(transform,
+            json("{'type':'tool_use','id':'toolu_1','name':'ping','input':{'a':1},'cache_control':{'type':'ephemeral'}}"),
+            json("{'arguments':{'a':1},'anthropic:cache_control':{'type':'ephemeral'}}"));
+    }
+
+    @Test
+    public void shouldCarryCacheControlWithoutInput()
+    {
+        assertTransforms(transform,
+            json("{'type':'tool_use','id':'toolu_1','name':'ping','cache_control':{'type':'ephemeral'}}"),
+            json("{'anthropic:cache_control':{'type':'ephemeral'},'arguments':{}}"));
+    }
+
+    @Test
+    public void shouldCarryNativeOnlyMembers()
     {
         assertTransforms(transform,
             json("{'cache_control':{'type':'ephemeral','ttl':[1,{'a':null}]},'type':'tool_use','id':'toolu_1'," +
                 "'note':'" + LONG + "','name':'ping','input':{'a':1},'count':12345,'tail':null}"),
-            json("{'a':1}"));
+            json("{'anthropic:cache_control':{'type':'ephemeral','ttl':[1,{'a':null}]},'anthropic:note':'" + LONG +
+                "','arguments':{'a':1},'anthropic:count':12345,'anthropic:tail':null}"));
     }
 
     @Test
