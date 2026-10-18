@@ -163,22 +163,23 @@ public class LlmFunctionsTest
     }
 
     @Test
-    public void shouldGenerateFlushEx()
+    public void shouldGenerateDialectFlushEx()
     {
-        byte[] bytes = LlmFunctions.flushEx()
+        byte[] bytes = LlmFunctions.dialectFlushEx()
             .typeId(0)
             .maxOutputTokens(2048)
             .build();
 
         final LlmFlushExFW flushEx = new LlmFlushExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
 
-        assertEquals(2048, flushEx.maxOutputTokens());
+        assertEquals(LlmFlushExFW.KIND_DIALECT, flushEx.kind());
+        assertEquals(2048, flushEx.dialect().maxOutputTokens());
     }
 
     @Test
-    public void shouldMatchFlushEx() throws Exception
+    public void shouldMatchDialectFlushEx() throws Exception
     {
-        BytesMatcher matcher = LlmFunctions.matchFlushEx()
+        BytesMatcher matcher = LlmFunctions.matchDialectFlushEx()
             .typeId(0)
             .maxOutputTokens(2048)
             .build();
@@ -188,7 +189,62 @@ public class LlmFunctionsTest
         new LlmFlushExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
+            .dialect(x -> x.maxOutputTokens(2048))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchDialectFlushExMismatch() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchDialectFlushEx()
+            .typeId(0)
             .maxOutputTokens(2048)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new LlmFlushExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .dialect(x -> x.maxOutputTokens(1024))
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateFlushEx()
+    {
+        byte[] bytes = LlmFunctions.flushEx()
+            .typeId(0)
+            .type("ASSISTANT_TEXT")
+            .message(1)
+            .build();
+
+        final LlmFlushExFW flushEx = new LlmFlushExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+
+        assertEquals(LlmFlushExFW.KIND_SECTION, flushEx.kind());
+        assertEquals(LlmSectionType.ASSISTANT_TEXT, flushEx.section().type().get());
+        assertEquals(1, flushEx.section().message());
+    }
+
+    @Test
+    public void shouldMatchFlushEx() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchFlushEx()
+            .typeId(0)
+            .type("ASSISTANT_TEXT")
+            .message(1)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new LlmFlushExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .section(x -> x.type(t -> t.set(LlmSectionType.ASSISTANT_TEXT)).message(1))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -199,7 +255,8 @@ public class LlmFunctionsTest
     {
         BytesMatcher matcher = LlmFunctions.matchFlushEx()
             .typeId(0)
-            .maxOutputTokens(2048)
+            .type("ASSISTANT_TEXT")
+            .message(1)
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
@@ -207,14 +264,14 @@ public class LlmFunctionsTest
         new LlmFlushExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .maxOutputTokens(1024)
+            .section(x -> x.type(t -> t.set(LlmSectionType.USER_TEXT)).message(1))
             .build();
 
         assertThrows(Exception.class, () -> matcher.match(byteBuf));
     }
 
     @Test
-    public void shouldMatchFlushExWithoutMaxOutputTokens() throws Exception
+    public void shouldFailMatchFlushExDialectKind() throws Exception
     {
         BytesMatcher matcher = LlmFunctions.matchFlushEx()
             .typeId(0)
@@ -225,6 +282,25 @@ public class LlmFunctionsTest
         new LlmFlushExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
+            .dialect(x -> x.maxOutputTokens(2048))
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchDialectFlushExWithoutMaxOutputTokens() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchDialectFlushEx()
+            .typeId(0)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new LlmFlushExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .dialect(x -> x.maxOutputTokens(2048))
             .build();
 
         assertNotNull(matcher.match(byteBuf));

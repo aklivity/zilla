@@ -33,7 +33,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-write "Hello, world"
+write "{\"text\":\"Hello, world\"}"
 write flush
 
 write advise zilla:flush
@@ -44,12 +44,15 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .model(model)
                            .build()}
 
+read option zilla:flags "init"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-read "HiHiHi"
+read "{\"text\":\"Hi ******"
+read option zilla:flags "fin"
+read "\"}"
 
 read closed
 

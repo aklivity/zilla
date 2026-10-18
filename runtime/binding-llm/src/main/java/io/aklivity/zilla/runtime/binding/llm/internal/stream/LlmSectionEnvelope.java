@@ -16,13 +16,23 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 
 final class LlmSectionEnvelope implements JsonEnvelope
 {
+    private final Map<String, EncodedValue> encoded;
+
     private LlmSectionAttributes attributes;
+
+    LlmSectionEnvelope()
+    {
+        this.encoded = new HashMap<>();
+    }
 
     void wrap(
         LlmSectionAttributes attributes)
@@ -44,7 +54,7 @@ final class LlmSectionEnvelope implements JsonEnvelope
     {
         final String value = index == 0 && attributes != null ? attributes.get(name) : null;
 
-        return value != null ? new UnsafeBufferEx(value.getBytes(UTF_8)) : null;
+        return value != null ? encoded.computeIfAbsent(name, key -> new EncodedValue()).encode(value) : null;
     }
 
     @Override
@@ -52,5 +62,24 @@ final class LlmSectionEnvelope implements JsonEnvelope
         String name,
         DirectBufferEx value)
     {
+    }
+
+    private static final class EncodedValue
+    {
+        private final UnsafeBufferEx buffer = new UnsafeBufferEx();
+
+        private String value;
+
+        DirectBufferEx encode(
+            String value)
+        {
+            if (this.value != value)
+            {
+                this.value = value;
+                buffer.wrap(value.getBytes(UTF_8));
+            }
+
+            return buffer;
+        }
     }
 }

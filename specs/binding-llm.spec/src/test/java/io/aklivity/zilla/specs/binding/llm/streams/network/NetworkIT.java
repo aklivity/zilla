@@ -407,6 +407,24 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.section.user.text.empty/client",
+        "${net}/openai.section.user.text.empty/server"})
+    public void shouldOpenaiSectionUserTextEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.assistant.text.empty/client",
+        "${net}/openai.section.assistant.text.empty/server"})
+    public void shouldOpenaiSectionAssistantTextEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.request.response.format/client",
         "${net}/openai.request.response.format/server"})
     public void shouldOpenaiRequestResponseFormat() throws Exception
@@ -518,6 +536,24 @@ public class NetworkIT
         "${net}/openai.section.assistant.text/client",
         "${net}/openai.section.assistant.text/server"})
     public void shouldOpenaiSectionAssistantText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.assistant.text.annotations/client",
+        "${net}/openai.section.assistant.text.annotations/server"})
+    public void shouldOpenaiSectionAssistantTextAnnotations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.assistant.reasoning.history/client",
+        "${net}/openai.section.assistant.reasoning.history/server"})
+    public void shouldDecodeOpenaiSectionAssistantReasoningHistory() throws Exception
     {
         k3po.finish();
     }
@@ -866,6 +902,24 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/anthropic.section.assistant.reasoning.signature.first/client",
+        "${net}/anthropic.section.assistant.reasoning.signature.first/server"})
+    public void shouldAnthropicSectionAssistantReasoningSignatureFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.assistant.reasoning.10k/client",
+        "${net}/anthropic.section.assistant.reasoning.10k/server"})
+    public void shouldAnthropicSectionAssistantReasoning10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/anthropic.section.assistant.reasoning.redacted/client",
         "${net}/anthropic.section.assistant.reasoning.redacted/server"})
     public void shouldAnthropicSectionAssistantReasoningRedacted() throws Exception
@@ -929,6 +983,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/anthropic.section.server.tool.definition/client",
+        "${net}/anthropic.section.server.tool.definition/server"})
+    public void shouldAnthropicSectionServerToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/anthropic.section.other.blocks/client",
         "${net}/anthropic.section.other.blocks/server"})
     public void shouldAnthropicSectionOtherBlocks() throws Exception
@@ -977,6 +1040,15 @@ public class NetworkIT
         "${net}/anthropic.section.assistant.text.citations/client",
         "${net}/anthropic.section.assistant.text.citations/server"})
     public void shouldAnthropicSectionAssistantTextCitations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.assistant.text.citations.url/client",
+        "${net}/anthropic.section.assistant.text.citations.url/server"})
+    public void shouldAnthropicSectionAssistantTextCitationsUrl() throws Exception
     {
         k3po.finish();
     }
@@ -1253,6 +1325,24 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/anthropic.section.user.text.empty/client",
+        "${net}/anthropic.section.user.text.empty/server"})
+    public void shouldAnthropicSectionUserTextEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.assistant.text.empty/client",
+        "${net}/anthropic.section.assistant.text.empty/server"})
+    public void shouldAnthropicSectionAssistantTextEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/anthropic.section.user.text.100k/client",
         "${net}/anthropic.section.user.text.100k/server"})
     public void shouldAnthropicSectionUserText100k() throws Exception
@@ -1400,6 +1490,24 @@ public class NetworkIT
         "${net}/openai.transform.assistant.text.citations/client",
         "${net}/openai.transform.assistant.text.citations/server"})
     public void shouldOpenaiTransformAnthropicAssistantTextCitations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.assistant.text.citations/client",
+        "${net}/anthropic.transform.assistant.text.citations/server"})
+    public void shouldAnthropicTransformOpenaiAssistantTextCitations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.assistant.text.citations.skipped/client",
+        "${net}/openai.transform.assistant.text.citations.skipped/server"})
+    public void shouldOpenaiTransformAnthropicAssistantTextCitationsSkipped() throws Exception
     {
         k3po.finish();
     }
@@ -1724,6 +1832,24 @@ public class NetworkIT
         "${net}/anthropic.section.assistant.text.streaming/client",
         "${net}/anthropic.section.assistant.text.streaming/server"})
     public void shouldDecodeAnthropicResponseStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.assistant.reasoning.streaming/client",
+        "${net}/anthropic.section.assistant.reasoning.streaming/server"})
+    public void shouldAnthropicSectionAssistantReasoningStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.assistant.reasoning.redacted.streaming/client",
+        "${net}/anthropic.section.assistant.reasoning.redacted.streaming/server"})
+    public void shouldAnthropicSectionAssistantReasoningRedactedStreaming() throws Exception
     {
         k3po.finish();
     }
@@ -2342,6 +2468,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.section.assistant.reasoning.streaming.delta/client",
+        "${net}/openai.section.assistant.reasoning.streaming.delta/server"})
+    public void shouldStreamOpenaiSectionAssistantReasoningDelta() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.stream.options.absent/client",
         "${net}/openai.stream.options.absent/server"})
     public void shouldRelayOpenaiStreamOptionsAbsent() throws Exception
@@ -2693,6 +2828,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/anthropic.transform.response.streaming.reasoning/client",
+        "${net}/anthropic.transform.response.streaming.reasoning/server"})
+    public void shouldAnthropicTransformResponseStreamingReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.transform.response.reasoning/client",
         "${net}/openai.transform.response.reasoning/server"})
     public void shouldOpenaiTransformResponseReasoning() throws Exception
@@ -2768,6 +2912,15 @@ public class NetworkIT
         "${net}/openai.transform.response.reasoning.tag/client",
         "${net}/openai.transform.response.reasoning.tag/server"})
     public void shouldTransformOpenaiResponseReasoningTag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.streaming.reasoning/client",
+        "${net}/openai.transform.response.streaming.reasoning/server"})
+    public void shouldTransformOpenaiResponseStreamingReasoning() throws Exception
     {
         k3po.finish();
     }

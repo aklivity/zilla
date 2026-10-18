@@ -26,15 +26,14 @@ bindings:
             - section: user-text
               value:
                 model: test
-                length: 12
-                transform:
-                  length: 5
+                mask:
+                  - world
             - section: user-text
               value:
                 model: test
                 reject:
                   - Hello, world
-                  - Hola!
+                  - Hola! *****!
     routes:
     - when:
       - dialect: openai

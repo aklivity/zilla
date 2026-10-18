@@ -44,6 +44,7 @@ public class TestModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue
     private static final String FIELDS = "fields";
     private static final String REJECT = "reject";
     private static final String WITHHOLD = "withhold";
+    private static final String MASK = "mask";
     private static final String SUSPEND = "suspend";
     private static final String DETERMINISTIC = "deterministic";
     private static final String DISCLOSE_AUTHORIZED = "discloseAuthorized";
@@ -156,11 +157,21 @@ public class TestModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue
             }
         }
 
+        List<String> mask = null;
+        if (object.containsKey(MASK))
+        {
+            mask = new LinkedList<>();
+            for (JsonValue item : object.getJsonArray(MASK))
+            {
+                mask.add(((JsonString) item).getString());
+            }
+        }
+
         boolean suspend = object.containsKey(SUSPEND) && object.getBoolean(SUSPEND);
 
         boolean deterministic = !object.containsKey(DETERMINISTIC) || object.getBoolean(DETERMINISTIC);
 
         return new TestModelConfig(length, catalogs, read, transformLength, fields, validateConfig, transformAuthorizations,
-            reject, withhold, suspend, discloseAuthorized, discloseRedacted, envelopeDiscloseName, deterministic);
+            reject, withhold, mask, suspend, discloseAuthorized, discloseRedacted, envelopeDiscloseName, deterministic);
     }
 }

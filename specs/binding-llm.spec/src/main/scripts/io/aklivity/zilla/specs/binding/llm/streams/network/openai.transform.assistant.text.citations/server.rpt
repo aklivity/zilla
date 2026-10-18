@@ -30,7 +30,7 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-read "{\"model\":\"model\",\"messages\":[{\"role\":\"user\",\"content\":\"Sky colour?\"},{\"role\":\"assistant\",\"content\":\"The sky is blue.\"}]}"
+read "{\"model\":\"model\",\"messages\":[{\"role\":\"user\",\"content\":\"Sky colour?\"},{\"role\":\"assistant\",\"content\":\"The sky is blue.\",\"annotations\":[{\"type\":\"url_citation\",\"url_citation\":{\"url\":\"https://example.com\",\"title\":\"Example\"}}]}]}"
 
 read closed
 

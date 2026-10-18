@@ -58,10 +58,10 @@ write zilla:data.ext ${http:dataEx()
 write "{\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\""
 write flush
 write option zilla:flags "none"
-write "Hi"
+write "Hi\""
 write flush
 write option zilla:flags "fin"
-write "\"}}"
+write "}}"
 write flush
 
 write option zilla:flags "init fin"
