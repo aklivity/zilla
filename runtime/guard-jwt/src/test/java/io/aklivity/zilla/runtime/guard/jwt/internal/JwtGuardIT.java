@@ -31,7 +31,9 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 public class JwtGuardIT
 {
     private final K3poRule k3po = new K3poRule()
-            .addScriptRoot("keys", "io/aklivity/zilla/specs/guard/jwt/config/keys");
+            .addScriptRoot("keys", "io/aklivity/zilla/specs/guard/jwt/config/keys")
+            .addScriptRoot("net", "io/aklivity/zilla/specs/engine/streams/network")
+            .addScriptRoot("app", "io/aklivity/zilla/specs/engine/streams/application");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
@@ -39,6 +41,7 @@ public class JwtGuardIT
             .directory("target/zilla-itests")
             .countersBufferCapacity(8192)
             .configurationRoot("io/aklivity/zilla/specs/guard/jwt/config")
+            .external("app0")
             .clean();
 
     @Rule
@@ -66,6 +69,99 @@ public class JwtGuardIT
         "${keys}/issuer"
     })
     public void shouldInitializeGuardWithImplicitKeys() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("guard-vault.token.yaml")
+    @Specification({
+        "${net}/handshake/client",
+        "${app}/handshake.authorized/server" })
+    public void shouldAuthorizeVaultWrappedToken() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("guard-vault.token.any.key.yaml")
+    @Specification({
+        "${net}/handshake/client",
+        "${app}/handshake.authorized/server" })
+    public void shouldAuthorizeVaultWrappedTokenSealedWithAnyVaultKey() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("guard-vault.token.signed.yaml")
+    @Specification({
+        "${net}/handshake/client",
+        "${app}/handshake.authorized/server" })
+    public void shouldAuthorizeSignedTokenWhenVaultConfigured() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("guard-vault.token.tampered.yaml")
+    @Specification({
+        "${net}/handshake.abort/client" })
+    public void shouldRejectTamperedVaultWrappedToken() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("guard-vault.token.unknown.key.yaml")
+    @Specification({
+        "${net}/handshake.abort/client" })
+    public void shouldRejectVaultWrappedTokenWithUnknownKey() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("guard-vault.token.expired.yaml")
+    @Specification({
+        "${net}/handshake.abort/client" })
+    public void shouldRejectExpiredVaultWrappedToken() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("guard-vault.token.issuer.yaml")
+    @Specification({
+        "${net}/handshake.abort/client" })
+    public void shouldRejectVaultWrappedTokenWithWrongIssuer() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("guard-vault.token.audience.yaml")
+    @Specification({
+        "${net}/handshake.abort/client" })
+    public void shouldRejectVaultWrappedTokenWithWrongAudience() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("guard-vault.token.algorithm.yaml")
+    @Specification({
+        "${net}/handshake.abort/client" })
+    public void shouldRejectVaultWrappedTokenWithWrongAlgorithm() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("guard-vault.token.unsupported.yaml")
+    @Specification({
+        "${net}/handshake.abort/client" })
+    public void shouldRejectVaultWrappedTokenWhenVaultNotConfigured() throws Exception
     {
         k3po.finish();
     }

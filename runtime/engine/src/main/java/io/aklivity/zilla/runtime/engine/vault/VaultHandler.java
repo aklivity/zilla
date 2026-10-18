@@ -141,4 +141,26 @@ public interface VaultHandler
     {
         return null;
     }
+
+    /**
+     * Initializes a {@link SecretKeyManagerFactory} for unwrapping buffers previously wrapped
+     * under any secret key this vault instance can resolve, without naming those keys.
+     * <p>
+     * The returned {@link SecretKeyManager} resolves the key to unwrap under from the wrapped
+     * bytes themselves, so a buffer wrapped under a key that has since been rotated or renamed
+     * still unwraps. It is intended for callers that only unwrap; {@link SecretKeyManager#wrap}
+     * names its key explicitly, and may return {@code -1} for a manager initialized this way.
+     * </p>
+     * <p>
+     * Which keys can be resolved is governed by what this vault is permitted to access, not
+     * by the caller.
+     * </p>
+     *
+     * @return an initialized {@link SecretKeyManagerFactory}, or {@code null} if this vault
+     *         does not support unwrapping without named keys, or exposes no secret keys
+     */
+    default SecretKeyManagerFactory initSecretKeys()
+    {
+        return null;
+    }
 }

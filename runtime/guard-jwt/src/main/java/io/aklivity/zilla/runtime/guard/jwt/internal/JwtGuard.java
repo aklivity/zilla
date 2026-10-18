@@ -36,13 +36,13 @@ public final class JwtGuard implements Guard
 {
     public static final String NAME = "jwt";
 
-    private final Configuration config;
+    private final JwtGuardConfiguration config;
     private final JwtGuardContext[] contexts;
 
     JwtGuard(
         Configuration config)
     {
-        this.config = config;
+        this.config = new JwtGuardConfiguration(config);
         this.contexts = new JwtGuardContext[ENGINE_WORKERS.get(config)];
     }
 

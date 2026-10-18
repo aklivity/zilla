@@ -28,6 +28,7 @@
                         "const": "x509"
                     },
                     "kind": false,
+                    "vault": false,
                     "options":
                     {
                         "properties":

@@ -1,0 +1,331 @@
+/*
+ * Copyright 2021-2026 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+package io.aklivity.zilla.runtime.guard.jwt.internal;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThrows;
+
+import java.lang.reflect.Field;
+import java.nio.ByteBuffer;
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+
+import jakarta.json.Json;
+
+import org.junit.Before;
+import org.junit.Test;
+
+import io.aklivity.zilla.config.engine.GenericVaultConfig;
+import io.aklivity.zilla.config.engine.VaultConfig;
+import io.aklivity.zilla.config.engine.test.internal.vault.config.TestVaultOptionsConfig;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.jwt.Jwe;
+import io.aklivity.zilla.runtime.common.jwt.JweKeyManager;
+import io.aklivity.zilla.runtime.common.jwt.JwtException;
+import io.aklivity.zilla.runtime.engine.test.internal.vault.TestVaultHandler;
+import io.aklivity.zilla.runtime.engine.vault.SecretKeyManager;
+
+public class JwtGuardEncryptedTest
+{
+    private static final String TENANT_1_KEY =
+        "-----BEGIN SECRET KEY-----\njOl3tg1ZDuqTrzB7WOVaUOEoezst8sz/ywPPbsGE8bA=\n-----END SECRET KEY-----";
+    private static final String TENANT_2_KEY =
+        "-----BEGIN SECRET KEY-----\nJ5XxCYN3xHEx4qzx6juAdpYPDBhT11KBg2Y/LJz6AIE=\n-----END SECRET KEY-----";
+    private static final String OTHER_KEY =
+        "-----BEGIN SECRET KEY-----\nQ2hhbmdlTWVDaGFuZ2VNZUNoYW5nZU1lQ2hhbmdlTWU=\n-----END SECRET KEY-----";
+    private static final String GHOST_KEY =
+        "-----BEGIN SECRET KEY-----\nR2hvc3RHaG9zdEdob3N0R2hvc3RHaG9zdEdob3N0R2g=\n-----END SECRET KEY-----";
+
+    private static final long EXPIRY = 300_000L;
+
+    private SecretKeyManager opening;
+    private SecretKeyManager sealing;
+    private SecretKeyManager ghosts;
+
+    @Before
+    public void init()
+    {
+        TestVaultHandler vault = new TestVaultHandler(vault(
+            TestVaultOptionsConfig.builder()
+                .wrap("tenant-1", TENANT_1_KEY)
+                .wrap("tenant-2", TENANT_2_KEY)
+                .wrap("other", OTHER_KEY)
+                .build()));
+
+        TestVaultHandler outside = new TestVaultHandler(vault(
+            TestVaultOptionsConfig.builder()
+                .wrap("ghost", GHOST_KEY)
+                .build()));
+
+        opening = vault.initSecretKeys().getSecretKeyManager();
+        sealing = vault.initSecretKeys(List.of("tenant-1", "tenant-2", "other")).getSecretKeyManager();
+        ghosts = outside.initSecretKeys(List.of("ghost")).getSecretKeyManager();
+    }
+
+    @Test
+    public void shouldUnwrapOncePerEncryptedKey() throws Exception
+    {
+        AtomicInteger unwraps = new AtomicInteger();
+        AtomicLong clock = new AtomicLong(1_000L);
+        VaultJweKeyManager encryption = new VaultJweKeyManager(counting(opening, unwraps), clock::get, EXPIRY);
+        byte[] wrapped = Jwe.parse(seal(sealing, "tenant-1", claims())).encryptedKey();
+
+        byte[] first = encryption.unwrap(wrapped);
+        byte[] second = encryption.unwrap(wrapped);
+
+        assertThat(unwraps.get(), equalTo(1));
+        assertThat(second, equalTo(first));
+    }
+
+    @Test
+    public void shouldKeepCachedKeyIntactAfterCallerClearsIt() throws Exception
+    {
+        VaultJweKeyManager encryption = new VaultJweKeyManager(opening, () -> 1_000L, EXPIRY);
+        byte[] wrapped = Jwe.parse(seal(sealing, "tenant-1", claims())).encryptedKey();
+
+        byte[] expected = encryption.unwrap(wrapped);
+        Arrays.fill(encryption.unwrap(wrapped), (byte) 0);
+
+        assertThat(encryption.unwrap(wrapped), equalTo(expected));
+    }
+
+    @Test
+    public void shouldUnwrapAgainAfterCacheExpiry() throws Exception
+    {
+        AtomicInteger unwraps = new AtomicInteger();
+        AtomicLong clock = new AtomicLong(1_000L);
+        VaultJweKeyManager encryption = new VaultJweKeyManager(counting(opening, unwraps), clock::get, EXPIRY);
+        byte[] wrapped = Jwe.parse(seal(sealing, "tenant-1", claims())).encryptedKey();
+
+        encryption.unwrap(wrapped);
+        clock.addAndGet(300_001L);
+        encryption.unwrap(wrapped);
+
+        assertThat(unwraps.get(), equalTo(2));
+    }
+
+    @Test
+    public void shouldHonorConfiguredExpiry() throws Exception
+    {
+        AtomicInteger unwraps = new AtomicInteger();
+        AtomicLong clock = new AtomicLong(1_000L);
+        VaultJweKeyManager encryption = new VaultJweKeyManager(counting(opening, unwraps), clock::get, 10_000L);
+        byte[] wrapped = Jwe.parse(seal(sealing, "tenant-1", claims())).encryptedKey();
+
+        encryption.unwrap(wrapped);
+        clock.addAndGet(9_999L);
+        encryption.unwrap(wrapped);
+        clock.addAndGet(1L);
+        encryption.unwrap(wrapped);
+
+        assertThat(unwraps.get(), equalTo(2));
+    }
+
+    @Test
+    public void shouldZeroCachedKeyOnExpiry() throws Exception
+    {
+        AtomicLong clock = new AtomicLong(1_000L);
+        VaultJweKeyManager encryption = new VaultJweKeyManager(opening, clock::get, EXPIRY);
+        byte[] wrapped = Jwe.parse(seal(sealing, "tenant-1", claims())).encryptedKey();
+
+        encryption.unwrap(wrapped);
+        byte[] cached = cachedKey(encryption, wrapped);
+        assertThat(allZero(cached), equalTo(false));
+
+        clock.addAndGet(EXPIRY);
+        encryption.unwrap(wrapped);
+
+        assertThat(allZero(cached), equalTo(true));
+    }
+
+    @Test
+    public void shouldEvictLeastRecentlyUsedKeys() throws Exception
+    {
+        AtomicInteger unwraps = new AtomicInteger();
+        VaultJweKeyManager encryption = new VaultJweKeyManager(counting(opening, unwraps), () -> 1_000L, EXPIRY);
+        byte[] oldest = Jwe.parse(seal(sealing, "tenant-1", claims())).encryptedKey();
+
+        encryption.unwrap(oldest);
+        for (int i = 0; i < 1100; i++)
+        {
+            encryption.unwrap(Jwe.parse(seal(sealing, "tenant-1", claims())).encryptedKey());
+        }
+        int before = unwraps.get();
+        encryption.unwrap(oldest);
+
+        assertThat(unwraps.get(), equalTo(before + 1));
+    }
+
+    @Test
+    public void shouldRejectUnwrapFailureAndSealing() throws Exception
+    {
+        VaultJweKeyManager encryption = new VaultJweKeyManager(opening, () -> 1_000L, EXPIRY);
+        byte[] foreign = Jwe.parse(seal(ghosts, "ghost", claims())).encryptedKey();
+
+        assertThrows(JwtException.class, () -> encryption.unwrap(foreign));
+        assertThrows(JwtException.class, () -> encryption.wrap(new byte[32]));
+        assertThat(encryption.algorithm(), equalTo("io.aklivity.zilla.vault.v1"));
+    }
+
+    private static String claims()
+    {
+        return claims("test issuer", "testAudience", Instant.now().getEpochSecond() + 60L);
+    }
+
+    private static String claims(
+        String issuer,
+        String audience,
+        long exp)
+    {
+        return Json.createObjectBuilder()
+            .add("iss", issuer)
+            .add("aud", audience)
+            .add("sub", "alice")
+            .add("exp", exp)
+            .add("scope", "read write")
+            .add("website", "http://example.com")
+            .build()
+            .toString();
+    }
+
+    private static String seal(
+        SecretKeyManager secrets,
+        String keyName,
+        String claims) throws JwtException
+    {
+        return Jwe.seal(new VaultSealer(secrets, keyName, VaultJweKeyManager.ALGORITHM), null, claims.getBytes(UTF_8));
+    }
+
+    private static SecretKeyManager counting(
+        SecretKeyManager delegate,
+        AtomicInteger unwraps)
+    {
+        return new SecretKeyManager()
+        {
+            @Override
+            public int wrap(
+                String keyName,
+                DirectBufferEx bytes,
+                int index,
+                int length,
+                MutableDirectBufferEx dst,
+                int dstIndex)
+            {
+                return delegate.wrap(keyName, bytes, index, length, dst, dstIndex);
+            }
+
+            @Override
+            public int unwrap(
+                DirectBufferEx bytes,
+                int index,
+                int length,
+                MutableDirectBufferEx dst,
+                int dstIndex)
+            {
+                unwraps.incrementAndGet();
+                return delegate.unwrap(bytes, index, length, dst, dstIndex);
+            }
+        };
+    }
+
+    private static byte[] cachedKey(
+        VaultJweKeyManager encryption,
+        byte[] wrapped) throws Exception
+    {
+        Field cacheField = VaultJweKeyManager.class.getDeclaredField("cache");
+        cacheField.setAccessible(true);
+        Map<?, ?> cache = (Map<?, ?>) cacheField.get(encryption);
+        Object entry = cache.get(ByteBuffer.wrap(wrapped));
+        Field keyField = entry.getClass().getDeclaredField("key");
+        keyField.setAccessible(true);
+        return (byte[]) keyField.get(entry);
+    }
+
+    private static boolean allZero(
+        byte[] key)
+    {
+        boolean zero = true;
+        for (byte b : key)
+        {
+            zero &= b == 0;
+        }
+        return zero;
+    }
+
+    private static VaultConfig vault(
+        TestVaultOptionsConfig options)
+    {
+        return GenericVaultConfig.builder()
+            .namespace("test")
+            .name("vault0")
+            .type("test")
+            .options(options)
+            .build();
+    }
+
+    private static final class VaultSealer implements JweKeyManager
+    {
+        private final SecretKeyManager secrets;
+        private final String keyName;
+        private final String algorithm;
+
+        private VaultSealer(
+            SecretKeyManager secrets,
+            String keyName,
+            String algorithm)
+        {
+            this.secrets = secrets;
+            this.keyName = keyName;
+            this.algorithm = algorithm;
+        }
+
+        @Override
+        public String algorithm()
+        {
+            return algorithm;
+        }
+
+        @Override
+        public byte[] wrap(
+            byte[] key) throws JwtException
+        {
+            MutableDirectBufferEx wrapped = new UnsafeBufferEx(new byte[256]);
+            int length = secrets.wrap(keyName, new UnsafeBufferEx(key), 0, key.length, wrapped, 0);
+            if (length < 0)
+            {
+                throw new JwtException("Unable to wrap key");
+            }
+
+            byte[] bytes = new byte[length];
+            wrapped.getBytes(0, bytes);
+            return bytes;
+        }
+
+        @Override
+        public byte[] unwrap(
+            byte[] wrapped) throws JwtException
+        {
+            throw new JwtException("Opening is not supported");
+        }
+    }
+}

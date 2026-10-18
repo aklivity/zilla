@@ -932,7 +932,7 @@ final class TestBindingFactory implements BindingHandler
 
                 String secretKey = vaultAssertion.secretKey;
                 String wrap = vaultAssertion.wrap;
-                if (secretKey != null && wrap != null && !roundTripsSecretKey(secretKey, wrap))
+                if (secretKey != null && wrap != null && !roundTripsSecretKey(secretKey, wrap, vaultAssertion.unwrapOnly))
                 {
                     doInitialReset(traceId);
                 }
@@ -1037,7 +1037,8 @@ final class TestBindingFactory implements BindingHandler
 
         private boolean roundTripsSecretKey(
             String secretKey,
-            String wrap)
+            String wrap,
+            boolean unwrapOnly)
         {
             SecretKeyManagerFactory factory = vault.initSecretKeys(List.of(secretKey));
             SecretKeyManager manager = factory != null ? factory.getSecretKeyManager() : null;
@@ -1061,10 +1062,43 @@ final class TestBindingFactory implements BindingHandler
                         unwrapped.getBytes(0, roundTrippedBytes);
                         roundTripped = Arrays.equals(plaintext, roundTrippedBytes);
                     }
+
+                    if (roundTripped && unwrapOnly)
+                    {
+                        roundTripped = unwrapsWithoutNamingKeys(secretKey, plaintext, wrapped, wrappedLength);
+                    }
                 }
             }
 
             return roundTripped;
+        }
+
+        private boolean unwrapsWithoutNamingKeys(
+            String secretKey,
+            byte[] plaintext,
+            DirectBufferEx wrapped,
+            int wrappedLength)
+        {
+            SecretKeyManagerFactory factory = vault.initSecretKeys();
+            SecretKeyManager manager = factory != null ? factory.getSecretKeyManager() : null;
+            boolean unwrapped = false;
+
+            if (manager != null)
+            {
+                MutableDirectBufferEx unwrappedBuffer = new UnsafeBufferEx(new byte[256]);
+                int unwrappedLength = manager.unwrap(wrapped, 0, wrappedLength, unwrappedBuffer, 0);
+                int rewrappedLength = manager.wrap(secretKey, new UnsafeBufferEx(plaintext), 0, plaintext.length,
+                    new UnsafeBufferEx(new byte[256]), 0);
+
+                if (unwrappedLength == plaintext.length && rewrappedLength == -1)
+                {
+                    byte[] unwrappedBytes = new byte[unwrappedLength];
+                    unwrappedBuffer.getBytes(0, unwrappedBytes);
+                    unwrapped = Arrays.equals(plaintext, unwrappedBytes);
+                }
+            }
+
+            return unwrapped;
         }
 
         private void runStoreAssertions(

@@ -419,6 +419,12 @@ public class EngineManager
         {
             guard.id = resolver.resolve(guard.name);
             guard.resolveId = resolver::resolve;
+            if (guard.vault != null)
+            {
+                guard.vaultId = resolver.resolve(guard.vault);
+                guard.qvault = resolver.format(guard.vaultId);
+            }
+
             if (guard.store != null)
             {
                 guard.storeId = resolver.resolve(guard.store);

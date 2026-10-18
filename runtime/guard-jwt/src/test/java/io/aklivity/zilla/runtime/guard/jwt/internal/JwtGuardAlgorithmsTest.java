@@ -302,7 +302,7 @@ public class JwtGuardAlgorithmsTest
             .key(key)
             .build();
 
-        return new JwtGuardHandler(options, context, new MutableLong(1L)::getAndIncrement, sessionId -> null);
+        return new JwtGuardHandler(options, context, new MutableLong(1L)::getAndIncrement, sessionId -> null, null);
     }
 
     private static JwtKeyConfig rsaKey(

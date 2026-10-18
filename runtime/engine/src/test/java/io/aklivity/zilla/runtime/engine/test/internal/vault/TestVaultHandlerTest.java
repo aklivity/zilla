@@ -131,6 +131,49 @@ public class TestVaultHandlerTest
     }
 
     @Test
+    public void shouldUnwrapUnderAnyKeyWithoutNamingKeys()
+    {
+        SecretKeyManager wrapping = newHandlerWithTwoKeys().initSecretKeys(List.of("other-kek")).getSecretKeyManager();
+        byte[] plaintext = "super secret payload".getBytes(UTF_8);
+        MutableDirectBufferEx wrapped = new UnsafeBufferEx(new byte[128]);
+        int wrappedLength = wrapping.wrap("other-kek", new UnsafeBufferEx(plaintext), 0, plaintext.length, wrapped, 0);
+
+        SecretKeyManagerFactory factory = newHandlerWithTwoKeys().initSecretKeys();
+        assertNotNull(factory);
+
+        MutableDirectBufferEx unwrapped = new UnsafeBufferEx(new byte[128]);
+        int unwrappedLength = factory.getSecretKeyManager().unwrap(wrapped, 0, wrappedLength, unwrapped, 0);
+
+        byte[] roundTripped = new byte[unwrappedLength];
+        unwrapped.getBytes(0, roundTripped);
+        assertArrayEquals(plaintext, roundTripped);
+    }
+
+    @Test
+    public void shouldNotWrapWhenKeysAreNotNamed()
+    {
+        SecretKeyManager manager = newHandler().initSecretKeys().getSecretKeyManager();
+        byte[] plaintext = "super secret payload".getBytes(UTF_8);
+
+        int wrappedLength = manager.wrap("kek", new UnsafeBufferEx(plaintext), 0, plaintext.length,
+            new UnsafeBufferEx(new byte[128]), 0);
+
+        assertEquals(-1, wrappedLength);
+    }
+
+    @Test
+    public void shouldNotInitSecretKeysWithoutNamesWhenNoKeysConfigured()
+    {
+        VaultConfig vault = GenericVaultConfig.builder()
+            .namespace("test")
+            .name("vault0")
+            .type("test")
+            .build();
+
+        assertNull(new TestVaultHandler(vault).initSecretKeys());
+    }
+
+    @Test
     public void shouldNotInitSecretKeysForUnknownAlias()
     {
         TestVaultHandler handler = newHandler();
