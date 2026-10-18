@@ -3077,4 +3077,40 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.assistant.tool.call.cache.control/client",
+        "${app}/anthropic.section.assistant.tool.call.cache.control/server"})
+    public void shouldAnthropicSectionAssistantToolCallCacheControl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.transform.assistant.tool.call.cache.control/client",
+        "${app}/anthropic.transform.assistant.tool.call.cache.control/server"})
+    public void shouldAnthropicTransformAssistantToolCallCacheControl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.tool.call.members/client",
+        "${app}/openai.section.tool.call.members/server"})
+    public void shouldOpenaiSectionToolCallMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.transform.assistant.tool.call.members/client",
+        "${app}/openai.transform.assistant.tool.call.members/server"})
+    public void shouldOpenaiTransformAssistantToolCallMembers() throws Exception
+    {
+        k3po.finish();
+    }
 }

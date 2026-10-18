@@ -23,6 +23,7 @@ final class LlmOpenaiToolCallFromCanonical extends LlmToolTransform
 
     private String toolCallId;
     private String toolName;
+    private boolean opened;
     private boolean functioned;
     private boolean argumented;
 
@@ -32,6 +33,7 @@ final class LlmOpenaiToolCallFromCanonical extends LlmToolTransform
         super.reset();
         toolCallId = null;
         toolName = null;
+        opened = false;
         functioned = false;
         argumented = false;
     }
@@ -62,6 +64,7 @@ final class LlmOpenaiToolCallFromCanonical extends LlmToolTransform
     @Override
     protected void onOpen()
     {
+        opened = true;
         toolCallId = attribute("tool-call-id");
         toolName = attribute("tool-name");
 
@@ -79,34 +82,53 @@ final class LlmOpenaiToolCallFromCanonical extends LlmToolTransform
     protected Status onClose(
         int depth)
     {
-        if (!argumented)
+        return Status.ADVANCED;
+    }
+
+    @Override
+    protected void onEscapedEnd()
+    {
+        if (toolName != null)
         {
-            openFunction();
-            emit(JsonEvent.KEY_NAME, "arguments");
-            emit(JsonEvent.VALUE_STRING, "{}");
+            closeFunction();
         }
+    }
 
-        closeFunction();
+    @Override
+    protected Status onEndObject()
+    {
+        Status status = Status.REJECTED;
 
-        if (toolCallId == null)
+        if (opened)
         {
-            toolCallId = attribute("tool-call-id");
-
-            if (toolCallId != null)
+            if (!argumented)
             {
-                emit(JsonEvent.KEY_NAME, "id");
-                emit(JsonEvent.VALUE_STRING, toolCallId);
+                openFunction();
+                emit(JsonEvent.KEY_NAME, "arguments");
+                emit(JsonEvent.VALUE_STRING, "{}");
+            }
+
+            closeFunction();
+
+            if (toolCallId == null)
+            {
+                toolCallId = attribute("tool-call-id");
+
+                if (toolCallId != null)
+                {
+                    emit(JsonEvent.KEY_NAME, "id");
+                    emit(JsonEvent.VALUE_STRING, toolCallId);
+                }
+            }
+
+            if (toolCallId != null && toolName != null)
+            {
+                emit(JsonEvent.END_OBJECT);
+                status = Status.ADVANCED;
             }
         }
 
-        final boolean resolved = toolCallId != null && toolName != null;
-
-        if (resolved)
-        {
-            pass(JsonEvent.END_OBJECT);
-        }
-
-        return resolved ? Status.ADVANCED : Status.REJECTED;
+        return status;
     }
 
     private void openFunction()

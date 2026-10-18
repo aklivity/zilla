@@ -3158,4 +3158,22 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.cache.control/client",
+        "${net}/anthropic.section.assistant.tool.call.cache.control/server"})
+    public void shouldAnthropicSectionAssistantToolCallCacheControl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.tool.call.members/client",
+        "${net}/openai.section.tool.call.members/server"})
+    public void shouldOpenaiSectionToolCallMembers() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -1379,4 +1379,14 @@ public class LlmOpenaiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.tool.call.members/client",
+        "${app}/openai.section.tool.call.members/server"})
+    public void shouldDecodeOpenaiSectionToolCallMembers() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -135,6 +135,10 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private static final byte[] REASONING_PREFIX = "{\"text\":\"".getBytes(UTF_8);
     private static final byte[] REASONING_SUFFIX = "\"}".getBytes(UTF_8);
     private static final int OBJECT_FRAMING = REASONING_PREFIX.length + REASONING_SUFFIX.length;
+    private static final byte[] ARGUMENTS_PREFIX = "{\"arguments\":".getBytes(UTF_8);
+    private static final byte[] ARGUMENTS_EMPTY = "{}".getBytes(UTF_8);
+    private static final byte[] ARGUMENTS_SUFFIX = "}".getBytes(UTF_8);
+    private static final int ARGUMENTS_CLOSING = ARGUMENTS_EMPTY.length + ARGUMENTS_SUFFIX.length;
     private static final int FRAMING_CAPABILITIES_MASK = 1 << Capability.FRAMING.ordinal();
     private static final int EVENT_ATTRIBUTES_CAPACITY = 256;
     private static final int QUEUE_ENTRY_OVERHEAD = 5 * Integer.BYTES + 3 * Long.BYTES + Byte.BYTES;
@@ -579,6 +583,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private int sectionTool;
         private String sectionToolId;
         private String sectionToolName;
+        private int argumentsLength;
 
         private String sectionTag;
         private int scanChoice;
@@ -650,7 +655,13 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
         private int replyWindow()
         {
-            return Math.max(0, replyMax - (int) (replySeq - replyAck) - encodeSlotOffset - EVENT_FRAMES * replyPad);
+            return Math.max(0, replyMax - (int) (replySeq - replyAck) - encodeSlotOffset - EVENT_FRAMES * replyPad -
+                argumentsClosing());
+        }
+
+        private int argumentsClosing()
+        {
+            return sectionOpen && sectionType == LlmSectionType.TOOL_CALL ? ARGUMENTS_CLOSING + replyPad : 0;
         }
 
         private boolean replyAvailable()
@@ -1408,7 +1419,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             final int pending = dialectActive ? position() - dialectFrom : 0;
 
-            return replyMax - (int) (replySeq - replyAck) - encodeSlotOffset - pending - parser.remaining();
+            return replyMax - (int) (replySeq - replyAck) - encodeSlotOffset - pending - parser.remaining() -
+                argumentsClosing();
         }
 
         private void flushHeld()
@@ -2203,12 +2215,15 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 if (event == JsonEvent.VALUE_STRING)
                 {
                     final boolean deferred = parser.deferredBytes();
+                    final boolean stalled = emitArguments(deferred, eventFrom);
 
-                    emitArguments(deferred, eventFrom);
-
-                    if (!deferred)
+                    if (!deferred && !stalled)
                     {
                         decoder = decodeFunction;
+                    }
+                    else if (stalled)
+                    {
+                        break;
                     }
                 }
                 else
@@ -2908,7 +2923,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             closeSection();
         }
 
-        private void emitArguments(
+        private boolean emitArguments(
             boolean deferred,
             int eventFrom)
         {
@@ -2919,30 +2934,176 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
             if (dialectActive)
             {
-                detachDialect(eventFrom);
+                if (http.framing)
+                {
+                    dropDialect();
+                }
+                else
+                {
+                    detachDialect(eventFrom);
+                }
             }
 
-            if (!sectionOpen)
+            if (!continuesToolCall())
             {
+                closeSection();
                 openSection(LlmSectionType.TOOL_CALL, choiceIndex, toolCallId(), toolCallName(), toolIndex);
+                argumentsLength = 0;
             }
 
-            if (length > 0 || highSurrogate != 0 || !deferred)
+            final int take = argumentsAllowance(chars, deferred);
+            final boolean finished = !deferred && take == length;
+
+            if (take > 0 || finished && (highSurrogate != 0 || !http.framing) || !sectionStarted && length == 0 && take == 0)
             {
-                final int encoded = encodeText(chars, length, !deferred);
+                final int decoded = encodeText(chars, take, finished);
+                final int encoded = encodeArgumentsPiece(decoded, finished && !http.framing);
 
-                emitSection(textBuffer, 0, encoded, !deferred);
+                emitFrame(pieceBuffer, 0, encoded, finished && !http.framing);
             }
 
-            if (!deferred)
+            if (finished)
             {
                 valueSections = 0;
-                dialectResume(position());
+
+                if (!http.framing)
+                {
+                    dialectResume(position());
+                }
             }
-            else
+            else if (take > 0)
             {
-                parser.consumed(length);
+                parser.consumed(take);
             }
+
+            return take < length;
+        }
+
+        private boolean continuesToolCall()
+        {
+            return http.framing && sectionOpen && sectionType == LlmSectionType.TOOL_CALL && toolIndex != NONE &&
+                sectionTool == toolIndex && sectionMessage == choiceIndex;
+        }
+
+        private void dropDialect()
+        {
+            flushDialect(dialectFrom, true, false);
+            dialectActive = false;
+        }
+
+        private int argumentsAllowance(
+            CharSequence chars,
+            boolean deferred)
+        {
+            final int length = chars.length();
+            final int credit = replyMax - (int) (replySeq - replyAck) - encodeSlotOffset;
+            final int closing = http.framing ? 0 : ARGUMENTS_CLOSING + replyPad;
+
+            int cost = sectionStarted ? 0 : ARGUMENTS_PREFIX.length + replyPad;
+            int take = 0;
+            int index = 0;
+            boolean fits = true;
+
+            while (fits && index < length)
+            {
+                final char c = chars.charAt(index);
+                final boolean pair = Character.isHighSurrogate(c) && index + 1 < length &&
+                    Character.isLowSurrogate(chars.charAt(index + 1));
+                final int width = pair ? 2 : 1;
+                final int next = cost + (pair ? 4 : utf8Width(c));
+                final boolean last = index + width == length;
+
+                fits = next + (last && !deferred ? closing : 0) <= credit;
+
+                if (fits)
+                {
+                    cost = next;
+                    index += width;
+                    take = index;
+                }
+            }
+
+            if (length == 0 && !deferred && cost + closing > credit)
+            {
+                take = -1;
+            }
+
+            return take;
+        }
+
+        private static int utf8Width(
+            char c)
+        {
+            return c < 0x80 ? 1 : c < 0x800 ? 2 : 3;
+        }
+
+        private int encodeArgumentsPiece(
+            int decoded,
+            boolean closing)
+        {
+            final int capacity = ARGUMENTS_PREFIX.length + decoded + ARGUMENTS_CLOSING;
+
+            if (pieceBytes.length < capacity)
+            {
+                pieceBytes = new byte[capacity];
+                pieceBuffer = new UnsafeBufferEx(pieceBytes);
+            }
+
+            int position = 0;
+
+            if (!sectionStarted)
+            {
+                System.arraycopy(ARGUMENTS_PREFIX, 0, pieceBytes, position, ARGUMENTS_PREFIX.length);
+                position += ARGUMENTS_PREFIX.length;
+            }
+
+            System.arraycopy(textBytes, 0, pieceBytes, position, decoded);
+            position += decoded;
+            argumentsLength += decoded;
+
+            if (closing)
+            {
+                position = putArgumentsEnd(position);
+            }
+
+            return position;
+        }
+
+        private int encodeArgumentsEnd()
+        {
+            final int capacity = ARGUMENTS_PREFIX.length + ARGUMENTS_CLOSING;
+
+            if (pieceBytes.length < capacity)
+            {
+                pieceBytes = new byte[capacity];
+                pieceBuffer = new UnsafeBufferEx(pieceBytes);
+            }
+
+            int position = 0;
+
+            if (!sectionStarted)
+            {
+                System.arraycopy(ARGUMENTS_PREFIX, 0, pieceBytes, position, ARGUMENTS_PREFIX.length);
+                position += ARGUMENTS_PREFIX.length;
+            }
+
+            return putArgumentsEnd(position);
+        }
+
+        private int putArgumentsEnd(
+            int position)
+        {
+            int next = position;
+
+            if (argumentsLength == 0)
+            {
+                System.arraycopy(ARGUMENTS_EMPTY, 0, pieceBytes, next, ARGUMENTS_EMPTY.length);
+                next += ARGUMENTS_EMPTY.length;
+            }
+
+            System.arraycopy(ARGUMENTS_SUFFIX, 0, pieceBytes, next, ARGUMENTS_SUFFIX.length);
+
+            return next + ARGUMENTS_SUFFIX.length;
         }
 
         private void rememberTool()
@@ -2992,6 +3153,11 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
                 if (length > 0 || fin && dialectOpen)
                 {
+                    if (length > 0 && replay && sectionOpen && sectionType == LlmSectionType.TOOL_CALL)
+                    {
+                        closeSection();
+                    }
+
                     final int flags = dialectOpen ? Flags.NONE : Flags.INIT;
 
                     doAppFrame(http.decodeTraceId, fin ? Flags.fin(flags) : flags, true, complete, null, NO_MESSAGE, null, null,
@@ -3034,7 +3200,13 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             if (sectionOpen)
             {
-                if (objectShaped(sectionType))
+                if (sectionType == LlmSectionType.TOOL_CALL)
+                {
+                    final int encoded = encodeArgumentsEnd();
+
+                    emitFrame(pieceBuffer, 0, encoded, true);
+                }
+                else if (objectShaped(sectionType))
                 {
                     final int encoded = encodePieceEnd();
 

@@ -65,6 +65,38 @@ final class LlmToolTransformRunner
         }
     }
 
+    static void assertTransformsCompletedBeforeLate(
+        JsonTransform transform,
+        Consumer<LlmSectionAttributes> early,
+        Consumer<LlmSectionAttributes> late,
+        String json,
+        String expected)
+    {
+        final ByteArrayOutputStream output = new ByteArrayOutputStream();
+        final LlmSectionPipeline pipeline = new LlmSectionPipeline(transform, new UnsafeBufferEx(new byte[REJECT_BOUND]));
+        final byte[] bytes = json.getBytes(UTF_8);
+        final UnsafeBufferEx input = new UnsafeBufferEx(bytes);
+        final LlmSectionAttributes attributes = new LlmSectionAttributes();
+
+        if (early != null)
+        {
+            early.accept(attributes);
+        }
+
+        pipeline.begin(attributes);
+
+        boolean accepted = pipeline.feed(input, 0, bytes.length, false,
+            (buffer, index, size, done) -> collect(output, buffer, index, size));
+
+        late.accept(attributes);
+
+        accepted &= pipeline.feed(input, bytes.length, 0, true,
+            (buffer, index, size, done) -> collect(output, buffer, index, size));
+
+        assertThat("accepted", accepted, is(true));
+        assertThat(output.toString(UTF_8), equalTo(expected));
+    }
+
     static void assertRoundTrips(
         JsonTransform toCanonical,
         JsonTransform fromCanonical,

@@ -25,6 +25,7 @@ final class LlmAnthropicToolCallFromCanonical extends LlmToolTransform
 
     private String toolCallId;
     private String toolName;
+    private boolean opened;
     private boolean argumented;
 
     LlmAnthropicToolCallFromCanonical(
@@ -39,6 +40,7 @@ final class LlmAnthropicToolCallFromCanonical extends LlmToolTransform
         super.reset();
         toolCallId = null;
         toolName = null;
+        opened = false;
         argumented = false;
     }
 
@@ -66,6 +68,7 @@ final class LlmAnthropicToolCallFromCanonical extends LlmToolTransform
     @Override
     protected void onOpen()
     {
+        opened = true;
         toolCallId = attribute("tool-call-id");
         toolName = attribute("tool-name");
 
@@ -91,40 +94,52 @@ final class LlmAnthropicToolCallFromCanonical extends LlmToolTransform
     {
         if (!argumented)
         {
+            argumented = true;
+
             emit(JsonEvent.KEY_NAME, "input");
             emit(JsonEvent.START_OBJECT);
             emit(JsonEvent.END_OBJECT);
         }
 
-        if (toolCallId == null)
-        {
-            toolCallId = attribute("tool-call-id");
+        return Status.ADVANCED;
+    }
 
-            if (toolCallId != null)
+    @Override
+    protected Status onEndObject()
+    {
+        Status status = Status.REJECTED;
+
+        if (opened)
+        {
+            if (toolCallId == null)
             {
-                emit(JsonEvent.KEY_NAME, "id");
-                emit(JsonEvent.VALUE_STRING, toolCallId);
+                toolCallId = attribute("tool-call-id");
+
+                if (toolCallId != null)
+                {
+                    emit(JsonEvent.KEY_NAME, "id");
+                    emit(JsonEvent.VALUE_STRING, toolCallId);
+                }
+            }
+
+            if (toolName == null)
+            {
+                toolName = attribute("tool-name");
+
+                if (toolName != null)
+                {
+                    emit(JsonEvent.KEY_NAME, "name");
+                    emit(JsonEvent.VALUE_STRING, toolName);
+                }
+            }
+
+            if (toolCallId != null && toolName != null)
+            {
+                emit(JsonEvent.END_OBJECT);
+                status = Status.ADVANCED;
             }
         }
 
-        if (toolName == null)
-        {
-            toolName = attribute("tool-name");
-
-            if (toolName != null)
-            {
-                emit(JsonEvent.KEY_NAME, "name");
-                emit(JsonEvent.VALUE_STRING, toolName);
-            }
-        }
-
-        final boolean resolved = toolCallId != null && toolName != null;
-
-        if (resolved)
-        {
-            pass(JsonEvent.END_OBJECT);
-        }
-
-        return resolved ? Status.ADVANCED : Status.REJECTED;
+        return status;
     }
 }

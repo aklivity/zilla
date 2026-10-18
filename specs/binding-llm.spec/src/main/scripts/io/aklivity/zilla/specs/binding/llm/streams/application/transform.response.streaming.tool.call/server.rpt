@@ -78,10 +78,10 @@ write zilla:data.ext ${llm:dataEx()
 write zilla:data.empty
 write flush
 write option zilla:flags "none"
-write "{\"city\":"
+write "{\"arguments\":{\"city\":"
 write flush
 write option zilla:flags "none"
-write "\"Paris\"}"
+write "\"Paris\"}}"
 write flush
 write option zilla:flags "fin"
 write zilla:data.empty

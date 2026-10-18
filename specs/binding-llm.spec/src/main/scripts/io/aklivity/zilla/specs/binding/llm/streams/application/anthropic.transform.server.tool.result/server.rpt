@@ -49,7 +49,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .attribute("tool-name", "web_search")
                           .attribute("tool-call-id", "srvtoolu_1")
                           .build()}
-read "{\"query\":\"paris weather\"}"
+read "{\"arguments\":{\"query\":\"paris weather\"}}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))

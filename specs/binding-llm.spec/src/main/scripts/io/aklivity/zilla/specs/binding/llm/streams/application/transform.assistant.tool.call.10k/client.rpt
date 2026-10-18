@@ -49,9 +49,9 @@ write zilla:data.ext ${llm:dataEx()
                           .attribute("tool-name", "get_weather")
                           .attribute("tool-call-id", "call_1")
                           .build()}
-write "{\"city\":\""
+write "{\"arguments\":{\"city\":\""
       ${core:randomBase64(10000)}
-      "\"}"
+      "\"}}"
 write flush
 
 write advise zilla:flush

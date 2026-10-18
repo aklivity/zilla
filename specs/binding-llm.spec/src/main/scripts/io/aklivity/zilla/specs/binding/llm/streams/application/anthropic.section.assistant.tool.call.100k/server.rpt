@@ -53,9 +53,9 @@ read zilla:data.ext ${llm:matchDataEx()
                           .attribute("tool-name", "get_weather")
                           .attribute("tool-call-id", "toolu_1")
                           .build()}
-read "{\"city\":\""
+read "{\"arguments\":{\"city\":\""
      ${core:randomBase64(100000)}
-     "\"}"
+     "\"}}"
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))

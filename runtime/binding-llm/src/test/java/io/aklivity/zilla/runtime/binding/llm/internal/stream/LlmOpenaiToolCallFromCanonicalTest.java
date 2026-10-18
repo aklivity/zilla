@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmToolTransformRunner.assertRejects;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmToolTransformRunner.assertTransforms;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmToolTransformRunner.assertTransformsCompletedBeforeLate;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmToolTransformRunner.json;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmToolTransformRunner.quote;
 
@@ -102,6 +103,15 @@ public class LlmOpenaiToolCallFromCanonicalTest
         assertTransforms(transform, null, both,
             "{\"arguments\":" + arguments + "}",
             json("{'type':'function','function':{'arguments':") + quote(arguments) +
+                json(",'name':'get_weather'},'id':'call_1'}"));
+    }
+
+    @Test
+    public void shouldWriteIdAndNameKnownLateAfterTheObjectCompleted()
+    {
+        assertTransformsCompletedBeforeLate(transform, null, both,
+            json("{'arguments':{'city':'Paris'}}"),
+            json("{'type':'function','function':{'arguments':") + quote(json("{'city':'Paris'}")) +
                 json(",'name':'get_weather'},'id':'call_1'}"));
     }
 

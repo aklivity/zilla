@@ -1452,4 +1452,25 @@ public class LlmOpenaiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.tool.call.members/client",
+        "${net}/openai.section.tool.call.members/server"})
+    public void shouldEncodeOpenaiSectionToolCallMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
+        "${app}/anthropic.transform.assistant.tool.call.cache.control/client",
+        "${net}/openai.transform.assistant.tool.call/server"})
+    public void shouldDropAnthropicToolCallCacheControlAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
 }

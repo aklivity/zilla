@@ -1409,4 +1409,25 @@ public class LlmAnthropicClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.assistant.tool.call.cache.control/client",
+        "${net}/anthropic.section.assistant.tool.call.cache.control/server"})
+    public void shouldEncodeAnthropicSectionAssistantToolCallCacheControl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"target \"anthropic\""})
+    @Specification({
+        "${app}/openai.transform.assistant.tool.call.members/client",
+        "${net}/anthropic.transform.assistant.tool.call/server"})
+    public void shouldDropOpenaiToolCallMembersAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
 }
