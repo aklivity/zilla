@@ -23,6 +23,8 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import java.util.List;
+
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
@@ -31,6 +33,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.binding.llm.LlmOptionsConfig;
+import io.aklivity.zilla.config.binding.llm.LlmTestDialectConfig;
 import io.aklivity.zilla.config.engine.test.internal.model.config.TestModelConfig;
 
 public class LlmOptionsConfigAdapterTest
@@ -41,7 +44,7 @@ public class LlmOptionsConfigAdapterTest
     public void initJson()
     {
         JsonbConfig config = new JsonbConfig()
-            .withAdapters(new LlmOptionsConfigAdapter());
+            .withAdapters(new LlmOptionsConfigAdapter(List.of(new LlmTestDialectExtInfo().options())));
         jsonb = JsonbBuilder.create(config);
     }
 
@@ -427,5 +430,46 @@ public class LlmOptionsConfigAdapterTest
         String text = jsonb.toJson(options);
 
         assertThat(text, equalTo("{\"authorization\":{\"test0\":{\"credentials\":\"Bearer {credentials}\"}}}"));
+    }
+
+    @Test
+    public void shouldReadOptionsWithDialectExtension()
+    {
+        String text =
+                "{" +
+                    "\"dialect\": \"test-dialect\"," +
+                    "\"test-settings\": { \"region\": \"us-east-1\" }" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.dialect, equalTo("test-dialect"));
+        LlmTestDialectConfig settings = options.ext(LlmTestDialectExtInfo.OPTIONS_NAME, LlmTestDialectConfig.class);
+        assertThat(settings, not(nullValue()));
+        assertThat(settings.region, equalTo("us-east-1"));
+    }
+
+    @Test
+    public void shouldReadOptionsWithoutDialectExtension()
+    {
+        String text = "{\"dialect\": \"test-dialect\"}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.ext(LlmTestDialectExtInfo.OPTIONS_NAME, LlmTestDialectConfig.class), nullValue());
+    }
+
+    @Test
+    public void shouldWriteOptionsWithDialectExtension()
+    {
+        String text =
+                "{" +
+                    "\"dialect\":\"test-dialect\"," +
+                    "\"test-settings\":{\"region\":\"us-east-1\"}" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(jsonb.toJson(options), equalTo(text));
     }
 }

@@ -23,7 +23,7 @@ import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ConfigBuilder;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public final class LlmOptionsConfigBuilder<T> extends ConfigBuilder<T, LlmOptionsConfigBuilder<T>>
+public final class LlmOptionsConfigBuilder<T> extends ConfigBuilder.Extensible<T, LlmOptionsConfigBuilder<T>>
 {
     private final Function<OptionsConfig, T> mapper;
 
@@ -92,11 +92,13 @@ public final class LlmOptionsConfigBuilder<T> extends ConfigBuilder<T, LlmOption
     @Override
     public T build()
     {
-        List<Config.Reference> refs = guardrails.stream()
-            .flatMap(guardrail -> Stream.concat(guardrail.request.stream(), guardrail.response.stream()))
-            .flatMap(stage -> stage.value.refs().stream())
+        List<Config.Reference> refs = Stream.concat(
+                guardrails.stream()
+                    .flatMap(guardrail -> Stream.concat(guardrail.request.stream(), guardrail.response.stream()))
+                    .flatMap(stage -> stage.value.refs().stream()),
+                refs().stream())
             .toList();
 
-        return mapper.apply(new LlmOptionsConfig(dialect, authorization, server, List.copyOf(guardrails), refs));
+        return mapper.apply(new LlmOptionsConfig(dialect, authorization, server, List.copyOf(guardrails), extensions(), refs));
     }
 }

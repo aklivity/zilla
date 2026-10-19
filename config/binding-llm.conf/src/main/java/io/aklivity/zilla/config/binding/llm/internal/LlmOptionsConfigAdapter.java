@@ -31,9 +31,10 @@ import io.aklivity.zilla.config.binding.llm.LlmGuardrailStageConfig;
 import io.aklivity.zilla.config.binding.llm.LlmOptionsConfig;
 import io.aklivity.zilla.config.binding.llm.LlmOptionsConfigBuilder;
 import io.aklivity.zilla.config.engine.ConfigAdapter;
+import io.aklivity.zilla.config.engine.ConfigExtAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public final class LlmOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
+public final class LlmOptionsConfigAdapter extends ConfigAdapter.Extensible<OptionsConfig, JsonObject>
 {
     private static final String DIALECT_NAME = "dialect";
     private static final String AUTHORIZATION_NAME = "authorization";
@@ -50,6 +51,12 @@ public final class LlmOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
     private static final int PORT_HTTP = 80;
     private static final int PORT_HTTPS = 443;
     private static final String DEFAULT_PATH = "/v1";
+
+    public LlmOptionsConfigAdapter(
+        List<ConfigExtAdapter<OptionsConfig>> extensions)
+    {
+        super(extensions);
+    }
 
     @Override
     public JsonObject adaptToJson(
@@ -100,6 +107,8 @@ public final class LlmOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
             object.add(GUARDRAILS_NAME, guardrails);
         }
 
+        injectExtensions(llmOptions, object);
+
         return object.build();
     }
 
@@ -146,6 +155,8 @@ public final class LlmOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
                 llmOptions.guardrail(guardrail.build());
             });
         }
+
+        injectExtensions(object, llmOptions);
 
         return llmOptions.build();
     }
