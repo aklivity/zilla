@@ -67,6 +67,7 @@ write "{\"type\":\"message_start\",\"message\":{\"id\":\"msg_01\",\"type\":\"mes
       "\",\"content\":[],\"stop_reason\":null,\"stop_sequence\":null,\"usage\":{\"input_tokens\":25,\"output_tokens\":1}}}"
 write flush
 
+write option zilla:flags "init"
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")

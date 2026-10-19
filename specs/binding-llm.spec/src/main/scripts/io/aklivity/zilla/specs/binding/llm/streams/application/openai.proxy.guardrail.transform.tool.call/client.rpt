@@ -1,0 +1,16 @@
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("ASSISTANT_TEXT")
+                          .message(0)
+                          .build()}
+read "{\"text\":\"the ****** is\"}"
+read notify TEXT_DELIVERED
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("TOOL_CALL")
+                          .message(0)
+                          .attribute("tool-name", "get_weather")
+                          .attribute("tool-call-id", "call_1")
+                          .build()}
+read "{\"arguments\":{\"city\":\"Paris\"}}"

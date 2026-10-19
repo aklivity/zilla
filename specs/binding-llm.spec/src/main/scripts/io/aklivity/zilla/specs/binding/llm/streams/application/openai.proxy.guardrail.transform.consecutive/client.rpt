@@ -1,0 +1,13 @@
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("ASSISTANT_TEXT")
+                          .message(0)
+                          .build()}
+read "{\"text\":\"the sec\"}"
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("ASSISTANT_TEXT")
+                          .message(0)
+                          .build()}
+read "{\"text\":\"ret is\"}"

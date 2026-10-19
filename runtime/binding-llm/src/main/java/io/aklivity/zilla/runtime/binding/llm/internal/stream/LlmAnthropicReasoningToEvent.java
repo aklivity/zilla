@@ -17,17 +17,42 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
-final class LlmAnthropicReasoningToDelta extends LlmToolTransform
+final class LlmAnthropicReasoningToEvent extends LlmToolTransform
 {
-    private static final String DELTA_THINKING = "thinking_delta";
-    private static final String DELTA_SIGNATURE = "signature_delta";
+    private final String member;
+    private final String eventType;
+    private final String objectKey;
+    private final String objectType;
+    private final String valueKey;
 
     private int index;
     private boolean opened;
 
-    LlmAnthropicReasoningToDelta()
+    private LlmAnthropicReasoningToEvent(
+        String member,
+        String eventType,
+        String objectKey,
+        String objectType,
+        String valueKey)
     {
         super(MODE_EXTRACT);
+        this.member = member;
+        this.eventType = eventType;
+        this.objectKey = objectKey;
+        this.objectType = objectType;
+        this.valueKey = valueKey;
+    }
+
+    static LlmAnthropicReasoningToEvent signature()
+    {
+        return new LlmAnthropicReasoningToEvent("anthropic:signature", "content_block_delta", "delta", "signature_delta",
+            "signature");
+    }
+
+    static LlmAnthropicReasoningToEvent redacted()
+    {
+        return new LlmAnthropicReasoningToEvent("anthropic:data", "content_block_start", "content_block", "redacted_thinking",
+            "data");
     }
 
     void index(
@@ -50,16 +75,10 @@ final class LlmAnthropicReasoningToDelta extends LlmToolTransform
     {
         int action = DROP;
 
-        if (!opened && matches(key, "text"))
+        if (!opened && matches(key, member))
         {
-            open(DELTA_THINKING);
-            emit(JsonEvent.KEY_NAME, "thinking");
-            action = PASS_STRING;
-        }
-        else if (!opened && matches(key, "anthropic:signature"))
-        {
-            open(DELTA_SIGNATURE);
-            emit(JsonEvent.KEY_NAME, "signature");
+            open();
+            emit(JsonEvent.KEY_NAME, valueKey);
             action = PASS_STRING;
         }
 
@@ -87,18 +106,17 @@ final class LlmAnthropicReasoningToDelta extends LlmToolTransform
         return status;
     }
 
-    private void open(
-        String deltaType)
+    private void open()
     {
         emit(JsonEvent.START_OBJECT);
         emit(JsonEvent.KEY_NAME, "type");
-        emit(JsonEvent.VALUE_STRING, "content_block_delta");
+        emit(JsonEvent.VALUE_STRING, eventType);
         emit(JsonEvent.KEY_NAME, "index");
         emit(JsonEvent.VALUE_NUMBER, Integer.toString(index));
-        emit(JsonEvent.KEY_NAME, "delta");
+        emit(JsonEvent.KEY_NAME, objectKey);
         emit(JsonEvent.START_OBJECT);
         emit(JsonEvent.KEY_NAME, "type");
-        emit(JsonEvent.VALUE_STRING, deltaType);
+        emit(JsonEvent.VALUE_STRING, objectType);
 
         opened = true;
     }

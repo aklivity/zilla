@@ -43,10 +43,17 @@ final class LlmTextPipeline
     LlmTextPipeline(
         Output output)
     {
+        this(output, false);
+    }
+
+    LlmTextPipeline(
+        Output output,
+        boolean optional)
+    {
         this.windowBuffer = new UnsafeBufferEx();
         this.window = new byte[0];
         this.pipeline = JsonEx.stream(JsonEx.createParser())
-            .transform(new LlmTextTransform())
+            .transform(new LlmTextTransform(optional))
             .into(new LlmTextSink(output));
     }
 

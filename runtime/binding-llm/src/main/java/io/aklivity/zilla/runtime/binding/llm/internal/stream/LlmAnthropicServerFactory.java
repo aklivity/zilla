@@ -3745,17 +3745,21 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private final LlmSectionPipeline.Output blockOutput;
         private final LlmSectionPipeline.Output replayOutput;
         private final LlmSectionPipeline.Output deltaOutput;
+        private final LlmSectionPipeline.Output signatureOutput;
+        private final LlmSectionPipeline.Output redactedOutput;
         private final LlmTextPipeline sectionText;
+        private final LlmTextPipeline reasoningText;
         private final LlmTextPipeline replayText;
 
         private LlmTextPipeline textPipeline;
         private LlmSectionPipeline blockPipeline;
         private LlmSectionPipeline reasoningBlock;
-        private LlmSectionPipeline reasoningDelta;
-        private LlmAnthropicReasoningToDelta reasoningDeltaTransform;
+        private LlmSectionPipeline reasoningSignature;
+        private LlmAnthropicReasoningToEvent reasoningSignatureTransform;
+        private LlmSectionPipeline reasoningRedacted;
+        private LlmAnthropicReasoningToEvent reasoningRedactedTransform;
         private LlmSectionPipeline replayPipeline;
         private LlmSectionPipeline replayReasoning;
-        private LlmSectionPipeline replayValue;
         private LlmSectionPipeline toolBlock;
         private LlmSectionPipeline toolValue;
         private LlmSectionPipeline replayToolValue;
@@ -3802,7 +3806,10 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 generator.writeSegment(buffer, offset, length, Completion.INCOMPLETE);
             this.replayOutput = (buffer, offset, length, last) -> putReplay(buffer, offset, length);
             this.deltaOutput = (buffer, offset, length, last) -> onToolDelta(buffer, offset, length);
+            this.signatureOutput = (buffer, offset, length, last) -> onReasoningSignature(buffer, offset, length);
+            this.redactedOutput = (buffer, offset, length, last) -> onReasoningRedacted(buffer, offset, length);
             this.sectionText = new LlmTextPipeline(this::onSectionText);
+            this.reasoningText = new LlmTextPipeline(this::onReasoningText, true);
             this.replayText = new LlmTextPipeline(this::onReplayText);
         }
 
@@ -4045,7 +4052,11 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             }
             else if (replyKind == LlmDataExFW.KIND_SECTION)
             {
-                if (!textSection && (kind == KIND_REASONING || kind == KIND_TOOL_CALL && !server.streaming))
+                if (kind == KIND_REASONING && server.streaming)
+                {
+                    doEncodeReasoning(traceId, payload.buffer(), payload.offset(), payload.sizeof(), Flags.hasFin(flags));
+                }
+                else if (!textSection && (kind == KIND_REASONING || kind == KIND_TOOL_CALL && !server.streaming))
                 {
                     if (!blockPipeline.feed(payload.buffer(), payload.offset(), payload.sizeof(), Flags.hasFin(flags),
                         blockOutput))
@@ -4696,33 +4707,108 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 textPipeline = null;
             }
 
-            if (kind != KIND_SKIPPED && !textSection)
+            if (kind == KIND_REASONING && server.streaming)
+            {
+                beginReasoning();
+            }
+            else if (kind != KIND_SKIPPED && !textSection)
             {
                 openBlock(toolCallId, toolName);
 
-                if (kind == KIND_REASONING && server.streaming)
-                {
-                    beginReasoningDelta();
-                }
-                else if (kind == KIND_TOOL_CALL && server.streaming)
+                if (kind == KIND_TOOL_CALL && server.streaming)
                 {
                     toolValue().begin(replyAttributes);
                 }
             }
         }
 
-        private void beginReasoningDelta()
+        private void beginReasoning()
         {
-            if (reasoningDelta == null)
+            if (reasoningSignature == null)
             {
-                reasoningDeltaTransform = new LlmAnthropicReasoningToDelta();
-                reasoningDelta = new LlmSectionPipeline(reasoningDeltaTransform, new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                reasoningSignatureTransform = LlmAnthropicReasoningToEvent.signature();
+                reasoningSignature = new LlmSectionPipeline(reasoningSignatureTransform,
+                    new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                reasoningRedactedTransform = LlmAnthropicReasoningToEvent.redacted();
+                reasoningRedacted = new LlmSectionPipeline(reasoningRedactedTransform,
+                    new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
             }
 
-            eventBegin(generator.length(), EVENT_BLOCK_DELTA);
-            reasoningDeltaTransform.index(blocks - 1);
-            blockPipeline = reasoningDelta;
-            blockPipeline.begin(replyAttributes);
+            reasoningText.begin();
+            reasoningSignature.begin(replyAttributes);
+            reasoningRedacted.begin(replyAttributes);
+        }
+
+        private void doEncodeReasoning(
+            long traceId,
+            DirectBufferEx payload,
+            int payloadOffset,
+            int payloadLength,
+            boolean fin)
+        {
+            reasoningSignatureTransform.index(blockOpen ? blocks - 1 : blocks);
+            reasoningRedactedTransform.index(blocks);
+
+            if (!reasoningText.feed(payload, payloadOffset, payloadLength, fin) ||
+                !reasoningSignature.feed(payload, payloadOffset, payloadLength, fin, signatureOutput) ||
+                !reasoningRedacted.feed(payload, payloadOffset, payloadLength, fin, redactedOutput))
+            {
+                server.cleanup(traceId);
+            }
+        }
+
+        private void onReasoningText(
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            if (length > 0)
+            {
+                if (!blockOpen)
+                {
+                    openBlock(null, null);
+                }
+
+                dataChunk(buffer, offset, length);
+            }
+        }
+
+        private void onReasoningSignature(
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            if (!blockOpen)
+            {
+                openBlock(null, null);
+            }
+
+            if (!eventOpen)
+            {
+                eventBegin(generator.length(), EVENT_BLOCK_DELTA);
+            }
+
+            generator.writeSegment(buffer, offset, length, Completion.INCOMPLETE);
+        }
+
+        private void onReasoningRedacted(
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            if (!blockOpen)
+            {
+                if (envelope == ENVELOPE_PRELUDE)
+                {
+                    closePrelude();
+                }
+
+                blocks++;
+                blockOpen = true;
+                eventBegin(generator.length(), EVENT_BLOCK_START);
+            }
+
+            generator.writeSegment(buffer, offset, length, Completion.INCOMPLETE);
         }
 
         private void onSectionText(
@@ -4839,6 +4925,10 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 kind = KIND_TEXT;
                 openBlock(null, null);
             }
+            else if (kind == KIND_REASONING && server.streaming && !blockOpen)
+            {
+                openBlock(null, null);
+            }
 
             if (blockOpen)
             {
@@ -4874,7 +4964,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         {
             if (server.streaming)
             {
-                if (kind == KIND_REASONING && !textSection)
+                if (kind == KIND_REASONING && eventOpen)
                 {
                     generator.writeSegment(EMPTY_BUFFER, 0, 0, Completion.COMPLETE);
                     eventEnd(generator.length());
@@ -5228,30 +5318,13 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
         private LlmSectionPipeline replayReasoningPipeline()
         {
-            final LlmSectionPipeline pipeline;
-
-            if (server.streaming)
+            if (replayReasoning == null)
             {
-                if (replayValue == null)
-                {
-                    replayValue = new LlmSectionPipeline(new LlmAnthropicReasoningToValue(),
-                        new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
-                }
-
-                pipeline = replayValue;
-            }
-            else
-            {
-                if (replayReasoning == null)
-                {
-                    replayReasoning = new LlmSectionPipeline(new LlmAnthropicReasoningFromCanonical(),
-                        new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
-                }
-
-                pipeline = replayReasoning;
+                replayReasoning = new LlmSectionPipeline(new LlmAnthropicReasoningFromCanonical(),
+                    new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
             }
 
-            return pipeline;
+            return replayReasoning;
         }
 
         private void putReplay(
