@@ -98,14 +98,13 @@ final class LlmGeminiMediaFromCanonical extends LlmToolTransform
     protected Status onDescend(
         int depth)
     {
-        final String mediaType = attribute("media-type");
-        Status status = Status.ADVANCED;
+        final boolean sourced = attributeEquals("source", LlmSectionAttributes.SOURCE_INLINE) ||
+            attributeEquals("source", LlmSectionAttributes.SOURCE_URL) ||
+            attributeEquals("source", LlmSectionAttributes.SOURCE_REFERENCE);
+        final String mediaType = sourced ? attribute("media-type") : null;
+        Status status = sourced ? Status.ADVANCED : Status.REJECTED;
 
-        if (attribute("source") == null)
-        {
-            status = Status.REJECTED;
-        }
-        else if (mediaType != null)
+        if (mediaType != null)
         {
             emit(JsonEvent.KEY_NAME, "mimeType");
             emit(JsonEvent.VALUE_STRING, mediaType);

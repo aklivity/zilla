@@ -588,4 +588,47 @@ public class LlmProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/gemini.proxy/client",
+        "${app}/gemini.proxy/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRouteGeminiToAppZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.yaml")
+    @Specification({
+        "${app}/gemini.proxy.guardrail.accepted/client",
+        "${app}/gemini.proxy.guardrail.accepted/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayGeminiGuardedSection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.yaml")
+    @Specification({
+        "${app}/gemini.proxy.guardrail.rejected/client",
+        "${app}/gemini.proxy.guardrail.rejected.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRejectGeminiGuardedSection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.proxy.guardrail.yaml")
+    @Specification({
+        "${net}/gemini.proxy.guardrail.rejected/client",
+        "${app}/gemini.proxy.guardrail.rejected.request/server"})
+    public void shouldRejectGeminiGuardedSectionFromNetwork() throws Exception
+    {
+        k3po.finish();
+    }
 }

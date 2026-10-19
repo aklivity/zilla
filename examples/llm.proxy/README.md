@@ -24,10 +24,12 @@ the model alone:
 openai client ──────►│ tcp(7161) → http(server) → llm(server, dialect: openai)    ──┐│
                      │                                                              ││
 anthropic client ───►│ tcp(7162) → http(server) → llm(server, dialect: anthropic) ─┼┼──► llm(proxy)
+                     │                                                              ││
+gemini client ──────►│ tcp(7163) → http(server) → llm(server, dialect: gemini)    ──┘│
                      └──────────────────────────────────────────────────────────────┘│
 ```
 
-`north_llm_proxy` then picks one of four `llm(client)` legs, each behind its
+`north_llm_proxy` then picks one of five `llm(client)` legs, each behind its
 own `http(client)` → `tcp(client)`, purely from the stream's `dialect`/`model`:
 
 | Inbound dialect | Model | Routed to | Translated? |
@@ -38,8 +40,12 @@ own `http(client)` → `tcp(client)`, purely from the stream's `dialect`/`model`
 | `anthropic` | `gpt-*`, e.g. `gpt-4` | `south_llm_client_openai` → `mock-openai:4101` | **yes -- anthropic to openai** |
 | `anthropic` | `claude-*`, e.g. `claude-3-opus-20240229` | `south_llm_client_anthropic` → `mock-anthropic:4102` | no -- same dialect |
 | `openai` | `gpt-*`, e.g. `gpt-4` | `south_llm_client_openai` → `mock-openai:4101` | no -- same dialect |
+| any | `gemini-*`, e.g. `gemini-2.5-flash` | `south_llm_client_gemini` → `mock-gemini:4105` | no for `gemini`; **yes -- openai or anthropic to gemini** |
+| `gemini` | `claude-*`, e.g. `claude-3-opus-20240229` | `south_llm_client_anthropic` → `mock-anthropic:4102` | **yes -- gemini to anthropic** |
+| `gemini` | `gpt-*`, e.g. `gpt-4` | `south_llm_client_openai` → `mock-openai:4101` | **yes -- gemini to openai** |
 | `openai` | *(any other model)* | `south_llm_client_openai` → `mock-openai:4101` | no -- same dialect |
 | `anthropic` | *(any other model)* | `south_llm_client_anthropic` → `mock-anthropic:4102` | no -- same dialect |
+| `gemini` | *(any other model)* | `south_llm_client_gemini` → `mock-gemini:4105` | no -- same dialect |
 
 A model neither prefix names is served by the provider of the client's own
 dialect, with no translation.
@@ -53,9 +59,11 @@ decoded request/response (or, for the proxy, on the stream's own metadata).
 | --- | --- | --- |
 | `llm` | `server` (`north_llm_server_openai`) | Terminates OpenAI-dialect `/v1/chat/completions` requests on port 7161 |
 | `llm` | `server` (`north_llm_server_anthropic`) | Terminates Anthropic-dialect `/v1/messages` requests on port 7162 |
+| `llm` | `server` (`north_llm_server_gemini`) | Terminates Gemini-dialect `/v1beta/models/{model}:generateContent` and `:streamGenerateContent` requests on port 7163; the model comes from the path and a caller's `x-goog-api-key` is the credential |
 | `llm` | `proxy` (`north_llm_proxy`) | Routes on `dialect`/`model` to one of the four `llm(client)` legs below |
 | `llm` | `client` (`south_llm_client_anthropic`) | Exit for `claude-*` models: for an openai-dialect request, re-encodes for `mock-anthropic`'s Messages API and translates its response back; an anthropic-dialect request passes straight through |
 | `llm` | `client` (`south_llm_client_openai`) | Exit for `gpt-*` models: for an anthropic-dialect request, re-encodes for `mock-openai`'s Chat Completions API and translates its response back; an openai-dialect request passes straight through |
+| `llm` | `client` (`south_llm_client_gemini`) | Exit for `gemini-*` models: for an openai- or anthropic-dialect request, re-encodes for `mock-gemini`'s `streamGenerateContent` API and translates its response back; a gemini-dialect request passes straight through, on the operation the caller used |
 | `llm` | `client` (`south_llm_client_openai_secondary`) | `model: gpt-4o` exit: same dialect (openai) as the request, no translation, straight to `mock-openai-secondary` |
 | `llm` | `client` (`south_llm_client_anthropic_secondary`) | `model: claude-3-5-haiku-20241022` exit: same dialect (anthropic) as the request, no translation, straight to `mock-anthropic-secondary` |
 
@@ -268,7 +276,7 @@ docker compose up -d
 
 ## Try it
 
-Point the official `openai`/`anthropic` Python SDKs at the two frontends --
+Point the official `openai`/`anthropic`/`google-genai` Python SDKs at the three frontends --
 `base_url` is the only override, exactly as a caller would repoint an
 existing integration at a self-hosted gateway. Since the SDKs enforce the
 real wire contract (not just a matching substring), a successful call here
@@ -276,7 +284,7 @@ proves each dialect is complete enough for an off-the-shelf client to
 succeed unmodified:
 
 ```bash
-pip install openai anthropic
+pip install openai anthropic google-genai
 ```
 
 Send an OpenAI-shaped request for a Claude model to the openai-facing
@@ -369,6 +377,28 @@ Both directions round-trip through the exact same cross-dialect translation
 the anthropic client's request for a GPT model on `mock-openai` -- the SDKs
 are simply unaware of it.
 
+The Gemini frontend works the same way. Point the `google-genai` SDK at port 7163
+and ask for any model -- a `gemini-*` model is served by `mock-gemini` with no
+translation, a `claude-*` or `gpt-*` model is translated to that provider and the
+reply comes back Gemini-shaped, and the other two frontends can ask for a
+`gemini-*` model too:
+
+```python
+from google import genai
+from google.genai import types
+
+client = genai.Client(
+    api_key="your-gemini-key",
+    http_options=types.HttpOptions(base_url="http://localhost:7163", api_version="v1beta"))
+
+for model in ("gemini-2.5-flash", "claude-3-opus-20240229", "gpt-4"):
+    resp = client.models.generate_content(model=model, contents="Hello")
+    print(model, "->", resp.text)
+
+for chunk in client.models.generate_content_stream(model="gpt-4", contents="Hello"):
+    print(chunk.text, end="")
+```
+
 Add a `tools` definition to either cross-dialect request (see
 `etc/test/verify.py` for the full shape) to see a tool-call response
 translated across dialects too.
@@ -428,12 +458,13 @@ unbounded values.
 ```
 
 Runs the assertions in `etc/test/verify.py` inside the compose stack, driven
-through the real `openai`/`anthropic` Python SDKs rather than hand-built HTTP
-calls: both translation directions (non-streaming and streaming), both
-tool-call round trips, both credential pass-through directions (confirmed by
-grepping each mock backend's own log for the caller's forwarded token), and
-both model-based routes to the secondary, same-dialect deployments, and the
-`llm.*` metrics recorded at every `llm` binding an exchange passes through.
+through the real `openai`/`anthropic`/`google-genai` Python SDKs rather than
+hand-built HTTP calls: every translation direction between the three dialects
+(non-streaming and streaming), every tool-call round trip, every credential
+pass-through direction (confirmed by grepping each mock backend's own log for
+the caller's forwarded token), both model-based routes to the secondary,
+same-dialect deployments, and the `llm.*` metrics recorded at every `llm`
+binding an exchange passes through.
 
 ## Using the real OpenAI/Anthropic APIs instead of the mocks
 
@@ -497,6 +528,13 @@ The same three steps apply to `south_llm_client_anthropic` (or
 `south_llm_client_anthropic_secondary`): point `options.server` at
 `api.anthropic.com:443`, insert an equivalent `tls(client)`/`vault` pair with
 `sni: [api.anthropic.com]`, and call port 7162 with a real `x-api-key`.
+
+The same applies to `south_llm_client_gemini`: `etc/zilla.yaml` already points it
+at `generativelanguage.googleapis.com:443` with a matching `tls(client)` leg --
+call port 7163 with a real Gemini API key, which is forwarded upstream as
+`x-goog-api-key`. The client's default path is `/v1beta`; set `options.server`
+to `https://generativelanguage.googleapis.com:443/v1` for the stable API
+instead.
 
 See the [TLS binding reference](https://docs.aklivity.io/zilla/latest/reference/config/bindings/tls/)
 for the full set of `tls(client)` options.

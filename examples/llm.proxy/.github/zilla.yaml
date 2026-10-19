@@ -117,7 +117,31 @@ bindings:
         - llm.*
     exit: north_llm_proxy
 
-  # Shared by both frontends: routes purely on LlmBeginEx.dialect/model, never on
+  north_tcp_server_gemini:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port: 7163
+    exit: north_http_server_gemini
+  north_http_server_gemini:
+    type: http
+    kind: server
+    exit: north_llm_server_gemini
+  north_llm_server_gemini:
+    type: llm
+    kind: server
+    options:
+      dialect: gemini
+      authorization:
+        api_key:
+          credentials: "{credentials}"
+    telemetry:
+      metrics:
+        - llm.*
+    exit: north_llm_proxy
+
+  # Shared by the frontends: routes purely on LlmBeginEx.dialect/model, never on
   # request content. The model names the backend, so a request reaches the
   # provider that serves its model whichever dialect the client speaks: a
   # claude-* model reaches Anthropic and a gpt-* model reaches OpenAI. A client
@@ -192,11 +216,17 @@ bindings:
           - model: [ "gpt-*" ]
         exit: south_llm_client_openai
       - when:
+          - model: [ "gemini-*" ]
+        exit: south_llm_client_gemini
+      - when:
           - dialect: openai
         exit: south_llm_client_openai
       - when:
           - dialect: anthropic
         exit: south_llm_client_anthropic
+      - when:
+          - dialect: gemini
+        exit: south_llm_client_gemini
 
   south_llm_client_anthropic:
     type: llm
@@ -325,3 +355,27 @@ bindings:
     options:
       host: mock-anthropic-secondary
       port: 4104
+
+  south_llm_client_gemini:
+    type: llm
+    kind: client
+    options:
+      dialect: gemini
+      server: http://mock-gemini:4105
+      authorization:
+        api_key:
+          credentials: "{credentials}"
+    telemetry:
+      metrics:
+        - llm.*
+    exit: south_http_client_gemini
+  south_http_client_gemini:
+    type: http
+    kind: client
+    exit: south_tcp_client_gemini
+  south_tcp_client_gemini:
+    type: tcp
+    kind: client
+    options:
+      host: mock-gemini
+      port: 4105

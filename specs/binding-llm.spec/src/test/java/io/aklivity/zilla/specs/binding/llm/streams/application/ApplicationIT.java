@@ -4805,4 +4805,40 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/gemini.proxy/client",
+        "${app}/gemini.proxy/server"})
+    public void shouldForwardGeminiProxy() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.proxy.guardrail.accepted/client",
+        "${app}/gemini.proxy.guardrail.accepted/server"})
+    public void shouldForwardGeminiProxyGuardrailAccepted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.proxy.guardrail.rejected/client",
+        "${app}/gemini.proxy.guardrail.rejected/server"})
+    public void shouldForwardGeminiProxyGuardrailRejected() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.proxy.guardrail.rejected.exit/client",
+        "${app}/gemini.proxy.guardrail.rejected.exit/server"})
+    public void shouldForwardGeminiProxyGuardrailRejectedExit() throws Exception
+    {
+        k3po.finish();
+    }
 }

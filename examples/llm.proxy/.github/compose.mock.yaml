@@ -84,6 +84,25 @@ services:
       start_interval: 250ms
       test: ["CMD", "nc", "-z", "127.0.0.1", "4104"]
 
+  # Mock Gemini generateContent API backing south_llm_client_gemini.
+  mock-gemini:
+    image: node:20-alpine
+    hostname: mock-gemini
+    restart: unless-stopped
+    working_dir: /app
+    command: ["sh", "-c", "npm install --no-audit --no-fund --silent && node server.mjs"]
+    environment:
+      PORT: "4105"
+    volumes:
+      - ./mock-gemini:/app
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
+      start_interval: 250ms
+      test: ["CMD", "nc", "-z", "127.0.0.1", "4105"]
+
   # Overrides the base compose.yaml's zilla service: swaps in the mock-backed
   # config and waits on every mock's health, neither of which the real-API
   # default needs.
@@ -98,4 +117,6 @@ services:
       mock-openai-secondary:
         condition: service_healthy
       mock-anthropic-secondary:
+        condition: service_healthy
+      mock-gemini:
         condition: service_healthy

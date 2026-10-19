@@ -4535,4 +4535,13 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/gemini.proxy.guardrail.rejected/client",
+        "${net}/gemini.proxy.guardrail.rejected/server"})
+    public void shouldGuardGeminiRejectedNet() throws Exception
+    {
+        k3po.finish();
+    }
 }

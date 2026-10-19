@@ -113,7 +113,31 @@ bindings:
         - llm.*
     exit: north_llm_proxy
 
-  # Shared by both frontends: routes purely on LlmBeginEx.dialect/model, never on
+  north_tcp_server_gemini:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port: 7163
+    exit: north_http_server_gemini
+  north_http_server_gemini:
+    type: http
+    kind: server
+    exit: north_llm_server_gemini
+  north_llm_server_gemini:
+    type: llm
+    kind: server
+    options:
+      dialect: gemini
+      authorization:
+        api_key:
+          credentials: "{credentials}"
+    telemetry:
+      metrics:
+        - llm.*
+    exit: north_llm_proxy
+
+  # Shared by the frontends: routes purely on LlmBeginEx.dialect/model, never on
   # request content. The model names the backend, so a request reaches the
   # provider that serves its model whichever dialect the client speaks: a
   # claude-* model reaches Anthropic and a gpt-* model reaches OpenAI. A client
@@ -186,11 +210,17 @@ bindings:
           - model: [ "gpt-*" ]
         exit: south_llm_client_openai
       - when:
+          - model: [ "gemini-*" ]
+        exit: south_llm_client_gemini
+      - when:
           - dialect: openai
         exit: south_llm_client_openai
       - when:
           - dialect: anthropic
         exit: south_llm_client_anthropic
+      - when:
+          - dialect: gemini
+        exit: south_llm_client_gemini
 
   # Every south_llm_client_* below targets the real OpenAI/Anthropic API
   # directly over TLS -- see README.md's "Credential pass-through" section:
@@ -336,6 +366,44 @@ bindings:
     kind: client
     options:
       host: api.anthropic.com
+      port: 443
+
+  # Targets the real Gemini API over TLS. The caller's own API key is passed
+  # through as x-goog-api-key, as options.authorization templates it. A Gemini
+  # SDK client asking for a gemini-* model is not translated; an OpenAI or
+  # Anthropic SDK client asking for one is, and a Gemini SDK client asking for a
+  # claude-* or gpt-* model is routed to those providers and translated.
+  south_llm_client_gemini:
+    type: llm
+    kind: client
+    options:
+      dialect: gemini
+      server: https://generativelanguage.googleapis.com:443
+      authorization:
+        api_key:
+          credentials: "{credentials}"
+    telemetry:
+      metrics:
+        - llm.*
+    exit: south_http_client_gemini
+  south_http_client_gemini:
+    type: http
+    kind: client
+    exit: south_tls_client_gemini
+  south_tls_client_gemini:
+    type: tls
+    kind: client
+    vault: south_clients
+    options:
+      trustcacerts: true
+      sni:
+        - generativelanguage.googleapis.com
+    exit: south_tcp_client_gemini
+  south_tcp_client_gemini:
+    type: tcp
+    kind: client
+    options:
+      host: generativelanguage.googleapis.com
       port: 443
 
 vaults:

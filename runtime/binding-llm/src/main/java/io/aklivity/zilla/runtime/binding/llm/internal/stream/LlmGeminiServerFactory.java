@@ -102,6 +102,9 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private static final String CONTENT_TYPE_JSON = "application/json";
     private static final Pattern CONTENT_TYPE = Pattern.compile("\\s*([^;\\s]+)\\s*(?:;.*)?");
     private static final String CONTENT_TYPE_EVENT_STREAM = "text/event-stream";
+    private static final Set<String> STATUSES = Set.of("INVALID_ARGUMENT", "FAILED_PRECONDITION", "OUT_OF_RANGE",
+        "UNAUTHENTICATED", "PERMISSION_DENIED", "NOT_FOUND", "ABORTED", "ALREADY_EXISTS", "RESOURCE_EXHAUSTED", "CANCELLED",
+        "DATA_LOSS", "UNKNOWN", "INTERNAL", "UNIMPLEMENTED", "UNAVAILABLE", "DEADLINE_EXCEEDED");
 
     private static final String MESSAGE_FORBIDDEN = "Method doesn't allow unregistered callers (callers without " +
         "established identity). Please use API Key or other form of API consumer identity to call this API.";
@@ -413,7 +416,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             .add("error", Json.createObjectBuilder()
                 .add("code", status)
                 .add("message", message != null ? message : reason(status))
-                .add("status", type != null ? type : errorStatus(status)))
+                .add("status", type != null && STATUSES.contains(type) ? type : errorStatus(status)))
             .build()
             .toString();
     }
