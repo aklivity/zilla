@@ -49,7 +49,6 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpBeginExFW
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmAbortExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBeginExFW;
-import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmChallengeExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmEndExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmErrorFW;
@@ -216,7 +215,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
     private final LlmBeginExFW.Builder llmBeginExRW = new LlmBeginExFW.Builder();
-    private final LlmChallengeExFW.Builder llmChallengeExRW = new LlmChallengeExFW.Builder();
     private final LlmFlushExFW llmFlushExRO = new LlmFlushExFW();
     private final LlmDataExFW.Builder llmDataExRW = new LlmDataExFW.Builder();
     private final LlmResetExFW.Builder llmResetExRW = new LlmResetExFW.Builder();
@@ -526,8 +524,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private int state;
         private boolean rejected;
         private int appKind;
-        private final boolean crossDialect;
-        private boolean challenged;
         private LlmSectionType requestSection;
 
         private LlmOpenaiResponseDecoder decoder;
@@ -646,7 +642,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             this.binding = binding;
             this.model = model;
             this.dialect = dialect;
-            this.crossDialect = !NAME.equals(dialect);
             this.http = new LlmOpenaiHttpStream(this);
             this.parser = JsonEx.createParser(Map.of(JsonParserEx.STRING_EVENT_POSITIONS, StringEventPositions.QUOTED));
             this.usagePath = new StringBuilder();
@@ -3981,39 +3976,9 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             }
         }
 
-        private void doAppDialectChallenge(
-            long traceId)
-        {
-            final LlmChallengeExFW llmChallengeEx = llmChallengeExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                .typeId(llmTypeId)
-                .dialect(NAME)
-                .build();
-
-            final ChallengeFW challenge = challengeRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .originId(originId)
-                .routedId(routedId)
-                .streamId(initialId)
-                .sequence(initialSeq)
-                .acknowledge(initialAck)
-                .maximum(initialMax)
-                .traceId(traceId)
-                .authorization(authorization)
-                .extension(llmChallengeEx.buffer(), llmChallengeEx.offset(), llmChallengeEx.sizeof())
-                .build();
-
-            app.accept(challenge.typeId(), challenge.buffer(), challenge.offset(), challenge.sizeof());
-            challenged = true;
-        }
-
         private void doAppWindow(
             long traceId)
         {
-            if (crossDialect && !challenged)
-            {
-                doAppWindow(traceId, 0);
-                doAppDialectChallenge(traceId);
-            }
-
             doAppWindow(traceId, initialMax);
         }
 

@@ -50,8 +50,7 @@ scope llm
             USER_VIDEO(14),
             SERVER_TOOL_CALL(15),
             SERVER_TOOL_DEFINITION(16),
-            UNKNOWN(17),
-            CONTROL(18)
+            CONTROL(17)
         }
 
         struct LlmSectionDataEx
@@ -62,17 +61,9 @@ scope llm
             octets extension;
         }
 
-        struct LlmDialectDataEx
-        {
-            uint8 complete = 0;
-            uint8 usageOnly = 0;
-            LlmAttribute[] attributes;
-        }
-
         union LlmDataEx switch (uint8) extends core::stream::Extension
         {
             case 0: llm::stream::LlmSectionDataEx section;
-            case 1: llm::stream::LlmDialectDataEx dialect;
         }
 
         struct LlmUsage
@@ -83,7 +74,6 @@ scope llm
             int32 outputTokens = -1;
             int32 reasoningTokens = -1;
             int32 totalTokens = -1;
-            string16 nativeUsage = null;
         }
 
         struct LlmError
@@ -97,7 +87,6 @@ scope llm
 
         struct LlmChallengeEx extends core::stream::Extension
         {
-            string16 dialect;
             string16 model = null;
         }
 

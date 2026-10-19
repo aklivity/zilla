@@ -30,11 +30,6 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
-read advise zilla:challenge ${llm:challengeEx()
-                                .typeId(zilla:id("llm"))
-                                .dialect(target)
-                                .build()}
-
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("SERVER_TOOL_DEFINITION")

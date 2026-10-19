@@ -122,18 +122,6 @@ public final class LlmFunctions
         return new LlmResetExMatcherBuilder();
     }
 
-    @Function
-    public static LlmDialectDataExBuilder dialectDataEx()
-    {
-        return new LlmDialectDataExBuilder();
-    }
-
-    @Function
-    public static LlmDialectDataExMatcherBuilder matchDialectDataEx()
-    {
-        return new LlmDialectDataExMatcherBuilder();
-    }
-
     public static final class LlmBeginExBuilder
     {
         private final LlmBeginExFW.Builder beginExRW;
@@ -552,150 +540,6 @@ public final class LlmFunctions
 
     }
 
-    public static final class LlmDialectDataExBuilder
-    {
-        private final LlmDataExFW.Builder dataExRW;
-
-        private final Map<String, String> attributes;
-
-        private boolean complete;
-        private boolean usageOnly;
-
-        private LlmDialectDataExBuilder()
-        {
-            this.attributes = new LinkedHashMap<>();
-            final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024]);
-            this.dataExRW = new LlmDataExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
-        }
-
-        public LlmDialectDataExBuilder typeId(
-            int typeId)
-        {
-            dataExRW.typeId(typeId);
-            return this;
-        }
-
-        public LlmDialectDataExBuilder complete(
-            boolean complete)
-        {
-            this.complete = complete;
-            return this;
-        }
-
-        public LlmDialectDataExBuilder usageOnly(
-            boolean usageOnly)
-        {
-            this.usageOnly = usageOnly;
-            return this;
-        }
-
-        public LlmDialectDataExBuilder attribute(
-            String name,
-            String value)
-        {
-            attributes.put(name, value);
-            return this;
-        }
-
-        public byte[] build()
-        {
-            final LlmDataExFW dataEx = dataExRW.dialect(d ->
-            {
-                d.complete(complete ? 1 : 0);
-                d.usageOnly(usageOnly ? 1 : 0);
-                attributes.forEach((name, value) -> d.attributesItem(a -> a.name(name).value(value)));
-            }).build();
-            final byte[] array = new byte[dataEx.sizeof()];
-            dataEx.buffer().getBytes(dataEx.offset(), array);
-            return array;
-        }
-    }
-
-    public static final class LlmDialectDataExMatcherBuilder
-    {
-        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
-
-        private final LlmDataExFW dataExRO = new LlmDataExFW();
-
-        private Integer typeId;
-        private Boolean complete;
-        private Boolean usageOnly;
-        private Map<String, String> attributes;
-
-        public LlmDialectDataExMatcherBuilder typeId(
-            int typeId)
-        {
-            this.typeId = typeId;
-            return this;
-        }
-
-        public LlmDialectDataExMatcherBuilder complete(
-            boolean complete)
-        {
-            this.complete = complete;
-            return this;
-        }
-
-        public LlmDialectDataExMatcherBuilder usageOnly(
-            boolean usageOnly)
-        {
-            this.usageOnly = usageOnly;
-            return this;
-        }
-
-        public LlmDialectDataExMatcherBuilder attribute(
-            String name,
-            String value)
-        {
-            if (attributes == null)
-            {
-                attributes = new LinkedHashMap<>();
-            }
-
-            attributes.put(name, value);
-            return this;
-        }
-
-        public BytesMatcher build()
-        {
-            return this::match;
-        }
-
-        private LlmDataExFW match(
-            ByteBuffer byteBuf) throws Exception
-        {
-            if (!byteBuf.hasRemaining())
-            {
-                return null;
-            }
-
-            bufferRO.wrap(byteBuf);
-            final LlmDataExFW dataEx = dataExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.limit());
-
-            if (dataEx != null &&
-                dataEx.kind() == LlmDataExFW.KIND_DIALECT &&
-                (typeId == null || typeId == dataEx.typeId()) &&
-                (complete == null || complete == (dataEx.dialect().complete() != 0)) &&
-                (usageOnly == null || usageOnly == (dataEx.dialect().usageOnly() != 0)) &&
-                matchAttributes(dataEx))
-            {
-                byteBuf.position(byteBuf.position() + dataEx.sizeof());
-                return dataEx;
-            }
-
-            throw new Exception(String.valueOf(dataEx));
-        }
-
-        private boolean matchAttributes(
-            LlmDataExFW dataEx)
-        {
-            final Map<String, String> actual = new LinkedHashMap<>();
-            dataEx.dialect().attributes().forEach(a -> actual.put(a.name().asString(), a.value().asString()));
-
-            return attributes == null || attributes.equals(actual);
-        }
-    }
-
     public static final class LlmEndExBuilder
     {
         private final MutableDirectBufferEx writeBuffer;
@@ -707,7 +551,6 @@ public final class LlmFunctions
         private Integer outputTokens;
         private Integer reasoningTokens;
         private Integer totalTokens;
-        private String nativeUsage;
         private String finishReason;
 
         private LlmEndExBuilder()
@@ -765,13 +608,6 @@ public final class LlmFunctions
             return this;
         }
 
-        public LlmEndExBuilder nativeUsage(
-            String nativeUsage)
-        {
-            this.nativeUsage = nativeUsage;
-            return this;
-        }
-
         public LlmEndExBuilder finishReason(
             String finishReason)
         {
@@ -789,7 +625,6 @@ public final class LlmFunctions
                 u.outputTokens(outputTokens != null ? outputTokens : -1);
                 u.reasoningTokens(reasoningTokens != null ? reasoningTokens : -1);
                 u.totalTokens(totalTokens != null ? totalTokens : -1);
-                u.nativeUsage(nativeUsage);
             });
             endExRW.finishReason(finishReason);
             final LlmEndExFW endEx = endExRW.build();
@@ -812,8 +647,6 @@ public final class LlmFunctions
         private Integer outputTokens;
         private Integer reasoningTokens;
         private Integer totalTokens;
-        private String nativeUsage;
-        private boolean nativeUsageNull;
         private String finishReason;
         private boolean finishReasonNull;
 
@@ -866,19 +699,6 @@ public final class LlmFunctions
             return this;
         }
 
-        public LlmEndExMatcherBuilder nativeUsage(
-            String nativeUsage)
-        {
-            this.nativeUsage = nativeUsage;
-            return this;
-        }
-
-        public LlmEndExMatcherBuilder nativeUsageNull()
-        {
-            this.nativeUsageNull = true;
-            return this;
-        }
-
         public LlmEndExMatcherBuilder finishReason(
             String finishReason)
         {
@@ -916,7 +736,6 @@ public final class LlmFunctions
                 matchOutputTokens(endEx) &&
                 matchReasoningTokens(endEx) &&
                 matchTotalTokens(endEx) &&
-                matchNativeUsage(endEx) &&
                 matchFinishReason(endEx))
             {
                 byteBuf.position(byteBuf.position() + endEx.sizeof());
@@ -966,13 +785,6 @@ public final class LlmFunctions
             LlmEndExFW endEx)
         {
             return totalTokens == null || totalTokens == endEx.usage().totalTokens();
-        }
-
-        private boolean matchNativeUsage(
-            LlmEndExFW endEx)
-        {
-            return nativeUsageNull ? endEx.usage().nativeUsage().asString() == null
-                : nativeUsage == null || nativeUsage.equals(endEx.usage().nativeUsage().asString());
         }
 
         private boolean matchFinishReason(
@@ -1102,13 +914,6 @@ public final class LlmFunctions
             return this;
         }
 
-        public LlmChallengeExBuilder dialect(
-            String dialect)
-        {
-            challengeExRW.dialect(dialect);
-            return this;
-        }
-
         public LlmChallengeExBuilder model(
             String model)
         {
@@ -1132,20 +937,12 @@ public final class LlmFunctions
         private final LlmChallengeExFW challengeExRO = new LlmChallengeExFW();
 
         private Integer typeId;
-        private String dialect;
         private String model;
 
         public LlmChallengeExMatcherBuilder typeId(
             int typeId)
         {
             this.typeId = typeId;
-            return this;
-        }
-
-        public LlmChallengeExMatcherBuilder dialect(
-            String dialect)
-        {
-            this.dialect = dialect;
             return this;
         }
 
@@ -1174,7 +971,6 @@ public final class LlmFunctions
 
             if (challengeEx != null &&
                 matchTypeId(challengeEx) &&
-                matchDialect(challengeEx) &&
                 matchModel(challengeEx))
             {
                 byteBuf.position(byteBuf.position() + challengeEx.sizeof());
@@ -1188,12 +984,6 @@ public final class LlmFunctions
             LlmChallengeExFW challengeEx)
         {
             return typeId == null || typeId == challengeEx.typeId();
-        }
-
-        private boolean matchDialect(
-            LlmChallengeExFW challengeEx)
-        {
-            return dialect == null || dialect.equals(challengeEx.dialect().asString());
         }
 
         private boolean matchModel(
@@ -1214,7 +1004,6 @@ public final class LlmFunctions
         private Integer outputTokens;
         private Integer reasoningTokens;
         private Integer totalTokens;
-        private String nativeUsage;
         private int status = -1;
         private String type;
         private String param;
@@ -1276,13 +1065,6 @@ public final class LlmFunctions
             return this;
         }
 
-        public LlmAbortExBuilder nativeUsage(
-            String nativeUsage)
-        {
-            this.nativeUsage = nativeUsage;
-            return this;
-        }
-
         public LlmAbortExBuilder status(
             int status)
         {
@@ -1328,7 +1110,6 @@ public final class LlmFunctions
                 u.outputTokens(outputTokens != null ? outputTokens : -1);
                 u.reasoningTokens(reasoningTokens != null ? reasoningTokens : -1);
                 u.totalTokens(totalTokens != null ? totalTokens : -1);
-                u.nativeUsage(nativeUsage);
             });
             abortExRW.error(e -> e.status(status).type(type).param(param).message(message).code(code));
             final LlmAbortExFW abortEx = abortExRW.build();
@@ -1351,8 +1132,6 @@ public final class LlmFunctions
         private Integer outputTokens;
         private Integer reasoningTokens;
         private Integer totalTokens;
-        private String nativeUsage;
-        private boolean nativeUsageNull;
         private final LlmErrorMatcher error = new LlmErrorMatcher();
 
         public LlmAbortExMatcherBuilder typeId(
@@ -1401,19 +1180,6 @@ public final class LlmFunctions
             int totalTokens)
         {
             this.totalTokens = totalTokens;
-            return this;
-        }
-
-        public LlmAbortExMatcherBuilder nativeUsage(
-            String nativeUsage)
-        {
-            this.nativeUsage = nativeUsage;
-            return this;
-        }
-
-        public LlmAbortExMatcherBuilder nativeUsageNull()
-        {
-            this.nativeUsageNull = true;
             return this;
         }
 
@@ -1494,7 +1260,6 @@ public final class LlmFunctions
                 matchOutputTokens(abortEx) &&
                 matchReasoningTokens(abortEx) &&
                 matchTotalTokens(abortEx) &&
-                matchNativeUsage(abortEx) &&
                 error.matches(abortEx.error()))
             {
                 byteBuf.position(byteBuf.position() + abortEx.sizeof());
@@ -1544,13 +1309,6 @@ public final class LlmFunctions
             LlmAbortExFW abortEx)
         {
             return totalTokens == null || totalTokens == abortEx.usage().totalTokens();
-        }
-
-        private boolean matchNativeUsage(
-            LlmAbortExFW abortEx)
-        {
-            return nativeUsageNull ? abortEx.usage().nativeUsage().asString() == null
-                : nativeUsage == null || nativeUsage.equals(abortEx.usage().nativeUsage().asString());
         }
     }
 

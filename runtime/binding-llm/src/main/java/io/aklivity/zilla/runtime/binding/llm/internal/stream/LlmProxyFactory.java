@@ -621,7 +621,6 @@ public final class LlmProxyFactory implements LlmStreamFactory
         {
             final LlmChallengeExFW llmChallengeEx = llmChallengeExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(llmTypeId)
-                .dialect(dialect)
                 .model(model)
                 .build();
 
