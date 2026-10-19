@@ -2630,9 +2630,18 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/anthropic.transform.rejected.tool.definition.server/client",
-        "${app}/anthropic.transform.rejected.tool.definition.server/server"})
-    public void shouldOpenaiTransformAnthropicRejectedToolDefinitionServer() throws Exception
+        "${app}/anthropic.transform.server.tool.definition/client",
+        "${app}/anthropic.transform.server.tool.definition/server"})
+    public void shouldAnthropicTransformServerToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.server.tool.definition/client",
+        "${app}/transform.server.tool.definition/server"})
+    public void shouldTransformServerToolDefinition() throws Exception
     {
         k3po.finish();
     }

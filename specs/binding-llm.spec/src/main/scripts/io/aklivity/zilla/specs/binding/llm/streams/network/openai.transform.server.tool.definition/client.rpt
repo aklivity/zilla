@@ -28,4 +28,15 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-write abort
+write "{\"model\":\"model\",\"messages\":[{\"role\":\"user\",\"content\":\"Search\"}]}"
+write close
+
+read zilla:begin.ext ${http:matchBeginEx()
+                           .typeId(zilla:id("http"))
+                           .header(":status", "429")
+                           .header("content-type", "application/json")
+                           .build()}
+
+read "{\"error\":{\"message\":\"Rate limit exceeded\",\"type\":\"rate_limit_error\",\"param\":null,\"code\":\"rate_limit_exceeded\"}}"
+
+read closed

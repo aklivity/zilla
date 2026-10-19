@@ -30,6 +30,14 @@ connected
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
+                          .type("USER_TEXT")
+                          .message(0)
+                          .build()}
+write "{\"text\":\"Search\"}"
+write flush
+
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
                           .type("SERVER_TOOL_DEFINITION")
                           .message(-1)
                           .attribute("tool-name", "web_search")
@@ -37,11 +45,13 @@ write zilla:data.ext ${llm:dataEx()
 write "{\"type\":\"web_search_20250305\",\"name\":\"web_search\"}"
 write flush
 
+write advise zilla:flush
+
 read zilla:reset.ext ${llm:matchResetEx()
                            .typeId(zilla:id("llm"))
-                           .status(400)
-                           .type("invalid_request_error")
-                           .message("server-tool-definition cannot be converted from anthropic to %s".formatted(target))
+                           .status(429)
+                           .type("rate_limit_error")
+                           .message("Rate limit exceeded")
                            .build()}
 
 write aborted

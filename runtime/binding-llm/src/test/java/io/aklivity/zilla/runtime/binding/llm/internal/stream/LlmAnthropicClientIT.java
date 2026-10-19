@@ -1484,4 +1484,15 @@ public class LlmAnthropicClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"target \"anthropic\""})
+    @Specification({
+        "${app}/transform.server.tool.definition/client",
+        "${net}/anthropic.transform.server.tool.definition/server"})
+    public void shouldDropServerToolDefinitionAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
 }

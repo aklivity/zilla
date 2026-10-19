@@ -2099,9 +2099,18 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.transform.rejected.tool.definition.server/client",
-        "${net}/openai.transform.rejected.tool.definition.server/server"})
-    public void shouldOpenaiTransformAnthropicRejectedToolDefinitionServer() throws Exception
+        "${net}/openai.transform.server.tool.definition/client",
+        "${net}/openai.transform.server.tool.definition/server"})
+    public void shouldOpenaiTransformServerToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.server.tool.definition/client",
+        "${net}/anthropic.transform.server.tool.definition/server"})
+    public void shouldAnthropicTransformServerToolDefinition() throws Exception
     {
         k3po.finish();
     }

@@ -4220,12 +4220,13 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             sectionOpen = false;
             translated = translatable(kind);
 
-            if ((kind == KIND_SERVER_TOOL_CALL || kind == KIND_SERVER_TOOL_RESULT) && stream.crossDialect)
+            if ((kind == KIND_SERVER_TOOL_DEFINITION || kind == KIND_SERVER_TOOL_CALL || kind == KIND_SERVER_TOOL_RESULT) &&
+                stream.crossDialect)
             {
                 sectionKind = KIND_DROPPED;
                 translated = false;
             }
-            else if (kind == 0 || kind == KIND_USER_AUDIO || kind == KIND_SERVER_TOOL_DEFINITION && stream.crossDialect)
+            else if (kind == 0 || kind == KIND_USER_AUDIO)
             {
                 encodeFailed = true;
             }

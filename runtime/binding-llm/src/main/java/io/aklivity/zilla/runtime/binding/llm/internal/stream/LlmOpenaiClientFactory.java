@@ -385,7 +385,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         case TOOL_CALL -> KIND_TOOL_CALL;
         case TOOL_RESULT -> KIND_TOOL_RESULT;
         case CITATIONS -> KIND_CITATIONS;
-        case ASSISTANT_REASONING, SERVER_TOOL_CALL, SERVER_TOOL_RESULT -> KIND_DROPPED;
+        case ASSISTANT_REASONING, SERVER_TOOL_DEFINITION, SERVER_TOOL_CALL, SERVER_TOOL_RESULT -> KIND_DROPPED;
         case CONTROL -> KIND_CONTROL;
         default -> 0;
         };

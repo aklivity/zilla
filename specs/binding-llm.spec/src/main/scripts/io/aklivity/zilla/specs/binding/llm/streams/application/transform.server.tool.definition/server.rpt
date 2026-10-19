@@ -13,6 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property source "source"
 property target "target"
 property model "model"
 
@@ -24,7 +25,7 @@ accepted
 
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("anthropic")
+                           .dialect(source)
                            .model(model)
                            .build()}
 
@@ -32,17 +33,27 @@ connected
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
+                          .type("USER_TEXT")
+                          .message(0)
+                          .build()}
+read "{\"text\":\"Search\"}"
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
                           .type("SERVER_TOOL_DEFINITION")
                           .message(-1)
                           .attribute("tool-name", "web_search")
                           .build()}
-read "{\"type\":\"web_search_20250305\",\"name\":\"web_search\"}"
+read "{\"type\":\"web_search\",\"name\":\"web_search\"}"
+
+
+read advised zilla:flush
 
 write zilla:reset.ext ${llm:resetEx()
                             .typeId(zilla:id("llm"))
-                            .status(400)
-                            .type("invalid_request_error")
-                            .message("server-tool-definition cannot be converted from anthropic to %s".formatted(target))
+                            .status(429)
+                            .type("rate_limit_error")
+                            .message("Rate limit exceeded")
                             .build()}
 
 read abort
