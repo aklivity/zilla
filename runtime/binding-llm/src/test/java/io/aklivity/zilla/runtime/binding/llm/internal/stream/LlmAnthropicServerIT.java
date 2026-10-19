@@ -1464,10 +1464,10 @@ public class LlmAnthropicServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"anthropic\"", "target \"anthropic\"", "reason \"anthropic:stop_sequence\""})
+    @ScriptProperty({"source \"anthropic\"", "target \"anthropic\""})
     @Specification({
         "${net}/anthropic.transform.response.finish.reason.stop.sequence/client",
-        "${app}/transform.response.finish.reason/server"})
+        "${app}/anthropic.transform.response.finish.reason.stop.sequence/server"})
     public void shouldRestoreStopSequenceFinishReasonFromAnthropic() throws Exception
     {
         k3po.finish();

@@ -1465,9 +1465,9 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"target \"anthropic\"", "reason \"anthropic:stop_sequence\""})
+    @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/anthropic.transform.response.finish.reason/client",
+        "${app}/anthropic.transform.response.finish.reason.stop.sequence/client",
         "${net}/anthropic.transform.response.finish.reason.stop.sequence/server"})
     public void shouldPrefixStopSequenceFinishReasonAsAnthropic() throws Exception
     {

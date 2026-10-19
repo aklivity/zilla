@@ -3719,6 +3719,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/anthropic.transform.response.finish.reason.stop.sequence/client",
+        "${app}/anthropic.transform.response.finish.reason.stop.sequence/server"})
+    public void shouldAnthropicTransformResponseFinishReasonStopSequence() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.transform.response.finish.reason/client",
         "${app}/openai.transform.response.finish.reason/server"})
     public void shouldOpenaiTransformResponseFinishReason() throws Exception
