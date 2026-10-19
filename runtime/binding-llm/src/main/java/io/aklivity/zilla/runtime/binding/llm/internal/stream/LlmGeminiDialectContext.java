@@ -28,6 +28,7 @@ final class LlmGeminiDialectContext implements LlmDialectContext
     private final EngineContext context;
 
     private LlmGeminiServerFactory server;
+    private LlmGeminiClientFactory client;
 
     LlmGeminiDialectContext(
         LlmConfiguration config,
@@ -54,6 +55,13 @@ final class LlmGeminiDialectContext implements LlmDialectContext
                 server.attach(binding);
             }
             break;
+        case CLIENT:
+            if (NAME.equals(fixed))
+            {
+                supplyClient().attach(binding);
+                handler = client;
+            }
+            break;
         default:
             break;
         }
@@ -69,6 +77,11 @@ final class LlmGeminiDialectContext implements LlmDialectContext
         {
             server.detach(bindingId);
         }
+
+        if (client != null)
+        {
+            client.detach(bindingId);
+        }
     }
 
     private LlmGeminiServerFactory supplyServer()
@@ -78,5 +91,14 @@ final class LlmGeminiDialectContext implements LlmDialectContext
             server = new LlmGeminiServerFactory(context);
         }
         return server;
+    }
+
+    private LlmGeminiClientFactory supplyClient()
+    {
+        if (client == null)
+        {
+            client = new LlmGeminiClientFactory(context);
+        }
+        return client;
     }
 }
