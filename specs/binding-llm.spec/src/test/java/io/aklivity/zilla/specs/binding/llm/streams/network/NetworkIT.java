@@ -3302,4 +3302,13 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/gemini/client",
+        "${net}/gemini/server"})
+    public void shouldEncodeGeminiNonstreaming() throws Exception
+    {
+        k3po.finish();
+    }
 }

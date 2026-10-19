@@ -3698,4 +3698,13 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/gemini/client",
+        "${app}/gemini/server"})
+    public void shouldForwardGeminiNonstreaming() throws Exception
+    {
+        k3po.finish();
+    }
 }
