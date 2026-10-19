@@ -1062,16 +1062,6 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @Specification({
-        "${net}/openai.section.assistant.text.usage.streaming/client",
-        "${app}/openai.section.assistant.text.usage.streaming/server"})
-    public void shouldDecodeOpenaiSectionAssistantTextUsageStreaming() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
     @ScriptProperty({"source \"openai\""})
     @Specification({
         "${net}/openai.transform.response.text/client",

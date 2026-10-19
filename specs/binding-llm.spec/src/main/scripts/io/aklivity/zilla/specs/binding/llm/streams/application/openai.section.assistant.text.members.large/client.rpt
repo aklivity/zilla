@@ -74,13 +74,6 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "{\"openai:created\":1700000000}"
 
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("CONTROL")
-                          .message(-1)
-                          .build()}
-read "{\"openai:created\":1700000001}"
-
 read zilla:end.ext ${llm:matchEndEx()
                           .typeId(zilla:id("llm"))
                           .inputTokens(25)

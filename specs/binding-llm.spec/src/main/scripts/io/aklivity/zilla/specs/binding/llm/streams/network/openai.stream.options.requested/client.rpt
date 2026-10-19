@@ -37,14 +37,10 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("content-type", "text/event-stream")
                            .build()}
 
-read "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\""
-read "Hi"
-read "\"},\"finish_reason\":null}]}"
-
-read "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}"
-
+read /\{"id":"chatcmpl_1","object":"chat\.completion\.chunk","model":"gpt\-4","choices":\[\{"index":0,"delta":\{"role":"assistant"\},"finish_reason":null\}\],"obfuscation":"[A-Za-z0-9]{4,31}"\}/
+read /\{"id":"chatcmpl_1","object":"chat\.completion\.chunk","model":"gpt\-4","choices":\[\{"index":0,"delta":\{"content":"Hi"\},"finish_reason":null\}\],"obfuscation":"[A-Za-z0-9]{4,31}"\}/
+read /\{"id":"chatcmpl_1","object":"chat\.completion\.chunk","model":"gpt\-4","choices":\[\{"index":0,"delta":\{\},"finish_reason":"stop"\}\],"obfuscation":"[A-Za-z0-9]{4,31}"\}/
 read "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[],\"usage\":{\"prompt_tokens\":8,\"completion_tokens\":6,\"total_tokens\":14}}"
-
 read "[DONE]"
 
 read closed

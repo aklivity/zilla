@@ -162,6 +162,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private static final int CONTROL_CLOSING = 1;
     private static final int CONTROL_HEADER = 2 * Integer.BYTES;
     private static final String MEMBER_OBJECT = "object";
+    private static final String MEMBER_OBFUSCATION = "obfuscation";
     private static final int KIND_DROPPED = 12;
     private static final int KIND_CITATIONS = 13;
 
@@ -171,6 +172,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private static final int CONTENT_CLOSED = 3;
 
     private static final int NO_MESSAGE = -2;
+    private static final int ROOT_CONTROL = -1;
     private static final int ESCAPE_EXPANSION = 6;
     private static final int ENCODE_SLACK = 256;
     private static final int ENCODE_STRUCTURE = 128;
@@ -591,6 +593,9 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private byte[] pieceBytes;
         private UnsafeBufferEx pieceBuffer;
         private final JsonGeneratorEx generator;
+        private final JsonGeneratorEx controlGenerator;
+        private byte[] controlBytes;
+        private UnsafeBufferEx controlBuffer;
         private int encodeSlot = NO_SLOT;
         private int encodeSlotOffset;
 
@@ -649,6 +654,9 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             this.pieceBytes = new byte[1024];
             this.pieceBuffer = new UnsafeBufferEx(pieceBytes);
             this.generator = JsonEx.createGenerator();
+            this.controlGenerator = JsonEx.createGenerator();
+            this.controlBytes = new byte[CONTROL_HEADER];
+            this.controlBuffer = new UnsafeBufferEx(controlBytes);
             this.scanner = new LlmReasoningScanner(LlmReasoningTags.DEFAULTS);
             this.sectionTool = NONE;
             this.calls = new ToolCall[TOOL_CALLS_MAX];
@@ -1009,6 +1017,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int length)
         {
+            System.out.println("APPDUMP " + flags + " " + type + " " + message + " " + buffer.getStringWithoutLengthUtf8(offset, Math.min(length, 300))); //TMPDUMP
             final OctetsFW extension;
 
             if (Flags.hasInit(flags))
@@ -1525,7 +1534,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                     }
                     else if (USAGE.contentEquals(member))
                     {
-                        beginControl(member, NO_MESSAGE, decodeRoot);
+                        openControl(member, ROOT_CONTROL, decodeRoot);
                         beginUsage();
                         usageThen = decodeRoot;
                         decoder = decodeUsage;
@@ -1535,13 +1544,13 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                         errorThen = decodeRoot;
                         decoder = decodeErrorObjectStart;
                     }
-                    else if (MEMBER_OBJECT.contentEquals(member))
+                    else if (MEMBER_OBJECT.contentEquals(member) || MEMBER_OBFUSCATION.contentEquals(member))
                     {
                         skipMember(decodeRoot);
                     }
                     else
                     {
-                        beginControl(member, NO_MESSAGE, decodeRoot);
+                        beginControl(member, ROOT_CONTROL, decodeRoot);
                     }
                 }
             }
@@ -2147,7 +2156,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                     {
                         cancelControl();
                     }
-                    else
+                    else if (controlFrom != NONE)
                     {
                         endControl();
                     }
@@ -3239,40 +3248,50 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             }
             else
             {
-                controlKey.setLength(0);
-                controlKey.append(NAME).append(':').append(member);
+                openControl(member, message, then);
+            }
+        }
 
-                if (pieceBytes.length < controlKey.length() * REASONING_ESCAPE_EXPANSION + CONTROL_HEADER)
-                {
-                    pieceBytes = new byte[controlKey.length() * REASONING_ESCAPE_EXPANSION + CONTROL_HEADER];
-                    pieceBuffer = new UnsafeBufferEx(pieceBytes);
-                }
+        private void openControl(
+            CharSequence member,
+            int message,
+            LlmOpenaiResponseDecoder then)
+        {
+            controlKey.setLength(0);
+            controlKey.append(NAME).append(':').append(member);
 
-                generator.wrap(pieceBuffer, 0, pieceBytes.length);
-                generator.reset();
-                generator.writeStartObject().writeKey(controlKey);
+            final int capacity = controlKey.length() * REASONING_ESCAPE_EXPANSION + CONTROL_HEADER;
 
-                if (controlSlot == NO_SLOT)
-                {
-                    controlSlot = encodePool.acquire(replyId);
-                }
+            if (controlBytes.length < capacity)
+            {
+                controlBytes = new byte[capacity];
+                controlBuffer = new UnsafeBufferEx(controlBytes);
+            }
 
-                if (controlSlot == NO_SLOT || controlSlotOffset + CONTROL_HEADER + generator.length() > encodeMax)
-                {
-                    cleanup(http.decodeTraceId);
-                }
-                else
-                {
-                    controlEntry = controlSlotOffset;
-                    controlSlotOffset += CONTROL_HEADER;
-                    encodePool.buffer(controlSlot).putBytes(controlSlotOffset, pieceBuffer, 0, generator.length());
-                    controlSlotOffset += generator.length();
-                    controlMessage = message;
-                    controlThen = then;
-                    controlDepth = 0;
-                    controlFrom = position();
-                    decoder = decodeControlValue;
-                }
+            controlGenerator.wrap(controlBuffer, 0, controlBytes.length);
+            controlGenerator.reset();
+            controlGenerator.writeStartObject().writeKey(controlKey);
+
+            if (controlSlot == NO_SLOT)
+            {
+                controlSlot = encodePool.acquire(replyId);
+            }
+
+            if (controlSlot == NO_SLOT || controlSlotOffset + CONTROL_HEADER + controlGenerator.length() > encodeMax)
+            {
+                cleanup(http.decodeTraceId);
+            }
+            else
+            {
+                controlEntry = controlSlotOffset;
+                controlSlotOffset += CONTROL_HEADER;
+                encodePool.buffer(controlSlot).putBytes(controlSlotOffset, controlBuffer, 0, controlGenerator.length());
+                controlSlotOffset += controlGenerator.length();
+                controlMessage = message;
+                controlThen = then;
+                controlDepth = 0;
+                controlFrom = position();
+                decoder = decodeControlValue;
             }
         }
 

@@ -3324,6 +3324,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             int offset,
             int length)
         {
+            System.out.println("NETDUMP " + flags + " " + buffer.getStringWithoutLengthUtf8(offset, length)); //TMPDUMP
             final DataFW.Builder dataBuilder = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
@@ -4264,6 +4265,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private int controlCount;
         private int controlLimit;
         private boolean usageVerbatim;
+        private int usageOffset;
+        private int usageLength;
 
         private int kind;
         private int member;
@@ -4325,7 +4328,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
             kind = next;
 
-            if (!server.streaming && kind != KIND_SKIPPED && envelope == ENVELOPE_PRELUDE)
+            if (!server.streaming && kind != KIND_SKIPPED && kind != KIND_CONTROL && envelope == ENVELOPE_PRELUDE)
             {
                 openChoices();
             }
@@ -4508,6 +4511,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             int length)
         {
             final String name = controlTransform.member();
+            System.out.println("CTLDUMP " + name + " " + length + " mode=" + controlMode); //TMPDUMP
 
             if (name != null)
             {
@@ -4638,10 +4642,13 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                     {
                         if (server.usageRequested)
                         {
-                            doEncodeUsageChunk();
+                            usageOffset = controlOffsets[controlCount];
+                            usageLength = controlLengths[controlCount];
                         }
-
-                        controlLimit = controlOffsets[controlCount];
+                        else
+                        {
+                            controlLimit = controlOffsets[controlCount];
+                        }
                     }
                     else
                     {
@@ -4662,7 +4669,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             chunkStart();
             generator.writeEnd();
             generator.writeKey(MEMBER_USAGE);
-            generator.writeRaw(controlBuffer, controlOffsets[controlCount], controlLengths[controlCount]);
+            generator.writeRaw(controlBuffer, usageOffset, usageLength);
             generator.writeEnd();
             eventEnd(generator.length());
         }
@@ -4715,7 +4722,11 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
                 chunkEnd();
 
-                if (usage)
+                if (usageLength > 0)
+                {
+                    doEncodeUsageChunk();
+                }
+                else if (usage)
                 {
                     chunkStart();
                     generator.writeEnd();

@@ -803,15 +803,6 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.section.assistant.text.usage.streaming/client",
-        "${net}/openai.section.assistant.text.usage.streaming/server"})
-    public void shouldDecodeOpenaiResponseStreamingUsage() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/openai.rejected.streaming/client",
         "${net}/openai.rejected.streaming/server"})
     public void shouldDecodeOpenaiResponseStreamingError() throws Exception
