@@ -3338,4 +3338,22 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.assistant.text.flush.ignored/client",
+        "${app}/openai.section.assistant.text.flush.ignored/server"})
+    public void shouldOpenaiSectionAssistantTextFlushIgnored() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.assistant.text.flush.ignored/client",
+        "${app}/anthropic.section.assistant.text.flush.ignored/server"})
+    public void shouldAnthropicSectionAssistantTextFlushIgnored() throws Exception
+    {
+        k3po.finish();
+    }
 }

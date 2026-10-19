@@ -1379,4 +1379,14 @@ public class LlmOpenaiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.assistant.text/client",
+        "${app}/openai.section.assistant.text.flush.ignored/server"})
+    public void shouldDecodeOpenaiSectionAssistantTextIgnoringFlush() throws Exception
+    {
+        k3po.finish();
+    }
 }
