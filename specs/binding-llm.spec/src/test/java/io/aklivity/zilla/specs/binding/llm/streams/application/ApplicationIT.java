@@ -956,6 +956,51 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.control.request/client",
+        "${app}/openai.control.request/server"})
+    public void shouldOpenaiControlRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.control.request.streaming/client",
+        "${app}/openai.control.request.streaming/server"})
+    public void shouldOpenaiControlRequestStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.control.response/client",
+        "${app}/openai.control.response/server"})
+    public void shouldOpenaiControlResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.control.response.streaming/client",
+        "${app}/openai.control.response.streaming/server"})
+    public void shouldOpenaiControlResponseStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.control/client",
+        "${app}/openai.proxy.guardrail.control/server"})
+    public void shouldOpenaiProxyGuardrailControl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.section.unknown.part/client",
         "${app}/openai.section.unknown.part/server"})
     public void shouldOpenaiSectionUnknownPart() throws Exception

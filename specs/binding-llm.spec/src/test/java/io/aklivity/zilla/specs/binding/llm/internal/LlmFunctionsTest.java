@@ -358,6 +358,42 @@ public class LlmFunctionsTest
     }
 
     @Test
+    public void shouldGenerateControlDataEx()
+    {
+        byte[] bytes = LlmFunctions.dataEx()
+            .typeId(0)
+            .type("CONTROL")
+            .message(-1)
+            .build();
+
+        LlmSectionDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length).section();
+        assertEquals(LlmSectionType.CONTROL, dataEx.type().get());
+        assertEquals(-1, dataEx.message());
+    }
+
+    @Test
+    public void shouldMatchControlDataEx() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchDataEx()
+            .typeId(0)
+            .type("CONTROL")
+            .message(0)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new LlmDataExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .section(s -> s
+                .type(t -> t.set(LlmSectionType.CONTROL))
+                .message(0))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
     public void shouldGenerateDataExWithAttributesBeforeExtension()
     {
         byte[] bytes = LlmFunctions.dataEx()

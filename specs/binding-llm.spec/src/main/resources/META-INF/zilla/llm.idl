@@ -50,7 +50,8 @@ scope llm
             USER_VIDEO(14),
             SERVER_TOOL_CALL(15),
             SERVER_TOOL_DEFINITION(16),
-            UNKNOWN(17)
+            UNKNOWN(17),
+            CONTROL(18)
         }
 
         struct LlmSectionDataEx
