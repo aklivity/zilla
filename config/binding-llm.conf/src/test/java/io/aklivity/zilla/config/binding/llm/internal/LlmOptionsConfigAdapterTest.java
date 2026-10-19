@@ -307,6 +307,64 @@ public class LlmOptionsConfigAdapterTest
     }
 
     @Test
+    public void shouldReadServerOptionWithGeminiDialectDefaultPath()
+    {
+        String text =
+                "{" +
+                    "\"dialect\": \"gemini\"," +
+                    "\"server\": \"https://generativelanguage.googleapis.com\"" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.dialect, equalTo("gemini"));
+        assertThat(options.server.host, equalTo("generativelanguage.googleapis.com"));
+        assertThat(options.server.path, equalTo("/v1beta"));
+    }
+
+    @Test
+    public void shouldReadServerOptionWithGeminiDialectDefaultPathWhenServerPrecedesDialect()
+    {
+        String text =
+                "{" +
+                    "\"server\": \"https://generativelanguage.googleapis.com/\"," +
+                    "\"dialect\": \"gemini\"" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.server.path, equalTo("/v1beta"));
+    }
+
+    @Test
+    public void shouldReadServerOptionWithGeminiDialectExplicitPath()
+    {
+        String text =
+                "{" +
+                    "\"dialect\": \"gemini\"," +
+                    "\"server\": \"https://generativelanguage.googleapis.com/v1\"" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.server.path, equalTo("/v1"));
+    }
+
+    @Test
+    public void shouldReadServerOptionWithAnthropicDialectDefaultPath()
+    {
+        String text =
+                "{" +
+                    "\"dialect\": \"anthropic\"," +
+                    "\"server\": \"https://api.anthropic.com\"" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.server.path, equalTo("/v1"));
+    }
+
+    @Test
     public void shouldReadServerOptionWithTrailingSlashStripped()
     {
         String text =

@@ -58,13 +58,13 @@
                                         "dialect":
                                         {
                                             "title": "Dialect",
-                                            "description": "Fixes the dialect assumed for inbound requests instead of detecting it automatically. Accepts the name of any dialect registered with the binding, for example openai or anthropic.",
+                                            "description": "Fixes the dialect assumed for inbound requests instead of detecting it automatically. Accepts the name of any dialect registered with the binding, for example openai, anthropic or gemini.",
                                             "$ref": "#/$defs/binding-ext/llm/dialect"
                                         },
                                         "authorization":
                                         {
                                             "title": "Authorization",
-                                            "description": "Guard used to validate inbound request credentials, keyed by guard name. Credentials is a template matched against the request header the resolved dialect expects credentials in (for example Authorization for openai, x-api-key for anthropic), with {credentials} standing in for the extracted token.",
+                                            "description": "Guard used to validate inbound request credentials, keyed by guard name. Credentials is a template matched against the request header the resolved dialect expects credentials in (for example Authorization for openai, x-api-key for anthropic, x-goog-api-key for gemini), with {credentials} standing in for the extracted token.",
                                             "$ref": "#/$defs/binding-ext/llm/authorization"
                                         }
                                     },
@@ -109,13 +109,13 @@
                                         "dialect":
                                         {
                                             "title": "Dialect",
-                                            "description": "The dialect this client speaks to the large language model server named by server. Accepts the name of any dialect registered with the binding, for example openai or anthropic. When it differs from the dialect resolved on the paired server side, requests and responses are translated between the two dialects automatically, subject to each dialect's own capabilities.",
+                                            "description": "The dialect this client speaks to the large language model server named by server. Accepts the name of any dialect registered with the binding, for example openai, anthropic or gemini. When it differs from the dialect resolved on the paired server side, requests and responses are translated between the two dialects automatically, subject to each dialect's own capabilities.",
                                             "$ref": "#/$defs/binding-ext/llm/dialect"
                                         },
                                         "server":
                                         {
                                             "title": "Server",
-                                            "description": "Base URL of the large language model server this client connects to, mirroring the base_url convention of the official SDKs: the whole origin plus a shared path prefix (for example https://aicomp.ai/v1), with the resolved dialect appending only its own fixed operation suffix on top (/chat/completions for openai, /messages for anthropic). The path defaults to /v1 when omitted (for example https://aicomp.ai resolves the same as https://aicomp.ai/v1).",
+                                            "description": "Base URL of the large language model server this client connects to, mirroring the base_url convention of the official SDKs: the whole origin plus a shared path prefix (for example https://aicomp.ai/v1), with the resolved dialect appending only its own fixed operation suffix on top (/chat/completions for openai, /messages for anthropic, /models/{model}:generateContent or :streamGenerateContent for gemini). The path defaults to /v1 when omitted (for example https://aicomp.ai resolves the same as https://aicomp.ai/v1), except for the gemini dialect where it defaults to /v1beta.",
                                             "type": "string",
                                             "format": "uri",
                                             "pattern": "^https?://"
@@ -123,7 +123,7 @@
                                         "authorization":
                                         {
                                             "title": "Authorization",
-                                            "description": "Guard used to resolve outbound request credentials, keyed by guard name. Credentials is a template used to build the request header the resolved dialect sends credentials in (for example Authorization for openai, x-api-key for anthropic), with {credentials} standing in for the resolved token. When {credentials} resolves to the authorization already granted to the inbound request, the caller's own credentials are forwarded upstream unchanged.",
+                                            "description": "Guard used to resolve outbound request credentials, keyed by guard name. Credentials is a template used to build the request header the resolved dialect sends credentials in (for example Authorization for openai, x-api-key for anthropic, x-goog-api-key for gemini), with {credentials} standing in for the resolved token. When {credentials} resolves to the authorization already granted to the inbound request, the caller's own credentials are forwarded upstream unchanged.",
                                             "$ref": "#/$defs/binding-ext/llm/authorization"
                                         }
                                     },
@@ -254,7 +254,7 @@
             {
                 "title": "Dialect",
                 "type": "string",
-                "enum": [ "openai", "anthropic" ]
+                "enum": [ "openai", "anthropic", "gemini" ]
             },
             "section":
             {
