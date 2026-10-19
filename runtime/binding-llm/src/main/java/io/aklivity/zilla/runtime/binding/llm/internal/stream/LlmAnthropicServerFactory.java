@@ -20,6 +20,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.Arrays;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.LongUnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -118,6 +119,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private static final String MESSAGE_ATTRIBUTE_TOO_LARGE = "a content block attribute value is too large";
     private static final String MESSAGE_BLOCK_INVALID = "Invalid content block";
     private static final int BLOCK_BUFFER_MAX = 4096;
+    private static final String BLOCK_TOOL_USE = "tool_use";
 
     private static final int RESPONSE_ENCODE_PADDING = 128;
     private static final int RESPONSE_ESCAPE_EXPANSION = 6;
@@ -3740,19 +3742,23 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private final class LlmAnthropicStream
     {
         private final LlmAnthropicServer server;
-        private final LlmSectionPipeline.Output reasoningOutput;
+        private final LlmSectionPipeline.Output blockOutput;
         private final LlmSectionPipeline.Output replayOutput;
+        private final LlmSectionPipeline.Output deltaOutput;
         private final LlmTextPipeline sectionText;
         private final LlmTextPipeline replayText;
 
         private LlmTextPipeline textPipeline;
-        private LlmSectionPipeline reasoningPipeline;
+        private LlmSectionPipeline blockPipeline;
         private LlmSectionPipeline reasoningBlock;
         private LlmSectionPipeline reasoningDelta;
         private LlmAnthropicReasoningToDelta reasoningDeltaTransform;
         private LlmSectionPipeline replayPipeline;
         private LlmSectionPipeline replayReasoning;
         private LlmSectionPipeline replayValue;
+        private LlmSectionPipeline toolBlock;
+        private LlmSectionPipeline toolValue;
+        private LlmSectionPipeline replayToolValue;
         private MessageConsumer app;
         private long initialId;
         private long replyId;
@@ -3777,6 +3783,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private boolean replyDialect;
         private boolean crossDialect;
         private int replyKind;
+        private LlmSectionType replyType;
         private boolean flushed;
 
         private LlmAnthropicStream(
@@ -3791,9 +3798,10 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             this.eventAttributeOffsets = new int[EVENT_CAPACITY];
             this.eventAttributeLengths = new int[EVENT_CAPACITY];
             this.eventStart = NO_EVENT;
-            this.reasoningOutput = (buffer, offset, length, last) ->
+            this.blockOutput = (buffer, offset, length, last) ->
                 generator.writeSegment(buffer, offset, length, Completion.INCOMPLETE);
             this.replayOutput = (buffer, offset, length, last) -> putReplay(buffer, offset, length);
+            this.deltaOutput = (buffer, offset, length, last) -> onToolDelta(buffer, offset, length);
             this.sectionText = new LlmTextPipeline(this::onSectionText);
             this.replayText = new LlmTextPipeline(this::onReplayText);
         }
@@ -3961,6 +3969,10 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 doEncodeBegin();
                 doEncodeFlush(0, 0L, traceId, authorization);
             }
+            else if (server.streaming)
+            {
+                envelope = ENVELOPE_CONTENT;
+            }
 
             doAppWindow(traceId);
         }
@@ -3998,8 +4010,9 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                     final LlmSectionType type = section != null ? section.type().get() : LlmSectionType.NONE;
 
                     replyAttributes.readFrom(section);
+                    replyType = type;
 
-                    if (replyDialect)
+                    if (replaying())
                     {
                         doReplaySection(type);
                     }
@@ -4014,6 +4027,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 }
                 else if (replyDialect)
                 {
+                    replyType = LlmSectionType.NONE;
                     doReplayDialect(llmDataEx.dialect());
                 }
             }
@@ -4025,16 +4039,16 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                     llmDataEx.dialect().complete() != 0;
             }
 
-            if (replyDialect)
+            if (replaying())
             {
                 doReplayData(traceId, payload.buffer(), payload.offset(), payload.sizeof(), Flags.hasFin(flags));
             }
             else if (replyKind == LlmDataExFW.KIND_SECTION)
             {
-                if (!textSection && kind == KIND_REASONING)
+                if (!textSection && (kind == KIND_REASONING || kind == KIND_TOOL_CALL && !server.streaming))
                 {
-                    if (!reasoningPipeline.feed(payload.buffer(), payload.offset(), payload.sizeof(), Flags.hasFin(flags),
-                        reasoningOutput))
+                    if (!blockPipeline.feed(payload.buffer(), payload.offset(), payload.sizeof(), Flags.hasFin(flags),
+                        blockOutput))
                     {
                         server.cleanup(traceId);
                     }
@@ -4596,6 +4610,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private static final int NONE = -1;
         private static final int MESSAGE_FIRST = 0;
 
+        private static final String ATTRIBUTE_TYPE = "type";
         private static final String EVENT_MESSAGE_START = "message_start";
         private static final String EVENT_BLOCK_START = "content_block_start";
         private static final String EVENT_BLOCK_DELTA = "content_block_delta";
@@ -4636,12 +4651,11 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private boolean textSection;
         private boolean blockOpen;
         private int blocks;
-        private boolean inputWritten;
         private int toolCalls;
         private int envelope;
 
         private int replayPosition;
-        private boolean replayEscaped;
+        private final Consumer<LlmAttributeFW> replayAttribute = this::onReplayAttribute;
         private boolean replyComplete;
 
         private void doEncodeBegin()
@@ -4690,6 +4704,10 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 {
                     beginReasoningDelta();
                 }
+                else if (kind == KIND_TOOL_CALL && server.streaming)
+                {
+                    toolValue().begin(replyAttributes);
+                }
             }
         }
 
@@ -4703,8 +4721,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
             eventBegin(generator.length(), EVENT_BLOCK_DELTA);
             reasoningDeltaTransform.index(blocks - 1);
-            reasoningPipeline = reasoningDelta;
-            reasoningPipeline.begin(replyAttributes);
+            blockPipeline = reasoningDelta;
+            blockPipeline.begin(replyAttributes);
         }
 
         private void onSectionText(
@@ -4751,22 +4769,67 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                     server.cleanup(traceId);
                 }
             }
+            else if (kind == KIND_TOOL_CALL && server.streaming)
+            {
+                if (!toolValue.feed(payload, payloadOffset, payloadLength, fin, deltaOutput))
+                {
+                    server.cleanup(traceId);
+                }
+            }
             else if (payloadLength > 0 && kind != KIND_NONE && kind != KIND_SKIPPED)
             {
                 if (server.streaming)
                 {
                     dataChunk(payload, payloadOffset, payloadLength);
                 }
-                else if (kind == KIND_TOOL_CALL)
-                {
-                    generator.writeSegment(payload, payloadOffset, payloadLength, Completion.INCOMPLETE);
-                    inputWritten = true;
-                }
                 else
                 {
                     generator.writeSegment(payload, payloadOffset, payloadLength);
                 }
             }
+        }
+
+        private void onToolDelta(
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            if (length > 0)
+            {
+                dataChunk(buffer, offset, length);
+            }
+        }
+
+        private LlmSectionPipeline toolBlock()
+        {
+            if (toolBlock == null)
+            {
+                toolBlock = new LlmSectionPipeline(new LlmAnthropicToolCallFromCanonical(BLOCK_TOOL_USE),
+                    new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+            }
+
+            return toolBlock;
+        }
+
+        private LlmSectionPipeline toolValue()
+        {
+            if (toolValue == null)
+            {
+                toolValue = new LlmSectionPipeline(new LlmToolCallToValue(), new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+            }
+
+            return toolValue;
+        }
+
+        private LlmSectionPipeline replayToolValue()
+        {
+            if (replayToolValue == null)
+            {
+                replayToolValue = new LlmSectionPipeline(new LlmToolCallToValue(),
+                    new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+            }
+
+            return replayToolValue;
         }
 
         private void doEncodeEnd()
@@ -4985,18 +5048,14 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                             new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
                     }
 
-                    reasoningPipeline = reasoningBlock;
-                    reasoningPipeline.begin(replyAttributes);
+                    blockPipeline = reasoningBlock;
+                    blockPipeline.begin(replyAttributes);
                 }
                 break;
             default:
                 toolCalls++;
-                inputWritten = false;
-                generator.writeStartObject();
-                generator.write("type", "tool_use")
-                    .write("id", toolCallId != null ? toolCallId : "")
-                    .write("name", toolName != null ? toolName : "")
-                    .writeKey("input");
+                blockPipeline = toolBlock();
+                blockPipeline.begin(replyAttributes);
                 break;
             }
         }
@@ -5019,16 +5078,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 }
                 break;
             default:
-                if (inputWritten)
-                {
-                    generator.writeSegment(EMPTY_BUFFER, 0, 0, Completion.COMPLETE);
-                }
-                else
-                {
-                    generator.writeStartObject().writeEnd();
-                }
-
-                generator.writeEnd();
+                generator.writeSegment(EMPTY_BUFFER, 0, 0, Completion.COMPLETE);
                 break;
             }
         }
@@ -5118,17 +5168,25 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             };
         }
 
+        private boolean replaying()
+        {
+            return replyDialect && !(server.streaming && replyType == LlmSectionType.TOOL_CALL);
+        }
+
         private int encodeLength()
         {
-            return replyDialect ? replayPosition : generator.length();
+            return replaying() ? replayPosition : generator.length();
         }
 
         private void doReplaySection(
             LlmSectionType type)
         {
-            replayEscaped = type == LlmSectionType.TOOL_CALL && server.streaming;
-
-            replayPipeline = type == LlmSectionType.ASSISTANT_REASONING ? replayReasoningPipeline() : null;
+            replayPipeline = switch (type)
+            {
+            case ASSISTANT_REASONING -> replayReasoningPipeline();
+            case TOOL_CALL -> replayToolValue();
+            default -> null;
+            };
 
             if (type == LlmSectionType.ASSISTANT_TEXT || type == LlmSectionType.ASSISTANT_REFUSAL)
             {
@@ -5150,7 +5208,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 eventBegin(replayPosition);
             }
 
-            if (textPipeline != null || replayEscaped)
+            if (textPipeline != null)
             {
                 generator.reset();
                 generator.wrap(copyBuffer, replayPosition, copyBuffer.capacity());
@@ -5196,16 +5254,26 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             replayPosition += length;
         }
 
+        private void onReplayAttribute(
+            LlmAttributeFW attribute)
+        {
+            if (ATTRIBUTE_TYPE.equals(attribute.name().asString()) && EVENT_BLOCK_START.equals(attribute.value().asString()))
+            {
+                blocks++;
+            }
+        }
+
         private void doReplayDialect(
             LlmDialectDataExFW dialect)
         {
-            replayEscaped = false;
             replayPipeline = null;
             textPipeline = null;
 
             if (server.streaming && !eventOpen)
             {
                 final Array32FW<LlmAttributeFW> attributes = dialect.attributes();
+
+                attributes.forEach(replayAttribute);
 
                 if (attributes.fieldCount() > 0)
                 {
@@ -5241,20 +5309,11 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             }
             else if (length > 0)
             {
-                if (replayEscaped)
-                {
-                    generator.wrap(copyBuffer, replayPosition, copyBuffer.capacity());
-                    generator.writeSegment(payload, offset, length);
-                    replayPosition += generator.length();
-                }
-                else
-                {
-                    copyBuffer.putBytes(replayPosition, payload, offset, length);
-                    replayPosition += length;
-                }
+                copyBuffer.putBytes(replayPosition, payload, offset, length);
+                replayPosition += length;
             }
 
-            if (fin && (textPipeline != null || replayEscaped))
+            if (fin && textPipeline != null)
             {
                 generator.wrap(copyBuffer, replayPosition, copyBuffer.capacity());
                 generator.writeEndEscaped();

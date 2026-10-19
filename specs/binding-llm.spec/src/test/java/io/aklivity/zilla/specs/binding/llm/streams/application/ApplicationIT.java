@@ -2495,6 +2495,42 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/transform.system.instruction.last/client",
+        "${app}/transform.system.instruction.last/server"})
+    public void shouldTransformSystemInstructionLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.system.instruction.last.100k/client",
+        "${app}/transform.system.instruction.last.100k/server"})
+    public void shouldTransformSystemInstructionLast100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.system.instruction.after.tool.definition/client",
+        "${app}/transform.rejected.system.instruction.after.tool.definition/server"})
+    public void shouldTransformRejectedSystemInstructionAfterToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.transform.system.instruction.last/client",
+        "${app}/anthropic.transform.system.instruction.last/server"})
+    public void shouldAnthropicTransformSystemInstructionLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/transform.assistant.text/client",
         "${app}/transform.assistant.text/server"})
     public void shouldTransformAssistantText() throws Exception
@@ -3038,6 +3074,60 @@ public class ApplicationIT
         "${app}/openai.content.type.charset/client",
         "${app}/openai.content.type.charset/server"})
     public void shouldAcceptOpenaiRequestContentTypeWithParameters() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.assistant.tool.call.cache.control/client",
+        "${app}/anthropic.section.assistant.tool.call.cache.control/server"})
+    public void shouldAnthropicSectionAssistantToolCallCacheControl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.transform.assistant.tool.call.cache.control/client",
+        "${app}/anthropic.transform.assistant.tool.call.cache.control/server"})
+    public void shouldAnthropicTransformAssistantToolCallCacheControl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.tool.call.members/client",
+        "${app}/openai.section.tool.call.members/server"})
+    public void shouldOpenaiSectionToolCallMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.transform.assistant.tool.call.members/client",
+        "${app}/openai.transform.assistant.tool.call.members/server"})
+    public void shouldOpenaiTransformAssistantToolCallMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.assistant.tool.call.streaming.error/client",
+        "${app}/openai.section.assistant.tool.call.streaming.error/server"})
+    public void shouldOpenaiSectionAssistantToolCallStreamingError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.assistant.tool.call.streaming.error/client",
+        "${app}/anthropic.section.assistant.tool.call.streaming.error/server"})
+    public void shouldAnthropicSectionAssistantToolCallStreamingError() throws Exception
     {
         k3po.finish();
     }

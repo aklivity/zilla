@@ -29,74 +29,99 @@ public class LlmOpenaiToolCallToCanonicalTest
     private final LlmOpenaiToolCallToCanonical transform = new LlmOpenaiToolCallToCanonical();
 
     @Test
-    public void shouldExtractArgumentsText()
+    public void shouldUnescapeArguments()
     {
         assertTransforms(transform,
             json("{'id':'call_1','type':'function','function':{'name':'get_weather','arguments':" +
                 quote(json("{'city':'Paris'}")) + "}}"),
-            json("{'city':'Paris'}"));
+            json("{'arguments':{'city':'Paris'}}"));
     }
 
     @Test
-    public void shouldExtractEmptyArgumentsAsEmptyObject()
+    public void shouldWrapEmptyArgumentsAsEmptyObject()
     {
         assertTransforms(transform,
             json("{'id':'call_1','type':'function','function':{'name':'ping','arguments':''}}"),
-            json("{}"));
+            json("{'arguments':{}}"));
     }
 
     @Test
-    public void shouldExtractAbsentArgumentsAsEmptyObject()
+    public void shouldWrapAbsentArgumentsAsEmptyObject()
     {
         assertTransforms(transform,
             json("{'id':'call_1','type':'function','function':{'name':'ping'}}"),
-            json("{}"));
+            json("{'arguments':{}}"));
     }
 
     @Test
-    public void shouldExtractArgumentsInAnyOrder()
+    public void shouldUnescapeArgumentsInAnyOrder()
     {
         assertTransforms(transform,
             json("{'type':'function','function':{'arguments':" + quote(json("{'a':1}")) + ",'name':'ping'},'id':'call_1'}"),
-            json("{'a':1}"));
+            json("{'arguments':{'a':1}}"));
     }
 
     @Test
-    public void shouldExtractEscapedAndNestedArguments()
+    public void shouldUnescapeEscapedAndNestedArguments()
     {
         final String arguments = "{\"q\":\"say \\\"hi\\\" \\\\ \\u00e9 \\n\",\"n\":[1,2.5,true,null,{\"k\":\"v\"}],\"e\":{}}";
 
         assertTransforms(transform,
             json("{'id':'call_1','type':'function','function':{'name':'ping','arguments':") + quote(arguments) + "}}",
-            "{\"q\":\"say \\\"hi\\\" \\\\ \u00e9 \\n\",\"n\":[1,2.5,true,null,{\"k\":\"v\"}],\"e\":{}}");
+            "{\"arguments\":{\"q\":\"say \\\"hi\\\" \\\\ \u00e9 \\n\",\"n\":[1,2.5,true,null,{\"k\":\"v\"}],\"e\":{}}}");
     }
 
     @Test
-    public void shouldExtractLongValues()
+    public void shouldUnescapeLongValues()
     {
         assertTransforms(transform,
             json("{'id':'" + LONG + "','type':'function','function':{'name':'" + LONG + "','arguments':") +
                 quote(json("{'text':'" + LONG + "'}")) + "}}",
-            json("{'text':'" + LONG + "'}"));
+            json("{'arguments':{'text':'" + LONG + "'}}"));
     }
 
     @Test
-    public void shouldExtractValueLargerThanWindow()
+    public void shouldUnescapeValueLargerThanWindow()
     {
         assertTransforms(transform,
             json("{'id':'call_1','type':'function','function':{'name':'ping','arguments':") +
                 quote(json("{'text':'" + HUGE + "'}")) + "}}",
-            json("{'text':'" + HUGE + "'}"));
+            json("{'arguments':{'text':'" + HUGE + "'}}"));
     }
 
     @Test
-    public void shouldDropUnknownMembers()
+    public void shouldCarryNativeOnlyMembersBeforeArguments()
     {
         assertTransforms(transform,
-            json("{'index':0,'id':'call_1','extra':{'x':[1,{'y':2}],'z':'" + LONG + "'},'type':'function','function':" +
-                "{'strict':true,'note':'" + LONG + "','name':'ping','arguments':" + quote(json("{'a':1}")) +
-                "},'tail':null}"),
-            json("{'a':1}"));
+            json("{'index':0,'id':'call_1','type':'function','function':{'name':'ping','arguments':" +
+                quote(json("{'a':1}")) + "}}"),
+            json("{'openai:index':0,'arguments':{'a':1}}"));
+    }
+
+    @Test
+    public void shouldCarryNativeOnlyMembersAfterArguments()
+    {
+        assertTransforms(transform,
+            json("{'id':'call_1','type':'function','function':{'name':'ping','arguments':" +
+                quote(json("{'a':1}")) + "},'extra':{'x':[1,{'y':2}],'z':'" + LONG + "'},'tail':null}"),
+            json("{'arguments':{'a':1},'openai:extra':{'x':[1,{'y':2}],'z':'" + LONG + "'},'openai:tail':null}"));
+    }
+
+    @Test
+    public void shouldCarryNativeOnlyMembersWithoutArguments()
+    {
+        assertTransforms(transform,
+            json("{'index':0,'id':'call_1','type':'function','function':{'name':'ping'},'tail':null}"),
+            json("{'openai:index':0,'arguments':{},'openai:tail':null}"));
+    }
+
+    @Test
+    public void shouldDropUnknownFunctionMembers()
+    {
+        assertTransforms(transform,
+            json("{'id':'call_1','type':'function','function':{'strict':true,'note':'" + LONG + "','name':'ping'," +
+                "'arguments':" + quote(json("{'a':1}")) + "}}"),
+            json("{'arguments':{'a':1}}"));
     }
 
     @Test

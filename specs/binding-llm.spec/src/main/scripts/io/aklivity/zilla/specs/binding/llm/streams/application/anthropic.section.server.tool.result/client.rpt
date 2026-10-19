@@ -56,7 +56,7 @@ write zilla:data.ext ${llm:dataEx()
                           .attribute("tool-name", "web_search")
                           .attribute("tool-call-id", "srvtoolu_1")
                           .build()}
-write "{\"query\":\"paris weather\"}"
+write "{\"arguments\":{\"query\":\"paris weather\"}}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()

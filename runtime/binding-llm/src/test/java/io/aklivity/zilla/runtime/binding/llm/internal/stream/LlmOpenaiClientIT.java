@@ -1181,6 +1181,50 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
+        "${app}/transform.system.instruction.last/client",
+        "${net}/openai.transform.system.instruction.last/server"})
+    public void shouldTransformSystemInstructionLastAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
+        "${app}/anthropic.transform.system.instruction.last/client",
+        "${net}/openai.transform.system.instruction.last/server"})
+    public void shouldTransformAnthropicSystemInstructionLastAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
+        "${app}/transform.system.instruction.last.100k/client",
+        "${net}/openai.transform.system.instruction.last.100k/server"})
+    public void shouldTransformSystemInstructionLast100kAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
+        "${app}/transform.rejected.system.instruction.after.tool.definition/client",
+        "${net}/openai.transform.rejected.system.instruction.after.tool.definition/server"})
+    public void shouldRejectSystemInstructionAfterToolDefinitionAsOpenaiNamingSectionAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
         "${app}/transform.assistant.text/client",
         "${net}/openai.transform.assistant.text/server"})
     public void shouldTransformAssistantTextAsOpenai() throws Exception
@@ -1405,6 +1449,47 @@ public class LlmOpenaiClientIT
         "${app}/openai.rejected.streaming.error.code/client",
         "${net}/openai.rejected.streaming.error.code/server"})
     public void shouldPassOpenaiRejectedStreamingErrorCode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.tool.call.members/client",
+        "${net}/openai.section.tool.call.members/server"})
+    public void shouldEncodeOpenaiSectionToolCallMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
+        "${app}/anthropic.transform.assistant.tool.call.cache.control/client",
+        "${net}/openai.transform.assistant.tool.call/server"})
+    public void shouldDropAnthropicToolCallCacheControlAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.assistant.tool.call.streaming/client",
+        "${net}/openai.section.assistant.tool.call.streaming.split/server"})
+    public void shouldEncodeOpenaiSectionAssistantToolCallStreamingSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.assistant.tool.call.streaming.error/client",
+        "${net}/openai.section.assistant.tool.call.streaming.error/server"})
+    public void shouldAbortOpenaiSectionAssistantToolCallStreamingError() throws Exception
     {
         k3po.finish();
     }

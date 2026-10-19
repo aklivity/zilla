@@ -107,19 +107,6 @@ read zilla:data.ext ${llm:matchDialectDataEx()
                           .build()}
 read "{\"type\":\"content_block_stop\",\"index\":0}"
 
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .attribute("type", "content_block_start")
-                          .build()}
-read "{\"type\":\"content_block_start\",\"index\":1,\"content_block\":{\"type\":\"tool_use\",\"id\":\"call_1\",\"name\":\"get_weather\",\"input\":{}}}"
-
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .attribute("type", "content_block_delta")
-                          .build()}
-read "{\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":"
-
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("TOOL_CALL")
@@ -127,47 +114,16 @@ read zilla:data.ext ${llm:matchDataEx()
                           .attribute("tool-name", "get_weather")
                           .attribute("tool-call-id", "call_1")
                           .build()}
+read "{\"arguments\":"
 read "{\"city\":"
-
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .build()}
-read "}}"
-
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .attribute("type", "content_block_delta")
-                          .build()}
-read "{\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":"
-
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("TOOL_CALL")
-                          .message(0)
-                          .attribute("tool-name", "get_weather")
-                          .attribute("tool-call-id", "call_1")
-                          .build()}
 read "\"Paris\"}"
-
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .build()}
-read "}}"
+read "}"
 
 read advised zilla:flush ${llm:matchFlushEx()
                                 .typeId(zilla:id("llm"))
                                 .type("TOOL_CALL")
                                 .message(0)
                                 .build()}
-
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .attribute("type", "content_block_stop")
-                          .build()}
-read "{\"type\":\"content_block_stop\",\"index\":1}"
 
 read zilla:data.ext ${llm:matchDialectDataEx()
                           .typeId(zilla:id("llm"))

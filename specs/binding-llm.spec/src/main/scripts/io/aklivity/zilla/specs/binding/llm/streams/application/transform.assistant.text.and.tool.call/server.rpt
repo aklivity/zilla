@@ -50,7 +50,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .attribute("tool-name", "get_weather")
                           .attribute("tool-call-id", "call_1")
                           .build()}
-read "{\"city\":\"Paris\"}"
+read "{\"arguments\":{\"city\":\"Paris\"}}"
 
 read advised zilla:flush
 
