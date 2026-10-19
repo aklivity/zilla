@@ -787,16 +787,6 @@ public class LlmOpenaiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/openai.section.assistant.text.logprobs.streaming.role.first/client",
-        "${app}/openai.section.assistant.text.logprobs.streaming.role.first/server"})
-    public void shouldDecodeOpenaiSectionAssistantTextLogprobsStreamingRoleFirst() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
         "${net}/openai.transform.response.streaming.logprobs.foreign/client",
         "${app}/openai.transform.response.streaming.logprobs.foreign/server"})
     public void shouldDecodeOpenaiTransformResponseStreamingLogprobsForeign() throws Exception
@@ -1076,16 +1066,6 @@ public class LlmOpenaiServerIT
         "${net}/openai.section.assistant.text.streaming/client",
         "${app}/openai.section.assistant.text.streaming/server"})
     public void shouldDecodeOpenaiSectionAssistantTextStreaming() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/openai.section.assistant.text.logprobs.streaming/client",
-        "${app}/openai.section.assistant.text.logprobs.streaming/server"})
-    public void shouldDecodeOpenaiSectionAssistantTextLogprobsStreaming() throws Exception
     {
         k3po.finish();
     }
@@ -1396,6 +1376,16 @@ public class LlmOpenaiServerIT
         "${net}/openai.section.assistant.tool.call.streaming.error/client",
         "${app}/openai.section.assistant.tool.call.streaming.error/server"})
     public void shouldEncodeOpenaiSectionAssistantToolCallStreamingError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.assistant.text/client",
+        "${app}/openai.section.assistant.text.flush.ignored/server"})
+    public void shouldDecodeOpenaiSectionAssistantTextIgnoringFlush() throws Exception
     {
         k3po.finish();
     }

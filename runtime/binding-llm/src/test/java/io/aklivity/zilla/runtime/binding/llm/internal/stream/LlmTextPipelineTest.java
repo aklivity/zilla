@@ -34,6 +34,7 @@ public class LlmTextPipelineTest
 
     private final ByteArrayOutputStream output = new ByteArrayOutputStream();
     private final LlmTextPipeline pipeline = new LlmTextPipeline(this::collect);
+    private final LlmTextPipeline optional = new LlmTextPipeline(this::collect, true);
 
     @Test
     public void shouldDeliverTextContent()
@@ -74,6 +75,28 @@ public class LlmTextPipelineTest
     }
 
     @Test
+    public void shouldRejectMissingText()
+    {
+        final byte[] bytes = json("{'anthropic:data':'opaque'}").getBytes(UTF_8);
+
+        pipeline.begin();
+
+        assertThat(pipeline.feed(new UnsafeBufferEx(bytes), 0, bytes.length, true), is(false));
+    }
+
+    @Test
+    public void shouldDeliverNothingWithoutTextWhenOptional()
+    {
+        assertDelivers(optional, json("{'anthropic:data':'opaque'}"), "");
+    }
+
+    @Test
+    public void shouldDeliverTextWhenOptional()
+    {
+        assertDelivers(optional, json("{'anthropic:signature':'sig','text':'t'}"), "t");
+    }
+
+    @Test
     public void shouldDeliverSeveralSectionsInOrder()
     {
         for (String json : new String[] {json("{'text':'A '}"), json("{'text':'B'}")})
@@ -87,6 +110,14 @@ public class LlmTextPipelineTest
     }
 
     private void assertDelivers(
+        String json,
+        String expected)
+    {
+        assertDelivers(pipeline, json, expected);
+    }
+
+    private void assertDelivers(
+        LlmTextPipeline pipeline,
         String json,
         String expected)
     {

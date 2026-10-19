@@ -34,6 +34,16 @@ bindings:
                 model: test
                 mask:
                   - secret
+            - section: assistant-reasoning
+              value:
+                model: test
+                mask:
+                  - secret
+            - section: tool-call
+              value:
+                model: test
+                mask:
+                  - secret
     routes:
     - when:
       - dialect: openai

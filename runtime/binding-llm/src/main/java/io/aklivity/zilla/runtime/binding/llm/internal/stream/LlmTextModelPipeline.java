@@ -30,11 +30,11 @@ import io.aklivity.zilla.runtime.engine.model.ModelRejection;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.util.Flags;
 
-// Each section of the run is a `{"text":…}` object, decoded on arrival and presented to the chain as one continuous
-// text value. The chain is fed all but the trailing overlap bytes of what has arrived, so a pattern straddling two
-// deltas is seen whole; what the chain produces for the bytes it was fed is embedded in an object of the section being
-// delivered, and the held bytes are fed when more text arrives or the run ends.
-final class LlmTextModelPipeline implements LlmRunPipeline
+// A section is a `{"text":…}` object, decoded on arrival and presented to the chain as one continuous text value.
+// The chain is fed all but the trailing overlap bytes of what has arrived, so a pattern straddling two fragments is
+// seen whole; what the chain produces for the bytes it was fed is embedded in an object of the section being
+// delivered, and the held bytes are fed when more text arrives or the section ends.
+final class LlmTextModelPipeline implements LlmGuardPipeline
 {
     private static final String MEMBER_TEXT = "text";
     private static final byte[] PREFIX = "{\"text\":\"".getBytes(UTF_8);

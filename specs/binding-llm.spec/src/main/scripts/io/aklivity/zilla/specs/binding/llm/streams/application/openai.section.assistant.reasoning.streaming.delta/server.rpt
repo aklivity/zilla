@@ -59,98 +59,44 @@ write flush
 
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
+                          .complete(true)
                           .build()}
 write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\""
       ${model}
-      "\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":"
+      "\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"\"},\"finish_reason\":null}]}"
 write flush
 
+write option zilla:flags "init"
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("ASSISTANT_REASONING")
+                          .message(0)
+                          .build()}
+write "{\"text\":\"Let me "
+write flush
+
+write option zilla:flags "none"
+write "think."
+write flush
+
+write option zilla:flags "fin"
+write "\"}"
+write flush
+
+write option zilla:flags "init"
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-write "{\"text\":\"\"}"
+write "{\"text\":\"Hi"
 write flush
 
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .build()}
-write "},\"finish_reason\":null}]}"
+write option zilla:flags "fin"
+write "\"}"
 write flush
 
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\""
-      ${model}
-      "\",\"choices\":[{\"index\":0,\"delta\":{\"content\":"
-write flush
-
-write zilla:data.ext ${llm:dataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("ASSISTANT_REASONING")
-                          .message(0)
-                          .attribute("reasoning-tag", "think")
-                          .build()}
-write "{\"text\":\"Let me \"}"
-write flush
-
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .build()}
-write "},\"finish_reason\":null}]}"
-write flush
-
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\""
-      ${model}
-      "\",\"choices\":[{\"index\":0,\"delta\":{\"content\":"
-write flush
-
-write zilla:data.ext ${llm:dataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("ASSISTANT_REASONING")
-                          .message(0)
-                          .attribute("reasoning-tag", "think")
-                          .build()}
-write "{\"text\":\"think.\"}"
-write flush
-
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .build()}
-write "},\"finish_reason\":null}]}"
-write flush
-
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\""
-      ${model}
-      "\",\"choices\":[{\"index\":0,\"delta\":{\"content\":"
-write flush
-
-write zilla:data.ext ${llm:dataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("ASSISTANT_TEXT")
-                          .message(0)
-                          .build()}
-write "{\"text\":\"Hi\"}"
-write flush
-
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .build()}
-write "},\"finish_reason\":null}]}"
-write flush
-
+write option zilla:flags "init fin"
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
@@ -163,6 +109,7 @@ write flush
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
+                          .usageOnly(true)
                           .build()}
 write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\""
       ${model}

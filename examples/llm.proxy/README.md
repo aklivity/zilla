@@ -315,6 +315,16 @@ for chunk in client.chat.completions.create(
         print(chunk.choices[0].delta.content, end="")
 ```
 
+A response is streamed or not as the upstream's content type says, not as the
+request's `stream` setting says, so a request that streams still gets its events
+when the upstream answers with a single document, and a request that does not
+stream still gets a complete response when the upstream answers with
+server-sent events. Text and tool calls alike are delivered by the upstream in
+fragments and reach the SDK in the other dialect's own streamed shape. The mocks
+used by `.github/test.sh` answer with server-sent events when the prompt carries
+the marker `[stream]`, whatever the request's `stream` setting says, which is how
+`etc/test/verify.py` exercises each combination.
+
 Send an Anthropic-shaped request for a GPT model to the anthropic-facing
 frontend; the request is translated to OpenAI, and the reply comes back
 anthropic-shaped even though the real upstream (`mock-openai`) only speaks

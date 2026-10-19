@@ -13,6 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
+
 property clientAddress "zilla://streams/app0"
 property model "gpt-a"
 
@@ -36,6 +37,7 @@ write zilla:data.ext ${llm:dataEx()
                           .build()}
 write "{\"text\":\"my sec"
 write flush
+
 write option zilla:flags "fin"
 write "ret is safe\"}"
 write flush
@@ -48,38 +50,12 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .model(model)
                            .build()}
 
-read option zilla:flags "init"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-read "{\"text\":\"th"
-
-read option zilla:flags "fin"
-read "\"}"
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-read ","
-
-read option zilla:flags "init"
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("ASSISTANT_TEXT")
-                          .message(0)
-                          .build()}
-read "{\"text\":\"e ******"
-
-read option zilla:flags "none"
-read " is"
-read option zilla:flags "fin"
-read "\"}"
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .build()}
-read "]"
+read "{\"text\":\"the ****** is\"}"
 
 read closed
 

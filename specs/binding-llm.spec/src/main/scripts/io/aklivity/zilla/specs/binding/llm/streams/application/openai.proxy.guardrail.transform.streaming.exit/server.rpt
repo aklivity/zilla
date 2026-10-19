@@ -13,6 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
+
 property serverAddress "zilla://streams/app0"
 property model "gpt-a"
 
@@ -30,19 +31,12 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
-read option zilla:flags "init"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-read "{\"text\":\"m"
-read option zilla:flags "none"
-read "y ****** is"
-read option zilla:flags "none"
-read " safe"
-read option zilla:flags "fin"
-read "\"}"
+read "{\"text\":\"my ****** is safe\"}"
 
 read advised zilla:flush
 
@@ -53,33 +47,21 @@ write zilla:begin.ext ${llm:beginEx()
                            .build()}
 write flush
 
+write option zilla:flags "init"
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-write "{\"text\":\"the sec\"}"
+write "{\"text\":\"the sec"
 write flush
 
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-write ","
+write option zilla:flags "none"
+write "ret is"
 write flush
 
-write zilla:data.ext ${llm:dataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("ASSISTANT_TEXT")
-                          .message(0)
-                          .build()}
-write "{\"text\":\"ret is\"}"
-write flush
-
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .build()}
-write "]"
+write option zilla:flags "fin"
+write "\"}"
 write flush
 
 write close

@@ -18,9 +18,27 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 final class LlmTextTransform extends LlmToolTransform
 {
+    private final boolean optional;
+
+    private boolean extracted;
+
     LlmTextTransform()
     {
+        this(false);
+    }
+
+    LlmTextTransform(
+        boolean optional)
+    {
         super(MODE_EXTRACT);
+        this.optional = optional;
+    }
+
+    @Override
+    public void reset()
+    {
+        super.reset();
+        extracted = false;
     }
 
     @Override
@@ -28,7 +46,11 @@ final class LlmTextTransform extends LlmToolTransform
         int depth,
         CharSequence key)
     {
-        return matches(key, "text") ? PASS_STRING : DROP;
+        final boolean text = matches(key, "text");
+
+        extracted |= text;
+
+        return text ? PASS_STRING : DROP;
     }
 
     @Override
@@ -40,6 +62,6 @@ final class LlmTextTransform extends LlmToolTransform
     protected Status onClose(
         int depth)
     {
-        return Status.ADVANCED;
+        return optional && !extracted ? Status.COMPLETED : Status.ADVANCED;
     }
 }

@@ -39,20 +39,11 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("content-type", "text/event-stream")
                            .build()}
 
-read option zilla:flags "init"
-read "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\""
-read option zilla:flags "none"
-read "<reasoning>"
-read option zilla:flags "none"
-read "café \\\"quoted\\\"\\nnext\\t\\\\ end"
-read option zilla:flags "none"
-read "</reasoning>"
-read option zilla:flags "none"
-read "Hi"
-read option zilla:flags "fin"
-read "\"},\"finish_reason\":null}]}"
-
 read option zilla:flags "init fin"
+read "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"<think>\"},\"finish_reason\":null}]}"
+read "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"café \\\"quoted\\\"\\nnext\\t\\\\ end\"},\"finish_reason\":null}]}"
+read "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"</think>\"},\"finish_reason\":null}]}"
+read "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Hi\"},\"finish_reason\":null}]}"
 read "[DONE]"
 
 read closed

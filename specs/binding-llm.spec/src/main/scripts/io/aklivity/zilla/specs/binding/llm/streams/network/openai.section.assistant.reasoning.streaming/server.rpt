@@ -41,26 +41,15 @@ write zilla:begin.ext ${http:beginEx()
                            .build()}
 write flush
 
-write option zilla:flags "init"
-write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\""
-write flush
-write option zilla:flags "none"
-write "<reasoning>"
-write flush
-write option zilla:flags "none"
-write "café \\\"quoted\\\"\\nnext\\t\\\\ end"
-write flush
-write option zilla:flags "none"
-write "</reasoning>"
-write flush
-write option zilla:flags "none"
-write "Hi"
-write flush
-write option zilla:flags "fin"
-write "\"},\"finish_reason\":null}]}"
-write flush
-
 write option zilla:flags "init fin"
+write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"<think>\"},\"finish_reason\":null}]}"
+write flush
+write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"café \\\"quoted\\\"\\nnext\\t\\\\ end\"},\"finish_reason\":null}]}"
+write flush
+write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"</think>\"},\"finish_reason\":null}]}"
+write flush
+write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Hi\"},\"finish_reason\":null}]}"
+write flush
 write "[DONE]"
 write flush
 

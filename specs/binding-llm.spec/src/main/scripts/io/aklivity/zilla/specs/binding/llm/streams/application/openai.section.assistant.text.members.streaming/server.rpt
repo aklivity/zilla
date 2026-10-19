@@ -76,48 +76,24 @@ write zilla:data.ext ${llm:dialectDataEx()
 write "{\"id\":\"msg_01\",\"object\":\"chat.completion.chunk\",\"model\":\"claude-3-opus-20240229\",\"choices\":[],\"service_tier\":\"default\"}"
 write flush
 
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-write "{\"id\":\"msg_01\",\"object\":\"chat.completion.chunk\",\"model\":\"claude-3-opus-20240229\",\"choices\":[{\"index\":0,\"delta\":{\"content\":"
-write flush
-
+write option zilla:flags "init"
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-write "{\"text\":\"Hello\"}"
+write "{\"text\":\"Hello"
 write flush
 
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .build()}
-write "},\"finish_reason\":null}]}"
+write option zilla:flags "none"
+write " there"
 write flush
 
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-write "{\"id\":\"msg_01\",\"object\":\"chat.completion.chunk\",\"model\":\"claude-3-opus-20240229\",\"choices\":[{\"index\":0,\"delta\":{\"content\":"
+write option zilla:flags "fin"
+write "\"}"
 write flush
 
-write zilla:data.ext ${llm:dataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("ASSISTANT_TEXT")
-                          .message(0)
-                          .build()}
-write "{\"text\":\" there\"}"
-write flush
-
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .build()}
-write "},\"finish_reason\":null}]}"
-write flush
-
+write option zilla:flags "init fin"
 write zilla:data.ext ${llm:dialectDataEx()
                           .typeId(zilla:id("llm"))
                           .complete(true)
