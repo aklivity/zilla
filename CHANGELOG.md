@@ -63,6 +63,7 @@
 - Add `classifier-patterns`: label values by regular expression and entropy [\#2689](https://github.com/aklivity/zilla/issues/2689) ([jfallows](https://github.com/jfallows))
 - Add `classifier-presidio`: label personal data using a Presidio analyzer [\#2690](https://github.com/aklivity/zilla/issues/2690) ([jfallows](https://github.com/jfallows))
 - Remove incubator `model-vector` in favor of `model: classify` and `classifier-semantic` [\#2694](https://github.com/aklivity/zilla/issues/2694) ([jfallows](https://github.com/jfallows))
+- binding-llm: emit the same section stream for streaming and non-streaming responses [\#2735](https://github.com/aklivity/zilla/issues/2735) ([jfallows](https://github.com/jfallows))
 - binding-llm: canonical payloads for tool, server tool and media sections [\#2736](https://github.com/aklivity/zilla/issues/2736) ([jfallows](https://github.com/jfallows))
 - binding-llm: tool-call and server-tool-call canonical payload as an object [\#2741](https://github.com/aklivity/zilla/issues/2741) ([jfallows](https://github.com/jfallows))
 
@@ -165,6 +166,7 @@
 - feat\(binding-llm\): canonical payloads for tool, server tool and media sections [\#2738](https://github.com/aklivity/zilla/pull/2738) ([jfallows](https://github.com/jfallows))
 - fix\(binding-llm\): write a system instruction that follows the messages in the openai client [\#2740](https://github.com/aklivity/zilla/pull/2740) ([jfallows](https://github.com/jfallows))
 - feat\(binding-llm\): carry tool-call arguments in a canonical object [\#2745](https://github.com/aklivity/zilla/pull/2745) ([jfallows](https://github.com/jfallows))
+- feat\(binding-llm\): emit the same section stream for streaming and non-streaming responses [\#2746](https://github.com/aklivity/zilla/pull/2746) ([jfallows](https://github.com/jfallows))
 
 ## [2.4.7](https://github.com/aklivity/zilla/tree/2.4.7) (2026-09-30)
 
