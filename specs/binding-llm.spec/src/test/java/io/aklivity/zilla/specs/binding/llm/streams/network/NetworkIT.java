@@ -3932,4 +3932,76 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.tool.result/client",
+        "${net}/gemini.section.tool.result/server"})
+    public void shouldEncodeGeminiSectionToolResult() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.tool.result.error/client",
+        "${net}/gemini.section.tool.result.error/server"})
+    public void shouldEncodeGeminiSectionToolResultError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.tool.result.escaped/client",
+        "${net}/gemini.section.tool.result.escaped/server"})
+    public void shouldEncodeGeminiSectionToolResultEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.tool.results/client",
+        "${net}/gemini.section.tool.results/server"})
+    public void shouldEncodeGeminiSectionToolResults() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.tool.result.object/client",
+        "${net}/gemini.section.tool.result.object/server"})
+    public void shouldEncodeGeminiSectionToolResultObject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.tool.result.paired/client",
+        "${net}/gemini.section.tool.result.paired/server"})
+    public void shouldEncodeGeminiSectionToolResultPaired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.tool.result/client",
+        "${net}/gemini.transform.tool.result/server"})
+    public void shouldEncodeGeminiTransformToolResult() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.tool.result.error/client",
+        "${net}/gemini.transform.tool.result.error/server"})
+    public void shouldEncodeGeminiTransformToolResultError() throws Exception
+    {
+        k3po.finish();
+    }
 }

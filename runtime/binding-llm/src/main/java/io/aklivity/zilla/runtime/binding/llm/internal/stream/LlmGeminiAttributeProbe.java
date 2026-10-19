@@ -21,6 +21,13 @@ final class LlmGeminiAttributeProbe extends LlmAttributeProbe
     private static final int KEY_OTHER = -1;
     private static final int KEY_ID = 1;
     private static final int KEY_NAME = 2;
+    private static final int KEY_RESPONSE = 3;
+    private static final int KEY_OUTPUT = 4;
+    private static final int KEY_ERROR = 5;
+
+    static final int SHAPE_OTHER = 0;
+    static final int SHAPE_OUTPUT = 1;
+    static final int SHAPE_ERROR = 2;
 
     private static final int SECTION_NONE = 0;
     private static final int SECTION_TOOL_CALL = 1;
@@ -28,6 +35,9 @@ final class LlmGeminiAttributeProbe extends LlmAttributeProbe
     private static final int SECTION_TOOL_DEFINITION = 3;
 
     private int section;
+    private int responseMembers;
+    private int responseKey;
+    private boolean responseText;
 
     static boolean carries(
         LlmSectionType type)
@@ -40,6 +50,22 @@ final class LlmGeminiAttributeProbe extends LlmAttributeProbe
         LlmSectionType type)
     {
         section = sectionOf(type);
+        responseMembers = 0;
+        responseKey = KEY_OTHER;
+        responseText = false;
+    }
+
+    int settle()
+    {
+        final boolean single = responseMembers == 1 && responseText;
+        final int shape = !single ? SHAPE_OTHER : responseKey == KEY_ERROR ? SHAPE_ERROR : SHAPE_OUTPUT;
+
+        if (shape == SHAPE_ERROR)
+        {
+            attributes.isError(LlmSectionAttributes.TRUE);
+        }
+
+        return shape;
     }
 
     @Override
@@ -57,9 +83,26 @@ final class LlmGeminiAttributeProbe extends LlmAttributeProbe
         {
             code = KEY_NAME;
         }
+        else if (matches(key, "response"))
+        {
+            code = KEY_RESPONSE;
+        }
+        else if (matches(key, "output"))
+        {
+            code = KEY_OUTPUT;
+        }
+        else if (matches(key, "error"))
+        {
+            code = KEY_ERROR;
+        }
         else
         {
             code = KEY_OTHER;
+        }
+
+        if (section == SECTION_TOOL_RESULT && depth == 3 && key(2) == KEY_RESPONSE && ++responseMembers == 1)
+        {
+            responseKey = code;
         }
 
         return code;
@@ -89,6 +132,12 @@ final class LlmGeminiAttributeProbe extends LlmAttributeProbe
         CharSequence value,
         boolean deferred)
     {
+        if (section == SECTION_TOOL_RESULT && depth == 3 && key(2) == KEY_RESPONSE && responseMembers == 1 &&
+            (key(3) == KEY_OUTPUT || key(3) == KEY_ERROR))
+        {
+            responseText = true;
+        }
+
         if (depth == 2)
         {
             switch (key(2))
@@ -110,7 +159,7 @@ final class LlmGeminiAttributeProbe extends LlmAttributeProbe
             }
         }
 
-        if (attributes.toolCallId() != null && attributes.toolName() != null)
+        if (section == SECTION_TOOL_CALL && attributes.toolCallId() != null && attributes.toolName() != null)
         {
             resolve();
         }

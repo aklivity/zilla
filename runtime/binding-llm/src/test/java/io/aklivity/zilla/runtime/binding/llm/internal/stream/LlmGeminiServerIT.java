@@ -582,4 +582,64 @@ public class LlmGeminiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.tool.result/client",
+        "${app}/gemini.section.tool.result/server"})
+    public void shouldForwardGeminiSectionToolResult() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.tool.result.error/client",
+        "${app}/gemini.section.tool.result.error/server"})
+    public void shouldForwardGeminiSectionToolResultError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.tool.result.escaped/client",
+        "${app}/gemini.section.tool.result.escaped/server"})
+    public void shouldForwardGeminiSectionToolResultEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.tool.results/client",
+        "${app}/gemini.section.tool.results/server"})
+    public void shouldForwardGeminiSectionToolResults() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.tool.result.object/client",
+        "${app}/gemini.section.tool.result.object/server"})
+    public void shouldForwardGeminiSectionToolResultObject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.tool.result.paired/client",
+        "${app}/gemini.section.tool.result.paired/server"})
+    public void shouldForwardGeminiSectionToolResultPaired() throws Exception
+    {
+        k3po.finish();
+    }
 }

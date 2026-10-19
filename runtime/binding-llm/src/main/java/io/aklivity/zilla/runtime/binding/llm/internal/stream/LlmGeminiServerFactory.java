@@ -115,6 +115,8 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private static final String MESSAGE_ATTRIBUTE_TOO_LARGE = "Invalid request section";
     private static final String MEMBER_FUNCTION_DECLARATIONS = "functionDeclarations";
     private static final String MEMBER_FUNCTION_CALL = "functionCall";
+    private static final String MEMBER_FUNCTION_RESPONSE = "functionResponse";
+    private static final int CALLS_MAX = 16;
     private static final int TOOL_HOLD_MAX = 8192;
     private static final String TOOL_CALL_ID_PREFIX = "call_";
     private static final int TOOL_PART_MAX = 24576;
@@ -947,6 +949,11 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                         server.probe(LlmSectionType.TOOL_CALL, textMessage(server), decodeTool, decodeParts);
                         server.decoder = decodeAttributes;
                     }
+                    else if (matches(key, MEMBER_FUNCTION_RESPONSE))
+                    {
+                        server.probe(LlmSectionType.TOOL_RESULT, textMessage(server), decodeTool, decodeParts);
+                        server.decoder = decodeAttributes;
+                    }
                     else
                     {
                         server.release();
@@ -1616,6 +1623,12 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         private LlmSectionPipeline textPipeline;
         private LlmSectionPipeline toolDefinitionPipeline;
         private LlmSectionPipeline toolCallPipeline;
+        private LlmSectionPipeline toolResultPipeline;
+        private LlmGeminiToolResultToCanonical toolResultTransform;
+        private final String[] callNames = new String[CALLS_MAX];
+        private final String[] callIds = new String[CALLS_MAX];
+        private final boolean[] callUsed = new boolean[CALLS_MAX];
+        private int callCount;
         private int callMessage = -1;
         private int callOrdinal;
         private LlmSectionPipeline blockPipeline;
@@ -1958,12 +1971,17 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             probeMessage = message;
             probeCapture = capturing;
             probeThen = then;
-            holdMax = type == LlmSectionType.TOOL_CALL ? TOOL_HOLD_MAX : HOLD_MAX;
+            holdMax = type == LlmSectionType.TOOL_CALL || type == LlmSectionType.TOOL_RESULT ? TOOL_HOLD_MAX : HOLD_MAX;
             probe.begin(type);
         }
 
         private void captureProbed()
         {
+            if (probe.type() == LlmSectionType.TOOL_RESULT)
+            {
+                toolResultTransform().shape(probe.settle());
+            }
+
             captureHeld(probe.type(), probeMessage, probeThen, probe.depth());
             probing = true;
             decoder = probeCapture;
@@ -2138,6 +2156,10 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 }
                 pipeline = textPipeline;
                 break;
+            case TOOL_RESULT:
+                toolResultTransform();
+                pipeline = toolResultPipeline;
+                break;
             case TOOL_CALL:
                 if (toolCallPipeline == null)
                 {
@@ -2177,9 +2199,23 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             {
                 if (probing)
                 {
-                    if (blockSection == LlmSectionType.TOOL_CALL && probe.attributes().toolCallId() == null)
+                    if (blockSection == LlmSectionType.TOOL_CALL)
                     {
-                        probe.attributes().toolCallId(synthesizeToolCallId());
+                        if (probe.attributes().toolCallId() == null)
+                        {
+                            probe.attributes().toolCallId(synthesizeToolCallId());
+                        }
+
+                        recordToolCall(probe.attributes().toolName(), probe.attributes().toolCallId());
+                    }
+                    else if (blockSection == LlmSectionType.TOOL_RESULT)
+                    {
+                        if (probe.attributes().toolCallId() == null)
+                        {
+                            probe.attributes().toolCallId(pairToolCallId(probe.attributes().toolName()));
+                        }
+
+                        probe.attributes().toolName(null);
                     }
 
                     blockAttributes.copyFrom(probe.attributes());
@@ -2202,6 +2238,47 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 attributes, buffer, offset, length);
 
             blockFlags = Flags.NONE;
+        }
+
+        private LlmGeminiToolResultToCanonical toolResultTransform()
+        {
+            if (toolResultTransform == null)
+            {
+                toolResultTransform = new LlmGeminiToolResultToCanonical();
+                toolResultPipeline = new LlmSectionPipeline(toolResultTransform, new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+            }
+
+            return toolResultTransform;
+        }
+
+        private void recordToolCall(
+            String name,
+            String id)
+        {
+            if (callCount < CALLS_MAX)
+            {
+                callNames[callCount] = name;
+                callIds[callCount] = id;
+                callUsed[callCount] = false;
+                callCount++;
+            }
+        }
+
+        private String pairToolCallId(
+            String name)
+        {
+            String id = null;
+
+            for (int index = 0; id == null && index < callCount; index++)
+            {
+                if (!callUsed[index] && callNames[index] != null && callNames[index].equals(name))
+                {
+                    callUsed[index] = true;
+                    id = callIds[index];
+                }
+            }
+
+            return id != null ? id : synthesizeToolCallId();
         }
 
         private String synthesizeToolCallId()

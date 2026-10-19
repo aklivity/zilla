@@ -121,9 +121,11 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final int KIND_ASSISTANT_REFUSAL = 7;
     private static final int KIND_TOOL_DEFINITION = 9;
     private static final int KIND_TOOL_CALL = 10;
+    private static final int KIND_TOOL_RESULT = 11;
     private static final int KIND_CONTROL = 14;
     private static final int KIND_DROPPED = 16;
     private static final int KIND_UNSUPPORTED = 17;
+    private static final int CALLS_MAX = 16;
     private static final int CONTROL_PENDING = 0;
     private static final int CONTROL_WRITE = 1;
     private static final int CONTROL_DROP = 2;
@@ -176,6 +178,10 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final String MEMBER_NAME = "name";
     private static final String MEMBER_ID = "id";
     private static final String MEMBER_ARGS = "args";
+    private static final String MEMBER_FUNCTION_RESPONSE = "functionResponse";
+    private static final String MEMBER_RESPONSE = "response";
+    private static final String MEMBER_OUTPUT = "output";
+    private static final String MEMBER_ERROR_RESPONSE = "error";
     private static final String MEMBER_SIGNATURE = "thoughtSignature";
     private static final String MEMBER_WIRE_SIGNATURE = ",\"gemini:thoughtSignature\":\"";
     private static final String MEMBER_WIRE_ID = ",\"gemini:id\":\"";
@@ -375,6 +381,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         case ASSISTANT_REFUSAL -> KIND_ASSISTANT_REFUSAL;
         case TOOL_DEFINITION -> KIND_TOOL_DEFINITION;
         case TOOL_CALL -> KIND_TOOL_CALL;
+        case TOOL_RESULT -> KIND_TOOL_RESULT;
         case CONTROL -> KIND_CONTROL;
         case NONE -> 0;
         default -> KIND_UNSUPPORTED;
@@ -393,7 +400,8 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         return kind == KIND_SYSTEM_INSTRUCTION ||
             kind == KIND_USER_TEXT ||
             kind == KIND_ASSISTANT_TEXT ||
-            kind == KIND_ASSISTANT_REFUSAL;
+            kind == KIND_ASSISTANT_REFUSAL ||
+            kind == KIND_TOOL_RESULT;
     }
 
     private static int nesting(
@@ -3513,6 +3521,10 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private LlmSectionPipeline toolCallPipeline;
         private LlmGeminiToolCallFromCanonical toolCallTransform;
         private int messageToolCalls;
+        private int partDepth = 1;
+        private final String[] callIds = new String[CALLS_MAX];
+        private final String[] callNames = new String[CALLS_MAX];
+        private int callCount;
         private LlmSectionPipeline controlPipeline;
         private LlmGeminiControlFromCanonical controlTransform;
         private int controlMessage;
@@ -3752,10 +3764,66 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 toolCallTransform.placeholder(messageToolCalls++ == 0);
                 beginSectionStreaming(toolCallPipeline, sectionOutput);
             }
+            else if (kind == KIND_TOOL_RESULT)
+            {
+                beginToolResult();
+            }
             else
             {
                 beginTextBlock();
                 sectionOpen = !encodeFailed;
+            }
+        }
+
+        private void beginToolResult()
+        {
+            final String toolCallId = sectionAttributes.toolCallId();
+            final String toolName = toolNameOf(toolCallId);
+            final boolean failed = LlmSectionAttributes.TRUE.equals(sectionAttributes.isError());
+
+            if (toolName == null)
+            {
+                encodeFailed = true;
+            }
+            else
+            {
+                generator.writeStartObject()
+                    .writeStartObject(MEMBER_FUNCTION_RESPONSE)
+                    .write(MEMBER_NAME, toolName)
+                    .write(MEMBER_ID, toolCallId)
+                    .writeStartObject(MEMBER_RESPONSE)
+                    .writeKey(failed ? MEMBER_ERROR_RESPONSE : MEMBER_OUTPUT);
+                generator.writeStartEscaped();
+                partDepth = 3;
+                sectionOpen = true;
+            }
+        }
+
+        private String toolNameOf(
+            String toolCallId)
+        {
+            String toolName = null;
+
+            for (int index = 0; toolName == null && toolCallId != null && index < callCount; index++)
+            {
+                if (toolCallId.equals(callIds[index]))
+                {
+                    toolName = callNames[index];
+                }
+            }
+
+            return toolName;
+        }
+
+        private void recordCall(
+            String toolCallId,
+            String toolName)
+        {
+            if (toolCallId != null && toolName != null && callCount < CALLS_MAX)
+            {
+                callIds[callCount] = toolCallId;
+                callNames[callCount] = toolName;
+                callCount++;
             }
         }
 
@@ -3854,7 +3922,12 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         {
             if (textBlockOpen)
             {
-                generator.writeEnd();
+                for (int depth = 0; depth < partDepth; depth++)
+                {
+                    generator.writeEnd();
+                }
+
+                partDepth = 1;
                 textBlockOpen = false;
             }
         }
@@ -3959,6 +4032,11 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             boolean isError)
         {
             encodeText = null;
+
+            if (sectionKind == KIND_TOOL_CALL)
+            {
+                recordCall(sectionAttributes.toolCallId(), sectionAttributes.toolName());
+            }
 
             if (sectionKind != 0 && sectionKind != KIND_DROPPED && beginEncode(ENCODE_STRUCTURE))
             {
