@@ -4580,4 +4580,130 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/gemini.section.assistant.reasoning/client",
+        "${app}/gemini.section.assistant.reasoning/server"})
+    public void shouldForwardGeminiSectionAssistantReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.section.assistant.reasoning.signature/client",
+        "${app}/gemini.section.assistant.reasoning.signature/server"})
+    public void shouldForwardGeminiSectionAssistantReasoningSignature() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.section.assistant.reasoning.thought.first/client",
+        "${app}/gemini.section.assistant.reasoning.thought.first/server"})
+    public void shouldForwardGeminiSectionAssistantReasoningThoughtFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.section.assistant.text.signature/client",
+        "${app}/gemini.section.assistant.text.signature/server"})
+    public void shouldForwardGeminiSectionAssistantTextSignature() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.section.assistant.reasoning.tool.call/client",
+        "${app}/gemini.section.assistant.reasoning.tool.call/server"})
+    public void shouldForwardGeminiSectionAssistantReasoningToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.streaming.assistant.reasoning/client",
+        "${app}/gemini.streaming.assistant.reasoning/server"})
+    public void shouldForwardGeminiStreamingAssistantReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.streaming.assistant.reasoning.split/client",
+        "${app}/gemini.streaming.assistant.reasoning.split/server"})
+    public void shouldForwardGeminiStreamingAssistantReasoningSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.section.reasoning.history/client",
+        "${app}/gemini.section.reasoning.history/server"})
+    public void shouldForwardGeminiSectionReasoningHistory() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.section.reasoning.history.signature/client",
+        "${app}/gemini.section.reasoning.history.signature/server"})
+    public void shouldForwardGeminiSectionReasoningHistorySignature() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.section.reasoning.history.thought.first/client",
+        "${app}/gemini.section.reasoning.history.thought.first/server"})
+    public void shouldForwardGeminiSectionReasoningHistoryThoughtFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.section.reasoning.history.tool.call/client",
+        "${app}/gemini.section.reasoning.history.tool.call/server"})
+    public void shouldForwardGeminiSectionReasoningHistoryToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.section.user.text.thought/client",
+        "${app}/gemini.section.user.text.thought/server"})
+    public void shouldForwardGeminiSectionUserTextThought() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.transform.assistant.reasoning/client",
+        "${app}/gemini.transform.assistant.reasoning/server"})
+    public void shouldForwardGeminiTransformAssistantReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.transform.assistant.text.signature/client",
+        "${app}/gemini.transform.assistant.text.signature/server"})
+    public void shouldForwardGeminiTransformAssistantTextSignature() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -21,6 +21,19 @@ final class LlmGeminiTextToCanonical extends LlmToolTransform
 {
     private static final String DIALECT = "gemini";
 
+    private final boolean keepThought;
+
+    LlmGeminiTextToCanonical()
+    {
+        this(false);
+    }
+
+    LlmGeminiTextToCanonical(
+        boolean keepThought)
+    {
+        this.keepThought = keepThought;
+    }
+
     @Override
     protected int member(
         int depth,
@@ -33,7 +46,7 @@ final class LlmGeminiTextToCanonical extends LlmToolTransform
             target = "text";
             action = PASS_STRING;
         }
-        else if (matches(key, "thought"))
+        else if (!keepThought && matches(key, "thought"))
         {
             action = DROP;
         }

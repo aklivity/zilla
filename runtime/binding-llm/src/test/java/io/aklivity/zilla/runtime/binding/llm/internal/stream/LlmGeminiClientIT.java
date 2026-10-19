@@ -928,4 +928,124 @@ public class LlmGeminiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.section.assistant.reasoning/client",
+        "${net}/gemini.section.assistant.reasoning/server"})
+    public void shouldForwardGeminiSectionAssistantReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.section.assistant.reasoning.signature/client",
+        "${net}/gemini.section.assistant.reasoning.signature/server"})
+    public void shouldForwardGeminiSectionAssistantReasoningSignature() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.section.assistant.reasoning.thought.first/client",
+        "${net}/gemini.section.assistant.reasoning.thought.first/server"})
+    public void shouldForwardGeminiSectionAssistantReasoningThoughtFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.section.assistant.text.signature/client",
+        "${net}/gemini.section.assistant.text.signature/server"})
+    public void shouldForwardGeminiSectionAssistantTextSignature() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.section.assistant.reasoning.tool.call/client",
+        "${net}/gemini.section.assistant.reasoning.tool.call/server"})
+    public void shouldForwardGeminiSectionAssistantReasoningToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.streaming.assistant.reasoning/client",
+        "${net}/gemini.streaming.assistant.reasoning/server"})
+    public void shouldForwardGeminiStreamingAssistantReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.streaming.assistant.reasoning.split/client",
+        "${net}/gemini.streaming.assistant.reasoning.split/server"})
+    public void shouldForwardGeminiStreamingAssistantReasoningSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.section.reasoning.history/client",
+        "${net}/gemini.section.reasoning.history/server"})
+    public void shouldForwardGeminiSectionReasoningHistory() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.section.reasoning.history.signature/client",
+        "${net}/gemini.section.reasoning.history.signature/server"})
+    public void shouldForwardGeminiSectionReasoningHistorySignature() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.section.reasoning.history.tool.call/client",
+        "${net}/gemini.section.reasoning.history.tool.call/server"})
+    public void shouldForwardGeminiSectionReasoningHistoryToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.transform.assistant.reasoning/client",
+        "${net}/gemini.transform.assistant.reasoning/server"})
+    public void shouldForwardGeminiTransformAssistantReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.transform.assistant.text.signature/client",
+        "${net}/gemini.transform.assistant.text.signature/server"})
+    public void shouldForwardGeminiTransformAssistantTextSignature() throws Exception
+    {
+        k3po.finish();
+    }
 }

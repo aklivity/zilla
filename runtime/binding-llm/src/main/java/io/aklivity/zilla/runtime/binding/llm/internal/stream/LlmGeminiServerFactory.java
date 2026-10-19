@@ -117,6 +117,9 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private static final String MEMBER_FUNCTION_DECLARATIONS = "functionDeclarations";
     private static final String MEMBER_FUNCTION_CALL = "functionCall";
     private static final String MEMBER_FUNCTION_RESPONSE = "functionResponse";
+    private static final String MEMBER_THOUGHT = "thought";
+    private static final String MEMBER_THOUGHT_SIGNATURE = "thoughtSignature";
+    private static final String MEMBER_THOUGHT_SIGNATURE_SNAKE = "thought_signature";
     private static final int CALLS_MAX = 16;
     private static final int MEDIA_TYPES = 4;
     private static final int TOOL_HOLD_MAX = 8192;
@@ -126,7 +129,9 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
     private static final int RESPONSE_ENCODE_PADDING = 128;
     private static final int RESPONSE_ESCAPE_EXPANSION = 6;
-    private static final int RESPONSE_ENCODE_SLACK = 2048;
+    private static final int RESPONSE_SIGNATURE_RESERVE = LlmToolTransform.HELD_MAX +
+        ",\"thought\":true,\"thoughtSignature\":\"\"".length();
+    private static final int RESPONSE_ENCODE_SLACK = 2048 + RESPONSE_SIGNATURE_RESERVE;
     private static final int REQUEST_CANONICAL_GROWTH = 4;
     private static final int REQUEST_ENCODE_SLACK = 512;
     private static final int REQUEST_RECORD_HEADER = 28;
@@ -218,6 +223,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private final LlmGeminiServerDecoder decodeParts = this::decodeParts;
     private final LlmGeminiServerDecoder decodePartKey = this::decodePartKey;
     private final LlmGeminiServerDecoder decodePart = this::decodePart;
+    private final LlmGeminiServerDecoder decodePartThought = this::decodePartThought;
     private final LlmGeminiServerDecoder decodeToolsStart = this::decodeToolsStart;
     private final LlmGeminiServerDecoder decodeTools = this::decodeTools;
     private final LlmGeminiServerDecoder decodeToolKey = this::decodeToolKey;
@@ -902,6 +908,8 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             {
             case START_OBJECT:
                 server.hold();
+                server.partThought = false;
+                server.holdMax = Math.min(TOOL_HOLD_MAX, server.holdLimit());
                 server.decoder = decodePartKey;
                 break;
             case END_ARRAY:
@@ -941,10 +949,29 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 {
                     final CharSequence key = parser.getStringView();
 
-                    if (matches(key, "text"))
+                    if (matches(key, "text") && textSection(server) == LlmSectionType.ASSISTANT_TEXT && server.partThought)
+                    {
+                        server.captureHeld(LlmSectionType.ASSISTANT_REASONING, textMessage(server), decodeParts, 1);
+                        server.decoder = decodePart;
+                    }
+                    else if (matches(key, "text") && textSection(server) == LlmSectionType.ASSISTANT_TEXT)
+                    {
+                        server.probe(LlmSectionType.ASSISTANT_TEXT, textMessage(server), decodeTool, decodeParts);
+                        server.decoder = decodeAttributes;
+                    }
+                    else if (matches(key, "text"))
                     {
                         server.captureHeld(textSection(server), textMessage(server), decodeParts, 1);
                         server.decoder = decodePart;
+                    }
+                    else if (matches(key, MEMBER_THOUGHT))
+                    {
+                        server.decoder = decodePartThought;
+                    }
+                    else if (matches(key, MEMBER_THOUGHT_SIGNATURE) || matches(key, MEMBER_THOUGHT_SIGNATURE_SNAKE))
+                    {
+                        server.skip(decodePartKey);
+                        server.decoder = decodeSkip;
                     }
                     else if (matches(key, MEMBER_FUNCTION_CALL))
                     {
@@ -978,6 +1005,41 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             case END_OBJECT:
                 server.release();
                 server.decoder = decodeParts;
+                break;
+            default:
+                server.onDecodeParseError(traceId);
+                break decode;
+            }
+        }
+
+        return server.position();
+    }
+
+    private int decodePartThought(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        decode:
+        if (parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            switch (event)
+            {
+            case VALUE_TRUE:
+                server.partThought = true;
+                server.decoder = decodePartKey;
+                break;
+            case VALUE_FALSE:
+                server.decoder = decodePartKey;
                 break;
             default:
                 server.onDecodeParseError(traceId);
@@ -1614,6 +1676,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
         private LlmGeminiServerDecoder skipThen;
         private int skipDepth;
+        private boolean partThought;
 
         private boolean streamOptions;
         private int maxOutputTokens = NO_MAX_OUTPUT_TOKENS;
@@ -1644,6 +1707,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         private int blockFlags;
 
         private LlmSectionPipeline textPipeline;
+        private LlmSectionPipeline assistantTextPipeline;
         private LlmSectionPipeline toolDefinitionPipeline;
         private LlmSectionPipeline toolCallPipeline;
         private final LlmSectionPipeline[] mediaPipelines = new LlmSectionPipeline[MEDIA_TYPES];
@@ -1998,13 +2062,14 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             holdMax = switch (type)
             {
             case TOOL_CALL, TOOL_RESULT -> TOOL_HOLD_MAX;
-            case USER_IMAGE, USER_DOCUMENT, USER_AUDIO, USER_VIDEO -> mediaHoldMax();
+            case USER_IMAGE, USER_DOCUMENT, USER_AUDIO, USER_VIDEO -> holdLimit();
+            case ASSISTANT_TEXT -> Math.min(TOOL_HOLD_MAX, holdLimit());
             default -> HOLD_MAX;
             };
             probe.begin(type);
         }
 
-        private int mediaHoldMax()
+        private int holdLimit()
         {
             final int room = (encodePool.slotCapacity() - REQUEST_ENCODE_SLACK) / REQUEST_CANONICAL_GROWTH;
             final int credit = Math.min(stream.initialMax, room);
@@ -2185,13 +2250,21 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
             switch (type)
             {
-            case SYSTEM_INSTRUCTION, USER_TEXT, ASSISTANT_TEXT:
+            case SYSTEM_INSTRUCTION, USER_TEXT, ASSISTANT_REASONING:
                 if (textPipeline == null)
                 {
                     textPipeline = new LlmSectionPipeline(new LlmGeminiTextToCanonical(),
                         new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
                 }
                 pipeline = textPipeline;
+                break;
+            case ASSISTANT_TEXT:
+                if (assistantTextPipeline == null)
+                {
+                    assistantTextPipeline = new LlmSectionPipeline(new LlmGeminiTextToCanonical(true),
+                        new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                }
+                pipeline = assistantTextPipeline;
                 break;
             case TOOL_RESULT:
                 toolResultTransform();
@@ -2961,6 +3034,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         private static final int KIND_SKIPPED = 2;
         private static final int KIND_CONTROL = 3;
         private static final int KIND_TOOL_CALL = 4;
+        private static final int KIND_REASONING = 5;
 
         private static final int CONTROL_DROP = 0;
         private static final int CONTROL_HELD = 1;
@@ -2983,9 +3057,14 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         private LlmSectionPipeline controlPipeline;
         private LlmGeminiControlFromCanonical controlTransform;
         private LlmSectionPipeline toolCallPipeline;
+        private LlmSectionPipeline signaturePipeline;
+        private LlmGeminiSignatureFromCanonical signatureTransform;
         private UnsafeBufferEx partBuffer;
         private int partLength;
         private final LlmSectionPipeline.Output toolOutput = (buffer, offset, length, last) -> onToolPart(buffer, offset, length);
+        private final LlmSectionPipeline.Output signatureOutput = (buffer, offset, length, last) ->
+        {
+        };
         private MessageConsumer app;
         private long initialId;
         private long replyId;
@@ -3741,10 +3820,11 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 toolCallPipeline().begin(replyAttributes);
             }
 
-            if (kind == KIND_TEXT)
+            if (kind == KIND_TEXT || kind == KIND_REASONING)
             {
                 sectionText.begin();
                 textPipeline = sectionText;
+                signaturePipeline().begin(replyAttributes);
 
                 if (!server.streaming)
                 {
@@ -3779,10 +3859,22 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                     server.cleanup(traceId);
                 }
             }
-            else if (textPipeline != null && !textPipeline.feed(payload, payloadOffset, payloadLength, fin))
+            else if (textPipeline != null && (!textPipeline.feed(payload, payloadOffset, payloadLength, fin) ||
+                !signaturePipeline.feed(payload, payloadOffset, payloadLength, fin, signatureOutput)))
             {
                 server.cleanup(traceId);
             }
+        }
+
+        private LlmSectionPipeline signaturePipeline()
+        {
+            if (signaturePipeline == null)
+            {
+                signatureTransform = new LlmGeminiSignatureFromCanonical();
+                signaturePipeline = new LlmSectionPipeline(signatureTransform, new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+            }
+
+            return signaturePipeline;
         }
 
         private LlmSectionPipeline toolCallPipeline()
@@ -3828,9 +3920,34 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             {
                 onEncodeControlEnd();
             }
-            else if (kind == KIND_TEXT && !server.streaming)
+            else if (kind == KIND_TEXT || kind == KIND_REASONING)
             {
-                generator.writeEndEscaped().writeEnd();
+                final String signature = signatureTransform.signature();
+
+                if (signature != null && !LlmGeminiSignatureFromCanonical.plain(signature))
+                {
+                    server.cleanup(server.decodeTraceId);
+                }
+                else if (!server.streaming)
+                {
+                    generator.writeEndEscaped();
+
+                    if (kind == KIND_REASONING)
+                    {
+                        generator.write("thought", true);
+                    }
+
+                    if (signature != null)
+                    {
+                        generator.write("thoughtSignature", signature);
+                    }
+
+                    generator.writeEnd();
+                }
+                else if (signature != null)
+                {
+                    onSignaturePart(signature);
+                }
             }
             else if (kind == KIND_TOOL_CALL)
             {
@@ -3865,6 +3982,21 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             }
         }
 
+        private void onSignaturePart(
+            String signature)
+        {
+            chunkBegin();
+            generator.writeStartObject();
+            candidateBegin();
+            generator.writeStartObject().write("text", "").write("thoughtSignature", signature).writeEnd();
+            candidateContentEnd();
+            generator.write("index", 0);
+            candidateEnd();
+            responseIdentity();
+            generator.writeEnd();
+            chunkEnd();
+        }
+
         private void onSectionText(
             DirectBufferEx buffer,
             int offset,
@@ -3882,7 +4014,14 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 generator.writeStartObject().writeKey("text");
                 generator.writeStartEscaped();
                 generator.writeSegment(buffer, offset, length);
-                generator.writeEndEscaped().writeEnd();
+                generator.writeEndEscaped();
+
+                if (kind == KIND_REASONING)
+                {
+                    generator.write("thought", true);
+                }
+
+                generator.writeEnd();
                 candidateContentEnd();
                 generator.write("index", 0);
                 candidateEnd();
@@ -4043,6 +4182,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             return switch (type)
             {
             case ASSISTANT_TEXT, ASSISTANT_REFUSAL -> KIND_TEXT;
+            case ASSISTANT_REASONING -> KIND_REASONING;
             case TOOL_CALL -> KIND_TOOL_CALL;
             default -> KIND_SKIPPED;
             };

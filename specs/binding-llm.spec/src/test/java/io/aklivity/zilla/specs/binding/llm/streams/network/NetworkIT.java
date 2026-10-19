@@ -4310,4 +4310,130 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.assistant.reasoning/client",
+        "${net}/gemini.section.assistant.reasoning/server"})
+    public void shouldEncodeGeminiSectionAssistantReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.assistant.reasoning.signature/client",
+        "${net}/gemini.section.assistant.reasoning.signature/server"})
+    public void shouldEncodeGeminiSectionAssistantReasoningSignature() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.assistant.reasoning.thought.first/client",
+        "${net}/gemini.section.assistant.reasoning.thought.first/server"})
+    public void shouldEncodeGeminiSectionAssistantReasoningThoughtFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.assistant.text.signature/client",
+        "${net}/gemini.section.assistant.text.signature/server"})
+    public void shouldEncodeGeminiSectionAssistantTextSignature() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.assistant.reasoning.tool.call/client",
+        "${net}/gemini.section.assistant.reasoning.tool.call/server"})
+    public void shouldEncodeGeminiSectionAssistantReasoningToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.streaming.assistant.reasoning/client",
+        "${net}/gemini.streaming.assistant.reasoning/server"})
+    public void shouldEncodeGeminiStreamingAssistantReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.streaming.assistant.reasoning.split/client",
+        "${net}/gemini.streaming.assistant.reasoning.split/server"})
+    public void shouldEncodeGeminiStreamingAssistantReasoningSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.reasoning.history/client",
+        "${net}/gemini.section.reasoning.history/server"})
+    public void shouldEncodeGeminiSectionReasoningHistory() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.reasoning.history.signature/client",
+        "${net}/gemini.section.reasoning.history.signature/server"})
+    public void shouldEncodeGeminiSectionReasoningHistorySignature() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.reasoning.history.thought.first/client",
+        "${net}/gemini.section.reasoning.history.thought.first/server"})
+    public void shouldEncodeGeminiSectionReasoningHistoryThoughtFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.reasoning.history.tool.call/client",
+        "${net}/gemini.section.reasoning.history.tool.call/server"})
+    public void shouldEncodeGeminiSectionReasoningHistoryToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.user.text.thought/client",
+        "${net}/gemini.section.user.text.thought/server"})
+    public void shouldEncodeGeminiSectionUserTextThought() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.assistant.reasoning/client",
+        "${net}/gemini.transform.assistant.reasoning/server"})
+    public void shouldEncodeGeminiTransformAssistantReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.assistant.text.signature/client",
+        "${net}/gemini.transform.assistant.text.signature/server"})
+    public void shouldEncodeGeminiTransformAssistantTextSignature() throws Exception
+    {
+        k3po.finish();
+    }
 }

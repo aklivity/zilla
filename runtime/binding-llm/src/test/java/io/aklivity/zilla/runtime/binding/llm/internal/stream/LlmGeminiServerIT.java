@@ -882,4 +882,84 @@ public class LlmGeminiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.assistant.reasoning/client",
+        "${app}/gemini.section.assistant.reasoning/server"})
+    public void shouldForwardGeminiSectionAssistantReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.assistant.text.signature/client",
+        "${app}/gemini.section.assistant.text.signature/server"})
+    public void shouldForwardGeminiSectionAssistantTextSignature() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.assistant.reasoning.tool.call/client",
+        "${app}/gemini.section.assistant.reasoning.tool.call/server"})
+    public void shouldForwardGeminiSectionAssistantReasoningToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.reasoning.history/client",
+        "${app}/gemini.section.reasoning.history/server"})
+    public void shouldForwardGeminiSectionReasoningHistory() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.reasoning.history.signature/client",
+        "${app}/gemini.section.reasoning.history.signature/server"})
+    public void shouldForwardGeminiSectionReasoningHistorySignature() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.reasoning.history.thought.first/client",
+        "${app}/gemini.section.reasoning.history.thought.first/server"})
+    public void shouldForwardGeminiSectionReasoningHistoryThoughtFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.reasoning.history.tool.call/client",
+        "${app}/gemini.section.reasoning.history.tool.call/server"})
+    public void shouldForwardGeminiSectionReasoningHistoryToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.user.text.thought/client",
+        "${app}/gemini.section.user.text.thought/server"})
+    public void shouldForwardGeminiSectionUserTextThought() throws Exception
+    {
+        k3po.finish();
+    }
 }

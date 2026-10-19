@@ -44,7 +44,8 @@ public class LlmGeminiAttributeProbeTest
         assertThat(LlmGeminiAttributeProbe.carries(LlmSectionType.USER_AUDIO), equalTo(true));
         assertThat(LlmGeminiAttributeProbe.carries(LlmSectionType.USER_VIDEO), equalTo(true));
         assertThat(LlmGeminiAttributeProbe.carries(LlmSectionType.USER_TEXT), equalTo(false));
-        assertThat(LlmGeminiAttributeProbe.carries(LlmSectionType.ASSISTANT_TEXT), equalTo(false));
+        assertThat(LlmGeminiAttributeProbe.carries(LlmSectionType.ASSISTANT_TEXT), equalTo(true));
+        assertThat(LlmGeminiAttributeProbe.carries(LlmSectionType.ASSISTANT_REASONING), equalTo(false));
         assertThat(LlmGeminiAttributeProbe.carries(LlmSectionType.CONTROL), equalTo(false));
     }
 

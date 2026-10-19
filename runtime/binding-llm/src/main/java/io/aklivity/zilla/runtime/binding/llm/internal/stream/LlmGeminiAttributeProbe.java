@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionType;
+import io.aklivity.zilla.runtime.common.json.JsonEvent;
 
 final class LlmGeminiAttributeProbe extends LlmAttributeProbe
 {
@@ -27,6 +28,7 @@ final class LlmGeminiAttributeProbe extends LlmAttributeProbe
     private static final int KEY_MIME_TYPE = 6;
     private static final int KEY_DATA = 7;
     private static final int KEY_FILE_URI = 8;
+    private static final int KEY_THOUGHT = 9;
 
     static final int SHAPE_OTHER = 0;
     static final int SHAPE_OUTPUT = 1;
@@ -37,6 +39,7 @@ final class LlmGeminiAttributeProbe extends LlmAttributeProbe
     private static final int SECTION_TOOL_RESULT = 2;
     private static final int SECTION_TOOL_DEFINITION = 3;
     private static final int SECTION_MEDIA = 4;
+    private static final int SECTION_TEXT = 5;
     private static final String FILES_SEGMENT = "/files/";
 
     private int section;
@@ -117,6 +120,10 @@ final class LlmGeminiAttributeProbe extends LlmAttributeProbe
         {
             code = KEY_FILE_URI;
         }
+        else if (matches(key, "thought"))
+        {
+            code = KEY_THOUGHT;
+        }
         else
         {
             code = KEY_OTHER;
@@ -186,6 +193,18 @@ final class LlmGeminiAttributeProbe extends LlmAttributeProbe
 
         if (section == SECTION_TOOL_CALL && attributes.toolCallId() != null && attributes.toolName() != null)
         {
+            resolve();
+        }
+    }
+
+    @Override
+    protected void onLiteral(
+        int depth,
+        JsonEvent event)
+    {
+        if (section == SECTION_TEXT && depth == 1 && key(1) == KEY_THOUGHT && event == JsonEvent.VALUE_TRUE)
+        {
+            retype(LlmSectionType.ASSISTANT_REASONING);
             resolve();
         }
     }
@@ -268,6 +287,7 @@ final class LlmGeminiAttributeProbe extends LlmAttributeProbe
         case TOOL_RESULT -> SECTION_TOOL_RESULT;
         case TOOL_DEFINITION -> SECTION_TOOL_DEFINITION;
         case USER_IMAGE, USER_DOCUMENT, USER_AUDIO, USER_VIDEO -> SECTION_MEDIA;
+        case ASSISTANT_TEXT -> SECTION_TEXT;
         default -> SECTION_NONE;
         };
     }

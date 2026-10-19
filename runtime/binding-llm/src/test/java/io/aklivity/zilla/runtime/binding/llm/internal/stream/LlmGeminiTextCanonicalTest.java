@@ -77,6 +77,14 @@ public class LlmGeminiTextCanonicalTest
     }
 
     @Test
+    public void shouldCarryThoughtWhenKept()
+    {
+        assertTransforms(new LlmGeminiTextToCanonical(true),
+            json("{'text':'Hello','thought':true}"),
+            json("{'text':'Hello','gemini:thought':true}"));
+    }
+
+    @Test
     public void shouldConvertTextLargerThanWindow()
     {
         assertTransforms(toCanonical,
