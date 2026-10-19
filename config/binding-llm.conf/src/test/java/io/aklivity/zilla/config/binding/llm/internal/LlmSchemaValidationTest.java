@@ -74,6 +74,26 @@ public class LlmSchemaValidationTest
     }
 
     @Test
+    public void shouldAcceptServerWithGeminiDialect()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: server
+                options:
+                  dialect: gemini
+                exit: app0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
     public void shouldAcceptServerWithAnthropicDialect()
     {
         String text =
@@ -144,6 +164,27 @@ public class LlmSchemaValidationTest
                 kind: client
                 options:
                   dialect: anthropic
+                  server: http://example.com:8080
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptClientWithGeminiDialect()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: gemini
                   server: http://example.com:8080
                 exit: net0
             """;
@@ -299,7 +340,7 @@ public class LlmSchemaValidationTest
                 type: llm
                 kind: server
                 options:
-                  dialect: gemini
+                  dialect: foo
                 exit: app0
             """;
 
@@ -372,7 +413,7 @@ public class LlmSchemaValidationTest
                 type: llm
                 kind: client
                 options:
-                  dialect: gemini
+                  dialect: foo
                   server: http://example.com:8080
                 exit: net0
             """;
@@ -432,6 +473,28 @@ public class LlmSchemaValidationTest
                 - when:
                   - dialect: openai
                     model: [ gpt-4o, gpt-4o-mini ]
+                  exit: app0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptProxyWithRoutesWhenGeminiDialect()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                routes:
+                - when:
+                  - dialect: gemini
+                    model: [ gemini-2.0-flash ]
                   exit: app0
             """;
 
@@ -513,7 +576,7 @@ public class LlmSchemaValidationTest
                 kind: proxy
                 routes:
                 - when:
-                  - dialect: gemini
+                  - dialect: foo
                   exit: app0
             """;
 
