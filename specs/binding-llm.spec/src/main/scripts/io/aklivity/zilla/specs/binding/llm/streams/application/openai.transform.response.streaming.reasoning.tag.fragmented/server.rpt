@@ -85,6 +85,8 @@ write option zilla:flags "fin"
 write "}"
 write flush
 write option zilla:flags "init fin"
+write option zilla:flags "auto"
+
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")

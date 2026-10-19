@@ -3429,7 +3429,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             int offset,
             int length)
         {
-            TmpDump.dump("NET\t" + flags, buffer.getStringWithoutLengthUtf8(offset, length)); // TMPDUMP
             final DataFW.Builder dataBuilder = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)

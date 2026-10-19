@@ -1001,6 +1001,33 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/anthropic.proxy.guardrail.control/client",
+        "${app}/anthropic.proxy.guardrail.control/server"})
+    public void shouldAnthropicProxyGuardrailControl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.control.foreign.request/client",
+        "${app}/anthropic.control.foreign.request/server"})
+    public void shouldAnthropicControlForeignRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.control.foreign.response/client",
+        "${app}/anthropic.control.foreign.response/server"})
+    public void shouldAnthropicControlForeignResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.section.unknown.part/client",
         "${app}/openai.section.unknown.part/server"})
     public void shouldOpenaiSectionUnknownPart() throws Exception

@@ -1042,7 +1042,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int offset,
             int length)
         {
-            TmpDump.dump("APP\t" + flags + "\t" + type + "\t" + message, buffer.getStringWithoutLengthUtf8(offset, length)); // TMPDUMP
             final OctetsFW extension;
 
             if (Flags.hasInit(flags))
@@ -5403,7 +5402,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int offset,
             int length)
         {
-            TmpDump.dump("REQ", buffer.getStringWithoutLengthUtf8(offset, length)); // TMPDUMP
             final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)

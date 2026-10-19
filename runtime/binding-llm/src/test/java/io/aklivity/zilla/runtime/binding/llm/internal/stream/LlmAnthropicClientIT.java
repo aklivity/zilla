@@ -45,9 +45,7 @@ public class LlmAnthropicClientIT
         .external("net0")
         .clean();
 
-    @org.junit.Rule public final org.junit.rules.TestName tmpName = new org.junit.rules.TestName(); // TMPDUMP
 
-    @org.junit.Before public void tmpMark() { System.setProperty("llm.test", tmpName.getMethodName()); } // TMPDUMP
 
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
@@ -1074,6 +1072,26 @@ public class LlmAnthropicClientIT
         "${app}/anthropic.streaming.complete/client",
         "${net}/anthropic.streaming.complete/server"})
     public void shouldMarkAnthropicStreamingEventsComplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.streaming.complete/client",
+        "${net}/anthropic.streaming.ping/server"})
+    public void shouldDropAnthropicStreamingPingAndUnknownEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.control.foreign.request/client",
+        "${net}/anthropic.section.user.text/server"})
+    public void shouldDropAnthropicForeignRequestControls() throws Exception
     {
         k3po.finish();
     }

@@ -44,9 +44,7 @@ public class LlmAnthropicServerIT
         .external("app0")
         .clean();
 
-    @org.junit.Rule public final org.junit.rules.TestName tmpName = new org.junit.rules.TestName(); // TMPDUMP
 
-    @org.junit.Before public void tmpMark() { System.setProperty("llm.test", tmpName.getMethodName()); } // TMPDUMP
 
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
@@ -385,6 +383,16 @@ public class LlmAnthropicServerIT
         "${net}/anthropic.section.rejected.role.missing/client",
         "${app}/anthropic.section.rejected.role.missing/server"})
     public void shouldDecodeAnthropicSectionRejectedRoleMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.user.text/client",
+        "${app}/anthropic.control.foreign.response/server"})
+    public void shouldDropAnthropicForeignResponseControls() throws Exception
     {
         k3po.finish();
     }
