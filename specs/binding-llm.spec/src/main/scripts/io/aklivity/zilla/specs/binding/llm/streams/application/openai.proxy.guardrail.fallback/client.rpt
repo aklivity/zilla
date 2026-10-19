@@ -31,7 +31,6 @@ connected
 
 write advised zilla:challenge ${llm:matchChallengeEx()
                                     .typeId(zilla:id("llm"))
-                                    .dialect("openai")
                                     .model(fallback)
                                     .build()}
 

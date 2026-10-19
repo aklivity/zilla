@@ -43,6 +43,8 @@ abstract class LlmToolTransform implements JsonTransform
     protected static final int PASS_VALUE = 10;
     protected static final int PASS_DATA_URI = 11;
     protected static final int STRIP_DATA_URI = 12;
+    protected static final int REPLACE_VALUE = 13;
+    protected static final int DESCEND_KEPT_OR_REPLACE = 14;
 
     protected static final int MODE_OBJECT = 0;
     protected static final int MODE_EXTRACT = 1;
@@ -129,6 +131,12 @@ abstract class LlmToolTransform implements JsonTransform
 
     protected void onValueEnd()
     {
+    }
+
+    protected Status onReplace(
+        JsonEvent event)
+    {
+        return Status.REJECTED;
     }
 
     protected Status onEnd()
@@ -602,17 +610,13 @@ abstract class LlmToolTransform implements JsonTransform
             status = beginPass(event);
             break;
         case DESCEND_KEPT:
-            if (event == JsonEvent.START_OBJECT)
-            {
-                emit(JsonEvent.KEY_NAME, target);
-                pass(event);
-                depth++;
-                status = onDescend(depth);
-            }
-            else
-            {
-                status = Status.REJECTED;
-            }
+            status = event == JsonEvent.START_OBJECT ? descendKept(event) : Status.REJECTED;
+            break;
+        case DESCEND_KEPT_OR_REPLACE:
+            status = event == JsonEvent.START_OBJECT ? descendKept(event) : replace(event);
+            break;
+        case REPLACE_VALUE:
+            status = replace(event);
             break;
         case PASS_DATA_URI:
             status = event == JsonEvent.VALUE_STRING ? beginDataUri(event) : Status.REJECTED;
@@ -648,6 +652,33 @@ abstract class LlmToolTransform implements JsonTransform
         default:
             status = beginSkip(event);
             break;
+        }
+
+        return status;
+    }
+
+    private Status descendKept(
+        JsonEvent event)
+    {
+        if (mode != MODE_EXTRACT)
+        {
+            emit(JsonEvent.KEY_NAME, target);
+        }
+
+        pass(event);
+        depth++;
+
+        return onDescend(depth);
+    }
+
+    private Status replace(
+        JsonEvent event)
+    {
+        Status status = onReplace(event);
+
+        if (status == Status.ADVANCED)
+        {
+            status = beginSkip(event);
         }
 
         return status;
@@ -732,7 +763,7 @@ abstract class LlmToolTransform implements JsonTransform
     private Status beginPass(
         JsonEvent event)
     {
-        if (mode != MODE_EXTRACT)
+        if (mode != MODE_EXTRACT || depth > 1)
         {
             emit(JsonEvent.KEY_NAME, target);
         }

@@ -38,7 +38,7 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 /**
  * Measures the canonical conversions of the llm section kinds: tool definition, tool call, inline media,
- * citations and the decoded text of an object-shaped text section. Each benchmark drives one section through
+ * citations, control members and the decoded text of an object-shaped text section. Each benchmark drives one section through
  * its {@code LlmSectionPipeline} (or {@code LlmTextPipeline}), so throughput and, under {@code -prof gc},
  * allocation per operation are reported for the conversion alone. The fragmented variants feed the same
  * section in {@code WINDOW}-byte windows to exercise the carried tail.
@@ -93,6 +93,12 @@ public class LlmSectionPipelineBM
         "\"char_location\",\"anthropic:cited_text\":\"blue\",\"anthropic:document_index\":0," +
         "\"anthropic:start_char_index\":0,\"anthropic:end_char_index\":4}]";
 
+    private static final String CONTROL_VALUE =
+        "{\"user_id\":\"u_1\",\"tags\":[\"a\",\"b\",\"c\"],\"nested\":{\"k\":\"v\",\"n\":[1,2,3]}}";
+    private static final String CONTROL_NATIVE = "{\"metadata\":" + CONTROL_VALUE + "}";
+    private static final String CONTROL_ANTHROPIC_CANONICAL = "{\"anthropic:metadata\":" + CONTROL_VALUE + "}";
+    private static final String CONTROL_OPENAI_CANONICAL = "{\"openai:metadata\":" + CONTROL_VALUE + "}";
+
     private static final String TEXT_OBJECT = "{\"text\":\"" + TEXT.replace("\\", "\\\\").replace("\"", "\\\"")
         .replace("\n", "\\n") + "\"}";
 
@@ -117,6 +123,10 @@ public class LlmSectionPipelineBM
     private LlmSectionPipeline citationsToCanonical;
     private LlmSectionPipeline citationsFromAnthropic;
     private LlmSectionPipeline citationsFromOpenai;
+    private LlmSectionPipeline controlAnthropicToCanonical;
+    private LlmSectionPipeline controlAnthropicFromCanonical;
+    private LlmSectionPipeline controlOpenaiToCanonical;
+    private LlmSectionPipeline controlOpenaiFromCanonical;
 
     private UnsafeBufferEx toolDefinitionNative;
     private UnsafeBufferEx toolDefinitionCanonical;
@@ -128,6 +138,9 @@ public class LlmSectionPipelineBM
     private UnsafeBufferEx imageCanonical;
     private UnsafeBufferEx citationsNative;
     private UnsafeBufferEx citationsCanonical;
+    private UnsafeBufferEx controlNative;
+    private UnsafeBufferEx controlAnthropicCanonical;
+    private UnsafeBufferEx controlOpenaiCanonical;
     private UnsafeBufferEx textObject;
 
     @Setup(Level.Trial)
@@ -145,6 +158,10 @@ public class LlmSectionPipelineBM
         citationsToCanonical = pipeline(new LlmAnthropicCitationsToCanonical());
         citationsFromAnthropic = pipeline(new LlmAnthropicCitationsFromCanonical());
         citationsFromOpenai = pipeline(new LlmOpenaiCitationsFromCanonical());
+        controlAnthropicToCanonical = pipeline(new LlmAnthropicControlToCanonical());
+        controlAnthropicFromCanonical = pipeline(new LlmAnthropicControlFromCanonical());
+        controlOpenaiToCanonical = pipeline(new LlmOpenaiControlToCanonical());
+        controlOpenaiFromCanonical = pipeline(new LlmOpenaiControlFromCanonical());
 
         toolCallAttributes.toolCallId("toolu_1");
         toolCallAttributes.toolName("get_weather");
@@ -161,6 +178,9 @@ public class LlmSectionPipelineBM
         imageCanonical = buffer(IMAGE_CANONICAL);
         citationsNative = buffer(CITATIONS_NATIVE);
         citationsCanonical = buffer(CITATIONS_CANONICAL);
+        controlNative = buffer(CONTROL_NATIVE);
+        controlAnthropicCanonical = buffer(CONTROL_ANTHROPIC_CANONICAL);
+        controlOpenaiCanonical = buffer(CONTROL_OPENAI_CANONICAL);
         textObject = buffer(TEXT_OBJECT);
     }
 
@@ -265,6 +285,36 @@ public class LlmSectionPipelineBM
     public int citationsFromCanonicalOpenai()
     {
         return run(citationsFromOpenai, none, citationsCanonical, citationsCanonical.capacity());
+    }
+
+    @Benchmark
+    public int controlToCanonicalAnthropic()
+    {
+        return run(controlAnthropicToCanonical, none, controlNative, controlNative.capacity());
+    }
+
+    @Benchmark
+    public int controlToCanonicalAnthropicFragmented()
+    {
+        return run(controlAnthropicToCanonical, none, controlNative, WINDOW);
+    }
+
+    @Benchmark
+    public int controlFromCanonicalAnthropic()
+    {
+        return run(controlAnthropicFromCanonical, none, controlAnthropicCanonical, controlAnthropicCanonical.capacity());
+    }
+
+    @Benchmark
+    public int controlToCanonicalOpenai()
+    {
+        return run(controlOpenaiToCanonical, none, controlNative, controlNative.capacity());
+    }
+
+    @Benchmark
+    public int controlFromCanonicalOpenai()
+    {
+        return run(controlOpenaiFromCanonical, none, controlOpenaiCanonical, controlOpenaiCanonical.capacity());
     }
 
     @Benchmark

@@ -29,11 +29,6 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write advised zilla:challenge ${llm:matchChallengeEx()
-                                    .typeId(zilla:id("llm"))
-                                    .dialect(target)
-                                    .build()}
-
 write option zilla:flags "init"
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))

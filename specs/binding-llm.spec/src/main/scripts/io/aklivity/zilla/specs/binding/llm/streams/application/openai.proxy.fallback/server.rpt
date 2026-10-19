@@ -33,7 +33,6 @@ connected
 
 read advise zilla:challenge ${llm:challengeEx()
                                 .typeId(zilla:id("llm"))
-                                .dialect("openai")
                                 .model(fallback)
                                 .build()}
 

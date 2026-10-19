@@ -84,6 +84,28 @@ public class LlmProxyIT
     @Test
     @Configuration("proxy.guardrail.yaml")
     @Specification({
+        "${app}/openai.proxy.guardrail.control/client",
+        "${app}/openai.proxy.guardrail.control/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayControlSectionsUnguarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.yaml")
+    @Specification({
+        "${app}/anthropic.proxy.guardrail.control/client",
+        "${app}/anthropic.proxy.guardrail.control/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayAnthropicControlSectionsUnguarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.yaml")
+    @Specification({
         "${app}/openai.proxy.guardrail.rejected/client",
         "${app}/openai.proxy.guardrail.rejected.exit/server"})
     @ScriptProperty("clientAddress \"zilla://streams/net0\"")

@@ -973,28 +973,8 @@ public class LlmOpenaiServerIT
     @ScriptProperty({"source \"openai\""})
     @Specification({
         "${net}/openai.transform.request.frames/client",
-        "${app}/transform.request.frames/server"})
+        "${app}/openai.transform.request.members/server"})
     public void shouldTransformRequestFramesFromOpenai() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/openai.section.user.text/client",
-        "${app}/openai.section.model.override/server"})
-    public void shouldReplaceOpenaiModelWhenChallengedWithModel() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/openai.section.model.last/client",
-        "${app}/openai.section.model.last.override/server"})
-    public void shouldReplaceOpenaiModelLastWhenChallengedWithModel() throws Exception
     {
         k3po.finish();
     }
@@ -1076,16 +1056,6 @@ public class LlmOpenaiServerIT
         "${net}/openai.section.assistant.tool.call.streaming/client",
         "${app}/openai.section.assistant.tool.call.streaming/server"})
     public void shouldDecodeOpenaiSectionAssistantToolCallStreaming() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/openai.section.assistant.text.usage.streaming/client",
-        "${app}/openai.section.assistant.text.usage.streaming/server"})
-    public void shouldDecodeOpenaiSectionAssistantTextUsageStreaming() throws Exception
     {
         k3po.finish();
     }
@@ -1183,7 +1153,7 @@ public class LlmOpenaiServerIT
     @ScriptProperty({"source \"openai\""})
     @Specification({
         "${net}/openai.transform.response.streaming.reasoning/client",
-        "${app}/transform.response.reasoning/server"})
+        "${app}/openai.transform.response.streaming.reasoning/server"})
     public void shouldTransformResponseStreamingReasoningFromOpenai() throws Exception
     {
         k3po.finish();
@@ -1194,7 +1164,7 @@ public class LlmOpenaiServerIT
     @ScriptProperty({"source \"openai\""})
     @Specification({
         "${net}/openai.transform.response.streaming.reasoning.tag/client",
-        "${app}/transform.response.reasoning.tag/server"})
+        "${app}/openai.transform.response.streaming.reasoning.tag/server"})
     public void shouldTransformResponseStreamingReasoningTagFromOpenai() throws Exception
     {
         k3po.finish();
@@ -1216,7 +1186,7 @@ public class LlmOpenaiServerIT
     @ScriptProperty({"source \"openai\""})
     @Specification({
         "${net}/openai.transform.response.streaming.reasoning.tag.fragmented/client",
-        "${app}/transform.response.reasoning.tag.fragmented/server"})
+        "${app}/openai.transform.response.streaming.reasoning.tag.fragmented/server"})
     public void shouldTransformResponseStreamingReasoningTagFragmentedFromOpenai() throws Exception
     {
         k3po.finish();
@@ -1281,7 +1251,7 @@ public class LlmOpenaiServerIT
     @ScriptProperty({"source \"openai\""})
     @Specification({
         "${net}/openai.transform.response.streaming/client",
-        "${app}/transform.response.streaming/server"})
+        "${app}/openai.transform.response.streaming/server"})
     public void shouldTransformResponseStreamingFromOpenai() throws Exception
     {
         k3po.finish();
@@ -1292,7 +1262,7 @@ public class LlmOpenaiServerIT
     @ScriptProperty({"source \"openai\""})
     @Specification({
         "${net}/openai.transform.response.streaming.tool.call/client",
-        "${app}/transform.response.streaming.tool.call/server"})
+        "${app}/openai.transform.response.streaming.tool.call/server"})
     public void shouldTransformResponseStreamingToolCallFromOpenai() throws Exception
     {
         k3po.finish();
@@ -1303,7 +1273,7 @@ public class LlmOpenaiServerIT
     @ScriptProperty({"source \"openai\""})
     @Specification({
         "${net}/openai.transform.response.streaming.error/client",
-        "${app}/transform.response.streaming.error/server"})
+        "${app}/openai.transform.response.streaming.error/server"})
     public void shouldTransformResponseStreamingErrorFromOpenai() throws Exception
     {
         k3po.finish();

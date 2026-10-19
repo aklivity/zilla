@@ -27,12 +27,12 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
+                          .type("CONTROL")
+                          .message(0)
                           .build()}
-write "{\"model\":\""
-      ${model}
-      "\",\"messages\":[{\"role\":\"tool\",\"tool_call_id\":\"call_1\",\"name\":\"lookup\",\"content\":"
+write "{\"openai:name\":\"lookup\"}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -44,13 +44,6 @@ write zilla:data.ext ${llm:dataEx()
 write "{\"text\":\"sunny\"}"
 write flush
 
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .build()}
-write "}]}"
-write flush
-
 write advise zilla:flush
 
 read zilla:begin.ext ${llm:matchBeginEx()
@@ -60,13 +53,6 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .id("chatcmpl_2")
                            .build()}
 
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-read "{\"id\":\"chatcmpl_2\",\"object\":\"chat.completion\",\"model\":\""
-     ${model}
-     "\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":"
-
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
@@ -74,11 +60,12 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "{\"text\":\"Hello! How can I help you today?\"}"
 
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .complete(true)
+                          .type("CONTROL")
+                          .message(-1)
                           .build()}
-read "},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}}"
+read "{\"openai:usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}}"
 
 read zilla:end.ext ${llm:matchEndEx()
                             .typeId(zilla:id("llm"))

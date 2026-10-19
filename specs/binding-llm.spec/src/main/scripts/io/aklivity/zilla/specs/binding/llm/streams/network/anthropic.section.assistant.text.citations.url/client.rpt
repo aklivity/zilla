@@ -31,7 +31,9 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-write "{\"model\":\"claude-3-opus-20240229\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Sky colour?\"}]},{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"The sky is blue.\",\"citations\":[{\"type\":\"web_search_result_location\",\"url\":\"https://example.com\",\"title\":\"Example\",\"encrypted_index\":\"idx\",\"cited_text\":\"blue\"}]}]}]}"
+write "{\"model\":\""
+      ${model}
+      "\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Sky colour?\"}]},{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"The sky is blue.\",\"citations\":[{\"type\":\"web_search_result_location\",\"url\":\"https://example.com\",\"title\":\"Example\",\"encrypted_index\":\"idx\",\"cited_text\":\"blue\"}]}]}],\"max_tokens\":4096}"
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()
