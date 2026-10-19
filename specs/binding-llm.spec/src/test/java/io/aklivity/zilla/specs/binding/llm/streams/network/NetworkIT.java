@@ -3761,4 +3761,76 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.tool.definition/client",
+        "${net}/gemini.section.tool.definition/server"})
+    public void shouldEncodeGeminiSectionToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.tool.definition.leading/client",
+        "${net}/gemini.section.tool.definition.leading/server"})
+    public void shouldEncodeGeminiSectionToolDefinitionLeading() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.tool.definition.multiple/client",
+        "${net}/gemini.section.tool.definition.multiple/server"})
+    public void shouldEncodeGeminiSectionToolDefinitionMultiple() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.tool.definition.tools/client",
+        "${net}/gemini.section.tool.definition.tools/server"})
+    public void shouldEncodeGeminiSectionToolDefinitionTools() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.tool.definition.parameters/client",
+        "${net}/gemini.section.tool.definition.parameters/server"})
+    public void shouldEncodeGeminiSectionToolDefinitionParameters() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.tool.definition.minimal/client",
+        "${net}/gemini.section.tool.definition.minimal/server"})
+    public void shouldEncodeGeminiSectionToolDefinitionMinimal() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.tool.definition.parameters.10k/client",
+        "${net}/gemini.section.tool.definition.parameters.10k/server"})
+    public void shouldEncodeGeminiSectionToolDefinitionParameters10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.tool.definition.parameters.100k/client",
+        "${net}/gemini.section.tool.definition.parameters.100k/server"})
+    public void shouldEncodeGeminiSectionToolDefinitionParameters100k() throws Exception
+    {
+        k3po.finish();
+    }
 }

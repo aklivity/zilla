@@ -119,6 +119,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final int KIND_USER_TEXT = 2;
     private static final int KIND_ASSISTANT_TEXT = 6;
     private static final int KIND_ASSISTANT_REFUSAL = 7;
+    private static final int KIND_TOOL_DEFINITION = 9;
     private static final int KIND_CONTROL = 14;
     private static final int KIND_DROPPED = 16;
     private static final int KIND_UNSUPPORTED = 17;
@@ -133,6 +134,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final int REGION_NONE = 0;
     private static final int REGION_CONTENTS = 1;
     private static final int REGION_SYSTEM = 2;
+    private static final int REGION_TOOLS = 3;
 
     private static final int NO_MESSAGE = -2;
     private static final int ESCAPE_EXPANSION = 6;
@@ -179,6 +181,8 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx(new byte[0]);
 
     private static final String MEMBER_CONTENTS = "contents";
+    private static final String MEMBER_TOOLS = "tools";
+    private static final String MEMBER_FUNCTION_DECLARATIONS = "functionDeclarations";
     private static final String MEMBER_SYSTEM_INSTRUCTION = "systemInstruction";
     private static final String MEMBER_GENERATION_CONFIG = "generationConfig";
     private static final String MEMBER_MAX_OUTPUT_TOKENS = "maxOutputTokens";
@@ -357,6 +361,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         case USER_TEXT -> KIND_USER_TEXT;
         case ASSISTANT_TEXT -> KIND_ASSISTANT_TEXT;
         case ASSISTANT_REFUSAL -> KIND_ASSISTANT_REFUSAL;
+        case TOOL_DEFINITION -> KIND_TOOL_DEFINITION;
         case CONTROL -> KIND_CONTROL;
         case NONE -> 0;
         default -> KIND_UNSUPPORTED;
@@ -3075,6 +3080,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private final LlmTextPipeline sectionText = new LlmTextPipeline(this::onSectionText);
         private boolean contentsOpened;
         private boolean systemOpened;
+        private boolean toolsOpened;
         private int messageIndex = NO_MESSAGE;
         private int messageRole = ROLE_NONE;
         private boolean textBlockOpen;
@@ -3084,10 +3090,13 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private boolean sectionStreaming;
         private boolean rawOpen;
         private LlmSectionPipeline sectionPipeline;
+        private LlmSectionPipeline toolDefinitionPipeline;
         private LlmSectionPipeline controlPipeline;
         private LlmGeminiControlFromCanonical controlTransform;
         private int controlMessage;
         private int controlMode;
+        private LlmSectionPipeline.Output sectionTarget;
+        private final LlmSectionPipeline.Output sectionOutput = (buffer, offset, length, last) -> putRaw(buffer, offset, length);
         private final LlmSectionPipeline.Output controlOutput =
             (buffer, offset, length, last) -> putControl(buffer, offset, length);
 
@@ -3188,6 +3197,16 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             sectionKind = KIND_DROPPED;
         }
 
+        private LlmSectionPipeline toolDefinitionPipeline()
+        {
+            if (toolDefinitionPipeline == null)
+            {
+                toolDefinitionPipeline = new LlmSectionPipeline(new LlmGeminiToolDefinitionFromCanonical(), transformBuffer);
+            }
+
+            return toolDefinitionPipeline;
+        }
+
         private LlmSectionPipeline controlPipeline()
         {
             if (controlPipeline == null)
@@ -3224,7 +3243,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         {
             sectionKind = kind;
             sectionOpen = false;
-            translated = kind == KIND_CONTROL;
+            translated = kind == KIND_CONTROL || kind == KIND_TOOL_DEFINITION;
 
             if (kind == 0 || kind == KIND_UNSUPPORTED)
             {
@@ -3236,7 +3255,13 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 {
                     controlMessage = message;
                     controlMode = CONTROL_PENDING;
-                    beginSectionStreaming(controlPipeline());
+                    beginSectionStreaming(controlPipeline(), controlOutput);
+                }
+                else if (kind == KIND_TOOL_DEFINITION)
+                {
+                    closeTextBlock();
+                    openRegion(REGION_TOOLS);
+                    beginSectionStreaming(toolDefinitionPipeline(), sectionOutput);
                 }
                 else
                 {
@@ -3265,9 +3290,11 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         }
 
         private void beginSectionStreaming(
-            LlmSectionPipeline pipeline)
+            LlmSectionPipeline pipeline,
+            LlmSectionPipeline.Output output)
         {
             sectionPipeline = pipeline;
+            sectionTarget = output;
             sectionPipeline.begin(sectionAttributes);
             sectionStreaming = true;
         }
@@ -3297,20 +3324,35 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             {
                 closeRegion();
 
-                if (next == REGION_CONTENTS ? contentsOpened : systemOpened)
+                final boolean reopened = switch (next)
+                {
+                case REGION_CONTENTS -> contentsOpened;
+                case REGION_SYSTEM -> systemOpened;
+                default -> toolsOpened;
+                };
+
+                if (reopened)
                 {
                     encodeFailed = true;
                 }
-                else if (next == REGION_CONTENTS)
-                {
-                    contentsOpened = true;
-                    generator.writeStartArray(MEMBER_CONTENTS);
-                    region = next;
-                }
                 else
                 {
-                    systemOpened = true;
-                    generator.writeStartObject(MEMBER_SYSTEM_INSTRUCTION).writeStartArray(MEMBER_PARTS);
+                    switch (next)
+                    {
+                    case REGION_CONTENTS:
+                        contentsOpened = true;
+                        generator.writeStartArray(MEMBER_CONTENTS);
+                        break;
+                    case REGION_SYSTEM:
+                        systemOpened = true;
+                        generator.writeStartObject(MEMBER_SYSTEM_INSTRUCTION).writeStartArray(MEMBER_PARTS);
+                        break;
+                    default:
+                        toolsOpened = true;
+                        generator.writeStartArray(MEMBER_TOOLS).writeStartObject().writeStartArray(MEMBER_FUNCTION_DECLARATIONS);
+                        break;
+                    }
+
                     region = next;
                 }
             }
@@ -3332,6 +3374,10 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 if (region == REGION_SYSTEM)
                 {
                     generator.writeEnd();
+                }
+                else if (region == REGION_TOOLS)
+                {
+                    generator.writeEnd().writeEnd();
                 }
 
                 region = REGION_NONE;
@@ -3380,7 +3426,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             {
                 if (beginEncode(0))
                 {
-                    if (!sectionPipeline.feed(buffer, offset, length, fin, controlOutput))
+                    if (!sectionPipeline.feed(buffer, offset, length, fin, sectionTarget))
                     {
                         encodeFailed = true;
                     }

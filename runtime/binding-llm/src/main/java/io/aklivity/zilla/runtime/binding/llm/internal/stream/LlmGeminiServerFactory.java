@@ -110,6 +110,9 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private static final String MESSAGE_ROLE_ORDER = "role must precede parts in each content";
     private static final String MESSAGE_ROLE_INVALID = "Role '%s' is not supported. Please use a valid role: user, model.";
     private static final String MESSAGE_BLOCK_INVALID = "Invalid content part";
+    private static final String MESSAGE_TOOL_UNSUPPORTED = "Unsupported tool";
+    private static final String MESSAGE_ATTRIBUTE_TOO_LARGE = "Invalid request section";
+    private static final String MEMBER_FUNCTION_DECLARATIONS = "functionDeclarations";
     private static final int BLOCK_BUFFER_MAX = 4096;
 
     private static final int RESPONSE_ENCODE_PADDING = 128;
@@ -206,6 +209,13 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private final LlmGeminiServerDecoder decodeParts = this::decodeParts;
     private final LlmGeminiServerDecoder decodePartKey = this::decodePartKey;
     private final LlmGeminiServerDecoder decodePart = this::decodePart;
+    private final LlmGeminiServerDecoder decodeToolsStart = this::decodeToolsStart;
+    private final LlmGeminiServerDecoder decodeTools = this::decodeTools;
+    private final LlmGeminiServerDecoder decodeToolKey = this::decodeToolKey;
+    private final LlmGeminiServerDecoder decodeDeclarationsStart = this::decodeDeclarationsStart;
+    private final LlmGeminiServerDecoder decodeDeclarations = this::decodeDeclarations;
+    private final LlmGeminiServerDecoder decodeAttributes = this::decodeAttributes;
+    private final LlmGeminiServerDecoder decodeTool = this::decodeTool;
     private final LlmGeminiServerDecoder decodeControlValue = this::decodeControlValue;
     private final LlmGeminiServerDecoder decodeConfigValue = this::decodeConfigValue;
     private final LlmGeminiServerDecoder decodeConfigTokens = this::decodeConfigTokens;
@@ -542,8 +552,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 }
                 else if (matches(key, "tools"))
                 {
-                    server.skip(decodeRoot);
-                    server.decoder = decodeSkip;
+                    server.decoder = decodeToolsStart;
                 }
                 else if (matches(key, MEMBER_GENERATION_CONFIG) || matches(key, MEMBER_GENERATION_CONFIG_SNAKE))
                 {
@@ -975,6 +984,259 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         return server.position();
     }
 
+    private int decodeToolsStart(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        decode:
+        if (parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            switch (event)
+            {
+            case START_ARRAY:
+                server.decoder = decodeTools;
+                break;
+            case VALUE_NULL:
+                server.decoder = decodeRoot;
+                break;
+            default:
+                server.onDecodeParseError(traceId);
+                break decode;
+            }
+        }
+
+        return server.position();
+    }
+
+    private int decodeTools(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        decode:
+        if (parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            switch (event)
+            {
+            case START_OBJECT:
+                server.decoder = decodeToolKey;
+                break;
+            case END_ARRAY:
+                server.decoder = decodeRoot;
+                break;
+            default:
+                server.onDecodeParseError(traceId);
+                break decode;
+            }
+        }
+
+        return server.position();
+    }
+
+    private int decodeToolKey(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        decode:
+        if (parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            switch (event)
+            {
+            case KEY_NAME:
+                if (!parser.deferredBytes())
+                {
+                    if (matches(parser.getStringView(), MEMBER_FUNCTION_DECLARATIONS))
+                    {
+                        server.decoder = decodeDeclarationsStart;
+                    }
+                    else
+                    {
+                        server.onDecodeInvalidRequest(traceId, MESSAGE_TOOL_UNSUPPORTED);
+                    }
+                }
+                break;
+            case END_OBJECT:
+                server.decoder = decodeTools;
+                break;
+            default:
+                server.onDecodeParseError(traceId);
+                break decode;
+            }
+        }
+
+        return server.position();
+    }
+
+    private int decodeDeclarationsStart(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        decode:
+        if (parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            switch (event)
+            {
+            case START_ARRAY:
+                server.decoder = decodeDeclarations;
+                break;
+            case VALUE_NULL:
+                server.decoder = decodeToolKey;
+                break;
+            default:
+                server.onDecodeParseError(traceId);
+                break decode;
+            }
+        }
+
+        return server.position();
+    }
+
+    private int decodeDeclarations(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        decode:
+        if (parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            switch (event)
+            {
+            case START_OBJECT:
+                server.hold();
+                server.probe(LlmSectionType.TOOL_DEFINITION, -1, decodeTool, decodeDeclarations);
+                server.decoder = decodeAttributes;
+                break;
+            case END_ARRAY:
+                server.decoder = decodeToolKey;
+                break;
+            default:
+                server.onDecodeParseError(traceId);
+                break decode;
+            }
+        }
+
+        return server.position();
+    }
+
+    private int decodeAttributes(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        while (server.decoder == decodeAttributes && parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+
+            switch (server.probe.onEvent(event, parser))
+            {
+            case RESOLVED:
+                server.captureProbed();
+                break;
+            case COMPLETE:
+                server.captureProbed();
+                server.endCapture(traceId, authorization);
+                break;
+            case REJECTED:
+                server.onDecodeInvalidRequest(traceId, MESSAGE_ATTRIBUTE_TOO_LARGE);
+                break;
+            default:
+                if (server.position() - server.holdFrom > HOLD_MAX)
+                {
+                    server.captureProbed();
+                }
+                break;
+            }
+        }
+
+        return server.decoder == decodeIgnore ? limit : server.position();
+    }
+
+    private int decodeTool(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        while (server.decoder == decodeTool && parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            final boolean deferred = event == JsonEvent.VALUE_STRING && parser.deferredBytes();
+
+            server.probe.onEvent(event, parser);
+            server.captureDepth = server.probe.depth();
+
+            if (server.captureDepth == 0 && !deferred)
+            {
+                server.endCapture(traceId, authorization);
+            }
+        }
+
+        return server.position();
+    }
+
     private int decodeControlValue(
         LlmGeminiServer server,
         long traceId,
@@ -1324,6 +1586,13 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         private int retained;
 
         private final LlmSectionAttributes blockAttributes;
+        private final LlmSectionAttributes sentAttributes;
+        private final LlmSectionAttributes finAttributes;
+        private final LlmGeminiAttributeProbe probe;
+        private LlmGeminiServerDecoder probeCapture;
+        private LlmGeminiServerDecoder probeThen;
+        private int probeMessage;
+        private boolean probing;
 
         private long decodeTraceId;
         private long decodeAuthorization;
@@ -1332,6 +1601,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         private int blockFlags;
 
         private LlmSectionPipeline textPipeline;
+        private LlmSectionPipeline toolDefinitionPipeline;
         private LlmSectionPipeline blockPipeline;
         private final StringBuilder controlKey = new StringBuilder();
         private final LlmSectionPipeline.Output blockOutput = (buffer, offset, length, last) ->
@@ -1366,6 +1636,9 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             this.parser = JsonEx.createParser(Map.of(JsonParserEx.STRING_EVENT_POSITIONS, StringEventPositions.QUOTED));
             this.generator = JsonEx.createGenerator();
             this.blockAttributes = new LlmSectionAttributes();
+            this.sentAttributes = new LlmSectionAttributes();
+            this.finAttributes = new LlmSectionAttributes();
+            this.probe = new LlmGeminiAttributeProbe();
             this.decoder = decodeStart;
         }
 
@@ -1660,6 +1933,25 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             skipDepth = 0;
         }
 
+        private void probe(
+            LlmSectionType type,
+            int message,
+            LlmGeminiServerDecoder capturing,
+            LlmGeminiServerDecoder then)
+        {
+            probeMessage = message;
+            probeCapture = capturing;
+            probeThen = then;
+            probe.begin(type);
+        }
+
+        private void captureProbed()
+        {
+            captureHeld(probe.type(), probeMessage, probeThen, probe.depth());
+            probing = true;
+            decoder = probeCapture;
+        }
+
         private void hold()
         {
             holding = true;
@@ -1712,6 +2004,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
             blockPipeline = null;
             captureOpen = false;
+            probing = false;
             decoder = decoder == decodeIgnore ? decoder : captureThen;
         }
 
@@ -1744,7 +2037,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
             if (blockPipeline != null)
             {
-                blockPipeline.begin(blockAttributes);
+                blockPipeline.begin(LlmGeminiAttributeProbe.carries(type) ? probe.attributes() : blockAttributes);
             }
         }
 
@@ -1827,6 +2120,14 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 }
                 pipeline = textPipeline;
                 break;
+            case TOOL_DEFINITION:
+                if (toolDefinitionPipeline == null)
+                {
+                    toolDefinitionPipeline = new LlmSectionPipeline(new LlmGeminiToolDefinitionToCanonical(),
+                        new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                }
+                pipeline = toolDefinitionPipeline;
+                break;
             default:
                 break;
             }
@@ -1844,9 +2145,30 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         {
             final int flags = last ? Flags.fin(blockFlags) : blockFlags;
             final boolean init = Flags.hasInit(flags);
+            final LlmSectionAttributes attributes;
+
+            if (init)
+            {
+                if (probing)
+                {
+                    blockAttributes.copyFrom(probe.attributes());
+                    sentAttributes.copyFrom(probe.attributes());
+                }
+
+                attributes = blockAttributes;
+            }
+            else if (probing && last)
+            {
+                finAttributes.difference(probe.attributes(), sentAttributes);
+                attributes = finAttributes;
+            }
+            else
+            {
+                attributes = null;
+            }
 
             stream.doAppData(traceId, authorization, flags, init ? blockSection : null, blockMessage, null,
-                init ? blockAttributes : null, buffer, offset, length);
+                attributes, buffer, offset, length);
 
             blockFlags = Flags.NONE;
         }

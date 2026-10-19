@@ -428,4 +428,64 @@ public class LlmGeminiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.section.tool.definition/client",
+        "${net}/gemini.section.tool.definition/server"})
+    public void shouldForwardGeminiSectionToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.section.tool.definition.leading/client",
+        "${net}/gemini.section.tool.definition.leading/server"})
+    public void shouldForwardGeminiSectionToolDefinitionLeading() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.section.tool.definition.multiple/client",
+        "${net}/gemini.section.tool.definition.multiple/server"})
+    public void shouldForwardGeminiSectionToolDefinitionMultiple() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.section.tool.definition.minimal/client",
+        "${net}/gemini.section.tool.definition.minimal/server"})
+    public void shouldForwardGeminiSectionToolDefinitionMinimal() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.section.tool.definition.parameters.10k/client",
+        "${net}/gemini.section.tool.definition.parameters.10k/server"})
+    public void shouldForwardGeminiSectionToolDefinitionParameters10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.section.tool.definition.parameters.100k/client",
+        "${net}/gemini.section.tool.definition.parameters.100k/server"})
+    public void shouldForwardGeminiSectionToolDefinitionParameters100k() throws Exception
+    {
+        k3po.finish();
+    }
 }
