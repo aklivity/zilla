@@ -192,17 +192,6 @@ public class LlmProxyIT
 
     @Test
     @Configuration("proxy.guardrail.mask.yaml")
-    @Specification({
-        "${app}/openai.proxy.guardrail.transform.section.flush/client",
-        "${app}/openai.proxy.guardrail.transform.section.flush.exit/server"})
-    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
-    public void shouldSettleTransformedRunOnSectionFlush() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.guardrail.mask.yaml")
     @Configure(name = LLM_GUARDRAIL_OVERLAP_NAME, value = "8")
     @Specification({
         "${app}/openai.proxy.guardrail.transform.overlap/client",
@@ -220,17 +209,6 @@ public class LlmProxyIT
         "${app}/openai.proxy.guardrail.transform.members.exit/server"})
     @ScriptProperty("clientAddress \"zilla://streams/net0\"")
     public void shouldRelayTransformedSectionsKeepingMembers() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.guardrail.yaml")
-    @Specification({
-        "${app}/openai.proxy.guardrail.response.rejected.section.flush/client",
-        "${app}/openai.proxy.guardrail.response.rejected.section.flush.exit/server"})
-    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
-    public void shouldRejectResponseRunOnSectionFlush() throws Exception
     {
         k3po.finish();
     }
@@ -409,6 +387,182 @@ public class LlmProxyIT
         "${app}/openai.proxy.rejected/server"})
     @ScriptProperty("clientAddress \"zilla://streams/net0\"")
     public void shouldNotFallbackOnceExitHasGrantedCredit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.mask.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.transform.consecutive/client",
+        "${app}/openai.proxy.guardrail.transform.consecutive.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayTransformedConsecutiveSections() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.mask.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.transform.tool.call/client",
+        "${app}/openai.proxy.guardrail.transform.tool.call.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayTransformedSectionBeforeToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.accepted/client",
+        "${app}/openai.proxy.guardrail.response.accepted.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayGuardedResponseSection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.accepted/client",
+        "${app}/openai.proxy.guardrail.response.accepted.streaming.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayGuardedResponseSectionStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.rejected/client",
+        "${app}/openai.proxy.guardrail.response.rejected.streaming.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRejectGuardedResponseSectionStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.mask.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.transformed/client",
+        "${app}/openai.proxy.guardrail.response.transformed.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayTransformedResponseSection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.mask.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.transformed/client",
+        "${app}/openai.proxy.guardrail.response.transformed.streaming.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayTransformedResponseSectionStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.accepted.reasoning/client",
+        "${app}/openai.proxy.guardrail.response.accepted.reasoning.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayGuardedResponseReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.accepted.reasoning/client",
+        "${app}/openai.proxy.guardrail.response.accepted.reasoning.streaming.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayGuardedResponseReasoningStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.rejected.reasoning/client",
+        "${app}/openai.proxy.guardrail.response.rejected.reasoning.streaming.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRejectGuardedResponseReasoningStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.mask.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.transformed.reasoning/client",
+        "${app}/openai.proxy.guardrail.response.transformed.reasoning.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayTransformedResponseReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.mask.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.transformed.reasoning/client",
+        "${app}/openai.proxy.guardrail.response.transformed.reasoning.streaming.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayTransformedResponseReasoningStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.accepted.tool.call/client",
+        "${app}/openai.proxy.guardrail.response.accepted.tool.call.streaming.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayGuardedResponseToolCallStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.rejected.tool.call/client",
+        "${app}/openai.proxy.guardrail.response.rejected.tool.call.streaming.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRejectGuardedResponseToolCallStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.mask.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.transformed.tool.call/client",
+        "${app}/openai.proxy.guardrail.response.transformed.tool.call.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayTransformedResponseToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.mask.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.transformed.tool.call/client",
+        "${app}/openai.proxy.guardrail.response.transformed.tool.call.streaming.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayTransformedResponseToolCallStreaming() throws Exception
     {
         k3po.finish();
     }

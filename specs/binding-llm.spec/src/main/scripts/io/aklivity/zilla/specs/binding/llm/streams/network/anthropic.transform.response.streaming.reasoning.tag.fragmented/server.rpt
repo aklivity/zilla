@@ -57,7 +57,12 @@ write zilla:data.ext ${http:dataEx()
                          .typeId(zilla:id("http"))
                          .header("type", "content_block_delta")
                          .build()}
-write "{\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"thinking_delta\",\"thinking\":\"Let me think.\"}}"
+write "{\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"thinking_delta\",\"thinking\":\"Let me th\"}}"
+write zilla:data.ext ${http:dataEx()
+                         .typeId(zilla:id("http"))
+                         .header("type", "content_block_delta")
+                         .build()}
+write "{\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"thinking_delta\",\"thinking\":\"ink.\"}}"
 write zilla:data.ext ${http:dataEx()
                          .typeId(zilla:id("http"))
                          .header("type", "content_block_stop")

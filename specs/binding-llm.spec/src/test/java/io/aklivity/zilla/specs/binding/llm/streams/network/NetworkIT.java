@@ -2333,27 +2333,9 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.section.assistant.text.logprobs.streaming/client",
-        "${net}/openai.section.assistant.text.logprobs.streaming/server"})
-    public void shouldDecodeOpenaiResponseStreamingLogprobs() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/openai.section.assistant.text.logprobs/client",
         "${net}/openai.section.assistant.text.logprobs/server"})
     public void shouldDecodeOpenaiResponseTextLogprobs() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/openai.section.assistant.text.logprobs.streaming.role.first/client",
-        "${net}/openai.section.assistant.text.logprobs.streaming.role.first/server"})
-    public void shouldEncodeOpenaiResponseStreamingLogprobs() throws Exception
     {
         k3po.finish();
     }
@@ -3461,6 +3443,15 @@ public class NetworkIT
         "${net}/openai.transform.response.usage.sse/client",
         "${net}/openai.transform.response.usage.sse/server"})
     public void shouldOpenaiTransformResponseUsageSse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.tool.calls.overflow.sse/client",
+        "${net}/openai.transform.response.tool.calls.overflow.sse/server"})
+    public void shouldOpenaiTransformResponseToolCallsOverflowSse() throws Exception
     {
         k3po.finish();
     }

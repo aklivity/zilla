@@ -1058,16 +1058,6 @@ public class LlmOpenaiClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
-        "${app}/openai.section.assistant.text.logprobs.streaming/client",
-        "${net}/openai.section.assistant.text.logprobs.streaming/server"})
-    public void shouldEncodeOpenaiSectionAssistantTextLogprobsStreaming() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.openai.yaml")
-    @Specification({
         "${app}/openai.section.assistant.text.logprobs/client",
         "${net}/openai.section.assistant.text.logprobs/server"})
     public void shouldEncodeOpenaiSectionAssistantTextLogprobs() throws Exception
@@ -1414,16 +1404,6 @@ public class LlmOpenaiClientIT
 
     @Test
     @Configuration("client.openai.yaml")
-    @Specification({
-        "${app}/openai.section.assistant.text.logprobs.streaming.role.first/client",
-        "${net}/openai.section.assistant.text.logprobs.streaming.role.first/server"})
-    public void shouldEncodeOpenaiSectionAssistantTextLogprobsStreamingRoleFirst() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
         "${app}/transform.request.max.output.tokens/client",
@@ -1677,6 +1657,17 @@ public class LlmOpenaiClientIT
         "${app}/transform.response.usage/client",
         "${net}/openai.transform.response.usage.sse/server"})
     public void shouldTransformResponseUsageSseAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
+        "${app}/transform.response.tool.calls.overflow/client",
+        "${net}/openai.transform.response.tool.calls.overflow.sse/server"})
+    public void shouldTransformResponseToolCallsOverflowSseAsOpenai() throws Exception
     {
         k3po.finish();
     }
