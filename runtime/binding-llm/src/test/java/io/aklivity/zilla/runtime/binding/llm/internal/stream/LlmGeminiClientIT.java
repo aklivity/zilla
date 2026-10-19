@@ -389,4 +389,43 @@ public class LlmGeminiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.rejected.streaming/client",
+        "${net}/gemini.rejected.streaming/server"})
+    public void shouldForwardGeminiRejectedStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.rejected.unreachable/client"})
+    public void shouldForwardGeminiRejectedUnreachable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.streaming.error/client",
+        "${net}/gemini.streaming.error/server"})
+    public void shouldForwardGeminiStreamingError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.transform.response.streaming/client",
+        "${net}/gemini.transform.response.streaming/server"})
+    public void shouldForwardGeminiTransformResponseStreaming() throws Exception
+    {
+        k3po.finish();
+    }
 }

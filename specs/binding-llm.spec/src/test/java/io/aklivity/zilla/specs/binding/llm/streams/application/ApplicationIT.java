@@ -4004,4 +4004,31 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/gemini.rejected.streaming/client",
+        "${app}/gemini.rejected.streaming/server"})
+    public void shouldForwardGeminiRejectedStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.streaming.error/client",
+        "${app}/gemini.streaming.error/server"})
+    public void shouldForwardGeminiStreamingError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.transform.response.streaming/client",
+        "${app}/gemini.transform.response.streaming/server"})
+    public void shouldForwardGeminiTransformResponseStreaming() throws Exception
+    {
+        k3po.finish();
+    }
 }

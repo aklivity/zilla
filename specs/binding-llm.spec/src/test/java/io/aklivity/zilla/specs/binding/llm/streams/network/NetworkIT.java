@@ -3734,4 +3734,31 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/gemini.rejected.streaming/client",
+        "${net}/gemini.rejected.streaming/server"})
+    public void shouldEncodeGeminiRejectedStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.streaming.error/client",
+        "${net}/gemini.streaming.error/server"})
+    public void shouldEncodeGeminiStreamingError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.response.streaming/client",
+        "${net}/gemini.transform.response.streaming/server"})
+    public void shouldEncodeGeminiTransformResponseStreaming() throws Exception
+    {
+        k3po.finish();
+    }
 }
