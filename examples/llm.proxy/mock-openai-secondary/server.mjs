@@ -12,7 +12,16 @@ const PORT = Number(process.env.PORT ?? 4103);
 const app = express();
 app.use(express.json());
 
-function streamChatCompletion(res, model, content)
+const STREAM_MARKER = "[stream]";
+
+function promptText(messages)
+{
+    return (messages ?? [])
+        .map(m => typeof m.content === "string" ? m.content : (m.content ?? []).map(part => part.text ?? "").join(""))
+        .join("\n");
+}
+
+function streamChatCompletion(res, model, message, includeUsage)
 {
     res.set("Content-Type", "text/event-stream");
     res.set("Cache-Control", "no-cache");
@@ -27,15 +36,42 @@ function streamChatCompletion(res, model, content)
         model,
         choices: [{ index: 0, delta, finish_reason: finishReason }]
     })}\n\n`);
+    const pieces = text =>
+    {
+        const cut1 = Math.floor(text.length / 3);
+        const cut2 = Math.floor(2 * text.length / 3);
 
-    const cut1 = Math.floor(content.length / 3);
-    const cut2 = Math.floor(2 * content.length / 3);
+        return [text.slice(0, cut1), text.slice(cut1, cut2), text.slice(cut2)];
+    };
 
     send({ role: "assistant" }, null);
-    send({ content: content.slice(0, cut1) }, null);
-    send({ content: content.slice(cut1, cut2) }, null);
-    send({ content: content.slice(cut2) }, null);
-    send({}, "stop");
+
+    if (message.tool_calls)
+    {
+        const { id: callId, function: { name, arguments: args } } = message.tool_calls[0];
+
+        send({ tool_calls: [{ index: 0, id: callId, type: "function", function: { name, arguments: "" } }] }, null);
+        pieces(args).forEach(piece => send({ tool_calls: [{ index: 0, function: { arguments: piece } }] }, null));
+        send({}, "tool_calls");
+    }
+    else
+    {
+        pieces(message.content).forEach(piece => send({ content: piece }, null));
+        send({}, "stop");
+    }
+
+    if (includeUsage)
+    {
+        res.write(`data: ${JSON.stringify({
+            id,
+            object: "chat.completion.chunk",
+            created,
+            model,
+            choices: [],
+            usage: { prompt_tokens: 25, completion_tokens: 15, total_tokens: 40 }
+        })}\n\n`);
+    }
+
     res.write("data: [DONE]\n\n");
     res.end();
 }
@@ -47,7 +83,7 @@ app.post("/v1/chat/completions", (req, res) =>
     // verify.py can confirm it arrived unchanged.
     console.log(`authorization: ${req.headers["authorization"] ?? "(none)"}`);
 
-    const { model, tools, stream, messages } = req.body ?? {};
+    const { model, tools, messages, stream_options: streamOptions } = req.body ?? {};
 
     // a request that asks for the private key is answered with one, so the
     // response guardrail on gpt-4o has something to reject
@@ -76,9 +112,12 @@ app.post("/v1/chat/completions", (req, res) =>
                 : "Hello from the secondary openai-dialect deployment!"
         };
 
-    if (stream && typeof message.content === "string")
+    // the response is streamed when the prompt asks for it, whatever the request's
+    // own `stream` setting says, so the llm binding is shown to follow the
+    // response's content type rather than the request
+    if (promptText(messages).includes(STREAM_MARKER))
     {
-        streamChatCompletion(res, model, message.content);
+        streamChatCompletion(res, model, message, streamOptions?.include_usage);
         return;
     }
 
