@@ -521,6 +521,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private int controlSlot = NO_SLOT;
         private int controlSlotOffset;
         private int controlEntry;
+        private int controlValue;
         private int controlFrom = NONE;
         private int controlMessage;
         private int controlDepth;
@@ -2319,6 +2320,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 controlSlotOffset += CONTROL_HEADER;
                 encodePool.buffer(controlSlot).putBytes(controlSlotOffset, controlBuffer, 0, controlGenerator.length());
                 controlSlotOffset += controlGenerator.length();
+                controlValue = controlSlotOffset;
                 controlMessage = message;
                 controlThen = then;
                 controlDepth = 0;
@@ -2417,8 +2419,16 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    encodePool.buffer(controlSlot).putBytes(controlSlotOffset, decodeInput, controlFrom, to - controlFrom);
-                    controlSlotOffset += to - controlFrom;
+                    int from = controlFrom;
+
+                    while (controlSlotOffset == controlValue && from < to &&
+                        (isWhitespace(decodeInput.getByte(from)) || decodeInput.getByte(from) == ':'))
+                    {
+                        from++;
+                    }
+
+                    encodePool.buffer(controlSlot).putBytes(controlSlotOffset, decodeInput, from, to - from);
+                    controlSlotOffset += to - from;
                 }
 
                 controlFrom = to;

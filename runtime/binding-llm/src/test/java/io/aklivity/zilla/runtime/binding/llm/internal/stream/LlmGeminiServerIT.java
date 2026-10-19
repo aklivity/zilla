@@ -293,4 +293,14 @@ public class LlmGeminiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.response.text/client",
+        "${app}/gemini.response.text/server"})
+    public void shouldForwardGeminiResponseText() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -23,6 +23,7 @@ import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 
+import io.aklivity.k3po.runtime.junit.annotation.ScriptProperty;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
@@ -272,6 +273,99 @@ public class LlmGeminiClientIT
         "${app}/gemini.streaming.usage/client",
         "${net}/gemini.streaming.usage/server"})
     public void shouldForwardGeminiStreamingUsage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.response.text/client",
+        "${net}/gemini.response.text/server"})
+    public void shouldForwardGeminiResponseText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.response.text/client",
+        "${net}/gemini.response.text.split/server"})
+    public void shouldForwardGeminiResponseTextSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"operation \"streamGenerateContent\""})
+    @Specification({
+        "${app}/gemini.response.text/client",
+        "${net}/gemini.response.text.sse/server"})
+    public void shouldForwardGeminiResponseTextSse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"operation \"streamGenerateContent\""})
+    @Specification({
+        "${app}/gemini.response.text/client",
+        "${net}/gemini.response.text.sse.split/server"})
+    public void shouldForwardGeminiResponseTextSseSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"operation \"streamGenerateContent\""})
+    @Specification({
+        "${app}/gemini.response.text/client",
+        "${net}/gemini.response.text.array/server"})
+    public void shouldForwardGeminiResponseTextArray() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.transform.request.frames/client",
+        "${net}/gemini.transform.request.frames/server"})
+    public void shouldTransformGeminiTransformRequestFrames() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.transform.system.instruction/client",
+        "${net}/gemini.transform.system.instruction/server"})
+    public void shouldTransformGeminiTransformSystemInstruction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.transform.assistant.text/client",
+        "${net}/gemini.transform.assistant.text/server"})
+    public void shouldTransformGeminiTransformAssistantText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.transform.request.max.output.tokens/client",
+        "${net}/gemini.transform.request.max.output.tokens/server"})
+    public void shouldTransformGeminiTransformRequestMaxOutputTokens() throws Exception
     {
         k3po.finish();
     }

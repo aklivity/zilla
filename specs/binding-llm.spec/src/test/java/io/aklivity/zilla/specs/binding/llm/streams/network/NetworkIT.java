@@ -3545,4 +3545,85 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/gemini.response.text/client",
+        "${net}/gemini.response.text/server"})
+    public void shouldEncodeGeminiResponseText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.response.text.split/client",
+        "${net}/gemini.response.text.split/server"})
+    public void shouldEncodeGeminiResponseTextSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.response.text.sse/client",
+        "${net}/gemini.response.text.sse/server"})
+    public void shouldEncodeGeminiResponseTextSse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.response.text.sse.split/client",
+        "${net}/gemini.response.text.sse.split/server"})
+    public void shouldEncodeGeminiResponseTextSseSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.response.text.array/client",
+        "${net}/gemini.response.text.array/server"})
+    public void shouldEncodeGeminiResponseTextArray() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.request.frames/client",
+        "${net}/gemini.transform.request.frames/server"})
+    public void shouldEncodeGeminiTransformRequestFrames() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.system.instruction/client",
+        "${net}/gemini.transform.system.instruction/server"})
+    public void shouldEncodeGeminiTransformSystemInstruction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.assistant.text/client",
+        "${net}/gemini.transform.assistant.text/server"})
+    public void shouldEncodeGeminiTransformAssistantText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.request.max.output.tokens/client",
+        "${net}/gemini.transform.request.max.output.tokens/server"})
+    public void shouldEncodeGeminiTransformRequestMaxOutputTokens() throws Exception
+    {
+        k3po.finish();
+    }
 }

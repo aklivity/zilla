@@ -3923,4 +3923,49 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/gemini.response.text/client",
+        "${app}/gemini.response.text/server"})
+    public void shouldForwardGeminiResponseText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.transform.request.frames/client",
+        "${app}/gemini.transform.request.frames/server"})
+    public void shouldForwardGeminiTransformRequestFrames() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.transform.system.instruction/client",
+        "${app}/gemini.transform.system.instruction/server"})
+    public void shouldForwardGeminiTransformSystemInstruction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.transform.assistant.text/client",
+        "${app}/gemini.transform.assistant.text/server"})
+    public void shouldForwardGeminiTransformAssistantText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.transform.request.max.output.tokens/client",
+        "${app}/gemini.transform.request.max.output.tokens/server"})
+    public void shouldForwardGeminiTransformRequestMaxOutputTokens() throws Exception
+    {
+        k3po.finish();
+    }
 }

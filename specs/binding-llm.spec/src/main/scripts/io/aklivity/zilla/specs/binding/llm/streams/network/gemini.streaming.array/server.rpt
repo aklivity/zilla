@@ -41,6 +41,9 @@ write zilla:begin.ext ${http:beginEx()
                             .build()}
 
 write "[{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello\"}],\"role\":\"model\"},\"index\":0}],\"modelVersion\":\"gemini-3.6-flash\",\"responseId\":\"resp_01\"},"
+write flush
 write "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\" there\"}],\"role\":\"model\"},\"index\":0}],\"modelVersion\":\"gemini-3.6-flash\",\"responseId\":\"resp_01\"},"
+write flush
 write "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"\"}],\"role\":\"model\"},\"finishReason\":\"STOP\",\"index\":0}],\"usageMetadata\":{\"promptTokenCount\":8,\"candidatesTokenCount\":9,\"totalTokenCount\":17},\"modelVersion\":\"gemini-3.6-flash\",\"responseId\":\"resp_01\"}]"
+write flush
 write close
