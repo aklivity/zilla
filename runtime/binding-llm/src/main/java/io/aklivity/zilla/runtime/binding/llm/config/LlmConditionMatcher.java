@@ -23,12 +23,14 @@ import io.aklivity.zilla.runtime.common.lang.Matchers;
 final class LlmConditionMatcher
 {
     private final String dialect;
+    private final boolean vendor;
     private final List<Pattern> modelAllow;
 
     LlmConditionMatcher(
         LlmConditionConfig condition)
     {
         this.dialect = condition.dialect;
+        this.vendor = dialect != null && dialect.indexOf('/') < 0;
         this.modelAllow = Matchers.globAll(condition.model);
     }
 
@@ -42,7 +44,16 @@ final class LlmConditionMatcher
     private boolean matchesDialect(
         String dialect)
     {
-        return this.dialect == null || this.dialect.equals(dialect);
+        return this.dialect == null || this.dialect.equals(dialect) || vendor && ofVendor(dialect);
+    }
+
+    private boolean ofVendor(
+        String dialect)
+    {
+        return dialect != null &&
+            dialect.length() > this.dialect.length() &&
+            dialect.startsWith(this.dialect) &&
+            dialect.charAt(this.dialect.length()) == '/';
     }
 
     private boolean matchesModel(
