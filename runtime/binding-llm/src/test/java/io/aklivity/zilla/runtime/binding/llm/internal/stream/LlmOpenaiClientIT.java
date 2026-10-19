@@ -401,16 +401,6 @@ public class LlmOpenaiClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
-        "${app}/openai.section.assistant.reasoning.history/client",
-        "${net}/openai.section.assistant.reasoning.history/server"})
-    public void shouldEncodeOpenaiSectionAssistantReasoningHistory() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.openai.yaml")
-    @Specification({
         "${app}/openai.section.assistant.refusal/client",
         "${net}/openai.section.assistant.refusal/server"})
     public void shouldEncodeOpenaiSectionAssistantRefusal() throws Exception
@@ -504,16 +494,6 @@ public class LlmOpenaiClientIT
         "${app}/openai.section.tool.result.100k.parts/client",
         "${net}/openai.section.tool.result.100k.parts/server"})
     public void shouldEncodeOpenaiSectionToolResult100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.openai.yaml")
-    @Specification({
-        "${app}/openai.section.unknown.part/client",
-        "${net}/openai.section.unknown.part/server"})
-    public void shouldEncodeOpenaiSectionUnknownPart() throws Exception
     {
         k3po.finish();
     }
@@ -1098,26 +1078,6 @@ public class LlmOpenaiClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
-        "${app}/openai.request.options.early/client",
-        "${net}/openai.request.options.early/server"})
-    public void shouldEncodeOpenaiRequestOptionsEarly() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.openai.yaml")
-    @Specification({
-        "${app}/openai.section.model.last/client",
-        "${net}/openai.section.model.last/server"})
-    public void shouldEncodeOpenaiSectionModelLast() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.openai.yaml")
-    @Specification({
         "${app}/openai.streaming.abort/client",
         "${net}/openai.streaming.abort/server"})
     public void shouldAbortOpenaiStreamingWithPartialUsage() throws Exception
@@ -1310,7 +1270,7 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/transform.response.frames/client",
+        "${app}/openai.transform.response.frames/client",
         "${net}/openai.transform.response.frames/server"})
     public void shouldTransformResponseFramesAsOpenai() throws Exception
     {
@@ -1342,7 +1302,7 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/transform.response.text/client",
+        "${app}/openai.transform.response.text/client",
         "${net}/openai.transform.response.text/server"})
     public void shouldTransformResponseTextAsOpenai() throws Exception
     {
@@ -1353,7 +1313,7 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/transform.response.text.escaped/client",
+        "${app}/openai.transform.response.text.escaped/client",
         "${net}/openai.transform.response.text.escaped/server"})
     public void shouldTransformResponseTextEscapedAsOpenai() throws Exception
     {
@@ -1364,7 +1324,7 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/transform.response.text.100k/client",
+        "${app}/openai.transform.response.text.100k/client",
         "${net}/openai.transform.response.text.100k/server"})
     public void shouldTransformResponseText100kAsOpenai() throws Exception
     {
@@ -1375,7 +1335,7 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/transform.response.text.and.tool.call/client",
+        "${app}/openai.transform.response.text.and.tool.call/client",
         "${net}/openai.transform.response.text.and.tool.call/server"})
     public void shouldTransformResponseTextAndToolCallAsOpenai() throws Exception
     {
@@ -1478,7 +1438,7 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/transform.response.text/client",
+        "${app}/openai.transform.response.text/client",
         "${net}/openai.transform.response.text.sse/server"})
     public void shouldTransformResponseTextSseAsOpenai() throws Exception
     {
@@ -1489,7 +1449,7 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/transform.response.reasoning/client",
+        "${app}/openai.transform.response.reasoning/client",
         "${net}/openai.transform.response.reasoning.sse/server"})
     public void shouldTransformResponseReasoningSseAsOpenai() throws Exception
     {
@@ -1500,7 +1460,7 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/transform.response.text.and.tool.call/client",
+        "${app}/openai.transform.response.text.and.tool.call/client",
         "${net}/openai.transform.response.text.and.tool.call.sse/server"})
     public void shouldTransformResponseTextAndToolCallSseAsOpenai() throws Exception
     {
@@ -1511,7 +1471,7 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/transform.response.refusal/client",
+        "${app}/openai.transform.response.refusal/client",
         "${net}/openai.transform.response.refusal.sse/server"})
     public void shouldTransformResponseRefusalSseAsOpenai() throws Exception
     {
@@ -1522,7 +1482,7 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/transform.response.tool.call/client",
+        "${app}/openai.transform.response.tool.call/client",
         "${net}/openai.transform.response.tool.call/server"})
     public void shouldTransformResponseToolCallAsOpenai() throws Exception
     {
@@ -1533,7 +1493,7 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/transform.response.tool.call/client",
+        "${app}/openai.transform.response.tool.call/client",
         "${net}/openai.transform.response.tool.call.sse/server"})
     public void shouldTransformResponseToolCallSseAsOpenai() throws Exception
     {
@@ -1544,7 +1504,7 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/transform.response.tool.calls/client",
+        "${app}/openai.transform.response.tool.calls/client",
         "${net}/openai.transform.response.tool.calls/server"})
     public void shouldTransformResponseToolCallsAsOpenai() throws Exception
     {
@@ -1555,7 +1515,7 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/transform.response.tool.calls/client",
+        "${app}/openai.transform.response.tool.calls/client",
         "${net}/openai.transform.response.tool.calls.sse/server"})
     public void shouldTransformResponseToolCallsSseAsOpenai() throws Exception
     {
@@ -1566,7 +1526,7 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/transform.response.tool.calls/client",
+        "${app}/openai.transform.response.tool.calls/client",
         "${net}/openai.transform.response.tool.calls.reused.index.sse/server"})
     public void shouldTransformResponseToolCallsReusedIndexSseAsOpenai() throws Exception
     {
@@ -1577,7 +1537,7 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/transform.response.tool.calls/client",
+        "${app}/openai.transform.response.tool.calls/client",
         "${net}/openai.transform.response.tool.calls.whole.sse/server"})
     public void shouldTransformResponseToolCallsWholeSseAsOpenai() throws Exception
     {
@@ -1588,7 +1548,7 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/transform.response.tool.calls/client",
+        "${app}/openai.transform.response.tool.calls/client",
         "${net}/openai.transform.response.tool.calls.omitted.sse/server"})
     public void shouldTransformResponseToolCallsOmittedSseAsOpenai() throws Exception
     {
@@ -1599,7 +1559,7 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/transform.response.tool.calls/client",
+        "${app}/openai.transform.response.tool.calls/client",
         "${net}/openai.transform.response.tool.calls.interleaved.sse/server"})
     public void shouldTransformResponseToolCallsInterleavedSseAsOpenai() throws Exception
     {
@@ -1632,7 +1592,7 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/transform.response.tool.call.empty/client",
+        "${app}/openai.transform.response.tool.call.empty/client",
         "${net}/openai.transform.response.tool.call.empty/server"})
     public void shouldTransformResponseToolCallEmptyAsOpenai() throws Exception
     {
@@ -1643,7 +1603,7 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/transform.response.tool.call.empty/client",
+        "${app}/openai.transform.response.tool.call.empty/client",
         "${net}/openai.transform.response.tool.call.empty.sse/server"})
     public void shouldTransformResponseToolCallEmptySseAsOpenai() throws Exception
     {
@@ -1654,7 +1614,7 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/transform.response.usage/client",
+        "${app}/openai.transform.response.usage/client",
         "${net}/openai.transform.response.usage.sse/server"})
     public void shouldTransformResponseUsageSseAsOpenai() throws Exception
     {

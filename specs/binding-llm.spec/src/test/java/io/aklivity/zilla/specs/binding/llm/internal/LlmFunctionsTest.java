@@ -112,57 +112,6 @@ public class LlmFunctionsTest
     }
 
     @Test
-    public void shouldGenerateChallengeEx()
-    {
-        byte[] bytes = LlmFunctions.challengeEx()
-            .typeId(0)
-            .dialect("anthropic")
-            .build();
-
-        final LlmChallengeExFW challengeEx = new LlmChallengeExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
-
-        assertEquals("anthropic", challengeEx.dialect().asString());
-    }
-
-    @Test
-    public void shouldMatchChallengeEx() throws Exception
-    {
-        BytesMatcher matcher = LlmFunctions.matchChallengeEx()
-            .typeId(0)
-            .dialect("anthropic")
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new LlmChallengeExFW.Builder()
-            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .dialect("anthropic")
-            .build();
-
-        assertNotNull(matcher.match(byteBuf));
-    }
-
-    @Test
-    public void shouldFailMatchChallengeExMismatch() throws Exception
-    {
-        BytesMatcher matcher = LlmFunctions.matchChallengeEx()
-            .typeId(0)
-            .dialect("anthropic")
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new LlmChallengeExFW.Builder()
-            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .dialect("openai")
-            .build();
-
-        assertThrows(Exception.class, () -> matcher.match(byteBuf));
-    }
-
-    @Test
     public void shouldGenerateDialectFlushEx()
     {
         byte[] bytes = LlmFunctions.dialectFlushEx()
@@ -237,13 +186,11 @@ public class LlmFunctionsTest
     {
         byte[] bytes = LlmFunctions.challengeEx()
             .typeId(0)
-            .dialect("anthropic")
             .model("claude-opus-4-1")
             .build();
 
         final LlmChallengeExFW challengeEx = new LlmChallengeExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
 
-        assertEquals("anthropic", challengeEx.dialect().asString());
         assertEquals("claude-opus-4-1", challengeEx.model().asString());
     }
 
@@ -252,7 +199,6 @@ public class LlmFunctionsTest
     {
         byte[] bytes = LlmFunctions.challengeEx()
             .typeId(0)
-            .dialect("anthropic")
             .build();
 
         final LlmChallengeExFW challengeEx = new LlmChallengeExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
@@ -265,7 +211,6 @@ public class LlmFunctionsTest
     {
         BytesMatcher matcher = LlmFunctions.matchChallengeEx()
             .typeId(0)
-            .dialect("anthropic")
             .model("claude-opus-4-1")
             .build();
 
@@ -274,7 +219,6 @@ public class LlmFunctionsTest
         new LlmChallengeExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .dialect("anthropic")
             .model("claude-opus-4-1")
             .build();
 
@@ -286,7 +230,6 @@ public class LlmFunctionsTest
     {
         BytesMatcher matcher = LlmFunctions.matchChallengeEx()
             .typeId(0)
-            .dialect("anthropic")
             .model("claude-opus-4-1")
             .build();
 
@@ -295,7 +238,6 @@ public class LlmFunctionsTest
         new LlmChallengeExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .dialect("anthropic")
             .model("claude-haiku-4-5")
             .build();
 
@@ -307,7 +249,6 @@ public class LlmFunctionsTest
     {
         BytesMatcher matcher = LlmFunctions.matchChallengeEx()
             .typeId(0)
-            .dialect("anthropic")
             .model("claude-opus-4-1")
             .build();
 
@@ -316,7 +257,6 @@ public class LlmFunctionsTest
         new LlmChallengeExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .dialect("anthropic")
             .build();
 
         assertThrows(Exception.class, () -> matcher.match(byteBuf));
@@ -332,7 +272,6 @@ public class LlmFunctionsTest
         new LlmChallengeExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .dialect("openai")
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -355,6 +294,42 @@ public class LlmFunctionsTest
         assertEquals(2, dataEx.message());
         assertEquals(Map.of("media-type", "image/png", "source", "url"), attributesOf(dataEx));
         assertEquals(3, dataEx.extension().sizeof());
+    }
+
+    @Test
+    public void shouldGenerateControlDataEx()
+    {
+        byte[] bytes = LlmFunctions.dataEx()
+            .typeId(0)
+            .type("CONTROL")
+            .message(-1)
+            .build();
+
+        LlmSectionDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length).section();
+        assertEquals(LlmSectionType.CONTROL, dataEx.type().get());
+        assertEquals(-1, dataEx.message());
+    }
+
+    @Test
+    public void shouldMatchControlDataEx() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchDataEx()
+            .typeId(0)
+            .type("CONTROL")
+            .message(0)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new LlmDataExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .section(s -> s
+                .type(t -> t.set(LlmSectionType.CONTROL))
+                .message(0))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
     }
 
     @Test
@@ -944,7 +919,6 @@ public class LlmFunctionsTest
             .outputTokens(15)
             .reasoningTokens(8)
             .totalTokens(40)
-            .nativeUsage("{\"prompt_tokens\":25,\"completion_tokens\":15}")
             .build();
 
         assertNotNull(bytes);
@@ -971,7 +945,6 @@ public class LlmFunctionsTest
             .outputTokens(15)
             .reasoningTokens(8)
             .totalTokens(40)
-            .nativeUsage("{\"prompt_tokens\":25}")
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
@@ -980,7 +953,7 @@ public class LlmFunctionsTest
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .usage(u -> u.inputTokens(25).cacheWriteTokens(5).cacheReadTokens(10).outputTokens(15)
-                .reasoningTokens(8).totalTokens(40).nativeUsage("{\"prompt_tokens\":25}"))
+                .reasoningTokens(8).totalTokens(40))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -998,26 +971,6 @@ public class LlmFunctionsTest
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .usage(u -> u.inputTokens(25).cacheWriteTokens(-1).cacheReadTokens(-1).outputTokens(15)
-                .reasoningTokens(-1).totalTokens(-1))
-            .build();
-
-        assertNotNull(matcher.match(byteBuf));
-    }
-
-    @Test
-    public void shouldMatchEndExNativeUsageNull() throws Exception
-    {
-        BytesMatcher matcher = LlmFunctions.matchEndEx()
-            .typeId(0)
-            .nativeUsageNull()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new LlmEndExFW.Builder()
-            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .usage(u -> u.inputTokens(-1).cacheWriteTokens(-1).cacheReadTokens(-1).outputTokens(-1)
                 .reasoningTokens(-1).totalTokens(-1))
             .build();
 
@@ -1164,46 +1117,6 @@ public class LlmFunctionsTest
     }
 
     @Test
-    public void shouldFailMatchEndExNativeUsageMismatch() throws Exception
-    {
-        BytesMatcher matcher = LlmFunctions.matchEndEx()
-            .typeId(0)
-            .nativeUsage("{\"prompt_tokens\":25}")
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new LlmEndExFW.Builder()
-            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .usage(u -> u.inputTokens(-1).cacheWriteTokens(-1).cacheReadTokens(-1).outputTokens(-1)
-                .reasoningTokens(-1).totalTokens(-1).nativeUsage("{\"prompt_tokens\":30}"))
-            .build();
-
-        assertThrows(Exception.class, () -> matcher.match(byteBuf));
-    }
-
-    @Test
-    public void shouldFailMatchEndExNativeUsageNotNullMismatch() throws Exception
-    {
-        BytesMatcher matcher = LlmFunctions.matchEndEx()
-            .typeId(0)
-            .nativeUsageNull()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new LlmEndExFW.Builder()
-            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .usage(u -> u.inputTokens(-1).cacheWriteTokens(-1).cacheReadTokens(-1).outputTokens(-1)
-                .reasoningTokens(-1).totalTokens(-1).nativeUsage("{\"prompt_tokens\":30}"))
-            .build();
-
-        assertThrows(Exception.class, () -> matcher.match(byteBuf));
-    }
-
-    @Test
     public void shouldGenerateAbortExWithAllFields()
     {
         byte[] bytes = LlmFunctions.abortEx()
@@ -1214,7 +1127,6 @@ public class LlmFunctionsTest
             .outputTokens(5)
             .reasoningTokens(2)
             .totalTokens(30)
-            .nativeUsage("{\"input_tokens\":25}")
             .build();
 
         assertNotNull(bytes);
@@ -1241,7 +1153,6 @@ public class LlmFunctionsTest
             .outputTokens(5)
             .reasoningTokens(2)
             .totalTokens(30)
-            .nativeUsage("{\"input_tokens\":25}")
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
@@ -1250,7 +1161,7 @@ public class LlmFunctionsTest
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .usage(u -> u.inputTokens(25).cacheWriteTokens(5).cacheReadTokens(10).outputTokens(5)
-                .reasoningTokens(2).totalTokens(30).nativeUsage("{\"input_tokens\":25}"))
+                .reasoningTokens(2).totalTokens(30))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -1268,26 +1179,6 @@ public class LlmFunctionsTest
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .usage(u -> u.inputTokens(25).cacheWriteTokens(-1).cacheReadTokens(-1).outputTokens(-1)
-                .reasoningTokens(-1).totalTokens(-1))
-            .build();
-
-        assertNotNull(matcher.match(byteBuf));
-    }
-
-    @Test
-    public void shouldMatchAbortExNativeUsageNull() throws Exception
-    {
-        BytesMatcher matcher = LlmFunctions.matchAbortEx()
-            .typeId(0)
-            .nativeUsageNull()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new LlmAbortExFW.Builder()
-            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .usage(u -> u.inputTokens(-1).cacheWriteTokens(-1).cacheReadTokens(-1).outputTokens(-1)
                 .reasoningTokens(-1).totalTokens(-1))
             .build();
 
@@ -1428,46 +1319,6 @@ public class LlmFunctionsTest
             .typeId(0)
             .usage(u -> u.inputTokens(-1).cacheWriteTokens(-1).cacheReadTokens(-1).outputTokens(-1)
                 .reasoningTokens(-1).totalTokens(10))
-            .build();
-
-        assertThrows(Exception.class, () -> matcher.match(byteBuf));
-    }
-
-    @Test
-    public void shouldFailMatchAbortExNativeUsageMismatch() throws Exception
-    {
-        BytesMatcher matcher = LlmFunctions.matchAbortEx()
-            .typeId(0)
-            .nativeUsage("{\"input_tokens\":25}")
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new LlmAbortExFW.Builder()
-            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .usage(u -> u.inputTokens(-1).cacheWriteTokens(-1).cacheReadTokens(-1).outputTokens(-1)
-                .reasoningTokens(-1).totalTokens(-1).nativeUsage("{\"input_tokens\":5}"))
-            .build();
-
-        assertThrows(Exception.class, () -> matcher.match(byteBuf));
-    }
-
-    @Test
-    public void shouldFailMatchAbortExNativeUsageNotNullMismatch() throws Exception
-    {
-        BytesMatcher matcher = LlmFunctions.matchAbortEx()
-            .typeId(0)
-            .nativeUsageNull()
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(256);
-
-        new LlmAbortExFW.Builder()
-            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
-            .typeId(0)
-            .usage(u -> u.inputTokens(-1).cacheWriteTokens(-1).cacheReadTokens(-1).outputTokens(-1)
-                .reasoningTokens(-1).totalTokens(-1).nativeUsage("{\"input_tokens\":5}"))
             .build();
 
         assertThrows(Exception.class, () -> matcher.match(byteBuf));
@@ -1828,200 +1679,6 @@ public class LlmFunctionsTest
             .build();
 
         assertNotNull(matcher.match(ByteBuffer.wrap(beginEx)));
-    }
-
-    @Test
-    public void shouldGenerateAndMatchDialectDataEx() throws Exception
-    {
-        final byte[] dataEx = LlmFunctions.dialectDataEx()
-            .typeId(0)
-            .build();
-
-        final LlmDataExFW decoded = new LlmDataExFW().wrap(new UnsafeBufferEx(dataEx), 0, dataEx.length);
-
-        assertEquals(LlmDataExFW.KIND_DIALECT, decoded.kind());
-        assertNotNull(LlmFunctions.matchDialectDataEx().typeId(0).build().match(ByteBuffer.wrap(dataEx)));
-    }
-
-    @Test
-    public void shouldMatchDialectDataExWithoutConstraints() throws Exception
-    {
-        final byte[] dataEx = LlmFunctions.dialectDataEx()
-            .typeId(1)
-            .build();
-
-        assertNotNull(LlmFunctions.matchDialectDataEx().build().match(ByteBuffer.wrap(dataEx)));
-    }
-
-    @Test
-    public void shouldDefaultDialectDataExCompleteToFalse() throws Exception
-    {
-        final byte[] dataEx = LlmFunctions.dialectDataEx()
-            .typeId(0)
-            .build();
-
-        final LlmDataExFW decoded = new LlmDataExFW().wrap(new UnsafeBufferEx(dataEx), 0, dataEx.length);
-
-        assertEquals(0, decoded.dialect().complete());
-        assertNotNull(LlmFunctions.matchDialectDataEx().typeId(0).complete(false).build().match(ByteBuffer.wrap(dataEx)));
-    }
-
-    @Test
-    public void shouldGenerateAndMatchDialectDataExComplete() throws Exception
-    {
-        final byte[] dataEx = LlmFunctions.dialectDataEx()
-            .typeId(0)
-            .complete(true)
-            .build();
-
-        final LlmDataExFW decoded = new LlmDataExFW().wrap(new UnsafeBufferEx(dataEx), 0, dataEx.length);
-
-        assertEquals(1, decoded.dialect().complete());
-        assertNotNull(LlmFunctions.matchDialectDataEx().typeId(0).complete(true).build().match(ByteBuffer.wrap(dataEx)));
-        assertNotNull(LlmFunctions.matchDialectDataEx().typeId(0).build().match(ByteBuffer.wrap(dataEx)));
-    }
-
-    @Test
-    public void shouldDefaultDialectDataExUsageOnlyToFalse() throws Exception
-    {
-        final byte[] dataEx = LlmFunctions.dialectDataEx()
-            .typeId(0)
-            .build();
-
-        final LlmDataExFW decoded = new LlmDataExFW().wrap(new UnsafeBufferEx(dataEx), 0, dataEx.length);
-
-        assertEquals(0, decoded.dialect().usageOnly());
-        assertNotNull(LlmFunctions.matchDialectDataEx().typeId(0).usageOnly(false).build().match(ByteBuffer.wrap(dataEx)));
-    }
-
-    @Test
-    public void shouldGenerateAndMatchDialectDataExUsageOnly() throws Exception
-    {
-        final byte[] dataEx = LlmFunctions.dialectDataEx()
-            .typeId(0)
-            .complete(true)
-            .usageOnly(true)
-            .build();
-
-        final LlmDataExFW decoded = new LlmDataExFW().wrap(new UnsafeBufferEx(dataEx), 0, dataEx.length);
-
-        assertEquals(1, decoded.dialect().usageOnly());
-        assertNotNull(LlmFunctions.matchDialectDataEx().typeId(0).usageOnly(true).build().match(ByteBuffer.wrap(dataEx)));
-        assertNotNull(LlmFunctions.matchDialectDataEx().typeId(0).build().match(ByteBuffer.wrap(dataEx)));
-    }
-
-    @Test
-    public void shouldFailMatchDialectDataExUsageOnlyMismatch() throws Exception
-    {
-        final byte[] dataEx = LlmFunctions.dialectDataEx()
-            .typeId(0)
-            .usageOnly(true)
-            .build();
-
-        final BytesMatcher matcher = LlmFunctions.matchDialectDataEx()
-            .typeId(0)
-            .usageOnly(false)
-            .build();
-
-        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(dataEx)));
-    }
-
-    @Test
-    public void shouldFailMatchDialectDataExCompleteMismatch() throws Exception
-    {
-        final byte[] dataEx = LlmFunctions.dialectDataEx()
-            .typeId(0)
-            .complete(true)
-            .build();
-
-        final BytesMatcher matcher = LlmFunctions.matchDialectDataEx()
-            .typeId(0)
-            .complete(false)
-            .build();
-
-        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(dataEx)));
-    }
-
-    @Test
-    public void shouldGenerateAndMatchDialectDataExAttributes() throws Exception
-    {
-        final byte[] dataEx = LlmFunctions.dialectDataEx()
-            .typeId(0)
-            .attribute("type", "content_block_delta")
-            .build();
-
-        final LlmDataExFW decoded = new LlmDataExFW().wrap(new UnsafeBufferEx(dataEx), 0, dataEx.length);
-
-        assertEquals(1, decoded.dialect().attributes().fieldCount());
-        assertNotNull(LlmFunctions.matchDialectDataEx()
-            .typeId(0)
-            .attribute("type", "content_block_delta")
-            .build()
-            .match(ByteBuffer.wrap(dataEx)));
-        assertNotNull(LlmFunctions.matchDialectDataEx().typeId(0).build().match(ByteBuffer.wrap(dataEx)));
-    }
-
-    @Test
-    public void shouldFailMatchDialectDataExAttributesMismatch() throws Exception
-    {
-        final byte[] dataEx = LlmFunctions.dialectDataEx()
-            .typeId(0)
-            .attribute("type", "content_block_delta")
-            .build();
-
-        final BytesMatcher matcher = LlmFunctions.matchDialectDataEx()
-            .typeId(0)
-            .attribute("type", "message_stop")
-            .build();
-
-        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(dataEx)));
-    }
-
-    @Test
-    public void shouldFailMatchDialectDataExTypeIdMismatch() throws Exception
-    {
-        final byte[] dataEx = LlmFunctions.dialectDataEx()
-            .typeId(1)
-            .build();
-
-        final BytesMatcher matcher = LlmFunctions.matchDialectDataEx()
-            .typeId(2)
-            .build();
-
-        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(dataEx)));
-    }
-
-    @Test
-    public void shouldNotMatchSectionAsDialectDataEx() throws Exception
-    {
-        final byte[] dataEx = LlmFunctions.dataEx()
-            .typeId(0)
-            .type("USER_TEXT")
-            .build();
-
-        assertThrows(Exception.class, () -> LlmFunctions.matchDialectDataEx().build().match(ByteBuffer.wrap(dataEx)));
-    }
-
-    @Test
-    public void shouldNotMatchDialectAsSectionDataEx() throws Exception
-    {
-        final byte[] dataEx = LlmFunctions.dialectDataEx()
-            .typeId(0)
-            .build();
-
-        assertThrows(Exception.class, () -> LlmFunctions.matchDataEx().build().match(ByteBuffer.wrap(dataEx)));
-    }
-
-    @Test
-    public void shouldGenerateDialectDataExAsDialectKind()
-    {
-        final byte[] dataEx = LlmFunctions.dialectDataEx()
-            .typeId(0)
-            .build();
-
-        final LlmDataExFW decoded = new LlmDataExFW().wrap(new UnsafeBufferEx(dataEx), 0, dataEx.length);
-
-        assertEquals(LlmDataExFW.KIND_DIALECT, decoded.kind());
     }
 
     private static Map<String, String> attributesOf(

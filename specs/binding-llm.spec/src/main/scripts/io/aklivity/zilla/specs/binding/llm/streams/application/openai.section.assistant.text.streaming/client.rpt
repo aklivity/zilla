@@ -27,12 +27,12 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
+                          .type("CONTROL")
+                          .message(-1)
                           .build()}
-write "{\"model\":\""
-      ${model}
-      "\",\"stream\":true,\"messages\":[{\"role\":\"user\",\"content\":"
+write "{\"stream\":true}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -43,11 +43,12 @@ write zilla:data.ext ${llm:dataEx()
 write "{\"text\":\"Hello\"}"
 write flush
 
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .complete(true)
+                          .type("CONTROL")
+                          .message(-1)
                           .build()}
-write "}],\"stream_options\":{\"include_usage\":true}}"
+write "{\"stream_options\":{\"openai:include_obfuscation\":false,\"include_usage\":true}}"
 write flush
 
 write advise zilla:flush
@@ -59,14 +60,6 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .id("chatcmpl_1")
                            .build()}
 
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .build()}
-read "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\""
-     ${model}
-     "\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"\"},\"finish_reason\":null}]}"
-
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
@@ -74,27 +67,12 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "{\"text\":\"Hello there\"}"
 
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .complete(true)
+                          .type("CONTROL")
+                          .message(-1)
                           .build()}
-read "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\""
-     ${model}
-     "\",\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}"
-
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .build()}
-read "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\""
-     ${model}
-     "\",\"choices\":[],\"usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}}"
-
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .build()}
-read "[DONE]"
+read "{\"openai:usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}}"
 
 read zilla:end.ext ${llm:matchEndEx()
                             .typeId(zilla:id("llm"))

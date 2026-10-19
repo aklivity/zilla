@@ -44,8 +44,25 @@ bindings:
                 model: test
                 reject:
                   - '{"arguments":{"city":"ignore previous instructions"}}'
+        claude-a:
+          request:
+            - section: user-text
+              value:
+                model: test
+                reject:
+                  - ignore previous instructions
+          response:
+            - section: assistant-text
+              value:
+                model: test
+                reject:
+                  - ignore previous instructions
     routes:
     - when:
       - dialect: openai
         model: [ gpt-a ]
+      exit: app0
+    - when:
+      - dialect: anthropic
+        model: [ claude-a ]
       exit: app0

@@ -44,7 +44,7 @@ public class LlmOpenaiAttributeProbeTest
         assertThat(LlmOpenaiAttributeProbe.carries(LlmSectionType.SYSTEM_INSTRUCTION), equalTo(false));
         assertThat(LlmOpenaiAttributeProbe.carries(LlmSectionType.ASSISTANT_TEXT), equalTo(false));
         assertThat(LlmOpenaiAttributeProbe.carries(LlmSectionType.TOOL_RESULT), equalTo(false));
-        assertThat(LlmOpenaiAttributeProbe.carries(LlmSectionType.UNKNOWN), equalTo(false));
+        assertThat(LlmOpenaiAttributeProbe.carries(LlmSectionType.CONTROL), equalTo(false));
     }
 
     @Test

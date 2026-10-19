@@ -67,6 +67,8 @@ write flush
 write await TEXT_DELIVERED
 
 write option zilla:flags "init fin"
+write option zilla:flags "auto"
+
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("TOOL_CALL")

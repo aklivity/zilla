@@ -44,9 +44,18 @@ write flush
 
 write zilla:data.ext ${http:dataEx()
                           .typeId(zilla:id("http"))
-                          .header("type", "content_block_stop")
+                          .header("type", "message_start")
                           .build()}
-write "{\"type\":\"content_block_stop\",\"index\":0}"
-write flush
+write "{\"type\":\"message_start\",\"message\":{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3-opus-20240229\",\"content\":[],\"stop_reason\":null,\"stop_sequence\":null,\"usage\":{\"input_tokens\":0,\"output_tokens\":0}}}"
+write zilla:data.ext ${http:dataEx()
+                          .typeId(zilla:id("http"))
+                          .header("type", "message_delta")
+                          .build()}
+write "{\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\",\"stop_sequence\":null},\"usage\":{\"input_tokens\":0,\"output_tokens\":0}}"
+write zilla:data.ext ${http:dataEx()
+                          .typeId(zilla:id("http"))
+                          .header("type", "message_stop")
+                          .build()}
+write "{\"type\":\"message_stop\"}"
 
 write close

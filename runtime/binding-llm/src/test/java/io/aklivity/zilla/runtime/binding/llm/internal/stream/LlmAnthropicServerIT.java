@@ -44,6 +44,8 @@ public class LlmAnthropicServerIT
         .external("app0")
         .clean();
 
+
+
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
@@ -381,6 +383,16 @@ public class LlmAnthropicServerIT
         "${net}/anthropic.section.rejected.role.missing/client",
         "${app}/anthropic.section.rejected.role.missing/server"})
     public void shouldDecodeAnthropicSectionRejectedRoleMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.user.text/client",
+        "${app}/anthropic.control.foreign.response/server"})
+    public void shouldDropAnthropicForeignResponseControls() throws Exception
     {
         k3po.finish();
     }
@@ -1072,28 +1084,8 @@ public class LlmAnthropicServerIT
     @ScriptProperty({"source \"anthropic\""})
     @Specification({
         "${net}/anthropic.transform.request.frames/client",
-        "${app}/transform.request.frames/server"})
+        "${app}/anthropic.transform.request.members/server"})
     public void shouldTransformRequestFramesFromAnthropic() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/anthropic.section.user.text/client",
-        "${app}/anthropic.section.model.override/server"})
-    public void shouldReplaceAnthropicModelWhenChallengedWithModel() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/anthropic.section.model.last/client",
-        "${app}/anthropic.section.model.last.override/server"})
-    public void shouldReplaceAnthropicModelLastWhenChallengedWithModel() throws Exception
     {
         k3po.finish();
     }
@@ -1282,7 +1274,7 @@ public class LlmAnthropicServerIT
     @ScriptProperty({"source \"anthropic\""})
     @Specification({
         "${net}/anthropic.transform.response.streaming.reasoning/client",
-        "${app}/transform.response.reasoning/server"})
+        "${app}/anthropic.transform.response.streaming.reasoning/server"})
     public void shouldTransformResponseStreamingReasoningFromAnthropic() throws Exception
     {
         k3po.finish();
@@ -1304,7 +1296,7 @@ public class LlmAnthropicServerIT
     @ScriptProperty({"source \"anthropic\""})
     @Specification({
         "${net}/anthropic.transform.response.streaming.reasoning.tag/client",
-        "${app}/transform.response.reasoning.tag/server"})
+        "${app}/anthropic.transform.response.streaming.reasoning.tag/server"})
     public void shouldTransformResponseStreamingReasoningTagFromAnthropic() throws Exception
     {
         k3po.finish();
@@ -1326,7 +1318,7 @@ public class LlmAnthropicServerIT
     @ScriptProperty({"source \"anthropic\""})
     @Specification({
         "${net}/anthropic.transform.response.streaming.reasoning.tag.fragmented/client",
-        "${app}/transform.response.reasoning.tag.fragmented/server"})
+        "${app}/anthropic.transform.response.streaming.reasoning.tag.fragmented/server"})
     public void shouldTransformResponseStreamingReasoningTagFragmentedFromAnthropic() throws Exception
     {
         k3po.finish();
@@ -1381,7 +1373,7 @@ public class LlmAnthropicServerIT
     @ScriptProperty({"source \"anthropic\""})
     @Specification({
         "${net}/anthropic.transform.response.streaming/client",
-        "${app}/transform.response.streaming/server"})
+        "${app}/anthropic.transform.response.streaming/server"})
     public void shouldTransformResponseStreamingFromAnthropic() throws Exception
     {
         k3po.finish();
@@ -1392,7 +1384,7 @@ public class LlmAnthropicServerIT
     @ScriptProperty({"source \"anthropic\""})
     @Specification({
         "${net}/anthropic.transform.response.streaming.tool.call/client",
-        "${app}/transform.response.streaming.tool.call/server"})
+        "${app}/anthropic.transform.response.streaming.tool.call/server"})
     public void shouldTransformResponseStreamingToolCallFromAnthropic() throws Exception
     {
         k3po.finish();
@@ -1403,7 +1395,7 @@ public class LlmAnthropicServerIT
     @ScriptProperty({"source \"anthropic\""})
     @Specification({
         "${net}/anthropic.transform.response.streaming.error/client",
-        "${app}/transform.response.streaming.error/server"})
+        "${app}/anthropic.transform.response.streaming.error/server"})
     public void shouldTransformResponseStreamingErrorFromAnthropic() throws Exception
     {
         k3po.finish();

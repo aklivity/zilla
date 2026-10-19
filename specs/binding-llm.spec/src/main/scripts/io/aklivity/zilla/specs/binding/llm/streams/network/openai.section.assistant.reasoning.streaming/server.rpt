@@ -30,7 +30,7 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-read "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"stream\":true,\"stream_options\":{\"include_usage\":true}}"
+read "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"stream\":true,\"stream_options\":{\"include_obfuscation\":false,\"include_usage\":true}}"
 
 read closed
 
@@ -39,18 +39,13 @@ write zilla:begin.ext ${http:beginEx()
                            .header(":status", "200")
                            .header("content-type", "text/event-stream")
                            .build()}
-write flush
 
-write option zilla:flags "init fin"
+write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\"},\"finish_reason\":null}]}"
 write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"<think>\"},\"finish_reason\":null}]}"
-write flush
 write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"café \\\"quoted\\\"\\nnext\\t\\\\ end\"},\"finish_reason\":null}]}"
-write flush
 write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"</think>\"},\"finish_reason\":null}]}"
-write flush
 write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Hi\"},\"finish_reason\":null}]}"
-write flush
+write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}"
 write "[DONE]"
-write flush
 
 write close

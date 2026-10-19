@@ -30,7 +30,7 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"name\":\"alice\",\"content\":\"Hello\"}]}"
+write "{\"model\":\"gpt-4\",\"messages\":[{\"name\":\"alice\",\"role\":\"user\",\"content\":\"Hello\"}]}"
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()
