@@ -27,10 +27,12 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
+                          .type("CONTROL")
+                          .message(-1)
                           .build()}
-read "{\"model\":\"claude-3-opus-20240229\",\"temperature\":0.5,\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":"
+read "{\"anthropic:temperature\":0.5}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
@@ -38,12 +40,6 @@ read zilla:data.ext ${llm:matchDataEx()
                           .message(0)
                           .build()}
 read "{\"text\":\"Hello\"}"
-
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .build()}
-read "}]}]}"
 
 read advised zilla:flush
 

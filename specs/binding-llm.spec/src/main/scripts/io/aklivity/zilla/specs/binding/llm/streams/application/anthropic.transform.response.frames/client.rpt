@@ -1,0 +1,91 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+property source "source"
+property target "target"
+property model "model"
+
+connect "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${llm:beginEx()
+                           .typeId(zilla:id("llm"))
+                           .dialect(source)
+                           .model(model)
+                           .build()}
+
+connected
+
+write advised zilla:challenge ${llm:matchChallengeEx()
+                                    .typeId(zilla:id("llm"))
+                                    .dialect(target)
+                                    .build()}
+
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("USER_TEXT")
+                          .message(0)
+                          .build()}
+write "{\"text\":\"Hello\"}"
+write flush
+
+write advise zilla:flush
+
+read zilla:begin.ext ${llm:matchBeginEx()
+                           .typeId(zilla:id("llm"))
+                           .dialect(target)
+                           .model(model)
+                           .id("id_1")
+                           .build()}
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("ASSISTANT_TEXT")
+                          .message(0)
+                          .build()}
+read "{\"text\":\"Hello! How can I help you today?\"}"
+
+read zilla:data.ext ${llm:matchDataEx()
+                         .typeId(zilla:id("llm"))
+                         .type("CONTROL")
+                         .message(-1)
+                         .build()}
+read "{\"anthropic:stop_sequence\":\"END\"}"
+
+read zilla:data.ext ${llm:matchDataEx()
+                         .typeId(zilla:id("llm"))
+                         .type("CONTROL")
+                         .message(-1)
+                         .build()}
+read "{\"anthropic:container\":{\"id\":\"container_1\"}}"
+
+read zilla:data.ext ${llm:matchDataEx()
+                         .typeId(zilla:id("llm"))
+                         .type("CONTROL")
+                         .message(-1)
+                         .build()}
+read "{\"anthropic:usage\":{\"input_tokens\":25,\"output_tokens\":15}}"
+
+read zilla:end.ext ${llm:matchEndEx()
+                            .typeId(zilla:id("llm"))
+                            .inputTokens(25)
+                            .outputTokens(15)
+                            .finishReason("stop")
+                            .build()}
+
+read closed
+
+write close

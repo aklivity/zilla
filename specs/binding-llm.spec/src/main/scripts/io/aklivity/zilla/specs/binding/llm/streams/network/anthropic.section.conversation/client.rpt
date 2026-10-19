@@ -31,7 +31,9 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-write "{\"model\":\"claude-3-opus-20240229\",\"system\":[{\"type\":\"text\",\"text\":\"You are helpful.\"}],\"tools\":[{\"name\":\"get_weather\",\"description\":\"Get the weather\",\"input_schema\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}}}}],\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Weather in Paris?\"}]},{\"role\":\"assistant\",\"content\":[{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"get_weather\",\"input\":{\"city\":\"Paris\"}}]},{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":[{\"type\":\"text\",\"text\":\"sunny\"}]}]}]}"
+write "{\"model\":\""
+      ${model}
+      "\",\"system\":[{\"type\":\"text\",\"text\":\"You are helpful.\"}],\"tools\":[{\"name\":\"get_weather\",\"description\":\"Get the weather\",\"input_schema\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}}}}],\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Weather in Paris?\"}]},{\"role\":\"assistant\",\"content\":[{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"get_weather\",\"input\":{\"city\":\"Paris\"}}]},{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":[{\"type\":\"text\",\"text\":\"sunny\"}]}]}],\"max_tokens\":4096}"
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()

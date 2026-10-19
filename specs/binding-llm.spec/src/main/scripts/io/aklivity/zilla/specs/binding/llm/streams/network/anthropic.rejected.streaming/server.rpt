@@ -31,9 +31,7 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-read "{\"model\":\""
-     ${model}
-     "\",\"stream\":true,\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Hello\"}]}]}"
+read "{\"model\":\"claude-3-5-sonnet-20241022\",\"stream\":true,\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Hello\"}]}],\"max_tokens\":4096}"
 
 read closed
 
@@ -48,9 +46,7 @@ write zilla:data.ext ${http:dataEx()
                           .typeId(zilla:id("http"))
                           .header("type", "message_start")
                           .build()}
-write "{\"type\":\"message_start\",\"message\":{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\""
-      ${model}
-      "\",\"content\":[],\"stop_reason\":null,\"stop_sequence\":null,\"usage\":{\"input_tokens\":25,\"output_tokens\":1}}}"
+write "{\"type\":\"message_start\",\"message\":{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3-opus-20240229\",\"content\":[],\"stop_reason\":null,\"stop_sequence\":null,\"usage\":{\"input_tokens\":0,\"output_tokens\":0}}}"
 write zilla:data.ext ${http:dataEx()
                           .typeId(zilla:id("http"))
                           .header("type", "content_block_start")
@@ -66,4 +62,5 @@ write zilla:data.ext ${http:dataEx()
                           .header("type", "error")
                           .build()}
 write "{\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"}}"
+
 write close

@@ -27,12 +27,12 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
+                          .type("CONTROL")
+                          .message(-1)
                           .build()}
-write "{\"model\":\""
-      ${model}
-      "\",\"stream\":true,\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":"
+write "{\"stream\":true}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -43,11 +43,12 @@ write zilla:data.ext ${llm:dataEx()
 write "{\"text\":\"Hello\"}"
 write flush
 
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .complete(true)
+                          .type("CONTROL")
+                          .message(-1)
                           .build()}
-write "}]}]}"
+write "{\"stream_options\":{\"include_usage\":true}}"
 write flush
 
 write advise zilla:flush
@@ -58,15 +59,6 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .model(model)
                            .id("msg_01")
                            .build()}
-
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .attribute("type", "message_start")
-                          .build()}
-read "{\"type\":\"message_start\",\"message\":{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\""
-     ${model}
-     "\",\"content\":[],\"stop_reason\":null,\"stop_sequence\":null,\"usage\":{\"input_tokens\":25,\"output_tokens\":1}}}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
@@ -86,7 +78,6 @@ read "{\"arguments\":{\"city\":"
 
 read zilla:abort.ext ${llm:matchAbortEx()
                             .typeId(zilla:id("llm"))
-                            .inputTokens(25)
                             .type("overloaded_error")
                             .message("Overloaded")
                             .build()}

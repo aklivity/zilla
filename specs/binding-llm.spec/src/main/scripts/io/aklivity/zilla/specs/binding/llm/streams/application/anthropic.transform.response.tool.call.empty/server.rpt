@@ -1,0 +1,95 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+property source "source"
+property target "target"
+property model "model"
+
+accept "zilla://streams/app0"
+       option zilla:window 0
+       option zilla:transmission "half-duplex"
+
+accepted
+
+read zilla:begin.ext ${llm:matchBeginEx()
+                          .typeId(zilla:id("llm"))
+                          .dialect(source)
+                          .model(model)
+                          .build()}
+
+connected
+
+read advise zilla:challenge ${llm:challengeEx()
+                                .typeId(zilla:id("llm"))
+                                .dialect(target)
+                                .build()}
+
+read option zilla:window 8192
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("USER_TEXT")
+                          .message(0)
+                          .build()}
+read "{\"text\":\"Hello\"}"
+
+read advised zilla:flush
+
+write zilla:begin.ext ${llm:beginEx()
+                           .typeId(zilla:id("llm"))
+                           .dialect(target)
+                           .model(model)
+                           .id("id_1")
+                           .build()}
+write flush
+
+
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("TOOL_CALL")
+                          .message(0)
+                          .attribute("tool-name", "get_weather")
+                          .attribute("tool-call-id", "call_1")
+                          .build()}
+write "{\"arguments\":{}}"
+write flush
+
+
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("CONTROL")
+                          .message(-1)
+                          .build()}
+write "{\"anthropic:stop_sequence\":null}"
+write flush
+
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("CONTROL")
+                          .message(-1)
+                          .build()}
+write "{\"anthropic:usage\":{\"input_tokens\":25,\"output_tokens\":15}}"
+write flush
+
+write zilla:end.ext ${llm:endEx()
+                            .typeId(zilla:id("llm"))
+                            .inputTokens(25)
+                            .outputTokens(15)
+                            .finishReason("tool-call")
+                            .build()}
+
+write close
+
+read closed

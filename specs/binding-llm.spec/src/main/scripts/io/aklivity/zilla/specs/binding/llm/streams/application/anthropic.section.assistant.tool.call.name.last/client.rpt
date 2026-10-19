@@ -27,26 +27,12 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-write "{\"model\":\""
-      ${model}
-      "\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":"
-write flush
-
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
 write "{\"text\":\"Weather in Paris?\"}"
-write flush
-
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-write "}]},{\"role\":\"assistant\",\"content\":["
 write flush
 
 write option zilla:flags "init"
@@ -69,14 +55,6 @@ write zilla:data.ext ${llm:dataEx()
 write "}"
 write flush
 
-write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .build()}
-write "]}]}"
-write flush
-
 write advise zilla:flush
 
 read zilla:begin.ext ${llm:matchBeginEx()
@@ -86,13 +64,6 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .id("msg_01")
                            .build()}
 
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-read "{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\""
-     ${model}
-     "\",\"content\":[{\"type\":\"text\",\"text\":"
-
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
@@ -100,11 +71,19 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "{\"text\":\"Hello! How can I help you today?\"}"
 
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .complete(true)
+                          .type("CONTROL")
+                          .message(-1)
                           .build()}
-read "}],\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"usage\":{\"input_tokens\":25,\"output_tokens\":15}}"
+read "{\"anthropic:stop_sequence\":null}"
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("CONTROL")
+                          .message(-1)
+                          .build()}
+read "{\"anthropic:usage\":{\"input_tokens\":25,\"output_tokens\":15}}"
 
 read zilla:end.ext ${llm:matchEndEx()
                             .typeId(zilla:id("llm"))

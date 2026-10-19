@@ -13,28 +13,33 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property source "source"
+property target "target"
+property model "model"
+
 connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("anthropic")
-                           .model("claude-3-opus-20240229")
+                           .dialect(source)
+                           .model(model)
                            .build()}
 
 connected
 
 write advised zilla:challenge ${llm:matchChallengeEx()
                                     .typeId(zilla:id("llm"))
-                                    .dialect("anthropic")
-                                    .model("claude-3-haiku-20240307")
+                                    .dialect(target)
                                     .build()}
 
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
+                          .type("CONTROL")
+                          .message(-1)
                           .build()}
-write "{\"max_tokens\":1024,\"messages\":[{\"role\":\"user\",\"content\":"
+write "{\"stream\":true}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -45,46 +50,34 @@ write zilla:data.ext ${llm:dataEx()
 write "{\"text\":\"Hello\"}"
 write flush
 
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
+                          .type("CONTROL")
+                          .message(-1)
                           .build()}
-write "}],\"model\":\"claude-3-haiku-20240307"
-write flush
-
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .build()}
-write "\"}"
+write "{\"stream_options\":{\"include_usage\":true}}"
 write flush
 
 write advise zilla:flush
 
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("anthropic")
-                           .model("claude-3-opus-20240229")
-                           .id("msg_01")
+                           .dialect(target)
+                           .model(model)
+                           .id("id_1")
                            .build()}
-
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
+                          .type("ASSISTANT_REASONING")
+                          .message(0)
                           .build()}
-read "{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3-opus-20240229\",\"content\":[{\"type\":\"text\",\"text\":"
-
+read "{\"text\":\"Let me think about it.\"}"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-read "{\"text\":\"Hello! How can I help you today?\"}"
-
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .build()}
-read "}],\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"usage\":{\"input_tokens\":25,\"output_tokens\":15}}"
-
+read "{\"text\":\"Hello!\"}"
 read zilla:end.ext ${llm:matchEndEx()
                             .typeId(zilla:id("llm"))
                             .inputTokens(25)

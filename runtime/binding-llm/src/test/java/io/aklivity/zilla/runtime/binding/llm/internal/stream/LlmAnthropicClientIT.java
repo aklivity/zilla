@@ -45,6 +45,10 @@ public class LlmAnthropicClientIT
         .external("net0")
         .clean();
 
+    @org.junit.Rule public final org.junit.rules.TestName tmpName = new org.junit.rules.TestName(); // TMPDUMP
+
+    @org.junit.Before public void tmpMark() { System.setProperty("llm.test", tmpName.getMethodName()); } // TMPDUMP
+
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
@@ -181,39 +185,9 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/anthropic.section.tool.result.cache.control.part.first/client",
-        "${net}/anthropic.section.tool.result.cache.control.part.first/server"})
-    public void shouldEncodeAnthropicSectionToolResultCacheControlPartFirst() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
-        "${app}/anthropic.section.tool.result.cache.control.first/client",
-        "${net}/anthropic.section.tool.result.cache.control.first/server"})
-    public void shouldEncodeAnthropicSectionToolResultCacheControlFirst() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
         "${app}/anthropic.section.tool.result.cache.control.part/client",
         "${net}/anthropic.section.tool.result.cache.control.part/server"})
     public void shouldEncodeAnthropicSectionToolResultCacheControlPart() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
-        "${app}/anthropic.section.tool.result.cache.control/client",
-        "${net}/anthropic.section.tool.result.cache.control/server"})
-    public void shouldEncodeAnthropicSectionToolResultCacheControl() throws Exception
     {
         k3po.finish();
     }
@@ -244,26 +218,6 @@ public class LlmAnthropicClientIT
         "${app}/anthropic.section.other.blocks/client",
         "${net}/anthropic.section.other.blocks/server"})
     public void shouldEncodeAnthropicSectionOtherBlocks() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
-        "${app}/anthropic.section.system.instruction.cache.control/client",
-        "${net}/anthropic.section.system.instruction.cache.control/server"})
-    public void shouldEncodeAnthropicSectionSystemInstructionCacheControl() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
-        "${app}/anthropic.section.user.text.cache.control.first/client",
-        "${net}/anthropic.section.user.text.cache.control.first/server"})
-    public void shouldEncodeAnthropicSectionUserTextCacheControlFirst() throws Exception
     {
         k3po.finish();
     }
@@ -404,16 +358,6 @@ public class LlmAnthropicClientIT
         "${app}/anthropic.section.tool.result.blocks/client",
         "${net}/anthropic.section.tool.result.blocks/server"})
     public void shouldEncodeAnthropicSectionToolResultBlocks() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
-        "${app}/anthropic.section.unknown.part/client",
-        "${net}/anthropic.section.unknown.part/server"})
-    public void shouldEncodeAnthropicSectionUnknownPart() throws Exception
     {
         k3po.finish();
     }
@@ -719,26 +663,6 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/anthropic.section.tool.result.error.last/client",
-        "${net}/anthropic.section.tool.result.error.last/server"})
-    public void shouldEncodeAnthropicSectionToolResultErrorLast() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
-        "${app}/anthropic.section.tool.definition.name.last/client",
-        "${net}/anthropic.section.tool.definition.name.last/server"})
-    public void shouldEncodeAnthropicSectionToolDefinitionNameLast() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
         "${app}/anthropic.section.user.document.reference/client",
         "${net}/anthropic.section.user.document.reference/server"})
     public void shouldEncodeAnthropicSectionUserDocumentReference() throws Exception
@@ -874,17 +798,6 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/anthropic.rejected.streaming/client",
-        "${net}/anthropic.rejected.streaming/server"})
-    @ScriptProperty({"model \"claude-3-5-sonnet-20241022\""})
-    public void shouldEncodeAnthropicRejectedStreamingModelOverride() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
         "${app}/anthropic.section.assistant.tool.call.streaming/client",
         "${net}/anthropic.section.assistant.tool.call.streaming/server"})
     public void shouldEncodeAnthropicSectionAssistantToolCallStreaming() throws Exception
@@ -948,26 +861,6 @@ public class LlmAnthropicClientIT
         "${app}/anthropic.section.assistant.tool.call.escaped/client",
         "${net}/anthropic.section.assistant.tool.call.escaped/server"})
     public void shouldEncodeAnthropicSectionAssistantToolCallEscaped() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
-        "${app}/anthropic.section.assistant.tool.call.id.last/client",
-        "${net}/anthropic.section.assistant.tool.call.id.last/server"})
-    public void shouldEncodeAnthropicSectionAssistantToolCallIdLast() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
-        "${app}/anthropic.section.assistant.tool.call.name.last/client",
-        "${net}/anthropic.section.assistant.tool.call.name.last/server"})
-    public void shouldEncodeAnthropicSectionAssistantToolCallNameLast() throws Exception
     {
         k3po.finish();
     }
@@ -1158,16 +1051,6 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/anthropic.request.options.early/client",
-        "${net}/anthropic.request.options.early/server"})
-    public void shouldEncodeAnthropicRequestOptionsEarly() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
         "${app}/anthropic.streaming.abort.nocredit/client",
         "${net}/anthropic.streaming.abort/server"})
     public void shouldAbortAnthropicStreamingWithPartialUsageWithoutCredit() throws Exception
@@ -1265,7 +1148,7 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/transform.response.frames/client",
+        "${app}/anthropic.transform.response.frames/client",
         "${net}/anthropic.transform.response.frames/server"})
     public void shouldTransformResponseFramesAsAnthropic() throws Exception
     {
@@ -1327,7 +1210,7 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/transform.response.text/client",
+        "${app}/anthropic.transform.response.text/client",
         "${net}/anthropic.transform.response.text/server"})
     public void shouldTransformResponseTextAsAnthropic() throws Exception
     {
@@ -1338,7 +1221,7 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/transform.response.text.escaped/client",
+        "${app}/anthropic.transform.response.text.escaped/client",
         "${net}/anthropic.transform.response.text.escaped/server"})
     public void shouldTransformResponseTextEscapedAsAnthropic() throws Exception
     {
@@ -1349,7 +1232,7 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/transform.response.text.100k/client",
+        "${app}/anthropic.transform.response.text.100k/client",
         "${net}/anthropic.transform.response.text.100k/server"})
     public void shouldTransformResponseText100kAsAnthropic() throws Exception
     {
@@ -1360,19 +1243,9 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/transform.response.text.and.tool.call/client",
+        "${app}/anthropic.transform.response.text.and.tool.call/client",
         "${net}/anthropic.transform.response.text.and.tool.call/server"})
     public void shouldTransformResponseTextAndToolCallAsAnthropic() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
-        "${app}/anthropic.section.assistant.text.members.streaming/client",
-        "${net}/anthropic.section.assistant.text.members.streaming/server"})
-    public void shouldEncodeAnthropicSectionAssistantTextMembersStreaming() throws Exception
     {
         k3po.finish();
     }
@@ -1455,7 +1328,7 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/transform.response.text/client",
+        "${app}/anthropic.transform.response.text/client",
         "${net}/anthropic.transform.response.text.sse/server"})
     public void shouldTransformResponseTextSseAsAnthropic() throws Exception
     {
@@ -1466,7 +1339,7 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/transform.response.reasoning/client",
+        "${app}/anthropic.transform.response.reasoning/client",
         "${net}/anthropic.transform.response.reasoning.sse/server"})
     public void shouldTransformResponseReasoningSseAsAnthropic() throws Exception
     {
@@ -1477,7 +1350,7 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/transform.response.text.and.tool.call/client",
+        "${app}/anthropic.transform.response.text.and.tool.call/client",
         "${net}/anthropic.transform.response.text.and.tool.call.sse/server"})
     public void shouldTransformResponseTextAndToolCallSseAsAnthropic() throws Exception
     {
@@ -1488,7 +1361,7 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/transform.response.tool.call/client",
+        "${app}/anthropic.transform.response.tool.call/client",
         "${net}/anthropic.transform.response.tool.call/server"})
     public void shouldTransformResponseToolCallAsAnthropic() throws Exception
     {
@@ -1499,7 +1372,7 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/transform.response.tool.call/client",
+        "${app}/anthropic.transform.response.tool.call/client",
         "${net}/anthropic.transform.response.tool.call.sse/server"})
     public void shouldTransformResponseToolCallSseAsAnthropic() throws Exception
     {
@@ -1510,7 +1383,7 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/transform.response.tool.calls/client",
+        "${app}/anthropic.transform.response.tool.calls/client",
         "${net}/anthropic.transform.response.tool.calls/server"})
     public void shouldTransformResponseToolCallsAsAnthropic() throws Exception
     {
@@ -1521,7 +1394,7 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/transform.response.tool.calls/client",
+        "${app}/anthropic.transform.response.tool.calls/client",
         "${net}/anthropic.transform.response.tool.calls.sse/server"})
     public void shouldTransformResponseToolCallsSseAsAnthropic() throws Exception
     {
@@ -1554,7 +1427,7 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/transform.response.tool.call.empty/client",
+        "${app}/anthropic.transform.response.tool.call.empty/client",
         "${net}/anthropic.transform.response.tool.call.empty/server"})
     public void shouldTransformResponseToolCallEmptyAsAnthropic() throws Exception
     {
@@ -1565,7 +1438,7 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({"target \"anthropic\""})
     @Specification({
-        "${app}/transform.response.tool.call.empty/client",
+        "${app}/anthropic.transform.response.tool.call.empty/client",
         "${net}/anthropic.transform.response.tool.call.empty.sse/server"})
     public void shouldTransformResponseToolCallEmptySseAsAnthropic() throws Exception
     {

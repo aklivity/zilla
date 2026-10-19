@@ -26,25 +26,12 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-write "{\"model\":\"claude-haiku-4-5-20251001\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":"
-write flush
-
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
 write "{\"text\":\"Say hello in one sentence.\"}"
-write flush
-
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .build()}
-write "}]}]}"
 write flush
 
 write advise zilla:flush
@@ -56,12 +43,19 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .id("msg_011CfFkXKDQA6Xuf9Bf5seBn")
                            .build()}
 
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .attribute("type", "message_start")
+                          .type("CONTROL")
+                          .message(-1)
                           .build()}
-read "{\"type\":\"message_start\",\"message\":{\"model\":\"claude-haiku-4-5-20251001\",\"id\":\"msg_011CfFkXKDQA6Xuf9Bf5seBn\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"container\":null,\"stop_reason\":null,\"stop_sequence\":null,\"stop_details\":null,\"usage\":{\"input_tokens\":13,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":0},\"output_tokens\":5,\"service_tier\":\"standard\",\"inference_geo\":\"not_available\"}}}"
+read "{\"anthropic:container\":null}"
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("CONTROL")
+                          .message(-1)
+                          .build()}
+read "{\"anthropic:stop_details\":null}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
@@ -70,19 +64,19 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "{\"text\":\"Hello! I'm happy\"}"
 
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .attribute("type", "message_delta")
+                          .type("CONTROL")
+                          .message(-1)
                           .build()}
-read "{\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":13,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":13}}"
+read "{\"anthropic:stop_sequence\":null}"
 
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .attribute("type", "message_stop")
+                          .type("CONTROL")
+                          .message(-1)
                           .build()}
-read "{\"type\":\"message_stop\"}"
+read "{\"anthropic:usage\":{\"input_tokens\":13,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":0},\"output_tokens\":13,\"service_tier\":\"standard\",\"inference_geo\":\"not_available\"}}"
 
 read zilla:end.ext ${llm:matchEndEx()
                             .typeId(zilla:id("llm"))

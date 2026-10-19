@@ -27,11 +27,6 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-read "{\"model\":\"claude-3-opus-20240229\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":"
-
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("USER_TEXT")
@@ -39,11 +34,54 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "{\"text\":\"Hello\"}"
 
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .complete(true)
+                          .type("CONTROL")
+                          .message(-1)
                           .build()}
-read "}]}],\"temperature\":0.5,\"top_p\":0.9,\"top_k\":40,\"max_tokens\":1024,\"stop_sequences\":[\"END\"],\"thinking\":{\"type\":\"enabled\",\"budget_tokens\":2048},\"container_id\":\"ctr_1\",\"mcp_servers\":[{\"type\":\"url\",\"url\":\"https://mcp.example.com\",\"name\":\"example\"}]}"
+read "{\"anthropic:temperature\":0.5}"
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("CONTROL")
+                          .message(-1)
+                          .build()}
+read "{\"anthropic:top_p\":0.9}"
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("CONTROL")
+                          .message(-1)
+                          .build()}
+read "{\"anthropic:top_k\":40}"
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("CONTROL")
+                          .message(-1)
+                          .build()}
+read "{\"anthropic:stop_sequences\":[\"END\"]}"
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("CONTROL")
+                          .message(-1)
+                          .build()}
+read "{\"anthropic:thinking\":{\"type\":\"enabled\",\"budget_tokens\":2048}}"
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("CONTROL")
+                          .message(-1)
+                          .build()}
+read "{\"anthropic:container_id\":\"ctr_1\"}"
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("CONTROL")
+                          .message(-1)
+                          .build()}
+read "{\"anthropic:mcp_servers\":[{\"type\":\"url\",\"url\":\"https://mcp.example.com\",\"name\":\"example\"}]}"
 
 read advised zilla:flush ${llm:matchDialectFlushEx()
                                  .typeId(zilla:id("llm"))

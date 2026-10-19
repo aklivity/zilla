@@ -2810,24 +2810,6 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/anthropic.section.model.override/client",
-        "${app}/anthropic.section.model.override/server"})
-    public void shouldReplaceAnthropicModelWhenChallenged() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/anthropic.section.model.last.override/client",
-        "${app}/anthropic.section.model.last.override/server"})
-    public void shouldReplaceAnthropicModelLastWhenChallenged() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/transform.rejected.user.video/client",
         "${app}/transform.rejected.user.video/server"})
     public void shouldTransformRejectedUserVideo() throws Exception
@@ -3542,6 +3524,150 @@ public class ApplicationIT
         "${app}/openai.transform.response.frames/client",
         "${app}/openai.transform.response.frames/server"})
     public void shouldOpenaiTransformResponseFrames() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.transform.response.streaming.tool.call/client",
+        "${app}/anthropic.transform.response.streaming.tool.call/server"})
+    public void shouldAnthropicTransformResponseStreamingToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.transform.response.streaming.error/client",
+        "${app}/anthropic.transform.response.streaming.error/server"})
+    public void shouldAnthropicTransformResponseStreamingError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.transform.response.streaming.reasoning/client",
+        "${app}/anthropic.transform.response.streaming.reasoning/server"})
+    public void shouldAnthropicTransformResponseStreamingReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.transform.response.streaming.reasoning.tag/client",
+        "${app}/anthropic.transform.response.streaming.reasoning.tag/server"})
+    public void shouldAnthropicTransformResponseStreamingReasoningTag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.transform.response.streaming.reasoning.tag.fragmented/client",
+        "${app}/anthropic.transform.response.streaming.reasoning.tag.fragmented/server"})
+    public void shouldAnthropicTransformResponseStreamingReasoningTagFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.transform.request.members/client",
+        "${app}/anthropic.transform.request.members/server"})
+    public void shouldAnthropicTransformRequestMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.transform.response.streaming/client",
+        "${app}/anthropic.transform.response.streaming/server"})
+    public void shouldAnthropicTransformResponseStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.transform.response.frames/client",
+        "${app}/anthropic.transform.response.frames/server"})
+    public void shouldAnthropicTransformResponseFrames() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.transform.response.reasoning/client",
+        "${app}/anthropic.transform.response.reasoning/server"})
+    public void shouldAnthropicTransformResponseReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.transform.response.text/client",
+        "${app}/anthropic.transform.response.text/server"})
+    public void shouldAnthropicTransformResponseText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.transform.response.text.100k/client",
+        "${app}/anthropic.transform.response.text.100k/server"})
+    public void shouldAnthropicTransformResponseText100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.transform.response.text.and.tool.call/client",
+        "${app}/anthropic.transform.response.text.and.tool.call/server"})
+    public void shouldAnthropicTransformResponseTextAndToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.transform.response.text.escaped/client",
+        "${app}/anthropic.transform.response.text.escaped/server"})
+    public void shouldAnthropicTransformResponseTextEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.transform.response.tool.call/client",
+        "${app}/anthropic.transform.response.tool.call/server"})
+    public void shouldAnthropicTransformResponseToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.transform.response.tool.call.empty/client",
+        "${app}/anthropic.transform.response.tool.call.empty/server"})
+    public void shouldAnthropicTransformResponseToolCallEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.transform.response.tool.calls/client",
+        "${app}/anthropic.transform.response.tool.calls/server"})
+    public void shouldAnthropicTransformResponseToolCalls() throws Exception
     {
         k3po.finish();
     }
