@@ -100,12 +100,6 @@ scope llm
             string16 model = null;
         }
 
-        struct LlmSectionFlushEx
-        {
-            LlmSectionType type = NONE;
-            int32 message = -1;
-        }
-
         struct LlmDialectFlushEx
         {
             int32 maxOutputTokens = -1;
@@ -113,8 +107,7 @@ scope llm
 
         union LlmFlushEx switch (uint8) extends core::stream::Extension
         {
-            case 0: llm::stream::LlmSectionFlushEx section;
-            case 1: llm::stream::LlmDialectFlushEx dialect;
+            case 0: llm::stream::LlmDialectFlushEx dialect;
         }
 
         struct LlmEndEx extends core::stream::Extension

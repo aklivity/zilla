@@ -60,25 +60,12 @@ write zilla:begin.ext ${llm:beginEx()
                            .build()}
 write flush
 
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"content\":"
-write flush
-
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
 write "{\"text\":\"Hi\"}"
-write flush
-
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .build()}
-write "},\"finish_reason\":null}]}"
 write flush
 
 write zilla:data.ext ${llm:dialectDataEx()

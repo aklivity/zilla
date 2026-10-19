@@ -1459,4 +1459,14 @@ public class LlmAnthropicServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.assistant.text/client",
+        "${app}/anthropic.section.assistant.text.flush.ignored/server"})
+    public void shouldDecodeAnthropicSectionAssistantTextIgnoringFlush() throws Exception
+    {
+        k3po.finish();
+    }
 }

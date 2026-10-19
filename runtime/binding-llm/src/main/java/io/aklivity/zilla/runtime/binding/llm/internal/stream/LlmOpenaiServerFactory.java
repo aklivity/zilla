@@ -4164,6 +4164,11 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
             if (replyDialect)
             {
+                if (server.streaming)
+                {
+                    closeEncodedReasoning();
+                }
+
                 doReplayEnd();
             }
             else
@@ -4721,7 +4726,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             int offset,
             int length)
         {
-            if (replyDialect)
+            if (replaying())
             {
                 onReplayText(payload, offset, length);
             }
@@ -4884,9 +4889,18 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             eventEnd(generator.length());
         }
 
+        private static boolean regenerated(
+            LlmSectionType type)
+        {
+            return type == LlmSectionType.TOOL_CALL ||
+                type == LlmSectionType.ASSISTANT_TEXT ||
+                type == LlmSectionType.ASSISTANT_REFUSAL ||
+                type == LlmSectionType.ASSISTANT_REASONING;
+        }
+
         private boolean replaying()
         {
-            return replyDialect && !(server.streaming && replyType == LlmSectionType.TOOL_CALL);
+            return replyDialect && !(server.streaming && regenerated(replyType));
         }
 
         private int encodeLength()
@@ -4934,7 +4948,11 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         {
             replayData = replayCopy;
 
-            if (!server.streaming)
+            if (server.streaming)
+            {
+                closeEncodedReasoning();
+            }
+            else
             {
                 closeReasoning();
             }
