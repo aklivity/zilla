@@ -101,6 +101,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         "%s cannot be converted from %s to %s after tool-definition";
     private static final Set<String> RESPONSE_CONTENT_TYPES = Set.of(CONTENT_TYPE_JSON, CONTENT_TYPE_EVENT_STREAM);
     private static final DirectBufferEx RESPONSE_TERMINATOR = new UnsafeBufferEx("[DONE]".getBytes(UTF_8));
+    private static final DirectBufferEx CONTROL_TERMINATOR = new UnsafeBufferEx("}".getBytes(UTF_8));
     private static final int STATUS_OK = 200;
     private static final int STATUS_MULTIPLE_CHOICES = 300;
     private static final int STATUS_BAD_REQUEST = 400;
@@ -498,6 +499,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private final LlmOpenaiResponseDecoder decodeUsage = this::decodeUsage;
         private final LlmOpenaiResponseDecoder decodeSkip = this::decodeSkip;
         private final LlmOpenaiResponseDecoder decodeControlValue = this::decodeControlValue;
+        private final LlmOpenaiResponseDecoder decodeControlStream = this::decodeControlStream;
         private final LlmOpenaiResponseDecoder decodeEnd = this::decodeEnd;
         private final LlmOpenaiResponseDecoder decodeIgnore = this::decodeIgnore;
         private final LlmOpenaiResponseDecoder decodeDrainStart = this::decodeDrainStart;
@@ -1017,7 +1019,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int length)
         {
-            System.out.println("APPDUMP " + flags + " " + type + " " + message + " " + buffer.getStringWithoutLengthUtf8(offset, Math.min(length, 300))); //TMPDUMP
             final OctetsFW extension;
 
             if (Flags.hasInit(flags))
@@ -1324,6 +1325,11 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             decodeLimit = windowLimit;
             decodeInput = buffer;
+
+            if (controlFrom != NONE)
+            {
+                controlFrom = offset;
+            }
 
             parser.wrap(buffer, offset, windowLimit, windowLast);
 
@@ -3342,15 +3348,99 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             return position();
         }
 
+        private int decodeControlStream(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeControlStream && hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+                final boolean deferred = deferredScalar(event);
+
+                controlDepth += nesting(event);
+
+                if (deferred)
+                {
+                    parser.consumed(deferredLength(event));
+                }
+                else if (controlDepth == 0)
+                {
+                    endControlStream();
+                    decoder = controlThen;
+                }
+            }
+
+            return position();
+        }
+
         private void flushControl(
             int to)
         {
             if (controlFrom != NONE && to > controlFrom)
             {
-                encodePool.buffer(controlSlot).putBytes(controlSlotOffset, decodeInput, controlFrom, to - controlFrom);
-                controlSlotOffset += to - controlFrom;
+                if (decoder == decodeControlValue && controlSlotOffset + to - controlFrom + CONTROL_CLOSING > controlHoldMax())
+                {
+                    beginControlStream();
+                }
+
+                if (decoder == decodeControlStream)
+                {
+                    doAppFrame(http.decodeTraceId, Flags.NONE, LlmSectionType.CONTROL, controlMessage, null, null, null,
+                        decodeInput, controlFrom, to - controlFrom);
+                }
+                else
+                {
+                    encodePool.buffer(controlSlot).putBytes(controlSlotOffset, decodeInput, controlFrom, to - controlFrom);
+                    controlSlotOffset += to - controlFrom;
+                }
+
                 controlFrom = to;
             }
+        }
+
+        private int controlHoldMax()
+        {
+            return Math.min(encodeMax, replyMax) - EVENT_FRAMES * replyPad;
+        }
+
+        private void beginControlStream()
+        {
+            if (sectionOpen)
+            {
+                cleanup(http.decodeTraceId);
+            }
+            else
+            {
+                final MutableDirectBufferEx slot = encodePool.buffer(controlSlot);
+
+                for (int index = 0; index < controlEntry; )
+                {
+                    final int message = slot.getInt(index);
+                    final int length = slot.getInt(index + Integer.BYTES);
+
+                    doAppFrame(http.decodeTraceId, Flags.COMPLETE, LlmSectionType.CONTROL, message, null, null, null,
+                        slot, index + CONTROL_HEADER, length);
+
+                    index += CONTROL_HEADER + length;
+                }
+
+                doAppFrame(http.decodeTraceId, Flags.INIT, LlmSectionType.CONTROL, controlMessage, null, null, null,
+                    slot, controlEntry + CONTROL_HEADER, controlSlotOffset - controlEntry - CONTROL_HEADER);
+
+                cleanupControlSlot();
+                decoder = decodeControlStream;
+            }
+        }
+
+        private void endControlStream()
+        {
+            flushControl(position());
+
+            doAppFrame(http.decodeTraceId, Flags.FIN, LlmSectionType.CONTROL, controlMessage, null, null, null,
+                CONTROL_TERMINATOR, 0, CONTROL_CLOSING);
+
+            controlFrom = NONE;
         }
 
         private void endControl()

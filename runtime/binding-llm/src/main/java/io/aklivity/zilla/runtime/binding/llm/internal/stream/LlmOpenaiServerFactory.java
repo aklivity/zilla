@@ -3324,7 +3324,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             int offset,
             int length)
         {
-            System.out.println("NETDUMP " + flags + " " + buffer.getStringWithoutLengthUtf8(offset, length)); //TMPDUMP
             final DataFW.Builder dataBuilder = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
@@ -4511,7 +4510,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             int length)
         {
             final String name = controlTransform.member();
-            System.out.println("CTLDUMP " + name + " " + length + " mode=" + controlMode); //TMPDUMP
 
             if (name != null)
             {

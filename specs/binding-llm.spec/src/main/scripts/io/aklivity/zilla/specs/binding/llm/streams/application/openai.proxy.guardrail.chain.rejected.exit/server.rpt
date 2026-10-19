@@ -19,6 +19,7 @@ property model "gpt-a"
 accept ${serverAddress}
        option zilla:window 8192
        option zilla:transmission "half-duplex"
+       option zilla:update "handshake"
 
 accepted
 
@@ -30,4 +31,4 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
-read abort
+read aborted

@@ -3446,4 +3446,103 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/openai.transform.response.text.100k/client",
+        "${app}/openai.transform.response.text.100k/server"})
+    public void shouldOpenaiTransformResponseText100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.transform.response.refusal/client",
+        "${app}/openai.transform.response.refusal/server"})
+    public void shouldOpenaiTransformResponseRefusal() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.transform.response.reasoning/client",
+        "${app}/openai.transform.response.reasoning/server"})
+    public void shouldOpenaiTransformResponseReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.transform.response.text.and.tool.call/client",
+        "${app}/openai.transform.response.text.and.tool.call/server"})
+    public void shouldOpenaiTransformResponseTextAndToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.transform.response.tool.calls/client",
+        "${app}/openai.transform.response.tool.calls/server"})
+    public void shouldOpenaiTransformResponseToolCalls() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.transform.response.text/client",
+        "${app}/openai.transform.response.text/server"})
+    public void shouldOpenaiTransformResponseText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.transform.response.tool.call.empty/client",
+        "${app}/openai.transform.response.tool.call.empty/server"})
+    public void shouldOpenaiTransformResponseToolCallEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.transform.response.usage/client",
+        "${app}/openai.transform.response.usage/server"})
+    public void shouldOpenaiTransformResponseUsage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.transform.response.tool.call/client",
+        "${app}/openai.transform.response.tool.call/server"})
+    public void shouldOpenaiTransformResponseToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.transform.response.text.escaped/client",
+        "${app}/openai.transform.response.text.escaped/server"})
+    public void shouldOpenaiTransformResponseTextEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.transform.response.frames/client",
+        "${app}/openai.transform.response.frames/server"})
+    public void shouldOpenaiTransformResponseFrames() throws Exception
+    {
+        k3po.finish();
+    }
 }
