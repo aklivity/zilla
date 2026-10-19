@@ -113,10 +113,12 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private static final String MESSAGE_BLOCK_INVALID = "Invalid content part";
     private static final String MESSAGE_TOOL_UNSUPPORTED = "Unsupported tool";
     private static final String MESSAGE_ATTRIBUTE_TOO_LARGE = "Invalid request section";
+    private static final String MESSAGE_MEDIA_TYPE = "inlineData mimeType must precede data larger than the decode window";
     private static final String MEMBER_FUNCTION_DECLARATIONS = "functionDeclarations";
     private static final String MEMBER_FUNCTION_CALL = "functionCall";
     private static final String MEMBER_FUNCTION_RESPONSE = "functionResponse";
     private static final int CALLS_MAX = 16;
+    private static final int MEDIA_TYPES = 4;
     private static final int TOOL_HOLD_MAX = 8192;
     private static final String TOOL_CALL_ID_PREFIX = "call_";
     private static final int TOOL_PART_MAX = 24576;
@@ -954,6 +956,16 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                         server.probe(LlmSectionType.TOOL_RESULT, textMessage(server), decodeTool, decodeParts);
                         server.decoder = decodeAttributes;
                     }
+                    else if (media(key) && textSection(server) == LlmSectionType.USER_TEXT)
+                    {
+                        server.probe(LlmSectionType.USER_DOCUMENT, textMessage(server), decodeTool, decodeParts);
+                        server.decoder = decodeAttributes;
+                    }
+                    else if (media(key))
+                    {
+                        server.onDecodeInvalidRequest(traceId, MESSAGE_BLOCK_INVALID);
+                        break decode;
+                    }
                     else
                     {
                         server.release();
@@ -1215,7 +1227,11 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 server.onDecodeInvalidRequest(traceId, MESSAGE_ATTRIBUTE_TOO_LARGE);
                 break;
             default:
-                if (server.position() - server.holdFrom > server.holdMax)
+                if (server.position() - server.holdFrom > server.holdMax && server.probe.unclassified())
+                {
+                    server.onDecodeInvalidRequest(traceId, MESSAGE_MEDIA_TYPE);
+                }
+                else if (server.position() - server.holdFrom > server.holdMax)
                 {
                     server.captureProbed();
                 }
@@ -1384,6 +1400,13 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         }
 
         return deferred;
+    }
+
+    private static boolean media(
+        CharSequence key)
+    {
+        return matches(key, "inlineData") || matches(key, "inline_data") ||
+            matches(key, "fileData") || matches(key, "file_data");
     }
 
     private static LlmSectionType textSection(
@@ -1623,6 +1646,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         private LlmSectionPipeline textPipeline;
         private LlmSectionPipeline toolDefinitionPipeline;
         private LlmSectionPipeline toolCallPipeline;
+        private final LlmSectionPipeline[] mediaPipelines = new LlmSectionPipeline[MEDIA_TYPES];
         private LlmSectionPipeline toolResultPipeline;
         private LlmGeminiToolResultToCanonical toolResultTransform;
         private final String[] callNames = new String[CALLS_MAX];
@@ -1971,8 +1995,21 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             probeMessage = message;
             probeCapture = capturing;
             probeThen = then;
-            holdMax = type == LlmSectionType.TOOL_CALL || type == LlmSectionType.TOOL_RESULT ? TOOL_HOLD_MAX : HOLD_MAX;
+            holdMax = switch (type)
+            {
+            case TOOL_CALL, TOOL_RESULT -> TOOL_HOLD_MAX;
+            case USER_IMAGE, USER_DOCUMENT, USER_AUDIO, USER_VIDEO -> mediaHoldMax();
+            default -> HOLD_MAX;
+            };
             probe.begin(type);
+        }
+
+        private int mediaHoldMax()
+        {
+            final int room = (encodePool.slotCapacity() - REQUEST_ENCODE_SLACK) / REQUEST_CANONICAL_GROWTH;
+            final int credit = Math.min(stream.initialMax, room);
+
+            return Math.max(credit - FRAMING_RESERVE, 0) / CONTROL_GROWTH - MIN_WINDOW;
         }
 
         private void captureProbed()
@@ -2176,6 +2213,9 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 }
                 pipeline = toolDefinitionPipeline;
                 break;
+            case USER_IMAGE, USER_DOCUMENT, USER_AUDIO, USER_VIDEO:
+                pipeline = mediaPipeline(type);
+                break;
             default:
                 break;
             }
@@ -2238,6 +2278,33 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 attributes, buffer, offset, length);
 
             blockFlags = Flags.NONE;
+        }
+
+        private LlmSectionPipeline mediaPipeline(
+            LlmSectionType type)
+        {
+            final int index = switch (type)
+            {
+            case USER_IMAGE -> 0;
+            case USER_AUDIO -> 1;
+            case USER_VIDEO -> 2;
+            default -> 3;
+            };
+
+            if (mediaPipelines[index] == null)
+            {
+                final LlmGeminiMediaToCanonical transform = switch (type)
+                {
+                case USER_IMAGE -> LlmGeminiMediaToCanonical.image();
+                case USER_AUDIO -> LlmGeminiMediaToCanonical.audio();
+                case USER_VIDEO -> LlmGeminiMediaToCanonical.video();
+                default -> LlmGeminiMediaToCanonical.document();
+                };
+
+                mediaPipelines[index] = new LlmSectionPipeline(transform, new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+            }
+
+            return mediaPipelines[index];
         }
 
         private LlmGeminiToolResultToCanonical toolResultTransform()

@@ -4004,4 +4004,310 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.user.image.inline/client",
+        "${net}/gemini.section.user.image.inline/server"})
+    public void shouldEncodeGeminiSectionUserImageInline() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.user.image.inline.data.first/client",
+        "${net}/gemini.section.user.image.inline.data.first/server"})
+    public void shouldEncodeGeminiSectionUserImageInlineDataFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.user.image.inline.snake/client",
+        "${net}/gemini.section.user.image.inline.snake/server"})
+    public void shouldEncodeGeminiSectionUserImageInlineSnake() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.user.image.inline.text/client",
+        "${net}/gemini.section.user.image.inline.text/server"})
+    public void shouldEncodeGeminiSectionUserImageInlineText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.user.image.inline.text.first/client",
+        "${net}/gemini.section.user.image.inline.text.first/server"})
+    public void shouldEncodeGeminiSectionUserImageInlineTextFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.user.image.url/client",
+        "${net}/gemini.section.user.image.url/server"})
+    public void shouldEncodeGeminiSectionUserImageUrl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.user.image.url.first/client",
+        "${net}/gemini.section.user.image.url.first/server"})
+    public void shouldEncodeGeminiSectionUserImageUrlFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.user.image.reference/client",
+        "${net}/gemini.section.user.image.reference/server"})
+    public void shouldEncodeGeminiSectionUserImageReference() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.user.image.reference.storage/client",
+        "${net}/gemini.section.user.image.reference.storage/server"})
+    public void shouldEncodeGeminiSectionUserImageReferenceStorage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.user.document.inline/client",
+        "${net}/gemini.section.user.document.inline/server"})
+    public void shouldEncodeGeminiSectionUserDocumentInline() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.user.document.url/client",
+        "${net}/gemini.section.user.document.url/server"})
+    public void shouldEncodeGeminiSectionUserDocumentUrl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.user.document.reference/client",
+        "${net}/gemini.section.user.document.reference/server"})
+    public void shouldEncodeGeminiSectionUserDocumentReference() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.user.document.text/client",
+        "${net}/gemini.section.user.document.text/server"})
+    public void shouldEncodeGeminiSectionUserDocumentText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.user.audio.inline/client",
+        "${net}/gemini.section.user.audio.inline/server"})
+    public void shouldEncodeGeminiSectionUserAudioInline() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.user.audio.url/client",
+        "${net}/gemini.section.user.audio.url/server"})
+    public void shouldEncodeGeminiSectionUserAudioUrl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.user.audio.mpeg/client",
+        "${net}/gemini.section.user.audio.mpeg/server"})
+    public void shouldEncodeGeminiSectionUserAudioMpeg() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.user.video.inline/client",
+        "${net}/gemini.section.user.video.inline/server"})
+    public void shouldEncodeGeminiSectionUserVideoInline() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.user.video.url/client",
+        "${net}/gemini.section.user.video.url/server"})
+    public void shouldEncodeGeminiSectionUserVideoUrl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.user.video.reference/client",
+        "${net}/gemini.section.user.video.reference/server"})
+    public void shouldEncodeGeminiSectionUserVideoReference() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.user.video.metadata/client",
+        "${net}/gemini.section.user.video.metadata/server"})
+    public void shouldEncodeGeminiSectionUserVideoMetadata() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.user.image.display.name/client",
+        "${net}/gemini.section.user.image.display.name/server"})
+    public void shouldEncodeGeminiSectionUserImageDisplayName() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.user.image.inline.10k/client",
+        "${net}/gemini.section.user.image.inline.10k/server"})
+    public void shouldEncodeGeminiUserImageInline10K() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.user.image.inline.100k/client",
+        "${net}/gemini.section.user.image.inline.100k/server"})
+    public void shouldEncodeGeminiUserImageInline100K() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.rejected.media.type.last/client",
+        "${net}/gemini.section.rejected.media.type.last/server"})
+    public void shouldEncodeGeminiSectionRejectedMediaTypeLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.user.image.inline/client",
+        "${net}/gemini.transform.user.image.inline/server"})
+    public void shouldEncodeGeminiTransformUserImageInline() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.user.image.url/client",
+        "${net}/gemini.transform.user.image.url/server"})
+    public void shouldEncodeGeminiTransformUserImageUrl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.user.image.url.untyped/client",
+        "${net}/gemini.transform.user.image.url.untyped/server"})
+    public void shouldEncodeGeminiTransformUserImageUrlUntyped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.user.image.reference/client",
+        "${net}/gemini.transform.user.image.reference/server"})
+    public void shouldEncodeGeminiTransformUserImageReference() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.user.image.detail/client",
+        "${net}/gemini.transform.user.image.detail/server"})
+    public void shouldEncodeGeminiTransformUserImageDetail() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.user.document.inline/client",
+        "${net}/gemini.transform.user.document.inline/server"})
+    public void shouldEncodeGeminiTransformUserDocumentInline() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.user.document.filename/client",
+        "${net}/gemini.transform.user.document.filename/server"})
+    public void shouldEncodeGeminiTransformUserDocumentFilename() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.user.document.reference/client",
+        "${net}/gemini.transform.user.document.reference/server"})
+    public void shouldEncodeGeminiTransformUserDocumentReference() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.user.audio.inline/client",
+        "${net}/gemini.transform.user.audio.inline/server"})
+    public void shouldEncodeGeminiTransformUserAudioInline() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.user.video.url/client",
+        "${net}/gemini.transform.user.video.url/server"})
+    public void shouldEncodeGeminiTransformUserVideoUrl() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmAttributeProbe.Status.COMPLETE;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmAttributeProbe.Status.PENDING;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmAttributeProbe.Status.REJECTED;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmAttributeProbe.Status.RESOLVED;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmAttributeProbeRunner.WHOLE;
@@ -38,6 +39,10 @@ public class LlmGeminiAttributeProbeTest
         assertThat(LlmGeminiAttributeProbe.carries(LlmSectionType.TOOL_CALL), equalTo(true));
         assertThat(LlmGeminiAttributeProbe.carries(LlmSectionType.TOOL_RESULT), equalTo(true));
         assertThat(LlmGeminiAttributeProbe.carries(LlmSectionType.TOOL_DEFINITION), equalTo(true));
+        assertThat(LlmGeminiAttributeProbe.carries(LlmSectionType.USER_IMAGE), equalTo(true));
+        assertThat(LlmGeminiAttributeProbe.carries(LlmSectionType.USER_DOCUMENT), equalTo(true));
+        assertThat(LlmGeminiAttributeProbe.carries(LlmSectionType.USER_AUDIO), equalTo(true));
+        assertThat(LlmGeminiAttributeProbe.carries(LlmSectionType.USER_VIDEO), equalTo(true));
         assertThat(LlmGeminiAttributeProbe.carries(LlmSectionType.USER_TEXT), equalTo(false));
         assertThat(LlmGeminiAttributeProbe.carries(LlmSectionType.ASSISTANT_TEXT), equalTo(false));
         assertThat(LlmGeminiAttributeProbe.carries(LlmSectionType.CONTROL), equalTo(false));
@@ -119,5 +124,104 @@ public class LlmGeminiAttributeProbeTest
 
         assertThat(runObject(probe, LlmSectionType.TOOL_DEFINITION, json, WHOLE, false), equalTo(RESOLVED));
         assertThat(probe.attributes().toolName(), equalTo("get_weather"));
+    }
+
+    @Test
+    public void shouldProbeInlineDataTypeFromMediaType()
+    {
+        final String json = "{\"inlineData\":{\"mimeType\":\"image/png\",\"data\":\"QUJD\"}}";
+
+        assertThat(runToEnd(probe, LlmSectionType.USER_DOCUMENT, json, WHOLE), equalTo(COMPLETE));
+        assertThat(probe.type(), equalTo(LlmSectionType.USER_IMAGE));
+        assertThat(probe.attributes().mediaType(), equalTo("image/png"));
+        assertThat(probe.attributes().source(), equalTo(LlmSectionAttributes.SOURCE_INLINE));
+        assertThat(probe.unclassified(), equalTo(false));
+    }
+
+    @Test
+    public void shouldProbeInlineDataWithDataFirst()
+    {
+        final String json = "{\"inline_data\":{\"data\":\"QUJD\",\"mime_type\":\"application/pdf\"}}";
+
+        assertThat(runToEnd(probe, LlmSectionType.USER_DOCUMENT, json, WHOLE), equalTo(COMPLETE));
+        assertThat(probe.type(), equalTo(LlmSectionType.USER_DOCUMENT));
+        assertThat(probe.attributes().mediaType(), equalTo("application/pdf"));
+        assertThat(probe.attributes().source(), equalTo(LlmSectionAttributes.SOURCE_INLINE));
+    }
+
+    @Test
+    public void shouldProbeMediaTypeFamilies()
+    {
+        for (String[] family : new String[][]
+        {
+            {"audio/wav", "USER_AUDIO"},
+            {"video/mp4", "USER_VIDEO"},
+            {"image/jpeg", "USER_IMAGE"},
+            {"text/plain", "USER_DOCUMENT"}
+        })
+        {
+            final String json = "{\"inlineData\":{\"mimeType\":\"" + family[0] + "\",\"data\":\"QUJD\"}}";
+
+            assertThat(runToEnd(probe, LlmSectionType.USER_DOCUMENT, json, WHOLE), equalTo(COMPLETE));
+            assertThat(probe.type(), equalTo(LlmSectionType.valueOf(family[1])));
+        }
+    }
+
+    @Test
+    public void shouldProbeFileDataUrl()
+    {
+        final String json = "{\"fileData\":{\"mimeType\":\"image/png\",\"fileUri\":\"https://example.com/a.png\"}}";
+
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_DOCUMENT, json, WHOLE), equalTo(RESOLVED));
+        assertThat(probe.attributes().source(), equalTo(LlmSectionAttributes.SOURCE_URL));
+        assertThat(probe.attributes().mediaType(), equalTo("image/png"));
+    }
+
+    @Test
+    public void shouldProbeFileDataFilesHandleAsReference()
+    {
+        final String uri = "https://generativelanguage.googleapis.com/v1beta/files/abc123";
+        final String json = "{\"fileData\":{\"fileUri\":\"" + uri + "\",\"mimeType\":\"application/pdf\"}}";
+
+        assertThat(runToEnd(probe, LlmSectionType.USER_DOCUMENT, json, WHOLE), equalTo(COMPLETE));
+        assertThat(probe.attributes().source(), equalTo(LlmSectionAttributes.SOURCE_REFERENCE));
+        assertThat(probe.attributes().refId(), equalTo(uri));
+    }
+
+    @Test
+    public void shouldProbeFileDataStorageUriAsReference()
+    {
+        final String json = "{\"fileData\":{\"mimeType\":\"image/png\",\"fileUri\":\"gs://bucket/a.png\"}}";
+
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_DOCUMENT, json, WHOLE), equalTo(RESOLVED));
+        assertThat(probe.attributes().source(), equalTo(LlmSectionAttributes.SOURCE_REFERENCE));
+        assertThat(probe.attributes().refId(), equalTo("gs://bucket/a.png"));
+    }
+
+    @Test
+    public void shouldCompleteFileDataWithoutMediaType()
+    {
+        final String json = "{\"fileData\":{\"fileUri\":\"https://example.com/a.png\"}}";
+
+        assertThat(runToEnd(probe, LlmSectionType.USER_DOCUMENT, json, WHOLE), equalTo(COMPLETE));
+        assertThat(probe.attributes().mediaType(), nullValue());
+        assertThat(probe.unclassified(), equalTo(true));
+    }
+
+    @Test
+    public void shouldStayUnclassifiedUntilMediaTypeAfterData()
+    {
+        final String json = "{\"inlineData\":{\"data\":\"QUJD\"";
+
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_DOCUMENT, json, WHOLE), equalTo(PENDING));
+        assertThat(probe.unclassified(), equalTo(true));
+    }
+
+    @Test
+    public void shouldNotClassifyTextSectionsAsMedia()
+    {
+        probe.begin(LlmSectionType.USER_TEXT);
+
+        assertThat(probe.unclassified(), equalTo(false));
     }
 }

@@ -117,6 +117,10 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
     private static final int KIND_SYSTEM_INSTRUCTION = 1;
     private static final int KIND_USER_TEXT = 2;
+    private static final int KIND_USER_IMAGE = 3;
+    private static final int KIND_USER_DOCUMENT = 4;
+    private static final int KIND_USER_AUDIO = 5;
+    private static final int KIND_USER_VIDEO = 12;
     private static final int KIND_ASSISTANT_TEXT = 6;
     private static final int KIND_ASSISTANT_REFUSAL = 7;
     private static final int KIND_TOOL_DEFINITION = 9;
@@ -126,6 +130,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final int KIND_DROPPED = 16;
     private static final int KIND_UNSUPPORTED = 17;
     private static final int CALLS_MAX = 16;
+    private static final int MEDIA_KINDS = 4;
     private static final int CONTROL_PENDING = 0;
     private static final int CONTROL_WRITE = 1;
     private static final int CONTROL_DROP = 2;
@@ -377,6 +382,10 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         {
         case SYSTEM_INSTRUCTION -> KIND_SYSTEM_INSTRUCTION;
         case USER_TEXT -> KIND_USER_TEXT;
+        case USER_IMAGE -> KIND_USER_IMAGE;
+        case USER_DOCUMENT -> KIND_USER_DOCUMENT;
+        case USER_AUDIO -> KIND_USER_AUDIO;
+        case USER_VIDEO -> KIND_USER_VIDEO;
         case ASSISTANT_TEXT -> KIND_ASSISTANT_TEXT;
         case ASSISTANT_REFUSAL -> KIND_ASSISTANT_REFUSAL;
         case TOOL_DEFINITION -> KIND_TOOL_DEFINITION;
@@ -392,6 +401,15 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         int kind)
     {
         return kind == KIND_ASSISTANT_TEXT || kind == KIND_ASSISTANT_REFUSAL || kind == KIND_TOOL_CALL ? ROLE_MODEL : ROLE_USER;
+    }
+
+    private static boolean media(
+        int kind)
+    {
+        return kind == KIND_USER_IMAGE ||
+            kind == KIND_USER_DOCUMENT ||
+            kind == KIND_USER_AUDIO ||
+            kind == KIND_USER_VIDEO;
     }
 
     private static boolean text(
@@ -3519,6 +3537,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private LlmSectionPipeline sectionPipeline;
         private LlmSectionPipeline toolDefinitionPipeline;
         private LlmSectionPipeline toolCallPipeline;
+        private final LlmSectionPipeline[] mediaPipelines = new LlmSectionPipeline[MEDIA_KINDS];
         private LlmGeminiToolCallFromCanonical toolCallTransform;
         private int messageToolCalls;
         private int partDepth = 1;
@@ -3642,6 +3661,33 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             return toolCallPipeline;
         }
 
+        private LlmSectionPipeline mediaPipeline(
+            int kind)
+        {
+            final int index = switch (kind)
+            {
+            case KIND_USER_IMAGE -> 0;
+            case KIND_USER_AUDIO -> 1;
+            case KIND_USER_VIDEO -> 2;
+            default -> 3;
+            };
+
+            if (mediaPipelines[index] == null)
+            {
+                final LlmGeminiMediaFromCanonical transform = switch (kind)
+                {
+                case KIND_USER_IMAGE -> LlmGeminiMediaFromCanonical.image();
+                case KIND_USER_AUDIO -> LlmGeminiMediaFromCanonical.audio();
+                case KIND_USER_VIDEO -> LlmGeminiMediaFromCanonical.video();
+                default -> LlmGeminiMediaFromCanonical.document();
+                };
+
+                mediaPipelines[index] = new LlmSectionPipeline(transform, transformBuffer);
+            }
+
+            return mediaPipelines[index];
+        }
+
         private LlmSectionPipeline toolDefinitionPipeline()
         {
             if (toolDefinitionPipeline == null)
@@ -3688,7 +3734,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         {
             sectionKind = kind;
             sectionOpen = false;
-            translated = kind == KIND_CONTROL || kind == KIND_TOOL_DEFINITION || kind == KIND_TOOL_CALL;
+            translated = kind == KIND_CONTROL || kind == KIND_TOOL_DEFINITION || kind == KIND_TOOL_CALL || media(kind);
 
             if (kind == 0 || kind == KIND_UNSUPPORTED)
             {
@@ -3767,6 +3813,10 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             else if (kind == KIND_TOOL_RESULT)
             {
                 beginToolResult();
+            }
+            else if (media(kind))
+            {
+                beginSectionStreaming(mediaPipeline(kind), sectionOutput);
             }
             else
             {
