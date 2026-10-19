@@ -108,6 +108,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private static final String REASON_API_KEY_INVALID = "API_KEY_INVALID";
     private static final String MESSAGE_PARSE_ERROR = "Invalid JSON payload received.";
     private static final String MESSAGE_ROLE_ORDER = "role must precede parts in each content";
+    private static final String MESSAGE_ROLE_INVALID = "Role '%s' is not supported. Please use a valid role: user, model.";
     private static final String MESSAGE_BLOCK_INVALID = "Invalid content part";
     private static final int BLOCK_BUFFER_MAX = 4096;
 
@@ -737,9 +738,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    server.skipDepth = 1;
-                    server.skipThen = decodeContents;
-                    server.decoder = decodeSkip;
+                    server.onDecodeInvalidRequest(traceId, MESSAGE_ROLE_INVALID.formatted(role));
                 }
             }
         }

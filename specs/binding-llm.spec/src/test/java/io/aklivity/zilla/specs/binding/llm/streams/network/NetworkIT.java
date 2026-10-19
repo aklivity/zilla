@@ -3626,4 +3626,112 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.rejected.json.malformed/client",
+        "${net}/gemini.section.rejected.json.malformed/server"})
+    public void shouldEncodeGeminiSectionRejectedJsonMalformed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.rejected.contents.not.array/client",
+        "${net}/gemini.section.rejected.contents.not.array/server"})
+    public void shouldEncodeGeminiSectionRejectedContentsNotArray() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.rejected.part.invalid/client",
+        "${net}/gemini.section.rejected.part.invalid/server"})
+    public void shouldEncodeGeminiSectionRejectedPartInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.rejected.part.text.invalid/client",
+        "${net}/gemini.section.rejected.part.text.invalid/server"})
+    public void shouldEncodeGeminiSectionRejectedPartTextInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.rejected.role.invalid/client",
+        "${net}/gemini.section.rejected.role.invalid/server"})
+    public void shouldEncodeGeminiSectionRejectedRoleInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.rejected.role.order/client",
+        "${net}/gemini.section.rejected.role.order/server"})
+    public void shouldEncodeGeminiSectionRejectedRoleOrder() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.rejected.trailing.content/client",
+        "${net}/gemini.section.rejected.trailing.content/server"})
+    public void shouldEncodeGeminiSectionRejectedTrailingContent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.unsupported.content.type/client",
+        "${net}/gemini.request.unsupported.content.type/server"})
+    public void shouldEncodeGeminiRequestUnsupportedContentType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.role.absent/client",
+        "${net}/gemini.section.role.absent/server"})
+    public void shouldEncodeGeminiSectionRoleAbsent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.role.after.parts/client",
+        "${net}/gemini.section.role.after.parts/server"})
+    public void shouldEncodeGeminiSectionRoleAfterParts() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.10k/client",
+        "${net}/gemini.10k/server"})
+    public void shouldEncodeGemini10K() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.100k/client",
+        "${net}/gemini.100k/server"})
+    public void shouldEncodeGemini100K() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -303,4 +303,123 @@ public class LlmGeminiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.rejected.json.malformed/client",
+        "${app}/gemini.section.rejected.json.malformed/server"})
+    public void shouldForwardGeminiSectionRejectedJsonMalformed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.rejected.contents.not.array/client",
+        "${app}/gemini.section.rejected.contents.not.array/server"})
+    public void shouldForwardGeminiSectionRejectedContentsNotArray() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.rejected.part.invalid/client",
+        "${app}/gemini.section.rejected.part.invalid/server"})
+    public void shouldForwardGeminiSectionRejectedPartInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.rejected.part.text.invalid/client",
+        "${app}/gemini.section.rejected.part.text.invalid/server"})
+    public void shouldForwardGeminiSectionRejectedPartTextInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.rejected.role.invalid/client",
+        "${app}/gemini.section.rejected.role.invalid/server"})
+    public void shouldForwardGeminiSectionRejectedRoleInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.rejected.role.order/client",
+        "${app}/gemini.section.rejected.role.order/server"})
+    public void shouldForwardGeminiSectionRejectedRoleOrder() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.rejected.trailing.content/client",
+        "${app}/gemini.section.rejected.trailing.content/server"})
+    public void shouldForwardGeminiSectionRejectedTrailingContent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.unsupported.content.type/client"})
+    public void shouldForwardGeminiRequestUnsupportedContentType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.role.absent/client",
+        "${app}/gemini.section.role.absent/server"})
+    public void shouldForwardGeminiSectionRoleAbsent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.role.after.parts/client",
+        "${app}/gemini.section.role.after.parts/server"})
+    public void shouldForwardGeminiSectionRoleAfterParts() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.10k/client",
+        "${app}/gemini.10k/server"})
+    public void shouldForwardGemini10K() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.100k/client",
+        "${app}/gemini.100k/server"})
+    public void shouldForwardGemini100K() throws Exception
+    {
+        k3po.finish();
+    }
 }

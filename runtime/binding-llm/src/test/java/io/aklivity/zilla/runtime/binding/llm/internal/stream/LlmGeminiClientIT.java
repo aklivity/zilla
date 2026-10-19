@@ -369,4 +369,24 @@ public class LlmGeminiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.10k/client",
+        "${net}/gemini.10k/server"})
+    public void shouldForwardGemini10K() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.100k/client",
+        "${net}/gemini.100k/server"})
+    public void shouldForwardGemini100K() throws Exception
+    {
+        k3po.finish();
+    }
 }

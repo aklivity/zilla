@@ -3968,4 +3968,40 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/gemini.section.role.absent/client",
+        "${app}/gemini.section.role.absent/server"})
+    public void shouldForwardGeminiSectionRoleAbsent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.section.role.after.parts/client",
+        "${app}/gemini.section.role.after.parts/server"})
+    public void shouldForwardGeminiSectionRoleAfterParts() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.10k/client",
+        "${app}/gemini.10k/server"})
+    public void shouldForwardGemini10K() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.100k/client",
+        "${app}/gemini.100k/server"})
+    public void shouldForwardGemini100K() throws Exception
+    {
+        k3po.finish();
+    }
 }
