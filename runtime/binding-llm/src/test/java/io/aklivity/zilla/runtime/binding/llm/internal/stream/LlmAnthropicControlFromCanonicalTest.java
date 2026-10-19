@@ -28,7 +28,8 @@ public class LlmAnthropicControlFromCanonicalTest
     private static final String LONG = "x".repeat(300);
     private static final String HUGE = "x".repeat(5000);
 
-    private final LlmAnthropicControlFromCanonical transform = new LlmAnthropicControlFromCanonical();
+    private final LlmAnthropicControlFromCanonical transform = new LlmAnthropicControlFromCanonical(true);
+    private final LlmAnthropicControlFromCanonical foreign = new LlmAnthropicControlFromCanonical(false);
 
     @Test
     public void shouldRestoreOwnPrefixedMember()
@@ -56,6 +57,30 @@ public class LlmAnthropicControlFromCanonicalTest
             json("{'note':'" + HUGE + "'}"));
 
         assertThat(transform.member(), equalTo("metadata"));
+    }
+
+    @Test
+    public void shouldDropOwnPrefixedMemberAcrossDialects()
+    {
+        assertTransforms(foreign, json("{'anthropic:temperature':0.7}"), "null");
+
+        assertThat(foreign.member(), nullValue());
+    }
+
+    @Test
+    public void shouldDropOwnPrefixedObjectMemberAcrossDialects()
+    {
+        assertTransforms(foreign, json("{'anthropic:metadata':{'a':[1,{'b':'" + LONG + "'}]}}"), "null");
+
+        assertThat(foreign.member(), nullValue());
+    }
+
+    @Test
+    public void shouldPassUnprefixedMemberAcrossDialects()
+    {
+        assertTransforms(foreign, json("{'temperature':0.2}"), "0.2");
+
+        assertThat(foreign.member(), equalTo("temperature"));
     }
 
     @Test

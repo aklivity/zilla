@@ -29,8 +29,10 @@ final class LlmAnthropicToolCallFromCanonical extends LlmToolTransform
     private boolean argumented;
 
     LlmAnthropicToolCallFromCanonical(
-        String type)
+        String type,
+        boolean sameDialect)
     {
+        super(MODE_OBJECT, sameDialect);
         this.type = type;
     }
 

@@ -25,9 +25,10 @@ final class LlmOpenaiControlFromCanonical extends LlmToolTransform
 
     private String member;
 
-    LlmOpenaiControlFromCanonical()
+    LlmOpenaiControlFromCanonical(
+        boolean sameDialect)
     {
-        super(MODE_EXTRACT);
+        super(MODE_EXTRACT, sameDialect);
     }
 
     String member()

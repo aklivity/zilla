@@ -21,7 +21,8 @@ import org.junit.Test;
 
 public class LlmOpenaiCitationsFromCanonicalTest
 {
-    private final LlmOpenaiCitationsFromCanonical transform = new LlmOpenaiCitationsFromCanonical();
+    private final LlmOpenaiCitationsFromCanonical transform = new LlmOpenaiCitationsFromCanonical(true);
+    private final LlmOpenaiCitationsFromCanonical foreign = new LlmOpenaiCitationsFromCanonical(false);
 
     @Test
     public void shouldKeepUrlCitation()
@@ -57,5 +58,21 @@ public class LlmOpenaiCitationsFromCanonicalTest
         assertTransforms(transform,
             json("[{'anthropic:type':'char_location','anthropic:cited_text':'blue'}]"),
             json("[]"));
+    }
+
+    @Test
+    public void shouldDropOwnPrefixedMemberAcrossDialects()
+    {
+        assertTransforms(foreign,
+            json("[{'type':'url_citation','url_citation':{'url':'https://example.com','openai:extra':1}}]"),
+            json("[{'type':'url_citation','url_citation':{'url':'https://example.com'}}]"));
+    }
+
+    @Test
+    public void shouldPassUnprefixedMemberAcrossDialects()
+    {
+        assertTransforms(foreign,
+            json("[{'type':'url_citation','url_citation':{'url':'https://example.com','start_index':0}}]"),
+            json("[{'type':'url_citation','url_citation':{'url':'https://example.com','start_index':0}}]"));
     }
 }

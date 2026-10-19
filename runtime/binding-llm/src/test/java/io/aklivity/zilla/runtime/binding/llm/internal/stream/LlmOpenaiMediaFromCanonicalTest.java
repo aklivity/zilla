@@ -22,9 +22,10 @@ import org.junit.Test;
 
 public class LlmOpenaiMediaFromCanonicalTest
 {
-    private final LlmOpenaiMediaFromCanonical image = LlmOpenaiMediaFromCanonical.image();
-    private final LlmOpenaiMediaFromCanonical document = LlmOpenaiMediaFromCanonical.document();
-    private final LlmOpenaiMediaFromCanonical audio = LlmOpenaiMediaFromCanonical.audio();
+    private final LlmOpenaiMediaFromCanonical image = LlmOpenaiMediaFromCanonical.image(true);
+    private final LlmOpenaiMediaFromCanonical document = LlmOpenaiMediaFromCanonical.document(true);
+    private final LlmOpenaiMediaFromCanonical audio = LlmOpenaiMediaFromCanonical.audio(true);
+    private final LlmOpenaiMediaFromCanonical foreignImage = LlmOpenaiMediaFromCanonical.image(false);
 
     @Test
     public void shouldPassCanonicalImage()
@@ -63,5 +64,21 @@ public class LlmOpenaiMediaFromCanonicalTest
     public void shouldRejectMediaThatIsNotAnObject()
     {
         assertRejects(image, json("['image']"));
+    }
+
+    @Test
+    public void shouldDropOwnPrefixedMembersAcrossDialects()
+    {
+        assertTransforms(foreignImage,
+            json("{'type':'image_url','openai:note':'x','image_url':{'url':'https://example.com/a.png','openai:z':true}}"),
+            json("{'type':'image_url','image_url':{'url':'https://example.com/a.png'}}"));
+    }
+
+    @Test
+    public void shouldPassUnprefixedMembersAcrossDialects()
+    {
+        assertTransforms(foreignImage,
+            json("{'type':'image_url','kept':1,'image_url':{'url':'https://example.com/a.png','detail':'high'}}"),
+            json("{'type':'image_url','kept':1,'image_url':{'url':'https://example.com/a.png','detail':'high'}}"));
     }
 }

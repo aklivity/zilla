@@ -3910,6 +3910,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
             responseId = llmBeginEx != null ? llmBeginEx.id().asString() : null;
             responseModel = llmBeginEx != null ? llmBeginEx.model().asString() : null;
+            responseDialect = llmBeginEx != null ? llmBeginEx.dialect().asString() : null;
             replyBegun = true;
 
             server.doNetBegin(traceId, authorization, affinity, STATUS_OK,
@@ -4526,6 +4527,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
         private String responseId;
         private String responseModel;
+        private String responseDialect;
 
         private int[] eventOffsets;
         private int[] eventLengths;
@@ -4794,7 +4796,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         {
             if (toolBlock == null)
             {
-                toolBlock = new LlmSectionPipeline(new LlmAnthropicToolCallFromCanonical(BLOCK_TOOL_USE),
+                toolBlock = new LlmSectionPipeline(
+                    new LlmAnthropicToolCallFromCanonical(BLOCK_TOOL_USE, NAME.equals(responseDialect)),
                     new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
             }
 
@@ -4815,7 +4818,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         {
             if (controlPipeline == null)
             {
-                controlTransform = new LlmAnthropicControlFromCanonical();
+                controlTransform = new LlmAnthropicControlFromCanonical(NAME.equals(responseDialect));
                 controlPipeline = new LlmSectionPipeline(controlTransform, new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
             }
 
@@ -5187,7 +5190,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 {
                     if (reasoningBlock == null)
                     {
-                        reasoningBlock = new LlmSectionPipeline(new LlmAnthropicReasoningFromCanonical(true),
+                        reasoningBlock = new LlmSectionPipeline(
+                            new LlmAnthropicReasoningFromCanonical(true, NAME.equals(responseDialect)),
                             new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
                     }
 

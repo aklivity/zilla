@@ -24,7 +24,7 @@ public class LlmToolDefinitionCanonicalRoundTripTest
     private static final String LONG = "x".repeat(300);
 
     private final LlmAnthropicToolDefinitionToCanonical toCanonical = new LlmAnthropicToolDefinitionToCanonical();
-    private final LlmAnthropicToolDefinitionFromCanonical fromCanonical = new LlmAnthropicToolDefinitionFromCanonical();
+    private final LlmAnthropicToolDefinitionFromCanonical fromCanonical = new LlmAnthropicToolDefinitionFromCanonical(true);
 
     @Test
     public void shouldRoundTripAnthropicToolDefinition()

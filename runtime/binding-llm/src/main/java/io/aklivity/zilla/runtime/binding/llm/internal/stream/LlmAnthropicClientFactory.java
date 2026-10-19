@@ -3908,6 +3908,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private final String scheme;
         private final String authority;
         private final String requestPath;
+        private final boolean sameDialect;
 
         private final JsonGeneratorEx generator;
 
@@ -3987,6 +3988,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             this.scheme = server.scheme;
             this.authority = server.host + ":" + server.port;
             this.requestPath = server.path + PATH_MESSAGES;
+            this.sameDialect = !stream.crossDialect;
             this.generator = JsonEx.createGenerator();
         }
 
@@ -4085,7 +4087,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             if (imagePipeline == null)
             {
-                imagePipeline = new LlmSectionPipeline(LlmAnthropicMediaFromCanonical.image(), transformBuffer);
+                imagePipeline = new LlmSectionPipeline(LlmAnthropicMediaFromCanonical.image(sameDialect), transformBuffer);
             }
 
             return imagePipeline;
@@ -4095,7 +4097,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             if (documentPipeline == null)
             {
-                documentPipeline = new LlmSectionPipeline(LlmAnthropicMediaFromCanonical.document(), transformBuffer);
+                documentPipeline = new LlmSectionPipeline(LlmAnthropicMediaFromCanonical.document(sameDialect), transformBuffer);
             }
 
             return documentPipeline;
@@ -4105,7 +4107,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             if (reasoningPipeline == null)
             {
-                reasoningPipeline = new LlmSectionPipeline(new LlmAnthropicReasoningFromCanonical(), transformBuffer);
+                reasoningPipeline = new LlmSectionPipeline(new LlmAnthropicReasoningFromCanonical(sameDialect), transformBuffer);
             }
 
             return reasoningPipeline;
@@ -4115,7 +4117,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             if (toolCallPipeline == null)
             {
-                toolCallPipeline = new LlmSectionPipeline(new LlmAnthropicToolCallFromCanonical(BLOCK_TOOL_USE),
+                toolCallPipeline = new LlmSectionPipeline(new LlmAnthropicToolCallFromCanonical(BLOCK_TOOL_USE, sameDialect),
                     transformBuffer);
             }
 
@@ -4126,7 +4128,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             if (citationsPipeline == null)
             {
-                citationsPipeline = new LlmSectionPipeline(new LlmAnthropicCitationsFromCanonical(), transformBuffer);
+                citationsPipeline = new LlmSectionPipeline(new LlmAnthropicCitationsFromCanonical(sameDialect), transformBuffer);
             }
 
             return citationsPipeline;
@@ -4136,7 +4138,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             if (serverToolCallPipeline == null)
             {
-                serverToolCallPipeline = new LlmSectionPipeline(new LlmAnthropicToolCallFromCanonical(BLOCK_SERVER_TOOL_USE),
+                serverToolCallPipeline = new LlmSectionPipeline(
+                    new LlmAnthropicToolCallFromCanonical(BLOCK_SERVER_TOOL_USE, sameDialect),
                     transformBuffer);
             }
 
@@ -4147,7 +4150,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             if (toolDefinitionPipeline == null)
             {
-                toolDefinitionPipeline = new LlmSectionPipeline(new LlmAnthropicToolDefinitionFromCanonical(),
+                toolDefinitionPipeline = new LlmSectionPipeline(new LlmAnthropicToolDefinitionFromCanonical(sameDialect),
                     transformBuffer);
             }
 
@@ -4158,7 +4161,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             if (controlPipeline == null)
             {
-                controlTransform = new LlmAnthropicControlFromCanonical();
+                controlTransform = new LlmAnthropicControlFromCanonical(sameDialect);
                 controlPipeline = new LlmSectionPipeline(controlTransform, transformBuffer);
             }
 

@@ -4049,6 +4049,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private final String scheme;
         private final String authority;
         private final String requestPath;
+        private final boolean sameDialect;
 
         private final JsonGeneratorEx generator;
 
@@ -4131,6 +4132,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             this.scheme = server.scheme;
             this.authority = server.host + ":" + server.port;
             this.requestPath = server.path + PATH_CHAT_COMPLETIONS;
+            this.sameDialect = NAME.equals(stream.dialect);
             this.generator = JsonEx.createGenerator();
             this.bodyHeld = true;
         }
@@ -4224,7 +4226,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             if (imagePipeline == null)
             {
-                imagePipeline = new LlmSectionPipeline(LlmOpenaiMediaFromCanonical.image(), transformBuffer);
+                imagePipeline = new LlmSectionPipeline(LlmOpenaiMediaFromCanonical.image(sameDialect), transformBuffer);
             }
 
             return imagePipeline;
@@ -4234,7 +4236,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             if (documentPipeline == null)
             {
-                documentPipeline = new LlmSectionPipeline(LlmOpenaiMediaFromCanonical.document(), transformBuffer);
+                documentPipeline = new LlmSectionPipeline(LlmOpenaiMediaFromCanonical.document(sameDialect), transformBuffer);
             }
 
             return documentPipeline;
@@ -4244,7 +4246,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             if (audioPipeline == null)
             {
-                audioPipeline = new LlmSectionPipeline(LlmOpenaiMediaFromCanonical.audio(), transformBuffer);
+                audioPipeline = new LlmSectionPipeline(LlmOpenaiMediaFromCanonical.audio(sameDialect), transformBuffer);
             }
 
             return audioPipeline;
@@ -4254,7 +4256,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             if (toolCallPipeline == null)
             {
-                toolCallPipeline = new LlmSectionPipeline(new LlmOpenaiToolCallFromCanonical(), transformBuffer);
+                toolCallPipeline = new LlmSectionPipeline(new LlmOpenaiToolCallFromCanonical(sameDialect), transformBuffer);
             }
 
             return toolCallPipeline;
@@ -4264,7 +4266,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             if (citationsPipeline == null)
             {
-                citationsPipeline = new LlmSectionPipeline(new LlmOpenaiCitationsFromCanonical(), transformBuffer);
+                citationsPipeline = new LlmSectionPipeline(new LlmOpenaiCitationsFromCanonical(sameDialect), transformBuffer);
             }
 
             return citationsPipeline;
@@ -4274,7 +4276,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             if (controlPipeline == null)
             {
-                controlTransform = new LlmOpenaiControlFromCanonical();
+                controlTransform = new LlmOpenaiControlFromCanonical(sameDialect);
                 controlPipeline = new LlmSectionPipeline(controlTransform, transformBuffer);
             }
 
@@ -4285,7 +4287,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             if (toolDefinitionPipeline == null)
             {
-                toolDefinitionPipeline = new LlmSectionPipeline(new LlmOpenaiToolDefinitionFromCanonical(),
+                toolDefinitionPipeline = new LlmSectionPipeline(new LlmOpenaiToolDefinitionFromCanonical(sameDialect),
                     transformBuffer);
             }
 

@@ -25,7 +25,8 @@ public class LlmAnthropicToolDefinitionFromCanonicalTest
     private static final String LONG = "x".repeat(300);
     private static final String HUGE = "x".repeat(5000);
 
-    private final LlmAnthropicToolDefinitionFromCanonical transform = new LlmAnthropicToolDefinitionFromCanonical();
+    private final LlmAnthropicToolDefinitionFromCanonical transform = new LlmAnthropicToolDefinitionFromCanonical(true);
+    private final LlmAnthropicToolDefinitionFromCanonical foreign = new LlmAnthropicToolDefinitionFromCanonical(false);
 
     @Test
     public void shouldTransformFunctionToTool()
@@ -157,5 +158,21 @@ public class LlmAnthropicToolDefinitionFromCanonicalTest
     public void shouldRejectToolThatIsNotAnObject()
     {
         assertRejects(transform, json("[1]"));
+    }
+
+    @Test
+    public void shouldDropOwnPrefixedMemberAcrossDialects()
+    {
+        assertTransforms(foreign,
+            json("{'type':'function','function':{'anthropic:note':'x','name':'ping'}}"),
+            json("{'name':'ping','input_schema':{'type':'object'}}"));
+    }
+
+    @Test
+    public void shouldPassUnprefixedMemberAcrossDialects()
+    {
+        assertTransforms(foreign,
+            json("{'type':'function','function':{'strict':true,'name':'ping'}}"),
+            json("{'strict':true,'name':'ping','input_schema':{'type':'object'}}"));
     }
 }

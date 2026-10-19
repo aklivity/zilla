@@ -147,21 +147,21 @@ public class LlmSectionPipelineBM
     public void init()
     {
         toolDefinitionToCanonical = pipeline(new LlmAnthropicToolDefinitionToCanonical());
-        toolDefinitionFromAnthropic = pipeline(new LlmAnthropicToolDefinitionFromCanonical());
-        toolDefinitionFromOpenai = pipeline(new LlmOpenaiToolDefinitionFromCanonical());
+        toolDefinitionFromAnthropic = pipeline(new LlmAnthropicToolDefinitionFromCanonical(true));
+        toolDefinitionFromOpenai = pipeline(new LlmOpenaiToolDefinitionFromCanonical(true));
         toolCallToCanonical = pipeline(new LlmAnthropicToolCallToCanonical());
-        toolCallFromCanonical = pipeline(new LlmAnthropicToolCallFromCanonical("tool_use"));
+        toolCallFromCanonical = pipeline(new LlmAnthropicToolCallFromCanonical("tool_use", true));
         toolCallOpenaiToCanonical = pipeline(new LlmOpenaiToolCallToCanonical());
-        toolCallOpenaiFromCanonical = pipeline(new LlmOpenaiToolCallFromCanonical());
+        toolCallOpenaiFromCanonical = pipeline(new LlmOpenaiToolCallFromCanonical(true));
         imageToCanonical = pipeline(LlmAnthropicMediaToCanonical.image());
-        imageFromAnthropic = pipeline(LlmAnthropicMediaFromCanonical.image());
+        imageFromAnthropic = pipeline(LlmAnthropicMediaFromCanonical.image(true));
         citationsToCanonical = pipeline(new LlmAnthropicCitationsToCanonical());
-        citationsFromAnthropic = pipeline(new LlmAnthropicCitationsFromCanonical());
-        citationsFromOpenai = pipeline(new LlmOpenaiCitationsFromCanonical());
+        citationsFromAnthropic = pipeline(new LlmAnthropicCitationsFromCanonical(true));
+        citationsFromOpenai = pipeline(new LlmOpenaiCitationsFromCanonical(true));
         controlAnthropicToCanonical = pipeline(new LlmAnthropicControlToCanonical());
-        controlAnthropicFromCanonical = pipeline(new LlmAnthropicControlFromCanonical());
+        controlAnthropicFromCanonical = pipeline(new LlmAnthropicControlFromCanonical(true));
         controlOpenaiToCanonical = pipeline(new LlmOpenaiControlToCanonical());
-        controlOpenaiFromCanonical = pipeline(new LlmOpenaiControlFromCanonical());
+        controlOpenaiFromCanonical = pipeline(new LlmOpenaiControlFromCanonical(true));
 
         toolCallAttributes.toolCallId("toolu_1");
         toolCallAttributes.toolName("get_weather");

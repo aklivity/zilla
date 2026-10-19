@@ -26,8 +26,9 @@ public class LlmAnthropicMediaFromCanonicalTest
 {
     private static final String DATA = "QUJD".repeat(1250);
 
-    private final LlmAnthropicMediaFromCanonical image = LlmAnthropicMediaFromCanonical.image();
-    private final LlmAnthropicMediaFromCanonical document = LlmAnthropicMediaFromCanonical.document();
+    private final LlmAnthropicMediaFromCanonical image = LlmAnthropicMediaFromCanonical.image(true);
+    private final LlmAnthropicMediaFromCanonical document = LlmAnthropicMediaFromCanonical.document(true);
+    private final LlmAnthropicMediaFromCanonical foreignImage = LlmAnthropicMediaFromCanonical.image(false);
 
     private final Consumer<LlmSectionAttributes> inlinePng = attributes ->
     {
@@ -135,5 +136,22 @@ public class LlmAnthropicMediaFromCanonicalTest
     public void shouldRejectMediaThatIsNotAnObject()
     {
         assertRejects(image, inlinePng, null, json("['image']"));
+    }
+
+    @Test
+    public void shouldDropOwnPrefixedMembersAcrossDialects()
+    {
+        assertTransforms(foreignImage, url, null,
+            json("{'type':'image_url','anthropic:cache_control':{'type':'ephemeral'}," +
+                "'image_url':{'url':'https://example.com/a.png'}}"),
+            json("{'type':'image','source':{'type':'url','url':'https://example.com/a.png'}}"));
+    }
+
+    @Test
+    public void shouldPassUnprefixedMembersAcrossDialects()
+    {
+        assertTransforms(foreignImage, url, null,
+            json("{'type':'image_url','kept':1,'image_url':{'url':'https://example.com/a.png'}}"),
+            json("{'type':'image','kept':1,'source':{'type':'url','url':'https://example.com/a.png'}}"));
     }
 }

@@ -25,9 +25,10 @@ final class LlmAnthropicCitationsFromCanonical extends LlmToolTransform
 
     private boolean typed;
 
-    LlmAnthropicCitationsFromCanonical()
+    LlmAnthropicCitationsFromCanonical(
+        boolean sameDialect)
     {
-        super(MODE_ARRAY);
+        super(MODE_ARRAY, sameDialect);
     }
 
     @Override

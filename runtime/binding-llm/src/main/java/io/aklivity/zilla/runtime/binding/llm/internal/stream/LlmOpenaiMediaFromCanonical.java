@@ -23,24 +23,29 @@ final class LlmOpenaiMediaFromCanonical extends LlmToolTransform
 
     private final String container;
 
-    static LlmOpenaiMediaFromCanonical image()
+    static LlmOpenaiMediaFromCanonical image(
+        boolean sameDialect)
     {
-        return new LlmOpenaiMediaFromCanonical("image_url");
+        return new LlmOpenaiMediaFromCanonical("image_url", sameDialect);
     }
 
-    static LlmOpenaiMediaFromCanonical document()
+    static LlmOpenaiMediaFromCanonical document(
+        boolean sameDialect)
     {
-        return new LlmOpenaiMediaFromCanonical("file");
+        return new LlmOpenaiMediaFromCanonical("file", sameDialect);
     }
 
-    static LlmOpenaiMediaFromCanonical audio()
+    static LlmOpenaiMediaFromCanonical audio(
+        boolean sameDialect)
     {
-        return new LlmOpenaiMediaFromCanonical("input_audio");
+        return new LlmOpenaiMediaFromCanonical("input_audio", sameDialect);
     }
 
     private LlmOpenaiMediaFromCanonical(
-        String container)
+        String container,
+        boolean sameDialect)
     {
+        super(MODE_OBJECT, sameDialect);
         this.container = container;
     }
 
