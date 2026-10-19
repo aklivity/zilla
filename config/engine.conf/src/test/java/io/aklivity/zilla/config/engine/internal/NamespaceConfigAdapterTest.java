@@ -334,6 +334,118 @@ public class NamespaceConfigAdapterTest
     }
 
     @Test
+    public void shouldReadNamespaceWithGuardInject()
+    {
+        String text =
+                "{" +
+                    "\"name\": \"test\"," +
+                    "\"guards\":" +
+                    "{" +
+                        "\"default\":" +
+                        "{" +
+                            "\"type\": \"test\"," +
+                            "\"options\":" +
+                            "{" +
+                                "\"credentials\": \"token\"," +
+                                "\"inject\":" +
+                                "{" +
+                                    "\"identity\": \"service\"," +
+                                    "\"credentials\": \"service-secret\"" +
+                                "}" +
+                            "}" +
+                        "}" +
+                    "}" +
+                "}";
+
+        NamespaceConfig config = jsonb.fromJson(text, NamespaceConfig.class);
+
+        assertThat(config, not(nullValue()));
+        assertThat(config.guards, hasSize(1));
+        TestGuardOptionsConfig options = (TestGuardOptionsConfig) config.guards.get(0).options;
+        assertThat(options.credentials, equalTo("token"));
+        assertThat(options.inject.identity, equalTo("service"));
+        assertThat(options.inject.credentials, equalTo("service-secret"));
+    }
+
+    @Test
+    public void shouldWriteNamespaceWithGuardInject()
+    {
+        NamespaceConfig config = NamespaceConfig.builder()
+                .inject(identity())
+                .name("test")
+                .guard()
+                    .name("default")
+                    .type("test")
+                    .options(TestGuardOptionsConfig::builder)
+                        .credentials("token")
+                        .identity("alice")
+                        .inject()
+                            .identity("service")
+                            .credentials("service-secret")
+                            .build()
+                        .build()
+                    .build()
+                .build();
+
+        String text = jsonb.toJson(config);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"name\":\"test\",\"guards\":{\"default\":{\"type\":\"test\"," +
+                "\"options\":{\"credentials\":\"token\",\"identity\":\"alice\"," +
+                "\"inject\":{\"identity\":\"service\",\"credentials\":\"service-secret\"}}}}}"));
+    }
+
+    @Test
+    public void shouldReadNamespaceWithClassifier()
+    {
+        String text =
+                "{" +
+                    "\"name\": \"test\"," +
+                    "\"classifiers\":" +
+                    "{" +
+                        "\"default\":" +
+                        "{" +
+                            "\"type\": \"test\"," +
+                            "\"embedding\": \"embedding0\"," +
+                            "\"store\": \"store0\"," +
+                            "\"options\": {}" +
+                        "}" +
+                    "}" +
+                "}";
+
+        NamespaceConfig config = jsonb.fromJson(text, NamespaceConfig.class);
+
+        assertThat(config, not(nullValue()));
+        assertThat(config.classifiers, hasSize(1));
+        assertThat(config.classifiers.get(0).name, equalTo("default"));
+        assertThat(config.classifiers.get(0).type, equalTo("test"));
+        assertThat(config.classifiers.get(0).embedding, equalTo("embedding0"));
+        assertThat(config.classifiers.get(0).store, equalTo("store0"));
+        assertThat(config.classifiers.get(0).options, not(nullValue()));
+    }
+
+    @Test
+    public void shouldWriteNamespaceWithClassifier()
+    {
+        NamespaceConfig config = NamespaceConfig.builder()
+                .inject(identity())
+                .name("test")
+                .classifier()
+                    .name("default")
+                    .type("test")
+                    .embedding("embedding0")
+                    .store("store0")
+                    .build()
+                .build();
+
+        String text = jsonb.toJson(config);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"name\":\"test\",\"classifiers\":{\"default\":{" +
+                "\"type\":\"test\",\"embedding\":\"embedding0\",\"store\":\"store0\"}}}"));
+    }
+
+    @Test
     public void shouldReadNamespaceWithGuardAndStore()
     {
         String text =

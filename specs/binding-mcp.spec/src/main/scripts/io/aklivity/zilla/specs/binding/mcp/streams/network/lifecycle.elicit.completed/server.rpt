@@ -94,7 +94,7 @@ write zilla:begin.ext ${http:beginEx()
                             .build()}
 write flush
 
-write 'data: {'
+write '{'
         '"jsonrpc":"2.0",'
         '"id":3,'
         '"method":"elicitation/create",'
@@ -105,22 +105,20 @@ write 'data: {'
           '"url":"https://server.example.com/authorize?state=7f3a9b1c",'
           '"message":"Open the link to authorize access."'
         '}'
-      '}\n'
-write '\n'
+      '}'
 write flush
 write notify ELICIT_CREATED
 
 write await ELICIT_RESPONDED
 
-write 'data: {'
+write '{'
         '"jsonrpc":"2.0",'
         '"method":"notifications/elicitation/complete",'
         '"params":'
         '{'
           '"elicitationId":"elicit-1"'
         '}'
-      '}\n'
-write '\n'
+      '}'
 write flush
 
 accepted

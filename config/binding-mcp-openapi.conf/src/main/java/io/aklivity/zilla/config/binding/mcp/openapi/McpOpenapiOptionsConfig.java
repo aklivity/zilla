@@ -43,6 +43,7 @@ public final class McpOpenapiOptionsConfig extends OptionsConfig
         List<McpOpenapiToolConfig> tools,
         List<McpOpenapiResourceConfig> resources)
     {
+        super(null, null);
         this.authorization = authorization;
         this.specs = specs;
         this.tools = tools;

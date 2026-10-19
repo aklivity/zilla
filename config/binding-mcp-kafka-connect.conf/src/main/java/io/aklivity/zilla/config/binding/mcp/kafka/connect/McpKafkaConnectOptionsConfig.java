@@ -36,6 +36,7 @@ public final class McpKafkaConnectOptionsConfig extends OptionsConfig
     McpKafkaConnectOptionsConfig(
         String server)
     {
+        super(null, null);
         this.server = server;
     }
 }

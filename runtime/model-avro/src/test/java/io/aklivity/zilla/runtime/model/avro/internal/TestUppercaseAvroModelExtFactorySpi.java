@@ -30,6 +30,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroTransformable;
 import io.aklivity.zilla.runtime.common.avro.AvroType;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.model.avro.ext.AvroCache;
 import io.aklivity.zilla.runtime.model.avro.ext.AvroModelExt;
 import io.aklivity.zilla.runtime.model.avro.ext.AvroModelExtContext;
 import io.aklivity.zilla.runtime.model.avro.ext.AvroModelExtFactorySpi;
@@ -47,23 +48,11 @@ public final class TestUppercaseAvroModelExtFactorySpi implements AvroModelExtFa
     private static final String REJECT_VALUE = "REJECT";
 
     @Override
-    public String type()
-    {
-        return "test";
-    }
-
-    @Override
     public AvroModelExt create(
         Configuration config)
     {
         return new AvroModelExt()
         {
-            @Override
-            public String name()
-            {
-                return "test";
-            }
-
             @Override
             public AvroModelExtContext supply(
                 EngineContext context)
@@ -74,7 +63,8 @@ public final class TestUppercaseAvroModelExtFactorySpi implements AvroModelExtFa
 
                     @Override
                     public <T extends AvroTransformable<T>> T decode(
-                        T transformable)
+                        T transformable,
+                        AvroCache cache)
                     {
                         return transformable.transform(transform);
                     }
@@ -168,6 +158,12 @@ public final class TestUppercaseAvroModelExtFactorySpi implements AvroModelExtFa
             targeting = false;
             emitting = false;
             captured.setLength(0);
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
         }
 
         // mirrors AvroSource#deferredBytes(): a STRING value larger than the input window arrives over

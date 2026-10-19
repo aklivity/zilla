@@ -83,6 +83,22 @@
                             {
                                 "type": "integer",
                                 "minimum": 0
+                            },
+                            "inject":
+                            {
+                                "type": "object",
+                                "properties":
+                                {
+                                    "identity":
+                                    {
+                                        "type": "string"
+                                    },
+                                    "credentials":
+                                    {
+                                        "type": "string"
+                                    }
+                                },
+                                "additionalProperties": false
                             }
                         },
                         "additionalProperties": false

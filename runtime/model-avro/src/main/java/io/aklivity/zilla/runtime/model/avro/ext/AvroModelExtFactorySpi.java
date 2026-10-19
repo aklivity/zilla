@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.model.avro.ext;
 
 import io.aklivity.zilla.config.engine.factory.FactorySpi;
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.model.avro.internal.AvroModel;
 
 /**
  * Service provider interface for an installed module that contributes its own {@link AvroModelExt} to the
@@ -30,6 +31,12 @@ import io.aklivity.zilla.runtime.engine.Configuration;
  */
 public interface AvroModelExtFactorySpi extends FactorySpi
 {
+    @Override
+    default String type()
+    {
+        return AvroModel.NAME;
+    }
+
     /**
      * Creates a new {@link AvroModelExt} instance for the given engine configuration.
      *

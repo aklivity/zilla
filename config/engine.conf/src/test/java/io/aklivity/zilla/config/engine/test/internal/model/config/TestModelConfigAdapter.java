@@ -19,6 +19,7 @@ import java.util.List;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
+import jakarta.json.JsonNumber;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
@@ -36,10 +37,19 @@ public class TestModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue
     private static final String TEST = "test";
     private static final String LENGTH = "length";
     private static final String TRANSFORM = "transform";
+    private static final String TRANSFORM_AUTHORIZATIONS = "transformAuthorizations";
     private static final String CAPABILITY = "capability";
     private static final String READ = "read";
     private static final String CATALOG_NAME = "catalog";
     private static final String FIELDS = "fields";
+    private static final String REJECT = "reject";
+    private static final String WITHHOLD = "withhold";
+    private static final String MASK = "mask";
+    private static final String SUSPEND = "suspend";
+    private static final String DETERMINISTIC = "deterministic";
+    private static final String DISCLOSE_AUTHORIZED = "discloseAuthorized";
+    private static final String DISCLOSE_REDACTED = "discloseRedacted";
+    private static final String ENVELOPE_DISCLOSE = "envelopeDisclose";
 
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
     private final ValidateConfigAdapter validate = new ValidateConfigAdapter();
@@ -62,8 +72,18 @@ public class TestModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue
             : 0;
 
         int transformLength = object.containsKey(TRANSFORM)
-            ? object.getJsonObject(TRANSFORM).getInt(LENGTH)
+            ? object.getJsonObject(TRANSFORM).getInt(LENGTH, -1)
             : -1;
+
+        List<Long> transformAuthorizations = null;
+        if (object.containsKey(TRANSFORM_AUTHORIZATIONS))
+        {
+            transformAuthorizations = new LinkedList<>();
+            for (JsonValue item : object.getJsonArray(TRANSFORM_AUTHORIZATIONS))
+            {
+                transformAuthorizations.add(((JsonNumber) item).longValue());
+            }
+        }
 
         boolean read = object.containsKey(CAPABILITY)
             ? object.getString(CAPABILITY).equals(READ)
@@ -97,8 +117,61 @@ public class TestModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue
             }
         }
 
+        List<Long> discloseAuthorized = null;
+        if (object.containsKey(DISCLOSE_AUTHORIZED))
+        {
+            discloseAuthorized = new LinkedList<>();
+            for (JsonValue item : object.getJsonArray(DISCLOSE_AUTHORIZED))
+            {
+                discloseAuthorized.add(((JsonNumber) item).longValue());
+            }
+        }
+
+        String discloseRedacted = object.containsKey(DISCLOSE_REDACTED)
+            ? object.getString(DISCLOSE_REDACTED)
+            : null;
+
+        String envelopeDiscloseName = object.containsKey(ENVELOPE_DISCLOSE)
+            ? object.getString(ENVELOPE_DISCLOSE)
+            : null;
+
         ValidateConfig validateConfig = validate.adaptFromJsonObject(object);
 
-        return new TestModelConfig(length, catalogs, read, transformLength, fields, validateConfig);
+        List<String> reject = null;
+        if (object.containsKey(REJECT))
+        {
+            reject = new LinkedList<>();
+            for (JsonValue item : object.getJsonArray(REJECT))
+            {
+                reject.add(((JsonString) item).getString());
+            }
+        }
+
+        List<String> withhold = null;
+        if (object.containsKey(WITHHOLD))
+        {
+            withhold = new LinkedList<>();
+            for (JsonValue item : object.getJsonArray(WITHHOLD))
+            {
+                withhold.add(((JsonString) item).getString());
+            }
+        }
+
+        List<String> mask = null;
+        if (object.containsKey(MASK))
+        {
+            mask = new LinkedList<>();
+            for (JsonValue item : object.getJsonArray(MASK))
+            {
+                mask.add(((JsonString) item).getString());
+            }
+        }
+
+        boolean suspend = object.containsKey(SUSPEND) && object.getBoolean(SUSPEND);
+
+        boolean deterministic = !object.containsKey(DETERMINISTIC) || object.getBoolean(DETERMINISTIC);
+
+        return new TestModelConfig(length, catalogs, read, transformLength, fields, validateConfig, transformAuthorizations,
+            reject, withhold, mask, suspend, discloseAuthorized, discloseRedacted, envelopeDiscloseName, deterministic);
     }
 }

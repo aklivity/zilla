@@ -41,6 +41,7 @@ public class MqttKafkaOptionsConfig extends OptionsConfig
         List<String> clients,
         MqttKafkaPublishConfig publish)
     {
+        super(null, null);
         this.topics = topics;
         this.clients = clients;
         this.publish = publish;

@@ -44,6 +44,7 @@ public class TestCatalogOptionsConfig extends OptionsConfig
         String prefix,
         String url)
     {
+        super(null, null);
         this.subject = subject;
         this.schema = schema;
         this.id = id;

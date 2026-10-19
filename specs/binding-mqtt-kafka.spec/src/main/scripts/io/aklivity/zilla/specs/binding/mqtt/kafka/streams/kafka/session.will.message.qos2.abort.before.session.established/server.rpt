@@ -1,0 +1,115 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+accept "zilla://streams/kafka0"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
+
+
+# eager will-signal stream, opened as soon as the CONNECT carries the WILL flag,
+# before the qos2 session state stream has been established
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_AND_FETCH")
+                                .topic("mqtt-sessions")
+                                .filter()
+                                    .key("client-1#will")
+                                    .build()
+                                .build()
+                            .build()}
+
+connected
+
+# no will data was ever written (qos2 grants no window before establishment),
+# so the will signal carries no lifetimeId or willId
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .produce()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#will")
+                               .hashKey("client-1")
+                               .header("type", "will-signal")
+                               .build()
+                           .build()}
+read ${mqtt:sessionSignal()
+           .will()
+               .instanceId("zilla-1")
+               .clientId("client-1")
+               .delay(0)
+               .deliverAt(1000)
+               .build()
+           .build()}
+
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .produce()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#expiry")
+                               .hashKey("client-1")
+                               .header("type", "expiry-signal")
+                               .build()
+                           .build()}
+read ${mqtt:sessionSignal()
+           .expiry()
+               .instanceId("zilla-1")
+               .clientId("client-1")
+               .delay(1000)
+               .expireAt(2000)
+               .build()
+           .build()}
+
+read aborted
+write abort
+
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .meta()
+                                   .topic("mqtt-messages")
+                                   .build()
+                               .build()}
+
+connected
+
+read aborted
+write abort
+
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .meta()
+                                   .topic("mqtt-retained")
+                                   .build()
+                               .build()}
+
+connected
+
+# both qos2 partition metadata streams are now open; no session state
+# stream has been established yet
+write notify SESSION_META_STREAMS_OPENED
+
+read aborted
+write abort

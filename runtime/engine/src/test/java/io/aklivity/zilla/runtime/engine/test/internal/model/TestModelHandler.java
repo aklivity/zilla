@@ -15,12 +15,17 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.model;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyList;
 
 import java.util.List;
 
 import io.aklivity.zilla.config.engine.ValidateMode;
 import io.aklivity.zilla.config.engine.test.internal.model.config.TestModelConfig;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
@@ -28,28 +33,64 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 public class TestModelHandler implements ModelHandler
 {
+    private static final Runnable NOOP = () ->
+    {
+    };
+
     private final int length;
     private final int transformLength;
     private final List<String> fields;
     private final boolean decodeLenient;
     private final boolean encodeLenient;
+    private final List<Long> transformAuthorizations;
+    private final List<String> reject;
+    private final List<String> withhold;
+    private final List<String> mask;
+    private final boolean suspend;
+    private final EngineContext context;
+    private final List<Long> discloseAuthorized;
+    private final DirectBufferEx discloseRedacted;
+    private final String envelopeDiscloseName;
+    private final boolean deterministic;
+
+    private int transformAuthorizationIndex;
 
     public TestModelHandler(
         TestModelConfig config)
+    {
+        this(config, null);
+    }
+
+    public TestModelHandler(
+        TestModelConfig config,
+        EngineContext context)
     {
         this.length = config.length;
         this.transformLength = config.transformLength;
         this.fields = config.fields != null ? config.fields : emptyList();
         this.decodeLenient = config.validate.decode == ValidateMode.LENIENT;
         this.encodeLenient = config.validate.encode == ValidateMode.LENIENT;
+        this.transformAuthorizations = config.transformAuthorizations;
+        this.reject = config.reject;
+        this.withhold = config.withhold;
+        this.mask = config.mask;
+        this.suspend = config.suspend;
+        this.context = context;
+        this.discloseAuthorized = config.discloseAuthorized;
+        this.discloseRedacted = config.discloseRedacted != null
+            ? new UnsafeBufferEx(config.discloseRedacted.getBytes(UTF_8))
+            : null;
+        this.envelopeDiscloseName = config.envelopeDiscloseName;
+        this.deterministic = config.deterministic;
     }
 
     @Override
     public ModelPipeline supplyDecoder(
         ModelEnvelope envelope,
-        ModelTransform transform)
+        ModelTransform transform,
+        ModelCache cache)
     {
-        return new TestModelPipeline(length, transformLength, fields, decodeLenient, envelope, transform);
+        return supplyDecoder(envelope, transform, NOOP, cache);
     }
 
     @Override
@@ -57,6 +98,71 @@ public class TestModelHandler implements ModelHandler
         ModelEnvelope envelope,
         ModelTransform transform)
     {
-        return new TestModelPipeline(length, transformLength, fields, encodeLenient, envelope, transform);
+        return new TestModelPipeline(length, transformLength, fields, encodeLenient, envelope, transform, this,
+            null, null, false, NOOP, null, null, null, null, deterministic);
+    }
+
+    @Override
+    public ModelPipeline supplyDecoder(
+        ModelEnvelope envelope,
+        ModelTransform transform,
+        Runnable resumed)
+    {
+        return supplyDecoder(envelope, transform, resumed, ModelCache.NONE);
+    }
+
+    @Override
+    public ModelPipeline supplyEncoder(
+        ModelEnvelope envelope,
+        ModelTransform transform,
+        Runnable resumed)
+    {
+        final ModelPipeline pipeline;
+
+        if (mask != null)
+        {
+            pipeline = new TestModelMaskPipeline(mask);
+        }
+        else
+        {
+            pipeline = new TestModelPipeline(length, transformLength, fields, encodeLenient, envelope, transform, this,
+                reject, withhold, suspend, resumed, context, null, null, null, deterministic);
+        }
+
+        return pipeline;
+    }
+
+    private ModelPipeline supplyDecoder(
+        ModelEnvelope envelope,
+        ModelTransform transform,
+        Runnable resumed,
+        ModelCache cache)
+    {
+        final ModelPipeline pipeline;
+
+        if (cache == ModelCache.WRITE)
+        {
+            pipeline = new TestModelPipeline(length, transformLength, fields, decodeLenient, envelope, transform, this,
+                null, null, false, resumed, context, null, null, null, deterministic);
+        }
+        else if (mask != null)
+        {
+            pipeline = new TestModelMaskPipeline(mask);
+        }
+        else
+        {
+            pipeline = new TestModelPipeline(length, transformLength, fields, decodeLenient, envelope, transform, this,
+                reject, withhold, suspend, resumed, context, discloseAuthorized, discloseRedacted, envelopeDiscloseName,
+                deterministic);
+        }
+
+        return pipeline;
+    }
+
+    Long nextTransformAuthorization()
+    {
+        return transformAuthorizations != null && transformAuthorizationIndex < transformAuthorizations.size()
+            ? transformAuthorizations.get(transformAuthorizationIndex++)
+            : null;
     }
 }

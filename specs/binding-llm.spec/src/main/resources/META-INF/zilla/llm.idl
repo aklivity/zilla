@@ -1,0 +1,137 @@
+/*
+ * Copyright 2021-2026 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+scope llm
+{
+    scope stream
+    {
+        struct LlmBeginEx extends core::stream::Extension
+        {
+            string16 dialect;
+            string16 contentType = null;
+            string16 model = null;
+            string16 id = null;
+            octets extension;
+        }
+
+        struct LlmAttribute
+        {
+            string8 name;
+            string16 value;
+        }
+
+        enum LlmSectionType (uint8)
+        {
+            NONE(0),
+            SYSTEM_INSTRUCTION(1),
+            USER_TEXT(2),
+            USER_IMAGE(3),
+            USER_DOCUMENT(4),
+            USER_AUDIO(5),
+            ASSISTANT_TEXT(6),
+            ASSISTANT_REFUSAL(7),
+            ASSISTANT_REASONING(8),
+            TOOL_DEFINITION(9),
+            TOOL_CALL(10),
+            TOOL_RESULT(11),
+            SERVER_TOOL_RESULT(12),
+            CITATIONS(13),
+            USER_VIDEO(14),
+            SERVER_TOOL_CALL(15),
+            SERVER_TOOL_DEFINITION(16),
+            UNKNOWN(17)
+        }
+
+        struct LlmSectionDataEx
+        {
+            LlmSectionType type = NONE;
+            int32 message = -1;
+            LlmAttribute[] attributes;
+            octets extension;
+        }
+
+        struct LlmDialectDataEx
+        {
+            uint8 complete = 0;
+            uint8 usageOnly = 0;
+            LlmAttribute[] attributes;
+        }
+
+        union LlmDataEx switch (uint8) extends core::stream::Extension
+        {
+            case 0: llm::stream::LlmSectionDataEx section;
+            case 1: llm::stream::LlmDialectDataEx dialect;
+        }
+
+        struct LlmUsage
+        {
+            int32 inputTokens = -1;
+            int32 cacheWriteTokens = -1;
+            int32 cacheReadTokens = -1;
+            int32 outputTokens = -1;
+            int32 reasoningTokens = -1;
+            int32 totalTokens = -1;
+            string16 nativeUsage = null;
+        }
+
+        struct LlmError
+        {
+            int32 status = -1;
+            string16 type = null;
+            string16 param = null;
+            string16 message = null;
+            string16 code = null;
+        }
+
+        struct LlmChallengeEx extends core::stream::Extension
+        {
+            string16 dialect;
+            string16 model = null;
+        }
+
+        struct LlmSectionFlushEx
+        {
+            LlmSectionType type = NONE;
+            int32 message = -1;
+        }
+
+        struct LlmDialectFlushEx
+        {
+            int32 maxOutputTokens = -1;
+        }
+
+        union LlmFlushEx switch (uint8) extends core::stream::Extension
+        {
+            case 0: llm::stream::LlmSectionFlushEx section;
+            case 1: llm::stream::LlmDialectFlushEx dialect;
+        }
+
+        struct LlmEndEx extends core::stream::Extension
+        {
+            LlmUsage usage;
+            string16 finishReason = null;
+        }
+
+        struct LlmAbortEx extends core::stream::Extension
+        {
+            LlmUsage usage;
+            LlmError error;
+        }
+
+        struct LlmResetEx extends core::stream::Extension
+        {
+            LlmError error;
+        }
+    }
+}

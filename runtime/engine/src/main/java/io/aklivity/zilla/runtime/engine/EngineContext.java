@@ -37,7 +37,9 @@ import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.budget.BudgetFlusher;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.classifier.ClassifierHandler;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import io.aklivity.zilla.runtime.engine.embedding.EmbeddingHandler;
 import io.aklivity.zilla.runtime.engine.event.EventFormatter;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
@@ -98,6 +100,21 @@ public interface EngineContext
     long affinity();
 
     /**
+     * Decodes the worker index encoded into an id minted by {@link #supplyInitialId(long)} or
+     * a similarly-encoded id, regardless of which worker originally minted it.
+     * <p>
+     * Pure decode of the id's own bit layout — safe to call from any worker's {@link EngineContext},
+     * not just the one that minted the id. Used to route a lookup for state that is confined to a
+     * single worker (e.g. a guard's local session cache) back to the worker that actually owns it.
+     * </p>
+     *
+     * @param id  an id minted by this or another worker
+     * @return the zero-based index of the worker that minted the id
+     */
+    int indexOf(
+        long id);
+
+    /**
      * Returns the {@link Signaler} for scheduling time-based and task-based signals on
      * this I/O thread.
      *
@@ -125,20 +142,42 @@ public interface EngineContext
         long bindingId);
 
     /**
-     * Allocates a new initial (inbound) stream id for the given binding, selecting
-     * a deterministic worker by {@code Math.floorMod(affinityId, mask.cardinality())}
-     * over the binding's affinity mask. Used to pin per-key application streams to
-     * a specific worker so per-worker session state remains valid across requests
-     * for the same logical key.
+     * Allocates a new initial (inbound) stream id for the given routed binding, pinned to
+     * the worker identified by {@code affinityId} when that worker is local to this engine
+     * node, or selected round-robin over {@code routedId}'s affinity mask otherwise. Used to
+     * pin per-key application streams to a specific worker so per-worker session state
+     * remains valid across requests for the same logical key.
+     * <p>
+     * When redirecting across engine nodes, callers should first resolve {@code routedId}
+     * via {@link #resolveRoutedId(long, long)} so the worker selected here belongs to the
+     * binding the stream will actually be dispatched to.
+     * </p>
      *
-     * @param bindingId   the binding id to associate with the new stream
+     * @param routedId    the routed binding id to associate with the new stream
      * @param affinityId  the affinity value to pin the stream to; same value yields
-     *                     the same worker for a given binding affinity mask
+     *                     the same worker when local to this engine node
      * @return a new unique initial stream id pinned to the worker selected by affinityId
      */
     long supplyInitialId(
-        long bindingId,
+        long routedId,
         long affinityId);
+
+    /**
+     * Resolves the binding id that a stream carrying the given affinity should actually be
+     * routed to, e.g. redirecting to a different binding when the affinity designates a
+     * remote engine node. Identity by default: {@code routedId} unchanged, meaning no
+     * redirection applies.
+     *
+     * @param routedId  the originally configured routed binding id
+     * @param affinity  the affinity value carried by the stream
+     * @return the binding id the stream should actually be routed to
+     */
+    default long resolveRoutedId(
+        long routedId,
+        long affinity)
+    {
+        return routedId;
+    }
 
     /**
      * Returns the reply (outbound) stream id paired with the given initial stream id.
@@ -528,6 +567,24 @@ public interface EngineContext
         long catalogId);
 
     /**
+     * Returns the {@link EmbeddingHandler} for the given embedding id.
+     *
+     * @param embeddingId  the embedding id
+     * @return the embedding handler, or {@code null} if not found
+     */
+    EmbeddingHandler supplyEmbedding(
+        long embeddingId);
+
+    /**
+     * Returns the {@link ClassifierHandler} for the given classifier id.
+     *
+     * @param classifierId  the classifier id
+     * @return the classifier handler, or {@code null} if not found
+     */
+    ClassifierHandler supplyClassifier(
+        long classifierId);
+
+    /**
      * Returns a {@link ModelHandler} that vends per-stream decode and encode pipelines for the
      * given model configuration, or {@code null} if no model is configured.
      *
@@ -538,7 +595,8 @@ public interface EngineContext
         ModelConfig config);
 
     /**
-     * Returns a {@link LongConsumer} that records CPU utilization samples for this thread.
+     * Returns a {@link LongConsumer} that adjusts this worker's utilization gauge by each
+     * accepted delta.
      *
      * @return the utilization metric writer
      */
@@ -590,6 +648,11 @@ public interface EngineContext
     /**
      * Returns a {@link LongConsumer} that writes a metric value for the given binding, metric,
      * and attributes, using the appropriate recording mechanism for the metric's kind.
+     * <p>
+     * Counter and gauge writers add each accepted value to the current value, so a gauge is
+     * adjusted by deltas, such as {@code +1} and {@code -1}; histogram writers record each
+     * accepted value as a sample.
+     * </p>
      *
      * @param kind          the metric kind (counter, gauge, or histogram)
      * @param bindingId     the namespaced binding id

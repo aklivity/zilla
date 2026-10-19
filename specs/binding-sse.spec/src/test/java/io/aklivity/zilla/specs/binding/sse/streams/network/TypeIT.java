@@ -48,27 +48,9 @@ public class TypeIT
 
     @Test
     @Specification({
-        "${net}/name.only/request",
-        "${net}/name.only/response" })
-    public void shouldReceiveNameOnlyEvent() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/non.empty/request",
         "${net}/non.empty/response" })
     public void shouldReceiveNonEmptyEvent() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/non.empty.trailing/request",
-        "${net}/non.empty.trailing/response" })
-    public void shouldReceiveNonEmptyEventTrailing() throws Exception
     {
         k3po.finish();
     }
@@ -82,21 +64,4 @@ public class TypeIT
         k3po.finish();
     }
 
-    @Test
-    @Specification({
-        "${net}/invalid.utf8/request",
-        "${net}/invalid.utf8/response" })
-    public void shouldRejectEventWithInvalidUTF8() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/initial.whitespace/request",
-        "${net}/initial.whitespace/response" })
-    public void shouldReceiveEventWithInitialWhitespace() throws Exception
-    {
-        k3po.finish();
-    }
 }

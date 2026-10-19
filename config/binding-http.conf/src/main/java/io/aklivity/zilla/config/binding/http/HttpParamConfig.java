@@ -16,6 +16,8 @@ package io.aklivity.zilla.config.binding.http;
 
 import static java.util.function.Function.identity;
 
+import java.util.List;
+
 import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ModelConfig;
 
@@ -23,13 +25,21 @@ public class HttpParamConfig extends Config
 {
     public String name;
     public ModelConfig model;
+    private final List<Config.Reference> refs;
 
     HttpParamConfig(
         String name,
-        ModelConfig model)
+        ModelConfig model,
+        List<Config.Reference> refs)
     {
         this.name = name;
         this.model = model;
+        this.refs = refs;
+    }
+
+    public List<Config.Reference> refs()
+    {
+        return refs;
     }
 
     public static HttpParamConfigBuilder<HttpParamConfig> builder()

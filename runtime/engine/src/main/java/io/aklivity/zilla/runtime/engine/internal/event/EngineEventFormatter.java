@@ -18,6 +18,8 @@ package io.aklivity.zilla.runtime.engine.internal.event;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
+import io.aklivity.zilla.runtime.engine.internal.types.event.EngineConfigAppliedExFW;
+import io.aklivity.zilla.runtime.engine.internal.types.event.EngineConfigRejectedExFW;
 import io.aklivity.zilla.runtime.engine.internal.types.event.EngineConfigWatcherFailedExFW;
 import io.aklivity.zilla.runtime.engine.internal.types.event.EngineEventExFW;
 import io.aklivity.zilla.runtime.engine.internal.types.event.EngineStartedExFW;
@@ -30,6 +32,10 @@ public final class EngineEventFormatter implements EventFormatterSpi
         "Dynamic config reloading is disabled.";
     private static final String CONFIG_WATCHER_FAILED_WITH_REASON_FORMAT =
         CONFIG_WATCHER_FAILED_FORMAT + " %s.";
+    private static final String CONFIG_APPLIED_FORMAT = "Config applied.";
+    private static final String CONFIG_APPLIED_WITH_ETAG_FORMAT = "Config applied with etag %s.";
+    private static final String CONFIG_REJECTED_FORMAT = "Config rejected. %s.";
+    private static final String CONFIG_REJECTED_WITH_ETAG_FORMAT = "Config rejected with etag %s. %s.";
 
     private final EventFW eventRO = new EventFW();
     private final EngineEventExFW eventExRO = new EngineEventExFW();
@@ -66,6 +72,21 @@ public final class EngineEventFormatter implements EventFormatterSpi
         case STOPPED:
             EngineStoppedExFW stopped = extension.stopped();
             text = stopped.message().asString();
+            break;
+        case CONFIG_APPLIED:
+            EngineConfigAppliedExFW configApplied = extension.configApplied();
+            String appliedEtag = configApplied.etag().asString();
+            text = appliedEtag != null
+                ? String.format(CONFIG_APPLIED_WITH_ETAG_FORMAT, appliedEtag)
+                : CONFIG_APPLIED_FORMAT;
+            break;
+        case CONFIG_REJECTED:
+            EngineConfigRejectedExFW configRejected = extension.configRejected();
+            String rejectedEtag = configRejected.etag().asString();
+            String rejectedReason = configRejected.reason().asString();
+            text = rejectedEtag != null
+                ? String.format(CONFIG_REJECTED_WITH_ETAG_FORMAT, rejectedEtag, rejectedReason)
+                : String.format(CONFIG_REJECTED_FORMAT, rejectedReason);
             break;
         }
 

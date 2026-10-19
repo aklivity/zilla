@@ -118,6 +118,39 @@ public class TestCatalogHandler implements CatalogHandler
         return resolved;
     }
 
+    // mirrors encode()'s own framing: a payload starting with the configured prefix carries this
+    // catalog's id embedded, exactly as encode() would have written it
+    @Override
+    public int resolve(
+        DirectBufferEx data,
+        int index,
+        int length)
+    {
+        return prefix != null && matchesPrefix(data, index, length) ? id : NO_SCHEMA_ID;
+    }
+
+    @Override
+    public int decodePadding(
+        DirectBufferEx data,
+        int index,
+        int length)
+    {
+        return prefix != null ? prefix.capacity() : 0;
+    }
+
+    private boolean matchesPrefix(
+        DirectBufferEx data,
+        int index,
+        int length)
+    {
+        boolean matches = length >= prefix.capacity();
+        for (int i = 0; matches && i < prefix.capacity(); i++)
+        {
+            matches = data.getByte(index + i) == prefix.getByte(i);
+        }
+        return matches;
+    }
+
     @Override
     public String resolve(
         int schemaId)

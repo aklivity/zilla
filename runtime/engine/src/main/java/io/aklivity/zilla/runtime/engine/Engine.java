@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine;
 
-import static io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout.BUCKETS;
+import static io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout.READERS;
 import static io.aklivity.zilla.runtime.engine.namespace.NamespacedId.NO_LOCAL_ID;
 import static io.aklivity.zilla.runtime.engine.namespace.NamespacedId.NO_NAMESPACE_ID;
 import static java.nio.channels.Channels.newWriter;
@@ -44,6 +44,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.ServiceLoader;
 import java.util.ServiceLoader.Provider;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -68,7 +69,9 @@ import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
+import io.aklivity.zilla.runtime.engine.classifier.Classifier;
 import io.aklivity.zilla.runtime.engine.diagnostic.EngineDiagnosticsTask;
+import io.aklivity.zilla.runtime.engine.embedding.Embedding;
 import io.aklivity.zilla.runtime.engine.event.EventFormatter;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterFactory;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
@@ -128,6 +131,8 @@ public final class Engine implements Collector, AutoCloseable
         Collection<MetricGroup> metricGroups,
         Collection<Vault> vaults,
         Collection<Catalog> catalogs,
+        Collection<Embedding> embeddings,
+        Collection<Classifier> classifiers,
         Collection<Model> models,
         Collection<Store> stores,
         EventFormatterFactory eventFormatterFactory,
@@ -167,6 +172,11 @@ public final class Engine implements Collector, AutoCloseable
         final Router router = RouterFactory.instantiate().create(config.router(), config);
         bootstrapLabels(router);
         router.watchLabels(this::flushLabel);
+
+        // resolved once here, not per worker -- this instance's node identity is fixed for the
+        // lifetime of the engine, and Engine already owns both the router and each worker's
+        // construction, so it is the one place with standing to decide it and hand it down.
+        final byte nodeId = router.supplyNodeId(config.nodeInstanceId());
 
         Int2ObjectHashMap<ToIntFunction<KindConfig>> maxWorkersByBindingType = new Int2ObjectHashMap<>();
 
@@ -227,8 +237,8 @@ public final class Engine implements Collector, AutoCloseable
         {
             EngineWorker worker =
                 new EngineWorker(config, tasks, diagnoseOnError, tuning::affinity, bindings, exporters,
-                    guards, vaults, catalogs, models, metricGroups, stores, router, routerConfig, this,
-                    this::supplyEventReader, eventFormatterFactory, workerIndex, readonly, this::process, boss);
+                    guards, vaults, catalogs, embeddings, classifiers, models, metricGroups, stores, router, nodeId, routerConfig,
+                    this, this::supplyEventReader, eventFormatterFactory, workerIndex, readonly, this::process, boss);
             workers.add(worker);
         }
         this.workers = workers;
@@ -372,6 +382,12 @@ public final class Engine implements Collector, AutoCloseable
         if (!readonly)
         {
             manager.start();
+
+            workers.stream()
+                .map(w -> w.attachRouter(routerConfig))
+                .reduce(CompletableFuture::allOf)
+                .ifPresent(CompletableFuture::join);
+
             Ready.markReady(config.directory());
         }
     }
@@ -405,7 +421,7 @@ public final class Engine implements Collector, AutoCloseable
 
         try
         {
-            boss.detachAll();
+            boss.detachAllNow();
         }
         catch (Throwable ex)
         {
@@ -582,16 +598,16 @@ public final class Engine implements Collector, AutoCloseable
         int metricId,
         int attributesId)
     {
-        LongSupplier[] result = new LongSupplier[BUCKETS];
-        for (int i = 0; i < BUCKETS; i++)
+        LongSupplier[] result = new LongSupplier[READERS];
+        for (int i = 0; i < READERS; i++)
         {
             final int index = i;
-            result[index] = () -> aggregateHistogramBucketValue(bindingId, metricId, attributesId, index);
+            result[index] = () -> aggregateHistogramValue(bindingId, metricId, attributesId, index);
         }
         return result;
     }
 
-    private long aggregateHistogramBucketValue(
+    private long aggregateHistogramValue(
         long bindingId,
         int metricId,
         int attributesId,

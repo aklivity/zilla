@@ -32,6 +32,7 @@ public final class RisingwaveOptionsConfig extends OptionsConfig
         RisingwaveKafkaConfig kafka,
         List<RisingwaveUdfConfig> udfs)
     {
+        super(null, null);
         this.kafka = kafka;
         this.udfs = udfs;
     }

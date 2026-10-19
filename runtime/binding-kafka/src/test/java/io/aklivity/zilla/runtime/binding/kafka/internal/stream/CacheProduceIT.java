@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SERVER_BOOTSTRAP;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SERVER_RECONNECT_DELAY;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CACHE_CLIENT_CLEANUP_DELAY_NAME;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX_NAME;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
@@ -116,6 +117,42 @@ public class CacheProduceIT
     @Test
     @Configuration("cache.yaml")
     @Specification({
+        "${app}/message.value.repeated/client",
+        "${app}/partition.not.leader.reconnect.in.flight/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "1")
+    public void shouldReconnectPartitionNotLeaderInFlight() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
+        "${app}/message.value.repeated/client",
+        "${app}/partition.not.leader.reconnect.in.flight.acknowledged/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "1")
+    public void shouldReconnectPartitionNotLeaderInFlightAcknowledged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
+        "${app}/message.value/client",
+        "${app}/network.exception.reconnect/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "1")
+    public void shouldReconnectNetworkException() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
         "${app}/message.value/client",
         "${app}/partition.not.leader.reconnect.after.meta/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
@@ -133,6 +170,18 @@ public class CacheProduceIT
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     @Configure(name = KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "1")
     public void shouldRetryPartitionNotLeaderMessageValues() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.value.model.authorization.yaml")
+    @Specification({
+        "${app}/message.values.authorization.distinct/client",
+        "${app}/message.values.authorization.distinct/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "1")
+    public void shouldSendMessageValuesAuthorizationDistinct() throws Exception
     {
         k3po.finish();
     }
@@ -243,6 +292,17 @@ public class CacheProduceIT
         "${app}/message.value.10k/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldSendMessageValue10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
+        "${app}/message.value.after.flushes/client",
+        "${app}/message.value.after.flushes/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldSendMessageValueAfterFlushes() throws Exception
     {
         k3po.finish();
     }
@@ -367,6 +427,54 @@ public class CacheProduceIT
         "${app}/message.value.repeated/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldSendMessageTrailersOverlap() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // proves the produce path's encode-direction ModelEnvelope actually reaches the storage write path:
+    // the client writes no header at all, so the "$.trace"="1234" header the broker-side script requires
+    // can only have come from TestModel's envelope.set("$.trace", ...) call during encode, materialized
+    // as a real Kafka header by KafkaCacheClientProduceFactory's trailers merge
+    @Test
+    @Configuration("cache.value.model.envelope.yaml")
+    @Specification({
+        "${app}/message.value.envelope/client",
+        "${app}/message.value.envelope/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldSendMessageValueEnvelope() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // regression coverage for zilla#2461: a real protobuf value model, encoding the client's raw
+    // protobuf bytes with an INIT-flagged fragment carrying no bytes yet (declaring the full length
+    // via deferred()) followed by a FIN-flagged fragment carrying every byte -- the split the real
+    // HTTP-to-Kafka produce mapping uses, and the shape that exposed writeProduceEntryContinue
+    // re-deriving valuePaddingMax from a disk position the catalog framing had already overwritten
+    @Test
+    @Configuration("cache.value.model.protobuf.yaml")
+    @Specification({
+        "${app}/message.value.protobuf.fragmented/client",
+        "${app}/message.value.protobuf.fragmented/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldSendMessageValueProtobufFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // proves a message whose envelope-collected trailer entries exceed the block claimed for them
+    // (cache.client.trailers.size.max, deliberately sized to fit only the first of two configured
+    // fields) drops the entry that overflows rather than corrupting or silently discarding everything
+    // set before it: the broker-side script still requires the first field's header ("$.trace"), proving
+    // KafkaCacheTrailerEnvelope kept what it already wrote once the second set() call exceeded the claim
+    @Test
+    @Configuration("cache.value.model.envelope.overflow.yaml")
+    @Specification({
+        "${app}/message.value.envelope.overflow/client",
+        "${app}/message.value.envelope.overflow/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX_NAME, value = "19")
+    public void shouldSendMessageValueEnvelopeOverflow() throws Exception
     {
         k3po.finish();
     }

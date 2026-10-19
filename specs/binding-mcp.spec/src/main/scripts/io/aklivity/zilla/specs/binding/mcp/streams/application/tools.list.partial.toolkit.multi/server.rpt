@@ -13,6 +13,8 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property affinity "00000000"
+
 accept "zilla://streams/app1"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
@@ -30,7 +32,7 @@ connected
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("5ca1ab1e-c0de-4a11-5e55-000a00000000")
+                               .sessionId("5ca1ab1e-c0de-4a11-5e55-000a".concat(affinity))
                                .build()
                            .build()}
 write flush
@@ -40,7 +42,7 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsList()
-                              .sessionId("5ca1ab1e-c0de-4a11-5e55-000a00000000")
+                              .sessionId("5ca1ab1e-c0de-4a11-5e55-000a".concat(affinity))
                               .build()
                           .build()}
 

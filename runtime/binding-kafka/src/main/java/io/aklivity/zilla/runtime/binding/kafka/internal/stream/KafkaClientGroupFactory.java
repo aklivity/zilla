@@ -2079,6 +2079,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long authorization,
             long affinity)
         {
+            saslAuthorization = authorization;
             if (KafkaState.closed(state))
             {
                 initialSeq = 0;
@@ -2859,6 +2860,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long authorization,
             long affinity)
         {
+            saslAuthorization = authorization;
             if (KafkaState.closed(state))
             {
                 initialSeq = 0;
@@ -3623,6 +3625,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long authorization,
             long affinity)
         {
+            saslAuthorization = authorization;
             if (KafkaState.closed(state))
             {
                 initialSeq = 0;
@@ -4577,6 +4580,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             long authorization,
             long affinity)
         {
+            saslAuthorization = authorization;
             if (KafkaState.closed(state))
             {
                 initialSeq = 0;

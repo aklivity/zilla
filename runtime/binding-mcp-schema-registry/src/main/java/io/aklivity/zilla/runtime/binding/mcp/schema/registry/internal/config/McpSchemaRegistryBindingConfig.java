@@ -69,6 +69,6 @@ public final class McpSchemaRegistryBindingConfig
             .filter(route -> route.exit != null)
             .findFirst()
             .orElse(null);
-        this.exit = exitRoute != null ? context.supplyQName(exitRoute.id) : null;
+        this.exit = exitRoute != null ? exitRoute.qname() : null;
     }
 }

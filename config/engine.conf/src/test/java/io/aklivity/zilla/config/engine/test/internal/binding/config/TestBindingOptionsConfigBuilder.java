@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.CatalogedConfig;
+import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ConfigBuilder;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
@@ -30,6 +31,7 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
     private final Function<OptionsConfig, T> mapper;
 
     private ModelConfig value;
+    private List<ModelConfig> values;
     private String mode;
     private String schema;
     private TestAuthorizationConfig authorization;
@@ -40,8 +42,12 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
     private VaultAssertion vaultAssertion;
     private String store;
     private List<TestBindingOptionsConfig.StoreAssertions> storeAssertions;
+    private String embedding;
+    private String classifier;
     private List<TestBindingOptionsConfig.EnvelopeValue> envelope;
     private List<TestBindingOptionsConfig.EnvelopeAssertion> envelopeAssertions;
+    private TestBindingOptionsConfig.PipelineAssertion pipelineAssertion;
+    private String originType;
 
     TestBindingOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -60,6 +66,21 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
         ModelConfig value)
     {
         this.value = value;
+        return this;
+    }
+
+    public TestBindingOptionsConfigBuilder<T> values(
+        List<ModelConfig> values)
+    {
+        this.values = values;
+        return this;
+    }
+
+    public TestBindingOptionsConfigBuilder<T> pipelineAssertion(
+        TestBindingOptionsConfig.PipelineExpectation encode,
+        TestBindingOptionsConfig.PipelineExpectation decode)
+    {
+        this.pipelineAssertion = new TestBindingOptionsConfig.PipelineAssertion(encode, decode);
         return this;
     }
 
@@ -197,6 +218,20 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
         return this;
     }
 
+    public TestBindingOptionsConfigBuilder<T> embedding(
+        String embedding)
+    {
+        this.embedding = embedding;
+        return this;
+    }
+
+    public TestBindingOptionsConfigBuilder<T> classifier(
+        String classifier)
+    {
+        this.classifier = classifier;
+        return this;
+    }
+
     public TestBindingOptionsConfigBuilder<T> envelope(
         String name,
         String value)
@@ -244,10 +279,27 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
         return this;
     }
 
+    public TestBindingOptionsConfigBuilder<T> originType(
+        String originType)
+    {
+        this.originType = originType;
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new TestBindingOptionsConfig(value, mode, schema, authorization, catalogs, events,
-                metrics, catalogAssertions, vaultAssertion, store, storeAssertions, envelope, envelopeAssertions));
+        List<Config.Reference> refs = new LinkedList<>();
+        if (value != null)
+        {
+            refs.addAll(value.refs());
+        }
+        if (values != null)
+        {
+            values.forEach(v -> refs.addAll(v.refs()));
+        }
+        return mapper.apply(new TestBindingOptionsConfig(value, values, mode, schema, authorization, catalogs, events,
+                metrics, catalogAssertions, vaultAssertion, store, storeAssertions, embedding, classifier, envelope,
+                envelopeAssertions, pipelineAssertion, originType, refs));
     }
 }

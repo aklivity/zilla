@@ -176,6 +176,24 @@ class ProtobufOverlayTest
     }
 
     @Test
+    void shouldRetainMessageOptionsAcrossOverlay()
+    {
+        ProtobufSchema schema = Protobuf.schema(
+            "syntax = \"proto3\";\n" +
+            "package test;\n" +
+            "message Other {\n" +
+            "  option (acme.owner) = \"payments\";\n" +
+            "  string email = 1;\n" +
+            "}\n");
+        ProtobufOverlay overlay = ProtobufOverlay.of(read(
+            "[{\"field\":\"test.Other.email\",\"options\":{\"acme\":{\"tags\":[\"EMAIL\"]}}}]"));
+
+        ProtobufSchema result = overlay.apply(schema);
+
+        assertEquals(new ProtobufConstant.TextValue("payments"), result.message("test.Other").option("(acme.owner)"));
+    }
+
+    @Test
     void shouldExposeInlineOptionsWhenNoOverlayApplied()
     {
         ProtobufSchema schema = Protobuf.schema(PROTO);

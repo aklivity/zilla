@@ -150,5 +150,11 @@ public final class AvroStreamImpl implements AvroStream
         {
             return transform.identity() && downstream.identity();
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return transform.deterministic() && downstream.deterministic();
+        }
     }
 }

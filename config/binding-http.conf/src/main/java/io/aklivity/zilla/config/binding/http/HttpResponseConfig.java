@@ -27,17 +27,25 @@ public class HttpResponseConfig extends Config
     public final List<String> contentType;
     public final List<HttpParamConfig> headers;
     public final ModelConfig content;
+    private final List<Config.Reference> refs;
 
     HttpResponseConfig(
         List<String> status,
         List<String> contentType,
         List<HttpParamConfig> headers,
-        ModelConfig content)
+        ModelConfig content,
+        List<Config.Reference> refs)
     {
         this.status = status;
         this.contentType = contentType;
         this.headers = headers;
         this.content = content;
+        this.refs = refs;
+    }
+
+    public List<Config.Reference> refs()
+    {
+        return refs;
     }
 
     public static HttpResponseConfigBuilder<HttpResponseConfig> builder()

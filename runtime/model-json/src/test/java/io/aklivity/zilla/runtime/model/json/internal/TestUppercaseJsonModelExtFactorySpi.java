@@ -30,6 +30,7 @@ import io.aklivity.zilla.runtime.common.json.JsonTransformable;
 import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.model.json.ext.JsonCache;
 import io.aklivity.zilla.runtime.model.json.ext.JsonModelExt;
 import io.aklivity.zilla.runtime.model.json.ext.JsonModelExtContext;
 import io.aklivity.zilla.runtime.model.json.ext.JsonModelExtFactorySpi;
@@ -48,23 +49,11 @@ public final class TestUppercaseJsonModelExtFactorySpi implements JsonModelExtFa
     private static final String REJECT_VALUE = "REJECT";
 
     @Override
-    public String type()
-    {
-        return "test";
-    }
-
-    @Override
     public JsonModelExt create(
         Configuration config)
     {
         return new JsonModelExt()
         {
-            @Override
-            public String name()
-            {
-                return "test";
-            }
-
             @Override
             public JsonModelExtContext supply(
                 EngineContext context)
@@ -75,7 +64,8 @@ public final class TestUppercaseJsonModelExtFactorySpi implements JsonModelExtFa
 
                     @Override
                     public <T extends JsonTransformable<T>> T decode(
-                        T stream)
+                        T stream,
+                        JsonCache cache)
                     {
                         return stream.transform(transform);
                     }
@@ -124,6 +114,12 @@ public final class TestUppercaseJsonModelExtFactorySpi implements JsonModelExtFa
         {
             this.substitute = new Substitute();
             this.captured = new StringBuilder();
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
         }
 
         @Override
@@ -197,10 +193,9 @@ public final class TestUppercaseJsonModelExtFactorySpi implements JsonModelExtFa
         }
 
         // mirrors JsonSource#deferredBytes(): a string value larger than the input window arrives as
-        // repeated events over the same key, each carrying the value's whole decoded-so-far prefix (see
-        // JsonExtractor's onTargetString-equivalent), so re-capturing (not appending) on every fragment
-        // and staying armed until deferredBytes() goes false always leaves the last (complete) capture
-        // in place
+        // repeated events over the same key, each carrying the value's whole decoded-so-far prefix, so
+        // re-capturing (not appending) on every fragment and staying armed until deferredBytes() goes
+        // false always leaves the last (complete) capture in place
         private Status onTargetString(
             JsonSource source,
             JsonSink sink)

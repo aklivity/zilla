@@ -44,6 +44,7 @@ public final class McpKafkaOptionsConfig extends OptionsConfig
         KafkaAuthorizationConfig authorization,
         List<KafkaTopicConfig> topics)
     {
+        super(null, null);
         this.servers = servers;
         this.authorization = authorization;
         this.topics = topics;

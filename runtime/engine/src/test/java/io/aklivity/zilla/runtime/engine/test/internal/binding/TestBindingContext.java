@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine.test.internal.binding;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.test.internal.binding.config.TestBindingOptionsConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
@@ -23,13 +24,15 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 
 final class TestBindingContext implements BindingContext
 {
+    private final EngineContext context;
     private final TestBindingFactory factory;
 
     TestBindingContext(
         Configuration config,
         EngineContext context)
     {
-        factory = new TestBindingFactory(config, context);
+        this.context = context;
+        this.factory = new TestBindingFactory(config, context);
     }
 
     @Override
@@ -37,7 +40,11 @@ final class TestBindingContext implements BindingContext
         BindingConfig binding)
     {
         factory.attach(binding);
-        return factory;
+
+        TestBindingOptionsConfig options = (TestBindingOptionsConfig) binding.options;
+        return options != null && options.originType != null
+            ? new TestBindingHandler(factory, context.supplyTypeId(options.originType))
+            : factory;
     }
 
     @Override

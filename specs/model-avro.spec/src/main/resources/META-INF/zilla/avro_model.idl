@@ -18,7 +18,9 @@ scope avro_model
     {
         enum AvroModelEventType (uint8)
         {
-            VALIDATION_FAILED (1)
+            VALIDATION_FAILED (1),
+            PARSING_FAILED (2),
+            TRANSFORM_FAILED (3)
         }
 
         struct AvroModelValidationFailedEx extends core::stream::Extension
@@ -26,9 +28,21 @@ scope avro_model
             string16 error;
         }
 
+        struct AvroModelParsingFailedEx extends core::stream::Extension
+        {
+            string16 error;
+        }
+
+        struct AvroModelTransformFailedEx extends core::stream::Extension
+        {
+            string16 error;
+        }
+
         union AvroModelEventEx switch (AvroModelEventType)
         {
             case VALIDATION_FAILED: AvroModelValidationFailedEx validationFailed;
+            case PARSING_FAILED: AvroModelParsingFailedEx parsingFailed;
+            case TRANSFORM_FAILED: AvroModelTransformFailedEx transformFailed;
         }
     }
 }

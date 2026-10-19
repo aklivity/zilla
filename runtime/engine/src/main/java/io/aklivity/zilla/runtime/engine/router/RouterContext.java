@@ -31,13 +31,27 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 public interface RouterContext
 {
     /**
-     * Attaches a router configuration to this thread's context, returning the composed
-     * {@link BindingHandler} that will be installed as the engine's stream factory.
+     * Returns this thread's composed {@link BindingHandler}, installed as the engine's
+     * stream factory.
+     * <p>
+     * Available immediately once this context is constructed, independent of {@link #attach},
+     * so the engine can wire it into bindings before any registry-dependent setup has run.
+     * </p>
+     *
+     * @return the composed stream factory
+     */
+    BindingHandler streamFactory();
+
+    /**
+     * Attaches a router configuration to this thread's context.
+     * <p>
+     * Called once this thread's namespace registry reflects the engine's bootstrap
+     * configuration, so implementations may safely attach synthesized namespaces here.
+     * </p>
      *
      * @param config  the router configuration to activate
-     * @return a {@link BindingHandler} that the engine installs as its stream factory
      */
-    BindingHandler attach(
+    void attach(
         RouterConfig config);
 
     /**
@@ -68,4 +82,23 @@ public interface RouterContext
      */
     String supplyLabel(
         int labelId);
+
+    /**
+     * Resolves the binding id that a stream carrying the given affinity should actually be
+     * routed to, e.g. redirecting to a different binding when the affinity designates a
+     * remote node.
+     * <p>
+     * Identity by default: {@code routedId} unchanged, meaning no redirection applies.
+     * </p>
+     *
+     * @param routedId  the originally configured routed binding id
+     * @param affinity  the affinity value carried by the stream
+     * @return the binding id the stream should actually be routed to
+     */
+    default long resolveRoutedId(
+        long routedId,
+        long affinity)
+    {
+        return routedId;
+    }
 }

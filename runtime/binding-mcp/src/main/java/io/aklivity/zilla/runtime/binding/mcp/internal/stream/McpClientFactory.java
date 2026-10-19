@@ -34,6 +34,9 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_CALL;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -64,11 +67,13 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpAuthorizationError;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.BeginFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.Capability;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ChallengeFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpDataExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBearerError;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpChallengeExFW;
@@ -129,6 +134,8 @@ public final class McpClientFactory implements McpStreamFactory
     private static final String HTTP_HEADER_WWW_AUTHENTICATE = "www-authenticate";
     private static final String HTTP_HEADER_MCP_VERSION = "mcp-protocol-version";
     private static final String HTTP_HEADER_LAST_EVENT_ID = "last-event-id";
+    private static final String HTTP_HEADER_EVENT_ID = "id";
+    private static final String HTTP_HEADER_EVENT_RETRY = "retry";
     private static final String STATUS_401 = "401";
     private static final String STATUS_403 = "403";
     private static final String STATUS_405 = "405";
@@ -181,7 +188,6 @@ public final class McpClientFactory implements McpStreamFactory
     private static final String JSON_RPC_NOTIFY_INITIALIZED = "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}";
     private static final String JSON_RPC_PARAMS_CLOSE = "}";
 
-    private static final int DATA_FLAGS_COMPLETE = 0x03;
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -193,6 +199,7 @@ public final class McpClientFactory implements McpStreamFactory
     private final ChallengeFW challengeRO = new ChallengeFW();
     private final SignalFW signalRO = new SignalFW();
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
+    private final HttpDataExFW httpDataExRO = new HttpDataExFW();
     private final McpBeginExFW mcpBeginExRO = new McpBeginExFW();
     private final McpChallengeExFW mcpChallengeExRO = new McpChallengeExFW();
     private final McpFlushExFW mcpFlushExRO = new McpFlushExFW();
@@ -235,11 +242,8 @@ public final class McpClientFactory implements McpStreamFactory
     private final String clientName;
     private final String clientVersion;
 
-    private static final int SSE_LINE_START = 0;
-    private static final int SSE_FIELD_NAME = 1;
-    private static final int SSE_AFTER_COLON = 2;
-    private static final int SSE_SMALL_VALUE = 3;
-    private static final int SSE_IGNORE_VALUE = 4;
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
+    private static final int FRAMING_CAPABILITIES_MASK = 1 << Capability.FRAMING.ordinal();
 
     private final Matcher bearerChallengeMatcher = BEARER_CHALLENGE_PATTERN.matcher("");
 
@@ -360,8 +364,6 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private final HttpResponseDecoder decodeJsonRpc = this::decodeJsonRpc;
-    private final HttpResponseDecoder decodeSse = this::decodeSse;
-    private final HttpResponseDecoder decodeSseEventEnd = this::decodeSseEventEnd;
     private final HttpResponseDecoder decodeJsonRpcStart = this::decodeJsonRpcStart;
     private final HttpResponseDecoder decodeJsonRpcNext = this::decodeJsonRpcNext;
     private final HttpResponseDecoder decodeJsonRpcEnd = this::decodeJsonRpcEnd;
@@ -610,7 +612,13 @@ public final class McpClientFactory implements McpStreamFactory
 
             parser.close();
             http.decodableJson = null;
-            http.decoder = http.sseMode ? decodeSseEventEnd : decodeIgnore;
+            http.decoder = decodeIgnore;
+
+            if (http.sseMode)
+            {
+                finalizeSseEvent(http, traceId, authorization);
+                resetSseEvent(http);
+            }
 
             progress = offset + (int) (parser.getLocation().getStreamOffset() - http.decodedParserProgress);
         }
@@ -1275,184 +1283,6 @@ public final class McpClientFactory implements McpStreamFactory
         return limit;
     }
 
-    private int decodeSse(
-        McpHttpStream http,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int reserved,
-        DirectBufferEx buffer,
-        int offset,
-        int progress,
-        int limit)
-    {
-        outer:
-        while (progress < limit)
-        {
-            switch (http.sseLineState)
-            {
-            case SSE_LINE_START:
-            {
-                final byte b = buffer.getByte(progress);
-                if (b == (byte) '\n')
-                {
-                    progress++;
-                    finalizeSseEvent(http, traceId, authorization);
-                    resetSseEvent(http);
-                }
-                else if (b == (byte) ':')
-                {
-                    http.sseLineState = SSE_IGNORE_VALUE;
-                    progress++;
-                }
-                else
-                {
-                    http.sseFieldKind = (byte) (b | 0x20);
-                    http.sseLineState = SSE_FIELD_NAME;
-                    progress++;
-                }
-                break;
-            }
-            case SSE_FIELD_NAME:
-            {
-                final byte b = buffer.getByte(progress);
-                if (b == (byte) ':')
-                {
-                    http.sseLineState = SSE_AFTER_COLON;
-                    progress++;
-                }
-                else if (b == (byte) '\n')
-                {
-                    http.sseLineState = SSE_LINE_START;
-                    progress++;
-                }
-                else
-                {
-                    progress++;
-                }
-                break;
-            }
-            case SSE_AFTER_COLON:
-            {
-                final byte b = buffer.getByte(progress);
-                if (b == (byte) ' ')
-                {
-                    progress++;
-                    break;
-                }
-                if (b == (byte) '\n')
-                {
-                    if (http.sseFieldKind == (byte) 'i')
-                    {
-                        http.sseEventId = "";
-                    }
-                    http.sseLineState = SSE_LINE_START;
-                    progress++;
-                    break;
-                }
-                if (http.sseFieldKind == (byte) 'd')
-                {
-                    http.sseEventHasData = true;
-                    http.sseLineState = SSE_FIELD_NAME;
-                    http.decoder = decodeJsonRpc;
-                    break outer;
-                }
-                if (http.sseFieldKind == (byte) 'i' || http.sseFieldKind == (byte) 'r')
-                {
-                    http.sseLineState = SSE_SMALL_VALUE;
-                    http.sseSmallValue.setLength(0);
-                    http.sseSmallValue.append((char) (b & 0xff));
-                    progress++;
-                }
-                else
-                {
-                    http.sseLineState = SSE_IGNORE_VALUE;
-                    progress++;
-                }
-                break;
-            }
-            case SSE_SMALL_VALUE:
-            {
-                final byte b = buffer.getByte(progress);
-                if (b == (byte) '\n')
-                {
-                    if (http.sseFieldKind == (byte) 'i')
-                    {
-                        http.sseEventId = http.sseSmallValue.toString();
-                    }
-                    else if (http.sseFieldKind == (byte) 'r')
-                    {
-                        try
-                        {
-                            http.sseEventRetry =
-                                Long.parseLong(http.sseSmallValue, 0, http.sseSmallValue.length(), 10);
-                        }
-                        catch (NumberFormatException ignored)
-                        {
-                        }
-                    }
-                    http.sseLineState = SSE_LINE_START;
-                    progress++;
-                }
-                else
-                {
-                    http.sseSmallValue.append((char) (b & 0xff));
-                    progress++;
-                }
-                break;
-            }
-            case SSE_IGNORE_VALUE:
-            {
-                final byte b = buffer.getByte(progress);
-                if (b == (byte) '\n')
-                {
-                    http.sseLineState = SSE_LINE_START;
-                }
-                progress++;
-                break;
-            }
-            default:
-                break outer;
-            }
-        }
-        return progress;
-    }
-
-    private int decodeSseEventEnd(
-        McpHttpStream http,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int reserved,
-        DirectBufferEx buffer,
-        int offset,
-        int progress,
-        int limit)
-    {
-        // After JSON-RPC payload ends, expect '\n' (end of data: line) followed by '\n' (event terminator).
-        while (progress < limit)
-        {
-            final byte b = buffer.getByte(progress);
-            if (b == (byte) '\n')
-            {
-                progress++;
-                if (http.sseLineState == SSE_LINE_START)
-                {
-                    finalizeSseEvent(http, traceId, authorization);
-                    resetSseEvent(http);
-                    http.decoder = decodeSse;
-                    break;
-                }
-                http.sseLineState = SSE_LINE_START;
-            }
-            else
-            {
-                progress++;
-            }
-        }
-        return progress;
-    }
-
     private void finalizeSseEvent(
         McpHttpStream http,
         long traceId,
@@ -1518,10 +1348,7 @@ public final class McpClientFactory implements McpStreamFactory
         http.sseElicitUrl = null;
         http.sseElicitMode = null;
         http.sseResourceUri = null;
-        http.sseFieldKind = 0;
-        http.sseSmallValue.setLength(0);
         http.sseJsonValue.setLength(0);
-        http.sseLineState = SSE_LINE_START;
     }
 
     private static String stripSseEventIdPrefix(
@@ -1533,6 +1360,23 @@ public final class McpClientFactory implements McpStreamFactory
         }
         final int colon = id.lastIndexOf(':');
         return colon < 0 ? id : id.substring(colon + 1);
+    }
+
+    // the JSON-RPC id decoder accepts either a string or number id but only keeps the token
+    // text, not which one it was; this re-derives it from the token's own shape so a reverse
+    // elicitation response can echo the id back as the same JSON type it originally arrived as
+    private static boolean isJsonRpcNumericId(
+        String id)
+    {
+        boolean numeric = id != null && !id.isEmpty();
+        for (int i = 0; numeric && i < id.length(); i++)
+        {
+            final char ch = id.charAt(i);
+            final boolean digit = ch >= '0' && ch <= '9';
+            final boolean sign = i == 0 && ch == '-' && id.length() > 1;
+            numeric = digit || sign;
+        }
+        return numeric;
     }
 
     @Override
@@ -2176,7 +2020,7 @@ public final class McpClientFactory implements McpStreamFactory
                 final int reserved = length + replyPad;
 
                 doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, DATA_FLAGS_COMPLETE, replyBud, reserved, buffer, offset, length);
+                    traceId, authorization, COMPLETE, replyBud, reserved, buffer, offset, length);
 
                 replySeq += reserved;
                 assert replySeq <= replyAck + replyMax;
@@ -2343,6 +2187,12 @@ public final class McpClientFactory implements McpStreamFactory
         private HttpEventStream sse;
         boolean eventsUnsupported;
 
+        private boolean pendingConnect;
+        private long acquireTraceId;
+        private long acquireAuthorization;
+        private String guardElicitElicitationId;
+        private String guardElicitCorrelationId;
+
         private final LongCompletionCallback reauthorizeCompletion = new LongCompletionCallback()
         {
             @Override
@@ -2361,10 +2211,41 @@ public final class McpClientFactory implements McpStreamFactory
             }
         };
 
+        private final LongCompletionCallback connectAcquireCompletion = new LongCompletionCallback()
+        {
+            @Override
+            public void completed(
+                long contextId,
+                long sessionId)
+            {
+                if (pendingConnect)
+                {
+                    onConnectAcquireDecided(sessionId);
+                }
+            }
+
+            @Override
+            public void failed(
+                long contextId,
+                Throwable ex)
+            {
+                if (pendingConnect)
+                {
+                    onConnectAcquireDecided(GuardHandler.NOT_AUTHORIZED);
+                }
+            }
+        };
+
         @Override
         McpBindingConfig binding()
         {
             return binding;
+        }
+
+        @Override
+        boolean awaitingAuth()
+        {
+            return pendingConnect;
         }
 
         @Override
@@ -2441,6 +2322,105 @@ public final class McpClientFactory implements McpStreamFactory
         {
             touch();
             return requests.remove(id) != null;
+        }
+
+        @Override
+        boolean proceedWithRequest(
+            long traceId,
+            long authorization,
+            McpBeginExFW mcpBeginEx)
+        {
+            final GuardHandler guard = binding.guard;
+            if (guard == null)
+            {
+                return true;
+            }
+
+            if ((authorization & GuardHandler.MASK_AUTHORIZED) != 0L)
+            {
+                final String resolved = guard.credentials(authorization);
+                if (resolved != null)
+                {
+                    credentials = resolved;
+                    return true;
+                }
+            }
+
+            acquireTraceId = traceId;
+            acquireAuthorization = authorization;
+            pendingConnect = true;
+            guard.reauthorize(traceId, binding.id, authorization, null, connectAcquireCompletion);
+
+            return false;
+        }
+
+        private void onConnectAcquireDecided(
+            long sessionId)
+        {
+            final GuardHandler guard = binding.guard;
+
+            if ((sessionId & GuardHandler.MASK_AUTHORIZED) != 0L)
+            {
+                // pendingConnect stays true until the south handshake actually finishes (see
+                // onNetEnd) -- the guard has decided, but this session is not yet ready to carry
+                // other south-bound traffic
+                credentials = guard.credentials(sessionId);
+                guardSessionId = sessionId;
+                resumeDeferredConnect(acquireTraceId, acquireAuthorization);
+                return;
+            }
+
+            if (sessionId == GuardHandler.NEEDS_PREAUTHORIZE && binding.needsCredentials)
+            {
+                final String preauthorizeUrl =
+                    guard.preauthorize(acquireTraceId, binding.id, initialId, acquireAuthorization, authCallback);
+                if (preauthorizeUrl == null)
+                {
+                    pendingConnect = false;
+                    doAppReset(acquireTraceId, acquireAuthorization);
+                    doAppAbort(acquireTraceId, acquireAuthorization);
+                    return;
+                }
+
+                guardElicitElicitationId = supplyElicitationId.get();
+                guardElicitCorrelationId = supplyElicitCorrelationId.get();
+
+                final McpChallengeExFW challengeEx = mcpChallengeExRW
+                    .wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(mcpTypeId)
+                    .elicitCreate(b -> b
+                        .id(guardElicitElicitationId)
+                        .url(preauthorizeUrl)
+                        .message(ELICIT_MESSAGE_PREAUTHORIZE)
+                        .correlationId(guardElicitCorrelationId))
+                    .build();
+                doAppChallenge(acquireTraceId, acquireAuthorization, challengeEx);
+
+                // still pendingConnect: a request whose own proceedWithRequest observes this
+                // rejects rather than independently asking the same guard the same question
+                return;
+            }
+
+            if (!binding.needsCredentials)
+            {
+                // pendingConnect stays true until the south handshake finishes -- see onNetEnd
+                resumeDeferredConnect(acquireTraceId, acquireAuthorization);
+            }
+            else
+            {
+                pendingConnect = false;
+                doAppReset(acquireTraceId, acquireAuthorization);
+                doAppAbort(acquireTraceId, acquireAuthorization);
+            }
+        }
+
+        private void resumeDeferredConnect(
+            long traceId,
+            long authorization)
+        {
+            http.doEncodeRequestBegin(traceId, authorization);
+            onAppBeginImpl(traceId, authorization, null);
+            doAppWindow(traceId, authorization, 0L, 0);
         }
 
         @Override
@@ -2700,6 +2680,14 @@ public final class McpClientFactory implements McpStreamFactory
             {
                 deauthorizeGuardSession();
                 guardSessionId = sessionId;
+                credentials = binding.guard.credentials(sessionId);
+
+                if (pendingConnect)
+                {
+                    // pendingConnect stays true until the south handshake finishes -- see onNetEnd
+                    resumeDeferredConnect(acquireTraceId, acquireAuthorization);
+                    return;
+                }
 
                 final McpFlushExFW flushEx = mcpFlushExRW
                     .wrap(extBuffer, 0, extBuffer.capacity())
@@ -2709,6 +2697,12 @@ public final class McpClientFactory implements McpStreamFactory
                     })
                     .build();
                 doAppFlush(reauthTraceId, reauthAuthorization, flushEx);
+            }
+            else if (pendingConnect)
+            {
+                pendingConnect = false;
+                doAppReset(reauthTraceId, reauthAuthorization);
+                doAppAbort(reauthTraceId, reauthAuthorization);
             }
         }
 
@@ -2749,6 +2743,14 @@ public final class McpClientFactory implements McpStreamFactory
             {
                 final String sid = sessionId;
                 final int caps = serverCapabilities;
+
+                // the south handshake has now genuinely finished -- this session is ready to
+                // carry other south-bound traffic before its own reply is dispatched, since
+                // doAppBegin below can synchronously cascade into a request that was waiting
+                // on this exact connect to settle (e.g. the proxy layer's settleRequests(),
+                // called from the same reply it is about to receive)
+                pendingConnect = false;
+
                 doAppBegin(traceId, authorization, mcpBeginExRW
                     .wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(mcpTypeId)
@@ -3001,6 +3003,15 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization,
             McpBeginExFW mcpBeginEx)
         {
+            // the session's own connect is already asking the guard this same question; a request
+            // landing here cannot be for a caller that legitimately learned this session id yet
+            if (session.pendingConnect)
+            {
+                doAppReset(traceId, authorization);
+                doAppAbort(traceId, authorization);
+                return false;
+            }
+
             doAppBegin(traceId, authorization, null);
 
             final GuardHandler guard = session.binding.guard;
@@ -3019,10 +3030,6 @@ public final class McpClientFactory implements McpStreamFactory
                 }
             }
 
-            // the asynchronous overload completes on a later turn in every case, whether the
-            // guard decides locally or has to reach an authorization server for an outbound
-            // token exchange, so there is one path here: hold the request and buffer its body
-            // until the decision arrives
             acquireTraceId = traceId;
             acquireAuthorization = authorization;
             guard.reauthorize(traceId, session.binding.id, authorization, null, acquireCompletion);
@@ -3969,12 +3976,6 @@ public final class McpClientFactory implements McpStreamFactory
         protected boolean sseMode;
         protected String sseEventId;
         protected long sseEventRetry = -1L;
-        protected int sseLineState;
-        protected byte sseFieldKind;
-        protected final StringBuilder sseSmallValue = new StringBuilder();
-        // distinct from sseSmallValue (the byte-level id:/retry: field scanner's own accumulator, never
-        // cleared after a read completes) -- accumulates fragments of a JSON-RPC scalar that spans an
-        // input window, so the two never collide when a value read overlaps stale small-value content
         protected final StringBuilder sseJsonValue = new StringBuilder();
         protected boolean sseEventHasData;
         protected boolean sseEventProgress;
@@ -4001,6 +4002,56 @@ public final class McpClientFactory implements McpStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = mcp.affinity;
             this.replyMax = decodeMax;
+        }
+
+        final void onEventFrame(
+            DataFW data,
+            long traceId,
+            long authorization)
+        {
+            if (hasInit(data.flags()))
+            {
+                final OctetsFW ext = data.extension();
+                final HttpDataExFW httpDataEx = httpDataExRO.tryWrap(ext.buffer(), ext.offset(), ext.limit());
+                if (httpDataEx != null)
+                {
+                    final HttpHeaderFW id = httpDataEx.headers()
+                        .matchFirst(h -> HTTP_HEADER_EVENT_ID.equals(h.name().asString()));
+                    if (id != null)
+                    {
+                        sseEventId = id.value().asString();
+                    }
+
+                    final HttpHeaderFW retry = httpDataEx.headers()
+                        .matchFirst(h -> HTTP_HEADER_EVENT_RETRY.equals(h.name().asString()));
+                    if (retry != null)
+                    {
+                        sseEventRetry = Long.parseLong(retry.value().asString());
+                    }
+                }
+            }
+
+            final OctetsFW payload = data.payload();
+            if (payload != null && payload.sizeof() > 0 && decoder == decodeIgnore)
+            {
+                sseEventHasData = true;
+                decoder = decodeJsonRpc;
+            }
+        }
+
+        final void onEventEnd(
+            long traceId,
+            long authorization)
+        {
+            if (decoder == decodeIgnore)
+            {
+                finalizeSseEvent(this, traceId, authorization);
+                resetSseEvent(this);
+            }
+            else if (decodeSlot == NO_SLOT)
+            {
+                onDecodeParseError(traceId, authorization);
+            }
         }
 
         final void injectAuthorization(
@@ -4159,7 +4210,7 @@ public final class McpClientFactory implements McpStreamFactory
                     .orElse(null);
                 if (CONTENT_TYPE_EVENT_STREAM.equals(contentType))
                 {
-                    decoder = decodeSse;
+                    decoder = decodeIgnore;
                     sseMode = true;
                 }
             }
@@ -4227,7 +4278,7 @@ public final class McpClientFactory implements McpStreamFactory
             }
             else
             {
-                final OctetsFW payload = data.payload();
+                final OctetsFW payload = data.payload() != null ? data.payload() : EMPTY_OCTETS;
                 int reserved = data.reserved();
                 DirectBufferEx buffer = payload.buffer();
                 int offset = payload.offset();
@@ -4252,7 +4303,17 @@ public final class McpClientFactory implements McpStreamFactory
                     decodableJson.wrap(buffer, offset + delta, limit);
                 }
 
+                if (sseMode)
+                {
+                    onEventFrame(data, traceId, authorization);
+                }
+
                 decodeNet(traceId, authorization, budgetId, reserved, buffer, offset, limit);
+
+                if (sseMode && hasFin(data.flags()))
+                {
+                    onEventEnd(traceId, authorization);
+                }
             }
         }
 
@@ -4387,7 +4448,7 @@ public final class McpClientFactory implements McpStreamFactory
 
             doWindow(net, originId, routedId, replyId,
                 replySeq, replyAck, replyMax,
-                traceId, authorization, budgetId, padding);
+                traceId, authorization, budgetId, padding, FRAMING_CAPABILITIES_MASK);
         }
 
         private void onNetAbort(
@@ -4558,7 +4619,7 @@ public final class McpClientFactory implements McpStreamFactory
                 encodeSlot == NO_SLOT)
             {
                 state = McpState.closedInitial(state);
-                doEnd(net, originId, routedId, initialId, traceId, authorization);
+                doEnd(net, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
 
                 cleanupEncodeSlot();
             }
@@ -4634,7 +4695,7 @@ public final class McpClientFactory implements McpStreamFactory
                 final int reserved = length;
 
                 doData(net, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, DATA_FLAGS_COMPLETE, 0L, reserved,
+                    traceId, authorization, COMPLETE, 0L, reserved,
                     buffer, offset, length);
 
                 initialSeq += reserved;
@@ -4947,7 +5008,7 @@ public final class McpClientFactory implements McpStreamFactory
             String lastEventId)
         {
             super(mcp);
-            this.decoder = decodeSse;
+            this.decoder = decodeIgnore;
             this.sseMode = true;
             this.lastEventId = lastEventId;
         }
@@ -5099,7 +5160,7 @@ public final class McpClientFactory implements McpStreamFactory
             }
             else
             {
-                final OctetsFW payload = data.payload();
+                final OctetsFW payload = data.payload() != null ? data.payload() : EMPTY_OCTETS;
                 int reserved = data.reserved();
                 DirectBufferEx buffer = payload.buffer();
                 int offset = payload.offset();
@@ -5124,7 +5185,14 @@ public final class McpClientFactory implements McpStreamFactory
                     decodableJson.wrap(buffer, offset + delta, limit);
                 }
 
+                onEventFrame(data, traceId, authorization);
+
                 decodeNet(traceId, authorization, budgetId, reserved, buffer, offset, limit);
+
+                if (hasFin(data.flags()))
+                {
+                    onEventEnd(traceId, authorization);
+                }
             }
 
             flushNetWindow(traceId, authorization, budgetId);
@@ -5222,7 +5290,7 @@ public final class McpClientFactory implements McpStreamFactory
             int padding)
         {
             doWindow(net, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, budgetId, padding);
+                traceId, authorization, budgetId, padding, FRAMING_CAPABILITIES_MASK);
         }
 
         private void flushNetWindow(
@@ -6043,7 +6111,7 @@ public final class McpClientFactory implements McpStreamFactory
             doData(net, originId, routedId, initialId,
                 initialSeq, initialAck, initialMax,
                 traceId, authorization,
-                DATA_FLAGS_COMPLETE, 0L, reserved,
+                COMPLETE, 0L, reserved,
                 buffer, offset, length);
 
             initialSeq += reserved;
@@ -6200,6 +6268,7 @@ public final class McpClientFactory implements McpStreamFactory
         private final String sessionId;
         private final String protocolVersion;
         private final String requestId;
+        private final boolean numericRequestId;
         private final String action;
         private final McpBindingConfig binding;
         private final int contentLength;
@@ -6228,12 +6297,14 @@ public final class McpClientFactory implements McpStreamFactory
             this.sessionId = mcp.transportSessionId();
             this.protocolVersion = mcp.protocolVersion();
             this.requestId = requestId;
+            this.numericRequestId = isJsonRpcNumericId(requestId);
             this.action = action;
             this.originId = mcp.routedId;
             this.routedId = mcp.resolvedId;
             this.affinity = mcp.affinity;
             this.binding = mcp.binding();
-            this.contentLength = JSON_RPC_ELICIT_RESPONSE_PREFIX.length() + requestId.length() +
+            final int idQuotes = numericRequestId ? 0 : 2;
+            this.contentLength = JSON_RPC_ELICIT_RESPONSE_PREFIX.length() + idQuotes + requestId.length() +
                 JSON_RPC_ELICIT_RESPONSE_MIDDLE.length() + action.length() + JSON_RPC_ELICIT_RESPONSE_SUFFIX.length();
         }
 
@@ -6269,7 +6340,15 @@ public final class McpClientFactory implements McpStreamFactory
         {
             int codecLength = 0;
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_ELICIT_RESPONSE_PREFIX);
+            if (!numericRequestId)
+            {
+                codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, "\"");
+            }
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, requestId);
+            if (!numericRequestId)
+            {
+                codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, "\"");
+            }
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_ELICIT_RESPONSE_MIDDLE);
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, action);
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_ELICIT_RESPONSE_SUFFIX);
@@ -6278,7 +6357,7 @@ public final class McpClientFactory implements McpStreamFactory
             doData(net, originId, routedId, initialId,
                 initialSeq, initialAck, initialMax,
                 traceId, authorization,
-                DATA_FLAGS_COMPLETE, 0L, reserved,
+                COMPLETE, 0L, reserved,
                 codecBuffer, 0, codecLength);
 
             initialSeq += reserved;
@@ -6756,6 +6835,24 @@ public final class McpClientFactory implements McpStreamFactory
         long budgetId,
         int padding)
     {
+        doWindow(receiver, originId, routedId, streamId, sequence, acknowledge, maximum,
+            traceId, authorization, budgetId, padding, 0);
+    }
+
+    private void doWindow(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int padding,
+        int capabilities)
+    {
         final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(originId)
             .routedId(routedId)
@@ -6767,6 +6864,7 @@ public final class McpClientFactory implements McpStreamFactory
             .authorization(authorization)
             .budgetId(budgetId)
             .padding(padding)
+            .capabilities(capabilities)
             .build();
 
         receiver.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());

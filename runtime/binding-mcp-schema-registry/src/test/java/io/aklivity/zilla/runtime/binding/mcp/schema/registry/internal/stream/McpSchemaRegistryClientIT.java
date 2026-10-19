@@ -130,6 +130,26 @@ public class McpSchemaRegistryClientIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
+        "${mcp}/delete.subject.permanent/client",
+        "${http}/delete.subject.permanent/server"})
+    public void shouldCallToolDeleteSubjectPermanent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/delete.schema.version.permanent/client",
+        "${http}/delete.schema.version.permanent/server"})
+    public void shouldCallToolDeleteSchemaVersionPermanent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
         "${mcp}/check.compatibility/client",
         "${http}/check.compatibility/server"})
     public void shouldCallToolCheckCompatibility() throws Exception

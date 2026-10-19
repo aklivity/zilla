@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.model.protobuf.internal;
 
+import static io.aklivity.zilla.runtime.model.protobuf.internal.types.event.ProtobufModelEventType.PARSING_FAILED;
+import static io.aklivity.zilla.runtime.model.protobuf.internal.types.event.ProtobufModelEventType.TRANSFORM_FAILED;
 import static io.aklivity.zilla.runtime.model.protobuf.internal.types.event.ProtobufModelEventType.VALIDATION_FAILED;
 
 import java.nio.ByteBuffer;
@@ -36,6 +38,8 @@ public class ProtobufModelEventContext
     private final ProtobufModelEventExFW.Builder protobufModelEventExRW = new ProtobufModelEventExFW.Builder();
     private final int protobufModelTypeId;
     private final int validationFailedEventId;
+    private final int parsingFailedEventId;
+    private final int transformFailedEventId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
 
@@ -44,6 +48,8 @@ public class ProtobufModelEventContext
     {
         this.protobufModelTypeId = context.supplyTypeId(ProtobufModel.NAME);
         this.validationFailedEventId = context.supplyEventId("model.protobuf.validation.failed");
+        this.parsingFailedEventId = context.supplyEventId("model.protobuf.parsing.failed");
+        this.transformFailedEventId = context.supplyEventId("model.protobuf.transform.failed");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
     }
@@ -63,6 +69,52 @@ public class ProtobufModelEventContext
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .id(validationFailedEventId)
+            .timestamp(clock.millis())
+            .traceId(traceId)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
+            .build();
+        eventWriter.accept(protobufModelTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void parsingFailure(
+        long traceId,
+        long bindingId,
+        String error)
+    {
+        ProtobufModelEventExFW extension = protobufModelEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .parsingFailed(e -> e
+                .typeId(PARSING_FAILED.value())
+                .error(error)
+            )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(parsingFailedEventId)
+            .timestamp(clock.millis())
+            .traceId(traceId)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
+            .build();
+        eventWriter.accept(protobufModelTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void transformFailure(
+        long traceId,
+        long bindingId,
+        String error)
+    {
+        ProtobufModelEventExFW extension = protobufModelEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .transformFailed(e -> e
+                .typeId(TRANSFORM_FAILED.value())
+                .error(error)
+            )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(transformFailedEventId)
             .timestamp(clock.millis())
             .traceId(traceId)
             .namespacedId(bindingId)

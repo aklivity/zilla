@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.model.avro.internal;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
@@ -45,6 +46,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroTransform;
 import io.aklivity.zilla.runtime.common.avro.AvroTransformable;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelController;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelEvent;
@@ -54,13 +56,12 @@ import io.aklivity.zilla.runtime.engine.model.ModelSource;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
+import io.aklivity.zilla.runtime.model.avro.ext.AvroCache;
 import io.aklivity.zilla.runtime.model.avro.ext.AvroModelExtContext;
 import io.aklivity.zilla.runtime.model.avro.ext.AvroModelExtHandler;
 
 public class AvroModelEnvelopeTest
 {
-    private static final int FLAGS_COMPLETE = 0x03;
-
     private static final String SCHEMA = """
         {
             "fields":
@@ -93,7 +94,7 @@ public class AvroModelEnvelopeTest
         envelope.set("mark", buffer("two"));
 
         AvroModelHandlerImpl handler = newHandler(List.of(echoingExt("mark", "echo")));
-        ModelPipeline pipeline = handler.supplyDecoder(envelope, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(envelope, ModelTransform.NONE, ModelCache.NONE);
 
         transform(pipeline);
 
@@ -126,7 +127,7 @@ public class AvroModelEnvelopeTest
         // both vocabularies observe one store
         Reading reading = new Reading(envelope, "mark");
         AvroModelHandlerImpl handler = newHandler(List.of(echoingExt("mark", "echo")));
-        ModelPipeline pipeline = handler.supplyDecoder(envelope, reading);
+        ModelPipeline pipeline = handler.supplyDecoder(envelope, reading, ModelCache.NONE);
 
         transform(pipeline);
 
@@ -141,7 +142,7 @@ public class AvroModelEnvelopeTest
         Observing observing = new Observing();
 
         AvroModelHandlerImpl handler = newHandler(List.of(observingExt(observing)));
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         transform(pipeline);
 
@@ -152,7 +153,7 @@ public class AvroModelEnvelopeTest
         ModelPipeline pipeline)
     {
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
     }
 
@@ -194,7 +195,8 @@ public class AvroModelEnvelopeTest
 
             @Override
             public <T extends AvroTransformable<T>> T decode(
-                T transformable)
+                T transformable,
+                AvroCache cache)
             {
                 return transformable.transform(transform);
             }
@@ -218,7 +220,8 @@ public class AvroModelEnvelopeTest
 
             @Override
             public <T extends AvroTransformable<T>> T decode(
-                T transformable)
+                T transformable,
+                AvroCache cache)
             {
                 return transformable.transform(transform);
             }
@@ -239,7 +242,8 @@ public class AvroModelEnvelopeTest
         {
             @Override
             public <T extends AvroTransformable<T>> T decode(
-                T transformable)
+                T transformable,
+                AvroCache cache)
             {
                 return transformable.transform(observing);
             }
@@ -338,6 +342,12 @@ public class AvroModelEnvelopeTest
         {
             return true;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     }
 
     // format-native stage: writes each string value it observes into the envelope under one name
@@ -370,6 +380,12 @@ public class AvroModelEnvelopeTest
         {
             return true;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     }
 
     // format-native stage: captures the envelope the pipeline supplies, without touching its contents
@@ -393,11 +409,23 @@ public class AvroModelEnvelopeTest
         {
             return true;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     }
 
     // a generic stage the caller composes over the same envelope it supplies to the pipeline
     private static final class Reading implements ModelTransform
     {
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
         private final ModelEnvelope envelope;
         private final String name;
         private final List<String> read = new ArrayList<>();

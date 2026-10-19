@@ -122,10 +122,13 @@ add_field("acknowledge", ProtoField.int64("zilla.acknowledge", "Acknowledge", ba
 add_field("maximum", ProtoField.int32("zilla.maximum", "Maximum", base.DEC))
 add_field("timestamp", ProtoField.uint64("zilla.timestamp", "Timestamp", base.HEX))
 add_field("trace_id", ProtoField.uint64("zilla.trace_id", "Trace ID", base.HEX))
+add_field("trace_id_node", ProtoField.uint8("zilla.trace_id.node", "Node", base.DEC))
+add_field("trace_id_worker", ProtoField.uint8("zilla.trace_id.worker", "Worker", base.DEC))
 add_field("authorization", ProtoField.uint64("zilla.authorization", "Authorization", base.HEX))
 
 -- begin frame
 add_field("affinity", ProtoField.uint64("zilla.affinity", "Affinity", base.HEX))
+add_field("redirected_id", ProtoField.uint64("zilla.redirected_id", "Redirected ID", base.HEX))
 
 -- data frame
 add_field("flags", ProtoField.uint8("zilla.flags", "Flags", base.HEX))
@@ -277,7 +280,9 @@ end
 function handle_begin_frame(buffer, offset, subtree, pinfo, info)
     local slice_affinity = buffer(offset, 8)
     subtree:add_le(fields.affinity, slice_affinity)
-    handle_extension(buffer, subtree, pinfo, info, offset + 8, BEGIN_ID)
+    local slice_redirected_id = buffer(offset + 8, 8)
+    subtree:add_le(fields.redirected_id, slice_redirected_id)
+    handle_extension(buffer, subtree, pinfo, info, offset + 16, BEGIN_ID)
 end
 
 function handle_redirect_frame(buffer, offset, subtree, pinfo, info)
@@ -572,7 +577,10 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     subtree:add_le(fields.acknowledge, slice_acknowledge)
     subtree:add_le(fields.maximum, slice_maximum)
     subtree:add_le(fields.timestamp, slice_timestamp)
-    subtree:add_le(fields.trace_id, slice_trace_id)
+    local trace_id_subtree = subtree:add(zilla_protocol, slice_trace_id, "Trace ID")
+    trace_id_subtree:add_le(fields.trace_id, slice_trace_id)
+    trace_id_subtree:add_le(fields.trace_id_node, buffer(frame_offset + 62, 1))
+    trace_id_subtree:add_le(fields.trace_id_worker, buffer(frame_offset + 63, 1))
     subtree:add_le(fields.authorization, slice_authorization)
 
     pinfo.cols.protocol = zilla_protocol.name

@@ -53,10 +53,12 @@ connected
 write '{"name":"list_tags","arguments":{}}'
 
 # tool.output (list_tags_result) is an array-rooted schema: structuredContent is the array itself, not
-# an object wrapping it — proves McpHttpToolResult's array-root envelope step
+# an object wrapping it — proves McpHttpToolResult's array-root envelope step. tool.summary's bare
+# ${result} (no path) captures that same root array, re-serialized as compact JSON, proving
+# McpHttpResults' container capture alongside its existing scalar-only capture
 read  '{'
         '"structuredContent":["v1","v2","v3"],'
-        '"content":[{"type":"text","text":"done"}],'
+        '"content":[{"type":"text","text":"Tags: [\\"v1\\",\\"v2\\",\\"v3\\"]"}],'
         '"isError":false'
       '}'
 read closed

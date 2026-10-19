@@ -33,7 +33,17 @@
                     },
                     "catalog": false,
                     "vault": false,
-                    "options": false,
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "value":
+                            {
+                                "$ref": "#/$defs/models"
+                            }
+                        },
+                        "additionalProperties": false
+                    },
                     "routes": false,
                     "entry": false,
                     "exit": false

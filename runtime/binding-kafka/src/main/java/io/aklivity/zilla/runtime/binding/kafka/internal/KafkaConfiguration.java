@@ -70,6 +70,7 @@ public class KafkaConfiguration extends Configuration
     public static final IntPropertyDef KAFKA_CACHE_CLIENT_RECONNECT_DELAY;
     public static final IntPropertyDef KAFKA_CACHE_CLIENT_CLEANUP_DELAY;
     public static final IntPropertyDef KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX;
+    public static final IntPropertyDef KAFKA_CACHE_SERVER_TRAILERS_SIZE_MAX;
     public static final IntPropertyDef KAFKA_CACHE_SERVER_RECONNECT_DELAY;
     public static final PropertyDef<NonceSupplier> KAFKA_CLIENT_SASL_SCRAM_NONCE;
     public static final PropertyDef<Duration> KAFKA_CLIENT_GROUP_REBALANCE_TIMEOUT;
@@ -134,6 +135,7 @@ public class KafkaConfiguration extends Configuration
         KAFKA_CACHE_SEGMENT_BYTES = config.property("cache.segment.bytes", 0x40000000);
         KAFKA_CACHE_SEGMENT_INDEX_BYTES = config.property("cache.segment.index.bytes", 0xA00000);
         KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX = config.property("cache.client.trailers.size.max", 256);
+        KAFKA_CACHE_SERVER_TRAILERS_SIZE_MAX = config.property("cache.server.trailers.size.max", 256);
         KAFKA_CLIENT_CONNECTION_POOL = config.property("client.connection.pool", true);
         KAFKA_CLIENT_API_VERSIONS = config.property("client.api.versions", true);
         KAFKA_CLIENT_RECONNECT_DELAY = config.property("client.reconnect", 5);
@@ -320,6 +322,11 @@ public class KafkaConfiguration extends Configuration
     public int cacheClientTrailersSizeMax()
     {
         return KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX.getAsInt(this);
+    }
+
+    public int cacheServerTrailersSizeMax()
+    {
+        return KAFKA_CACHE_SERVER_TRAILERS_SIZE_MAX.getAsInt(this);
     }
 
     public String clientId()

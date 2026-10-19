@@ -24,6 +24,16 @@ jobs:
       with:
         require: admin
 
+    - name: Validate release version is semantic
+      env:
+        VERSION: ${{ inputs.version }}
+      run: |
+        SEMVER='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)(\.(0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*)?$'
+        if [[ ! "$VERSION" =~ $SEMVER ]]; then
+          echo "::error::Release version '$VERSION' is not a valid semantic version (expected x.y.z or x.y.z-prerelease, e.g. 1.2.3 or 1.2.3-rc1). Aborting."
+          exit 1
+        fi
+
     - name: Validate release version against branch
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -254,8 +264,8 @@ jobs:
         platforms: linux/amd64,linux/arm64
         push: true
         provenance: false
-        cache-from: type=registry,ref=ghcr.io/aklivity/zilla:buildcache
-        cache-to: type=registry,ref=ghcr.io/aklivity/zilla:buildcache,mode=max
+        cache-from: type=registry,ref=ghcr.io/aklivity/zilla-buildcache:latest
+        cache-to: type=registry,ref=ghcr.io/aklivity/zilla-buildcache:latest,mode=max
         tags: |
           ghcr.io/aklivity/zilla:${{ inputs.version }}
           ${{ steps.tag.outputs.minor && format('ghcr.io/aklivity/zilla:{0}', steps.tag.outputs.minor) || '' }}
@@ -270,8 +280,8 @@ jobs:
         platforms: linux/amd64
         push: true
         provenance: false
-        cache-from: type=registry,ref=ghcr.io/aklivity/zilla:buildcache-alpine
-        cache-to: type=registry,ref=ghcr.io/aklivity/zilla:buildcache-alpine,mode=max
+        cache-from: type=registry,ref=ghcr.io/aklivity/zilla-buildcache:alpine
+        cache-to: type=registry,ref=ghcr.io/aklivity/zilla-buildcache:alpine,mode=max
         tags: |
           ghcr.io/aklivity/zilla:${{ inputs.version }}-alpine
           ${{ steps.tag.outputs.minor && format('ghcr.io/aklivity/zilla:{0}-alpine', steps.tag.outputs.minor) || '' }}

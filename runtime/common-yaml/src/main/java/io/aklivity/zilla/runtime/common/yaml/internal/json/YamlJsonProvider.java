@@ -61,6 +61,7 @@ public final class YamlJsonProvider extends JsonProvider
         Map<String, ?> config)
     {
         this.config = config == null ? Map.of() : Map.copyOf(config);
+        YamlJsonParser.uniqueKeys(this.config);
     }
 
     @Override

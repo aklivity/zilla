@@ -256,6 +256,7 @@ final class ZillaTarget implements AutoCloseable
             client.targetAuth(authorization);
 
             final long affinity = clientConfig.getAffinity();
+            final long redirectedId = clientConfig.getRedirectedId();
 
             ChannelBuffer beginExt = client.writeExtBuffer(BEGIN, true);
             final int writableExtBytes = beginExt.readableBytes();
@@ -276,6 +277,7 @@ final class ZillaTarget implements AutoCloseable
                 .traceId(supplyTraceId.getAsLong())
                 .authorization(authorization)
                 .affinity(affinity)
+                .redirectedId(redirectedId)
                 .extension(p -> p.set(beginExtCopy))
                 .build();
 
@@ -384,6 +386,7 @@ final class ZillaTarget implements AutoCloseable
         final long acknowledge = channel.targetAck();
         final int maximum = channel.targetMax();
         final long affinity = channel.getConfig().getAffinity();
+        final long redirectedId = channel.getConfig().getRedirectedId();
 
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
@@ -395,6 +398,7 @@ final class ZillaTarget implements AutoCloseable
                 .timestamp(channel.timestamp())
                 .traceId(supplyTraceId.getAsLong())
                 .affinity(affinity)
+                .redirectedId(redirectedId)
                 .extension(p -> p.set(beginExtCopy))
                 .build();
 
@@ -485,6 +489,7 @@ final class ZillaTarget implements AutoCloseable
         final long authorization = channel.targetAuth();
         final int maximum = channel.targetMax();
         final long budgetId = channel.debitorId();
+        final int reservedBytes = channel.getConfig().isPaddable(ZillaFrameKind.FLUSH) ? channel.reservedBytes(0) : 0;
 
         final ChannelBuffer writeExt = channel.writeExtBuffer(FLUSH, true);
         final int writableExtBytes = writeExt.readableBytes();
@@ -501,10 +506,13 @@ final class ZillaTarget implements AutoCloseable
                 .traceId(supplyTraceId.getAsLong())
                 .authorization(authorization)
                 .budgetId(budgetId)
+                .reserved(reservedBytes)
                 .extension(ex -> ex.set(writeExtCopy))
                 .build();
 
         streamsBuffer.write(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
+
+        channel.writtenBytes(0, reservedBytes);
 
         writeExt.skipBytes(writableExtBytes);
         writeExt.discardReadBytes();
@@ -706,7 +714,8 @@ final class ZillaTarget implements AutoCloseable
         final boolean flushing = writeBuf == NULL_BUFFER;
         final int writableWin = channel.writableBytes();
         final int reservableBytes = Math.min(writeBuf.readableBytes(), writeBuffer.capacity() >> 1);
-        final int reservedBytes = writableWin > 0 || writeBuf.capacity() == 0 ? channel.reservedBytes(reservableBytes) : 0;
+        final int reservedBytes = channel.getConfig().isPaddable(ZillaFrameKind.DATA) &&
+                (writableWin > 0 || writeBuf.capacity() == 0) ? channel.reservedBytes(reservableBytes) : 0;
         final int writableBytes = Math.max(Math.min(reservedBytes - channel.targetPad(), writeBuf.readableBytes()), 0);
 
         // allow extension-only DATA frames to be flushed immediately

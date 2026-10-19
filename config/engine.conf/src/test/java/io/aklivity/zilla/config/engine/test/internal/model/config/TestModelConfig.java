@@ -27,6 +27,15 @@ public class TestModelConfig extends ModelConfig
     public final boolean read;
     public final int transformLength;
     public final List<String> fields;
+    public final List<Long> transformAuthorizations;
+    public final List<String> reject;
+    public final List<String> withhold;
+    public final List<String> mask;
+    public final boolean suspend;
+    public final List<Long> discloseAuthorized;
+    public final String discloseRedacted;
+    public final String envelopeDiscloseName;
+    public final boolean deterministic;
 
     public TestModelConfig(
         int length,
@@ -63,11 +72,107 @@ public class TestModelConfig extends ModelConfig
         List<String> fields,
         ValidateConfig validate)
     {
+        this(length, cataloged, read, transformLength, fields, validate, null);
+    }
+
+    public TestModelConfig(
+        int length,
+        List<CatalogedConfig> cataloged,
+        boolean read,
+        int transformLength,
+        List<String> fields,
+        ValidateConfig validate,
+        List<Long> transformAuthorizations)
+    {
+        this(length, cataloged, read, transformLength, fields, validate, transformAuthorizations, null, false, null, null);
+    }
+
+    public TestModelConfig(
+        int length,
+        List<CatalogedConfig> cataloged,
+        boolean read,
+        int transformLength,
+        List<String> fields,
+        ValidateConfig validate,
+        List<Long> transformAuthorizations,
+        List<String> reject,
+        boolean suspend,
+        List<Long> discloseAuthorized,
+        String discloseRedacted)
+    {
+        this(length, cataloged, read, transformLength, fields, validate, transformAuthorizations,
+            reject, suspend, discloseAuthorized, discloseRedacted, null);
+    }
+
+    public TestModelConfig(
+        int length,
+        List<CatalogedConfig> cataloged,
+        boolean read,
+        int transformLength,
+        List<String> fields,
+        ValidateConfig validate,
+        List<Long> transformAuthorizations,
+        List<String> reject,
+        boolean suspend,
+        List<Long> discloseAuthorized,
+        String discloseRedacted,
+        String envelopeDiscloseName)
+    {
+        this(length, cataloged, read, transformLength, fields, validate, transformAuthorizations,
+            reject, null, suspend, discloseAuthorized, discloseRedacted, envelopeDiscloseName, true);
+    }
+
+    public TestModelConfig(
+        int length,
+        List<CatalogedConfig> cataloged,
+        boolean read,
+        int transformLength,
+        List<String> fields,
+        ValidateConfig validate,
+        List<Long> transformAuthorizations,
+        List<String> reject,
+        List<String> withhold,
+        boolean suspend,
+        List<Long> discloseAuthorized,
+        String discloseRedacted,
+        String envelopeDiscloseName,
+        boolean deterministic)
+    {
+        this(length, cataloged, read, transformLength, fields, validate, transformAuthorizations,
+            reject, withhold, null, suspend, discloseAuthorized, discloseRedacted, envelopeDiscloseName, deterministic);
+    }
+
+    public TestModelConfig(
+        int length,
+        List<CatalogedConfig> cataloged,
+        boolean read,
+        int transformLength,
+        List<String> fields,
+        ValidateConfig validate,
+        List<Long> transformAuthorizations,
+        List<String> reject,
+        List<String> withhold,
+        List<String> mask,
+        boolean suspend,
+        List<Long> discloseAuthorized,
+        String discloseRedacted,
+        String envelopeDiscloseName,
+        boolean deterministic)
+    {
         super("test", cataloged, validate);
         this.length = length;
         this.read = read;
         this.transformLength = transformLength;
         this.fields = fields;
+        this.transformAuthorizations = transformAuthorizations;
+        this.reject = reject;
+        this.withhold = withhold;
+        this.mask = mask;
+        this.suspend = suspend;
+        this.discloseAuthorized = discloseAuthorized;
+        this.discloseRedacted = discloseRedacted;
+        this.envelopeDiscloseName = envelopeDiscloseName;
+        this.deterministic = deterministic;
     }
 
     public static <T> TestModelConfigBuilder<T> builder(

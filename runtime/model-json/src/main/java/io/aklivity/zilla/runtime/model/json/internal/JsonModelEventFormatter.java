@@ -20,6 +20,8 @@ import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 import io.aklivity.zilla.runtime.model.json.internal.types.StringFW;
 import io.aklivity.zilla.runtime.model.json.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.model.json.internal.types.event.JsonModelEventExFW;
+import io.aklivity.zilla.runtime.model.json.internal.types.event.JsonModelParsingFailedExFW;
+import io.aklivity.zilla.runtime.model.json.internal.types.event.JsonModelTransformFailedExFW;
 import io.aklivity.zilla.runtime.model.json.internal.types.event.JsonModelValidationFailedExFW;
 
 public final class JsonModelEventFormatter implements EventFormatterSpi
@@ -47,6 +49,18 @@ public final class JsonModelEventFormatter implements EventFormatterSpi
         {
             JsonModelValidationFailedExFW ex = extension.validationFailed();
             result = String.format("A message payload failed validation. %s", asString(ex.error()));
+            break;
+        }
+        case PARSING_FAILED:
+        {
+            JsonModelParsingFailedExFW ex = extension.parsingFailed();
+            result = String.format("A message payload could not be parsed. %s", asString(ex.error()));
+            break;
+        }
+        case TRANSFORM_FAILED:
+        {
+            JsonModelTransformFailedExFW ex = extension.transformFailed();
+            result = String.format("A message payload failed to transform. %s", asString(ex.error()));
             break;
         }
         }

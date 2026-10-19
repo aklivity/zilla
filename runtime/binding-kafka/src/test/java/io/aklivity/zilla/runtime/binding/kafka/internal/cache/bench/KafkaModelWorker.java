@@ -39,7 +39,9 @@ import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.budget.BudgetFlusher;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.classifier.ClassifierHandler;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import io.aklivity.zilla.runtime.engine.embedding.EmbeddingHandler;
 import io.aklivity.zilla.runtime.engine.event.EventFormatter;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
@@ -75,6 +77,13 @@ final class KafkaModelWorker implements EngineContext
     public long affinity()
     {
         return 0L;
+    }
+
+    @Override
+    public int indexOf(
+        long id)
+    {
+        return 0;
     }
 
     @Override
@@ -366,6 +375,20 @@ final class KafkaModelWorker implements EngineContext
         long catalogId)
     {
         return catalog;
+    }
+
+    @Override
+    public EmbeddingHandler supplyEmbedding(
+        long embeddingId)
+    {
+        return null;
+    }
+
+    @Override
+    public ClassifierHandler supplyClassifier(
+        long classifierId)
+    {
+        return null;
     }
 
     @Override

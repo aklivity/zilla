@@ -52,7 +52,8 @@ public final class McpKafkaToolDeleteTopicsSource implements JsonSink, Source
     {
         ROOT,
         ARGUMENTS,
-        TOPICS
+        TOPICS,
+        IGNORED
     }
 
     private final int defaultTimeoutMs;
@@ -105,6 +106,12 @@ public final class McpKafkaToolDeleteTopicsSource implements JsonSink, Source
 
     @Override
     public boolean identity()
+    {
+        return true;
+    }
+
+    @Override
+    public boolean deterministic()
     {
         return true;
     }
@@ -169,7 +176,9 @@ public final class McpKafkaToolDeleteTopicsSource implements JsonSink, Source
         }
         else
         {
-            next = null;
+            // ArrayDeque forbids null elements, so an unrecognized object (e.g. a JSON-RPC "_meta"
+            // sibling of "arguments") pushes IGNORED rather than null to keep the stack depth correct.
+            next = Context.IGNORED;
         }
         stack.push(next);
     }
@@ -198,7 +207,7 @@ public final class McpKafkaToolDeleteTopicsSource implements JsonSink, Source
     private void onStartArray()
     {
         final Context parent = current();
-        final Context next = parent == Context.ARGUMENTS && "topics".equals(key) ? Context.TOPICS : null;
+        final Context next = parent == Context.ARGUMENTS && "topics".equals(key) ? Context.TOPICS : Context.IGNORED;
         stack.push(next);
     }
 

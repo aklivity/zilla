@@ -39,17 +39,15 @@ write zilla:begin.ext ${http:beginEx()
                             .build()}
 write flush
 
-write "id:" 
-write ${http:randomAscii(254)}
-write "\n" "event:" 
-write ${http:randomAscii(16)}
-write "\n" 
-write "data:Hello, world\n"
-write "\n"
+write zilla:data.ext 0L ${zilla:id("http")} [0x1e 0x01 0x00 0x00] [0x02 0x00 0x00 0x00] [0x02] "id" [0xfe 0x00] ${http:randomAscii(254)} [0x04] "type" [0x10 0x00] ${http:randomAscii(16)}
+write "Hello, world"
 write flush
 
-write "id:105\n"
-write "\n"
+write zilla:data.ext ${http:dataEx()
+                             .typeId(zilla:id("http"))
+                            .header("id", "105")
+                             .build()}
+write zilla:data.empty
 write close
 
 accepted

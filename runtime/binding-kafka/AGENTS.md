@@ -21,54 +21,52 @@ downstream clients without additional round-trips to Kafka.
 
 ---
 
-## KafkaPipeline — whole-message composition
+## KafkaCacheModel — incremental key/value transforms
 
-`KafkaPipeline` sits one layer above the engine's `ModelPipeline`. It owns the
-key's model pipeline and the value's model pipeline, drives each in turn, and
-translates their per-field output into `KafkaEvent` — a lane selector
-(`SWITCH_KEY` / `SWITCH_HEADERS` / `SWITCH_VALUE`) plus one shared `FIELD`.
-`KafkaTransform` stages compose with `andThen` and append to any lane at the
-moment they have something to append; `KafkaExtractTransform` is one stage per
-`extractKey` / `extractHeaders` config entry.
+`KafkaCacheModel` wraps the engine's `ModelPipeline` for a cache entry's key or
+value, driven once per DATA fragment via `transform(traceId, bindingId,
+authorization, flags, data, index, limit, Output)` — `flags` are the caller's
+own frame `FLAGS_INIT` / `FLAGS_FIN`, passed straight through. It reports back
+via a reused `Result`: `UNDERFLOW` (more fragments expected, pipeline state
+retained), `COMPLETE` (value finished this fragment, pipeline reset), or
+`REJECTED` (validation failure, pipeline reset, caller aborts the entry). A
+whole-value convenience overload (used by non-streaming callers) delegates
+with both flags set. `KafkaCacheModel.NONE` is a plain passthrough.
 
-Two rules the terminal `KafkaSink` depends on:
+An optional `ModelTransform` composes with the model's own pipeline via
+`andThen`; `KafkaExtractTransform` is the one shipped implementation, one
+instance per `extractKey` / `extractHeaders` config entry. It observes a field
+at a configured path and copies its value into a `ModelEnvelope` under a
+configured name — the field itself still flows through to the model's own
+output untouched, so the stage is always identity. `extractKey` writes into a
+`KafkaCacheKeyEnvelope` (`KafkaCachePartition` reads the override back off it
+in place of the persisted key); `extractHeaders` writes into a
+`KafkaCacheTrailerEnvelope` (read back as the entry's `trailers`).
 
-- A lane switch selects the destination of the **single** `FIELD` that follows
-  it. A field with no switch ahead of it is one the traversal merely surfaced
-  and nothing is written for it.
-- The pipeline's opening announcement of the lane it is traversing reaches the
-  stages but **not** the terminal. Without that, `extractKey` — whose origin
-  and target are both the key lane — cannot be told apart from the key's own
-  fields flowing past.
+## Write protocol: reserve, stream, finalize
 
-## Supported lane transitions
+Both the produce path (`KafkaCacheClientProduceFactory`) and the populate path
+(`KafkaCacheServerFetchFactory`) write a cache entry in three calls —
+`write*EntryStart` / `write*EntryContinue` / `write*Fin`/`write*Finish` — that
+reserve a region up front and then either fill it in place or, if the real
+content ends up smaller than the reservation, finalize a `length`/`paddingLen`
+pair to describe the leftover. `KafkaCachePaddedKey`/`KafkaCachePaddedValue`
+(the `paddedKey`/`paddedValue` fields on `KafkaCacheEntry`) both follow this
+shape natively: `length` + the field's own bytes + `paddingLen` + padding
+octets, with `paddingLen` relocated to sit right after the real (possibly
+transformed) length once it's known — `commitKeyOverride` does this for a key,
+`writeEntryContinue`/`writeProduceEntryContinue` do it for a value's COMPLETE
+transition.
 
-The vocabulary can express a stage appending to any lane from any lane, but only
-two combinations have somewhere to land in the cache entry's layout:
-
-| traversing | may append to | why not the others |
-| --- | --- | --- |
-| key | key (`extractKey`) | no trailers are under construction during the key drive |
-| value | headers (`extractHeaders`) | the key's hash is already computed and indexed by then |
-
-Nothing can be appended to the value lane at all — the value's bytes come from
-its model's output, not from `KafkaEvent`. A stage reaching for any unsupported
-transition trips an `assert` in `KafkaPipeline.KafkaLaneGuard` rather than being
-silently dropped by the terminal, and a stage that appends during the pipeline's
-opening lane announcement trips the `assert` in `KafkaPipeline.ANNOUNCE`. Relax
-these only as a deliberate move to fully parallel key, headers, and value
-writes.
-
-No `extractKey` / `extractHeaders` configuration can reach an unsupported
-transition, so `KafkaPipelineTest` drives them through
-`KafkaPipeline.stagedDecoder`, a package-private factory over an explicit stage
-chain.
-
-The key lane is the one place content is not written the instant it is found:
-its destination is the key itself, still being appended by the key's own model
-when the match arrives, and `KafkaCacheFile` only grows forward. The extracted
-key waits in a single slot in `KafkaCachePartition.KafkaEntrySink` until the
-key region is closed. Headers stream with no buffering at all.
-
-Extracted headers land in field-encounter order, not `extractHeaders` config
-order — a direct consequence of the streaming design.
+A value transform's output streams directly into the `paddedValue`
+reservation as fragments arrive — plaintext never touches the log file when a
+value model is configured. When a value model additionally composes an
+`extractHeaders` stage, its `KafkaCacheTrailerEnvelope` must be claimed before
+the first fragment is driven (fragments arrive well before headers are known
+on the populate path), so `writeEntryStart` reserves a combined
+headers-worst-case + trailers-sized block up front and reuses the
+trailers-sized portion as the envelope's scratch space during the drive;
+`writeEntryFinish` later writes the real (smaller) headers and trailers
+contiguously over those same bytes and folds whatever remains into the
+entry's own trailing `paddingLen`/`padding` fields. The produce path doesn't
+need this reordering since it already knows its headers at `Start`.

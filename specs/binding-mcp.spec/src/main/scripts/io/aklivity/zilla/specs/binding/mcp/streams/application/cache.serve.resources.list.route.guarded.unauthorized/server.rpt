@@ -13,6 +13,8 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property affinity "00000000"
+
 property authorization 1L
 
 accept "zilla://streams/app1"
@@ -33,7 +35,7 @@ connected
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("5ca1ab1e-c0de-4a11-feed-000100000000")
+                               .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
                                .build()
                            .build()}
 write flush
@@ -45,7 +47,7 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .resourcesTemplatesList()
-                              .sessionId("5ca1ab1e-c0de-4a11-feed-000100000000")
+                              .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
                               .build()
                           .build()}
 
@@ -65,7 +67,7 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .resourcesList()
-                              .sessionId("5ca1ab1e-c0de-4a11-feed-000100000000")
+                              .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
                               .build()
                           .build()}
 
@@ -108,7 +110,7 @@ connected
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("5ca1ab1e-c0de-4a11-feed-000200000000")
+                               .sessionId("5ca1ab1e-c0de-4a11-feed-0002".concat(affinity))
                                .build()
                            .build()}
 write flush
@@ -118,7 +120,7 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .resourcesTemplatesList()
-                              .sessionId("5ca1ab1e-c0de-4a11-feed-000200000000")
+                              .sessionId("5ca1ab1e-c0de-4a11-feed-0002".concat(affinity))
                               .build()
                           .build()}
 
@@ -138,7 +140,7 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .resourcesList()
-                              .sessionId("5ca1ab1e-c0de-4a11-feed-000200000000")
+                              .sessionId("5ca1ab1e-c0de-4a11-feed-0002".concat(affinity))
                               .build()
                           .build()}
 

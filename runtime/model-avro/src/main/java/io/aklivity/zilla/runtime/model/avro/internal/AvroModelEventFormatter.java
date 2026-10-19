@@ -18,6 +18,8 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 import io.aklivity.zilla.runtime.model.avro.internal.types.event.AvroModelEventExFW;
+import io.aklivity.zilla.runtime.model.avro.internal.types.event.AvroModelParsingFailedExFW;
+import io.aklivity.zilla.runtime.model.avro.internal.types.event.AvroModelTransformFailedExFW;
 import io.aklivity.zilla.runtime.model.avro.internal.types.event.AvroModelValidationFailedExFW;
 import io.aklivity.zilla.runtime.model.avro.internal.types.event.EventFW;
 
@@ -25,6 +27,10 @@ public final class AvroModelEventFormatter implements EventFormatterSpi
 {
     private static final String VALIDATION_FAILED_FORMAT = "A message payload failed validation.";
     private static final String VALIDATION_FAILED_WITH_ERROR_FORMAT = VALIDATION_FAILED_FORMAT + " %s";
+    private static final String PARSING_FAILED_FORMAT = "A message payload could not be parsed.";
+    private static final String PARSING_FAILED_WITH_ERROR_FORMAT = PARSING_FAILED_FORMAT + " %s";
+    private static final String TRANSFORM_FAILED_FORMAT = "A message payload failed to transform.";
+    private static final String TRANSFORM_FAILED_WITH_ERROR_FORMAT = TRANSFORM_FAILED_FORMAT + " %s";
 
     private final EventFW eventRO = new EventFW();
     private final AvroModelEventExFW eventExRO = new AvroModelEventExFW();
@@ -48,6 +54,12 @@ public final class AvroModelEventFormatter implements EventFormatterSpi
         case VALIDATION_FAILED:
             result = formatValidationFailed(eventEx.validationFailed());
             break;
+        case PARSING_FAILED:
+            result = formatParsingFailed(eventEx.parsingFailed());
+            break;
+        case TRANSFORM_FAILED:
+            result = formatTransformFailed(eventEx.transformFailed());
+            break;
         }
         return result;
     }
@@ -59,5 +71,23 @@ public final class AvroModelEventFormatter implements EventFormatterSpi
         return error != null
             ? String.format(VALIDATION_FAILED_WITH_ERROR_FORMAT, error)
             : VALIDATION_FAILED_FORMAT;
+    }
+
+    private String formatParsingFailed(
+        AvroModelParsingFailedExFW parsingFailed)
+    {
+        String error = parsingFailed.error().asString();
+        return error != null
+            ? String.format(PARSING_FAILED_WITH_ERROR_FORMAT, error)
+            : PARSING_FAILED_FORMAT;
+    }
+
+    private String formatTransformFailed(
+        AvroModelTransformFailedExFW transformFailed)
+    {
+        String error = transformFailed.error().asString();
+        return error != null
+            ? String.format(TRANSFORM_FAILED_WITH_ERROR_FORMAT, error)
+            : TRANSFORM_FAILED_FORMAT;
     }
 }

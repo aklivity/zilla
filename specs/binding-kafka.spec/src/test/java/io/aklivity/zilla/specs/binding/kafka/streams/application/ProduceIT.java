@@ -94,6 +94,42 @@ public class ProduceIT
 
     @Test
     @Specification({
+        "${app}/partition.not.leader.reconnect.in.flight/client",
+        "${app}/partition.not.leader.reconnect.in.flight/server"})
+    public void shouldReconnectPartitionNotLeaderInFlight() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/partition.not.leader.reconnect.in.flight.acknowledged/client",
+        "${app}/partition.not.leader.reconnect.in.flight.acknowledged/server"})
+    public void shouldReconnectPartitionNotLeaderInFlightAcknowledged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/network.exception.reconnect/client",
+        "${app}/network.exception.reconnect/server"})
+    public void shouldReconnectNetworkException() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/network.exception/client",
+        "${app}/network.exception/server"})
+    public void shouldRejectNetworkException() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/partition.not.leader.reconnect.after.meta/client",
         "${app}/partition.not.leader.reconnect.after.meta/server"})
     public void shouldReconnectPartitionNotLeaderAfterMeta() throws Exception
@@ -313,6 +349,15 @@ public class ProduceIT
 
     @Test
     @Specification({
+        "${app}/message.headers.large/client",
+        "${app}/message.headers.large/server"})
+    public void shouldSendMessageHeadersLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/message.value.repeated.fragmented/client",
         "${app}/message.value.repeated.fragmented/server"})
     public void shouldSendMessageValueRepeatedWhenFragmented() throws Exception
@@ -328,6 +373,13 @@ public class ProduceIT
     {
         k3po.finish();
     }
+
+    // message.values.authorization.distinct has no peer-to-peer counterpart here: k3po itself
+    // (independent of any Zilla engine behavior) cannot correlate a third notify/await-gated
+    // connect to the same accept address in this harness -- confirmed by the pre-existing,
+    // never-covered message.values.parallel scenario failing the identical way peer-to-peer.
+    // The scenario is still fully covered by CacheProduceIT#shouldSendMessageValuesAuthorizationDistinct,
+    // which drives it through a live engine instead.
 
     @Test
     @Specification({
@@ -382,6 +434,23 @@ public class ProduceIT
     {
         k3po.finish();
     }
+
+    // message.value.envelope has no peer-to-peer counterpart here: the client writes no header at all,
+    // relying entirely on the engine's model to populate one from what a composed transform wrote to the
+    // envelope during encode -- there is nothing for a client/server pairing to verify without a live
+    // engine driving that model. The scenario is still fully covered by
+    // CacheProduceIT#shouldSendMessageValueEnvelope, which drives it through a live engine instead.
+
+    // message.value.envelope.overflow has no peer-to-peer counterpart for the same reason as
+    // message.value.envelope above, and additionally depends on a non-default
+    // cache.client.trailers.size.max that only a live engine configuration can supply. The scenario is
+    // still fully covered by CacheProduceIT#shouldSendMessageValueEnvelopeOverflow.
+
+    // message.value.protobuf.fragmented has no peer-to-peer counterpart here: the server script expects
+    // the catalog-framed protobuf bytes a real protobuf value model produces during encode, which only
+    // happens inside a live Zilla engine -- there is nothing for a client/server pairing to verify
+    // without one. The scenario is still fully covered by
+    // CacheProduceIT#shouldSendMessageValueProtobufFragmented, which drives it through a live engine.
 
     @Test
     @Specification({

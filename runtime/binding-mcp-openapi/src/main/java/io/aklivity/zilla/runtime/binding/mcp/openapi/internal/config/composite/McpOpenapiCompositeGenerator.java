@@ -184,6 +184,8 @@ public final class McpOpenapiCompositeGenerator
                 usedNames.add(tool);
             }
 
+            final String exit = route.exit != null ? route.exit : binding.exit;
+
             for (OpenapiOperationView operation : candidateOperations(openapi, route, claimed))
             {
                 claimed.add(operation);
@@ -201,10 +203,10 @@ public final class McpOpenapiCompositeGenerator
                     continue;
                 }
 
-                final List<GuardedRef> guarded = combineGuarded(binding, route, resolution.guarded);
+                final List<GuardedRef> guarded = combineGuarded(route, resolution.guarded);
 
                 routed.add(new RoutedOperation(toolConfig(binding, routeTool), resourceConfig(binding, resource),
-                    operation, guarded, serverByLabel.get(with.spec), with.params, with.body));
+                    operation, guarded, exit, serverByLabel.get(with.spec), with.params, with.body));
             }
         }
 
@@ -400,7 +402,7 @@ public final class McpOpenapiCompositeGenerator
                 .name(BINDING_NAME)
                 .kind(binding.kind)
                 .options(mcpHttpOptions(binding, routed))
-                .inject(b -> injectRoutes(b, binding, routed))
+                .inject(b -> injectRoutes(b, routed))
                 .build();
     }
 
@@ -582,7 +584,6 @@ public final class McpOpenapiCompositeGenerator
 
     private <C> McpHttpBindingConfigBuilder<C> injectRoutes(
         McpHttpBindingConfigBuilder<C> mcpHttp,
-        McpOpenapiBindingConfig binding,
         List<RoutedOperation> routed)
     {
         for (RoutedOperation entry : routed)
@@ -596,7 +597,7 @@ public final class McpOpenapiCompositeGenerator
             mcpHttp.route()
                 .when(when)
                 .with(with)
-                .exit(binding.exit)
+                .exit(entry.exit)
                 .inject(route -> injectGuarded(route, entry))
                 .build();
         }
@@ -735,7 +736,6 @@ public final class McpOpenapiCompositeGenerator
     }
 
     private static List<GuardedRef> combineGuarded(
-        McpOpenapiBindingConfig binding,
         McpOpenapiRouteConfig route,
         List<GuardedRef> derived)
     {
@@ -750,7 +750,7 @@ public final class McpOpenapiCompositeGenerator
             }
             for (GuardedConfig guarded : route.guarded)
             {
-                final String qname = binding.supplyQName.apply(binding.resolveId.applyAsLong(guarded.name));
+                final String qname = guarded.qname();
                 rolesByQName.computeIfAbsent(qname, q -> new ArrayList<>()).addAll(guarded.roles);
             }
 
@@ -1067,12 +1067,13 @@ public final class McpOpenapiCompositeGenerator
         return result;
     }
 
-    // MCP's tool outputSchema (and the structuredContent it describes) must be a JSON object; an OpenAPI
-    // response whose own schema is array- or primitive-typed is wrapped as {"result": <schema>} instead
-    // of advertised as-is -- see wrapAsObjectSchema and McpHttpResultWrap, which wraps the real response
-    // body the same way so structuredContent still matches the advertised schema. A resource's own output
-    // schema has no such constraint (it is never advertised, only used to project the read body), so this
-    // check and the wrapping it drives applies to tools only
+    // MCP's structuredContent field must always be a JSON object on the wire, regardless of whether the
+    // OpenAPI operation declares a response schema at all -- an undeclared-schema response can still be a
+    // bare array or scalar at runtime, so a response whose own declared (or entirely absent) schema is not
+    // object-typed is wrapped as {"result": <value>} instead of passed through as-is -- see wrapAsObjectSchema
+    // and McpHttpResultWrap, which wraps the real response body the same way so structuredContent still
+    // conforms. A resource's own output schema has no such constraint (it is never advertised, only used to
+    // project the read body), so this check and the wrapping it drives applies to tools only
     private static boolean hasObjectOutputSchema(
         OpenapiOperationView operation)
     {
@@ -1116,6 +1117,7 @@ public final class McpOpenapiCompositeGenerator
         final JsonObjectBuilder properties = Json.createObjectBuilder();
         final List<String> required = new LinkedList<>();
         final List<String> propertyNames = new LinkedList<>();
+        JsonValue additionalProperties = null;
 
         if (operation.parameters != null)
         {
@@ -1160,6 +1162,11 @@ public final class McpOpenapiCompositeGenerator
                         }
                     }
                 }
+                if (schema != null && schema.model.additionalProperties != null &&
+                    !JsonValue.FALSE.equals(schema.model.additionalProperties))
+                {
+                    additionalProperties = schema.model.additionalProperties;
+                }
                 break;
             }
         }
@@ -1172,6 +1179,10 @@ public final class McpOpenapiCompositeGenerator
             final JsonArrayBuilder requiredArray = Json.createArrayBuilder();
             required.forEach(requiredArray::add);
             object.add("required", requiredArray);
+        }
+        if (additionalProperties != null)
+        {
+            object.add("additionalProperties", additionalProperties);
         }
 
         return object.build().toString();
@@ -1186,9 +1197,53 @@ public final class McpOpenapiCompositeGenerator
         {
             if (typed.schema != null)
             {
-                result = toSchemaJson(jsonb, typed.schema.model);
+                result = denyParameterNames(toSchemaJson(jsonb, typed.schema.model), operation);
             }
             break;
+        }
+        return result;
+    }
+
+    // A structured body schema (named properties, possibly widened by additionalProperties) shares the
+    // same tools/call arguments object as the operation's own path/query/header/cookie parameters. Once
+    // additionalProperties admits unnamed keys, a parameter name would otherwise pass straight through
+    // that wildcard into the outbound body alongside the fields it actually describes -- so every
+    // parameter not already a declared body property is denied explicitly (a false sub-schema), which
+    // JsonSchema#rejectedPaths() surfaces to the body projector as always winning over the wildcard.
+    private static String denyParameterNames(
+        String schemaJson,
+        OpenapiOperationView operation)
+    {
+        String result = schemaJson;
+        if (operation.parameters != null && !operation.parameters.isEmpty())
+        {
+            JsonValue parsed = Json.createReader(new StringReader(schemaJson)).readValue();
+            if (parsed instanceof JsonObject)
+            {
+                JsonObject schema = (JsonObject) parsed;
+                JsonValue properties = schema.get("properties");
+                if (properties instanceof JsonObject)
+                {
+                    JsonObject declared = (JsonObject) properties;
+                    JsonObjectBuilder denied = Json.createObjectBuilder(declared);
+                    boolean modified = false;
+                    for (OpenapiParameterView parameter : operation.parameters)
+                    {
+                        if (!declared.containsKey(parameter.name))
+                        {
+                            denied.add(parameter.name, JsonValue.FALSE);
+                            modified = true;
+                        }
+                    }
+                    if (modified)
+                    {
+                        result = Json.createObjectBuilder(schema)
+                            .add("properties", denied)
+                            .build()
+                            .toString();
+                    }
+                }
+            }
         }
         return result;
     }
@@ -1240,6 +1295,7 @@ public final class McpOpenapiCompositeGenerator
         private final McpOpenapiResourceConfig resource;
         private final OpenapiOperationView operation;
         private final List<GuardedRef> guarded;
+        private final String exit;
         private final String server;
         private final Map<String, String> params;
         private final Map<String, String> body;
@@ -1249,6 +1305,7 @@ public final class McpOpenapiCompositeGenerator
             McpOpenapiResourceConfig resource,
             OpenapiOperationView operation,
             List<GuardedRef> guarded,
+            String exit,
             String server,
             Map<String, String> params,
             Map<String, String> body)
@@ -1257,6 +1314,7 @@ public final class McpOpenapiCompositeGenerator
             this.resource = resource;
             this.operation = operation;
             this.guarded = guarded;
+            this.exit = exit;
             this.server = server;
             this.params = params != null ? params : Map.of();
             this.body = body != null ? body : Map.of();

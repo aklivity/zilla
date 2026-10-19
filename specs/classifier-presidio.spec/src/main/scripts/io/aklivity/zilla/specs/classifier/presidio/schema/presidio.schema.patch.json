@@ -1,0 +1,193 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/classifier/properties/type/enum/-",
+        "value": "presidio"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/classifier/allOf/-",
+        "value": {
+            "if": {
+                "properties": {
+                    "type": {
+                        "const": "presidio"
+                    }
+                }
+            },
+            "then": {
+                "properties": {
+                    "type": {
+                        "const": "presidio"
+                    },
+                    "options": {
+                        "title": "Options",
+                        "type": "object",
+                        "properties": {
+                            "endpoint": {
+                                "title": "Analyzer Endpoint",
+                                "type": "string",
+                                "pattern": "^https?://[^?#]+$"
+                            },
+                            "credentials": {
+                                "title": "Credentials",
+                                "type": "object",
+                                "properties": {
+                                    "authorization": {
+                                        "title": "Authorization",
+                                        "type": "string",
+                                        "minLength": 1
+                                    }
+                                },
+                                "additionalProperties": false
+                            },
+                            "language": {
+                                "title": "Language",
+                                "type": "string",
+                                "minLength": 1,
+                                "default": "en"
+                            },
+                            "threshold": {
+                                "title": "Score Threshold",
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1,
+                                "default": 0
+                            },
+                            "timeout": {
+                                "title": "Timeout",
+                                "type": "string",
+                                "format": "duration",
+                                "default": "PT5S"
+                            },
+                            "labels": {
+                                "title": "Labels",
+                                "type": "object",
+                                "minProperties": 1,
+                                "additionalProperties": {
+                                    "anyOf": [
+                                        {
+                                            "enum": [
+                                                "AU_ABN",
+                                                "AU_ACN",
+                                                "AU_MEDICARE",
+                                                "AU_TFN",
+                                                "CA_POSTAL_CODE",
+                                                "CA_SIN",
+                                                "CREDIT_CARD",
+                                                "CRYPTO",
+                                                "DATE_TIME",
+                                                "DE_HANDELSREGISTER",
+                                                "DE_HEALTH_INSURANCE",
+                                                "DE_ID_CARD",
+                                                "DE_KFZ",
+                                                "DE_PASSPORT",
+                                                "DE_PLZ",
+                                                "DE_SOCIAL_SECURITY",
+                                                "DE_TAX_ID",
+                                                "DE_TAX_NUMBER",
+                                                "EMAIL_ADDRESS",
+                                                "ES_NIE",
+                                                "ES_NIF",
+                                                "ES_PASSPORT",
+                                                "FI_PERSONAL_IDENTITY_CODE",
+                                                "IBAN_CODE",
+                                                "IN_AADHAAR",
+                                                "IN_GSTIN",
+                                                "IN_PAN",
+                                                "IN_PASSPORT",
+                                                "IN_VEHICLE_REGISTRATION",
+                                                "IN_VOTER",
+                                                "IP_ADDRESS",
+                                                "IT_DRIVER_LICENSE",
+                                                "IT_FISCAL_CODE",
+                                                "IT_IDENTITY_CARD",
+                                                "IT_PASSPORT",
+                                                "IT_VAT_CODE",
+                                                "KR_BRN",
+                                                "KR_DRIVER_LICENSE",
+                                                "KR_FRN",
+                                                "KR_PASSPORT",
+                                                "KR_RRN",
+                                                "LOCATION",
+                                                "MAC_ADDRESS",
+                                                "MEDICAL_BIOLOGICAL_ATTRIBUTE",
+                                                "MEDICAL_BIOLOGICAL_STRUCTURE",
+                                                "MEDICAL_CLINICAL_EVENT",
+                                                "MEDICAL_DISEASE_DISORDER",
+                                                "MEDICAL_FAMILY_HISTORY",
+                                                "MEDICAL_HISTORY",
+                                                "MEDICAL_LICENSE",
+                                                "MEDICAL_MEDICATION",
+                                                "MEDICAL_THERAPEUTIC_PROCEDURE",
+                                                "NG_NIN",
+                                                "NG_VEHICLE_REGISTRATION",
+                                                "NRP",
+                                                "PERSON",
+                                                "PHONE_NUMBER",
+                                                "PH_PASSPORT",
+                                                "PH_TIN",
+                                                "PH_UMID",
+                                                "PL_PESEL",
+                                                "SE_ORGANISATIONSNUMMER",
+                                                "SE_PERSONNUMMER",
+                                                "SG_NRIC_FIN",
+                                                "SG_UEN",
+                                                "TH_TNIN",
+                                                "TR_LICENSE_PLATE",
+                                                "TR_NATIONAL_ID",
+                                                "UK_DRIVING_LICENCE",
+                                                "UK_NHS",
+                                                "UK_NINO",
+                                                "UK_PASSPORT",
+                                                "UK_POSTCODE",
+                                                "UK_VEHICLE_REGISTRATION",
+                                                "URL",
+                                                "US_BANK_NUMBER",
+                                                "US_CLAIM_NUMBER",
+                                                "US_DRIVER_LICENSE",
+                                                "US_HEALTH_INSURANCE_MEMBER_ID",
+                                                "US_ITIN",
+                                                "US_MBI",
+                                                "US_NPI",
+                                                "US_PASSPORT",
+                                                "US_PRESCRIPTION_NUMBER",
+                                                "US_PRIOR_AUTHORIZATION_NUMBER",
+                                                "US_PROVIDER_TAX_ID",
+                                                "US_REFERRAL_NUMBER",
+                                                "US_SSN",
+                                                "UUID",
+                                                "ZA_COMPANY_REGISTRATION",
+                                                "ZA_DRIVER_LICENSE",
+                                                "ZA_ID_NUMBER",
+                                                "ZA_INCOME_TAX_NUMBER",
+                                                "ZA_LICENSE_PLATE",
+                                                "ZA_MOBILE_NUMBER",
+                                                "ZA_PASSPORT",
+                                                "ZA_TELEPHONE_NUMBER",
+                                                "ZA_TRAFFIC_REGISTER_NUMBER",
+                                                "ZA_VAT_NUMBER"
+                                            ]
+                                        },
+                                        {
+                                            "type": "string",
+                                            "pattern": "^[A-Z][A-Z0-9_]*$"
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        "required": [
+                            "endpoint"
+                        ],
+                        "additionalProperties": false
+                    }
+                },
+                "required": [
+                    "options"
+                ],
+                "additionalProperties": false
+            }
+        }
+    }
+]

@@ -29,3 +29,5 @@ write zilla:begin.ext ${sse:beginEx()
 connected
 
 read "Hello, world"
+
+read closed

@@ -34,6 +34,8 @@ final class StringExtModelPipeline extends CoreExtModelPipeline
     private final StringController control;
     private final StringSource source;
     private final StringSink head;
+    private final boolean identity;
+    private final boolean deterministic;
 
     StringExtModelPipeline(
         CoreModelHandler handler,
@@ -53,12 +55,20 @@ final class StringExtModelPipeline extends CoreExtModelPipeline
             sink = new Stage(transforms.get(i), sink);
         }
         this.head = sink;
+        this.identity = head.identity();
+        this.deterministic = head.deterministic();
     }
 
     @Override
     public boolean identity()
     {
-        return head.identity();
+        return identity;
+    }
+
+    @Override
+    public boolean deterministic()
+    {
+        return deterministic;
     }
 
     @Override
@@ -94,6 +104,12 @@ final class StringExtModelPipeline extends CoreExtModelPipeline
 
     private final class Control implements StringController
     {
+        @Override
+        public long authorization()
+        {
+            return StringExtModelPipeline.this.authorization();
+        }
+
         @Override
         public ModelEnvelope envelope()
         {
@@ -175,6 +191,12 @@ final class StringExtModelPipeline extends CoreExtModelPipeline
         {
             return transform.identity() && sink.identity();
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return transform.deterministic() && sink.deterministic();
+        }
     }
 
     // the terminal: value bytes land in the caller's destination, and a write the destination bounded
@@ -213,6 +235,12 @@ final class StringExtModelPipeline extends CoreExtModelPipeline
 
         @Override
         public boolean identity()
+        {
+            return true;
+        }
+
+        @Override
+        public boolean deterministic()
         {
             return true;
         }

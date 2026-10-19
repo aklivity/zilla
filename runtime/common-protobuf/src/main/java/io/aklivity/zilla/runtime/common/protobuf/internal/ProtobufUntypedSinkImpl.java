@@ -76,6 +76,12 @@ public final class ProtobufUntypedSinkImpl implements ProtobufSink
         return generator.identity();
     }
 
+    @Override
+    public boolean deterministic()
+    {
+        return generator.deterministic();
+    }
+
     private ProtobufPipeline.Status dispatch(
         ProtobufController control,
         ProtobufSource source,

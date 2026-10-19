@@ -254,6 +254,24 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/reject.request.session.unknown/client",
+        "${net}/reject.request.session.unknown/server"})
+    public void shouldRejectRequestSessionUnknown() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/reject.request.session.missing/client",
+        "${net}/reject.request.session.missing/server"})
+    public void shouldRejectRequestSessionMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/lifecycle.initialize.reject.capabilities.invalid/client",
         "${net}/lifecycle.initialize.reject.capabilities.invalid/server"})
     public void shouldRejectLifecycleInitializeCapabilitiesInvalid() throws Exception
@@ -353,6 +371,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/tools.call.concurrent.lifecycle.preauthorize/client",
+        "${net}/tools.call.concurrent.lifecycle.preauthorize/server"})
+    public void shouldCallToolConcurrentWithLifecyclePreauthorize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/tools.call.identity/client",
         "${net}/tools.call.identity/server"})
     public void shouldCallToolWithIdentity() throws Exception
@@ -374,6 +401,15 @@ public class NetworkIT
         "${net}/tools.list.security.schemes/client",
         "${net}/tools.list.security.schemes/server"})
     public void shouldListToolsSecuritySchemes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/tools.list.security.schemes.fragmented/client",
+        "${net}/tools.list.security.schemes.fragmented/server"})
+    public void shouldListToolsSecuritySchemesFragmented() throws Exception
     {
         k3po.finish();
     }
@@ -632,6 +668,24 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/lifecycle.shutdown.session.unknown/client",
+        "${net}/lifecycle.shutdown.session.unknown/server"})
+    public void shouldRejectLifecycleShutdownSessionUnknown() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.shutdown.session.missing/client",
+        "${net}/lifecycle.shutdown.session.missing/server"})
+    public void shouldRejectLifecycleShutdownSessionMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/lifecycle.redirect.session/client",
         "${net}/lifecycle.redirect.session/server"})
     public void shouldRedirectLifecycleForRemoteSession() throws Exception
@@ -659,15 +713,6 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/lifecycle.events.keepalive/client",
-        "${net}/lifecycle.events.keepalive/server"})
-    public void shouldKeepaliveLifecycleEvents() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/lifecycle.events.evict/client",
         "${net}/lifecycle.events.evict/server"})
     public void shouldEvictLifecycleEvents() throws Exception
@@ -680,6 +725,60 @@ public class NetworkIT
         "${net}/lifecycle.shutdown.events/client",
         "${net}/lifecycle.shutdown.events/server"})
     public void shouldLifecycleShutdownEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.notify.tools.list.changed/client",
+        "${net}/lifecycle.notify.tools.list.changed/server"})
+    public void shouldNotifyToolsListChanged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.notify.prompts.list.changed/client",
+        "${net}/lifecycle.notify.prompts.list.changed/server"})
+    public void shouldNotifyPromptsListChanged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.notify.resources.list.changed/client",
+        "${net}/lifecycle.notify.resources.list.changed/server"})
+    public void shouldNotifyResourcesListChanged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.notify.resources.updated/client",
+        "${net}/lifecycle.notify.resources.updated/server"})
+    public void shouldNotifyResourcesUpdated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.notify.resources.updated.fragmented/client",
+        "${net}/lifecycle.notify.resources.updated.fragmented/server"})
+    public void shouldNotifyResourcesUpdatedFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.notify.resources.updated.unknown.param/client",
+        "${net}/lifecycle.notify.resources.updated.unknown.param/server"})
+    public void shouldNotifyResourcesUpdatedUnknownParam() throws Exception
     {
         k3po.finish();
     }
@@ -716,6 +815,15 @@ public class NetworkIT
         "${net}/lifecycle.suspended.events/client",
         "${net}/lifecycle.suspended.events/server"})
     public void shouldLifecycleSuspendedEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/tools.call.with.progress/client",
+        "${net}/tools.call.with.progress/server"})
+    public void shouldCallToolWithProgress() throws Exception
     {
         k3po.finish();
     }
@@ -761,6 +869,96 @@ public class NetworkIT
         "${net}/lifecycle.elicit.completed/client",
         "${net}/lifecycle.elicit.completed/server"})
     public void shouldCompleteLifecycleElicit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.elicit.reauthorize/client",
+        "${net}/lifecycle.elicit.reauthorize/server"})
+    public void shouldReauthorizeElicitCallback() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.elicit.toolkit/client",
+        "${net}/lifecycle.elicit.toolkit/server"})
+    public void shouldRouteLifecycleElicitToolkitCallback() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.elicit.toolkit.replay/client",
+        "${net}/lifecycle.elicit.toolkit.replay/server"})
+    public void shouldRejectReplayedLifecycleElicitToolkitCallback() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.events.elicit/client",
+        "${net}/lifecycle.events.elicit/server"})
+    public void shouldRelayRemoteElicitOnLifecycleEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.initialize.credentials/client",
+        "${net}/lifecycle.initialize.credentials/server"})
+    public void shouldInitializeLifecycleWithBootstrapCredential() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/tools.call.acquired/client",
+        "${net}/tools.call.acquired/server"})
+    public void shouldCallToolWithDeferredlyAcquiredCredential() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/tools.list.acquired/client",
+        "${net}/tools.list.acquired/server"})
+    public void shouldListToolsWithDeferredlyAcquiredCredential() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/tools.call.elicit.deferred/client",
+        "${net}/tools.call.elicit.deferred/server"})
+    public void shouldCallToolElicitDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/tools.call.reject.error/client",
+        "${net}/tools.call.reject.error/server"})
+    public void shouldRejectToolsCallWithError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/tools.call.elicit.timeout.proxied/client",
+        "${net}/tools.call.elicit.timeout.proxied/server"})
+    public void shouldCallToolElicitTimeoutProxied() throws Exception
     {
         k3po.finish();
     }
@@ -815,6 +1013,15 @@ public class NetworkIT
         "${net}/tools.call.elicit.completed.proxied/client",
         "${net}/tools.call.elicit.completed.proxied/server"})
     public void shouldCallToolElicitCompletedProxied() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/tools.call.elicit.completed.proxied.string.id/client",
+        "${net}/tools.call.elicit.completed.proxied.string.id/server"})
+    public void shouldCallToolElicitCompletedProxiedStringId() throws Exception
     {
         k3po.finish();
     }

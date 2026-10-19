@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal.bench;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.mockito.Mockito.mock;
@@ -44,6 +45,7 @@ import io.aklivity.zilla.config.model.json.JsonModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelController;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelEvent;
@@ -71,8 +73,6 @@ import io.aklivity.zilla.runtime.model.json.internal.JsonModelHandlerImpl;
 @OutputTimeUnit(SECONDS)
 public class JsonModelDecoderPipelineBM
 {
-    private static final int FLAGS_COMPLETE = 0x03;
-
     private static final String OBJECT_SCHEMA = """
         {
             "type": "object",
@@ -98,8 +98,8 @@ public class JsonModelDecoderPipelineBM
     public void init()
     {
         JsonModelHandlerImpl handler = newHandler();
-        plainPipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
-        extractingPipeline = handler.supplyDecoder(ModelEnvelope.NONE, fieldCounter());
+        plainPipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+        extractingPipeline = handler.supplyDecoder(ModelEnvelope.NONE, fieldCounter(), ModelCache.NONE);
 
         byte[] validBytes = VALID_DOCUMENT.getBytes(UTF_8);
         validBuffer = new UnsafeBufferEx(validBytes);
@@ -121,7 +121,7 @@ public class JsonModelDecoderPipelineBM
     private int run(
         ModelPipeline pipeline)
     {
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             validBuffer, 0, validLength, dst, 0, dst.capacity());
         return result.produced();
     }
@@ -159,6 +159,12 @@ public class JsonModelDecoderPipelineBM
     {
         return new ModelTransform()
         {
+            @Override
+            public boolean deterministic()
+            {
+                return true;
+            }
+
             private long fields;
 
             @Override

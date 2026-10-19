@@ -45,12 +45,6 @@ public class BytesModelTest
         BytesModelExt ext = new BytesModelExt()
         {
             @Override
-            public String name()
-            {
-                return "test";
-            }
-
-            @Override
             public BytesModelExtContext supply(
                 EngineContext context)
             {

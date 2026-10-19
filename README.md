@@ -203,13 +203,13 @@ helm install zilla oci://ghcr.io/aklivity/charts/zilla \
 - [📖 Documentation](https://docs.aklivity.io/latest)  
 - [✨ AI Gateway](https://docs.aklivity.io/latest/ai-gateway/)  
 - [⚡ Quickstart](https://docs.aklivity.io/latest/ai-gateway/get-started/)  
-- [🧪 Examples](http://./examples)  
+- [🧪 Examples](https://github.com/aklivity/zilla/tree/develop/examples)
 - [🎬 Demos](https://github.com/aklivity/zilla-demos)  
 - [🗺️ Roadmap](https://github.com/orgs/aklivity/projects/4/views/1)  
 - [💬 Discord Server](https://discord.gg/RbUeKPsxq)  
 - [💬 Community Slack](https://www.aklivity.io/slack)  
 - [🐛 GitHub Issues](https://github.com/aklivity/zilla/issues)  
-- [🦎 Contributing](http://./.github/CONTRIBUTING.md)
+- [🦎 Contributing](https://github.com/aklivity/zilla/blob/develop/.github/CONTRIBUTING.md)
 
 ## License
 
@@ -227,7 +227,7 @@ Review the license text for the complete terms.
 [community-join]: https://www.aklivity.io/slack
 [artifact-hub-shield]: https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/zilla
 [artifact-hub]: https://artifacthub.io/packages/helm/zilla/zilla
-[release-latest-image]: https://img.shields.io/github/v/tag/aklivity/zilla?label=release
+[release-latest-image]: https://img.shields.io/github/v/release/aklivity/zilla?label=release&sort=semver
 [release-latest]: https://github.com/aklivity/zilla/pkgs/container/zilla
 [zilla-roadmap]: https://github.com/orgs/aklivity/projects/4/views/1
 

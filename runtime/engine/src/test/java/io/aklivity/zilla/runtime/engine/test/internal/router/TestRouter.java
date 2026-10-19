@@ -78,6 +78,13 @@ public final class TestRouter implements Router
         listeners.add(listener);
     }
 
+    @Override
+    public byte supplyNodeId(
+        String instanceId)
+    {
+        return 0;
+    }
+
     private int registerLabel(
         String label)
     {

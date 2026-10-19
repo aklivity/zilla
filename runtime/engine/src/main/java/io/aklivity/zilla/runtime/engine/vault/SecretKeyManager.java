@@ -19,9 +19,9 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 /**
- * Wraps and unwraps buffers of bytes under named keys already resolved by a
- * {@link SecretKeyManagerFactory}, without either key's raw material ever leaving this
- * manager's implementation.
+ * Wraps buffers of bytes under named keys already resolved by a {@link SecretKeyManagerFactory},
+ * and unwraps buffers previously wrapped this way, without either key's raw material ever
+ * leaving this manager's implementation.
  * <p>
  * Every operation completes synchronously: the named keys were already retrieved when the
  * owning {@link SecretKeyManagerFactory} was initialized, the same way a TLS
@@ -29,6 +29,13 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
  * rather than per handshake. A named key that rotates behind this manager (or was never
  * retrieved, e.g. because of a transient failure) simply fails the one operation that
  * needed it; the caller is not otherwise notified.
+ * </p>
+ * <p>
+ * The bytes {@link #wrap} produces must be sufficient on their own for a matching
+ * {@link #unwrap} call, with no key name supplied back. How an implementation satisfies
+ * that is its own decision: a backend whose wrapped-key format already identifies the key
+ * that produced it needs no extra framing, while one that doesn't must embed that identity
+ * itself and recover it at the start of {@link #unwrap}.
  * </p>
  *
  * @see SecretKeyManagerFactory
@@ -56,19 +63,18 @@ public interface SecretKeyManager
         int dstIndex);
 
     /**
-     * Unwraps a buffer of previously wrapped bytes under the named key.
+     * Unwraps a buffer of previously wrapped bytes, resolving the key to unwrap under from
+     * the wrapped bytes themselves.
      *
-     * @param keyName  the vault-specific name of the key to unwrap under
      * @param bytes    the buffer containing the wrapped bytes to unwrap
      * @param index    the index within {@code bytes} at which the wrapped bytes begin
      * @param length   the length in bytes of the wrapped data
      * @param dst      the buffer to write the unwrapped bytes into
      * @param dstIndex the index within {@code dst} at which to begin writing
-     * @return the number of bytes written to {@code dst}, or {@code -1} if the named key
-     *         is not resolved, or the wrapped bytes fail to authenticate
+     * @return the number of bytes written to {@code dst}, or {@code -1} if no key could be
+     *         resolved from the wrapped bytes, or the wrapped bytes fail to authenticate
      */
     int unwrap(
-        String keyName,
         DirectBufferEx bytes,
         int index,
         int length,

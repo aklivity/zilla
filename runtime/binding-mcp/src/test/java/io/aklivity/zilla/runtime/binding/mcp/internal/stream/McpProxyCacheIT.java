@@ -64,7 +64,9 @@ public class McpProxyCacheIT
     @Configuration("proxy.cache.yaml")
     @Specification({
         "${app}/cache.hydrate/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheIT::sessionIdFeedExternal")
     public void shouldHydrate() throws Exception
     {
         k3po.finish();
@@ -74,8 +76,18 @@ public class McpProxyCacheIT
     @Configuration("proxy.cache.yaml")
     @Specification({
         "${app}/cache.hydrate.error/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
     public void shouldHydrateError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cache.yaml")
+    @Specification({
+        "${app}/cache.hydrate.reset/server" })
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    public void shouldHydrateReset() throws Exception
     {
         k3po.finish();
     }
@@ -84,7 +96,7 @@ public class McpProxyCacheIT
     @Configuration("proxy.cache.credentials.yaml")
     @Specification({
         "${app}/cache.hydrate.credentials/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
     public void shouldHydrateWithCredentials() throws Exception
     {
         k3po.finish();
@@ -94,6 +106,7 @@ public class McpProxyCacheIT
     @Configuration("proxy.cache.toolkit.yaml")
     @Specification({
         "${app}/cache.hydrate.toolkit/server" })
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldHydrateToolkit() throws Exception
     {
         k3po.finish();
@@ -103,7 +116,7 @@ public class McpProxyCacheIT
     @Configuration("proxy.cache.credentials.toolkit.yaml")
     @Specification({
         "${app}/cache.hydrate.credentials.toolkit/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
     @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
     public void shouldHydrateToolkitWithRouteCredentials() throws Exception
     {
@@ -115,8 +128,40 @@ public class McpProxyCacheIT
     @Specification({
         "${app}/cache.hydrate.toolkit.multi.skip.unauthorized/server",
         "${app}/cache.hydrate.toolkit.multi.skip.unauthorized/client" })
+    @ScriptProperty("affinity \"0000003f\"")
     @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
     public void shouldHydrateToolkitMultiSkippingUnauthorizedRoute() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cache.toolkit.multi.yaml")
+    @Specification({
+        "${app}/cache.hydrate.toolkit.multi.reset.route/server",
+        "${app}/cache.hydrate.toolkit.multi.reset.route/client" })
+    @ScriptProperty("affinity \"0000003f\"")
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    public void shouldHydrateToolkitMultiSettlingResetRoute() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // a hydration list registrant whose route's south connect never reaches Begin/End/Abort/Reset --
+    // only a real preauthorize elicitation CHALLENGE, which no human answers on hydration's behalf --
+    // must still settle (with no session) instead of waiting on it forever: nothing but
+    // onClientChallenge's own settleRequests() call can flush that registrant, since this route's
+    // connect never produces any of the other terminal events that flush it elsewhere. Before that
+    // fix, this route's own kind never reached pending == 0, so cache.populated never became true
+    // and every caller's own initialize blocked on it project-wide, not just this one route
+    @Test
+    @Configuration("proxy.cache.toolkit.multi.yaml")
+    @Specification({
+        "${app}/cache.hydrate.toolkit.multi.challenge.route/server",
+        "${app}/cache.hydrate.toolkit.multi.challenge.route/client" })
+    @ScriptProperty("affinity \"0000003f\"")
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    public void shouldHydrateToolkitMultiSettlingChallengedRoute() throws Exception
     {
         k3po.finish();
     }
@@ -126,6 +171,7 @@ public class McpProxyCacheIT
     @Specification({
         "${app}/cache.refresh.toolkit.keep.stale.on.failure/server",
         "${app}/cache.refresh.toolkit.keep.stale.on.failure/client" })
+    @ScriptProperty("affinity \"0000003f\"")
     @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
     public void shouldRefreshToolkitKeepingStaleOnFailure() throws Exception
     {
@@ -137,6 +183,7 @@ public class McpProxyCacheIT
     @Specification({
         "${app}/cache.hydrate.toolkit.multi.title.collision/server",
         "${app}/cache.hydrate.toolkit.multi.title.collision/client" })
+    @ScriptProperty("affinity \"0000003f\"")
     @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
     public void shouldHydrateToolkitMultiDisambiguatingCollidingTitles() throws Exception
     {
@@ -163,11 +210,24 @@ public class McpProxyCacheIT
     }
 
     @Test
+    @Configuration("proxy.cache.peer.yaml")
+    @Specification({
+        "${app}/cache.serve.initialize/client",
+        "${app}/cache.hydrate.error/server" })
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    public void shouldServeInitializeHydratedByPeer() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.cache.seeded.yaml")
     @Specification({
         "${app}/cache.tools.call.reject.bearer/client",
         "${app}/cache.tools.call.reject.bearer/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheIT::sessionIdB007External")
     public void shouldRejectToolsCallWithBearerChallenge() throws Exception
     {
         k3po.finish();
@@ -178,7 +238,9 @@ public class McpProxyCacheIT
     @Specification({
         "${app}/cache.tools.call.valid.input/client",
         "${app}/cache.tools.call.valid.input/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheIT::sessionIdB007External")
     public void shouldProxyToolsCallWithValidInput() throws Exception
     {
         k3po.finish();
@@ -189,7 +251,9 @@ public class McpProxyCacheIT
     @Specification({
         "${app}/cache.tools.call.invalid.input/client",
         "${app}/cache.tools.call.invalid.input/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheIT::sessionIdB007External")
     public void shouldRejectToolsCallWithInvalidInput() throws Exception
     {
         k3po.finish();
@@ -200,8 +264,64 @@ public class McpProxyCacheIT
     @Specification({
         "${app}/cache.tools.call.no.schema/client",
         "${app}/cache.tools.call.no.schema/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheIT::sessionIdB007External")
     public void shouldForwardToolsCallWithoutSchema() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.validation.yaml")
+    @Specification({
+        "${app}/cache.tools.call.valid.input.10k/client",
+        "${app}/cache.tools.call.valid.input.10k/server" })
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheIT::sessionIdB007External")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    public void shouldProxyToolsCallWithValidInput10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.validation.yaml")
+    @Specification({
+        "${app}/cache.tools.call.valid.input.100k/client",
+        "${app}/cache.tools.call.valid.input.100k/server" })
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheIT::sessionIdB007External")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    public void shouldProxyToolsCallWithValidInput100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.validation.yaml")
+    @Specification({
+        "${app}/cache.tools.call.no.arguments/client",
+        "${app}/cache.tools.call.no.arguments/server" })
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheIT::sessionIdB007External")
+    public void shouldRejectToolsCallWithNoArguments() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.validation.yaml")
+    @Specification({
+        "${app}/cache.tools.call.reuse.schema/client",
+        "${app}/cache.tools.call.reuse.schema/server" })
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheIT::sessionIdB007External")
+    public void shouldValidateIndependentToolsCallsAgainstSharedCachedSchema() throws Exception
     {
         k3po.finish();
     }
@@ -210,7 +330,7 @@ public class McpProxyCacheIT
     @Configuration("proxy.cache.yaml")
     @Specification({
         "${app}/cache.hydrate.lifecycle.reconnect/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
     public void shouldReconnectAfterLifecycleAbort() throws Exception
     {
         k3po.finish();
@@ -266,6 +386,18 @@ public class McpProxyCacheIT
         k3po.finish();
     }
 
+    // [explicit, none] -- none is a pure pass-through, so this must produce the exact same
+    // eager/cold partition as plain explicit alone, proving select() threads correctly across stages
+    @Test
+    @Configuration("proxy.cache.tools.eager.serve.explicit.chain.yaml")
+    @Specification({
+        "${app}/cache.serve.tools.list.eager.explicit.chain/client" })
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    public void shouldServeToolsListEagerExplicitChain() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Test
     @Configuration("proxy.cache.tools.eager.serve.explicit.search.yaml")
     @Specification({
@@ -291,7 +423,7 @@ public class McpProxyCacheIT
     @Specification({
         "${app}/cache.serve.tools.list.toolkit.filtered/server",
         "${app}/cache.serve.tools.list.toolkit.filtered/client" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
     @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
     public void shouldServeToolsListFilteredByAllowSet() throws Exception
     {
@@ -303,7 +435,7 @@ public class McpProxyCacheIT
     @Specification({
         "${app}/cache.serve.tools.list.security.schemes.filtered/server",
         "${app}/cache.serve.tools.list.security.schemes.filtered/client" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
     @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
     public void shouldServeToolsListFilteredBySecuritySchemes() throws Exception
     {
@@ -315,6 +447,7 @@ public class McpProxyCacheIT
     @Specification({
         "${app}/cache.serve.tools.list.route.guarded.unauthorized/server",
         "${app}/cache.serve.tools.list.route.guarded.unauthorized/client" })
+    @ScriptProperty("affinity \"0000003f\"")
     @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
     public void shouldServeToolsListExcludingRouteGuardedToolkitFromUnauthorizedCaller() throws Exception
     {
@@ -326,6 +459,7 @@ public class McpProxyCacheIT
     @Specification({
         "${app}/cache.serve.tools.list.route.guarded.partial.scope/server",
         "${app}/cache.serve.tools.list.route.guarded.partial.scope/client" })
+    @ScriptProperty("affinity \"0000003f\"")
     @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
     public void shouldServeToolsListRouteGuardedToolkitWithPartialScope() throws Exception
     {
@@ -337,6 +471,7 @@ public class McpProxyCacheIT
     @Specification({
         "${app}/cache.serve.resources.list.route.guarded.unauthorized/server",
         "${app}/cache.serve.resources.list.route.guarded.unauthorized/client" })
+    @ScriptProperty("affinity \"0000003f\"")
     @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "resources")
     public void shouldServeResourcesListExcludingRouteGuardedToolkitFromUnauthorizedCaller() throws Exception
     {
@@ -347,8 +482,10 @@ public class McpProxyCacheIT
     @Configuration("proxy.cache.refresh.yaml")
     @Specification({
         "${app}/cache.refresh.tools/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
     @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheIT::sessionIdFeedExternal")
     public void shouldRefreshTools() throws Exception
     {
         k3po.finish();
@@ -359,8 +496,10 @@ public class McpProxyCacheIT
     @Specification({
         "${app}/cache.refresh.tools.notify/client",
         "${app}/cache.refresh.tools/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
     @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheIT::sessionIdB007External")
     public void shouldNotifyToolsListChangedAfterRefresh() throws Exception
     {
         k3po.finish();
@@ -371,7 +510,7 @@ public class McpProxyCacheIT
     @Specification({
         "${app}/cache.notify.tools.list.changed/client",
         "${app}/cache.notify.tools.list.changed/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
     @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
     public void shouldRefreshToolsOnListChangedNotification() throws Exception
     {
@@ -383,7 +522,7 @@ public class McpProxyCacheIT
     @Specification({
         "${app}/cache.notify.tools.list.changed.during.refresh/client",
         "${app}/cache.notify.tools.list.changed.during.refresh/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
     @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
     public void shouldNotifyToolsListChangedDuringRefresh() throws Exception
     {
@@ -395,8 +534,10 @@ public class McpProxyCacheIT
     @Specification({
         "${app}/cache.notify.tools.list.changed.after.tools.call/client",
         "${app}/cache.notify.tools.list.changed.after.tools.call/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
     @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheIT::sessionIdB007External")
     public void shouldEmitOneListChangedAfterAgentInvokesToolsCall() throws Exception
     {
         k3po.finish();
@@ -406,7 +547,7 @@ public class McpProxyCacheIT
     @Configuration("proxy.cache.refresh.yaml")
     @Specification({
         "${app}/cache.refresh.tools.error/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
     @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
     public void shouldRefreshToolsError() throws Exception
     {
@@ -417,7 +558,7 @@ public class McpProxyCacheIT
     @Configuration("proxy.cache.refresh.yaml")
     @Specification({
         "${app}/cache.refresh.tools.error.retry/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
     @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
     public void shouldRetryAfterToolsRefreshError() throws Exception
     {
@@ -431,7 +572,7 @@ public class McpProxyCacheIT
     @Configuration("proxy.cache.yaml")
     @Specification({
         "${app}/cache.hydrate.tools.retry.exceeds.max/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
     @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
     public void shouldRetryHydrateBeyondOldAttemptsMax() throws Exception
     {
@@ -443,7 +584,7 @@ public class McpProxyCacheIT
     @Specification({
         "${app}/cache.serve.tools.list.during.hydrate/server",
         "${app}/cache.serve.tools.list.during.hydrate/client" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
     @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
     public void shouldServeToolsListDuringHydrate() throws Exception
     {
@@ -478,8 +619,10 @@ public class McpProxyCacheIT
     @Configuration("proxy.cache.refresh.yaml")
     @Specification({
         "${app}/cache.refresh.resources/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
     @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "resources")
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheIT::sessionIdFeedExternal")
     public void shouldRefreshResources() throws Exception
     {
         k3po.finish();
@@ -499,7 +642,7 @@ public class McpProxyCacheIT
     @Configuration("proxy.cache.refresh.yaml")
     @Specification({
         "${app}/cache.refresh.prompts/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
     @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "prompts")
     public void shouldRefreshPrompts() throws Exception
     {
@@ -510,7 +653,7 @@ public class McpProxyCacheIT
     @Configuration("proxy.cache.yaml")
     @Specification({
         "${app}/cache.hydrate.10k/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
     @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
     public void shouldHydrate10k() throws Exception
     {
@@ -521,7 +664,7 @@ public class McpProxyCacheIT
     @Configuration("proxy.cache.yaml")
     @Specification({
         "${app}/cache.hydrate.100k/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
     @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
     public void shouldHydrate100k() throws Exception
     {
@@ -617,9 +760,55 @@ public class McpProxyCacheIT
     @Specification({
         "${app}/cache.serve.execute.tool/client",
         "${app}/cache.serve.execute.tool/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
     @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheIT::sessionIdB007External")
     public void shouldServeExecuteTool() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cache.tools.search.serve.yaml")
+    @Specification({
+        "${app}/cache.serve.execute.tool.padding/client",
+        "${app}/cache.serve.execute.tool.padding/server" })
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheIT::sessionIdB007External")
+    public void shouldServeExecuteToolWithLoosePadding() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cache.tools.search.serve.yaml")
+    @Specification({
+        "${app}/cache.serve.execute.tool.10k/client",
+        "${app}/cache.serve.execute.tool.10k/server" })
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheIT::sessionIdB007External")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    public void shouldServeExecuteToolWith10kParams() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cache.tools.search.serve.yaml")
+    @Specification({
+        "${app}/cache.serve.execute.tool.100k/client",
+        "${app}/cache.serve.execute.tool.100k/server" })
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheIT::sessionIdB007External")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    public void shouldServeExecuteToolWith100kParams() throws Exception
     {
         k3po.finish();
     }
@@ -669,6 +858,20 @@ public class McpProxyCacheIT
         long affinity)
     {
         String marker = CONTENDED_SESSION_MARKERS[CONTENDED_SESSION_INDEX.getAndIncrement() % CONTENDED_SESSION_MARKERS.length];
-        return "5ca1ab1e-c0de-4a11-feed-%s%08x".formatted(marker, affinity & 0xffff_ffffL);
+        return "5ca1ab1e-c0de-4a11-feed-%s0000003f".formatted(marker);
+    }
+
+    public static String sessionIdFeedExternal(
+        long affinity)
+    {
+        assert affinity == 0L;
+        return "5ca1ab1e-c0de-4a11-feed-00010000003f";
+    }
+
+    public static String sessionIdB007External(
+        long affinity)
+    {
+        assert affinity == 0L;
+        return "5ca1ab1e-c0de-4a11-b007-00010000003f";
     }
 }

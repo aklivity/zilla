@@ -97,8 +97,11 @@ write zilla:begin.ext ${http:beginEx()
                             .build()}
 write flush
 
-write 'id: 2:1\n'
-write 'data: {'
+write zilla:data.ext ${http:dataEx()
+                             .typeId(zilla:id("http"))
+                             .header("id", "2:1")
+                             .build()}
+write '{'
         '"jsonrpc":"2.0",'
         '"method":"elicitation/create",'
         '"params":'
@@ -109,19 +112,17 @@ write 'data: {'
          ${http:encodeQuery("http://localhost:8080/mcp/auth/callback")}
          '"'
         '}'
-      '}\n'
-write '\n'
+      '}'
 write flush
 
-write 'data: {'
+write '{'
         '"jsonrpc":"2.0",'
         '"method":"notifications/elicitation/complete",'
         '"params":'
         '{'
           '"elicitationId":"elicit-1"'
         '}'
-      '}\n'
-write '\n'
+      '}'
 write flush
 
 write abort

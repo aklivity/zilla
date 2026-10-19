@@ -40,6 +40,7 @@ public final class InlineOptionsConfig extends OptionsConfig
         String credentials,
         String format)
     {
+        super(null, null);
         this.identity = identity;
         this.credentials = credentials;
         this.format = format;

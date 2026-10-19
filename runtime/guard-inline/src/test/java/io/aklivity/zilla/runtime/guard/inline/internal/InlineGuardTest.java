@@ -17,10 +17,13 @@ package io.aklivity.zilla.runtime.guard.inline.internal;
 import static java.util.function.Function.identity;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.when;
 
 import java.util.function.LongFunction;
 import java.util.function.UnaryOperator;
+
+import jakarta.json.JsonValue;
 
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -108,7 +111,8 @@ public class InlineGuardTest
         LongFunction<String> identifier = guard.identifier(id -> (int)(id >> 4), guarded);
         assertNotNull(identifier);
 
-        LongObjectBiFunction<String, String> attributor = guard.attributor(id -> (int)(id >> 4), guarded);
+        LongObjectBiFunction<String, JsonValue> attributor = guard.attributor(id -> (int)(id >> 4), guarded);
         assertNotNull(attributor);
+        assertNull(attributor.apply(1L, "tenant"));
     }
 }

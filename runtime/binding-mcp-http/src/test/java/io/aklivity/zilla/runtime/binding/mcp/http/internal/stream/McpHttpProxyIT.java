@@ -25,6 +25,7 @@ import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 
+import io.aklivity.k3po.runtime.junit.annotation.ScriptProperty;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
@@ -374,7 +375,7 @@ public class McpHttpProxyIT
     }
 
     // list_tags' output schema is array-rooted: structuredContent is the array itself, not an object
-    // wrapping it
+    // wrapping it; tool.summary's bare ${result} captures that same root array as compact JSON
     @Test
     @Configuration("proxy.yaml")
     @Specification({
@@ -393,6 +394,32 @@ public class McpHttpProxyIT
         "${mcp}/count.items/client",
         "${http}/count.items/server"})
     public void shouldCallToolCountItems() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // get_status has no declared output schema at all, so the raw upstream body streams unprojected;
+    // tool.summary's bare ${result} reference (no path) binds to that response's own root scalar value
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/get.status/client",
+        "${http}/get.status/server"})
+    public void shouldCallToolGetStatus() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // get_dashboard's tool.summary combines a container reference (${result.data}, a nested object
+    // re-serialized as compact JSON, including a quote character that must round-trip through JSON
+    // escaping) with bare scalar/null/boolean leaf references (${result.active}, ${result.disabled},
+    // ${result.flag}) in the same template
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/get.dashboard/client",
+        "${http}/get.dashboard/server"})
+    public void shouldCallToolGetDashboard() throws Exception
     {
         k3po.finish();
     }
@@ -531,6 +558,7 @@ public class McpHttpProxyIT
 
     @Test
     @Configuration("proxy.credentials.yaml")
+    @ScriptProperty("authorization 1L")
     @Specification({
         "${mcp}/create.pr/client",
         "${http}/create.pr.credentials/server"})

@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.common.json.internal;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 
 import jakarta.json.JsonException;
 import jakarta.json.stream.JsonLocation;
@@ -45,6 +46,8 @@ import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
  */
 public final class JsonPipelineImpl implements JsonPipeline
 {
+    private static final int INITIAL_SCOPES = 4;
+
     private final JsonParserEx parser;
     private final Source source;
     private final Control control;
@@ -56,7 +59,14 @@ public final class JsonPipelineImpl implements JsonPipeline
     private final JsonPipelineResult result;
     private final boolean lenient;
 
+    // the parser the pump pulls events from: the pipeline's own parser, or the stand-in for it while an escaped
+    // scope is open; held here and in the source and control views so a scope swaps all three at once
+    private JsonParserEx driver;
+    private JsonEscapedParser[] scopes;
+    private int scopeDepth;
     private boolean suspended;
+    private boolean suspendedByFlush;
+    private boolean completed;
     // the value event in flight across a suspend, handed to root.resume() so no stage stores it
     private JsonEvent resumeEvent;
 
@@ -69,9 +79,10 @@ public final class JsonPipelineImpl implements JsonPipeline
         JsonEnvelope envelope)
     {
         this.parser = parser;
+        this.driver = parser;
         // the source view and the upstream controller a stage steers are adapters over the parser surface
         this.source = new Source(parser);
-        this.control = new Control(parser, envelope);
+        this.control = new Control(this, parser, envelope);
         this.root = root;
         this.reporter = reporter;
         this.diagnostic = new Diagnostic();
@@ -84,10 +95,30 @@ public final class JsonPipelineImpl implements JsonPipeline
     public void reset()
     {
         parser.reset();
+        drive(parser);
+        scopeDepth = 0;
         root.reset();
         suspended = false;
+        suspendedByFlush = false;
+        completed = false;
         diagnostic.message = null;
+        diagnostic.category = null;
         resumeEvent = null;
+    }
+
+    @Override
+    public void nextDocument()
+    {
+        assert completed : "nextDocument() requires the prior transform() to have returned COMPLETED";
+        parser.nextDocument();
+        completed = false;
+    }
+
+    @Override
+    public void authorization(
+        long authorization)
+    {
+        control.authorization = authorization;
     }
 
     @Override
@@ -97,9 +128,15 @@ public final class JsonPipelineImpl implements JsonPipeline
     }
 
     @Override
+    public boolean deterministic()
+    {
+        return parser.deterministic() && root.deterministic();
+    }
+
+    @Override
     public int remaining()
     {
-        return parser.remaining();
+        return driver.remaining();
     }
 
     @Override
@@ -109,18 +146,31 @@ public final class JsonPipelineImpl implements JsonPipeline
         int limit,
         boolean last)
     {
+        if (completed && offset == limit)
+        {
+            // the document already finished on an earlier call (self-delimited by its closing token, before
+            // this window arrived) and the parser was left at end-of-document rather than reset -- this
+            // window is the caller's own separate, empty trailing confirmation for the same document (e.g. a
+            // FIN-flagged fragment carrying no further bytes), not the start of a new one, so report
+            // COMPLETED again without re-driving the parser rather than letting it fall through to REJECTED
+            return Status.COMPLETED;
+        }
         Status status = Status.ADVANCED;
         try
         {
             boolean resumingDocumentEnd = false;
-            if (suspended)
+            if (suspendedByFlush)
+            {
+                status = root.flush(control, source);
+            }
+            else if (suspended)
             {
                 resumingDocumentEnd = resumeEvent == JsonEvent.END_DOCUMENT;
                 status = root.resume(control, source, resumeEvent);
             }
             else
             {
-                parser.wrap(buffer, offset, limit, last);
+                driver.wrap(buffer, offset, limit, last);
             }
             if (resumingDocumentEnd && status == Status.ADVANCED)
             {
@@ -131,7 +181,7 @@ public final class JsonPipelineImpl implements JsonPipeline
                 // pull with the requested mode before any tokenizer advance, so a segmentable() request lands
                 // on the just-delivered boundary; a null event means the window is consumed (no hasNextEvent()
                 // gate here, which would advance the tokenizer past the boundary before the mode is applied)
-                final JsonEvent event = parser.nextEvent(control.mode());
+                final JsonEvent event = driver.nextEvent(control.mode());
                 if (event == null)
                 {
                     break;
@@ -141,6 +191,7 @@ public final class JsonPipelineImpl implements JsonPipeline
                 {
                     // the pump owns the resume cursor: remember the in-flight event for the next entry
                     resumeEvent = event;
+                    suspendedByFlush = false;
                 }
             }
             if (status == Status.COMPLETED)
@@ -161,6 +212,7 @@ public final class JsonPipelineImpl implements JsonPipeline
                 if (drained == Status.SUSPENDED)
                 {
                     status = Status.SUSPENDED;
+                    suspendedByFlush = true;
                 }
                 else if (last)
                 {
@@ -175,6 +227,7 @@ public final class JsonPipelineImpl implements JsonPipeline
         catch (JsonValidationException ex)
         {
             diagnostic.message = ex.getMessage();
+            diagnostic.category = JsonDiagnostic.Category.VALIDATION;
             reporter.rejected(diagnostic);
             status = lenient ? Status.COMPLETED : Status.REJECTED;
         }
@@ -182,11 +235,13 @@ public final class JsonPipelineImpl implements JsonPipeline
         {
             status = Status.REJECTED;
             diagnostic.message = ex.getMessage();
+            diagnostic.category = JsonDiagnostic.Category.PARSING;
         }
         catch (JsonException ex)
         {
             status = Status.REJECTED;
             diagnostic.message = ex.getMessage();
+            diagnostic.category = JsonDiagnostic.Category.TRANSFORM;
         }
         if (status == Status.REJECTED)
         {
@@ -195,6 +250,7 @@ public final class JsonPipelineImpl implements JsonPipeline
             reporter.rejected(diagnostic);
         }
         suspended = status == Status.SUSPENDED;
+        completed = status == Status.COMPLETED;
         return status;
     }
 
@@ -216,26 +272,66 @@ public final class JsonPipelineImpl implements JsonPipeline
         int produced = rejected ? 0 : generator.length();
         // SUSPENDED holds the input steady (drain and re-present the same window); otherwise the window
         // advanced by all but the unconsumed tail the caller re-presents at the front of the next window
-        int consumed = rejected || status == Status.SUSPENDED ? 0 : (limit - offset) - parser.remaining();
+        int consumed = rejected || status == Status.SUSPENDED ? 0 : (limit - offset) - driver.remaining();
         return result.set(status, consumed, produced);
+    }
+
+    private void drive(
+        JsonParserEx driver)
+    {
+        this.driver = driver;
+        source.parser = driver;
+        control.parser = driver;
+    }
+
+    // Stands a scope in for the parser: from the next event pulled, the string value is parsed as a document
+    // and delivered between the scope markers. Asking again before that pull changes nothing, and a scope
+    // requested within a scope wraps the scope in force.
+    private void escape()
+    {
+        if (!(driver instanceof JsonEscapedParser current && current.pending()))
+        {
+            if (scopes == null)
+            {
+                scopes = new JsonEscapedParser[INITIAL_SCOPES];
+            }
+            else if (scopeDepth == scopes.length)
+            {
+                scopes = Arrays.copyOf(scopes, scopeDepth * 2);
+            }
+            if (scopes[scopeDepth] == null)
+            {
+                scopes[scopeDepth] = new JsonEscapedParser(driver, this::unscope);
+            }
+            final JsonEscapedParser scope = scopes[scopeDepth++];
+            scope.open();
+            drive(scope);
+        }
+    }
+
+    private void unscope()
+    {
+        scopeDepth--;
+        drive(scopeDepth == 0 ? parser : scopes[scopeDepth - 1]);
     }
 
     private Status completeDocument(
         Status completed)
     {
         Status status = completed;
-        JsonEvent event = parser.nextEvent(control.mode());
+        JsonEvent event = driver.nextEvent(control.mode());
         while (event != null && status == Status.COMPLETED)
         {
             status = root.transform(control, source, event);
             if (status == Status.SUSPENDED)
             {
                 resumeEvent = event;
+                suspendedByFlush = false;
             }
             else
             {
                 status = Status.COMPLETED;
-                event = parser.nextEvent(control.mode());
+                event = driver.nextEvent(control.mode());
             }
         }
         return status;
@@ -244,7 +340,7 @@ public final class JsonPipelineImpl implements JsonPipeline
     // Adapts the parser to the non-advancing JsonSource view a stage reads off the current event.
     private static final class Source implements JsonSource
     {
-        private final JsonParserEx parser;
+        private JsonParserEx parser;
 
         private Source(
             JsonParserEx parser)
@@ -325,17 +421,27 @@ public final class JsonPipelineImpl implements JsonPipeline
     // request need not narrow onto the parser surface; consumed() pushback forwards to the parser's cursor.
     private static final class Control implements JsonController
     {
-        private final JsonParserEx parser;
+        private final JsonPipelineImpl pipeline;
         private final JsonEnvelope envelope;
 
+        private JsonParserEx parser;
         private boolean segmented;
+        private long authorization;
 
         private Control(
+            JsonPipelineImpl pipeline,
             JsonParserEx parser,
             JsonEnvelope envelope)
         {
+            this.pipeline = pipeline;
             this.parser = parser;
             this.envelope = envelope;
+        }
+
+        @Override
+        public long authorization()
+        {
+            return authorization;
         }
 
         @Override
@@ -351,10 +457,22 @@ public final class JsonPipelineImpl implements JsonPipeline
         }
 
         @Override
+        public void escaped()
+        {
+            pipeline.escape();
+        }
+
+        @Override
         public void consumed(
             int sourceBytes)
         {
             parser.consumed(sourceBytes);
+        }
+
+        @Override
+        public void verbatim()
+        {
+            parser.verbatim();
         }
 
         private Mode mode()
@@ -370,11 +488,18 @@ public final class JsonPipelineImpl implements JsonPipeline
     private static final class Diagnostic implements JsonDiagnostic
     {
         private String message;
+        private Category category;
 
         @Override
         public String message()
         {
             return message;
+        }
+
+        @Override
+        public Category category()
+        {
+            return category;
         }
     }
 }

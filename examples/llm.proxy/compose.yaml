@@ -1,0 +1,108 @@
+name: ${NAMESPACE:-zilla-llm-proxy}
+
+services:
+  # Serves the embeddings the semantic classifier compares prompts with. Downloads
+  # sentence-transformers/all-MiniLM-L6-v2 the first time it starts, cached in the
+  # tei-cache volume. The cpu-1.9 image is x86_64 only; set TEI_VERSION=cpu-arm64-1.9
+  # on an arm64 host.
+  tei:
+    image: ghcr.io/huggingface/text-embeddings-inference:${TEI_VERSION:-cpu-1.9}
+    restart: unless-stopped
+    hostname: tei
+    command:
+      - --model-id=sentence-transformers/all-MiniLM-L6-v2
+    volumes:
+      - tei-cache:/data
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 180s
+      start_interval: 500ms
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:80/health"]
+
+  # Reports the personal data, such as an email address or a person's name, that
+  # the presidio classifier labels.
+  presidio-analyzer:
+    image: mcr.microsoft.com/presidio-analyzer:${PRESIDIO_VERSION:-latest}
+    restart: unless-stopped
+    environment:
+      # With gunicorn 25's control socket enabled, the lone worker intermittently
+      # never boots and the analyzer stays unhealthy; the socket is unused here.
+      GUNICORN_CMD_ARGS: --no-control-socket
+    healthcheck:
+      interval: 10s
+      timeout: 3s
+      retries: 60
+      start_period: 30s
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:3000/health')"]
+
+  zilla:
+    image: ghcr.io/aklivity/zilla:${ZILLA_VERSION:-latest}
+    restart: unless-stopped
+    hostname: zilla.examples.dev
+    depends_on:
+      tei:
+        condition: service_healthy
+      presidio-analyzer:
+        condition: service_healthy
+    ports:
+      - 7161:7161
+      - 7162:7162
+      - 7190:7190
+    # start_interval matters here: without it, `docker compose up --wait`
+    # only re-checks the healthcheck every `interval` (5s), so the compose
+    # command exits well after zilla is actually ready. With it, `up --wait`
+    # returns almost immediately once /var/run/zilla/ready exists.
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 15
+      start_period: 15s
+      start_interval: 250ms
+      test: ["CMD", "sh", "-c", "test -f /var/run/zilla/ready"]
+    volumes:
+      - ./etc:/etc/zilla
+    command: start -v -e
+
+  # One-off verification container -- `docker compose run --rm verify`, which is
+  # all .github/test.sh does. profiles gates it out of the default set, so a
+  # plain `docker compose up` never starts it, and `docker compose run` enables
+  # the profile of the service it targets. CI additionally merges in
+  # .github/compose.mock.yaml (see .github/.env.test) to point zilla at mock
+  # backends instead of the real OpenAI/Anthropic APIs this compose file
+  # targets by default -- depending only on zilla's own health is still enough
+  # to gate the whole topology either way, since only zilla (not verify) ever
+  # depends on the mocks. The docker socket is mounted so the credential
+  # pass-through assertions can read a mock's own logs via `docker logs`.
+  #
+  # Runs the checks through the real openai / anthropic Python SDKs rather
+  # than hand-built HTTP calls, so python3 + docker-cli (for the credential
+  # pass-through log reads) are the only extra tools this needs -- no Node
+  # here, unlike the mocks above.
+  verify:
+    image: python:3.13-alpine
+    profiles: ["test"]
+    working_dir: /work
+    depends_on:
+      zilla:
+        condition: service_healthy
+    volumes:
+      - ./etc/test:/test:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      FAIL_FAST: "${FAIL_FAST:-1}"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        apk add --no-cache docker-cli > /dev/null
+        pip install --no-cache-dir --quiet openai anthropic
+        exec python3 /test/verify.py
+
+volumes:
+  tei-cache:
+
+networks:
+  default:
+    driver: bridge

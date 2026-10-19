@@ -26,6 +26,7 @@ import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 
+import io.aklivity.k3po.runtime.junit.annotation.ScriptProperty;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
@@ -56,6 +57,7 @@ public class ClientGroupSaslIT
 
     @Test
     @Configuration("client.options.sasl.plain.yaml")
+    @ScriptProperty("authorization 1L")
     @Specification({
         "${app}/leader.assignment/client",
         "${net}/leader.assignment.with.sasl.plain/server"})
@@ -66,6 +68,7 @@ public class ClientGroupSaslIT
 
     @Test
     @Configuration("client.options.sasl.scram.yaml")
+    @ScriptProperty("authorization 1L")
     @Specification({
         "${app}/leader.assignment/client",
         "${net}/leader.assignment.with.sasl.scram/server"})
@@ -78,6 +81,7 @@ public class ClientGroupSaslIT
 
     @Test
     @Configuration("client.options.sasl.plain.yaml")
+    @ScriptProperty("authorization 1L")
     @Specification({
         "${app}/leader.assignment/client",
         "${net}/initial.delay.config.with.sasl.plain/server"})
@@ -88,6 +92,7 @@ public class ClientGroupSaslIT
 
     @Test
     @Configuration("client.options.sasl.scram.yaml")
+    @ScriptProperty("authorization 1L")
     @Specification({
         "${app}/leader.assignment/client",
         "${net}/initial.delay.config.with.sasl.scram/server"})

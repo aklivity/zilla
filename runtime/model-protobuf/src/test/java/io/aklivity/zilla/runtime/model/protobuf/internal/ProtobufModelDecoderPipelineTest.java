@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.model.protobuf.internal;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -23,6 +26,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayOutputStream;
+import java.time.Clock;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,8 +41,18 @@ import io.aklivity.zilla.config.model.protobuf.ProtobufModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufController;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufSink;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufSource;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufTransform;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufTransformable;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelController;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelEvent;
@@ -49,15 +63,15 @@ import io.aklivity.zilla.runtime.engine.model.ModelSource;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
+import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufCache;
 import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufModelExtContext;
 import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufModelExtHandler;
+import io.aklivity.zilla.runtime.model.protobuf.internal.types.event.EventFW;
+import io.aklivity.zilla.runtime.model.protobuf.internal.types.event.ProtobufModelEventExFW;
+import io.aklivity.zilla.runtime.model.protobuf.internal.types.event.ProtobufModelEventType;
 
 public class ProtobufModelDecoderPipelineTest
 {
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_FIN = 0x01;
-    private static final int FLAGS_COMPLETE = 0x03;
-
     private static final String SCHEMA = """
                                             syntax = "proto3";
                                             package io.aklivity.examples.clients.proto;
@@ -97,6 +111,7 @@ public class ProtobufModelDecoderPipelineTest
     private static final String JSON = "{\"content\":\"OK\",\"date_time\":\"01012024\"}";
 
     private EngineContext context;
+    private String framing;
 
     @Before
     public void init()
@@ -109,8 +124,8 @@ public class ProtobufModelDecoderPipelineTest
     {
         ProtobufModelHandlerImpl handler = newHandler(null);
         // two per-stream pipelines from the same per-worker handler
-        ModelPipeline a = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
-        ModelPipeline b = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline a = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+        ModelPipeline b = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         // stream A split at the field boundary: index byte + content field first, date_time on the final fragment
         byte[] a1 = {0x00, 0x0a, 0x02, 0x4f, 0x4b};
@@ -119,13 +134,13 @@ public class ProtobufModelDecoderPipelineTest
         ByteArrayOutputStream outA = new ByteArrayOutputStream();
 
         // stream A: first fragment, incomplete -> UNDERFLOW
-        ModelPipelineResult ra1 = a.transform(0L, 0L, 0L, FLAGS_INIT,
+        ModelPipelineResult ra1 = a.transform(0L, 0L, 0L, INIT,
             new UnsafeBufferEx(a1), 0, a1.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.UNDERFLOW, ra1.status());
         drain(dst, ra1.produced(), outA);
 
         // stream B: a whole value fed in the middle of A — would corrupt A if state were shared
-        ModelPipelineResult rb = b.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult rb = b.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, rb.status());
         byte[] outB = new byte[rb.produced()];
@@ -134,7 +149,7 @@ public class ProtobufModelDecoderPipelineTest
 
         // stream A: finish, prepending A's unconsumed remainder (the caller's decode-slot residue)
         byte[] a2 = concat(a1, ra1.consumed(), a2tail);
-        ModelPipelineResult ra2 = a.transform(0L, 0L, 0L, FLAGS_FIN,
+        ModelPipelineResult ra2 = a.transform(0L, 0L, 0L, FIN,
             new UnsafeBufferEx(a2), 0, a2.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, ra2.status());
         drain(dst, ra2.produced(), outA);
@@ -148,10 +163,10 @@ public class ProtobufModelDecoderPipelineTest
         ProtobufModelHandlerImpl handler = newHandler(null);
 
         Map<String, String> extracted = new HashMap<>();
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(extracted));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(extracted), ModelCache.NONE);
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -168,6 +183,7 @@ public class ProtobufModelDecoderPipelineTest
             .type("test")
             .options(TestCatalogOptionsConfig::builder)
                 .id(9)
+                .prefix(framing)
                 .schema(COMPLEX_SCHEMA)
                 .build()
             .build();
@@ -185,7 +201,7 @@ public class ProtobufModelDecoderPipelineTest
         ProtobufModelHandlerImpl handler = new ProtobufModelHandlerImpl(model, context, List.of());
 
         Map<String, String> extracted = new HashMap<>();
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(extracted));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(extracted), ModelCache.NONE);
 
         // leading message index 0, then the complex message's scalar fields (matches the legacy extract case)
         byte[] wire = {0, 9, 119, -66, -97, 26, 47, -35, 94, 64, 21, 102, -26, -11, 66, 24, -107, -102, -17, 58,
@@ -193,7 +209,7 @@ public class ProtobufModelDecoderPipelineTest
             117, 109, 109, 121, 32, 115, 116, 114, 105, 110, 103, 74, 5, 1, 2, 3, 4, 5, 80, -78, -110, 4, 101, 57,
             48, 0, 0, 105, 21, -51, 91, 7, 0, 0, 0, 0, 112, -28, -92, 8, 120, -30, -94, -13, -83, 7};
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(wire), 0, wire.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -208,7 +224,7 @@ public class ProtobufModelDecoderPipelineTest
     public void shouldDrainJsonOnOverflow()
     {
         ProtobufModelHandlerImpl handler = newHandler("json");
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         // a 2000-byte content field forces the JSON output past a small destination window, exercising the
         // bounded-chunk OVERFLOW drain across re-transforms (INIT cleared on every re-call after the first)
@@ -231,14 +247,14 @@ public class ProtobufModelDecoderPipelineTest
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[512]);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        int flags = FLAGS_COMPLETE;
+        int flags = COMPLETE;
         ModelPipelineResult result;
         int guard = 0;
         do
         {
             result = pipeline.transform(0L, 0L, 0L, flags, new UnsafeBufferEx(wire), 0, p, dst, 0, dst.capacity());
             drain(dst, result.produced(), out);
-            flags = FLAGS_FIN;
+            flags = FIN;
             guard++;
         }
         while (result.status() == ModelStatus.OVERFLOW && guard < 1000);
@@ -249,31 +265,203 @@ public class ProtobufModelDecoderPipelineTest
     }
 
     @Test
-    public void shouldReportIdentityWhenNoView()
+    public void shouldReportIdentityForCachedReadWhenNoView()
     {
         ProtobufModelHandlerImpl handler = newHandler(null);
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.READ);
+
+        assertTrue(pipeline.identity());
+        assertTrue(pipeline.deterministic());
+
+        pipeline.reset();
+        assertTrue(pipeline.identity());
+        assertTrue(pipeline.deterministic());
+    }
+
+    @Test
+    public void shouldReportIdentityForCachedReadWhenObservingTransformWired()
+    {
+        ProtobufModelHandlerImpl handler = newHandler(null);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(new HashMap<>()), ModelCache.READ);
+
+        assertTrue(pipeline.identity());
+    }
+
+    @Test
+    public void shouldDeriveDeterminismFromFieldTransformWired()
+    {
+        ProtobufModelHandlerImpl handler = newHandler(null);
+
+        assertTrue(handler.supplyDecoder(ModelEnvelope.NONE, observer(new HashMap<>()), ModelCache.NONE).deterministic());
+        assertFalse(handler.supplyDecoder(ModelEnvelope.NONE, observer(new HashMap<>(), false), ModelCache.NONE)
+            .deterministic());
+    }
+
+    @Test
+    public void shouldNotReportDeterminismWhenExtensionInstalled()
+    {
+        ProtobufModelHandlerImpl handler = newHandler(null, List.of(failing()));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.READ);
+
+        assertFalse(pipeline.deterministic());
+    }
+
+    @Test
+    public void shouldReportDeterminismWhenJsonView()
+    {
+        ProtobufModelHandlerImpl handler = newHandler("json");
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+
+        assertTrue(pipeline.deterministic());
+    }
+
+    @Test
+    public void shouldNotReportIdentityWhenValueCarriesMessageIndex()
+    {
+        ProtobufModelHandlerImpl handler = newHandler(null);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         assertFalse(pipeline.identity());
 
-        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBufferEx(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
-
-        assertTrue(pipeline.identity());
+        transformValue(pipeline);
+        assertFalse(pipeline.identity());
     }
 
     @Test
     public void shouldNotReportIdentityWhenJsonView()
     {
         ProtobufModelHandlerImpl handler = newHandler("json");
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
-
-        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBufferEx(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.READ);
 
         assertFalse(pipeline.identity());
+    }
+
+    @Test
+    public void shouldNotReportIdentityWhenCatalogFramesValues()
+    {
+        framing = "ZL";
+        ProtobufModelHandlerImpl handler = newHandler(null);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.READ);
+
+        assertFalse(pipeline.identity());
+    }
+
+    @Test
+    public void shouldNotReportIdentityWhenExtensionInstalled()
+    {
+        ProtobufModelHandlerImpl handler = newHandler(null, List.of(failing()));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.READ);
+
+        assertFalse(pipeline.identity());
+    }
+
+    @Test
+    public void shouldRoundTripJsonViewThroughWriteThenRead()
+    {
+        ProtobufModelHandlerImpl handler = newHandler("json");
+
+        ModelPipeline writer = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.WRITE);
+        MutableDirectBufferEx cached = new UnsafeBufferEx(new byte[256]);
+        ModelPipelineResult written = writer.transform(0L, 0L, 0L, COMPLETE,
+            new UnsafeBufferEx(WIRE), 0, WIRE.length, cached, 0, cached.capacity());
+
+        assertEquals(ModelStatus.COMPLETE, written.status());
+        assertEquals(JSON, text(cached, written.produced()));
+
+        // a reader fetching the value WRITE just cached: its source must parse the cached json,
+        // not protobuf wire bytes, since that is the only form the cache holds
+        ModelPipeline reader = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.READ);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        byte[] cachedJson = JSON.getBytes(UTF_8);
+        ModelPipelineResult read = reader.transform(0L, 0L, 0L, COMPLETE,
+            new UnsafeBufferEx(cachedJson), 0, cachedJson.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.COMPLETE, read.status());
+        assertEquals(JSON, text(dst, read.produced()));
+    }
+
+    @Test
+    public void shouldRoundTripWireBytesThroughWriteThenRead()
+    {
+        ProtobufModelHandlerImpl handler = newHandler(null);
+
+        ModelPipeline writer = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.WRITE);
+        MutableDirectBufferEx cached = new UnsafeBufferEx(new byte[256]);
+        ModelPipelineResult written = writer.transform(0L, 0L, 0L, COMPLETE,
+            new UnsafeBufferEx(WIRE), 0, WIRE.length, cached, 0, cached.capacity());
+
+        assertEquals(ModelStatus.COMPLETE, written.status());
+        byte[] cachedBytes = new byte[written.produced()];
+        cached.getBytes(0, cachedBytes);
+        // WRITE's decode output never carries message-index framing, view or no view -- confirm READ's
+        // static message resolution (proven above for the json-view case) applies here too
+        assertArrayEquals(PAYLOAD, cachedBytes);
+
+        ModelPipeline reader = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.READ);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ModelPipelineResult read = reader.transform(0L, 0L, 0L, COMPLETE,
+            new UnsafeBufferEx(cachedBytes), 0, cachedBytes.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.COMPLETE, read.status());
+        byte[] readBytes = new byte[read.produced()];
+        dst.getBytes(0, readBytes);
+        assertArrayEquals(cachedBytes, readBytes);
+    }
+
+    @Test
+    public void shouldRoundTripEncodedFramingThroughWriteThenRead()
+    {
+        // simulates strategy: encoded -- the wire value carries real catalog framing (a magic-byte-style
+        // prefix) embedding the schema id, and the model's own static catalog reference is deliberately
+        // wrong (no schema resolves to that id), so decode can only succeed by resolving the schema id from
+        // the framing itself, on both WRITE (from the original wire bytes) and READ (from what WRITE cached)
+        byte[] prefixBytes = "XX".getBytes(UTF_8);
+        TestCatalogConfig catalog = GenericCatalogConfig.builder(TestCatalogConfig::new)
+            .namespace("test")
+            .name("test0")
+            .type("test")
+            .options(TestCatalogOptionsConfig::builder)
+                .id(1)
+                .prefix(framing)
+                .schema(SCHEMA)
+                .prefix("XX")
+                .build()
+            .build();
+        ProtobufModelConfig model = ProtobufModelConfig.builder()
+            .catalog()
+                .name("test0")
+                .schema()
+                    .id(999)
+                    .record("SimpleMessage")
+                    .build()
+                .build()
+            .build();
+        EngineContext ctx = mock(EngineContext.class);
+        when(ctx.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
+        ProtobufModelHandlerImpl handler = new ProtobufModelHandlerImpl(model, ctx, List.of());
+
+        byte[] wire = concat(prefixBytes, 0, WIRE);
+        ModelPipeline writer = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.WRITE);
+        MutableDirectBufferEx cached = new UnsafeBufferEx(new byte[256]);
+        ModelPipelineResult written = writer.transform(0L, 0L, 0L, COMPLETE,
+            new UnsafeBufferEx(wire), 0, wire.length, cached, 0, cached.capacity());
+
+        assertEquals(ModelStatus.COMPLETE, written.status());
+        byte[] cachedBytes = new byte[written.produced()];
+        cached.getBytes(0, cachedBytes);
+        byte[] cachedPayload = new byte[cachedBytes.length - prefixBytes.length];
+        System.arraycopy(cachedBytes, prefixBytes.length, cachedPayload, 0, cachedPayload.length);
+        assertArrayEquals(PAYLOAD, cachedPayload);
+
+        ModelPipeline reader = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.READ);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ModelPipelineResult read = reader.transform(0L, 0L, 0L, COMPLETE,
+            new UnsafeBufferEx(cachedBytes), 0, cachedBytes.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.COMPLETE, read.status());
+        byte[] readBytes = new byte[read.produced()];
+        dst.getBytes(0, readBytes);
+        assertArrayEquals(PAYLOAD, readBytes);
     }
 
     @Test
@@ -282,12 +470,102 @@ public class ProtobufModelDecoderPipelineTest
         ProtobufModelHandlerImpl baseline = newHandler("json", List.of());
         ProtobufModelHandlerImpl extended = newHandler("json", List.of(expandingExt(64)));
 
-        int basePadding = baseline.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE)
+        int basePadding = baseline.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE)
             .padding(new UnsafeBufferEx(WIRE), 0, WIRE.length);
-        int extPadding = extended.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE)
+        int extPadding = extended.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE)
             .padding(new UnsafeBufferEx(WIRE), 0, WIRE.length);
 
         assertEquals(basePadding + 64, extPadding);
+    }
+
+    @Test
+    public void shouldReportParsingFailureEvent()
+    {
+        ProtobufModelEventType[] kind = new ProtobufModelEventType[1];
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(capturingKind(kind));
+        ProtobufModelHandlerImpl handler = newHandler(null);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+
+        // message index 0 followed by an unterminated variable-length integer (continuation bit set, no
+        // terminating byte) -- malformed wire bytes the parser cannot decode at all, not a schema violation
+        byte[] malformed = {0x00, (byte) 0xFF};
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
+            new UnsafeBufferEx(malformed), 0, malformed.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.REJECTED, result.status());
+        assertEquals(ProtobufModelEventType.PARSING_FAILED, kind[0]);
+    }
+
+    @Test
+    public void shouldReportTransformFailureEvent()
+    {
+        ProtobufModelEventType[] kind = new ProtobufModelEventType[1];
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(capturingKind(kind));
+        List<ProtobufModelExtContext> exts = List.of(failing());
+        ProtobufModelHandlerImpl handler = newHandler(null, exts);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
+            new UnsafeBufferEx(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.REJECTED, result.status());
+        assertEquals(ProtobufModelEventType.TRANSFORM_FAILED, kind[0]);
+    }
+
+    // decodes each emitted event's extension kind into the given single-element array, mirroring the
+    // production ProtobufModelEventFormatter's own wrap-and-switch, so a test can assert which event fired
+    // without depending on supplyEventId's (unstubbed, indistinguishable) mocked return value
+    private static MessageConsumer capturingKind(
+        ProtobufModelEventType[] kind)
+    {
+        EventFW eventRO = new EventFW();
+        ProtobufModelEventExFW extensionRO = new ProtobufModelEventExFW();
+        return (msgTypeId, buffer, index, length) ->
+        {
+            EventFW event = eventRO.wrap(buffer, index, index + length);
+            ProtobufModelEventExFW extension = extensionRO
+                .wrap(event.extension().buffer(), event.extension().offset(), event.extension().limit());
+            kind[0] = extension.kind();
+        };
+    }
+
+    // A stage's own exception (not a parsing nor a validation exception) standing in for an extension's
+    // internal failure during its own transform logic.
+    private static ProtobufModelExtContext failing()
+    {
+        return (schema, config) -> new ProtobufModelExtHandler()
+        {
+            @Override
+            public <T extends ProtobufTransformable<T>> T decode(
+                T transformable,
+                ProtobufCache cache)
+            {
+                return transformable.transform(new Failing());
+            }
+        };
+    }
+
+    private static final class Failing implements ProtobufTransform
+    {
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
+        @Override
+        public ProtobufPipeline.Status transform(
+            ProtobufController control,
+            ProtobufSource source,
+            ProtobufEvent event,
+            ProtobufSink sink)
+        {
+            throw new ProtobufException("extension failure");
+        }
     }
 
     private ProtobufModelHandlerImpl newHandler(
@@ -306,6 +584,7 @@ public class ProtobufModelDecoderPipelineTest
             .type("test")
             .options(TestCatalogOptionsConfig::builder)
                 .id(1)
+                .prefix(framing)
                 .schema(SCHEMA)
                 .build()
             .build();
@@ -321,6 +600,7 @@ public class ProtobufModelDecoderPipelineTest
                     .strategy("topic")
                     .version("latest")
                     .subject("test-value")
+                    .record("SimpleMessage")
                     .build()
                 .build()
             .build();
@@ -373,11 +653,32 @@ public class ProtobufModelDecoderPipelineTest
         return new String(chunk, UTF_8);
     }
 
+    private static void transformValue(
+        ModelPipeline pipeline)
+    {
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        pipeline.transform(0L, 0L, 0L, COMPLETE,
+            new UnsafeBufferEx(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
+    }
+
     private static ModelTransform observer(
         Map<String, String> extracted)
     {
+        return observer(extracted, true);
+    }
+
+    private static ModelTransform observer(
+        Map<String, String> extracted,
+        boolean deterministic)
+    {
         return new ModelTransform()
         {
+            @Override
+            public boolean deterministic()
+            {
+                return deterministic;
+            }
+
             @Override
             public ModelStatus transform(
                 ModelController control,

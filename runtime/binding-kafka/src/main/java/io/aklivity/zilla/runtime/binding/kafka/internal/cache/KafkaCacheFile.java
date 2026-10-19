@@ -41,7 +41,6 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 public class KafkaCacheFile implements AutoCloseable
 {
     private static final String EXT_LOG = ".log";
-    private static final String EXT_CONVERTED = ".converted";
     private static final String EXT_DELTA = ".delta";
     private static final String EXT_INDEX = ".index";
     private static final String EXT_HSCAN = ".hscan";
@@ -56,7 +55,6 @@ public class KafkaCacheFile implements AutoCloseable
 
     private static final String FORMAT_FILE = "%%019d%s";
     private static final String FORMAT_LOG_FILE = String.format(FORMAT_FILE, EXT_LOG);
-    private static final String FORMAT_CONVERTED_FILE = String.format(FORMAT_FILE, EXT_CONVERTED);
     private static final String FORMAT_DELTA_FILE = String.format(FORMAT_FILE, EXT_DELTA);
     private static final String FORMAT_INDEX_FILE = String.format(FORMAT_FILE, EXT_INDEX);
     private static final String FORMAT_HSCAN_FILE = String.format(FORMAT_FILE, EXT_HSCAN);
@@ -592,25 +590,6 @@ public class KafkaCacheFile implements AutoCloseable
             long baseOffset)
         {
             super(location.resolve(String.format(FORMAT_DELTA_FILE, baseOffset)));
-        }
-    }
-
-    public static final class Converted extends KafkaCacheFile
-    {
-        public Converted(
-            Path location,
-            long baseOffset,
-            int capacity,
-            MutableDirectBufferEx appendBuf)
-        {
-            super(location.resolve(String.format(FORMAT_CONVERTED_FILE, baseOffset)), capacity, appendBuf);
-        }
-
-        public Converted(
-            Path location,
-            long baseOffset)
-        {
-            super(location.resolve(String.format(FORMAT_CONVERTED_FILE, baseOffset)));
         }
     }
 }

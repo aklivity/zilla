@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -40,6 +41,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
@@ -49,8 +51,6 @@ import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler
 
 public class JsonModelLenientTest
 {
-    private static final int FLAGS_COMPLETE = 0x03;
-
     // id must be a string; a numeric id is a schema-constraint violation on structurally well-formed JSON
     private static final String OBJECT_SCHEMA = "{" +
         "\"type\": \"object\"," +
@@ -79,15 +79,15 @@ public class JsonModelLenientTest
 
         byte[] in = "{\"id\":123}".getBytes(UTF_8);
 
-        ModelPipeline decoder = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline decoder = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
         MutableDirectBufferEx decodeDst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult decoded = decoder.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult decoded = decoder.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(in), 0, in.length, decodeDst, 0, decodeDst.capacity());
         assertEquals(ModelStatus.COMPLETE, decoded.status());
 
         ModelPipeline encoder = handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE);
         MutableDirectBufferEx encodeDst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult encoded = encoder.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult encoded = encoder.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(in), 0, in.length, encodeDst, 0, encodeDst.capacity());
         assertEquals(ModelStatus.REJECTED, encoded.status());
     }
@@ -96,11 +96,11 @@ public class JsonModelLenientTest
     @Test
     public void shouldCompleteConformingUnderLenient()
     {
-        ModelPipeline pipeline = newHandler(lenient()).supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline pipeline = newHandler(lenient()).supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         byte[] in = "{\"id\":\"abc\"}".getBytes(UTF_8);
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());

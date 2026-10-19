@@ -17,8 +17,11 @@ package io.aklivity.zilla.runtime.binding.mcp.internal;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.StringFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpAuthorizationFailedExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpEagerIndexFailedExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpElicitationTimeoutExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpEventExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpHydrateFailedExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpSearchIndexFailedExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpSessionClosedExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpSessionEstablishedExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -75,6 +78,31 @@ public final class McpEventFormatter implements EventFormatterSpi
             result = String.format("Elicitation (%s) timed out for session (%s).",
                     asString(ex.elicitationId()),
                     asString(ex.sessionId()));
+            break;
+        }
+        case SEARCH_INDEX_FAILED:
+        {
+            McpSearchIndexFailedExFW ex = extension.searchIndexFailed();
+            result = String.format("MCP tool search index failed. %s",
+                    asString(ex.reason()));
+            break;
+        }
+        case EAGER_INDEX_FAILED:
+        {
+            McpEagerIndexFailedExFW ex = extension.eagerIndexFailed();
+            result = String.format("MCP tool eager index failed. %s",
+                    asString(ex.reason()));
+            break;
+        }
+        case HYDRATE_FAILED:
+        {
+            McpHydrateFailedExFW ex = extension.hydrateFailed();
+            String toolkit = asString(ex.toolkit());
+            String toolkitSuffix = toolkit.isEmpty() ? "" : " toolkit " + toolkit;
+            result = String.format("MCP cache hydration failed for %s%s (%s).",
+                    asString(ex.kind()),
+                    toolkitSuffix,
+                    ex.error().get());
             break;
         }
         }

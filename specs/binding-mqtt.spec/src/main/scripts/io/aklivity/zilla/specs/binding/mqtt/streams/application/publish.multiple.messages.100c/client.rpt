@@ -1,0 +1,861 @@
+#
+# Copyright 2021-2026 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+connect "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "duplex"
+
+write zilla:begin.ext ${mqtt:beginEx()
+                              .typeId(zilla:id("mqtt"))
+                              .session()
+                                .flags("CLEAN_START")
+                                .clientId("client")
+                                .build()
+                              .build()}
+
+read zilla:begin.ext ${mqtt:matchBeginEx()
+                              .typeId(zilla:id("mqtt"))
+                              .session()
+                                .flags("CLEAN_START")
+                                .subscribeQosMax(2)
+                                .publishQosMax(2)
+                                .packetSizeMax(33792)
+                                .capabilities("RETAIN", "WILDCARD", "SUBSCRIPTION_IDS", "SHARED_SUBSCRIPTIONS")
+                                .clientId("client")
+                                .build()
+                              .build()}
+
+connected
+
+read zilla:data.empty
+read notify RECEIVED_SESSION_STATE
+
+
+connect await RECEIVED_SESSION_STATE
+        "zilla://streams/app0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${mqtt:beginEx()
+                             .typeId(zilla:id("mqtt"))
+                              .publish()
+                                .clientId("client")
+                                .topic("sensor/one")
+                                .build()
+                             .build()}
+
+connected
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00001-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00002-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00003-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00004-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00005-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00006-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00007-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00008-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00009-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00010-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00011-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00012-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00013-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00014-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00015-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00016-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00017-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00018-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00019-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00020-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00021-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00022-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00023-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00024-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00025-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00026-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00027-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00028-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00029-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00030-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00031-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00032-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00033-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00034-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00035-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00036-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00037-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00038-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00039-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00040-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00041-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00042-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00043-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00044-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00045-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00046-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00047-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00048-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00049-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00050-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00051-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00052-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00053-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00054-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00055-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00056-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00057-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00058-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00059-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00060-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00061-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00062-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00063-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00064-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00065-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00066-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00067-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00068-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00069-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00070-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00071-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00072-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00073-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00074-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00075-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00076-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00077-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00078-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00079-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00080-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00081-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00082-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00083-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00084-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00085-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00086-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00087-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00088-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00089-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00090-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00091-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00092-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00093-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00094-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00095-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00096-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00097-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00098-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00099-test-payloadxxxxxxxx"
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .publish()
+                              .build()
+                           .build()}
+
+write "seq-00100-test-payloadxxxxxxxx"
+

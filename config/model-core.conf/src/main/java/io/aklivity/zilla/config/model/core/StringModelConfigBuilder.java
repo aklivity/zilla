@@ -83,6 +83,7 @@ public class StringModelConfigBuilder<T> extends ConfigBuilder.Extensible<T, Str
     public T build()
     {
         String encoding = this.encoding != null ? this.encoding : DEFAULT_ENCODING;
-        return mapper.apply(new StringModelConfig(encoding, pattern, maxLength, minLength, validate, extensions()));
+        return mapper.apply(
+            new StringModelConfig(encoding, pattern, maxLength, minLength, validate, extensions(), refs()));
     }
 }

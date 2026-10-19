@@ -15,8 +15,12 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.internal.config;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
@@ -36,9 +40,6 @@ public final class SseModel
 {
     public static final SseModel NONE = new SseModel();
 
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_FIN = 0x01;
-
     private final ModelPipeline pipeline;
     private final MutableDirectBufferEx scratch;
 
@@ -47,7 +48,7 @@ public final class SseModel
         MutableDirectBufferEx scratch)
     {
         return handler != null
-            ? new SseModel(handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE), scratch)
+            ? new SseModel(handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE), scratch)
             : NONE;
     }
 
@@ -80,7 +81,7 @@ public final class SseModel
     {
         int total = 0;
         int srcAt = index;
-        int flags = FLAGS_INIT | FLAGS_FIN;
+        int flags = COMPLETE;
         boolean done = false;
         while (!done)
         {
@@ -104,7 +105,7 @@ public final class SseModel
                 else
                 {
                     srcAt += result.consumed();
-                    flags = FLAGS_FIN;
+                    flags = FIN;
                 }
             }
         }

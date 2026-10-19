@@ -14,7 +14,11 @@
  */
 package io.aklivity.zilla.runtime.model.avro.internal;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -22,6 +26,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayOutputStream;
+import java.time.Clock;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,9 +41,19 @@ import io.aklivity.zilla.config.model.avro.AvroModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.avro.AvroController;
+import io.aklivity.zilla.runtime.common.avro.AvroEvent;
+import io.aklivity.zilla.runtime.common.avro.AvroException;
+import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
 import io.aklivity.zilla.runtime.common.avro.AvroSchema;
+import io.aklivity.zilla.runtime.common.avro.AvroSink;
+import io.aklivity.zilla.runtime.common.avro.AvroSource;
+import io.aklivity.zilla.runtime.common.avro.AvroTransform;
+import io.aklivity.zilla.runtime.common.avro.AvroTransformable;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelController;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelEvent;
@@ -49,15 +64,15 @@ import io.aklivity.zilla.runtime.engine.model.ModelSource;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
+import io.aklivity.zilla.runtime.model.avro.ext.AvroCache;
 import io.aklivity.zilla.runtime.model.avro.ext.AvroModelExtContext;
 import io.aklivity.zilla.runtime.model.avro.ext.AvroModelExtHandler;
+import io.aklivity.zilla.runtime.model.avro.internal.types.event.AvroModelEventExFW;
+import io.aklivity.zilla.runtime.model.avro.internal.types.event.AvroModelEventType;
+import io.aklivity.zilla.runtime.model.avro.internal.types.event.EventFW;
 
 public class AvroModelDecoderPipelineTest
 {
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_FIN = 0x01;
-    private static final int FLAGS_COMPLETE = 0x03;
-
     private static final String SCHEMA = """
         {
             "fields":
@@ -91,6 +106,7 @@ public class AvroModelDecoderPipelineTest
     private static final String JSON = "{\"id\":\"id0\",\"status\":\"positive\"}";
 
     private EngineContext context;
+    private String framing;
     private AvroModelConfiguration config;
 
     @Before
@@ -105,8 +121,8 @@ public class AvroModelDecoderPipelineTest
     {
         AvroModelHandlerImpl handler = newHandler();
         // two per-stream pipelines from the same per-worker handler
-        ModelPipeline a = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
-        ModelPipeline b = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline a = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+        ModelPipeline b = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         // stream A split at the field boundary: the id field first, the status field on the final fragment
         byte[] a1 = {0x06, 0x69, 0x64, 0x30};
@@ -115,25 +131,51 @@ public class AvroModelDecoderPipelineTest
         ByteArrayOutputStream outA = new ByteArrayOutputStream();
 
         // stream A: first fragment, incomplete -> UNDERFLOW
-        ModelPipelineResult ra1 = a.transform(0L, 0L, 0L, FLAGS_INIT,
+        ModelPipelineResult ra1 = a.transform(0L, 0L, 0L, INIT,
             new UnsafeBufferEx(a1), 0, a1.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.UNDERFLOW, ra1.status());
         drain(dst, ra1.produced(), outA);
 
         // stream B: a whole value fed in the middle of A — would corrupt A if state were shared
-        ModelPipelineResult rb = b.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult rb = b.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, rb.status());
         assertEquals(JSON, text(dst, rb.produced()));
 
         // stream A: finish, prepending A's unconsumed remainder (the caller's decode-slot residue)
         byte[] a2 = concat(a1, ra1.consumed(), a2tail);
-        ModelPipelineResult ra2 = a.transform(0L, 0L, 0L, FLAGS_FIN,
+        ModelPipelineResult ra2 = a.transform(0L, 0L, 0L, FIN,
             new UnsafeBufferEx(a2), 0, a2.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, ra2.status());
         drain(dst, ra2.produced(), outA);
 
         assertEquals(JSON, outA.toString(UTF_8));
+    }
+
+    // regression coverage for zilla#2461's INIT-empty/payload/FIN-empty produce/populate fragmentation
+    // pattern: an INIT-flagged fragment carrying the whole value (declaring its length via zero remaining
+    // bytes upstream, not modeled here since the decoder itself is oblivious to deferred()), followed by a
+    // truly empty FIN-flagged fragment -- the real mapping always sends one, even when nothing is left
+    @Test
+    public void shouldCompleteOnEmptyFinAfterWholeValueConsumed()
+    {
+        AvroModelHandlerImpl handler = newHandler();
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ByteArrayOutputStream drained = new ByteArrayOutputStream();
+
+        ModelPipelineResult first = pipeline.transform(0L, 0L, 0L, INIT,
+            new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
+        drain(dst, first.produced(), drained);
+
+        byte[] empty = { };
+        ModelPipelineResult second = pipeline.transform(0L, 0L, 0L, FIN,
+            new UnsafeBufferEx(empty), 0, empty.length, dst, 0, dst.capacity());
+        assertEquals(ModelStatus.COMPLETE, second.status());
+        drain(dst, second.produced(), drained);
+
+        assertEquals(JSON, drained.toString(UTF_8));
     }
 
     @Test
@@ -142,10 +184,10 @@ public class AvroModelDecoderPipelineTest
         AvroModelHandlerImpl handler = newHandler();
 
         Map<String, String> extracted = new HashMap<>();
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(extracted));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(extracted), ModelCache.NONE);
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -159,7 +201,7 @@ public class AvroModelDecoderPipelineTest
         AvroModelHandlerImpl handler = newHandler(SCALARS_SCHEMA, "json");
 
         Map<String, String> extracted = new HashMap<>();
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(extracted));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(extracted), ModelCache.NONE);
 
         // i=5, l=7, f=1.5, d=2.5, b=true, e=index 1
         byte[] scalars =
@@ -172,7 +214,7 @@ public class AvroModelDecoderPipelineTest
             0x02
         };
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(scalars), 0, scalars.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -188,7 +230,7 @@ public class AvroModelDecoderPipelineTest
     public void shouldReportDecodePadding()
     {
         AvroModelHandlerImpl handler = newHandler();
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         assertTrue(pipeline.padding(new UnsafeBufferEx(AVRO), 0, AVRO.length) >= 0);
     }
@@ -199,40 +241,293 @@ public class AvroModelDecoderPipelineTest
         AvroModelHandlerImpl baseline = newHandler(SCHEMA, "json", List.of());
         AvroModelHandlerImpl extended = newHandler(SCHEMA, "json", List.of(expandingExt(64)));
 
-        int basePadding = baseline.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE)
+        int basePadding = baseline.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE)
             .padding(new UnsafeBufferEx(AVRO), 0, AVRO.length);
-        int extPadding = extended.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE)
+        int extPadding = extended.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE)
             .padding(new UnsafeBufferEx(AVRO), 0, AVRO.length);
 
         assertEquals(basePadding + 64, extPadding);
     }
 
     @Test
-    public void shouldReportIdentityWhenNoView()
+    public void shouldReportIdentityAndDeterministicBeforeAndAfterFirstValueWhenNoView()
     {
         AvroModelHandlerImpl handler = newHandler(SCHEMA, null);
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
-
-        assertFalse(pipeline.identity());
-
-        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         assertTrue(pipeline.identity());
+        assertTrue(pipeline.deterministic());
+
+        transformValue(pipeline);
+        assertTrue(pipeline.identity());
+        assertTrue(pipeline.deterministic());
+
+        pipeline.reset();
+        assertTrue(pipeline.identity());
+        assertTrue(pipeline.deterministic());
+    }
+
+    @Test
+    public void shouldNotReportIdentityNorDeterminismWhenExtensionInstalled()
+    {
+        AvroModelHandlerImpl handler = newHandler(SCHEMA, null, List.of(expandingExt(64)));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+
+        assertFalse(pipeline.identity());
+        assertFalse(pipeline.deterministic());
     }
 
     @Test
     public void shouldNotReportIdentityWhenJsonView()
     {
         AvroModelHandlerImpl handler = newHandler(SCHEMA, "json");
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
-
-        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         assertFalse(pipeline.identity());
+        assertTrue(pipeline.deterministic());
+
+        transformValue(pipeline);
+        assertFalse(pipeline.identity());
+
+        pipeline.reset();
+        assertFalse(pipeline.identity());
+    }
+
+    @Test
+    public void shouldReportIdentityWhenObservingTransformWired()
+    {
+        AvroModelHandlerImpl handler = newHandler(SCHEMA, null);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(new HashMap<>()), ModelCache.NONE);
+
+        assertTrue(pipeline.identity());
+        assertTrue(pipeline.deterministic());
+
+        transformValue(pipeline);
+        assertTrue(pipeline.identity());
+        assertTrue(pipeline.deterministic());
+    }
+
+    @Test
+    public void shouldNotReportIdentityWhenCatalogFramesValues()
+    {
+        framing = "ZL";
+        AvroModelHandlerImpl handler = newHandler(SCHEMA, null);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+
+        assertFalse(pipeline.identity());
+    }
+
+    @Test
+    public void shouldNotReportIdentityWhenExtensionInstalled()
+    {
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(capturingKind(new AvroModelEventType[1]));
+        AvroModelHandlerImpl handler = newHandler(SCHEMA, null, List.of(failing()));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+
+        assertFalse(pipeline.identity());
+
+        transformValue(pipeline);
+        assertFalse(pipeline.identity());
+
+        pipeline.reset();
+        assertFalse(pipeline.identity());
+        assertFalse(pipeline.deterministic());
+    }
+
+    @Test
+    public void shouldRoundTripJsonViewThroughWriteThenRead()
+    {
+        AvroModelHandlerImpl handler = newHandler(SCHEMA, "json");
+
+        ModelPipeline writer = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.WRITE);
+        MutableDirectBufferEx cached = new UnsafeBufferEx(new byte[256]);
+        ModelPipelineResult written = writer.transform(0L, 0L, 0L, COMPLETE,
+            new UnsafeBufferEx(AVRO), 0, AVRO.length, cached, 0, cached.capacity());
+
+        assertEquals(ModelStatus.COMPLETE, written.status());
+        assertEquals(JSON, text(cached, written.produced()));
+
+        // a reader fetching the value WRITE just cached: its source must parse the cached json,
+        // not avro wire bytes, since that is the only form the cache holds
+        ModelPipeline reader = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.READ);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        byte[] cachedJson = JSON.getBytes(UTF_8);
+        ModelPipelineResult read = reader.transform(0L, 0L, 0L, COMPLETE,
+            new UnsafeBufferEx(cachedJson), 0, cachedJson.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.COMPLETE, read.status());
+        assertEquals(JSON, text(dst, read.produced()));
+    }
+
+    @Test
+    public void shouldRoundTripWireBytesThroughWriteThenRead()
+    {
+        AvroModelHandlerImpl handler = newHandler(SCHEMA, null);
+
+        ModelPipeline writer = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.WRITE);
+        MutableDirectBufferEx cached = new UnsafeBufferEx(new byte[256]);
+        ModelPipelineResult written = writer.transform(0L, 0L, 0L, COMPLETE,
+            new UnsafeBufferEx(AVRO), 0, AVRO.length, cached, 0, cached.capacity());
+
+        assertEquals(ModelStatus.COMPLETE, written.status());
+
+        // no view configured, so WRITE's re-encoded output is still avro wire bytes -- READ's
+        // frontend must be able to parse it exactly like NONE's does
+        byte[] cachedBytes = new byte[written.produced()];
+        cached.getBytes(0, cachedBytes);
+
+        ModelPipeline reader = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.READ);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ModelPipelineResult read = reader.transform(0L, 0L, 0L, COMPLETE,
+            new UnsafeBufferEx(cachedBytes), 0, cachedBytes.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.COMPLETE, read.status());
+        byte[] readBytes = new byte[read.produced()];
+        dst.getBytes(0, readBytes);
+        assertArrayEquals(cachedBytes, readBytes);
+    }
+
+    @Test
+    public void shouldRoundTripEncodedFramingThroughWriteThenRead()
+    {
+        // simulates strategy: encoded -- the wire value carries real catalog framing (a magic-byte-style
+        // prefix) embedding the schema id, and the model's own static catalog reference is deliberately
+        // wrong (no schema resolves to that id), so decode can only succeed by resolving the schema id from
+        // the framing itself, on both WRITE (from the original wire bytes) and READ (from what WRITE cached)
+        byte[] prefixBytes = "XX".getBytes(UTF_8);
+        TestCatalogConfig catalog = GenericCatalogConfig.builder(TestCatalogConfig::new)
+            .namespace("test")
+            .name("test0")
+            .type("test")
+            .options(TestCatalogOptionsConfig::builder)
+                .id(1)
+                .prefix(framing)
+                .schema(SCHEMA)
+                .prefix("XX")
+                .build()
+            .build();
+        AvroModelConfig model = AvroModelConfig.builder()
+            .view("json")
+            .catalog()
+                .name("test0")
+                    .schema()
+                        .id(999)
+                        .build()
+                .build()
+            .build();
+        EngineContext ctx = mock(EngineContext.class);
+        when(ctx.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
+        AvroModelHandlerImpl handler = new AvroModelHandlerImpl(config, model, ctx, List.of());
+
+        byte[] wire = concat(prefixBytes, 0, AVRO);
+        ModelPipeline writer = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.WRITE);
+        MutableDirectBufferEx cached = new UnsafeBufferEx(new byte[256]);
+        ModelPipelineResult written = writer.transform(0L, 0L, 0L, COMPLETE,
+            new UnsafeBufferEx(wire), 0, wire.length, cached, 0, cached.capacity());
+
+        assertEquals(ModelStatus.COMPLETE, written.status());
+        byte[] cachedBytes = new byte[written.produced()];
+        cached.getBytes(0, cachedBytes);
+        assertEquals(JSON, new String(cachedBytes, prefixBytes.length, cachedBytes.length - prefixBytes.length, UTF_8));
+
+        ModelPipeline reader = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.READ);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ModelPipelineResult read = reader.transform(0L, 0L, 0L, COMPLETE,
+            new UnsafeBufferEx(cachedBytes), 0, cachedBytes.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.COMPLETE, read.status());
+        assertEquals(JSON, text(dst, read.produced()));
+    }
+
+    @Test
+    public void shouldReportParsingFailureEvent()
+    {
+        AvroModelEventType[] kind = new AvroModelEventType[1];
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(capturingKind(kind));
+        AvroModelHandlerImpl handler = newHandler();
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+
+        // an unterminated variable-length integer (continuation bit set, no terminating byte) is malformed
+        // binary the parser cannot decode at all -- a parse failure, not a schema violation
+        byte[] malformed = { (byte) 0xFF };
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
+            new UnsafeBufferEx(malformed), 0, malformed.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.REJECTED, result.status());
+        assertEquals(AvroModelEventType.PARSING_FAILED, kind[0]);
+    }
+
+    @Test
+    public void shouldReportTransformFailureEvent()
+    {
+        AvroModelEventType[] kind = new AvroModelEventType[1];
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(capturingKind(kind));
+        List<AvroModelExtContext> exts = List.of(failing());
+        AvroModelHandlerImpl handler = newHandler(SCHEMA, "json", exts);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
+            new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.REJECTED, result.status());
+        assertEquals(AvroModelEventType.TRANSFORM_FAILED, kind[0]);
+    }
+
+    // decodes each emitted event's extension kind into the given single-element array, mirroring the
+    // production AvroModelEventFormatter's own wrap-and-switch, so a test can assert which event fired
+    // without depending on supplyEventId's (unstubbed, indistinguishable) mocked return value
+    private static MessageConsumer capturingKind(
+        AvroModelEventType[] kind)
+    {
+        EventFW eventRO = new EventFW();
+        AvroModelEventExFW extensionRO = new AvroModelEventExFW();
+        return (msgTypeId, buffer, index, length) ->
+        {
+            EventFW event = eventRO.wrap(buffer, index, index + length);
+            AvroModelEventExFW extension = extensionRO
+                .wrap(event.extension().buffer(), event.extension().offset(), event.extension().limit());
+            kind[0] = extension.kind();
+        };
+    }
+
+    // A stage's own exception (not a parsing nor a validation exception) standing in for an extension's
+    // internal failure during its own transform logic.
+    private static AvroModelExtContext failing()
+    {
+        return (schema, config) -> new AvroModelExtHandler()
+        {
+            @Override
+            public <T extends AvroTransformable<T>> T decode(
+                T transformable,
+                AvroCache cache)
+            {
+                return transformable.transform(new Failing());
+            }
+        };
+    }
+
+    private static final class Failing implements AvroTransform
+    {
+        @Override
+        public AvroPipeline.Status transform(
+            AvroController control,
+            AvroSource source,
+            AvroEvent event,
+            AvroSink sink)
+        {
+            throw new AvroException("extension failure");
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     }
 
     private AvroModelHandlerImpl newHandler()
@@ -258,6 +553,7 @@ public class AvroModelDecoderPipelineTest
             .type("test")
             .options(TestCatalogOptionsConfig::builder)
                 .id(9)
+                .prefix(framing)
                 .schema(schema)
                 .build()
             .build();
@@ -321,11 +617,25 @@ public class AvroModelDecoderPipelineTest
         return new String(chunk, UTF_8);
     }
 
+    private static void transformValue(
+        ModelPipeline pipeline)
+    {
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        pipeline.transform(0L, 0L, 0L, COMPLETE,
+            new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
+    }
+
     private static ModelTransform observer(
         Map<String, String> extracted)
     {
         return new ModelTransform()
         {
+            @Override
+            public boolean deterministic()
+            {
+                return true;
+            }
+
             @Override
             public ModelStatus transform(
                 ModelController control,

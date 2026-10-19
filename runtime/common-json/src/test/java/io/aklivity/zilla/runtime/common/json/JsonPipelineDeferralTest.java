@@ -54,6 +54,12 @@ class JsonPipelineDeferralTest
             }
             return status;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     }
 
     @Test
@@ -121,6 +127,12 @@ class JsonPipelineDeferralTest
                 status = sink.transform(control, source, event);
             }
             return status;
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
         }
     }
 

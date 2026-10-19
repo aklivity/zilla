@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.model.avro.internal.bench;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -44,6 +45,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
@@ -67,8 +69,6 @@ import io.aklivity.zilla.runtime.model.avro.internal.AvroModelHandlerImpl;
 @OutputTimeUnit(SECONDS)
 public class AvroModelDecoderPipelineBM
 {
-    private static final int FLAGS_COMPLETE = 0x03;
-
     private static final String SCHEMA = """
         {
             "fields":
@@ -92,8 +92,8 @@ public class AvroModelDecoderPipelineBM
     @Setup(Level.Trial)
     public void init()
     {
-        toJson = newHandler("json").supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
-        identity = newHandler(null).supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        toJson = newHandler("json").supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+        identity = newHandler(null).supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
         src = new UnsafeBufferEx(AVRO);
         dst = new UnsafeBufferEx(new byte[256]);
     }
@@ -113,7 +113,7 @@ public class AvroModelDecoderPipelineBM
     private int decode(
         ModelPipeline pipeline)
     {
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             src, 0, AVRO.length, dst, 0, dst.capacity());
         return result.produced();
     }

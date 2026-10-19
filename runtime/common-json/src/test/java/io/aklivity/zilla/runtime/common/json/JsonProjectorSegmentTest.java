@@ -109,9 +109,26 @@ class JsonProjectorSegmentTest
     void shouldStaySegmentFreeAndValidWithValidatorUpstream()
     {
         JsonGeneratorEx gen = JsonEx.createGenerator().wrap(buffer, 0, buffer.capacity());
-        JsonTransform decliner = (control, source, event, sink) -> sink.transform(() ->
+        JsonTransform decliner = new JsonTransform()
         {
-        }, source, event);
+            @Override
+            public Status transform(
+                JsonController control,
+                JsonSource source,
+                JsonEvent event,
+                JsonSink sink)
+            {
+                return sink.transform(() ->
+                {
+                }, source, event);
+            }
+
+            @Override
+            public boolean deterministic()
+            {
+                return true;
+            }
+        };
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(decliner)
             .transform(JsonTransforms.projector(List.of("/a")))

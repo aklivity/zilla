@@ -41,6 +41,10 @@ public interface ZillaChannelConfig extends ChannelConfig
 
     int getPadding();
 
+    void setPaddable(String paddable);
+
+    boolean isPaddable(ZillaFrameKind kind);
+
     void setUpdate(ZillaUpdateMode update);
 
     ZillaUpdateMode getUpdate();
@@ -54,6 +58,10 @@ public interface ZillaChannelConfig extends ChannelConfig
     void setAffinity(long affinity);
 
     long getAffinity();
+
+    void setRedirectedId(long redirectedId);
+
+    long getRedirectedId();
 
     void setStreamId(long streamId);
 

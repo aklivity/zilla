@@ -132,6 +132,16 @@ public class PublishIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/publish.multiple.messages.100c/client",
+        "${app}/publish.multiple.messages.100c/server"})
+    public void shouldPublishMultipleMessages100c() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/publish.multiple.messages.disconnect/client",
         "${app}/publish.multiple.messages/server"})
     public void shouldPublishMultipleMessagesAndDisconnect() throws Exception

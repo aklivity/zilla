@@ -56,7 +56,7 @@ write flush
 
 write '{'
         '"structuredContent":["v1","v2","v3"],'
-        '"content":[{"type":"text","text":"done"}],'
+        '"content":[{"type":"text","text":"Tags: [\\"v1\\",\\"v2\\",\\"v3\\"]"}],'
         '"isError":false'
       '}'
 write flush

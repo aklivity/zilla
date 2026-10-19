@@ -74,10 +74,16 @@ public final class JsonTokenizer
     // cap on the decoded chars retained for one value/key; appendScratch fails closed past it so a
     // consumer that declines fragments cannot grow scratch without bound
     private final int maxValueSize;
+    private final boolean quoted;
     private boolean terminalEof;
     // byte length of the current input window; a value whose own bytes reach this length without
     // completing fills the window and is delivered as fragments rather than reassembled across windows.
     private int windowLength = Integer.MAX_VALUE;
+    // absolute stream offset where the current input window began; onScalarStarved() measures a value's
+    // own bytes against the room actually left for it in this window (windowStart + windowLength), not
+    // against the window's full length, since preceding tokens (a key, sibling values) sharing the same
+    // window with the value's own start already used up some of that length
+    private long windowStart;
 
     // path tracking — pre-allocated, no per-event allocation
     private final boolean[] pathInArray = new boolean[MAX_DEPTH];
@@ -160,7 +166,7 @@ public final class JsonTokenizer
     public JsonTokenizer(
         boolean terminalEof)
     {
-        this(terminalEof, Integer.MAX_VALUE);
+        this(terminalEof, Integer.MAX_VALUE, false);
     }
 
     // terminalEof distinguishes a one-shot stream (EOF is the final delimiter) from the chunked
@@ -168,12 +174,16 @@ public final class JsonTokenizer
     // only matters for numbers, which unlike strings and the true/false/null literals are not
     // self-terminating and need a following non-digit byte to know they have ended.
     // maxValueSize caps the decoded chars retained for one value/key; growth past it fails closed.
+    // quoted holds a key back until its separator, whitespace and the value's first byte are in the
+    // window, so the position after a key is the start of its (possibly quoted) value token.
     public JsonTokenizer(
         boolean terminalEof,
-        int maxValueSize)
+        int maxValueSize,
+        boolean quoted)
     {
         this.terminalEof = terminalEof;
         this.maxValueSize = maxValueSize;
+        this.quoted = quoted;
         for (int i = 0; i < MAX_DEPTH; i++)
         {
             pathKeyChars[i] = new StringBuilder();
@@ -229,6 +239,15 @@ public final class JsonTokenizer
         this.scalarSegment = scalarSegment;
     }
 
+    // Ends the current document (state must be DOC_DONE, reached only once its own event delivered
+    // END_DOCUMENT) and begins the next top-level value at the current stream position -- distinct from
+    // reset(), which rewinds streamOffset and every other field to their start-of-input values.
+    public void nextDocument()
+    {
+        assert state == ParseState.DOC_DONE;
+        state = ParseState.DOC_START;
+    }
+
     // Set per input window: when true this window's EOF is the terminal delimiter (one-shot or final
     // window), so a trailing scalar completes at EOF and an incomplete value is rejected; when false EOF
     // is a frame boundary with more bytes still to come.
@@ -244,6 +263,7 @@ public final class JsonTokenizer
         int length)
     {
         this.windowLength = length;
+        this.windowStart = streamOffset;
     }
 
     public boolean advance(
@@ -299,10 +319,15 @@ public final class JsonTokenizer
         if (midScalar)
         {
             final long valueBytes = streamOffset - valueStreamStart;
+            // room actually left for the value in this window, not the window's own full length: a key or
+            // sibling value sharing the window ahead of this value's start already spent some of that
+            // length, so comparing against windowLength directly would never trip for a value that doesn't
+            // begin at the window's own first byte, however large the value truly is
+            final long valueRoom = windowStart + windowLength - valueStreamStart;
             // a kept scalar leaf fragments verbatim on any starve; a decoded value (or key) only once it
-            // fills the window
+            // fills the room left for it in the window
             final boolean fragment =
-                !terminalEof && (scalarSegment || fragmenting || valueBytes >= windowLength);
+                !terminalEof && (scalarSegment || fragmenting || valueBytes >= valueRoom);
             if (fragment && (resumeOp == ResumeOp.VALUE_STRING || resumeOp == ResumeOp.KEY_STRING))
             {
                 // rewind to the last complete code-point/escape boundary, leaving the partial unit for the caller
@@ -364,6 +389,86 @@ public final class JsonTokenizer
             }
         }
         return delivered;
+    }
+
+    // Takes back a key whose first fragment was delivered and declined: the stream goes back to the end of the
+    // token ahead of the key, so the separator and whitespace that introduced it are scanned again with it, and
+    // the caller re-presents the bytes. When the caller has already pulled past that point (floor), the separator
+    // is gone for good, so only the key itself is taken back. A key that is not an object's first member was
+    // reached from the state after its separator, which then goes back to the state before it.
+    void rewindKey(
+        long priorEnd,
+        long priorLine,
+        long priorColumn,
+        long floor)
+    {
+        assert resumeOp == ResumeOp.KEY_STRING;
+        if (priorEnd >= floor)
+        {
+            streamOffset = priorEnd;
+            line = priorLine;
+            column = priorColumn;
+            if (state == ParseState.OBJ_AFTER_COMMA)
+            {
+                state = ParseState.OBJ_AFTER_VALUE;
+            }
+        }
+        else
+        {
+            streamOffset = valueStreamStart;
+            line = valueLine;
+            column = valueColumn;
+        }
+        scratch.setLength(0);
+        scratchConsumed = 0;
+        resumeOp = ResumeOp.NONE;
+        resumeEscape = false;
+        resumeUnicodePending = 0;
+        resumeUnicodeValue = 0;
+        fragmenting = false;
+        pendingEvent = null;
+        pendingString = null;
+        valuePending = false;
+    }
+
+    // Gives back the separator and whitespace scanned past the last delivered token when a non-final window
+    // ended before the next token began, so only whole tokens are ever consumed and the caller re-presents the
+    // rest with the next window. A separator consumed that way is never lost to, or emitted ahead of, a decision
+    // about the member it introduces. A comma goes back to the state before it, which is the state that
+    // expects a separator or the container's close.
+    void rewindLookahead(
+        long offset,
+        long offsetLine,
+        long offsetColumn)
+    {
+        if (!terminalEof && resumeOp == ResumeOp.NONE && streamOffset > offset)
+        {
+            switch (state)
+            {
+            case OBJ_AFTER_COMMA:
+                state = ParseState.OBJ_AFTER_VALUE;
+                streamOffset = offset;
+                line = offsetLine;
+                column = offsetColumn;
+                break;
+            case ARR_AFTER_COMMA:
+                state = ParseState.ARR_AFTER_VALUE;
+                streamOffset = offset;
+                line = offsetLine;
+                column = offsetColumn;
+                break;
+            case OBJ_AFTER_OPEN:
+            case OBJ_AFTER_VALUE:
+            case ARR_AFTER_OPEN:
+            case ARR_AFTER_VALUE:
+                streamOffset = offset;
+                line = offsetLine;
+                column = offsetColumn;
+                break;
+            default:
+                break;
+            }
+        }
     }
 
     public JsonParser.Event event()
@@ -918,6 +1023,56 @@ public final class JsonTokenizer
         if (!starved)
         {
             finishKeyValue();
+
+            if (quoted)
+            {
+                alignKeyBoundary(in);
+            }
+        }
+    }
+
+    // Moves past the separator and whitespace to the first byte of the member's value, leaving that byte
+    // unread. A non-final window that ends before it takes the key back to its opening quote, in the state that
+    // preceded it, so the key is delivered only when the position after it can be a token boundary.
+    private void alignKeyBoundary(
+        InputStream in) throws IOException
+    {
+        consumeColon(in);
+
+        boolean aligned = false;
+
+        while (!starved && !aligned)
+        {
+            in.mark(1);
+            final int c = in.read();
+
+            if (c == -1)
+            {
+                starved = true;
+            }
+            else if (c == ' ' || c == '\t' || c == '\n' || c == '\r')
+            {
+                streamOffset++;
+                advance(c);
+            }
+            else
+            {
+                in.reset();
+                aligned = true;
+            }
+        }
+
+        if (starved && !terminalEof)
+        {
+            streamOffset = valueStreamStart;
+            line = valueLine;
+            column = valueColumn;
+            state = memberSeparated ? ParseState.OBJ_AFTER_COMMA : ParseState.OBJ_AFTER_OPEN;
+            scratch.setLength(0);
+            scratchConsumed = 0;
+            pendingEvent = null;
+            pendingString = null;
+            valuePending = false;
         }
     }
 

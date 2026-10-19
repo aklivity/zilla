@@ -33,6 +33,6 @@ public final class HttpFileSystemOptionsConfigAdapter extends ConfigAdapter<Opti
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        return new OptionsConfig();
+        return new OptionsConfig(null, null);
     }
 }

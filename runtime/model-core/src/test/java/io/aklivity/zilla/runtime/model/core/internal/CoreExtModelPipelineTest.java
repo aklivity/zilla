@@ -14,6 +14,11 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
@@ -35,10 +40,12 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
+import io.aklivity.zilla.runtime.engine.model.ModelRejection;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.model.core.ext.BytesController;
@@ -49,6 +56,7 @@ import io.aklivity.zilla.runtime.model.core.ext.BytesSink;
 import io.aklivity.zilla.runtime.model.core.ext.BytesSource;
 import io.aklivity.zilla.runtime.model.core.ext.BytesTransform;
 import io.aklivity.zilla.runtime.model.core.ext.BytesTransformable;
+import io.aklivity.zilla.runtime.model.core.ext.CoreCache;
 import io.aklivity.zilla.runtime.model.core.ext.StringController;
 import io.aklivity.zilla.runtime.model.core.ext.StringEvent;
 import io.aklivity.zilla.runtime.model.core.ext.StringSink;
@@ -57,10 +65,6 @@ import io.aklivity.zilla.runtime.model.core.ext.StringTransform;
 
 public class CoreExtModelPipelineTest
 {
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_FIN = 0x01;
-    private static final int FLAGS_COMPLETE = 0x03;
-
     @Test
     public void shouldObserveValueDeliveredAcrossFragmentsRatherThanWhole()
     {
@@ -69,14 +73,14 @@ public class CoreExtModelPipelineTest
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
 
         // ModelPipelineResult is reused across calls, so read each outcome before driving the next
-        ModelPipelineResult first = pipeline.transform(0L, 0L, 0L, FLAGS_INIT,
+        ModelPipelineResult first = pipeline.transform(0L, 0L, 0L, INIT,
             buffer("abc"), 0, 3, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.UNDERFLOW, first.status());
         assertEquals(3, first.consumed());
         int produced = first.produced();
 
-        ModelPipelineResult second = pipeline.transform(0L, 0L, 0L, FLAGS_FIN,
+        ModelPipelineResult second = pipeline.transform(0L, 0L, 0L, FIN,
             buffer("de"), 0, 2, dst, produced, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, second.status());
@@ -97,7 +101,7 @@ public class CoreExtModelPipelineTest
 
         StringBuilder drained = new StringBuilder();
         int srcAt = 0;
-        int flags = FLAGS_COMPLETE;
+        int flags = COMPLETE;
         int overflows = 0;
         ModelStatus status;
         do
@@ -107,7 +111,7 @@ public class CoreExtModelPipelineTest
             status = result.status();
             drained.append(dst.getStringWithoutLengthUtf8(0, result.produced()));
             srcAt += result.consumed();
-            flags &= ~FLAGS_INIT;
+            flags &= ~INIT;
             overflows += status == ModelStatus.OVERFLOW ? 1 : 0;
         } while (status == ModelStatus.OK || status == ModelStatus.OVERFLOW);
 
@@ -126,9 +130,9 @@ public class CoreExtModelPipelineTest
         ModelPipeline pipeline = decoder(stage(new Appender('1')), stage(downstream));
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[32]);
 
-        int produced = pipeline.transform(0L, 0L, 0L, FLAGS_INIT,
+        int produced = pipeline.transform(0L, 0L, 0L, INIT,
             buffer("ab"), 0, 2, dst, 0, dst.capacity()).produced();
-        ModelPipelineResult second = pipeline.transform(0L, 0L, 0L, FLAGS_FIN,
+        ModelPipelineResult second = pipeline.transform(0L, 0L, 0L, FIN,
             buffer("cd"), 0, 2, dst, produced, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, second.status());
@@ -153,7 +157,7 @@ public class CoreExtModelPipelineTest
 
         StringBuilder drained = new StringBuilder();
         int srcAt = 0;
-        int flags = FLAGS_COMPLETE;
+        int flags = COMPLETE;
         ModelStatus status;
         do
         {
@@ -162,7 +166,7 @@ public class CoreExtModelPipelineTest
             status = result.status();
             drained.append(dst.getStringWithoutLengthUtf8(0, result.produced()));
             srcAt += result.consumed();
-            flags &= ~FLAGS_INIT;
+            flags &= ~INIT;
         } while (status == ModelStatus.OK || status == ModelStatus.OVERFLOW);
 
         assertEquals(ModelStatus.COMPLETE, status);
@@ -178,12 +182,13 @@ public class CoreExtModelPipelineTest
         ModelPipeline pipeline = decoder(engine(reported), stage(new Terminator(true, null)));
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
 
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             buffer("secret"), 0, 6, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
         assertEquals(0, result.produced());
         assertEquals(List.of(), reported);
+        assertEquals(ModelRejection.WITHHELD, result.rejection());
     }
 
     @Test
@@ -193,13 +198,30 @@ public class CoreExtModelPipelineTest
         ModelPipeline pipeline = decoder(engine(reported), stage(new Terminator(false, "unacceptable")));
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
 
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             buffer("secret"), 0, 6, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
         assertEquals(0, result.produced());
         assertEquals(List.of("A message payload failed validation. A field was not the expected type (unacceptable)."),
             reported);
+        assertEquals(ModelRejection.INVALID, result.rejection());
+    }
+
+    @Test
+    public void shouldRejectValueFailingBaseValidation()
+    {
+        Malformed validator = new Malformed();
+        StringExtModelPipeline pipeline = new StringExtModelPipeline(
+            new CoreModelHandler(engine(new ArrayList<>()), StringModel.NAME, () -> validator, false, false),
+            validator, false, List.of(), ModelEnvelope.NONE, 0);
+        UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
+
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
+            buffer("abc"), 0, 3, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.REJECTED, result.status());
+        assertEquals(ModelRejection.INVALID, result.rejection());
     }
 
     @Test
@@ -219,12 +241,13 @@ public class CoreExtModelPipelineTest
         ModelPipeline pipeline = handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE);
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
 
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             buffer("abc"), 0, 3, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
         assertEquals("abc!", dst.getStringWithoutLengthUtf8(0, result.produced()));
         assertFalse(pipeline.identity());
+        assertTrue(pipeline.deterministic());
     }
 
     @Test
@@ -234,7 +257,8 @@ public class CoreExtModelPipelineTest
         {
             @Override
             public <T extends BytesTransformable<T>> T decode(
-                T stream)
+                T stream,
+                CoreCache cache)
             {
                 return stream.transform(new Appender('!'));
             }
@@ -244,13 +268,14 @@ public class CoreExtModelPipelineTest
         ModelPipeline pipeline = handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE);
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
 
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             buffer("abc"), 0, 3, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
         assertEquals("abc", dst.getStringWithoutLengthUtf8(0, result.produced()));
         // the encode direction is exactly what it would be with no extension installed at all
         assertTrue(pipeline.identity());
+        assertTrue(pipeline.deterministic());
     }
 
     @Test
@@ -261,7 +286,8 @@ public class CoreExtModelPipelineTest
         {
             @Override
             public <T extends BytesTransformable<T>> T decode(
-                T stream)
+                T stream,
+                CoreCache cache)
             {
                 return stream.transform(BytesTransform.NONE);
             }
@@ -269,8 +295,51 @@ public class CoreExtModelPipelineTest
 
         ModelHandler handler = handler(mock(EngineContext.class), ext);
 
-        assertTrue(handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE).identity());
+        assertTrue(handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE).identity());
         assertTrue(handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE).identity());
+        assertTrue(handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE).deterministic());
+        assertTrue(handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE).deterministic());
+    }
+
+    @Test
+    public void shouldFoldBytesDeterminismWhenSupplied()
+    {
+        ModelHandler deterministic = handler(mock(EngineContext.class), stage(new Appender('!')));
+        ModelHandler mixed = handler(mock(EngineContext.class), stage(new Appender('!')), stage(observing()));
+        ModelHandler observed = handler(mock(EngineContext.class), stage(observing()));
+
+        ModelPipeline appended = deterministic.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+        ModelPipeline folded = mixed.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+        ModelPipeline watched = observed.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+
+        assertTrue(appended.deterministic());
+        assertFalse(appended.identity());
+        assertFalse(folded.deterministic());
+        assertFalse(folded.identity());
+        assertFalse(watched.deterministic());
+        assertTrue(watched.identity());
+    }
+
+    @Test
+    public void shouldFoldStringDeterminismWhenSupplied()
+    {
+        Validations validations = new Validations();
+        CoreModelHandler plain =
+            new CoreModelHandler(mock(EngineContext.class), StringModel.NAME, () -> validations, false, false);
+
+        StringExtModelPipeline substituted = new StringExtModelPipeline(
+            plain, validations, false, List.of(new Substitute("x")), ModelEnvelope.NONE, 1);
+        StringExtModelPipeline mixed = new StringExtModelPipeline(
+            plain, validations, false, List.of(new Substitute("x"), observingString()), ModelEnvelope.NONE, 1);
+        StringExtModelPipeline watched = new StringExtModelPipeline(
+            plain, validations, false, List.of(observingString()), ModelEnvelope.NONE, 1);
+
+        assertTrue(substituted.deterministic());
+        assertFalse(substituted.identity());
+        assertFalse(mixed.deterministic());
+        assertFalse(mixed.identity());
+        assertFalse(watched.deterministic());
+        assertTrue(watched.identity());
     }
 
     @Test
@@ -279,7 +348,7 @@ public class CoreExtModelPipelineTest
         ModelHandler handler = handler(mock(EngineContext.class), padded(4, 1), padded(6, 2));
         DirectBufferEx empty = new UnsafeBufferEx(new byte[0]);
 
-        assertEquals(10, handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE).padding(empty, 0, 0));
+        assertEquals(10, handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE).padding(empty, 0, 0));
         assertEquals(3, handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE).padding(empty, 0, 0));
     }
 
@@ -289,12 +358,25 @@ public class CoreExtModelPipelineTest
         Envelopes envelopes = new Envelopes();
         ModelEnvelope envelope = new TestEnvelope();
         ModelHandler handler = handler(mock(EngineContext.class), stage(envelopes));
-        ModelPipeline pipeline = handler.supplyDecoder(envelope, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(envelope, ModelTransform.NONE, ModelCache.NONE);
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
 
-        pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE, buffer("abc"), 0, 3, dst, 0, dst.capacity());
+        pipeline.transform(0L, 0L, 0L, COMPLETE, buffer("abc"), 0, 3, dst, 0, dst.capacity());
 
         assertSame(envelope, envelopes.observed);
+    }
+
+    @Test
+    public void shouldReachAuthorizationFromStage()
+    {
+        Authorizations authorizations = new Authorizations();
+        ModelHandler handler = handler(mock(EngineContext.class), stage(authorizations));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+        UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
+
+        pipeline.transform(0L, 0L, 42L, COMPLETE, buffer("abc"), 0, 3, dst, 0, dst.capacity());
+
+        assertEquals(42L, authorizations.observed);
     }
 
     private static ModelPipeline decoder(
@@ -307,7 +389,7 @@ public class CoreExtModelPipelineTest
         EngineContext context,
         BytesModelExtHandler... exts)
     {
-        return handler(context, exts).supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        return handler(context, exts).supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
     }
 
     private static ModelHandler handler(
@@ -324,6 +406,62 @@ public class CoreExtModelPipelineTest
         return model.supplyHandler(BytesModelConfig.builder().build());
     }
 
+    private static BytesTransform observing()
+    {
+        return new BytesTransform()
+        {
+            @Override
+            public ModelStatus transform(
+                BytesController control,
+                BytesSource source,
+                BytesEvent event,
+                BytesSink sink)
+            {
+                return sink.transform(control, source, event);
+            }
+
+            @Override
+            public boolean identity()
+            {
+                return true;
+            }
+
+            @Override
+            public boolean deterministic()
+            {
+                return false;
+            }
+        };
+    }
+
+    private static StringTransform observingString()
+    {
+        return new StringTransform()
+        {
+            @Override
+            public ModelStatus transform(
+                StringController control,
+                StringSource source,
+                StringEvent event,
+                StringSink sink)
+            {
+                return sink.transform(control, source, event);
+            }
+
+            @Override
+            public boolean identity()
+            {
+                return true;
+            }
+
+            @Override
+            public boolean deterministic()
+            {
+                return false;
+            }
+        };
+    }
+
     private static BytesModelExtHandler stage(
         BytesTransform transform)
     {
@@ -331,7 +469,8 @@ public class CoreExtModelPipelineTest
         {
             @Override
             public <T extends BytesTransformable<T>> T decode(
-                T stream)
+                T stream,
+                CoreCache cache)
             {
                 return stream.transform(transform);
             }
@@ -346,7 +485,8 @@ public class CoreExtModelPipelineTest
         {
             @Override
             public <T extends BytesTransformable<T>> T decode(
-                T stream)
+                T stream,
+                CoreCache cache)
             {
                 return stream.transform(new Appender('.'));
             }
@@ -419,6 +559,12 @@ public class CoreExtModelPipelineTest
             }
             return sink.transform(control, source, event);
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     }
 
     // reads the envelope in force and remembers it, so a test can assert a stage reaches the metadata
@@ -436,6 +582,36 @@ public class CoreExtModelPipelineTest
         {
             observed = control.envelope();
             return sink.transform(control, source, event);
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+    }
+
+    // reads the authorization in force and remembers it, so a test can assert a stage reaches the
+    // authorization the pipeline received through its control handle
+    private static final class Authorizations implements BytesTransform
+    {
+        private long observed;
+
+        @Override
+        public ModelStatus transform(
+            BytesController control,
+            BytesSource source,
+            BytesEvent event,
+            BytesSink sink)
+        {
+            observed = control.authorization();
+            return sink.transform(control, source, event);
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
         }
     }
 
@@ -475,6 +651,12 @@ public class CoreExtModelPipelineTest
                 downstream = injected;
             }
             return sink.transform(control, downstream, event);
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
         }
     }
 
@@ -517,6 +699,12 @@ public class CoreExtModelPipelineTest
                 status = sink.transform(control, source, event);
             }
             return status;
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
         }
     }
 
@@ -602,6 +790,12 @@ public class CoreExtModelPipelineTest
             }
             return status;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     }
 
     // the control handle a stage supplies downstream for bytes it injected: those bytes are its own, not
@@ -659,9 +853,23 @@ public class CoreExtModelPipelineTest
             int index,
             int length)
         {
-            initial += (flags & CoreModelValidator.FLAGS_INIT) != 0 ? 1 : 0;
-            finished += (flags & CoreModelValidator.FLAGS_FIN) != 0 ? 1 : 0;
+            initial += hasInit(flags) ? 1 : 0;
+            finished += hasFin(flags) ? 1 : 0;
             return Validity.VALID;
+        }
+    }
+
+    // always fails the pipeline's own structural validation, regardless of the bytes seen
+    private static final class Malformed implements CoreModelValidator
+    {
+        @Override
+        public Validity validate(
+            int flags,
+            DirectBufferEx data,
+            int index,
+            int length)
+        {
+            return Validity.MALFORMED;
         }
     }
 

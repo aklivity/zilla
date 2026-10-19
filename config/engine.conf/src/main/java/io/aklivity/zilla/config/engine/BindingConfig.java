@@ -19,9 +19,8 @@ import static java.util.Objects.requireNonNull;
 import java.util.List;
 import java.util.function.ToLongFunction;
 
-public abstract class BindingConfig extends Config
+public abstract class BindingConfig extends NamedConfig
 {
-    public transient long id;
     public transient long entryId;
     public transient ToLongFunction<String> resolveId;
 
@@ -37,8 +36,6 @@ public abstract class BindingConfig extends Config
     public transient long routedTypeId;
 
     public final String namespace;
-    public final String name;
-    public final String qname;
     public final String type;
     public final KindConfig kind;
     public final String entry;
@@ -60,8 +57,8 @@ public abstract class BindingConfig extends Config
         List<RouteConfig> routes,
         TelemetryRefConfig telemetryRef)
     {
+        super(name);
         this.namespace = requireNonNull(namespace);
-        this.name = requireNonNull(name);
         this.qname = String.format("%s:%s", namespace, name);
         this.type = requireNonNull(type);
         this.kind = requireNonNull(kind);

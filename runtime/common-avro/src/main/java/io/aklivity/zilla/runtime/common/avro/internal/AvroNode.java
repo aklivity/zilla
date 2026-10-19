@@ -50,6 +50,7 @@ final class AvroNode implements AvroType
     final String[][] fieldAliases;
     final JsonValue[] fieldDefaults;
     final JsonObject[] fieldAttributes;
+    JsonObject attributes;
 
     private AvroNode(
         AvroKind kind,
@@ -223,6 +224,13 @@ final class AvroNode implements AvroType
     public int size()
     {
         return size;
+    }
+
+    @Override
+    public JsonValue attribute(
+        String name)
+    {
+        return attributes != null ? attributes.get(name) : null;
     }
 
     static AvroNode ofPrimitive(

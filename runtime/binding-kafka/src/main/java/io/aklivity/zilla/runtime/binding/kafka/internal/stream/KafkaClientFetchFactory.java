@@ -19,6 +19,11 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.types.ProxyAddres
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.offsets.IsolationLevel.READ_UNCOMMITTED;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.skip;
 import static java.util.Objects.requireNonNull;
 
 import java.util.function.Consumer;
@@ -100,11 +105,6 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
     private static final int ERROR_NONE = 0;
     private static final int ERROR_OFFSET_OUT_OF_RANGE = 1;
     private static final int ERROR_NOT_LEADER_FOR_PARTITION = 6;
-
-    private static final int FLAG_CONT = 0x00;
-    private static final int FLAG_FIN = 0x01;
-    private static final int FLAG_INIT = 0x02;
-    private static final int FLAG_SKIP = 0x08;
 
     private static final long OFFSET_LIVE = KafkaOffsetType.LIVE.value();
     private static final long OFFSET_HISTORICAL = KafkaOffsetType.HISTORICAL.value();
@@ -2367,6 +2367,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
                 state = KafkaState.closingReply(state);
 
+                clientRoute.metaFlush.accept(traceId);
+
                 if (!isApplicationReplyOpen())
                 {
                     cleanupNetwork(traceId);
@@ -2390,6 +2392,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
                 state = KafkaState.closedReply(state);
 
+                clientRoute.metaFlush.accept(traceId);
+
                 cleanupNetwork(traceId);
             }
 
@@ -2405,6 +2409,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 }
 
                 state = KafkaState.closedInitial(state);
+
+                clientRoute.metaFlush.accept(traceId);
 
                 cleanupNetwork(traceId);
             }
@@ -3108,7 +3114,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                             }
                         })
                         .build();
-                final int flags = aborted ? FLAG_INIT | FLAG_FIN | FLAG_SKIP : FLAG_INIT | FLAG_FIN;
+                final int flags = aborted ? skip(COMPLETE) : COMPLETE;
                 doApplicationData(traceId, authorization, flags, reserved, value, kafkaDataEx);
             }
 
@@ -3139,7 +3145,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                                      .key(k -> setKey(k, key)))
                         .build();
 
-                final int flags = aborted ? FLAG_INIT | FLAG_SKIP : FLAG_INIT;
+                final int flags = aborted ? skip(INIT) : INIT;
                 doApplicationData(traceId, authorization, flags, reserved, valueInit, kafkaDataEx);
             }
 
@@ -3148,7 +3154,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 int reserved,
                 OctetsFW value)
             {
-                doApplicationData(traceId, authorization, FLAG_CONT, reserved, value, EMPTY_OCTETS);
+                doApplicationData(traceId, authorization, NONE, reserved, value, EMPTY_OCTETS);
             }
 
             private void onDecodeFetchRecordValueFin(
@@ -3181,7 +3187,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                         })
                         .build();
 
-                doApplicationData(traceId, authorization, FLAG_FIN, reserved, value, kafkaDataEx);
+                doApplicationData(traceId, authorization, FIN, reserved, value, kafkaDataEx);
             }
 
             private void onIgnoreRecordSet(

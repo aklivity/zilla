@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.PrimitiveIterator;
+import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 
@@ -156,6 +157,15 @@ public final class MqttFunctions
         {
             bytes[i] = (byte) ThreadLocalRandom.current().nextInt(0x100);
         }
+        return bytes;
+    }
+
+    @Function
+    public static byte[] seededBytes(
+        int length)
+    {
+        byte[] bytes = new byte[length];
+        new Random(length).nextBytes(bytes);
         return bytes;
     }
 

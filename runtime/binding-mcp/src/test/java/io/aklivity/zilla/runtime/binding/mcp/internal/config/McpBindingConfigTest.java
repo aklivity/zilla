@@ -19,6 +19,9 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingCo
 import static io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig.naturalAuthority;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig.pathOf;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig.rolesForTool;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.SERVER_TOOLS;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
@@ -97,6 +100,21 @@ public class McpBindingConfigTest
         }
         RouteConfig config = builder.build();
         config.id = id;
+        return config;
+    }
+
+    private static RouteConfig unrestrictedRoute(
+        long id,
+        String toolkit)
+    {
+        RouteConfig config = RouteConfig.builder()
+            .exit("test")
+            .when(McpConditionConfig.builder()
+                .toolkit(toolkit)
+                .build())
+            .build();
+        config.id = id;
+        config.authorized = (authorization, credentials) -> true;
         return config;
     }
 
@@ -266,5 +284,35 @@ public class McpBindingConfigTest
         assertThat(authorization, equalTo(9L));
         verify(guard, times(1)).reauthorize(anyLong(), anyLong(), anyLong(), eq("{override}"));
         verify(guard, times(0)).reauthorize(anyLong(), anyLong(), anyLong(), eq("{shared}"));
+    }
+
+    @Test
+    public void shouldResolveUnrestrictedRouteForAnyCapabilityBeforeRealCapabilitiesRecorded()
+    {
+        GuardHandler guard = mock(GuardHandler.class);
+        RouteConfig route = unrestrictedRoute(300L, "alpha");
+        McpBindingConfig binding = binding(guard, null, List.of(route));
+
+        List<McpRoutePrefix> prompts = binding.resolveAll(0L, KIND_PROMPTS_LIST);
+
+        assertThat(prompts.size(), equalTo(1));
+        assertThat(prompts.get(0).resolvedId(), equalTo(300L));
+    }
+
+    @Test
+    public void shouldExcludeUnrestrictedRouteForCapabilityNotInRecordedRealCapabilities()
+    {
+        GuardHandler guard = mock(GuardHandler.class);
+        RouteConfig route = unrestrictedRoute(400L, "alpha");
+        McpBindingConfig binding = binding(guard, null, List.of(route));
+
+        binding.recordServerCapabilities(400L, SERVER_TOOLS.value());
+
+        List<McpRoutePrefix> prompts = binding.resolveAll(0L, KIND_PROMPTS_LIST);
+        List<McpRoutePrefix> tools = binding.resolveAll(0L, KIND_TOOLS_LIST);
+
+        assertThat(prompts, empty());
+        assertThat(tools.size(), equalTo(1));
+        assertThat(tools.get(0).resolvedId(), equalTo(400L));
     }
 }

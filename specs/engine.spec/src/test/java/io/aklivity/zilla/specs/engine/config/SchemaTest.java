@@ -37,6 +37,8 @@ public class SchemaTest
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/store/test.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/vault/test.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/catalog/test.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/embedding/test.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/classifier/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/engine/config");
 
     @Test
@@ -45,6 +47,34 @@ public class SchemaTest
         JsonObject config = schema.validate("server.yaml");
 
         assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateServerMetrics()
+    {
+        JsonObject config = schema.validate("server.metrics.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateGuardInject()
+    {
+        JsonObject config = schema.validate("server.guard.inject.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectGuardInjectWithUnknownProperty()
+    {
+        schema.validate("server.guard.inject.unknown.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectServerMetricsCounterWithCount()
+    {
+        schema.validate("server.metrics.counter.with.count.yaml");
     }
 
     @Test(expected = JsonException.class)

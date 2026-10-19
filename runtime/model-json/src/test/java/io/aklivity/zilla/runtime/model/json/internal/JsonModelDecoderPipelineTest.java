@@ -14,6 +14,10 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -26,6 +30,8 @@ import java.time.Clock;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import jakarta.json.JsonException;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -47,6 +53,7 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.common.json.JsonTransformable;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelController;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelEvent;
@@ -57,16 +64,15 @@ import io.aklivity.zilla.runtime.engine.model.ModelSource;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
+import io.aklivity.zilla.runtime.model.json.ext.JsonCache;
 import io.aklivity.zilla.runtime.model.json.ext.JsonModelExtContext;
 import io.aklivity.zilla.runtime.model.json.ext.JsonModelExtHandler;
+import io.aklivity.zilla.runtime.model.json.internal.types.event.EventFW;
+import io.aklivity.zilla.runtime.model.json.internal.types.event.JsonModelEventExFW;
+import io.aklivity.zilla.runtime.model.json.internal.types.event.JsonModelEventType;
 
 public class JsonModelDecoderPipelineTest
 {
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_FIN = 0x01;
-    private static final int FLAGS_NONE = 0x00;
-    private static final int FLAGS_COMPLETE = 0x03;
-
     private static final String OBJECT_SCHEMA = """
         {
             "type": "object",
@@ -79,7 +85,8 @@ public class JsonModelDecoderPipelineTest
         }""";
 
     // "note" has no content-constraining keyword (pattern/minLength/maxLength), so the validator forwards
-    // a value spanning an input window in fragments instead of reassembling it first (see JsonExtractor)
+    // a value spanning an input window in fragments; JsonModelFieldTransform still reassembles it before
+    // extracting, regardless of how the validator itself delivered it
     private static final String UNCONSTRAINED_VALUE_SCHEMA = """
         {
             "type": "object",
@@ -92,6 +99,7 @@ public class JsonModelDecoderPipelineTest
         }""";
 
     private EngineContext context;
+    private String framing;
 
     @Before
     public void init()
@@ -106,8 +114,8 @@ public class JsonModelDecoderPipelineTest
     {
         JsonModelHandlerImpl handler = newHandler();
         // two per-stream pipelines from the same per-worker handler
-        ModelPipeline a = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
-        ModelPipeline b = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline a = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+        ModelPipeline b = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         byte[] a1 = "{\"id\":\"A\",".getBytes(UTF_8);
         byte[] a2tail = "\"status\":\"OK\"}".getBytes(UTF_8);
@@ -116,20 +124,20 @@ public class JsonModelDecoderPipelineTest
         ByteArrayOutputStream outA = new ByteArrayOutputStream();
 
         // stream A: first fragment, incomplete -> UNDERFLOW
-        ModelPipelineResult ra1 = a.transform(0L, 0L, 0L, FLAGS_INIT,
+        ModelPipelineResult ra1 = a.transform(0L, 0L, 0L, INIT,
             new UnsafeBufferEx(a1), 0, a1.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.UNDERFLOW, ra1.status());
         drain(dst, ra1.produced(), outA);
 
         // stream B: a whole value fed in the middle of A — would corrupt A if state were shared
-        ModelPipelineResult rb = b.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult rb = b.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(bWhole), 0, bWhole.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, rb.status());
         assertEquals("{\"id\":\"B\",\"status\":\"NO\"}", text(dst, rb.produced()));
 
         // stream A: finish, prepending A's unconsumed remainder (the caller's decode-slot residue)
         byte[] a2 = concat(a1, ra1.consumed(), a2tail);
-        ModelPipelineResult ra2 = a.transform(0L, 0L, 0L, FLAGS_FIN,
+        ModelPipelineResult ra2 = a.transform(0L, 0L, 0L, FIN,
             new UnsafeBufferEx(a2), 0, a2.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, ra2.status());
         drain(dst, ra2.produced(), outA);
@@ -142,11 +150,11 @@ public class JsonModelDecoderPipelineTest
     {
         JsonModelHandlerImpl handler = newHandler();
         Map<String, String> extracted = new HashMap<>();
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(extracted));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(extracted), ModelCache.NONE);
 
         byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -159,12 +167,12 @@ public class JsonModelDecoderPipelineTest
     {
         JsonModelHandlerImpl handler = newHandler();
         Map<String, String> extracted = new HashMap<>();
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(extracted));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(extracted), ModelCache.NONE);
 
         // "id" holds a 3-byte BMP char (中) and a 2-byte char (é); "status" holds a surrogate-pair emoji (😀)
         byte[] in = "{\"id\":\"中é\",\"status\":\"😀\"}".getBytes(UTF_8);
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -177,12 +185,12 @@ public class JsonModelDecoderPipelineTest
     {
         JsonModelHandlerImpl handler = newHandler();
         Map<String, String> extracted = new HashMap<>();
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(extracted));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(extracted), ModelCache.NONE);
 
         // \uD800 is an unpaired high surrogate; String.getBytes(UTF_8) replaces it with '?' (0x3F)
         byte[] in = "{\"id\":\"a\\uD800b\",\"status\":\"OK\"}".getBytes(UTF_8);
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -194,7 +202,7 @@ public class JsonModelDecoderPipelineTest
     {
         JsonModelHandlerImpl handler = newHandler(UNCONSTRAINED_VALUE_SCHEMA);
         Map<String, String> extracted = new HashMap<>();
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(extracted));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(extracted), ModelCache.NONE);
 
         // "note" has no content keyword, so a value spanning an input window is forwarded to the
         // extractor in fragments (Validator's forward-and-suppress path) instead of being reassembled
@@ -204,7 +212,7 @@ public class JsonModelDecoderPipelineTest
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[512]);
 
         // window 1: everything up to (not including) the value
-        ModelPipelineResult r1 = pipeline.transform(0L, 0L, 0L, FLAGS_INIT,
+        ModelPipelineResult r1 = pipeline.transform(0L, 0L, 0L, INIT,
             new UnsafeBufferEx(head), 0, head.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.UNDERFLOW, r1.status());
 
@@ -213,7 +221,7 @@ public class JsonModelDecoderPipelineTest
         byte[] remainder1 = concat(head, r1.consumed(), new byte[0]);
         byte[] valueChunk1 = ("\"" + note.substring(0, 20)).getBytes(UTF_8);
         byte[] window2 = concat(remainder1, 0, valueChunk1);
-        ModelPipelineResult r2 = pipeline.transform(0L, 0L, 0L, FLAGS_NONE,
+        ModelPipelineResult r2 = pipeline.transform(0L, 0L, 0L, NONE,
             new UnsafeBufferEx(window2), 0, window2.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.UNDERFLOW, r2.status());
 
@@ -221,7 +229,7 @@ public class JsonModelDecoderPipelineTest
         byte[] remainder2 = concat(window2, r2.consumed(), new byte[0]);
         byte[] tail = (note.substring(20) + "\"}").getBytes(UTF_8);
         byte[] window3 = concat(remainder2, 0, tail);
-        ModelPipelineResult r3 = pipeline.transform(0L, 0L, 0L, FLAGS_FIN,
+        ModelPipelineResult r3 = pipeline.transform(0L, 0L, 0L, FIN,
             new UnsafeBufferEx(window3), 0, window3.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, r3.status());
@@ -232,26 +240,90 @@ public class JsonModelDecoderPipelineTest
     public void shouldReportDecodePadding()
     {
         JsonModelHandlerImpl handler = newHandler();
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
         assertTrue(pipeline.padding(new UnsafeBufferEx(in), 0, in.length) >= 0);
     }
 
     @Test
-    public void shouldReportIdentity()
+    public void shouldReportIdentityAndDeterministicBeforeAndAfterFirstValue()
     {
         JsonModelHandlerImpl handler = newHandler();
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
-
-        assertFalse(pipeline.identity());
-
-        byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
-        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         assertTrue(pipeline.identity());
+        assertTrue(pipeline.deterministic());
+
+        transformValue(pipeline);
+        assertTrue(pipeline.identity());
+        assertTrue(pipeline.deterministic());
+
+        pipeline.reset();
+        assertTrue(pipeline.identity());
+        assertTrue(pipeline.deterministic());
+    }
+
+    @Test
+    public void shouldDeriveDeterminismFromDeterministicFieldTransformWired()
+    {
+        JsonModelHandlerImpl handler = newHandler();
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(new HashMap<>()), ModelCache.NONE);
+
+        assertFalse(pipeline.identity());
+        assertTrue(pipeline.deterministic());
+
+        transformValue(pipeline);
+        assertFalse(pipeline.identity());
+        assertTrue(pipeline.deterministic());
+
+        pipeline.reset();
+        assertFalse(pipeline.identity());
+        assertTrue(pipeline.deterministic());
+    }
+
+    @Test
+    public void shouldNotReportDeterminismWhenNondeterministicFieldTransformWired()
+    {
+        JsonModelHandlerImpl handler = newHandler();
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(new HashMap<>(), false), ModelCache.NONE);
+
+        assertFalse(pipeline.deterministic());
+
+        transformValue(pipeline);
+        assertFalse(pipeline.deterministic());
+
+        pipeline.reset();
+        assertFalse(pipeline.deterministic());
+    }
+
+    @Test
+    public void shouldNotReportIdentityWhenCatalogFramesValues()
+    {
+        framing = "ZL";
+        JsonModelHandlerImpl handler = newHandler();
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+
+        assertFalse(pipeline.identity());
+        assertTrue(pipeline.deterministic());
+    }
+
+    @Test
+    public void shouldNotReportIdentityNorDeterminismWhenExtensionInstalled()
+    {
+        JsonModelHandlerImpl handler = newHandler(OBJECT_SCHEMA, List.of(dropping("status")));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+
+        assertFalse(pipeline.identity());
+        assertFalse(pipeline.deterministic());
+
+        transformValue(pipeline);
+        assertFalse(pipeline.identity());
+        assertFalse(pipeline.deterministic());
+
+        pipeline.reset();
+        assertFalse(pipeline.identity());
+        assertFalse(pipeline.deterministic());
     }
 
     @Test
@@ -261,11 +333,11 @@ public class JsonModelDecoderPipelineTest
         // model's own validator stage turns an otherwise-valid document into a schema-rejected one
         List<JsonModelExtContext> exts = List.of(dropping("status"));
         JsonModelHandlerImpl handler = newHandler(OBJECT_SCHEMA, exts);
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
@@ -287,11 +359,11 @@ public class JsonModelDecoderPipelineTest
         List<JsonModelExtContext> exts = List.of(dropping("id"), dropping("status"));
         JsonModelHandlerImpl handler = newHandler(schema, exts);
         Map<String, String> extracted = new HashMap<>();
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(extracted));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(extracted), ModelCache.NONE);
 
         byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -306,12 +378,118 @@ public class JsonModelDecoderPipelineTest
         JsonModelHandlerImpl extended = newHandler(OBJECT_SCHEMA, List.of(expandingExt(64)));
 
         byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
-        int basePadding = baseline.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE)
+        int basePadding = baseline.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE)
             .padding(new UnsafeBufferEx(in), 0, in.length);
-        int extPadding = extended.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE)
+        int extPadding = extended.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE)
             .padding(new UnsafeBufferEx(in), 0, in.length);
 
         assertEquals(basePadding + 64, extPadding);
+    }
+
+    @Test
+    public void shouldReportValidationFailureEvent()
+    {
+        JsonModelEventType[] kind = new JsonModelEventType[1];
+        when(context.supplyEventWriter()).thenReturn(capturingKind(kind));
+        JsonModelHandlerImpl handler = newHandler(OBJECT_SCHEMA);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+
+        // "id" must be a string per OBJECT_SCHEMA -- a schema-constraint violation
+        byte[] in = "{\"id\":123,\"status\":\"OK\"}".getBytes(UTF_8);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
+            new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.REJECTED, result.status());
+        assertEquals(JsonModelEventType.VALIDATION_FAILED, kind[0]);
+    }
+
+    @Test
+    public void shouldReportParsingFailureEvent()
+    {
+        JsonModelEventType[] kind = new JsonModelEventType[1];
+        when(context.supplyEventWriter()).thenReturn(capturingKind(kind));
+        JsonModelHandlerImpl handler = newHandler();
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+
+        // missing comma between members -- malformed syntax, not a schema violation
+        byte[] in = "{\"id\":\"123\" \"status\":\"OK\"}".getBytes(UTF_8);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
+            new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.REJECTED, result.status());
+        assertEquals(JsonModelEventType.PARSING_FAILED, kind[0]);
+    }
+
+    @Test
+    public void shouldReportTransformFailureEvent()
+    {
+        JsonModelEventType[] kind = new JsonModelEventType[1];
+        when(context.supplyEventWriter()).thenReturn(capturingKind(kind));
+        List<JsonModelExtContext> exts = List.of(failing());
+        JsonModelHandlerImpl handler = newHandler(OBJECT_SCHEMA, exts);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+
+        byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
+            new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.REJECTED, result.status());
+        assertEquals(JsonModelEventType.TRANSFORM_FAILED, kind[0]);
+    }
+
+    // decodes each emitted event's extension kind into the given single-element array, mirroring the
+    // production JsonModelEventFormatter's own wrap-and-switch, so a test can assert which event fired
+    // without depending on supplyEventId's (unstubbed, indistinguishable) mocked return value
+    private static MessageConsumer capturingKind(
+        JsonModelEventType[] kind)
+    {
+        EventFW eventRO = new EventFW();
+        JsonModelEventExFW extensionRO = new JsonModelEventExFW();
+        return (msgTypeId, buffer, index, length) ->
+        {
+            EventFW event = eventRO.wrap(buffer, index, index + length);
+            JsonModelEventExFW extension = extensionRO
+                .wrap(event.extension().buffer(), event.extension().offset(), event.extension().limit());
+            kind[0] = extension.kind();
+        };
+    }
+
+    // A stage's own exception (not a schema violation nor malformed syntax) standing in for an
+    // extension's internal failure during its own transform logic.
+    private static JsonModelExtContext failing()
+    {
+        return (schema, config) -> new JsonModelExtHandler()
+        {
+            @Override
+            public <T extends JsonTransformable<T>> T decode(
+                T stream,
+                JsonCache cache)
+            {
+                return stream.transform(new Failing());
+            }
+        };
+    }
+
+    private static final class Failing implements JsonTransform
+    {
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
+        @Override
+        public Status transform(
+            JsonController control,
+            JsonSource source,
+            JsonEvent event,
+            JsonSink sink)
+        {
+            throw new JsonException("extension failure");
+        }
     }
 
     private static JsonModelExtContext dropping(
@@ -321,7 +499,8 @@ public class JsonModelDecoderPipelineTest
         {
             @Override
             public <T extends JsonTransformable<T>> T decode(
-                T stream)
+                T stream,
+                JsonCache cache)
             {
                 return stream.transform(new Skip(key));
             }
@@ -363,6 +542,7 @@ public class JsonModelDecoderPipelineTest
             .type("test")
             .options(TestCatalogOptionsConfig::builder)
                 .id(9)
+                .prefix(framing)
                 .schema(schema)
                 .build()
             .build();
@@ -393,6 +573,15 @@ public class JsonModelDecoderPipelineTest
         return result;
     }
 
+    private static void transformValue(
+        ModelPipeline pipeline)
+    {
+        byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        pipeline.transform(0L, 0L, 0L, COMPLETE,
+            new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
+    }
+
     private static void drain(
         MutableDirectBufferEx dst,
         int produced,
@@ -415,8 +604,21 @@ public class JsonModelDecoderPipelineTest
     private static ModelTransform observer(
         Map<String, String> extracted)
     {
+        return observer(extracted, true);
+    }
+
+    private static ModelTransform observer(
+        Map<String, String> extracted,
+        boolean deterministic)
+    {
         return new ModelTransform()
         {
+            @Override
+            public boolean deterministic()
+            {
+                return deterministic;
+            }
+
             @Override
             public ModelStatus transform(
                 ModelController control,
@@ -476,6 +678,12 @@ public class JsonModelDecoderPipelineTest
             String dropKey)
         {
             this.dropKey = dropKey;
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
         }
 
         @Override

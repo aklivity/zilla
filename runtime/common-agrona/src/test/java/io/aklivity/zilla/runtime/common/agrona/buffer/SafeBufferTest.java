@@ -890,6 +890,16 @@ public class SafeBufferTest
     }
 
     @Test
+    public void shouldGetAndPutStringWithoutLengthUtf8WithOffset()
+    {
+        final SafeBuffer buffer = new SafeBuffer(new byte[128], 8, 64);
+
+        final int written = buffer.putStringWithoutLengthUtf8(4, "caf\u00e9");
+        assertEquals(5, written);
+        assertEquals("caf\u00e9", buffer.getStringWithoutLengthUtf8(4, written));
+    }
+
+    @Test
     public void shouldGetAndPutStringUtf8()
     {
         final SafeBuffer buffer = new SafeBuffer(new byte[128]);

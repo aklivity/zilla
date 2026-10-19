@@ -16,9 +16,11 @@ package io.aklivity.zilla.config.engine;
 
 import java.net.URL;
 import java.util.List;
+import java.util.ServiceLoader;
 
 import jakarta.json.JsonObject;
 
+import io.aklivity.zilla.config.engine.factory.Factory;
 import io.aklivity.zilla.config.engine.factory.FactorySpi;
 
 public interface BindingInfo extends FactorySpi
@@ -29,6 +31,14 @@ public interface BindingInfo extends FactorySpi
     }
 
     URL schema();
+
+    default List<BindingExtInfo> extensions()
+    {
+        return Factory.instantiate(ServiceLoader.load(BindingExtInfo.class))
+            .stream()
+            .filter(info -> info.type().equals(type()))
+            .toList();
+    }
 
     ConfigAdapter<OptionsConfig, JsonObject> options();
 

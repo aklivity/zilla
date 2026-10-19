@@ -44,6 +44,7 @@ public final class TcpOptionsConfig extends OptionsConfig
         boolean nodelay,
         boolean keepalive)
     {
+        super(null, null);
         this.host = host;
         this.ports = ports;
         this.backlog = backlog;

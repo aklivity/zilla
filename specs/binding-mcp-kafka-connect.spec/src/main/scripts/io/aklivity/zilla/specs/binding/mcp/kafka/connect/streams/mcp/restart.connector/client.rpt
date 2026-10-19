@@ -52,7 +52,7 @@ connected
 
 write '{"name":"restart_connector","arguments":{"connector":"connector1"}}'
 
-read  '{"structuredContent":{"name":"connector1"},"content":[{"type":"text","text":"Restarted connector connector1"}],"isError":false}'
+read  '{"structuredContent":{"result":null},"content":[{"type":"text","text":"Restarted connector"}],"isError":false}'
 read closed
 
 write close

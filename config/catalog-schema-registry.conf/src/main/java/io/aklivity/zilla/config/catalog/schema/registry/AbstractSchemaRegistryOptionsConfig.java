@@ -38,6 +38,7 @@ public abstract class AbstractSchemaRegistryOptionsConfig extends OptionsConfig
         boolean trustcacerts,
         String authorization)
     {
+        super(null, null);
         this.url = url;
         this.context = context;
         this.maxAge = maxAge;

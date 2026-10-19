@@ -30,6 +30,7 @@ public final class TestVaultOptionsConfigAdapter extends ConfigAdapter<OptionsCo
     private static final String SIGNER_NAME = "signer";
     private static final String TRUST_NAME = "trust";
     private static final String WRAP_NAME = "wrap";
+    private static final String VAULT_NAME = "vault";
 
     private final TestVaultEntryConfigAdapter entry = new TestVaultEntryConfigAdapter();
 
@@ -86,6 +87,11 @@ public final class TestVaultOptionsConfigAdapter extends ConfigAdapter<OptionsCo
                 options.wrap.forEach(w -> wrapArray.add(entry.adaptToJson(w)));
                 object.add(WRAP_NAME, wrapArray);
             }
+        }
+
+        if (options.vault != null)
+        {
+            object.add(VAULT_NAME, options.vault.name);
         }
 
         return object.build();
@@ -161,6 +167,11 @@ public final class TestVaultOptionsConfigAdapter extends ConfigAdapter<OptionsCo
                     TestVaultEntryConfig config = entry.adaptFromJson(wrapValue.asJsonObject());
                     options.wrap(config.alias, config.entry);
                 }
+            }
+
+            if (object.containsKey(VAULT_NAME))
+            {
+                options.vault(object.getString(VAULT_NAME));
             }
         }
 

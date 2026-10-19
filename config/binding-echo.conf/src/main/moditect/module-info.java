@@ -18,6 +18,8 @@ module io.aklivity.zilla.config.binding.echo
     requires jakarta.json.bind;
     requires io.aklivity.zilla.config.engine;
 
+    exports io.aklivity.zilla.config.binding.echo;
+
     provides io.aklivity.zilla.config.engine.BindingInfo
         with io.aklivity.zilla.config.binding.echo.internal.EchoBindingInfo;
 }

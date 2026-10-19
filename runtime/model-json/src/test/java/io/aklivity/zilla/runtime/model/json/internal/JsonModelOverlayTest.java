@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
@@ -34,6 +35,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
@@ -43,7 +45,6 @@ import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler
 
 public class JsonModelOverlayTest
 {
-    private static final int FLAGS_COMPLETE = 0x03;
     private static final int OVERLAY_SCHEMA_ID_BEFORE = 100;
     private static final int OVERLAY_SCHEMA_ID_AFTER = 200;
 
@@ -104,9 +105,9 @@ public class JsonModelOverlayTest
         JsonModelHandlerImpl handler,
         byte[] in)
     {
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        return pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        return pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
     }
 

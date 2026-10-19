@@ -45,20 +45,27 @@
     <module>binding-mqtt-kafka.spec</module>
     <module>binding-sse-kafka.spec</module>
     <module>binding-kafka-grpc.spec</module>
+    <module>binding-llm.spec</module>
     <module>catalog-apicurio.spec</module>
     <module>catalog-filesystem.spec</module>
     <module>catalog-inline.spec</module>
     <module>catalog-karapace.spec</module>
     <module>catalog-schema-registry.spec</module>
+    <module>classifier-patterns.spec</module>
+    <module>classifier-presidio.spec</module>
+    <module>classifier-semantic.spec</module>
+    <module>embedding-openai.spec</module>
     <module>exporter-otlp.spec</module>
     <module>exporter-prometheus.spec</module>
     <module>exporter-stdout.spec</module>
     <module>filesystem-http.spec</module>
     <module>metrics-stream.spec</module>
     <module>metrics-http.spec</module>
+    <module>metrics-llm.spec</module>
     <module>metrics-grpc.spec</module>
     <module>metrics-mcp.spec</module>
     <module>model-avro.spec</module>
+    <module>model-classify.spec</module>
     <module>model-core.spec</module>
     <module>model-json.spec</module>
     <module>model-protobuf.spec</module>

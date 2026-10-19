@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
@@ -36,6 +37,7 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
+import io.aklivity.zilla.runtime.common.json.JsonSource;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.common.json.JsonTransforms;
 
@@ -186,13 +188,27 @@ class JsonPipelineChunkingTest
         JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBufferEx output = new UnsafeBufferEx(new byte[256]);
         List<Boolean> deferred = new ArrayList<>();
-        JsonTransform probe = (control, source, event, sink) ->
+        JsonTransform probe = new JsonTransform()
         {
-            if (event == JsonEvent.SEGMENT)
+            @Override
+            public Status transform(
+                JsonController control,
+                JsonSource source,
+                JsonEvent event,
+                JsonSink sink)
             {
-                deferred.add(source.deferredBytes());
+                if (event == JsonEvent.SEGMENT)
+                {
+                    deferred.add(source.deferredBytes());
+                }
+                return sink.transform(control, source, event);
             }
-            return sink.transform(control, source, event);
+
+            @Override
+            public boolean deterministic()
+            {
+                return true;
+            }
         };
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(probe)
@@ -214,13 +230,27 @@ class JsonPipelineChunkingTest
         JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBufferEx output = new UnsafeBufferEx(new byte[256]);
         List<Boolean> deferred = new ArrayList<>();
-        JsonTransform probe = (control, source, event, sink) ->
+        JsonTransform probe = new JsonTransform()
         {
-            if (event == JsonEvent.KEY_NAME)
+            @Override
+            public Status transform(
+                JsonController control,
+                JsonSource source,
+                JsonEvent event,
+                JsonSink sink)
             {
-                deferred.add(source.deferredBytes());
+                if (event == JsonEvent.KEY_NAME)
+                {
+                    deferred.add(source.deferredBytes());
+                }
+                return sink.transform(control, source, event);
             }
-            return sink.transform(control, source, event);
+
+            @Override
+            public boolean deterministic()
+            {
+                return true;
+            }
         };
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(probe)
@@ -303,19 +333,33 @@ class JsonPipelineChunkingTest
         // rewind, identical to a plain VALUE_STRING and unrelated to declining) — but once fragmenting
         // engages, repeated declines must not make remaining() keep growing across further windows.
         List<Integer> remainingPerStarve = new ArrayList<>();
-        JsonTransform decliner = (control, source, event, sink) ->
+        JsonTransform decliner = new JsonTransform()
         {
-            Status result;
-            if (event == JsonEvent.KEY_NAME && source.deferredBytes())
+            @Override
+            public Status transform(
+                JsonController control,
+                JsonSource source,
+                JsonEvent event,
+                JsonSink sink)
             {
-                control.consumed(0);
-                result = Status.STARVED;
+                Status result;
+                if (event == JsonEvent.KEY_NAME && source.deferredBytes())
+                {
+                    control.consumed(0);
+                    result = Status.STARVED;
+                }
+                else
+                {
+                    result = sink.transform(control, source, event);
+                }
+                return result;
             }
-            else
+
+            @Override
+            public boolean deterministic()
             {
-                result = sink.transform(control, source, event);
+                return true;
             }
-            return result;
         };
         JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBufferEx output = new UnsafeBufferEx(new byte[256]);
@@ -403,7 +447,24 @@ class JsonPipelineChunkingTest
     {
         JsonGeneratorEx generator = JsonEx.createGenerator();
         MutableDirectBufferEx output = new UnsafeBufferEx(new byte[256]);
-        JsonTransform passthrough = (control, source, event, sink) -> sink.transform(control, source, event);
+        JsonTransform passthrough = new JsonTransform()
+        {
+            @Override
+            public Status transform(
+                JsonController control,
+                JsonSource source,
+                JsonEvent event,
+                JsonSink sink)
+            {
+                return sink.transform(control, source, event);
+            }
+
+            @Override
+            public boolean deterministic()
+            {
+                return true;
+            }
+        };
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(passthrough)
             .into(JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE)));
@@ -507,34 +568,48 @@ class JsonPipelineChunkingTest
         MutableDirectBufferEx output = new UnsafeBufferEx(new byte[256]);
         List<BigDecimal> wholes = new ArrayList<>();
         List<Boolean> intRejected = new ArrayList<>();
-        JsonTransform probe = (control, source, event, sink) ->
+        JsonTransform probe = new JsonTransform()
         {
-            Status result;
-            if (event == JsonEvent.VALUE_NUMBER && source.deferredBytes())
+            @Override
+            public Status transform(
+                JsonController control,
+                JsonSource source,
+                JsonEvent event,
+                JsonSink sink)
             {
-                // need the whole number; decline this fragment and wait for the rest
-                control.consumed(0);
-                result = Status.STARVED;
-            }
-            else
-            {
-                if (event == JsonEvent.VALUE_NUMBER)
+                Status result;
+                if (event == JsonEvent.VALUE_NUMBER && source.deferredBytes())
                 {
-                    wholes.add(source.getBigDecimal());
-                    boolean rejected = false;
-                    try
-                    {
-                        source.getInt();
-                    }
-                    catch (IllegalStateException ex)
-                    {
-                        rejected = true;
-                    }
-                    intRejected.add(rejected);
+                    // need the whole number; decline this fragment and wait for the rest
+                    control.consumed(0);
+                    result = Status.STARVED;
                 }
-                result = sink.transform(control, source, event);
+                else
+                {
+                    if (event == JsonEvent.VALUE_NUMBER)
+                    {
+                        wholes.add(source.getBigDecimal());
+                        boolean rejected = false;
+                        try
+                        {
+                            source.getInt();
+                        }
+                        catch (IllegalStateException ex)
+                        {
+                            rejected = true;
+                        }
+                        intRejected.add(rejected);
+                    }
+                    result = sink.transform(control, source, event);
+                }
+                return result;
             }
-            return result;
+
+            @Override
+            public boolean deterministic()
+            {
+                return true;
+            }
         };
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(probe)

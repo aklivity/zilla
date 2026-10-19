@@ -14,8 +14,11 @@
  */
 package io.aklivity.zilla.config.binding.kafka;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 
+import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ConfigBuilder;
 import io.aklivity.zilla.config.engine.ModelConfig;
 
@@ -105,6 +108,15 @@ public final class KafkaTopicConfigBuilder<T> extends ConfigBuilder<T, KafkaTopi
     @Override
     public T build()
     {
-        return mapper.apply(new KafkaTopicConfig(name, defaultOffset, deltaType, key, value, transforms));
+        List<Config.Reference> refs = new ArrayList<>();
+        if (key != null)
+        {
+            refs.addAll(key.refs());
+        }
+        if (value != null)
+        {
+            refs.addAll(value.refs());
+        }
+        return mapper.apply(new KafkaTopicConfig(name, defaultOffset, deltaType, key, value, transforms, refs));
     }
 }

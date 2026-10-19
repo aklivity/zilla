@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.engine.router;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 /**
  * Construction-tier context supplied to a {@link Router} during its setup.
@@ -69,4 +70,18 @@ public interface RouteableContext
      */
     void detachComposite(
         NamespaceConfig composite);
+
+    /**
+     * Returns the {@link StoreHandler} for the given store id, previously registered via
+     * the store's {@link io.aklivity.zilla.runtime.engine.store.StoreContext}.
+     * <p>
+     * This includes a store contributed by a synthesized namespace this router itself
+     * attached via {@link #attachComposite(NamespaceConfig)}, once attachment completes.
+     * </p>
+     *
+     * @param storeId  the store id
+     * @return the store handler, or {@code null} if not found
+     */
+    StoreHandler supplyStore(
+        long storeId);
 }

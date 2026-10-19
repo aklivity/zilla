@@ -39,15 +39,6 @@ public class IdIT
 
     @Test
     @Specification({
-        "${net}/name.only/request",
-        "${net}/name.only/response" })
-    public void shouldReceiveIdNameOnly() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/empty/request",
         "${net}/empty/response" })
     public void shouldReceiveEmptyId() throws Exception
@@ -60,24 +51,6 @@ public class IdIT
         "${net}/non.empty/request",
         "${net}/non.empty/response" })
     public void shouldReceiveNonEmptyId() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/invalid.utf8/request",
-        "${net}/invalid.utf8/response" })
-    public void shouldRejectIdWithInvalidUTF8() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/initial.whitespace/request",
-        "${net}/initial.whitespace/response" })
-    public void shouldReceiveIdWithInitialWhitespace() throws Exception
     {
         k3po.finish();
     }

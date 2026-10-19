@@ -1,0 +1,109 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+accept "zilla://streams/app0"
+       option zilla:window 8192
+       option zilla:transmission "half-duplex"
+
+accepted
+
+read zilla:begin.ext ${llm:matchBeginEx()
+                           .typeId(zilla:id("llm"))
+                           .dialect("openai")
+                           .model("gpt-4")
+                           .build()}
+
+connected
+
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+read "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":"
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("USER_TEXT")
+                          .message(0)
+                          .build()}
+read "{\"text\":\"Hello\"}"
+
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .complete(true)
+                          .build()}
+read "}],\"stream\":true,\"stream_options\":{\"include_usage\":true}}"
+
+read advised zilla:flush
+
+write zilla:begin.ext ${llm:beginEx()
+                           .typeId(zilla:id("llm"))
+                           .dialect("openai")
+                           .model("gpt-4")
+                           .id("chatcmpl_1")
+                           .build()}
+write flush
+
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
+write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"content\":"
+write flush
+
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("ASSISTANT_TEXT")
+                          .message(0)
+                          .build()}
+write "{\"text\":\"Hi\"}"
+write flush
+
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .complete(true)
+                          .build()}
+write "},\"finish_reason\":null}]}"
+write flush
+
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .complete(true)
+                          .build()}
+write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}"
+write flush
+
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .complete(true)
+                          .usageOnly(true)
+                          .build()}
+write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[],\"usage\":{\"prompt_tokens\":8,\"completion_tokens\":6,\"total_tokens\":14}}"
+write flush
+
+write zilla:data.ext ${llm:dialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .complete(true)
+                          .build()}
+write "[DONE]"
+write flush
+
+write zilla:end.ext ${llm:endEx()
+                            .typeId(zilla:id("llm"))
+                            .inputTokens(8)
+                            .outputTokens(6)
+                            .totalTokens(14)
+                            .finishReason("stop")
+                            .build()}
+
+write close

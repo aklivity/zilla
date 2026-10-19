@@ -38,7 +38,7 @@ public class FilesystemOptionsConfig extends OptionsConfig
     FilesystemOptionsConfig(
         List<FilesystemSchemaConfig> subjects)
     {
-        super(List.of(), resolveResources(subjects));
+        super(resolveResources(subjects), null, null);
         this.subjects = subjects;
     }
 

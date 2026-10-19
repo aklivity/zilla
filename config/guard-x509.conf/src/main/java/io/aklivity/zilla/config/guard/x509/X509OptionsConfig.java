@@ -42,6 +42,7 @@ public class X509OptionsConfig extends OptionsConfig
         Map<String, String> attributes,
         Map<String, List<X509MatchConfig>> roles)
     {
+        super(null, null);
         this.identity = identity;
         this.attributes = attributes;
         this.roles = roles;

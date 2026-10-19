@@ -56,6 +56,15 @@ public class ProxyCacheIT
 
     @Test
     @Specification({
+        "${app}/cache.hydrate.reset/client",
+        "${app}/cache.hydrate.reset/server" })
+    public void shouldHydrateReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/cache.hydrate.credentials/client",
         "${app}/cache.hydrate.credentials/server" })
     public void shouldHydrateWithCredentials() throws Exception
@@ -77,6 +86,42 @@ public class ProxyCacheIT
         "${app}/cache.hydrate.toolkit/client",
         "${app}/cache.hydrate.toolkit/server" })
     public void shouldHydrateToolkit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.hydrate.toolkit.multi.skip.unauthorized.backend/client",
+        "${app}/cache.hydrate.toolkit.multi.skip.unauthorized.backend/server" })
+    public void shouldHydrateToolkitMultiSkippingUnauthorizedRoute() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.hydrate.toolkit.multi.title.collision.backend/client",
+        "${app}/cache.hydrate.toolkit.multi.title.collision.backend/server" })
+    public void shouldHydrateToolkitMultiDisambiguatingCollidingTitles() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.hydrate.toolkit.multi.reset.route.backend/client",
+        "${app}/cache.hydrate.toolkit.multi.reset.route.backend/server" })
+    public void shouldHydrateToolkitMultiSettlingResetRoute() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.hydrate.toolkit.multi.challenge.route.backend/client",
+        "${app}/cache.hydrate.toolkit.multi.challenge.route.backend/server" })
+    public void shouldHydrateToolkitMultiSettlingChallengedRoute() throws Exception
     {
         k3po.finish();
     }
@@ -146,6 +191,24 @@ public class ProxyCacheIT
 
     @Test
     @Specification({
+        "${app}/cache.hydrate.tools.retry.exceeds.max/client",
+        "${app}/cache.hydrate.tools.retry.exceeds.max/server" })
+    public void shouldHydrateToolsRetryExceedsMax() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.refresh.tools.notify/client",
+        "${app}/cache.refresh.tools.notify/server" })
+    public void shouldNotifyAfterToolsRefresh() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/cache.refresh.tools.contended/client",
         "${app}/cache.refresh.tools.contended/server" })
     public void shouldRefreshToolsContended() throws Exception
@@ -155,9 +218,45 @@ public class ProxyCacheIT
 
     @Test
     @Specification({
+        "${app}/cache.refresh.toolkit.keep.stale.on.failure.backend/client",
+        "${app}/cache.refresh.toolkit.keep.stale.on.failure.backend/server" })
+    public void shouldRefreshToolkitKeepingStaleOnFailure() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/cache.serve.resources.list/client",
         "${app}/cache.serve.resources.list/server" })
     public void shouldServeResourcesList() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.resources.list.route.guarded.unauthorized.backend/client",
+        "${app}/cache.serve.resources.list.route.guarded.unauthorized.backend/server" })
+    public void shouldServeResourcesListRouteGuardedUnauthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.tools.list.route.guarded.unauthorized.backend/client",
+        "${app}/cache.serve.tools.list.route.guarded.unauthorized.backend/server" })
+    public void shouldServeToolsListRouteGuardedUnauthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.tools.list.route.guarded.unauthorized.backend/client",
+        "${app}/cache.serve.tools.list.route.guarded.unauthorized.backend/server" })
+    public void shouldServeToolsListRouteGuardedPartialScope() throws Exception
     {
         k3po.finish();
     }
@@ -230,6 +329,15 @@ public class ProxyCacheIT
         "${app}/cache.serve.tools.list.eager.explicit/client",
         "${app}/cache.serve.tools.list.eager.explicit/server" })
     public void shouldServeToolsListEagerExplicit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.tools.list.eager.explicit.chain/client",
+        "${app}/cache.serve.tools.list.eager.explicit.chain/server" })
+    public void shouldServeToolsListEagerExplicitChain() throws Exception
     {
         k3po.finish();
     }
@@ -326,6 +434,15 @@ public class ProxyCacheIT
 
     @Test
     @Specification({
+        "${app}/cache.serve.execute.tool.backend/client",
+        "${app}/cache.serve.execute.tool.backend/server" })
+    public void shouldServeExecuteTool() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/cache.serve.execute.tool.not.found/client",
         "${app}/cache.serve.execute.tool.not.found/server" })
     public void shouldServeExecuteToolNotFound() throws Exception
@@ -338,6 +455,60 @@ public class ProxyCacheIT
         "${app}/cache.serve.execute.tool.invalid.params/client",
         "${app}/cache.serve.execute.tool.invalid.params/server" })
     public void shouldServeExecuteToolInvalidParams() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.tools.list.during.hydrate.backend/client",
+        "${app}/cache.serve.tools.list.during.hydrate.backend/server" })
+    public void shouldServeToolsListDuringHydrate() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.tools.list.security.schemes.filtered.backend/client",
+        "${app}/cache.serve.tools.list.security.schemes.filtered.backend/server" })
+    public void shouldServeToolsListSecuritySchemesFiltered() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.serve.tools.list.toolkit.filtered.backend/client",
+        "${app}/cache.serve.tools.list.toolkit.filtered.backend/server" })
+    public void shouldServeToolsListToolkitFiltered() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.notify.tools.list.changed.backend/client",
+        "${app}/cache.notify.tools.list.changed.backend/server" })
+    public void shouldNotifyToolsListChanged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.notify.tools.list.changed.after.tools.call.backend/client",
+        "${app}/cache.notify.tools.list.changed.after.tools.call.backend/server" })
+    public void shouldNotifyToolsListChangedAfterToolsCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.notify.tools.list.changed.during.refresh.backend/client",
+        "${app}/cache.notify.tools.list.changed.during.refresh.backend/server" })
+    public void shouldNotifyToolsListChangedDuringRefresh() throws Exception
     {
         k3po.finish();
     }

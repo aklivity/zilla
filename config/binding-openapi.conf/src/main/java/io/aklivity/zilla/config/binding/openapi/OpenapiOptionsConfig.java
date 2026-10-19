@@ -37,6 +37,7 @@ public final class OpenapiOptionsConfig extends OptionsConfig
     OpenapiOptionsConfig(
         List<OpenapiSpecificationConfig> specs)
     {
+        super(null, null);
         this.specs = specs;
     }
 }

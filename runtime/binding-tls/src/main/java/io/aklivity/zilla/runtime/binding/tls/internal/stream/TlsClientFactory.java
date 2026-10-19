@@ -1167,7 +1167,17 @@ public final class TlsClientFactory implements TlsStreamFactory
             doBegin(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, client.replyAuth, affinity,
                 ex -> ex.set((b, o, l) -> tlsBeginExRW.wrap(b, o, l)
                                                       .typeId(proxyTypeId)
-                                                      .address(a -> a.none(n -> {}))
+                                                      .address(a ->
+                                                      {
+                                                          if (client.extension != null)
+                                                          {
+                                                              a.set(client.extension.address());
+                                                          }
+                                                          else
+                                                          {
+                                                              a.none(n -> {});
+                                                          }
+                                                      })
                                                       .infos(is ->
                                                       {
                                                           if (protocol != null)
@@ -1296,6 +1306,8 @@ public final class TlsClientFactory implements TlsStreamFactory
             private final long initialId;
             private final long replyId;
 
+            private ProxyBeginExFW extension;
+
             private TlsClientDecoder decoder;
 
             private long replyAuth;
@@ -1401,6 +1413,15 @@ public final class TlsClientFactory implements TlsStreamFactory
                 final long acknowledge = begin.acknowledge();
                 final long traceId = begin.traceId();
                 final long authorization = begin.authorization();
+                final ProxyBeginExFW beginEx = begin.extension().get(beginExRO::tryWrap);
+
+                if (beginEx != null && beginEx.typeId() == proxyTypeId)
+                {
+                    // TODO: use decodeSlot instead of allocation
+                    MutableDirectBufferEx bufferEx = new UnsafeBufferEx(new byte[beginEx.sizeof()]);
+                    bufferEx.putBytes(0, beginEx.buffer(), beginEx.offset(), beginEx.sizeof());
+                    extension = new ProxyBeginExFW().wrap(bufferEx, 0, bufferEx.capacity());
+                }
 
                 assert acknowledge <= sequence;
                 assert sequence >= replySeq;

@@ -131,6 +131,7 @@ final class AvroSchemaCompiler
             node = primitive(type, logicalType, precision, scale);
             break;
         }
+        node.attributes = object;
         return node;
     }
 

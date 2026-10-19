@@ -1,7 +1,7 @@
-Frame 1: 202 bytes on wire (1616 bits), 202 bytes captured (1616 bits)
+Frame 1: 210 bytes on wire (1680 bits), 210 bytes captured (1680 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::3f3f:0:0:2, Dst: fe80::3f3f:0:0:3
-Transmission Control Protocol, Src Port: 37114, Dst Port: 7114, Seq: 1, Ack: 1, Len: 128
+Transmission Control Protocol, Src Port: 37114, Dst Port: 7114, Seq: 1, Ack: 1, Len: 136
 Zilla Frame
     Frame Type ID: 0x00000001
     Frame Type: BEGIN
@@ -23,14 +23,18 @@ Zilla Frame
     Acknowledge: 0
     Maximum: 0
     Timestamp: 0x0000000000000000
-    Trace ID: 0x8000000000000001
+    Trace ID
+        Trace ID: 0x8000000000000001
+        Node: 0
+        Worker: 128
     Authorization: 0x0000000000000000
     Affinity: 0x0000000000000000
+    Redirected ID: 0x0000000000000000
 
-Frame 2: 202 bytes on wire (1616 bits), 202 bytes captured (1616 bits)
+Frame 2: 210 bytes on wire (1680 bits), 210 bytes captured (1680 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::3f3f:0:0:3, Dst: fe80::3f3f:0:0:2
-Transmission Control Protocol, Src Port: 7114, Dst Port: 37114, Seq: 1, Ack: 129, Len: 128
+Transmission Control Protocol, Src Port: 7114, Dst Port: 37114, Seq: 1, Ack: 129, Len: 136
 Zilla Frame
     Frame Type ID: 0x00000001
     Frame Type: BEGIN
@@ -52,9 +56,13 @@ Zilla Frame
     Acknowledge: 0
     Maximum: 0
     Timestamp: 0x0000000000000000
-    Trace ID: 0x8000000000000002
+    Trace ID
+        Trace ID: 0x8000000000000002
+        Node: 0
+        Worker: 128
     Authorization: 0x0000000000000000
     Affinity: 0x0000000000000000
+    Redirected ID: 0x0000000000000000
 
 Frame 3: 211 bytes on wire (1688 bits), 211 bytes captured (1688 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
@@ -81,7 +89,10 @@ Zilla Frame
     Acknowledge: 0
     Maximum: 65536
     Timestamp: 0x0000000000000000
-    Trace ID: 0x8000000000000003
+    Trace ID
+        Trace ID: 0x8000000000000003
+        Node: 0
+        Worker: 128
     Authorization: 0x0000000000000000
     Budget ID: 0x0000000000000000
     Padding: 0
@@ -115,7 +126,10 @@ Zilla Frame
     Acknowledge: 0
     Maximum: 65536
     Timestamp: 0x0000000000000000
-    Trace ID: 0x8000000000000004
+    Trace ID
+        Trace ID: 0x8000000000000004
+        Node: 0
+        Worker: 128
     Authorization: 0x0000000000000000
     Budget ID: 0x0000000000000000
     Padding: 0
@@ -149,7 +163,10 @@ Zilla Frame
     Acknowledge: 0
     Maximum: 65536
     Timestamp: 0x0000000000000000
-    Trace ID: 0x8000000000000005
+    Trace ID
+        Trace ID: 0x8000000000000005
+        Node: 0
+        Worker: 128
     Authorization: 0x0000000000000000
     Flags: 0x03
         .... ...1 = FIN: Set (1)
@@ -190,7 +207,10 @@ Zilla Frame
     Acknowledge: 337
     Maximum: 65536
     Timestamp: 0x0000000000000000
-    Trace ID: 0x8000000000000006
+    Trace ID
+        Trace ID: 0x8000000000000006
+        Node: 0
+        Worker: 128
     Authorization: 0x0000000000000000
     Budget ID: 0x0000000000000000
     Padding: 0
@@ -224,7 +244,10 @@ Zilla Frame
     Acknowledge: 0
     Maximum: 65536
     Timestamp: 0x0000000000000000
-    Trace ID: 0x8000000000000007
+    Trace ID
+        Trace ID: 0x8000000000000007
+        Node: 0
+        Worker: 128
     Authorization: 0x0000000000000000
     Flags: 0x03
         .... ...1 = FIN: Set (1)
@@ -265,7 +288,10 @@ Zilla Frame
     Acknowledge: 0
     Maximum: 65536
     Timestamp: 0x0000000000000000
-    Trace ID: 0x8000000000000008
+    Trace ID
+        Trace ID: 0x8000000000000008
+        Node: 0
+        Worker: 128
     Authorization: 0x0000000000000000
     Flags: 0x03
         .... ...1 = FIN: Set (1)
@@ -306,7 +332,10 @@ Zilla Frame
     Acknowledge: 0
     Maximum: 65536
     Timestamp: 0x0000000000000000
-    Trace ID: 0x8000000000000009
+    Trace ID
+        Trace ID: 0x8000000000000009
+        Node: 0
+        Worker: 128
     Authorization: 0x0000000000000000
     Flags: 0x03
         .... ...1 = FIN: Set (1)
@@ -347,7 +376,10 @@ Zilla Frame
     Acknowledge: 127
     Maximum: 65536
     Timestamp: 0x0000000000000000
-    Trace ID: 0x800000000000000a
+    Trace ID
+        Trace ID: 0x800000000000000a
+        Node: 0
+        Worker: 128
     Authorization: 0x0000000000000000
     Budget ID: 0x0000000000000000
     Padding: 0
@@ -381,7 +413,10 @@ Zilla Frame
     Acknowledge: 133
     Maximum: 65536
     Timestamp: 0x0000000000000000
-    Trace ID: 0x800000000000000b
+    Trace ID
+        Trace ID: 0x800000000000000b
+        Node: 0
+        Worker: 128
     Authorization: 0x0000000000000000
     Budget ID: 0x0000000000000000
     Padding: 0
@@ -415,7 +450,10 @@ Zilla Frame
     Acknowledge: 2355
     Maximum: 65536
     Timestamp: 0x0000000000000000
-    Trace ID: 0x800000000000000c
+    Trace ID
+        Trace ID: 0x800000000000000c
+        Node: 0
+        Worker: 128
     Authorization: 0x0000000000000000
     Budget ID: 0x0000000000000000
     Padding: 0
@@ -449,7 +487,10 @@ Zilla Frame
     Acknowledge: 337
     Maximum: 65536
     Timestamp: 0x0000000000000000
-    Trace ID: 0x800000000000000d
+    Trace ID
+        Trace ID: 0x800000000000000d
+        Node: 0
+        Worker: 128
     Authorization: 0x0000000000000000
     Flags: 0x03
         .... ...1 = FIN: Set (1)
@@ -490,7 +531,10 @@ Zilla Frame
     Acknowledge: 337
     Maximum: 65536
     Timestamp: 0x0000000000000000
-    Trace ID: 0x800000000000000e
+    Trace ID
+        Trace ID: 0x800000000000000e
+        Node: 0
+        Worker: 128
     Authorization: 0x0000000000000000
     Flags: 0x03
         .... ...1 = FIN: Set (1)
@@ -531,7 +575,10 @@ Zilla Frame
     Acknowledge: 337
     Maximum: 65536
     Timestamp: 0x0000000000000000
-    Trace ID: 0x800000000000000f
+    Trace ID
+        Trace ID: 0x800000000000000f
+        Node: 0
+        Worker: 128
     Authorization: 0x0000000000000000
     Flags: 0x03
         .... ...1 = FIN: Set (1)
@@ -572,7 +619,10 @@ Zilla Frame
     Acknowledge: 343
     Maximum: 65536
     Timestamp: 0x0000000000000000
-    Trace ID: 0x8000000000000010
+    Trace ID
+        Trace ID: 0x8000000000000010
+        Node: 0
+        Worker: 128
     Authorization: 0x0000000000000000
     Budget ID: 0x0000000000000000
     Padding: 0
@@ -606,7 +656,10 @@ Zilla Frame
     Acknowledge: 433
     Maximum: 65536
     Timestamp: 0x0000000000000000
-    Trace ID: 0x8000000000000011
+    Trace ID
+        Trace ID: 0x8000000000000011
+        Node: 0
+        Worker: 128
     Authorization: 0x0000000000000000
     Budget ID: 0x0000000000000000
     Padding: 0
@@ -640,7 +693,10 @@ Zilla Frame
     Acknowledge: 473
     Maximum: 65536
     Timestamp: 0x0000000000000000
-    Trace ID: 0x8000000000000012
+    Trace ID
+        Trace ID: 0x8000000000000012
+        Node: 0
+        Worker: 128
     Authorization: 0x0000000000000000
     Budget ID: 0x0000000000000000
     Padding: 0
@@ -674,7 +730,10 @@ Zilla Frame
     Acknowledge: 2355
     Maximum: 65536
     Timestamp: 0x0000000000000000
-    Trace ID: 0x8000000000000013
+    Trace ID
+        Trace ID: 0x8000000000000013
+        Node: 0
+        Worker: 128
     Authorization: 0x0000000000000000
     Flags: 0x03
         .... ...1 = FIN: Set (1)
@@ -715,7 +774,10 @@ Zilla Frame
     Acknowledge: 2355
     Maximum: 65536
     Timestamp: 0x0000000000000000
-    Trace ID: 0x8000000000000014
+    Trace ID
+        Trace ID: 0x8000000000000014
+        Node: 0
+        Worker: 128
     Authorization: 0x0000000000000000
     Budget ID: 0x0000000000000000
     Reserved: 0
@@ -745,7 +807,10 @@ Zilla Frame
     Acknowledge: 4488
     Maximum: 65536
     Timestamp: 0x0000000000000000
-    Trace ID: 0x8000000000000015
+    Trace ID
+        Trace ID: 0x8000000000000015
+        Node: 0
+        Worker: 128
     Authorization: 0x0000000000000000
     Budget ID: 0x0000000000000000
     Padding: 0

@@ -37,3 +37,5 @@ write zilla:data.ext ${sse:dataEx()
                           .build()}
 write ${http:randomAscii(10240)}
 write flush
+
+write close

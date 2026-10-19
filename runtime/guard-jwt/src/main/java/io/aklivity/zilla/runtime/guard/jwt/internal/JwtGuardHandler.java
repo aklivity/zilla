@@ -29,48 +29,51 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
+import java.util.regex.Pattern;
+
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonValue;
 
 import org.agrona.collections.Long2ObjectHashMap;
-import org.jose4j.jwk.JsonWebKey;
-import org.jose4j.jws.JsonWebSignature;
-import org.jose4j.jwt.JwtClaims;
-import org.jose4j.jwt.MalformedClaimException;
-import org.jose4j.jwt.NumericDate;
-import org.jose4j.jwt.consumer.InvalidJwtException;
-import org.jose4j.lang.JoseException;
 
 import io.aklivity.zilla.config.guard.jwt.JwtKeyConfig;
 import io.aklivity.zilla.config.guard.jwt.JwtKeySetConfig;
 import io.aklivity.zilla.config.guard.jwt.JwtKeySetConfigReader;
 import io.aklivity.zilla.config.guard.jwt.JwtOptionsConfig;
+import io.aklivity.zilla.runtime.common.jwt.Jwk;
+import io.aklivity.zilla.runtime.common.jwt.Jws;
+import io.aklivity.zilla.runtime.common.jwt.JwtClaims;
+import io.aklivity.zilla.runtime.common.jwt.JwtException;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public class JwtGuardHandler implements GuardHandler
 {
-    private static final String SPLIT_VALUE_PATTERN = "\\s+";
-    private static final String SPLIT_PATH_PATTERN = "\\.";
-
-    private final JsonWebSignature signature = new JsonWebSignature();
+    private static final Pattern SPLIT_VALUE_PATTERN = Pattern.compile("\\s+");
 
     private final String issuer;
     private final String audience;
     private final String roles;
     private final Duration challenge;
     private final String identity;
-    private final Map<String, JsonWebKey> keys;
+    private final Map<String, Jwk> keys;
     private final Long2ObjectHashMap<JwtSession> sessionsById;
     private final LongSupplier supplyAuthorizedId;
     private final Long2ObjectHashMap<JwtSessionStore> sessionStoresByContextId;
     private final JwtEventContext event;
     private final Map<String, String> attributes;
     private final Consumer<Runnable> dispatcher;
+    private final LongFunction<String> credentialer;
 
     public JwtGuardHandler(
         JwtOptionsConfig options,
         EngineContext context,
-        LongSupplier supplyAuthorizedId)
+        LongSupplier supplyAuthorizedId,
+        LongFunction<String> credentialer)
     {
         this.issuer = options.issuer;
         this.audience = options.audience;
@@ -88,26 +91,16 @@ public class JwtGuardHandler implements GuardHandler
             keysConfig = jwks.keys;
         }
 
-        Map<String, JsonWebKey> resolvedKeys = new HashMap<>();
+        Map<String, Jwk> resolvedKeys = new HashMap<>();
         if (keysConfig != null)
         {
             for (JwtKeyConfig key : keysConfig)
             {
                 try
                 {
-                    Map<String, Object> params = new HashMap<>();
-                    params.put("kty", key.kty);
-                    params.put("kid", key.kid);
-                    params.put("e", key.e);
-                    params.put("n", key.n);
-                    params.put("alg", key.alg);
-                    params.put("crv", key.crv);
-                    params.put("x", key.x);
-                    params.put("y", key.y);
-                    params.put("use", key.use);
-                    resolvedKeys.put(key.kid, JsonWebKey.Factory.newJwk(params));
+                    resolvedKeys.put(key.kid, Jwk.parse(asJwk(key)));
                 }
-                catch (JoseException ex)
+                catch (JwtException ex)
                 {
                     rethrowUnchecked(ex);
                 }
@@ -121,6 +114,7 @@ public class JwtGuardHandler implements GuardHandler
         this.event = new JwtEventContext(context);
         this.attributes = options.attributes;
         this.dispatcher = context::dispatch;
+        this.credentialer = credentialer;
     }
 
     @Override
@@ -133,7 +127,7 @@ public class JwtGuardHandler implements GuardHandler
         JwtSession session = null;
         String identity = null;
         String reason = "";
-        Map<String, String> attributes = new HashMap<>();
+        Map<String, JsonValue> attributes = new HashMap<>();
 
         authorize:
         try
@@ -144,45 +138,42 @@ public class JwtGuardHandler implements GuardHandler
                 break authorize;
             }
 
-            signature.setCompactSerialization(credentials);
+            Jws jws = Jws.parse(credentials);
 
-            String kid = signature.getKeyIdHeaderValue();
-            String alg = signature.getAlgorithmHeaderValue();
-            JsonWebKey key = keys.get(kid);
+            String kid = jws.keyId();
+            String alg = jws.algorithm();
+            Jwk key = keys.get(kid);
 
             if (alg == null ||
                 key == null ||
-                !Objects.equals(alg, key.getAlgorithm()))
+                !Objects.equals(alg, key.algorithm()))
             {
                 reason = "Invalid alg or key.";
                 break authorize;
             }
 
-            signature.setKey(null);
-            signature.setKey(key.getKey());
-            if (!signature.verifySignature())
+            String payload = jws.verifiedPayload(key);
+            if (payload == null)
             {
                 reason = "Unable to verify key signature.";
                 break authorize;
             }
 
-            String payload = signature.getPayload();
             JwtClaims claims = JwtClaims.parse(payload);
-            identity = this.identity != null ? claims.getStringClaimValue(this.identity) : claims.getSubject();
-            NumericDate notBefore = claims.getNotBefore();
-            NumericDate notAfter = claims.getExpirationTime();
+            identity = this.identity != null ? claims.getStringClaim(this.identity) : claims.getSubject();
+            Instant notBefore = claims.getNotBefore();
+            Instant notAfter = claims.getExpirationTime();
             String issuer = claims.getIssuer();
             List<String> audience = claims.getAudience();
 
             long now = Instant.now().toEpochMilli();
-            if (notBefore != null && now < notBefore.getValueInMillis() ||
-                notAfter != null && now > notAfter.getValueInMillis())
+            if (notBefore != null && now < notBefore.toEpochMilli() ||
+                notAfter != null && now > notAfter.toEpochMilli())
             {
                 reason = "Token is expired.";
                 break authorize;
             }
-            if (issuer == null || !issuer.equals(this.issuer) ||
-                audience == null || !audience.contains(this.audience))
+            if (issuer == null || !issuer.equals(this.issuer) || !audience.contains(this.audience))
             {
                 reason = "Invalid issuer or audience.";
                 break authorize;
@@ -194,7 +185,7 @@ public class JwtGuardHandler implements GuardHandler
                     ? (List<String>) rolesValue
                     : Optional.ofNullable(rolesValue)
                         .map(Object::toString)
-                        .map(s -> s.split(SPLIT_VALUE_PATTERN))
+                        .map(SPLIT_VALUE_PATTERN::split)
                         .map(Arrays::asList)
                         .orElse(null);
 
@@ -203,8 +194,7 @@ public class JwtGuardHandler implements GuardHandler
                 this.attributes
                     .forEach((name, attribute) ->
                     {
-                        Object value = claimValue(claims, attribute);
-                        attributes.put(name, value != null ? value.toString() : null);
+                        attributes.put(name, claimJson(claims, attribute));
                     });
             }
 
@@ -214,7 +204,7 @@ public class JwtGuardHandler implements GuardHandler
             session.credentials = credentials;
             session.roles = roles;
             session.expiresAt = notAfter != null
-                ? Math.max(session.expiresAt, notAfter.getValueInMillis())
+                ? Math.max(session.expiresAt, notAfter.toEpochMilli())
                 : EXPIRES_NEVER;
             session.challengeAt = challenge != null ? session.expiresAt - challenge.toMillis() : session.expiresAt;
 
@@ -222,7 +212,7 @@ public class JwtGuardHandler implements GuardHandler
             assert previous != session && session.refs == 0 || previous == session && session.refs > 0;
             session.refs++;
         }
-        catch (JoseException | InvalidJwtException | MalformedClaimException ex)
+        catch (JwtException ex)
         {
             reason = ex.getMessage();
         }
@@ -289,7 +279,7 @@ public class JwtGuardHandler implements GuardHandler
     }
 
     @Override
-    public String attribute(
+    public JsonValue attribute(
         long sessionId,
         String name)
     {
@@ -299,6 +289,18 @@ public class JwtGuardHandler implements GuardHandler
 
     @Override
     public String credentials(
+        long sessionId)
+    {
+        String local = credentialsLocal(sessionId);
+        return local != null ? local : credentialer.apply(sessionId);
+    }
+
+    // local-only lookup, reused by credentials() above as its fast path and by JwtGuard's
+    // cross-worker dispatch (reached via the credentialer callback) once it has already
+    // routed to the specific worker that owns sessionId -- never itself falls back, so a
+    // session that turns out not to be local anywhere simply resolves to null rather than
+    // looping back through the callback that got us here
+    String credentialsLocal(
         long sessionId)
     {
         JwtSession session = sessionsById.get(sessionId);
@@ -374,7 +376,7 @@ public class JwtGuardHandler implements GuardHandler
         private JwtSession supplySession(
             String identity,
             List<String> roles,
-            Map<String, String> attributes)
+            Map<String, JsonValue> attributes)
         {
             String identityKey = identity != null ? identity.intern() : null;
             JwtSession session = sessionsByIdentity.get(identityKey);
@@ -393,14 +395,14 @@ public class JwtGuardHandler implements GuardHandler
 
         private JwtSession newSharedSession(
             String identity,
-            Map<String, String> attributes)
+            Map<String, JsonValue> attributes)
         {
             return new JwtSession(supplyAuthorizedId.getAsLong(), identity, attributes, this::onUnshared);
         }
 
         private JwtSession newSession(
             String identity,
-            Map<String, String> attributes)
+            Map<String, JsonValue> attributes)
         {
             return new JwtSession(supplyAuthorizedId.getAsLong(), identity, attributes);
         }
@@ -421,7 +423,7 @@ public class JwtGuardHandler implements GuardHandler
         private final long authorized;
         private final String identity;
         private final Consumer<JwtSession> unshare;
-        private final Map<String, String> attributes;
+        private final Map<String, JsonValue> attributes;
 
         private String credentials;
         private long expiresAt;
@@ -435,7 +437,7 @@ public class JwtGuardHandler implements GuardHandler
         private JwtSession(
             long authorized,
             String identity,
-            Map<String, String> attributes)
+            Map<String, JsonValue> attributes)
         {
             this(authorized, identity, attributes, null);
         }
@@ -443,7 +445,7 @@ public class JwtGuardHandler implements GuardHandler
         private JwtSession(
             long authorized,
             String identity,
-            Map<String, String> attributes,
+            Map<String, JsonValue> attributes,
             Consumer<JwtSession> unshare)
         {
             this.authorized = authorized;
@@ -477,30 +479,68 @@ public class JwtGuardHandler implements GuardHandler
         }
     }
 
+    private static JsonObject asJwk(
+        JwtKeyConfig key)
+    {
+        JsonObjectBuilder jwk = Json.createObjectBuilder();
+        addMember(jwk, "kty", key.kty);
+        addMember(jwk, "kid", key.kid);
+        addMember(jwk, "e", key.e);
+        addMember(jwk, "n", key.n);
+        addMember(jwk, "alg", key.alg);
+        addMember(jwk, "crv", key.crv);
+        addMember(jwk, "x", key.x);
+        addMember(jwk, "y", key.y);
+        addMember(jwk, "use", key.use);
+        return jwk.build();
+    }
+
+    private static void addMember(
+        JsonObjectBuilder jwk,
+        String name,
+        String value)
+    {
+        if (value != null)
+        {
+            jwk.add(name, value);
+        }
+    }
+
     private static Object claimValue(
-        Object node,
+        JwtClaims claims,
         String path)
     {
-        Object current = node;
-        for (String part : path.split(SPLIT_PATH_PATTERN))
+        int end = path.indexOf('.');
+
+        Object current = claims.getClaimValue(end == -1 ? path : path.substring(0, end));
+        while (end != -1 && current != null)
         {
-            if (current == null)
-            {
-                break;
-            }
-            if (current instanceof JwtClaims)
-            {
-                current = ((JwtClaims) current).getClaimValue(part);
-            }
-            else if (current instanceof Map)
-            {
-                current = ((Map<?, ?>) current).get(part);
-            }
-            else
-            {
-                current = null;
-            }
+            int start = end + 1;
+            end = path.indexOf('.', start);
+
+            String name = end == -1 ? path.substring(start) : path.substring(start, end);
+            current = current instanceof Map<?, ?> map ? map.get(name) : null;
         }
+
+        return current;
+    }
+
+    private static JsonValue claimJson(
+        JwtClaims claims,
+        String path)
+    {
+        int end = path.indexOf('.');
+
+        JsonValue current = claims.getJsonClaim(end == -1 ? path : path.substring(0, end));
+        while (end != -1 && current != null)
+        {
+            int start = end + 1;
+            end = path.indexOf('.', start);
+
+            String name = end == -1 ? path.substring(start) : path.substring(start, end);
+            current = current instanceof JsonObject object ? object.get(name) : null;
+        }
+
         return current;
     }
 

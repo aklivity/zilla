@@ -42,6 +42,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpChallengeExFW;
+import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpDataExFW;
 import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpEndExFW;
 import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpFlushExFW;
 import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpResetExFW;
@@ -58,6 +59,18 @@ public final class HttpFunctions
     public static HttpBeginExMatcherBuilder matchBeginEx()
     {
         return new HttpBeginExMatcherBuilder();
+    }
+
+    @Function
+    public static HttpDataExBuilder dataEx()
+    {
+        return new HttpDataExBuilder();
+    }
+
+    @Function
+    public static HttpDataExMatcherBuilder matchDataEx()
+    {
+        return new HttpDataExMatcherBuilder();
     }
 
     @Function
@@ -436,6 +449,135 @@ public final class HttpFunctions
             HttpBeginExFW beginEx)
         {
             return typeId == beginEx.typeId();
+        }
+    }
+
+    public static final class HttpDataExBuilder
+    {
+        private final HttpDataExFW.Builder dataExRW;
+
+        private HttpDataExBuilder()
+        {
+            MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+            this.dataExRW = new HttpDataExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public HttpDataExBuilder typeId(
+            int typeId)
+        {
+            dataExRW.typeId(typeId);
+            return this;
+        }
+
+        public HttpDataExBuilder header(
+            String name,
+            String value)
+        {
+            dataExRW.headersItem(b -> b.name(name).value(value));
+            return this;
+        }
+
+        public byte[] build()
+        {
+            final HttpDataExFW dataEx = dataExRW.build();
+            final byte[] array = new byte[dataEx.sizeof()];
+            dataEx.buffer().getBytes(dataEx.offset(), array);
+            return array;
+        }
+    }
+
+    public static final class HttpDataExMatcherBuilder
+    {
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
+
+        private final HttpDataExFW dataExRO = new HttpDataExFW();
+
+        private final Map<String, Predicate<String>> headers = new LinkedHashMap<>();
+        private final Set<String> headersMissing = new LinkedHashSet<>();
+
+        private Integer typeId;
+
+        public HttpDataExMatcherBuilder typeId(
+            int typeId)
+        {
+            this.typeId = typeId;
+            return this;
+        }
+
+        public HttpDataExMatcherBuilder header(
+            String name,
+            String value)
+        {
+            headers.put(name, value::equals);
+            return this;
+        }
+
+        public HttpDataExMatcherBuilder headerRegex(
+            String name,
+            String regex)
+        {
+            Pattern pattern = Pattern.compile(regex);
+            headers.put(name, v -> pattern.matcher(v).matches());
+            return this;
+        }
+
+        public HttpDataExMatcherBuilder headerMissing(
+            String name)
+        {
+            headersMissing.add(name);
+            return this;
+        }
+
+        public BytesMatcher build()
+        {
+            return typeId != null ? this::match : buf -> null;
+        }
+
+        private HttpDataExFW match(
+            ByteBuffer byteBuf) throws Exception
+        {
+            if (!byteBuf.hasRemaining())
+            {
+                return null;
+            }
+
+            bufferRO.wrap(byteBuf);
+            final HttpDataExFW dataEx = dataExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+
+            if (dataEx != null &&
+                matchTypeId(dataEx) &&
+                matchHeaders(dataEx) &&
+                matchHeadersMissing(dataEx))
+            {
+                byteBuf.position(byteBuf.position() + dataEx.sizeof());
+                return dataEx;
+            }
+
+            throw new Exception(dataEx.toString());
+        }
+
+        private boolean matchHeaders(
+            HttpDataExFW dataEx)
+        {
+            MutableBoolean match = new MutableBoolean(true);
+            headers.forEach((k, v) -> match.value &= dataEx.headers().anyMatch(h -> k.equals(h.name().asString()) &&
+                                                                          v.test(h.value().asString())));
+            return match.value;
+        }
+
+        private boolean matchHeadersMissing(
+            HttpDataExFW dataEx)
+        {
+            MutableBoolean match = new MutableBoolean(true);
+            headersMissing.forEach(name -> match.value &=
+                !dataEx.headers().anyMatch(h -> name.equals(h.name().asString())));
+            return match.value;
+        }
+
+        private boolean matchTypeId(
+            HttpDataExFW dataEx)
+        {
+            return typeId == dataEx.typeId();
         }
     }
 

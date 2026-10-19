@@ -39,15 +39,18 @@ public final class ProtobufMessage
     private final List<ProtobufField> requiredFields;
     private final Map<Integer, ProtobufField> fieldByNumber;
     private final Map<String, ProtobufField> fieldByJsonName;
+    private final Map<String, ProtobufConstant> options;
 
     private ProtobufMessage(
         String name,
         boolean mapEntry,
-        List<ProtobufField> fields)
+        List<ProtobufField> fields,
+        Map<String, ProtobufConstant> options)
     {
         this.name = name;
         this.mapEntry = mapEntry;
         this.fields = Collections.unmodifiableList(fields);
+        this.options = options;
 
         List<ProtobufField> sorted = new ArrayList<>(fields);
         sorted.sort(Comparator.comparingInt(ProtobufField::number));
@@ -116,6 +119,22 @@ public final class ProtobufMessage
         String jsonNameOrName)
     {
         return fieldByJsonName.get(jsonNameOrName);
+    }
+
+    /**
+     * The value of a message option declared in this message's {@code option ...;} statements, read
+     * from this message only. A field or nested message option is not visible here, and an option
+     * declared here is not inherited by either. {@code null} when this message declares no such option.
+     */
+    public ProtobufConstant option(
+        String name)
+    {
+        return options != null ? options.get(name) : null;
+    }
+
+    Map<String, ProtobufConstant> rawOptions()
+    {
+        return options;
     }
 
     /**
@@ -209,6 +228,7 @@ public final class ProtobufMessage
         private final String name;
         private final List<ProtobufField> fields;
         private boolean mapEntry;
+        private Map<String, ProtobufConstant> options;
 
         private Builder(
             String name)
@@ -231,9 +251,16 @@ public final class ProtobufMessage
             return this;
         }
 
+        public Builder options(
+            Map<String, ProtobufConstant> options)
+        {
+            this.options = options;
+            return this;
+        }
+
         public ProtobufMessage build()
         {
-            return new ProtobufMessage(name, mapEntry, fields);
+            return new ProtobufMessage(name, mapEntry, fields, options);
         }
     }
 }

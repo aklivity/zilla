@@ -32,6 +32,7 @@ import jakarta.json.JsonValue;
 
 import io.aklivity.zilla.config.engine.CatalogedConfig;
 import io.aklivity.zilla.config.engine.ConfigAdapter;
+import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.ModelConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.engine.SchemaConfig;
@@ -43,6 +44,7 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
     public static final String DEFAULT_ASSERTION_SCHEMA = new String();
 
     private static final String VALUE_NAME = "value";
+    private static final String VALUES_MODELS_NAME = "values";
     private static final String MODE_NAME = "mode";
     private static final String CATALOG_NAME = "catalog";
     private static final String AUTHORIZATION_NAME = "authorization";
@@ -65,6 +67,8 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
     private static final String VAULT_SIGNER_NAME = "signer";
     private static final String VAULT_TRUST_NAME = "trust";
     private static final String VAULT_TRUSTCACERTS_NAME = "trustcacerts";
+    private static final String VAULT_SECRETKEY_NAME = "secretKey";
+    private static final String VAULT_WRAP_NAME = "wrap";
     private static final String METRICS_NAME = "metrics";
     private static final String NAME_NAME = "name";
     private static final String KIND_NAME = "kind";
@@ -75,9 +79,17 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
     private static final String STORE_VALUE_NAME = "value";
     private static final String STORE_TTL_NAME = "ttl";
     private static final String STORE_EXPECT_NAME = "expect";
+    private static final String EMBEDDING_NAME = "embedding";
+    private static final String CLASSIFIER_NAME = "classifier";
+    private static final String ORIGIN_TYPE_NAME = "originType";
     private static final String ENVELOPE_NAME = "envelope";
     private static final String ENVELOPE_VALUE_NAME = "value";
     private static final String ENVELOPE_BYTES_NAME = "bytes";
+    private static final String PIPELINE_NAME = "pipeline";
+    private static final String PIPELINE_ENCODE_NAME = "encode";
+    private static final String PIPELINE_DECODE_NAME = "decode";
+    private static final String PIPELINE_IDENTITY_NAME = "identity";
+    private static final String PIPELINE_DETERMINISTIC_NAME = "deterministic";
 
     private final ModelConfigAdapter model = new ModelConfigAdapter();
 
@@ -94,6 +106,13 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
         if (testOptions.value != null)
         {
             object.add(VALUE_NAME, model.adaptToJson(testOptions.value));
+        }
+
+        if (testOptions.values != null && !testOptions.values.isEmpty())
+        {
+            JsonArrayBuilder models = Json.createArrayBuilder();
+            testOptions.values.forEach(v -> models.add(model.adaptToJson(v)));
+            object.add(VALUES_MODELS_NAME, models);
         }
 
         if (testOptions.mode != null)
@@ -124,7 +143,8 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
         if (testOptions.catalogAssertions != null ||
             testOptions.vaultAssertion != null ||
             testOptions.storeAssertions != null ||
-            testOptions.envelopeAssertions != null)
+            testOptions.envelopeAssertions != null ||
+            testOptions.pipelineAssertion != null)
         {
             object.add(ASSERTIONS_NAME, writeAssertions(testOptions));
         }
@@ -190,6 +210,21 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
             object.add(STORE_NAME, testOptions.store);
         }
 
+        if (testOptions.embedding != null)
+        {
+            object.add(EMBEDDING_NAME, testOptions.embedding);
+        }
+
+        if (testOptions.classifier != null)
+        {
+            object.add(CLASSIFIER_NAME, testOptions.classifier);
+        }
+
+        if (testOptions.originType != null)
+        {
+            object.add(ORIGIN_TYPE_NAME, testOptions.originType);
+        }
+
         return object.build();
     }
 
@@ -249,6 +284,16 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
             if (v.trustcacerts ^ v.trust != null)
             {
                 assertion.add(VAULT_TRUSTCACERTS_NAME, v.trustcacerts);
+            }
+
+            if (v.secretKey != null)
+            {
+                assertion.add(VAULT_SECRETKEY_NAME, v.secretKey);
+            }
+
+            if (v.wrap != null)
+            {
+                assertion.add(VAULT_WRAP_NAME, v.wrap);
             }
 
             assertions.add(VAULT_NAME, assertion);
@@ -311,6 +356,20 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
             assertions.add(ENVELOPE_NAME, envelopeAssertions);
         }
 
+        if (testOptions.pipelineAssertion != null)
+        {
+            JsonObjectBuilder pipeline = Json.createObjectBuilder();
+            if (testOptions.pipelineAssertion.encode != null)
+            {
+                pipeline.add(PIPELINE_ENCODE_NAME, writePipelineExpectation(testOptions.pipelineAssertion.encode));
+            }
+            if (testOptions.pipelineAssertion.decode != null)
+            {
+                pipeline.add(PIPELINE_DECODE_NAME, writePipelineExpectation(testOptions.pipelineAssertion.decode));
+            }
+            assertions.add(PIPELINE_NAME, pipeline);
+        }
+
         return assertions;
     }
 
@@ -325,6 +384,16 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
             if (object.containsKey(VALUE_NAME))
             {
                 testOptions.value(model.adaptFromJson(object.get(VALUE_NAME)));
+            }
+
+            if (object.containsKey(VALUES_MODELS_NAME))
+            {
+                List<ModelConfig> models = new LinkedList<>();
+                for (JsonValue item : object.getJsonArray(VALUES_MODELS_NAME))
+                {
+                    models.add(model.adaptFromJson(item));
+                }
+                testOptions.values(models);
             }
 
             if (object.containsKey(MODE_NAME))
@@ -437,6 +506,21 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
             {
                 testOptions.store(object.getString(STORE_NAME));
             }
+
+            if (object.containsKey(EMBEDDING_NAME))
+            {
+                testOptions.embedding(object.getString(EMBEDDING_NAME));
+            }
+
+            if (object.containsKey(CLASSIFIER_NAME))
+            {
+                testOptions.classifier(object.getString(CLASSIFIER_NAME));
+            }
+
+            if (object.containsKey(ORIGIN_TYPE_NAME))
+            {
+                testOptions.originType(object.getString(ORIGIN_TYPE_NAME));
+            }
         }
 
         return testOptions.build();
@@ -459,6 +543,29 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
                 testOptions.envelope(name, v.getString(ENVELOPE_VALUE_NAME, null));
             }
         }
+    }
+
+    private JsonObjectBuilder writePipelineExpectation(
+        TestBindingOptionsConfig.PipelineExpectation expectation)
+    {
+        JsonObjectBuilder object = Json.createObjectBuilder();
+        if (expectation.identity != null)
+        {
+            object.add(PIPELINE_IDENTITY_NAME, expectation.identity);
+        }
+        if (expectation.deterministic != null)
+        {
+            object.add(PIPELINE_DETERMINISTIC_NAME, expectation.deterministic);
+        }
+        return object;
+    }
+
+    private TestBindingOptionsConfig.PipelineExpectation readPipelineExpectation(
+        JsonObject object)
+    {
+        return new TestBindingOptionsConfig.PipelineExpectation(
+            object.containsKey(PIPELINE_IDENTITY_NAME) ? object.getBoolean(PIPELINE_IDENTITY_NAME) : null,
+            object.containsKey(PIPELINE_DETERMINISTIC_NAME) ? object.getBoolean(PIPELINE_DETERMINISTIC_NAME) : null);
     }
 
     private void readAssertions(
@@ -493,7 +600,9 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
                 vaultJson.getString(VAULT_KEY_NAME, null),
                 vaultJson.getString(VAULT_SIGNER_NAME, null),
                 vaultJson.getString(VAULT_TRUST_NAME, null),
-                vaultJson.getBoolean(VAULT_TRUSTCACERTS_NAME, false)));
+                vaultJson.getBoolean(VAULT_TRUSTCACERTS_NAME, false),
+                vaultJson.getString(VAULT_SECRETKEY_NAME, null),
+                vaultJson.getString(VAULT_WRAP_NAME, null)));
         }
 
         if (assertionsJson.containsKey(STORE_NAME))
@@ -541,6 +650,18 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
                     testOptions.envelopeAssertion(name);
                 }
             }
+        }
+
+        if (assertionsJson.containsKey(PIPELINE_NAME))
+        {
+            JsonObject pipelineJson = assertionsJson.getJsonObject(PIPELINE_NAME);
+            testOptions.pipelineAssertion(
+                pipelineJson.containsKey(PIPELINE_ENCODE_NAME)
+                    ? readPipelineExpectation(pipelineJson.getJsonObject(PIPELINE_ENCODE_NAME))
+                    : null,
+                pipelineJson.containsKey(PIPELINE_DECODE_NAME)
+                    ? readPipelineExpectation(pipelineJson.getJsonObject(PIPELINE_DECODE_NAME))
+                    : null);
         }
     }
 }

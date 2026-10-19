@@ -13,9 +13,12 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property authorization 0L
+
 accept "zilla://streams/app1"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
+       option zilla:authorization ${authorization}
 
 accepted
 
@@ -53,6 +56,7 @@ write advise zilla:flush ${mcp:flushEx()
 accept "zilla://streams/app2"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
+       option zilla:authorization ${authorization}
 
 accepted
 

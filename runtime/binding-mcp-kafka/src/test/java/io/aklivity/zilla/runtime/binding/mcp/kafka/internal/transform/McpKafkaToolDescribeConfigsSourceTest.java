@@ -71,6 +71,20 @@ public class McpKafkaToolDescribeConfigsSourceTest
     }
 
     @Test
+    public void shouldIgnoreMetaSiblingOfArguments()
+    {
+        McpKafkaToolDescribeConfigsSource source =
+            new McpKafkaToolDescribeConfigsSource(KafkaDescribeConfigsRequest.RESOURCE_TYPE_TOPIC);
+
+        Status status = parse(source,
+            "{\"name\":\"describe_topic_configs\",\"arguments\":{\"topic\":\"events\"}," +
+            "\"_meta\":{\"progressToken\":1}}");
+
+        assertEquals(Status.COMPLETED, status);
+        assertEquals("events", source.name());
+    }
+
+    @Test
     public void shouldResetBetweenCalls()
     {
         McpKafkaToolDescribeConfigsSource source =

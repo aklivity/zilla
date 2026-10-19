@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.model.protobuf.internal;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
@@ -44,6 +45,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufSource;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufTransform;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufTransformable;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelController;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelEvent;
@@ -53,13 +55,12 @@ import io.aklivity.zilla.runtime.engine.model.ModelSource;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
+import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufCache;
 import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufModelExtContext;
 import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufModelExtHandler;
 
 public class ProtobufModelEnvelopeTest
 {
-    private static final int FLAGS_COMPLETE = 0x03;
-
     private static final String SCHEMA = """
                                             syntax = "proto3";
                                             package io.aklivity.examples.clients.proto;
@@ -89,7 +90,7 @@ public class ProtobufModelEnvelopeTest
         envelope.set("mark", buffer("two"));
 
         ProtobufModelHandlerImpl handler = newHandler(List.of(echoingExt("mark", "echo")));
-        ModelPipeline pipeline = handler.supplyDecoder(envelope, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(envelope, ModelTransform.NONE, ModelCache.NONE);
 
         transform(pipeline);
 
@@ -122,7 +123,7 @@ public class ProtobufModelEnvelopeTest
         // both vocabularies observe one store
         Reading reading = new Reading(envelope, "mark");
         ProtobufModelHandlerImpl handler = newHandler(List.of(echoingExt("mark", "echo")));
-        ModelPipeline pipeline = handler.supplyDecoder(envelope, reading);
+        ModelPipeline pipeline = handler.supplyDecoder(envelope, reading, ModelCache.NONE);
 
         transform(pipeline);
 
@@ -137,7 +138,7 @@ public class ProtobufModelEnvelopeTest
         Observing observing = new Observing();
 
         ProtobufModelHandlerImpl handler = newHandler(List.of(observingExt(observing)));
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         transform(pipeline);
 
@@ -155,7 +156,7 @@ public class ProtobufModelEnvelopeTest
         byte[] in)
     {
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
     }
 
@@ -199,7 +200,8 @@ public class ProtobufModelEnvelopeTest
 
             @Override
             public <T extends ProtobufTransformable<T>> T decode(
-                T transformable)
+                T transformable,
+                ProtobufCache cache)
             {
                 return transformable.transform(transform);
             }
@@ -223,7 +225,8 @@ public class ProtobufModelEnvelopeTest
 
             @Override
             public <T extends ProtobufTransformable<T>> T decode(
-                T transformable)
+                T transformable,
+                ProtobufCache cache)
             {
                 return transformable.transform(transform);
             }
@@ -244,7 +247,8 @@ public class ProtobufModelEnvelopeTest
         {
             @Override
             public <T extends ProtobufTransformable<T>> T decode(
-                T transformable)
+                T transformable,
+                ProtobufCache cache)
             {
                 return transformable.transform(observing);
             }
@@ -343,6 +347,12 @@ public class ProtobufModelEnvelopeTest
         {
             return true;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     }
 
     // format-native stage: writes each string value it observes into the envelope under one name
@@ -375,6 +385,12 @@ public class ProtobufModelEnvelopeTest
         {
             return true;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     }
 
     // format-native stage: captures the envelope the pipeline supplies, without touching its contents
@@ -398,11 +414,23 @@ public class ProtobufModelEnvelopeTest
         {
             return true;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     }
 
     // a generic stage the caller composes over the same envelope it supplies to the pipeline
     private static final class Reading implements ModelTransform
     {
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
         private final ModelEnvelope envelope;
         private final String name;
         private final List<String> read = new ArrayList<>();

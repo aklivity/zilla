@@ -17,15 +17,22 @@ package io.aklivity.zilla.manager.internal.commands.install.cache;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.toMap;
 import static org.eclipse.aether.ConfigurationProperties.CONNECT_TIMEOUT;
 import static org.eclipse.aether.ConfigurationProperties.REQUEST_TIMEOUT;
 import static org.eclipse.aether.util.graph.transformer.ConflictResolver.CONFIG_PROP_VERBOSE;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -46,6 +53,7 @@ import org.eclipse.aether.graph.Dependency;
 import org.eclipse.aether.graph.DependencyNode;
 import org.eclipse.aether.internal.impl.scope.OptionalDependencySelector;
 import org.eclipse.aether.internal.impl.scope.ScopeDependencySelector;
+import org.eclipse.aether.repository.LocalRepository;
 import org.eclipse.aether.repository.RemoteRepository;
 import org.eclipse.aether.resolution.ArtifactDescriptorException;
 import org.eclipse.aether.resolution.ArtifactDescriptorRequest;
@@ -70,6 +78,7 @@ import org.eclipse.aether.util.graph.transformer.ConflictResolver;
 import org.eclipse.aether.util.graph.transformer.SimpleOptionalitySelector;
 import org.eclipse.aether.util.graph.visitor.NodeListGenerator;
 import org.eclipse.aether.util.graph.visitor.PreorderDependencyNodeConsumerVisitor;
+import org.eclipse.aether.util.repository.SimpleArtifactDescriptorPolicy;
 
 import io.aklivity.zilla.manager.internal.commands.install.ZpmDependency;
 
@@ -90,13 +99,20 @@ public final class ZpmCache
     private static final int CONNECT_TIMEOUT_MS = 10000;
     private static final int REQUEST_TIMEOUT_MS = 60000;
 
+    // maven-resolver configuration passed as -Daether.* system properties, as Maven itself does,
+    // for example aether.remoteRepositoryFilter.groupId to restrict which groups a repository serves
+    private static final String RESOLVER_PROPERTY_PREFIX = "aether.";
+
     private final RepositorySystem repositorySystem;
 
     private final RepositorySystemSession session;
     private final RepositorySystemSession optionalSession;
 
     private final List<RemoteRepository> repositories;
+    private final boolean excludeRemote;
     private final ConsoleLogger logger;
+    private final Path directory;
+    private final Set<Path> resolvedPaths;
 
     public ZpmCache(
         List<RemoteRepository> repositories,
@@ -105,37 +121,79 @@ public final class ZpmCache
         ConsoleLogger logger)
     {
         this.logger = logger;
+        this.directory = directory.toAbsolutePath().normalize();
+        // maven-resolver's collector resolves descriptors on a thread pool, so artifactResolved
+        // events arrive concurrently; an unsynchronized set silently drops entries from the export
+        this.resolvedPaths = ConcurrentHashMap.newKeySet();
         this.repositorySystem = ZpmSupplierRepositorySystemFactory.newRepositorySystem();
         this.session = newRepositorySystemSession(repositorySystem, directory, excludeRemote, false);
         this.optionalSession = newRepositorySystemSession(repositorySystem, directory, excludeRemote, true);
 
         this.repositories = repositories;
+        this.excludeRemote = excludeRemote;
     }
 
     public List<ZpmArtifact> resolve(
         List<ZpmDependency> imports,
         List<ZpmDependency> dependencies)
     {
-        return resolve(imports, dependencies, session, false);
+        Map<ZpmDependency, String> imported = new HashMap<>();
+        List<Dependency> managedDependencies = new ArrayList<>();
+        List<RemoteRepository> aggregatedRepositories = new ArrayList<>(repositories);
+        readImports(imports, session, imported, managedDependencies, aggregatedRepositories);
+
+        List<Artifact> roots = new ArrayList<>();
+        for (ZpmDependency dep : dependencies)
+        {
+            String version = ofNullable(dep.version).orElse(imported.get(dep));
+            roots.add(new DefaultArtifact(dep.groupId, dep.artifactId, "jar", version));
+        }
+
+        return resolve(roots, managedDependencies, aggregatedRepositories, session, false);
     }
 
     public List<ZpmArtifact> resolveOptional(
         List<ZpmDependency> imports,
-        List<ZpmDependency> dependencies)
+        Collection<ZpmArtifactId> delegated,
+        Collection<ZpmArtifact> resolved)
     {
-        return resolve(imports, dependencies, optionalSession, true);
+        Map<ZpmDependency, String> imported = new HashMap<>();
+        List<Dependency> importedDependencies = new ArrayList<>();
+        List<RemoteRepository> aggregatedRepositories = new ArrayList<>(repositories);
+        readImports(imports, optionalSession, imported, importedDependencies, aggregatedRepositories);
+
+        Map<String, Dependency> managed = new LinkedHashMap<>();
+        importedDependencies.forEach(d -> managed.put(managementKey(d.getArtifact()), d));
+        resolved.forEach(a ->
+        {
+            Artifact artifact = new DefaultArtifact(a.id.group, a.id.artifact, "jar", a.id.version);
+            managed.put(managementKey(artifact), new Dependency(artifact, ""));
+        });
+
+        List<Artifact> roots = new ArrayList<>();
+        delegated.forEach(id -> roots.add(new DefaultArtifact(id.group, id.artifact, "jar", id.version)));
+
+        return resolve(roots, new ArrayList<>(managed.values()), aggregatedRepositories, optionalSession, true);
     }
 
-    private List<ZpmArtifact> resolve(
-        List<ZpmDependency> imports,
-        List<ZpmDependency> dependencies,
-        RepositorySystemSession session,
-        boolean lenient)
+    public void export(
+        Path target) throws IOException
     {
-        final List<ZpmArtifact> artifacts = new ArrayList<>();
-        Map<ZpmDependency, String> imported = new HashMap<>();
-        List<Dependency> managedDependencies = new ArrayList<>();
-        List<RemoteRepository> aggregatedRepositories = new ArrayList<>(repositories);
+        for (Path path : resolvedPaths)
+        {
+            Path exported = target.resolve(directory.relativize(path).toString());
+            Files.createDirectories(exported.getParent());
+            Files.copy(path, exported, StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
+
+    private void readImports(
+        List<ZpmDependency> imports,
+        RepositorySystemSession session,
+        Map<ZpmDependency, String> imported,
+        List<Dependency> managedDependencies,
+        List<RemoteRepository> aggregatedRepositories)
+    {
         if (imports != null)
         {
             for (ZpmDependency imp : imports)
@@ -148,7 +206,10 @@ public final class ZpmCache
                 {
                     ArtifactDescriptorResult descriptorResult =
                         repositorySystem.readArtifactDescriptor(session, descriptorRequest);
-                    aggregatedRepositories.addAll(descriptorResult.getRepositories());
+                    if (!excludeRemote)
+                    {
+                        aggregatedRepositories.addAll(descriptorResult.getRepositories());
+                    }
                     List<Dependency> bomManaged = descriptorResult.getManagedDependencies();
                     bomManaged.forEach(dep ->
                     {
@@ -165,14 +226,19 @@ public final class ZpmCache
                 }
             }
         }
+    }
+
+    private List<ZpmArtifact> resolve(
+        List<Artifact> roots,
+        List<Dependency> managedDependencies,
+        List<RemoteRepository> aggregatedRepositories,
+        RepositorySystemSession session,
+        boolean lenient)
+    {
+        final List<ZpmArtifact> artifacts = new ArrayList<>();
         CollectRequest collectRequest = new CollectRequest();
         collectRequest.setManagedDependencies(managedDependencies);
-        for (ZpmDependency dep : dependencies)
-        {
-            String version = ofNullable(dep.version).orElse(imported.get(dep));
-            Artifact artifact = new DefaultArtifact(dep.groupId, dep.artifactId, "jar", version);
-            collectRequest.addDependency(new Dependency(artifact, "compile"));
-        }
+        roots.forEach(artifact -> collectRequest.addDependency(new Dependency(artifact, "compile")));
         aggregatedRepositories.forEach(collectRequest::addRepository);
 
         DependencyResult result;
@@ -191,6 +257,7 @@ public final class ZpmCache
             {
                 throw new RuntimeException("Failed to resolve dependencies", e);
             }
+            logger.warn(String.format("Partially resolved optional dependencies: %s", e.getMessage()));
             result = e.getResult();
         }
         catch (Exception e)
@@ -201,6 +268,7 @@ public final class ZpmCache
             {
                 throw new RuntimeException("Failed to resolve dependencies", e);
             }
+            logger.warn(String.format("Skipped optional dependencies: %s", e.getMessage()));
             result = null;
         }
 
@@ -243,6 +311,13 @@ public final class ZpmCache
         return artifacts;
     }
 
+    private static Map<String, String> resolverProperties()
+    {
+        return System.getProperties().stringPropertyNames().stream()
+            .filter(name -> name.startsWith(RESOLVER_PROPERTY_PREFIX))
+            .collect(toMap(identity(), System::getProperty));
+    }
+
     private RepositorySystemSession newRepositorySystemSession(
         RepositorySystem system,
         Path dir,
@@ -276,9 +351,11 @@ public final class ZpmCache
             }
         );
 
-        return new SessionBuilderSupplier(system)
+        RepositorySystemSession.SessionBuilder builder = new SessionBuilderSupplier(system)
             .get()
-                .withLocalRepositoryBaseDirectories(dir)
+                // the simple layout reuses artifacts regardless of which repository originally provided them,
+                // so an existing Maven local repository serves as the cache without re-downloading
+                .withLocalRepositories(new LocalRepository(dir, "simple"))
                 .setDependencyGraphTransformer(
                     new ChainedDependencyGraphTransformer(
                         new ConflictMarker(),
@@ -297,12 +374,27 @@ public final class ZpmCache
                         ScopeDependencySelector.fromRoot(null, List.of("test", "provided"))))
                 .setRepositoryListener(new ZpmConsoleRepositoryListener())
                 .setTransferListener(new ZpmConsoleTransferListener())
+                .setConfigProperties(resolverProperties())
                 .setConfigProperty(CONFIG_PROP_VERBOSE, "true")
                 .setConfigProperty(CONFIG_PROP_NAMED_LOCK_FACTORY, "noop")
                 .setConfigProperty(CONNECT_TIMEOUT, CONNECT_TIMEOUT_MS)
                 .setConfigProperty(REQUEST_TIMEOUT, REQUEST_TIMEOUT_MS)
-                .setIgnoreArtifactDescriptorRepositories(excludeRemote)
-                .build();
+                .setIgnoreArtifactDescriptorRepositories(excludeRemote);
+
+        if (includeOptional)
+        {
+            // the validation-only tree reaches artifacts whose descriptors may be missing or unparseable
+            // (for example an unresolved classifier property); skip those rather than drop the whole tree
+            builder.setArtifactDescriptorPolicy(new SimpleArtifactDescriptorPolicy(true, true));
+        }
+
+        return builder.build();
+    }
+
+    private static String managementKey(
+        Artifact artifact)
+    {
+        return String.format("%s:%s", artifact.getGroupId(), artifact.getArtifactId());
     }
 
 
@@ -483,6 +575,15 @@ public final class ZpmCache
             RepositoryEvent event)
         {
             requireNonNull(event, "event cannot be null");
+            Path path = ofNullable(event.getPath()).orElse(event.getArtifact().getPath());
+            if (path != null && event.getException() == null)
+            {
+                Path normalized = path.toAbsolutePath().normalize();
+                if (normalized.startsWith(directory))
+                {
+                    resolvedPaths.add(normalized);
+                }
+            }
             logger.debug(String.format("Resolved artifact %s from %s", event.getArtifact(), event.getRepository()));
         }
 

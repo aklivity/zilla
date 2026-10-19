@@ -185,6 +185,49 @@ public class ZpmConfigurationTest
     }
 
     @Test
+    public void shouldReadNamedRepositories()
+    {
+        String text =
+                "{" +
+                    "\"repositories\":" +
+                    "{" +
+                        "\"example\":\"https://maven.example.com/maven2/\"," +
+                        "\"central\":\"https://repo1.maven.org/maven2/\"" +
+                    "}" +
+                "}";
+
+        Jsonb builder = JsonbBuilder.create();
+        ZpmConfiguration config = builder.fromJson(text, ZpmConfiguration.class);
+
+        assertThat(config, not(nullValue()));
+        assertThat(config.repositories, equalTo(asList(new ZpmRepository("example", "https://maven.example.com/maven2/"),
+                new ZpmRepository("central", "https://repo1.maven.org/maven2/"))));
+    }
+
+    @Test
+    public void shouldWriteNamedRepositories()
+    {
+        String expected =
+                "{" +
+                    "\"repositories\":" +
+                    "{" +
+                        "\"example\":\"https://maven.example.com/maven2/\"," +
+                        "\"central\":\"https://repo1.maven.org/maven2/\"" +
+                    "}" +
+                "}";
+
+        ZpmConfiguration config = new ZpmConfiguration();
+        config.repositories = Arrays.asList(
+                new ZpmRepository("example", "https://maven.example.com/maven2/"),
+                new ZpmRepository("central", "https://repo1.maven.org/maven2/"));
+
+        Jsonb builder = JsonbBuilder.create();
+        String actual = builder.toJson(config);
+
+        assertEquals(expected, actual);
+    }
+
+    @Test
     public void shouldReadEmptyDependencies()
     {
         String text =

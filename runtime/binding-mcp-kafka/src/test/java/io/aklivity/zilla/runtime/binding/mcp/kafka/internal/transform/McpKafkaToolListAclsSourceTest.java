@@ -69,6 +69,20 @@ public class McpKafkaToolListAclsSourceTest
     }
 
     @Test
+    public void shouldIgnoreMetaSiblingOfArguments()
+    {
+        McpKafkaToolListAclsSource source = new McpKafkaToolListAclsSource();
+
+        Status status = parse(source,
+            "{\"name\":\"list_acls\",\"arguments\":{\"resource_type\":\"topic\"}," +
+            "\"_meta\":{\"progressToken\":1}}");
+
+        assertEquals(Status.COMPLETED, status);
+        assertTrue(source.completed());
+        assertEquals(KafkaAclTypes.RESOURCE_TYPE_TOPIC, source.resourceType());
+    }
+
+    @Test
     public void shouldResetBetweenCalls()
     {
         McpKafkaToolListAclsSource source = new McpKafkaToolListAclsSource();

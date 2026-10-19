@@ -44,8 +44,32 @@ class FeatureFilterTest
         assertEquals(FeatureFilter.isIncubatorEnabled() ? 2L : 1L, filtered);
     }
 
+    @Test
+    void shouldReportIsInternalEnabledConsistentlyWithFeatureEnabled()
+    {
+        boolean internalEnabled = FeatureFilter.isInternalEnabled();
+
+        assertEquals(internalEnabled, FeatureFilter.featureEnabled(InternalFeature.class));
+        assertTrue(FeatureFilter.featureEnabled(StableFeature.class));
+    }
+
+    @Test
+    void shouldFilterInternalConsistentlyWithIsInternalEnabled()
+    {
+        List<Object> providers = List.of(new StableFeature(), new InternalFeature());
+
+        long filtered = StreamSupport.stream(FeatureFilter.filter(providers).spliterator(), false).count();
+
+        assertEquals(FeatureFilter.isInternalEnabled() ? 2L : 1L, filtered);
+    }
+
     @Incubating
     private static final class IncubatingFeature
+    {
+    }
+
+    @Internal
+    private static final class InternalFeature
     {
     }
 

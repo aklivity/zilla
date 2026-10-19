@@ -21,6 +21,7 @@ import io.aklivity.zilla.runtime.model.core.ext.BytesModelExtContext;
 import io.aklivity.zilla.runtime.model.core.ext.BytesModelExtFactorySpi;
 import io.aklivity.zilla.runtime.model.core.ext.BytesModelExtHandler;
 import io.aklivity.zilla.runtime.model.core.ext.BytesTransformable;
+import io.aklivity.zilla.runtime.model.core.ext.CoreCache;
 
 /**
  * A generic, business-agnostic test-only extension registered solely under {@code src/test} so it never
@@ -42,23 +43,11 @@ public final class TestUppercaseBytesModelExtFactorySpi implements BytesModelExt
     static final String DIAGNOSTIC = "test-uppercase rejected";
 
     @Override
-    public String type()
-    {
-        return "test";
-    }
-
-    @Override
     public BytesModelExt create(
         Configuration config)
     {
         return new BytesModelExt()
         {
-            @Override
-            public String name()
-            {
-                return "test-uppercase";
-            }
-
             @Override
             public BytesModelExtContext supply(
                 EngineContext context)
@@ -72,7 +61,8 @@ public final class TestUppercaseBytesModelExtFactorySpi implements BytesModelExt
     {
         @Override
         public <T extends BytesTransformable<T>> T decode(
-            T stream)
+            T stream,
+            CoreCache cache)
         {
             return stream.transform(new UppercaseBytesTransform(WITHHOLD, REJECT, DIAGNOSTIC));
         }

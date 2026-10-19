@@ -45,7 +45,7 @@ public class StringModelExtHandlerTest
         };
         Stream stream = new Stream();
 
-        assertSame(stream, handler.decode(stream));
+        assertSame(stream, handler.decode(stream, CoreCache.NONE));
         assertSame(stream, handler.encode(stream));
     }
 
@@ -56,14 +56,15 @@ public class StringModelExtHandlerTest
         {
             @Override
             public <T extends StringTransformable<T>> T decode(
-                T stream)
+                T stream,
+                CoreCache cache)
             {
                 return stream.transform(StringTransform.NONE);
             }
         };
         Stream stream = new Stream();
 
-        handler.decode(stream);
+        handler.decode(stream, CoreCache.NONE);
         handler.encode(stream);
 
         assertEquals(1, stream.count);
@@ -90,7 +91,24 @@ public class StringModelExtHandlerTest
     @Test
     public void shouldResumeThroughToSinkByDefault()
     {
-        StringTransform transform = (control, source, event, sink) -> sink.transform(control, source, event);
+        StringTransform transform = new StringTransform()
+        {
+            @Override
+            public ModelStatus transform(
+                StringController control,
+                StringSource source,
+                StringEvent event,
+                StringSink sink)
+            {
+                return sink.transform(control, source, event);
+            }
+
+            @Override
+            public boolean deterministic()
+            {
+                return true;
+            }
+        };
         Sink sink = new Sink();
 
         assertEquals(ModelStatus.OK, transform.resume(new Control(), () -> null, StringEvent.SEGMENT, sink));
@@ -152,6 +170,12 @@ public class StringModelExtHandlerTest
 
         @Override
         public boolean identity()
+        {
+            return true;
+        }
+
+        @Override
+        public boolean deterministic()
         {
             return true;
         }

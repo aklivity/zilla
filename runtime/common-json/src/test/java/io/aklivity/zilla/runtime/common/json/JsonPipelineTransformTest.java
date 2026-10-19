@@ -150,6 +150,33 @@ class JsonPipelineTransformTest
     }
 
     @Test
+    void shouldCompleteOnEmptyFinalWindowAfterWholeDocumentConsumed()
+    {
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser()).into(JsonEx.createGenerator());
+        pipeline.reset();
+
+        // the whole document (self-delimited by its closing brace) arrives in the first, non-final window;
+        // the caller's own FIN still arrives as a separate, empty final window (the real produce/populate
+        // mapping always sends one), reproducing zilla#2461's INIT-empty/payload/FIN-empty split
+        byte[] whole = "{\"a\":1}".getBytes(UTF_8);
+        byte[] empty = { };
+        int dstCap = 64;
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[DST_OFFSET + dstCap]);
+        ByteArrayOutputStream drained = new ByteArrayOutputStream();
+
+        JsonPipelineResult first = pipeline.transform(srcOf(whole), SRC_OFFSET, SRC_OFFSET + whole.length, false,
+            dst, DST_OFFSET, DST_OFFSET + dstCap);
+        drainChunk(dst, first.produced(), drained);
+
+        JsonPipelineResult second = pipeline.transform(srcOf(empty), SRC_OFFSET, SRC_OFFSET + empty.length, true,
+            dst, DST_OFFSET, DST_OFFSET + dstCap);
+        assertEquals(Status.COMPLETED, second.status());
+        drainChunk(dst, second.produced(), drained);
+
+        assertEquals("{\"a\":1}", drained.toString(UTF_8));
+    }
+
+    @Test
     void shouldReportIdentityForVerbatimPipeline()
     {
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser()).into(JsonEx.createGenerator());

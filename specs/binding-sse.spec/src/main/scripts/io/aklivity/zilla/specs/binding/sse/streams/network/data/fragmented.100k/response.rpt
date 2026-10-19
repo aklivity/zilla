@@ -39,6 +39,5 @@ write zilla:begin.ext ${http:beginEx()
                               .build()}
 write flush
 
-write "data:" ${http:randomAscii(102400)} "\n"
-      "\n"
+write ${http:randomAscii(102400)}
 write flush

@@ -50,6 +50,12 @@ class JsonSinkSegmentTest
             }
             return status;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     };
 
     @Test
@@ -174,6 +180,12 @@ class JsonSinkSegmentTest
             public boolean identity()
             {
                 return false;
+            }
+
+            @Override
+            public boolean deterministic()
+            {
+                return true;
             }
         };
         sink.reset();

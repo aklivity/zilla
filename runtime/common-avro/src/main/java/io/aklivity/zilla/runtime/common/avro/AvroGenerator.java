@@ -153,4 +153,9 @@ public interface AvroGenerator
      * generator that re-encodes into a different representation (e.g. JSON) is not identity.
      */
     boolean identity();
+
+    /**
+     * Whether this generator writes the same bytes for the same values and configuration.
+     */
+    boolean deterministic();
 }

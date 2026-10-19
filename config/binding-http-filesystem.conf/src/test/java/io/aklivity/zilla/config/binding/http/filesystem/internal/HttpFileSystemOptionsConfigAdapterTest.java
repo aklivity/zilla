@@ -41,7 +41,7 @@ public class HttpFileSystemOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptions()
     {
-        JsonObject object = adapter.adaptToJson(new OptionsConfig());
+        JsonObject object = adapter.adaptToJson(new OptionsConfig(null, null));
 
         assertThat(object, not(nullValue()));
         assertThat(object.isEmpty(), equalTo(true));

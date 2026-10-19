@@ -45,6 +45,12 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>common-jwt</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>common-protobuf</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
@@ -130,6 +136,12 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>binding-kafka-grpc</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>binding-llm</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>
@@ -279,7 +291,49 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>embedding-openai</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>classifier-semantic</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>classifier-patterns</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>classifier-presidio</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>model-classify</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>command</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>command-dump</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>command-inspect</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>
@@ -393,6 +447,12 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>metrics-llm</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>resolver-env</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
@@ -477,6 +537,23 @@
             <phase>process-sources</phase>
             <goals>
               <goal>java</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>zpm-maven-plugin</artifactId>
+        <version>${project.version}</version>
+        <configuration>
+          <properties>
+            <VERSION>${project.version}</VERSION>
+          </properties>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>resolve</goal>
             </goals>
           </execution>
         </executions>

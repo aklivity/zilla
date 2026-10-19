@@ -26,6 +26,7 @@ import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 
+import io.aklivity.k3po.runtime.junit.annotation.ScriptProperty;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
@@ -53,6 +54,7 @@ public class ClientMetaSaslIT
 
     @Test
     @Configuration("client.options.sasl.plain.yaml")
+    @ScriptProperty("authorization 1L")
     @Specification({
         "${app}/topic.partition.info/client",
         "${net}/topic.partition.info.sasl.plain/server"})
@@ -63,6 +65,7 @@ public class ClientMetaSaslIT
 
     @Test
     @Configuration("client.options.sasl.scram.yaml")
+    @ScriptProperty("authorization 1L")
     @Specification({
         "${app}/topic.partition.info/client",
         "${net}/topic.partition.info.sasl.scram/server"})
@@ -75,6 +78,7 @@ public class ClientMetaSaslIT
 
     @Test
     @Configuration("client.options.authorization.yaml")
+    @ScriptProperty("authorization 1L")
     @Specification({
         "${app}/topic.partition.info/client",
         "${net}/topic.partition.info.sasl.plain/server"})
@@ -85,6 +89,7 @@ public class ClientMetaSaslIT
 
     @Test
     @Configuration("client.event.sasl.authentication.failed.yaml")
+    @ScriptProperty("authorization 1L")
     @Specification({
         "${app}/sasl.authentication.failed/client",
         "${net}/sasl.authentication.failed/server"})
@@ -95,6 +100,7 @@ public class ClientMetaSaslIT
 
     @Test
     @Configuration("client.event.unsupported.sasl.mechanism.yaml")
+    @ScriptProperty("authorization 1L")
     @Specification({
         "${app}/unsupported.sasl.mechanism/client",
         "${net}/unsupported.sasl.mechanism/server"})

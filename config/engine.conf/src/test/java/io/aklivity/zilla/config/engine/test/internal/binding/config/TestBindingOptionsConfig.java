@@ -19,12 +19,14 @@ import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.CatalogedConfig;
+import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class TestBindingOptionsConfig extends OptionsConfig
 {
     public final ModelConfig value;
+    public final List<ModelConfig> values;
     public final String mode;
     public final String schema;
     public final TestAuthorizationConfig authorization;
@@ -35,8 +37,12 @@ public final class TestBindingOptionsConfig extends OptionsConfig
     public final VaultAssertion vaultAssertion;
     public final String store;
     public final List<StoreAssertions> storeAssertions;
+    public final String embedding;
+    public final String classifier;
     public final List<EnvelopeValue> envelope;
     public final List<EnvelopeAssertion> envelopeAssertions;
+    public final PipelineAssertion pipelineAssertion;
+    public final String originType;
 
     public static TestBindingOptionsConfigBuilder<TestBindingOptionsConfig> builder()
     {
@@ -51,6 +57,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
 
     TestBindingOptionsConfig(
         ModelConfig value,
+        List<ModelConfig> values,
         String mode,
         String schema,
         TestAuthorizationConfig authorization,
@@ -61,11 +68,17 @@ public final class TestBindingOptionsConfig extends OptionsConfig
         VaultAssertion vaultAssertion,
         String store,
         List<StoreAssertions> storeAssertions,
+        String embedding,
+        String classifier,
         List<EnvelopeValue> envelope,
-        List<EnvelopeAssertion> envelopeAssertions)
+        List<EnvelopeAssertion> envelopeAssertions,
+        PipelineAssertion pipelineAssertion,
+        String originType,
+        List<Config.Reference> refs)
     {
-        super(value != null ? List.of(value) : List.of(), List.of());
+        super(null, refs);
         this.value = value;
+        this.values = values;
         this.mode = mode;
         this.schema = schema;
         this.authorization = authorization;
@@ -76,8 +89,12 @@ public final class TestBindingOptionsConfig extends OptionsConfig
         this.vaultAssertion = vaultAssertion;
         this.store = store;
         this.storeAssertions = storeAssertions;
+        this.embedding = embedding;
+        this.classifier = classifier;
         this.envelope = envelope;
         this.envelopeAssertions = envelopeAssertions;
+        this.pipelineAssertion = pipelineAssertion;
+        this.originType = originType;
     }
 
     public static final class Event
@@ -117,17 +134,23 @@ public final class TestBindingOptionsConfig extends OptionsConfig
         public final String signer;
         public final String trust;
         public final boolean trustcacerts;
+        public final String secretKey;
+        public final String wrap;
 
         public VaultAssertion(
             String key,
             String signer,
             String trust,
-            boolean trustcacerts)
+            boolean trustcacerts,
+            String secretKey,
+            String wrap)
         {
             this.key = key;
             this.signer = signer;
             this.trust = trust;
             this.trustcacerts = trustcacerts;
+            this.secretKey = secretKey;
+            this.wrap = wrap;
         }
     }
 
@@ -243,6 +266,36 @@ public final class TestBindingOptionsConfig extends OptionsConfig
             this.name = name;
             this.value = value;
             this.hasValue = hasValue;
+        }
+    }
+
+    // Asserts the identity() and deterministic() declared by the encode and decode value pipelines when
+    // each is supplied, before any data is transformed; an unset expectation is not asserted.
+    public static final class PipelineAssertion
+    {
+        public final PipelineExpectation encode;
+        public final PipelineExpectation decode;
+
+        public PipelineAssertion(
+            PipelineExpectation encode,
+            PipelineExpectation decode)
+        {
+            this.encode = encode;
+            this.decode = decode;
+        }
+    }
+
+    public static final class PipelineExpectation
+    {
+        public final Boolean identity;
+        public final Boolean deterministic;
+
+        public PipelineExpectation(
+            Boolean identity,
+            Boolean deterministic)
+        {
+            this.identity = identity;
+            this.deterministic = deterministic;
         }
     }
 }

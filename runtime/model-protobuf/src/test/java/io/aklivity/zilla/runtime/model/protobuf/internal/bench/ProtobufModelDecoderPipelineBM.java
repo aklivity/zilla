@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.model.protobuf.internal.bench;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -43,6 +44,7 @@ import io.aklivity.zilla.config.model.protobuf.ProtobufModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
@@ -63,8 +65,6 @@ import io.aklivity.zilla.runtime.model.protobuf.internal.ProtobufModelHandlerImp
 @OutputTimeUnit(SECONDS)
 public class ProtobufModelDecoderPipelineBM
 {
-    private static final int FLAGS_COMPLETE = 0x03;
-
     private static final String SCHEMA = """
                                             syntax = "proto3";
                                             package io.aklivity.examples.clients.proto;
@@ -87,8 +87,8 @@ public class ProtobufModelDecoderPipelineBM
     @Setup(Level.Trial)
     public void init()
     {
-        wirePipeline = newHandler(null).supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
-        jsonPipeline = newHandler("json").supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        wirePipeline = newHandler(null).supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+        jsonPipeline = newHandler("json").supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
     }
 
     @Benchmark
@@ -107,7 +107,7 @@ public class ProtobufModelDecoderPipelineBM
         ModelPipeline pipeline)
     {
         pipeline.reset();
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             inputBuffer, 0, WIRE.length, outputBuffer, 0, outputBuffer.capacity());
         return result.produced();
     }

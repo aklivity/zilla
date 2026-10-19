@@ -45,7 +45,7 @@ public class BytesModelExtHandlerTest
         };
         Stream stream = new Stream();
 
-        assertSame(stream, handler.decode(stream));
+        assertSame(stream, handler.decode(stream, CoreCache.NONE));
         assertSame(stream, handler.encode(stream));
     }
 
@@ -56,14 +56,15 @@ public class BytesModelExtHandlerTest
         {
             @Override
             public <T extends BytesTransformable<T>> T decode(
-                T stream)
+                T stream,
+                CoreCache cache)
             {
                 return stream.transform(BytesTransform.NONE);
             }
         };
         Stream stream = new Stream();
 
-        handler.decode(stream);
+        handler.decode(stream, CoreCache.NONE);
         handler.encode(stream);
 
         assertEquals(1, stream.count);
@@ -90,7 +91,24 @@ public class BytesModelExtHandlerTest
     @Test
     public void shouldResumeThroughToSinkByDefault()
     {
-        BytesTransform transform = (control, source, event, sink) -> sink.transform(control, source, event);
+        BytesTransform transform = new BytesTransform()
+        {
+            @Override
+            public ModelStatus transform(
+                BytesController control,
+                BytesSource source,
+                BytesEvent event,
+                BytesSink sink)
+            {
+                return sink.transform(control, source, event);
+            }
+
+            @Override
+            public boolean deterministic()
+            {
+                return true;
+            }
+        };
         Sink sink = new Sink();
 
         assertEquals(ModelStatus.OK, transform.resume(new Control(), () -> null, BytesEvent.SEGMENT, sink));
@@ -152,6 +170,12 @@ public class BytesModelExtHandlerTest
 
         @Override
         public boolean identity()
+        {
+            return true;
+        }
+
+        @Override
+        public boolean deterministic()
         {
             return true;
         }

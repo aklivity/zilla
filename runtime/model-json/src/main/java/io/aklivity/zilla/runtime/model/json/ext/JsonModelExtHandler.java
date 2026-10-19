@@ -19,24 +19,31 @@ import io.aklivity.zilla.runtime.common.json.JsonTransformable;
 
 /**
  * Appends whatever stages this extension contributes to an in-progress json pipeline, for one resolved
- * schema and configuration. A pipeline decoding the canonical value into the view delivered to a reader
- * and one encoding a caller's value into its canonical form are extended independently, so an extension
- * that only applies to one direction overrides that method alone; the default leaves the other direction
- * unchanged.
+ * schema and configuration. A pipeline decoding a value for a reader and one encoding a caller's value
+ * into its canonical form are extended independently, so an extension that only applies to one of these
+ * overrides that method alone; the default for each leaves the other unaffected.
  */
 public interface JsonModelExtHandler
 {
     /**
      * Appends this extension's own stage or stages to {@code stream}, in data-flow order, for a pipeline
-     * decoding the canonical value into the view delivered to a reader. The default passes {@code stream}
-     * through unchanged.
+     * decoding the canonical value into the view delivered to a reader, for the given {@link JsonCache}
+     * context. The default passes {@code stream} through unchanged for every context.
+     * <p>
+     * {@code cache} distinguishes a caller's relationship to a local cache, if any, from who ultimately
+     * reads the transformed value -- see {@link JsonCache}. An extension with nothing reader-specific to
+     * withhold when persisting a value ahead of any specific reader's request needs no override at all;
+     * one that does distinguishes {@link JsonCache#WRITE} from the other two contexts itself.
+     * </p>
      *
      * @param <T>     the caller's own concrete stream type
      * @param stream  the in-progress stream to extend
+     * @param cache   the caller's relationship to a local cache, if any
      * @return the extended stream, as the same concrete type supplied
      */
     default <T extends JsonTransformable<T>> T decode(
-        T stream)
+        T stream,
+        JsonCache cache)
     {
         return stream;
     }

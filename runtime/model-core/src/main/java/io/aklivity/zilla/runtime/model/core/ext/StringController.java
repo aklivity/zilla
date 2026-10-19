@@ -28,6 +28,22 @@ import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 public interface StringController
 {
     /**
+     * Returns the authorization in effect for the value currently being transformed.
+     * <p>
+     * A mediating stage may override this to scope the authorization further for a nested composition; a
+     * non-mediating stage passes its own through, so this reflects the authorization the pipeline received
+     * for the current value unless some stage along the way has narrowed it. The default is {@code 0L},
+     * for a pipeline that never received one.
+     * </p>
+     *
+     * @return the authorization in effect for the current value
+     */
+    default long authorization()
+    {
+        return 0L;
+    }
+
+    /**
      * Returns the metadata travelling alongside the value being transformed, addressed by name rather than
      * by position within the value. The default is {@link ModelEnvelope#NONE}, in force when the caller
      * driving the pipeline supplied no envelope, so a stage reads an empty envelope rather than no

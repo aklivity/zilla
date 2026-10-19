@@ -15,8 +15,15 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
@@ -28,9 +35,6 @@ public final class KafkaCacheModel
 {
     public static final KafkaCacheModel NONE = new KafkaCacheModel();
 
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_FIN = 0x01;
-
     @FunctionalInterface
     public interface Output
     {
@@ -40,42 +44,125 @@ public final class KafkaCacheModel
             int length);
     }
 
+    // the outcome of a single fragment-wise transform() call; COMPLETE and REJECTED both reset the
+    // pipeline and are terminal for the value, UNDERFLOW means the pipeline is still open and this
+    // fragment's unconsumed tail (if any) has already been retained internally for the next call
+    public static final class Result
+    {
+        private ModelStatus status;
+        private int consumed;
+        private int produced;
+
+        public ModelStatus status()
+        {
+            return status;
+        }
+
+        public int consumed()
+        {
+            return consumed;
+        }
+
+        public int produced()
+        {
+            return produced;
+        }
+
+        private Result set(
+            ModelStatus status,
+            int consumed,
+            int produced)
+        {
+            this.status = status;
+            this.consumed = consumed;
+            this.produced = produced;
+            return this;
+        }
+    }
+
     private final ModelPipeline pipeline;
-    private final MutableDirectBufferEx scratch;
+    private final MutableDirectBufferEx transformBuffer;
+    private final ExpandableArrayBufferEx carry;
+    private final Result result;
+
+    private boolean started;
+    private int carried;
+    private boolean completedEarly;
 
     public static KafkaCacheModel decoder(
         ModelHandler handler,
         ModelTransform transform,
-        MutableDirectBufferEx scratch)
+        MutableDirectBufferEx transformBuffer)
     {
         return handler != null
-            ? new KafkaCacheModel(handler.supplyDecoder(ModelEnvelope.NONE, transform), scratch)
+            ? new KafkaCacheModel(handler.supplyDecoder(ModelEnvelope.NONE, transform, ModelCache.NONE), transformBuffer)
             : NONE;
     }
 
-    public static KafkaCacheModel encoder(
+    // populate time: decodes wire bytes ahead of any specific consumer's request, producing the value the
+    // local cache persists; envelope collects whatever metadata a composed transform writes -- e.g. the
+    // key model's own envelope recognizing the reserved ":key" pseudo-name to override the persisted key
+    public static KafkaCacheModel writer(
         ModelHandler handler,
-        MutableDirectBufferEx scratch)
+        ModelTransform transform,
+        ModelEnvelope envelope,
+        MutableDirectBufferEx transformBuffer)
     {
         return handler != null
-            ? new KafkaCacheModel(handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE), scratch)
+            ? new KafkaCacheModel(handler.supplyDecoder(envelope, transform, ModelCache.WRITE), transformBuffer)
+            : NONE;
+    }
+
+    // per-consumer fetch time: resolves a value already in the form a writer pipeline produced, for the
+    // consumer requesting it now; envelope is backed by the cached record's real headers so a composed
+    // transform can read metadata that was present on produce
+    public static KafkaCacheModel reader(
+        ModelHandler handler,
+        ModelTransform transform,
+        ModelEnvelope envelope,
+        MutableDirectBufferEx transformBuffer)
+    {
+        return handler != null
+            ? new KafkaCacheModel(handler.supplyDecoder(envelope, transform, ModelCache.READ), transformBuffer)
+            : NONE;
+    }
+
+    // producer encode time; envelope collects whatever metadata a composed transform writes, for the
+    // storage write path to materialize as real headers once encode completes
+    public static KafkaCacheModel encoder(
+        ModelHandler handler,
+        ModelEnvelope envelope,
+        MutableDirectBufferEx transformBuffer)
+    {
+        return handler != null
+            ? new KafkaCacheModel(handler.supplyEncoder(envelope, ModelTransform.NONE), transformBuffer)
             : NONE;
     }
 
     private KafkaCacheModel()
     {
         this.pipeline = null;
-        this.scratch = null;
+        this.transformBuffer = null;
+        this.carry = new ExpandableArrayBufferEx();
+        this.result = new Result();
     }
 
     KafkaCacheModel(
         ModelPipeline pipeline,
-        MutableDirectBufferEx scratch)
+        MutableDirectBufferEx transformBuffer)
     {
         this.pipeline = pipeline;
-        this.scratch = scratch;
+        this.transformBuffer = transformBuffer;
+        this.carry = new ExpandableArrayBufferEx();
+        this.result = new Result();
     }
 
+    // whole-value convenience: presents data[index..limit) as the complete value in one call.
+    // NONE's pipeline-less branch is handled directly here rather than via the fragment-wise overload
+    // below, since NONE is a single shared instance called unconditionally (and concurrently, across
+    // worker threads) by every key transform whether or not a key model is configured -- routing it
+    // through the fragment-wise method's reused Result field would make that field genuinely shared
+    // mutable state across threads
     public int transform(
         long traceId,
         long bindingId,
@@ -85,7 +172,7 @@ public final class KafkaCacheModel
         int limit,
         Output next)
     {
-        int total;
+        final int total;
         if (pipeline == null)
         {
             final int length = limit - index;
@@ -94,46 +181,138 @@ public final class KafkaCacheModel
         }
         else
         {
-            total = 0;
-            int srcAt = index;
-            int flags = FLAGS_INIT | FLAGS_FIN;
-            boolean done = false;
-            while (!done)
-            {
-                final ModelPipelineResult result = pipeline.transform(traceId, bindingId, authorization, flags,
-                    data, srcAt, limit, scratch, 0, scratch.capacity());
-                final ModelStatus status = result.status();
-                final int produced = result.produced();
-                final int consumed = result.consumed();
+            final Result whole = transform(traceId, bindingId, authorization, COMPLETE,
+                data, index, limit, next);
+            total = whole.status() == ModelStatus.REJECTED ? -1 : whole.produced();
+        }
+        return total;
+    }
 
-                if (status == ModelStatus.REJECTED)
+    // fragment-wise: flags are the caller's own DATA-frame INIT / FIN, so a value may be
+    // presented across any number of calls; every byte of data[index..limit) is absorbed by this call --
+    // a caller never sees or manages a carried-over tail, even when the pipeline underflows mid-value.
+    // Every caller of this overload must gate on != NONE first, as the whole-value overload above does
+    // for its own pipeline-less branch -- this method's Result is reused per instance, and NONE is a
+    // single instance shared across worker threads
+    public Result transform(
+        long traceId,
+        long bindingId,
+        long authorization,
+        int flags,
+        DirectBufferEx data,
+        int index,
+        int limit,
+        Output next)
+    {
+        final int inputLength = limit - index;
+        final Result outcome;
+        if (pipeline == null)
+        {
+            next.accept(data, index, inputLength);
+            outcome = result.set(hasFin(flags) ? ModelStatus.COMPLETE : ModelStatus.UNDERFLOW,
+                inputLength, inputLength);
+        }
+        else
+        {
+            DirectBufferEx src = data;
+            int srcAt = index;
+            int srcLimit = limit;
+            if (carried > 0)
+            {
+                carry.putBytes(carried, data, index, inputLength);
+                src = carry;
+                srcAt = 0;
+                srcLimit = carried + inputLength;
+                carried = 0;
+            }
+
+            int total = 0;
+            int callFlags = (started ? 0 : INIT) | (flags & FIN);
+            started = true;
+            ModelStatus finalStatus = null;
+            if (completedEarly)
+            {
+                // a self-delimiting pipeline already finished on an earlier, non-FIN call (see the
+                // COMPLETE branch below) -- absorb this fragment without re-invoking the pipeline,
+                // since it has nothing left to produce, and only report COMPLETE once the caller's
+                // own FIN fragment actually arrives
+                if (hasFin(callFlags))
                 {
-                    total = -1;
-                    done = true;
+                    completedEarly = false;
+                    started = false;
+                    finalStatus = ModelStatus.COMPLETE;
                 }
                 else
                 {
-                    if (produced > 0)
-                    {
-                        next.accept(scratch, 0, produced);
-                        total += produced;
-                    }
+                    finalStatus = ModelStatus.UNDERFLOW;
+                }
+            }
+            while (finalStatus == null)
+            {
+                final ModelPipelineResult step = pipeline.transform(traceId, bindingId, authorization, callFlags,
+                    src, srcAt, srcLimit, transformBuffer, 0, transformBuffer.capacity());
+                final ModelStatus status = step.status();
+                final int consumed = step.consumed();
+                final int produced = step.produced();
 
-                    if (status == ModelStatus.COMPLETE)
+                if (produced > 0)
+                {
+                    next.accept(transformBuffer, 0, produced);
+                    total += produced;
+                }
+
+                if (status == ModelStatus.REJECTED)
+                {
+                    pipeline.reset();
+                    started = false;
+                    finalStatus = ModelStatus.REJECTED;
+                }
+                else if (status == ModelStatus.COMPLETE && hasFin(callFlags))
+                {
+                    pipeline.reset();
+                    started = false;
+                    finalStatus = ModelStatus.COMPLETE;
+                }
+                else if (status == ModelStatus.COMPLETE)
+                {
+                    // a self-delimiting format (e.g. a JSON-view protobuf encode) can recognize its
+                    // own input is complete before the caller's own FIN fragment arrives -- remember
+                    // that and report UNDERFLOW so the caller keeps driving fragments; the eventual
+                    // FIN-flagged call is absorbed above without re-invoking the pipeline
+                    pipeline.reset();
+                    completedEarly = true;
+                    finalStatus = ModelStatus.UNDERFLOW;
+                }
+                else if (status == ModelStatus.UNDERFLOW && hasFin(callFlags))
+                {
+                    // contract violation: a FIN call must resolve to COMPLETE or REJECTED, never
+                    // UNDERFLOW -- every shipped pipeline maps an incomplete value under FIN to
+                    // REJECTED, so this defends against a non-compliant pipeline rather than a real path
+                    pipeline.reset();
+                    started = false;
+                    finalStatus = ModelStatus.REJECTED;
+                }
+                else if (status == ModelStatus.UNDERFLOW || consumed == 0 && produced == 0)
+                {
+                    final int tailAt = srcAt + consumed;
+                    final int tailLength = srcLimit - tailAt;
+                    if (tailLength > 0)
                     {
-                        done = true;
+                        carry.putBytes(0, src, tailAt, tailLength);
                     }
-                    else
-                    {
-                        srcAt += consumed;
-                        flags = FLAGS_FIN;
-                    }
+                    carried = tailLength;
+                    finalStatus = ModelStatus.UNDERFLOW;
+                }
+                else
+                {
+                    srcAt += consumed;
+                    callFlags &= ~INIT;
                 }
             }
 
-            pipeline.reset();
+            outcome = result.set(finalStatus, inputLength, total);
         }
-        return total;
+        return outcome;
     }
 
     public int padding(
@@ -150,5 +329,13 @@ public final class KafkaCacheModel
         {
             pipeline.reset();
         }
+        started = false;
+        carried = 0;
+        completedEarly = false;
+    }
+
+    public boolean identity()
+    {
+        return pipeline == null || pipeline.identity();
     }
 }

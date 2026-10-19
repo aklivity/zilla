@@ -152,6 +152,39 @@ class AvroPipelineTransformTest
         assertArrayEquals(new byte[] { 0x02, 0x04, 0x68, 0x69 }, drained.toByteArray());
     }
 
+    @Test
+    void shouldCompleteOnEmptyFinalWindowAfterWholeDatumConsumed()
+    {
+        AvroSchema schema = Avro.schema("""
+            {"type":"record","name":"R","fields":[
+            {"name":"id","type":"int"},
+            {"name":"name","type":"string"}]}""");
+        AvroPipeline pipeline = Avro.stream(Avro.parser(schema))
+            .transform(schema.validator())
+            .into(generatorFor(schema));
+        pipeline.reset();
+
+        // id=1 (0x02), name="hi" (0x04 0x68 0x69) -- the whole datum arrives in the first, non-final window;
+        // the caller's own FIN still arrives as a separate, empty final window (the real produce/populate
+        // mapping always sends one), reproducing zilla#2461's INIT-empty/payload/FIN-empty split
+        byte[] whole = { 0x02, 0x04, 0x68, 0x69 };
+        byte[] empty = { };
+        int dstCap = 64;
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[DST_OFFSET + dstCap]);
+        ByteArrayOutputStream drained = new ByteArrayOutputStream();
+
+        AvroPipelineResult first = pipeline.transform(srcOf(whole), SRC_OFFSET, SRC_OFFSET + whole.length, false,
+            dst, DST_OFFSET, DST_OFFSET + dstCap);
+        drainChunk(dst, first.produced(), drained);
+
+        AvroPipelineResult second = pipeline.transform(srcOf(empty), SRC_OFFSET, SRC_OFFSET + empty.length, true,
+            dst, DST_OFFSET, DST_OFFSET + dstCap);
+        assertEquals(Status.COMPLETED, second.status());
+        drainChunk(dst, second.produced(), drained);
+
+        assertArrayEquals(whole, drained.toByteArray());
+    }
+
     private static AvroGenerator generatorFor(
         AvroSchema schema)
     {

@@ -282,7 +282,7 @@
           </configuration>
           <executions>
             <execution>
-              <phase>validate</phase>
+              <phase>verify</phase>
               <goals>
                 <goal>check</goal>
               </goals>

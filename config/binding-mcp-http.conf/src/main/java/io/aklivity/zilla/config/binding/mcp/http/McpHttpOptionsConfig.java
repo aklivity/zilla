@@ -41,6 +41,7 @@ public final class McpHttpOptionsConfig extends OptionsConfig
         List<McpHttpToolConfig> tools,
         List<McpHttpResourceConfig> resources)
     {
+        super(null, null);
         this.authorization = authorization;
         this.tools = tools;
         this.resources = resources;

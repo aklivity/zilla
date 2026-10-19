@@ -70,6 +70,12 @@ public interface AvroSink
     boolean identity();
 
     /**
+     * Whether this sink, together with everything downstream of it, produces the same output for the same
+     * input, configuration and authorization.
+     */
+    boolean deterministic();
+
+    /**
      * A terminal sink that materializes each fed event into the corresponding write on {@code generator}.
      * The supplied generator must already be wrapped over its target buffer.
      */

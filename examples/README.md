@@ -50,6 +50,7 @@ Make sure you have the `latest` version of Zilla by running the `docker pull ghc
 | [http.kafka.proto.oneway](http.kafka.proto.oneway)           | Publish a Protobuf serialized object over HTTP onto a Kafka topic                         |
 | [http.kafka.sync](http.kafka.sync)                           | Correlates HTTP requests and responses over separate Kafka topics                         |
 | [http.proxy](http.proxy)                                     | Proxy request sent to the HTTP server from an HTTP client                                 |
+| [inspect.schema](inspect.schema)                             | Prints the fully-merged `zilla.yaml` JSON Schema without starting an engine               |
 | [mqtt.proxy.jwt](mqtt.proxy.jwt)                             | Proxies request sent to the MQTT server from a JWT-authorized MQTT client                 |
 | [mqtt.kafka.broker](mqtt.kafka.proxy)                        | Forwards MQTT publish messages to Kafka, broadcasting to all subscribed MQTT clients      |
 | [openapi.asyncapi.kakfa.proxy](openapi.asyncapi.kakfa.proxy) | Create an HTTP to Kafka REST proxy using OpenAPI and AsyncAPI schemas                     |

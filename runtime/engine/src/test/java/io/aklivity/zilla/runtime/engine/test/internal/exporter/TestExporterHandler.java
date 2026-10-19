@@ -15,6 +15,11 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.exporter;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+import io.aklivity.zilla.config.engine.AttributeConfig;
 import io.aklivity.zilla.config.engine.ExporterConfig;
 import io.aklivity.zilla.config.engine.test.internal.exporter.config.TestExporterOptionsConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -23,6 +28,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
 import io.aklivity.zilla.runtime.engine.event.EventFormatter;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.engine.internal.types.event.EventFW;
+import io.aklivity.zilla.runtime.engine.metrics.Collector;
 
 class TestExporterHandler implements ExporterHandler
 {
@@ -31,17 +37,25 @@ class TestExporterHandler implements ExporterHandler
     private final MessageReader readEvent;
     private final EventFormatter formatter;
     private final EventFW eventRO = new EventFW();
+    private final TestExporterMetrics metrics;
+    private final List<AttributeConfig> attributes;
 
     private int eventIndex;
 
     TestExporterHandler(
         EngineContext context,
-        ExporterConfig exporter)
+        ExporterConfig exporter,
+        List<AttributeConfig> attributes,
+        Collector collector)
     {
         this.context = context;
+        this.attributes = attributes;
         this.readEvent = context.supplyEventReader();
         this.formatter = context.supplyEventFormatter();
         this.options = (TestExporterOptionsConfig) exporter.options;
+        this.metrics = options.metrics != null
+            ? new TestExporterMetrics(collector, context::supplyLocalName, exporter.namespace, options.metrics)
+            : null;
     }
 
     @Override
@@ -52,6 +66,11 @@ class TestExporterHandler implements ExporterHandler
     @Override
     public int export()
     {
+        if (metrics != null)
+        {
+            metrics.update();
+        }
+
         return readEvent.read(this::handleEvent, 1);
     }
 
@@ -77,6 +96,51 @@ class TestExporterHandler implements ExporterHandler
         {
             assert options.events == null || eventIndex == options.events.size();
         }
+
+        verifyMetrics();
+        verifyAttributes();
+    }
+
+    private void verifyAttributes()
+    {
+        if (options.attributes != null)
+        {
+            for (Map.Entry<String, String> expected : options.attributes.entrySet())
+            {
+                String actual = attributes.stream()
+                    .filter(a -> expected.getKey().equals(a.name))
+                    .map(a -> a.value)
+                    .findFirst()
+                    .orElse(null);
+
+                if (!Objects.equals(expected.getValue(), actual))
+                {
+                    throw new IllegalStateException(String.format("attribute mismatch, %s expected: %s, actual: %s",
+                        expected.getKey(), expected.getValue(), actual));
+                }
+            }
+        }
+    }
+
+    private void verifyMetrics()
+    {
+        if (metrics != null)
+        {
+            try
+            {
+                metrics.update();
+            }
+            catch (RuntimeException ex)
+            {
+                // metrics may no longer be readable once the engine is closing, keep the latest observed values
+            }
+
+            String mismatches = metrics.mismatches();
+            if (mismatches != null)
+            {
+                throw new IllegalStateException(String.format("metrics mismatch:%s", mismatches));
+            }
+        }
     }
 
     private void handleEvent(
@@ -85,6 +149,11 @@ class TestExporterHandler implements ExporterHandler
         int index,
         int length)
     {
+        if (options.events == null && metrics != null)
+        {
+            return;
+        }
+
         final EventFW event = eventRO.wrap(buffer, index, index + length);
 
         String qname = context.supplyQName(event.namespacedId());
@@ -106,6 +175,11 @@ class TestExporterHandler implements ExporterHandler
                     e.qName, e.id, e.name, e.message, qname, id, name, message));
             }
             eventIndex++;
+
+            if (eventIndex == options.events.size())
+            {
+                TestExporter.eventsLatch.countDown();
+            }
         }
     }
 }

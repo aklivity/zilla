@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.common.json;
 
+import jakarta.json.JsonException;
+
 /**
  * The per-edge control handle a {@link JsonStream} stage uses to steer its immediate upstream. A stage
  * calls {@link #segmentable()} at a value boundary to opt in to receiving the current value (and its
@@ -26,6 +28,21 @@ package io.aklivity.zilla.runtime.common.json;
 public interface JsonController
 {
     void segmentable();
+
+    /**
+     * Returns the authorization in effect for the value currently being transformed.
+     * <p>
+     * A mediating stage may override this to scope the authorization further for a nested composition; a
+     * non-mediating stage passes its own through, so this reflects the authorization the pipeline received
+     * via {@link JsonPipeline#authorization(long)} unless narrowed. The default is {@code 0L}, for a
+     * pipeline that never received one.
+     *
+     * @return the authorization in effect for the current value
+     */
+    default long authorization()
+    {
+        return 0L;
+    }
 
     /**
      * Returns the metadata travelling alongside the value being transformed, addressed by name rather than
@@ -41,13 +58,35 @@ public interface JsonController
     }
 
     /**
+     * Asks the upstream to treat the string value that follows the current {@link JsonEvent#KEY_NAME} as a
+     * stringified JSON document: the upstream parses the decoded content of the string and delivers
+     * {@link JsonEvent#START_ESCAPED}, the events of that document, and {@link JsonEvent#END_ESCAPED} once the
+     * string completes, in place of the string value. A stage that does not forward the two markers shows its
+     * downstream the document directly, which unescapes it.
+     * <p>
+     * The content must be exactly one complete JSON value, with optional surrounding whitespace; an empty
+     * string delivers the two markers with no events between. A value that is not a string, or content that is
+     * malformed or incomplete, rejects the pipeline. A stage asks while the key is the current event and
+     * complete, once it has decided from the whole key. The default rejects, for an upstream that cannot parse
+     * a string as a document.
+     */
+    default void escaped()
+    {
+        throw new JsonException("escaped scope not supported");
+    }
+
+    /**
      * Opts in to receiving {@link JsonEvent#isVerbatim()} events: the caller is willing to read the current
      * value (and the run it coalesces into) as original source bytes via {@link JsonSource#getVerbatim(int)}
      * <em>alongside</em> the structured event stream, rather than re-serializing it canonically. Peer of
      * {@link #segmentable()} but additive, not substitutive — a mediating stage (e.g. a validator) absorbs the
      * request upstream (it still takes structured events to inspect) and re-asserts it downstream (it emits
      * verbatim events to its sink). Best-effort and demand-gated; when unset the upstream does no verbatim
-     * tracking. The default does nothing, for an upstream that does not retain source bytes.
+     * tracking. A mediating stage that re-asserts the request downstream also passes it upstream, so the parser
+     * keeps its bytes exact when the stage declines a partial key with {@link #consumed(int)} reporting zero:
+     * the bytes are then left unconsumed for the caller to re-present, in place of the decoded characters the
+     * parser would otherwise accumulate. The default does nothing, for an upstream that does not retain source
+     * bytes.
      */
     default void verbatim()
     {

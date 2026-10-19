@@ -27,12 +27,12 @@ import jakarta.json.JsonValue;
 
 import io.aklivity.zilla.config.binding.mcp.McpCacheToolsConfig;
 import io.aklivity.zilla.config.binding.mcp.McpCacheToolsConfigBuilder;
-import io.aklivity.zilla.config.binding.mcp.McpCacheToolsEagerConfigBuilder;
-import io.aklivity.zilla.config.binding.mcp.McpCacheToolsEagerPolicy;
 import io.aklivity.zilla.config.binding.mcp.McpCacheToolsSearchConfig;
 import io.aklivity.zilla.config.binding.mcp.McpCacheToolsSearchConfigBuilder;
 import io.aklivity.zilla.config.binding.mcp.McpKeywordToolSearchIndexConfig;
 import io.aklivity.zilla.config.binding.mcp.McpToolSearchIndexConfig;
+import io.aklivity.zilla.config.engine.ConfigExtAdapter;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class McpCacheToolsConfigAdapter
 {
@@ -47,11 +47,18 @@ public final class McpCacheToolsConfigAdapter
     private static final String SEARCH_INDEX_NAME = "index";
     private static final String SEARCH_TYPE_DEFAULT = McpKeywordToolSearchIndexConfig.NAME;
     private static final String EAGER_NAME = "eager";
+    private static final String EAGER_TYPE_NAME = "type";
     private static final String EAGER_POLICY_NAME = "policy";
-    private static final String EAGER_POLICY_DEFAULT = "none";
-    private static final String EAGER_MATCH_NAME = "match";
 
-    private final McpToolSearchIndexConfigAdapter index = new McpToolSearchIndexConfigAdapter();
+    private final McpToolSearchIndexConfigAdapter index;
+    private final McpToolsEagerConfigAdapter eager;
+
+    public McpCacheToolsConfigAdapter(
+        List<ConfigExtAdapter<OptionsConfig>> extensions)
+    {
+        this.index = new McpToolSearchIndexConfigAdapter(extensions);
+        this.eager = new McpToolsEagerConfigAdapter(extensions);
+    }
 
     public JsonObject adaptToJson(
         McpCacheToolsConfig tools)
@@ -96,17 +103,9 @@ public final class McpCacheToolsConfigAdapter
 
         if (tools.eager != null)
         {
-            JsonObjectBuilder eagerObject = Json.createObjectBuilder()
-                .add(EAGER_POLICY_NAME, tools.eager.policy.name().toLowerCase());
-
-            if (tools.eager.match != null)
-            {
-                JsonArrayBuilder match = Json.createArrayBuilder();
-                tools.eager.match.forEach(match::add);
-                eagerObject.add(EAGER_MATCH_NAME, match);
-            }
-
-            object.add(EAGER_NAME, eagerObject);
+            JsonArrayBuilder eagerArray = Json.createArrayBuilder();
+            tools.eager.forEach(each -> eagerArray.add(eager.adaptToJson(each)));
+            object.add(EAGER_NAME, eagerArray);
         }
 
         return object.build();
@@ -166,23 +165,34 @@ public final class McpCacheToolsConfigAdapter
 
         if (object.containsKey(EAGER_NAME))
         {
-            JsonObject eager = object.getJsonObject(EAGER_NAME);
-
-            McpCacheToolsEagerConfigBuilder<McpCacheToolsConfigBuilder<McpCacheToolsConfig>> eagerBuilder = builder.eager()
-                .policy(McpCacheToolsEagerPolicy.valueOf(eager.getString(EAGER_POLICY_NAME, EAGER_POLICY_DEFAULT)
-                    .toUpperCase()));
-
-            if (eager.containsKey(EAGER_MATCH_NAME))
+            JsonValue value = object.get(EAGER_NAME);
+            if (value.getValueType() == JsonValue.ValueType.ARRAY)
             {
-                List<String> match = eager.getJsonArray(EAGER_MATCH_NAME).getValuesAs(JsonString.class).stream()
-                    .map(JsonString::getString)
-                    .collect(Collectors.toList());
-                eagerBuilder.match(match);
+                value.asJsonArray().stream()
+                    .map(JsonValue::asJsonObject)
+                    .map(eager::adaptFromJson)
+                    .forEach(builder::eager);
             }
-
-            eagerBuilder.build();
+            else
+            {
+                builder.eager(eager.adaptFromJson(normalizeEagerLegacyShape(value.asJsonObject())));
+            }
         }
 
         return builder.build();
+    }
+
+    // pre-#887 configs discriminated the single eager policy object via "policy", not "type" -- normalize
+    // it here so both spellings keep parsing into the same list-shaped representation, with no second
+    // internal representation and no change needed to the dispatch adapter itself
+    private static JsonObject normalizeEagerLegacyShape(
+        JsonObject object)
+    {
+        return object.containsKey(EAGER_POLICY_NAME) && !object.containsKey(EAGER_TYPE_NAME)
+            ? Json.createObjectBuilder(object)
+                .remove(EAGER_POLICY_NAME)
+                .add(EAGER_TYPE_NAME, object.getString(EAGER_POLICY_NAME))
+                .build()
+            : object;
     }
 }

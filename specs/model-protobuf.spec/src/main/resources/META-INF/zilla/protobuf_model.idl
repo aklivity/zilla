@@ -18,7 +18,9 @@ scope protobuf_model
     {
         enum ProtobufModelEventType (uint8)
         {
-            VALIDATION_FAILED (1)
+            VALIDATION_FAILED (1),
+            PARSING_FAILED (2),
+            TRANSFORM_FAILED (3)
         }
 
         struct ProtobufModelValidationFailedEx extends core::stream::Extension
@@ -26,9 +28,21 @@ scope protobuf_model
             string16 error;
         }
 
+        struct ProtobufModelParsingFailedEx extends core::stream::Extension
+        {
+            string16 error;
+        }
+
+        struct ProtobufModelTransformFailedEx extends core::stream::Extension
+        {
+            string16 error;
+        }
+
         union ProtobufModelEventEx switch (ProtobufModelEventType)
         {
             case VALIDATION_FAILED: ProtobufModelValidationFailedEx validationFailed;
+            case PARSING_FAILED: ProtobufModelParsingFailedEx parsingFailed;
+            case TRANSFORM_FAILED: ProtobufModelTransformFailedEx transformFailed;
         }
     }
 }

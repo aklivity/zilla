@@ -25,7 +25,6 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -240,8 +239,6 @@ public class McpSchemaRegistryCompositeGeneratorTest
     @Test
     public void shouldGuardDeclaredRoute()
     {
-        when(context.supplyQName(eq(3L))).thenReturn("test:jwt0");
-
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
@@ -261,6 +258,7 @@ public class McpSchemaRegistryCompositeGeneratorTest
                 .build()
             .build();
         binding.resolveId = name -> "jwt0".equals(name) ? 3L : 2L;
+        binding.routes.get(0).guarded.get(0).qname = "test:jwt0";
 
         McpSchemaRegistryBindingConfig attached = new McpSchemaRegistryBindingConfig(context, binding);
 
@@ -281,8 +279,6 @@ public class McpSchemaRegistryCompositeGeneratorTest
     @Test
     public void shouldGenerateCompositeForProxyKind()
     {
-        when(context.supplyQName(eq(5L))).thenReturn("test:http0");
-
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
@@ -290,11 +286,12 @@ public class McpSchemaRegistryCompositeGeneratorTest
             .kind(PROXY)
             .exit("http0")
             .build();
-        binding.routes.stream()
+        RouteConfig inputExitRoute = binding.routes.stream()
             .filter(route -> "http0".equals(route.exit))
             .findFirst()
-            .orElseThrow()
-            .id = 5L;
+            .orElseThrow();
+        inputExitRoute.id = 5L;
+        inputExitRoute.qname = "test:http0";
 
         McpSchemaRegistryBindingConfig attached = new McpSchemaRegistryBindingConfig(context, binding);
 

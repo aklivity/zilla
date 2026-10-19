@@ -19,6 +19,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import jakarta.json.JsonException;
 import jakarta.json.stream.JsonLocation;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -50,6 +51,7 @@ public final class JsonProjectorImpl implements JsonTransform
 {
     private static final int MAX_DEPTH = 64;
     private static final String WILDCARD = "-";
+    private static final String WILDCARD_PROPERTY = "*";
 
     private enum Decision
     {
@@ -72,12 +74,20 @@ public final class JsonProjectorImpl implements JsonTransform
     // buffered. At most one key is ever pending — the value that follows consumes it before the next key.
     private final StringBuilder pendingKeyBuffer = new StringBuilder();
 
+    // For each open escaped scope, whether its markers were forwarded: a scope's fate is that of the value it
+    // holds, which is only known once the value's first event arrives, so markers wait in pendingEscapes until
+    // then. The markers do not nest the path, so the projection sees the stringified document as the value of
+    // the key.
+    private final boolean[] escapeEmit = new boolean[MAX_DEPTH];
+
     private final KeySource keySource = new KeySource();
 
     private final DownstreamControl downstreamControl = new DownstreamControl();
 
     private JsonController upstreamControl;
     private int containers;
+    private int escapes;
+    private int pendingEscapes;
     private Decision keyDecision;
     private Node keyNode;
     private Node valueNode;
@@ -105,13 +115,28 @@ public final class JsonProjectorImpl implements JsonTransform
     public JsonProjectorImpl(
         List<String> pointers)
     {
-        this.root = compile(pointers);
+        this(pointers, List.of());
+    }
+
+    public JsonProjectorImpl(
+        List<String> retained,
+        List<String> rejected)
+    {
+        this.root = compile(retained, rejected);
+    }
+
+    @Override
+    public boolean deterministic()
+    {
+        return true;
     }
 
     @Override
     public void reset()
     {
         containers = 0;
+        escapes = 0;
+        pendingEscapes = 0;
         keyDecision = null;
         keyNode = null;
         valueNode = null;
@@ -159,6 +184,18 @@ public final class JsonProjectorImpl implements JsonTransform
             {
                 upstreamControl.consumed(sourceBytes);
             }
+        }
+
+        @Override
+        public void escaped()
+        {
+            // a buffered key is forwarded only once its value has been read, so the parser is already past the
+            // value the scope would have applied to; a key forwarded live is the parser's current event
+            if (forwardingKey)
+            {
+                throw new JsonException("escaped scope must be requested while the key is the current event");
+            }
+            upstreamControl.escaped();
         }
     }
 
@@ -281,9 +318,60 @@ public final class JsonProjectorImpl implements JsonTransform
         case END_ARRAY:
             onEnd(source, event, sink);
             break;
+        case START_ESCAPED:
+            pendingEscapes++;
+            break;
+        case END_ESCAPED:
+            onEscapeEnd(source, sink);
+            break;
         default:
             onScalar(source, event, sink);
             break;
+        }
+    }
+
+    // Opens the scopes held back since their markers arrived, now that the first event of their value has decided
+    // whether it is kept: forwards the markers of a kept value, and records the decision for the closing marker.
+    private void openEscapes(
+        JsonSource source,
+        JsonSink sink,
+        boolean emit)
+    {
+        while (pendingEscapes > 0)
+        {
+            escapeEmit[escapes++] = emit;
+            if (emit)
+            {
+                forward(sink, source, JsonEvent.START_ESCAPED);
+            }
+            pendingEscapes--;
+        }
+    }
+
+    // A scope with no content has no first event to decide on, so it is decided as an empty scalar would be.
+    private void onEscapeEnd(
+        JsonSource source,
+        JsonSink sink)
+    {
+        if (pendingEscapes > 0)
+        {
+            Decision d = enterValue();
+            boolean parentEmit = containers == 0 || frameEmit[containers - 1];
+            boolean emit = parentEmit && d == Decision.KEEP_ALL;
+            if (emit)
+            {
+                forwardPendingKey(sink);
+            }
+            else
+            {
+                pendingKey = null;
+            }
+            openEscapes(source, sink, emit);
+        }
+        escapes--;
+        if (escapeEmit[escapes])
+        {
+            forward(sink, source, JsonEvent.END_ESCAPED);
         }
     }
 
@@ -443,6 +531,7 @@ public final class JsonProjectorImpl implements JsonTransform
         if (emit && d == Decision.KEEP_ALL && downstreamDemand)
         {
             forwardPendingKey(sink);
+            openEscapes(source, sink, true);
             control.segmentable();
             segMode = SegMode.AWAITING;
             deferredStart = event;
@@ -450,12 +539,14 @@ public final class JsonProjectorImpl implements JsonTransform
         else if (emit)
         {
             forwardPendingKey(sink);
+            openEscapes(source, sink, true);
             forward(sink, source, event);
             pushFrame(event, true, d);
         }
         else
         {
             pendingKey = null;
+            openEscapes(source, sink, false);
             pushFrame(event, false, d);
         }
     }
@@ -550,11 +641,13 @@ public final class JsonProjectorImpl implements JsonTransform
             if (scalarEmit)
             {
                 forwardPendingKey(sink);
+                openEscapes(source, sink, true);
                 forward(sink, source, event);
             }
             else
             {
                 pendingKey = null;
+                openEscapes(source, sink, false);
             }
             if (source.deferredBytes())
             {
@@ -621,6 +714,14 @@ public final class JsonProjectorImpl implements JsonTransform
         {
             result = Decision.SKIP;
         }
+        else if (node.rejected)
+        {
+            // an explicit reject always wins, even over this same node's own keepAll -- a pointer can
+            // only ever land in one of retained/rejected (JsonSchemaImpl's retainedPaths/rejectedPaths
+            // partition every leaf by its own deny flag), but a caller combining pointer lists by hand
+            // should still get the safer, deny-wins outcome on an accidental overlap
+            result = Decision.SKIP;
+        }
         else if (node.keepAll)
         {
             result = Decision.KEEP_ALL;
@@ -636,7 +737,9 @@ public final class JsonProjectorImpl implements JsonTransform
         return result;
     }
 
-    // Matches an object key against a node's children by the live char view, allocation-free.
+    // Matches an object key against a node's children by the live char view, allocation-free -- preferring
+    // an explicit named child over the "*" wildcard, the object-key counterpart to lookupIndex's array
+    // wildcard fallback below.
     private static Node lookup(
         Node node,
         CharSequence key)
@@ -644,12 +747,22 @@ public final class JsonProjectorImpl implements JsonTransform
         Node result = null;
         if (node != null)
         {
+            Node wildcard = null;
             for (int i = 0; result == null && i < node.keys.length; i++)
             {
-                if (charsEqual(node.keys[i], key))
+                String segment = node.keys[i];
+                if (WILDCARD_PROPERTY.equals(segment))
+                {
+                    wildcard = node.nodes[i];
+                }
+                else if (charsEqual(segment, key))
                 {
                     result = node.nodes[i];
                 }
+            }
+            if (result == null)
+            {
+                result = wildcard;
             }
         }
         return result;
@@ -722,10 +835,11 @@ public final class JsonProjectorImpl implements JsonTransform
     }
 
     private static Node compile(
-        List<String> pointers)
+        List<String> retained,
+        List<String> rejected)
     {
         NodeBuilder builder = new NodeBuilder();
-        for (String pointer : pointers)
+        for (String pointer : retained)
         {
             NodeBuilder node = builder;
             for (String segment : segments(pointer))
@@ -733,6 +847,15 @@ public final class JsonProjectorImpl implements JsonTransform
                 node = node.child(segment);
             }
             node.keepAll = true;
+        }
+        for (String pointer : rejected)
+        {
+            NodeBuilder node = builder;
+            for (String segment : segments(pointer))
+            {
+                node = node.child(segment);
+            }
+            node.rejected = true;
         }
         return builder.build();
     }
@@ -758,29 +881,39 @@ public final class JsonProjectorImpl implements JsonTransform
     }
 
     // An immutable trie node: children are parallel key/node arrays scanned linearly (a handful of children
-    // per node), keepAll marks a node where a retained pointer terminates, and maxKeyLength is the longest
-    // of this node's own children's keys — the bound onKey declines a fragmenting child key against.
+    // per node), keepAll marks a node where a retained pointer terminates, rejected marks a node where a
+    // rejected pointer terminates (and always wins over this same node's own keepAll, see decide()), and
+    // maxKeyLength is the longest of this node's own children's keys — the bound onKey declines a
+    // fragmenting child key against.
     private static final class Node
     {
         private final String[] keys;
         private final Node[] nodes;
         private final boolean keepAll;
+        private final boolean rejected;
         private final int maxKeyLength;
 
         private Node(
             String[] keys,
             Node[] nodes,
-            boolean keepAll)
+            boolean keepAll,
+            boolean rejected)
         {
             this.keys = keys;
             this.nodes = nodes;
             this.keepAll = keepAll;
+            this.rejected = rejected;
             int longest = 0;
+            boolean wildcard = false;
             for (String key : keys)
             {
                 longest = Math.max(longest, key.length());
+                wildcard |= WILDCARD_PROPERTY.equals(key);
             }
-            this.maxKeyLength = longest;
+            // a "*" child matches a key of any length, so a fragment already longer than every named
+            // sibling still can't be ruled out early -- only a closed enumeration (no wildcard) can use
+            // the max-named-length bound to declare SKIP before the key is fully reassembled
+            this.maxKeyLength = wildcard ? Integer.MAX_VALUE : longest;
         }
     }
 
@@ -788,6 +921,7 @@ public final class JsonProjectorImpl implements JsonTransform
     {
         private final Map<String, NodeBuilder> children = new LinkedHashMap<>();
         private boolean keepAll;
+        private boolean rejected;
 
         private NodeBuilder child(
             String segment)
@@ -807,7 +941,7 @@ public final class JsonProjectorImpl implements JsonTransform
                 nodes[i] = entry.getValue().build();
                 i++;
             }
-            return new Node(keys, nodes, keepAll);
+            return new Node(keys, nodes, keepAll, rejected);
         }
     }
 

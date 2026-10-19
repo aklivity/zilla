@@ -118,7 +118,13 @@ import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.classifier.Classifier;
+import io.aklivity.zilla.runtime.engine.classifier.ClassifierContext;
+import io.aklivity.zilla.runtime.engine.classifier.ClassifierHandler;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import io.aklivity.zilla.runtime.engine.embedding.Embedding;
+import io.aklivity.zilla.runtime.engine.embedding.EmbeddingContext;
+import io.aklivity.zilla.runtime.engine.embedding.EmbeddingHandler;
 import io.aklivity.zilla.runtime.engine.event.EventFormatter;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterFactory;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
@@ -183,6 +189,8 @@ public class EngineWorker implements EngineContext, Agent
 
     private static final int SHIFT_SIZE = 56;
 
+    private static final int NODE_SHIFT_SIZE = 48;
+
     private static final int SIGNAL_TASK_QUEUED = 1;
 
     private final FrameFW frameRO = new FrameFW();
@@ -198,6 +206,7 @@ public class EngineWorker implements EngineContext, Agent
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
 
     private final int localIndex;
+    private final byte selfNodeId;
     private final long affinity;
     private final EngineConfiguration config;
     private final String agentName;
@@ -208,6 +217,8 @@ public class EngineWorker implements EngineContext, Agent
     private final Collection<Guard> guards;
     private final Collection<Vault> vaults;
     private final Collection<Catalog> catalogs;
+    private final Collection<Embedding> embeddings;
+    private final Collection<Classifier> classifiers;
     private final Collection<Model> models;
     private final Collection<MetricGroup> metricGroups;
     private final Collection<Store> stores;
@@ -299,10 +310,13 @@ public class EngineWorker implements EngineContext, Agent
         Collection<Guard> guards,
         Collection<Vault> vaults,
         Collection<Catalog> catalogs,
+        Collection<Embedding> embeddings,
+        Collection<Classifier> classifiers,
         Collection<Model> models,
         Collection<MetricGroup> metricGroups,
         Collection<Store> stores,
         Router router,
+        byte nodeId,
         RouterConfig routerConfig,
         Collector collector,
         Supplier<MessageReader> supplyEventReader,
@@ -313,7 +327,8 @@ public class EngineWorker implements EngineContext, Agent
         EngineBoss boss)
     {
         this.localIndex = index;
-        this.affinity = (((long) config.nodeId() & 0xffL) << 24) | (index & 0x00ff_ffffL);
+        this.selfNodeId = nodeId;
+        this.affinity = (((long) selfNodeId & 0xffL) << 24) | (index & 0x00ff_ffffL);
         this.config = config;
         this.configPath = Path.of(config.configURI());
         this.localConfigPath = Optional.ofNullable(config.localConfigURI()).map(Path::of);
@@ -403,7 +418,7 @@ public class EngineWorker implements EngineContext, Agent
 
         final BufferPool bufferPool = bufferPoolLayout.bufferPool();
 
-        final long initial = ((long) index) << SHIFT_SIZE;
+        final long initial = (((long) index) << SHIFT_SIZE) | ((selfNodeId & 0xffL) << NODE_SHIFT_SIZE);
         final long mask = initial | (-1L >>> RESERVED_SIZE);
 
         this.mask = mask;
@@ -428,14 +443,17 @@ public class EngineWorker implements EngineContext, Agent
 
         this.routerConfig = routerConfig;
         EngineRouteable routeable = new EngineRouteable(config, this::newStream,
-            this::attachComposite, this::detachComposite);
+            this::attachComposite, this::detachComposite, this::supplyStore);
         this.router = router.supply(routeable);
+        this.streamFactory = this.router.streamFactory();
 
         this.bindings = bindings;
         this.exporters = exporters;
         this.guards = guards;
         this.vaults = vaults;
         this.catalogs = catalogs;
+        this.embeddings = embeddings;
+        this.classifiers = classifiers;
         this.models = models;
         this.metricGroups = metricGroups;
         this.stores = stores;
@@ -465,6 +483,12 @@ public class EngineWorker implements EngineContext, Agent
         return (int) (indexedId >> SHIFT_SIZE);
     }
 
+    public static int nodeOfId(
+        long indexedId)
+    {
+        return (int) ((indexedId >>> NODE_SHIFT_SIZE) & 0xffL);
+    }
+
     @Override
     public int index()
     {
@@ -475,6 +499,13 @@ public class EngineWorker implements EngineContext, Agent
     public long affinity()
     {
         return affinity;
+    }
+
+    @Override
+    public int indexOf(
+        long id)
+    {
+        return indexOfId(id);
     }
 
     @Override
@@ -541,16 +572,24 @@ public class EngineWorker implements EngineContext, Agent
 
     @Override
     public long supplyInitialId(
-        long bindingId,
+        long routedId,
         long affinityId)
     {
-        final int remoteIndex = resolveRemoteIndex(bindingId, affinityId);
+        final int remoteIndex = resolveRemoteIndex(routedId, affinityId);
 
         initialId += 2L;
         initialId &= mask;
 
         return (((long)remoteIndex << 48) & 0x00ff_0000_0000_0000L) |
                (initialId & 0xff00_0000_7fff_ffffL) | 0x0000_0000_0000_0001L;
+    }
+
+    @Override
+    public long resolveRoutedId(
+        long routedId,
+        long affinity)
+    {
+        return router.resolveRoutedId(routedId, affinity);
     }
 
     @Override
@@ -817,6 +856,22 @@ public class EngineWorker implements EngineContext, Agent
     }
 
     @Override
+    public EmbeddingHandler supplyEmbedding(
+        long embeddingId)
+    {
+        EmbeddingRegistry embedding = registry.resolveEmbedding(embeddingId);
+        return embedding != null ? embedding.handler() : null;
+    }
+
+    @Override
+    public ClassifierHandler supplyClassifier(
+        long classifierId)
+    {
+        ClassifierRegistry classifier = registry.resolveClassifier(classifierId);
+        return classifier != null ? classifier.handler() : null;
+    }
+
+    @Override
     public ModelHandler supplyModel(
         ModelConfig config)
     {
@@ -911,6 +966,7 @@ public class EngineWorker implements EngineContext, Agent
 
     public void doClose()
     {
+        Thread closing = thread;
         try
         {
             Consumer<Thread> timeout = t -> rethrowUnchecked(new IllegalStateException("close timeout"));
@@ -918,6 +974,8 @@ public class EngineWorker implements EngineContext, Agent
         }
         finally
         {
+            awaitTermination(closing);
+
             targetsByIndex.forEach((k, v) -> quietClose(v));
             quietClose(streamsLayout);
             quietClose(bufferPoolLayout);
@@ -925,6 +983,23 @@ public class EngineWorker implements EngineContext, Agent
             quietClose(creditor);
             quietClose(eventWriter);
             thread = null;
+        }
+    }
+
+    private static void awaitTermination(
+        Thread thread)
+    {
+        while (thread != null && thread.isAlive())
+        {
+            try
+            {
+                thread.join(SECONDS.toMillis(5L));
+            }
+            catch (InterruptedException ex)
+            {
+                Thread.currentThread().interrupt();
+                break;
+            }
         }
     }
 
@@ -985,8 +1060,6 @@ public class EngineWorker implements EngineContext, Agent
 
     private void doInit()
     {
-        this.streamFactory = router.attach(routerConfig);
-
         Map<String, BindingContext> bindingsByType = bindings.stream()
             .collect(toMap(Binding::name, b -> b.supply(this), (a, b) -> a, LinkedHashMap::new));
 
@@ -1038,6 +1111,36 @@ public class EngineWorker implements EngineContext, Agent
             }
         }
 
+        Map<String, EmbeddingContext> embeddingsByType = new LinkedHashMap<>();
+        for (Embedding embedding : embeddings)
+        {
+            String type = embedding.name();
+            Set<String> aliases = embedding.aliases();
+
+            EmbeddingContext context = embedding.supply(this);
+
+            embeddingsByType.put(type, context);
+            for (String alias : aliases)
+            {
+                embeddingsByType.put(alias, context);
+            }
+        }
+
+        Map<String, ClassifierContext> classifiersByType = new LinkedHashMap<>();
+        for (Classifier classifier : classifiers)
+        {
+            String type = classifier.name();
+            Set<String> aliases = classifier.aliases();
+
+            ClassifierContext context = classifier.supply(this);
+
+            classifiersByType.put(type, context);
+            for (String alias : aliases)
+            {
+                classifiersByType.put(alias, context);
+            }
+        }
+
         Map<String, StoreContext> storesByType = stores.stream()
             .collect(toMap(Store::name, s -> s.supply(this), (a, b) -> a, LinkedHashMap::new));
 
@@ -1055,8 +1158,9 @@ public class EngineWorker implements EngineContext, Agent
         }
 
         this.registry = new EngineRegistry(
-                bindingsByType::get, guardsByType::get, vaultsByType::get, catalogsByType::get, metricsByName::get,
-                exportersByType::get, storesByType::get, router::supplyLabelId, this::onExporterAttached,
+                bindingsByType::get, guardsByType::get, vaultsByType::get, catalogsByType::get, embeddingsByType::get,
+                classifiersByType::get,
+                metricsByName::get, exportersByType::get, storesByType::get, router::supplyLabelId, this::onExporterAttached,
                 this::onExporterDetached, this::supplyMetricWriter, this::detachStreams, collector, process);
 
         if (!readonly)
@@ -1184,6 +1288,28 @@ public class EngineWorker implements EngineContext, Agent
             writeBindingTypes(registry);
         }
         return detachTask.future();
+    }
+
+    public CompletableFuture<Void> attachRouter(
+        RouterConfig config)
+    {
+        assert thread != Thread.currentThread();
+
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        dispatch(() ->
+        {
+            try
+            {
+                router.attach(config);
+                future.complete(null);
+            }
+            catch (Throwable ex)
+            {
+                future.completeExceptionally(ex);
+            }
+        });
+
+        return future;
     }
 
     public AgentRunner runner()
@@ -2181,23 +2307,13 @@ public class EngineWorker implements EngineContext, Agent
     }
 
     private int resolveRemoteIndex(
-        long bindingId,
+        long routedId,
         long affinityId)
     {
-        final Affinity affinity = supplyAffinity(bindingId);
-        final BitSet mask = affinity.mask;
-        final int cardinality = mask.cardinality();
+        final boolean isLocalNode = ((affinityId >>> 24) & 0xffL) == ((long) selfNodeId & 0xffL);
+        final int index = isLocalNode ? (int)(affinityId & 0x00ff_ffffL) : -1;
 
-        assert cardinality != 0;
-
-        // pick the n-th set bit of the mask, where n = floorMod(affinityId, cardinality)
-        int slot = Math.floorMod(affinityId, cardinality);
-        int remoteIndex = mask.nextSetBit(0);
-        while (slot-- > 0)
-        {
-            remoteIndex = mask.nextSetBit(remoteIndex + 1);
-        }
-        return remoteIndex;
+        return index >= 0 && index < config.workers() ? index : resolveRemoteIndex(routedId);
     }
 
     private Affinity supplyAffinity(

@@ -14,12 +14,19 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
+
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
+import io.aklivity.zilla.runtime.engine.model.ModelRejection;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 
 // Per-stream pipeline for a bytes/string model with at least one installed stage. The value streams
@@ -38,9 +45,6 @@ import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 // fragment arrives as a further segment of the same value.
 abstract class CoreExtModelPipeline implements ModelPipeline
 {
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_FIN = 0x01;
-
     private enum Phase
     {
         START,
@@ -70,6 +74,7 @@ abstract class CoreExtModelPipeline implements ModelPipeline
     private int reported;
     private String diagnostic;
     private boolean withheld;
+    private long authorization;
 
     CoreExtModelPipeline(
         CoreModelHandler handler,
@@ -102,18 +107,19 @@ abstract class CoreExtModelPipeline implements ModelPipeline
         int dstIndex,
         int dstLimit)
     {
-        if ((flags & FLAGS_INIT) != 0x00)
+        if (hasInit(flags))
         {
             reset();
         }
 
+        this.authorization = authorization;
         target = dst;
         targetAt = dstIndex;
         targetLimit = dstLimit;
         reported = 0;
 
         int srcLength = srcLimit - srcIndex;
-        boolean last = (flags & FLAGS_FIN) != 0x00;
+        boolean last = hasFin(flags);
         segment.wrap(src, srcIndex, srcLength);
 
         ModelStatus pumped = pump(srcLength, last);
@@ -121,13 +127,19 @@ abstract class CoreExtModelPipeline implements ModelPipeline
         ModelStatus status;
         int consumed;
         int produced;
+        ModelRejection rejection = null;
         if (pumped == ModelStatus.REJECTED)
         {
             // withholding is a stage's own decision about a value it found nothing wrong with, so it
             // raises no event; rejecting is a failure, reported with whatever diagnostic the stage gave
-            if (!withheld)
+            if (withheld)
+            {
+                rejection = ModelRejection.WITHHELD;
+            }
+            else
             {
                 report(traceId, bindingId);
+                rejection = ModelRejection.INVALID;
             }
 
             status = ModelStatus.REJECTED;
@@ -150,6 +162,7 @@ abstract class CoreExtModelPipeline implements ModelPipeline
                 status = ModelStatus.REJECTED;
                 consumed = 0;
                 produced = 0;
+                rejection = ModelRejection.INVALID;
             }
             else
             {
@@ -159,7 +172,7 @@ abstract class CoreExtModelPipeline implements ModelPipeline
                 produced = targetAt - dstIndex;
             }
         }
-        return result.set(status, consumed, produced);
+        return result.set(status, consumed, produced, rejection);
     }
 
     @Override
@@ -201,6 +214,16 @@ abstract class CoreExtModelPipeline implements ModelPipeline
         int index,
         int length)
     {
+        if (target.isExpandable())
+        {
+            final int required = targetAt + length;
+            if (required > target.capacity())
+            {
+                target.checkLimit(required);
+            }
+            targetLimit = Math.max(targetLimit, target.capacity());
+        }
+
         int written = Math.min(targetLimit - targetAt, length);
         target.putBytes(targetAt, buffer, index, written);
         targetAt += written;
@@ -215,6 +238,11 @@ abstract class CoreExtModelPipeline implements ModelPipeline
     protected final ModelEnvelope envelope()
     {
         return envelope;
+    }
+
+    protected final long authorization()
+    {
+        return authorization;
     }
 
     protected final void consumed(
@@ -319,7 +347,7 @@ abstract class CoreExtModelPipeline implements ModelPipeline
         boolean fin = tail && !finished;
         if (consumed > 0 || fin)
         {
-            int fragmentFlags = (initial ? FLAGS_INIT : 0x00) | (fin ? FLAGS_FIN : 0x00);
+            int fragmentFlags = (initial ? INIT : NONE) | (fin ? FIN : NONE);
             validity = validator.validate(fragmentFlags, src, srcIndex, consumed);
             initial = false;
             finished |= fin;

@@ -29,6 +29,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufParser;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufParsingException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufType;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufWellKnownTypes;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 
 /**
@@ -125,7 +126,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     // prefix counts the whole value and stays open until the last chunk
     private int valueRemaining;
     private ProtobufField valueField;
-    private boolean valueClosesMapEntry;
+    private int valueCloseDepth;
 
     private boolean last;
     private boolean primed;
@@ -169,6 +170,12 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     public boolean identity()
     {
         return false;
+    }
+
+    @Override
+    public boolean deterministic()
+    {
+        return parser.deterministic();
     }
 
     @Override
@@ -470,6 +477,14 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
         {
             progress = starve();
         }
+        else if ((token == JsonEvent.VALUE_STRING || token == JsonEvent.VALUE_NUMBER) && parser.deferredBytes())
+        {
+            // this scalar value needs its whole lexeme before it can be dispatched; a fragment still
+            // incomplete (parser.deferredBytes()) is left unacted-on and re-pulled next step, the same as
+            // messageStep's/mapStep's KEY_NAME handling -- the parser's own accumulation reassembles it, so
+            // the eventually-delivered event carries the whole value, never a prefix
+            progress = true;
+        }
         else
         {
             frame.pendingField = null;
@@ -493,10 +508,22 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
             depth--;
             progress = true;
         }
+        else if ((token == JsonEvent.VALUE_STRING || token == JsonEvent.VALUE_NUMBER) && parser.deferredBytes())
+        {
+            // see valueStep(): a fragment still incomplete is left unacted-on and re-pulled next step
+            progress = true;
+        }
         else
         {
             ProtobufField field = frame.field;
-            if (field.composite())
+            if (wrapper(field))
+            {
+                if (token != JsonEvent.VALUE_NULL)
+                {
+                    emitWrapperValue(field, token, 0);
+                }
+            }
+            else if (field.composite())
             {
                 expectStartObject(token);
                 boolean group = field.type() == ProtobufType.GROUP;
@@ -507,7 +534,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
             else if (token != JsonEvent.VALUE_NULL)
             {
                 enqueue(ProtobufEvent.FIELD, field, null);
-                emitValue(field, token, false);
+                emitValue(field, token, 0);
             }
             progress = true;
         }
@@ -558,11 +585,27 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
             {
                 progress = starve();
             }
+            else if ((token == JsonEvent.VALUE_STRING || token == JsonEvent.VALUE_NUMBER) && parser.deferredBytes())
+            {
+                // see valueStep(): a fragment still incomplete is left unacted-on and re-pulled next step
+                progress = true;
+            }
             else
             {
                 ProtobufField valueField = frame.message.field(2);
                 frame.mapStep = 0;
-                if (valueField.composite())
+                if (wrapper(valueField))
+                {
+                    if (token == JsonEvent.VALUE_NULL)
+                    {
+                        enqueue(ProtobufEvent.END_MESSAGE, null, null);
+                    }
+                    else
+                    {
+                        emitWrapperValue(valueField, token, 1);
+                    }
+                }
+                else if (valueField.composite())
                 {
                     expectStartObject(token);
                     boolean group = valueField.type() == ProtobufType.GROUP;
@@ -577,7 +620,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
                 else
                 {
                     enqueue(ProtobufEvent.FIELD, valueField, null);
-                    emitValue(valueField, token, true);
+                    emitValue(valueField, token, 1);
                 }
                 progress = true;
             }
@@ -606,6 +649,10 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
             }
             push(Kind.ARRAY, null, field, false, false);
         }
+        else if (wrapper(field))
+        {
+            emitWrapperValue(field, token, 0);
+        }
         else if (field.composite())
         {
             expectStartObject(token);
@@ -617,7 +664,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
         else
         {
             enqueue(ProtobufEvent.FIELD, field, null);
-            emitValue(field, token, false);
+            emitValue(field, token, 0);
         }
     }
 
@@ -707,30 +754,61 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     }
 
     // a field value: a string/bytes value begins a bounded streaming run (FIELD already enqueued), every other
-    // scalar decodes whole and enqueues its single VALUE. closesMapEntry defers the map-entry END_MESSAGE until
-    // the (possibly multi-chunk) value finishes
+    // scalar decodes whole and enqueues its single VALUE. closeDepth defers that many END_MESSAGE events (an
+    // enclosing map entry, an enclosing wrapper submessage, or both) until the (possibly multi-chunk) value
+    // finishes
     private void emitValue(
         ProtobufField field,
         JsonEvent token,
-        boolean closesMapEntry)
+        int closeDepth)
     {
         switch (field.type())
         {
         case STRING:
-            beginStringStream(field, parser.getStringView(), closesMapEntry);
+            beginStringStream(field, parser.getStringView(), closeDepth);
             break;
         case BYTES:
-            beginBytesStream(field, parser.getStringView(), closesMapEntry);
+            beginBytesStream(field, parser.getStringView(), closeDepth);
             break;
         default:
             decodeScalar(field, token);
             enqueue(ProtobufEvent.VALUE, field, null);
-            if (closesMapEntry)
-            {
-                enqueue(ProtobufEvent.END_MESSAGE, null, null);
-            }
+            enqueueCloses(closeDepth);
             break;
         }
+    }
+
+    // a wrapper-typed field (one of the nine google.protobuf well-known scalar wrappers) reads a bare JSON
+    // scalar and re-synthesizes the submessage boundary the wire generator still needs — FIELD, START_MESSAGE,
+    // FIELD(value), the value itself, END_MESSAGE — from the one token already in hand; there is no nested
+    // JSON object to open or close for it. extraCloseDepth additionally closes an enclosing map entry once the
+    // value and this wrapper's own END_MESSAGE complete
+    private void emitWrapperValue(
+        ProtobufField field,
+        JsonEvent token,
+        int extraCloseDepth)
+    {
+        ProtobufMessage message = field.message();
+        ProtobufField valueField = message.field(1);
+        enqueue(ProtobufEvent.FIELD, field, null);
+        enqueue(ProtobufEvent.START_MESSAGE, null, message);
+        enqueue(ProtobufEvent.FIELD, valueField, null);
+        emitValue(valueField, token, 1 + extraCloseDepth);
+    }
+
+    private void enqueueCloses(
+        int closeDepth)
+    {
+        for (int i = 0; i < closeDepth; i++)
+        {
+            enqueue(ProtobufEvent.END_MESSAGE, null, null);
+        }
+    }
+
+    private static boolean wrapper(
+        ProtobufField field)
+    {
+        return ProtobufWellKnownTypes.wrapper(field.typeName());
     }
 
     // a map key (FIELD already enqueued, no map-entry END_MESSAGE follows): a string key streams; the other
@@ -742,7 +820,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
         switch (keyField.type())
         {
         case STRING:
-            beginStringStream(keyField, text, false);
+            beginStringStream(keyField, text, 0);
             break;
         case BOOL:
             longValue = "true".contentEquals(text) ? 1L : 0L;
@@ -813,7 +891,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     private void beginStringStream(
         ProtobufField field,
         CharSequence value,
-        boolean closesMapEntry)
+        int closeDepth)
     {
         valueStreaming = true;
         valueString = true;
@@ -821,7 +899,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
         valueCursor = 0;
         valueSourceLength = value.length();
         valueField = field;
-        valueClosesMapEntry = closesMapEntry;
+        valueCloseDepth = closeDepth;
         valueRemaining = utf8Length(value);
         refillStringChunk();
         enqueue(ProtobufEvent.VALUE, field, null);
@@ -832,7 +910,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
     private void beginBytesStream(
         ProtobufField field,
         CharSequence value,
-        boolean closesMapEntry)
+        int closeDepth)
     {
         valueStreaming = true;
         valueString = false;
@@ -840,7 +918,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
         valueCursor = 0;
         valueSourceLength = base64SignificantLength(value);
         valueField = field;
-        valueClosesMapEntry = closesMapEntry;
+        valueCloseDepth = closeDepth;
         valueRemaining = base64DecodedLength(value, valueSourceLength);
         refillBytesChunk();
         enqueue(ProtobufEvent.VALUE, field, null);
@@ -848,7 +926,8 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
 
     // drive the in-flight streaming value: when the current chunk is fully drained, stage the next bounded run
     // (resetting the output-pushback cursor) and enqueue another VALUE; when the source is exhausted, close the
-    // run and emit the deferred map-entry END_MESSAGE if any
+    // run and emit the deferred END_MESSAGE events (an enclosing map entry, an enclosing wrapper submessage, or
+    // both) if any
     private boolean streamValueStep()
     {
         if (valueCursor < valueSourceLength)
@@ -867,10 +946,7 @@ public final class ProtobufJsonParserImpl implements ProtobufParser
         {
             valueStreaming = false;
             valueSource = null;
-            if (valueClosesMapEntry)
-            {
-                enqueue(ProtobufEvent.END_MESSAGE, null, null);
-            }
+            enqueueCloses(valueCloseDepth);
         }
         return true;
     }

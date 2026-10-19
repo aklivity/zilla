@@ -22,8 +22,8 @@ package io.aklivity.zilla.runtime.common.json;
  * {@link JsonReporter#rejected(JsonDiagnostic)} callback. A reporter that needs to retain any of it must
  * copy the value out immediately, before returning.
  * <p>
- * Starts with {@link #message()}; structured accessors (byte offset, JSON pointer, category) may be added
- * without changing the pipeline's {@code Status} contract.
+ * Starts with {@link #message()}; structured accessors (byte offset, JSON pointer) may be added without
+ * changing the pipeline's {@code Status} contract.
  */
 public interface JsonDiagnostic
 {
@@ -32,4 +32,32 @@ public interface JsonDiagnostic
      * violation, or truncated input — or {@code null} when the rejecting component supplied no message.
      */
     String message();
+
+    /**
+     * The category of failure this rejection stems from.
+     */
+    Category category();
+
+    /**
+     * Distinguishes a genuinely invalid or malformed value from any other rejection reason, so a reporter
+     * need not assume every rejection is a validation failure.
+     */
+    enum Category
+    {
+        /**
+         * The value's syntax could not be parsed at all — e.g. malformed JSON.
+         */
+        PARSING,
+
+        /**
+         * The value parsed but does not conform to its schema — a schema-constraint violation.
+         */
+        VALIDATION,
+
+        /**
+         * The rejection stems from some other cause — e.g. an exception thrown by an extension's own
+         * transform logic — rather than the value itself being invalid.
+         */
+        TRANSFORM
+    }
 }

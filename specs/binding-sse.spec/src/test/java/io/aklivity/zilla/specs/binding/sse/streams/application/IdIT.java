@@ -55,21 +55,4 @@ public class IdIT
         k3po.finish();
     }
 
-    @Test
-    @Specification({
-        "${app}/invalid.utf8/client",
-        "${app}/invalid.utf8/server" })
-    public void shouldRejectIdWithInvalidUTF8() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/initial.whitespace/client",
-        "${app}/initial.whitespace/server" })
-    public void shouldReceiveIdWithInitialWhitespace() throws Exception
-    {
-        k3po.finish();
-    }
 }

@@ -44,15 +44,15 @@ write zilla:begin.ext ${mcp:beginEx()
                            .toolsCall()
                                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                                .name("update_connector_config")
-                               .contentLength(126)
+                               .contentLength(177)
                                .build()
                            .build()}
 
 connected
 
-write '{"name":"update_connector_config","arguments":{"connector":"connector1","connector.class":"FileStreamSource","tasks.max":"2"}}'
+write '{"name":"update_connector_config","arguments":{"connector":"connector1","connector.class":"FileStreamSource","tasks.max":"2","file":"/tmp/kc-source.txt","topic":"connect-demo"}}'
 
-read  '{"structuredContent":{"name":"connector1","config":{"connector.class":"FileStreamSource","tasks.max":"2"},"tasks":[],"type":"source"},"content":[{"type":"text","text":"Updated connector config for connector1"}],"isError":false}'
+read  '{"structuredContent":{"name":"connector1","config":{"connector.class":"FileStreamSource","tasks.max":"2","file":"/tmp/kc-source.txt","topic":"connect-demo"},"tasks":[],"type":"source"},"content":[{"type":"text","text":"Updated connector config for connector1"}],"isError":false}'
 read closed
 
 write close

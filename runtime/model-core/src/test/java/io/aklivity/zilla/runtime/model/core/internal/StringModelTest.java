@@ -45,12 +45,6 @@ public class StringModelTest
         StringModelExt ext = new StringModelExt()
         {
             @Override
-            public String name()
-            {
-                return "test";
-            }
-
-            @Override
             public StringModelExtContext supply(
                 EngineContext context)
             {

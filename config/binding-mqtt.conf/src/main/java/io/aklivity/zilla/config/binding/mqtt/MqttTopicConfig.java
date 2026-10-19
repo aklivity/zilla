@@ -26,15 +26,23 @@ public class MqttTopicConfig extends Config
     public final String name;
     public final ModelConfig content;
     public final List<MqttUserPropertyConfig> userProperties;
+    private final List<Config.Reference> refs;
 
     public MqttTopicConfig(
         String name,
         ModelConfig content,
-        List<MqttUserPropertyConfig> userProperties)
+        List<MqttUserPropertyConfig> userProperties,
+        List<Config.Reference> refs)
     {
         this.name = name;
         this.content = content;
         this.userProperties = userProperties;
+        this.refs = refs;
+    }
+
+    public List<Config.Reference> refs()
+    {
+        return refs;
     }
 
     public static MqttTopicConfigBuilder<MqttTopicConfig> builder()

@@ -81,6 +81,12 @@ public final class KafkaState
         return state | REPLY_OPENING;
     }
 
+    static int openReply(
+        int state)
+    {
+        return state | REPLY_OPENED;
+    }
+
     static int openedReply(
         int state)
     {

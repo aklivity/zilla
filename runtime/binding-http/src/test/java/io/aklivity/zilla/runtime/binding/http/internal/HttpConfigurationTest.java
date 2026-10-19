@@ -20,12 +20,18 @@ import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_MAX_FRAME_SIZE;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_MAX_HEADER_LIST_SIZE;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_SERVER_HEADER;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_SSE_INITIAL_COMMENT_ENABLED;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_SSE_MAXIMUM_IDLE_TIME;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_STREAMS_CLEANUP_DELAY;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_STREAM_INITIAL_WINDOW;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_USER_AGENT_HEADER;
 import static org.junit.Assert.assertEquals;
 
+import java.util.Properties;
+
 import org.junit.Test;
+
+import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class HttpConfigurationTest
 {
@@ -38,6 +44,9 @@ public class HttpConfigurationTest
     public static final String HTTP_MAX_FRAME_SIZE_NAME = "zilla.binding.http.max.frame.size";
     public static final String HTTP_MAX_CONCURRENT_STREAMS_CLEANUP_NAME = "zilla.binding.http.max.concurrent.streams.cleanup";
     public static final String HTTP_STREAMS_CLEANUP_DELAY_NAME = "zilla.binding.http.streams.cleanup.delay";
+    public static final String HTTP_SSE_INITIAL_COMMENT_ENABLED_NAME =
+        "zilla.binding.http.sse.initial.comment.enabled";
+    public static final String HTTP_SSE_MAXIMUM_IDLE_TIME_NAME = "zilla.binding.http.sse.maximum.idle.time";
 
     @Test
     public void shouldVerifyConstants() throws Exception
@@ -50,5 +59,32 @@ public class HttpConfigurationTest
         assertEquals(HTTP_MAX_FRAME_SIZE.name(), HTTP_MAX_FRAME_SIZE_NAME);
         assertEquals(HTTP_MAX_CONCURRENT_STREAMS_CLEANUP.name(), HTTP_MAX_CONCURRENT_STREAMS_CLEANUP_NAME);
         assertEquals(HTTP_STREAMS_CLEANUP_DELAY.name(), HTTP_STREAMS_CLEANUP_DELAY_NAME);
+        assertEquals(HTTP_SSE_INITIAL_COMMENT_ENABLED.name(), HTTP_SSE_INITIAL_COMMENT_ENABLED_NAME);
+        assertEquals(HTTP_SSE_MAXIMUM_IDLE_TIME.name(), HTTP_SSE_MAXIMUM_IDLE_TIME_NAME);
+    }
+
+    @Test
+    public void shouldDefaultToSseProperties() throws Exception
+    {
+        final Properties properties = new Properties();
+        properties.setProperty("zilla.binding.sse.initial.comment.enabled", "true");
+        properties.setProperty("zilla.binding.sse.maximum.idle.time", "7");
+
+        final HttpConfiguration config = new HttpConfiguration(new Configuration(properties));
+
+        assertEquals(true, config.sseInitialCommentEnabled());
+        assertEquals(7, config.sseMaximumIdleTime());
+    }
+
+    @Test
+    public void shouldOverrideSsePropertiesWithHttpSseProperties() throws Exception
+    {
+        final Properties properties = new Properties();
+        properties.setProperty("zilla.binding.sse.maximum.idle.time", "7");
+        properties.setProperty(HTTP_SSE_MAXIMUM_IDLE_TIME_NAME, "3");
+
+        final HttpConfiguration config = new HttpConfiguration(new Configuration(properties));
+
+        assertEquals(3, config.sseMaximumIdleTime());
     }
 }

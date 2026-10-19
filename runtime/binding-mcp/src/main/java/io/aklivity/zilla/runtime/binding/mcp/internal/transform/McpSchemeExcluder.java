@@ -49,9 +49,9 @@ public final class McpSchemeExcluder implements JsonTransform
     private boolean armMatching;
     private int armMatchOffset;
     private boolean armMatchDiverged;
-    // True once the current element key (at arrayDepth + 1) has been declined across more than one
-    // fragment -- see onElementKey.
-    private boolean elementKeyFragmented;
+    // True once the first fragment of the current element key (at arrayDepth + 1) could not be
+    // securitySchemes, so the key and its remaining fragments are forwarded as they arrive -- see onElementKey.
+    private boolean elementKeyVerbatim;
 
     public McpSchemeExcluder(
         String arrayKey)
@@ -69,7 +69,7 @@ public final class McpSchemeExcluder implements JsonTransform
         armMatching = false;
         armMatchOffset = 0;
         armMatchDiverged = false;
-        elementKeyFragmented = false;
+        elementKeyVerbatim = false;
     }
 
     @Override
@@ -142,6 +142,12 @@ public final class McpSchemeExcluder implements JsonTransform
         return sink.flush(mediator, source);
     }
 
+    @Override
+    public boolean deterministic()
+    {
+        return true;
+    }
+
     // dispatches to whichever position-specific key check applies, or forwards immediately when neither
     // the arm key nor a candidate element key is possible at the current depth
     private Status onKey(
@@ -211,39 +217,58 @@ public final class McpSchemeExcluder implements JsonTransform
     }
 
     // drops the securitySchemes member of a direct array element. The drop decision needs the whole key, so
-    // a fragmented key is declined (consumed(0)) rather than forwarded fragment by fragment -- byte-for-byte
-    // verbatim delivery is only physically possible for bytes forwarded as they arrive, so once the source
-    // re-presents this key complete, a key that fragmented and turns out NOT to be securitySchemes is
-    // forwarded canonically rather than verbatim (elementKeyFragmented), a narrow, deliberate trade-off in
-    // favor of never failing to withhold a matching key.
+    // while a key fragment could still turn out to be securitySchemes it is declined with consumed(0); a verbatim
+    // sink makes the source leave it unconsumed, with the separator ahead of it, to be re-presented once the
+    // window holds more of it. A key that turns out to be something else is then forwarded with its original
+    // bytes, while a matching key is dropped along with its separator and leaves no prefix behind. A fragment
+    // that cannot match is forwarded as it arrives, like any other key.
     private Status onElementKey(
         JsonController control,
         JsonSource source,
         JsonEvent event,
         JsonSink sink)
     {
+        final CharSequence key = source.getStringView();
+        final boolean complete = !source.deferredBytes();
         Status status;
-        if (source.deferredBytes())
+        if (elementKeyVerbatim)
         {
-            elementKeyFragmented = true;
+            elementKeyVerbatim = !complete;
+            status = sink.transform(mediator, source, forward(event));
+        }
+        else if (!complete && securitySchemesPrefix(key))
+        {
             control.consumed(0);
             status = Status.STARVED;
         }
-        else if (SECURITY_SCHEMES.contentEquals(source.getStringView()))
+        else if (!complete)
+        {
+            elementKeyVerbatim = true;
+            status = sink.transform(mediator, source, forward(event));
+        }
+        else if (SECURITY_SCHEMES.contentEquals(key))
         {
             // drop the matched member: the source advances past its key, separator, and value and folds in the
             // leading-separator trim, so no sub-event of the dropped value reaches this stage or the sink
-            elementKeyFragmented = false;
             source.skipValue();
             status = Status.ADVANCED;
         }
         else
         {
-            JsonEvent toForward = elementKeyFragmented ? event : forward(event);
-            elementKeyFragmented = false;
-            status = sink.transform(mediator, source, toForward);
+            status = sink.transform(mediator, source, forward(event));
         }
         return status;
+    }
+
+    private static boolean securitySchemesPrefix(
+        CharSequence key)
+    {
+        boolean prefix = key.length() <= SECURITY_SCHEMES.length();
+        for (int i = 0; prefix && i < key.length(); i++)
+        {
+            prefix = key.charAt(i) == SECURITY_SCHEMES.charAt(i);
+        }
+        return prefix;
     }
 
     // Re-asserts verbatim downstream once the sink has opted in: a body event (a scalar, key, or structural
@@ -272,6 +297,7 @@ public final class McpSchemeExcluder implements JsonTransform
         public void verbatim()
         {
             downstreamVerbatim = true;
+            upstream.verbatim();
         }
 
         @Override

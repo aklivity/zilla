@@ -29,6 +29,7 @@ public final class McpOpenapiRouteConfig
     public final List<McpOpenapiConditionConfig> when;
     public final McpOpenapiWithConfig with;
     public final List<GuardedConfig> guarded;
+    public final String exit;
 
     public McpOpenapiRouteConfig(
         RouteConfig route)
@@ -39,6 +40,7 @@ public final class McpOpenapiRouteConfig
             .collect(toList());
         this.with = (McpOpenapiWithConfig) route.with;
         this.guarded = route.guarded;
+        this.exit = route.exit != null ? route.qname() : null;
     }
 
     public boolean isBulk()

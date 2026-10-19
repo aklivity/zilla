@@ -22,6 +22,13 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffset
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType.LIVE;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW.Builder.DEFAULT_MINIMUM;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_ID;
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INCOMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -119,12 +126,6 @@ public final class KafkaMergedFactory implements BindingHandler
     private static final int ERROR_NOT_LEADER_FOR_PARTITION = 6;
     private static final int ERROR_UNKNOWN = -1;
     private static final int ERROR_INVALID_RECORD = 87;
-
-    private static final int FLAGS_NONE = 0x00;
-    private static final int FLAGS_FIN = 0x01;
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_INCOMPLETE = 0x04;
-    private static final int FLAGS_INIT_AND_FIN = FLAGS_INIT | FLAGS_FIN;
 
     private static final int DYNAMIC_PARTITION = -1;
 
@@ -1231,7 +1232,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
                 if (producer == null)
                 {
-                    assert (flags & FLAGS_INIT) != FLAGS_NONE;
+                    assert hasInit(flags);
 
                     final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
                     final KafkaDataExFW kafkaDataEx = dataEx != null && dataEx.typeId() == kafkaTypeId ?
@@ -1259,7 +1260,7 @@ public final class KafkaMergedFactory implements BindingHandler
                 {
                     producer.doProduceInitialData(traceId, reserved, flags, budgetId, payload, extension);
 
-                    if ((flags & FLAGS_FIN) != FLAGS_NONE)
+                    if (hasFin(flags))
                     {
                         this.producer = null;
                     }
@@ -1715,7 +1716,7 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             Flyweight newKafkaDataEx = EMPTY_OCTETS;
 
-            if (flags != 0x00)
+            if (flags != NONE)
             {
                 assert kafkaDataEx != null;
 
@@ -1798,16 +1799,21 @@ public final class KafkaMergedFactory implements BindingHandler
                 initialMaxRW.value = Integer.MAX_VALUE;
                 produceStreams.forEach(p -> initialNoAckRW.value = Math.max(p.initialNoAck(), initialNoAckRW.value));
                 produceStreams.forEach(p -> initialPadRW.value = Math.max(p.initialPad, initialPadRW.value));
-                produceStreams.forEach(p -> initialMaxRW.value = Math.min(p.initialMax, initialMaxRW.value));
-
-                if (producer != null)
-                {
-                    initialMaxRW.value = Math.max(producer.initialMax, initialMaxRW.value);
-                }
+                // a partition carrying the traffic holds its acknowledge and grows its maximum, while
+                // idle partitions keep the maximum they started with, so minimizing the maximum here
+                // would pair the busiest partition's unacknowledged bytes with an idle partition's
+                // maximum and shrink this window to nothing; minimize the budget each one offers
+                produceStreams.forEach(p -> initialMaxRW.value =
+                    Math.min(p.initialMax - p.initialNoAck(), initialMaxRW.value));
 
                 maxInitialNoAck = initialNoAckRW.value;
                 maxInitialPad = initialPadRW.value;
-                minInitialMax = initialMaxRW.value;
+                minInitialMax = initialMaxRW.value + maxInitialNoAck;
+
+                if (producer != null)
+                {
+                    minInitialMax = Math.max(producer.initialMax, minInitialMax);
+                }
             }
 
             final long newInitialAck = Math.max(initialSeq - maxInitialNoAck, initialAck);
@@ -3987,7 +3993,7 @@ public final class KafkaMergedFactory implements BindingHandler
             Flyweight newKafkaDataEx = EMPTY_OCTETS;
 
             final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
-            if (flags != FLAGS_NONE && flags != FLAGS_INCOMPLETE && dataEx != null)
+            if (flags != NONE && flags != INCOMPLETE && dataEx != null)
             {
                 final KafkaDataExFW kafkaDataEx = dataEx.typeId() == kafkaTypeId ?
                         extension.get(kafkaDataExRO::tryWrap) : null;
@@ -4010,8 +4016,8 @@ public final class KafkaMergedFactory implements BindingHandler
 
                 switch (flags)
                 {
-                case FLAGS_INIT_AND_FIN:
-                case FLAGS_INIT:
+                case COMPLETE:
+                case INIT:
                     newKafkaDataEx = kafkaDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
                             .typeId(kafkaTypeId)
                             .produce(pr -> pr
@@ -4032,7 +4038,7 @@ public final class KafkaMergedFactory implements BindingHandler
                                         .value(h.value())))))
                             .build();
                     break;
-                case FLAGS_FIN:
+                case FIN:
                     newKafkaDataEx = kafkaDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
                             .typeId(kafkaTypeId)
                             .produce(pr -> pr.headers(hs -> headers.forEach(h -> hs.item(i -> i.nameLen(h.nameLen())

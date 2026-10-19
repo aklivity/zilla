@@ -136,6 +136,10 @@ public final class ProtobufSourceCompiler
         for (DraftMessage message : draft.messages)
         {
             ProtobufMessage.Builder builder = ProtobufMessage.builder(message.fullName).mapEntry(message.mapEntry);
+            if (message.options != null)
+            {
+                builder.options(message.options);
+            }
             for (DraftField field : message.fields)
             {
                 builder.field(linkField(field, draft.proto3, names));
@@ -317,6 +321,7 @@ public final class ProtobufSourceCompiler
         private final String fullName;
         private final boolean mapEntry;
         private final List<DraftField> fields;
+        private Map<String, ProtobufConstant> options;
 
         private DraftMessage(
             String fullName,
@@ -436,6 +441,18 @@ public final class ProtobufSourceCompiler
             scope.addLast(name);
         }
 
+        private void addMessageOption(
+            String name,
+            ProtobufConstant value)
+        {
+            DraftMessage message = messages.peek();
+            if (message.options == null)
+            {
+                message.options = new LinkedHashMap<>();
+            }
+            message.options.put(name, value);
+        }
+
         private void exitMessage()
         {
             messages.pop();
@@ -543,6 +560,16 @@ public final class ProtobufSourceCompiler
             Protobuf3Parser.MessageDefContext ctx)
         {
             helper.enterMessage(ctx.messageName().getText());
+        }
+
+        @Override
+        public void enterOptionStatement(
+            Protobuf3Parser.OptionStatementContext ctx)
+        {
+            if (ctx.getParent() instanceof Protobuf3Parser.MessageElementContext)
+            {
+                helper.addMessageOption(ctx.optionName().getText(), toConstant(ctx.constant()));
+            }
         }
 
         @Override
@@ -783,6 +810,16 @@ public final class ProtobufSourceCompiler
             Protobuf2Parser.MessageDefContext ctx)
         {
             helper.enterMessage(ctx.messageName().getText());
+        }
+
+        @Override
+        public void enterOptionStatement(
+            Protobuf2Parser.OptionStatementContext ctx)
+        {
+            if (ctx.getParent() instanceof Protobuf2Parser.MessageElementContext)
+            {
+                helper.addMessageOption(ctx.optionName().getText(), toConstant(ctx.constant()));
+            }
         }
 
         @Override

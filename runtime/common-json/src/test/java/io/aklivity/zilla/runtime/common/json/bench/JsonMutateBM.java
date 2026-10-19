@@ -230,6 +230,12 @@ public class JsonMutateBM
             downstreamVerbatim = false;
             depth = 0;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     }
 
     // Drops a named top-level field via a single source.skipValue() on the matched KEY_NAME; allocation-free
@@ -316,6 +322,12 @@ public class JsonMutateBM
         {
             downstreamVerbatim = false;
             depth = 0;
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
         }
     }
 
@@ -431,6 +443,12 @@ public class JsonMutateBM
         {
             downstreamVerbatim = false;
             depth = 0;
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
         }
     }
 

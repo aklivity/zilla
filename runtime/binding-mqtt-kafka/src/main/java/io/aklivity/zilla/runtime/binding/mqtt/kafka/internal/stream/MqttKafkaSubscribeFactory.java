@@ -20,6 +20,8 @@ import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSu
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSubscribeFlags.SEND_RETAINED;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 import static java.lang.System.currentTimeMillis;
 import static java.time.Instant.now;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -104,8 +106,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     private static final int RETAIN_FLAG = 1 << RETAIN.ordinal();
     private static final int RETAIN_AS_PUBLISHED_FLAG = 1 << RETAIN_AS_PUBLISHED.ordinal();
     private static final int SIGNAL_CONNECT_BOOTSTRAP_STREAM = 1;
-    private static final int DATA_FLAG_INIT = 0x02;
-    private static final int DATA_FLAG_FIN = 0x01;
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
     private static final String16FW EMPTY_STRING = new String16FW("");
     private static final int OFFSET_METADATA_VERSION = 2;
@@ -1282,7 +1282,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 final int deferred = kafkaMergedDataEx != null ? kafkaMergedDataEx.fetch().deferred() : 0;
 
                 Flyweight mqttSubscribeDataEx = EMPTY_OCTETS;
-                if ((flags & DATA_FLAG_INIT) != 0x00 && key != null)
+                if (hasInit(flags) && key != null)
                 {
                     String topicName = kafkaMergedDataEx.fetch().key().value()
                         .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o));
@@ -1418,7 +1418,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                     }
                 }
 
-                if ((flags & DATA_FLAG_FIN) != 0x00)
+                if (hasFin(flags))
                 {
                     expiredMessage = false;
                 }
@@ -2053,7 +2053,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 final int deferred = kafkaMergedDataEx != null ? kafkaMergedDataEx.fetch().deferred() : 0;
 
                 Flyweight mqttSubscribeDataEx = EMPTY_OCTETS;
-                if ((flags & DATA_FLAG_INIT) != 0x00 && key != null)
+                if (hasInit(flags) && key != null)
                 {
                     String topicName = kafkaMergedDataEx.fetch().key().value()
                         .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o));
@@ -2157,7 +2157,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                     mqtt.mqttSharedBudget -= length;
                 }
 
-                if ((flags & DATA_FLAG_FIN) != 0x00)
+                if (hasFin(flags))
                 {
                     expiredMessage = false;
                 }

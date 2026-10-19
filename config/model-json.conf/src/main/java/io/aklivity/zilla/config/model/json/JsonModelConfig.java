@@ -31,9 +31,10 @@ public final class JsonModelConfig extends ModelConfig
         List<CatalogedConfig> cataloged,
         String subject,
         ValidateConfig validate,
-        Map<String, Config> extensions)
+        Map<String, Config> extensions,
+        List<Config.Reference> refs)
     {
-        super("json", cataloged, validate, extensions);
+        super("json", cataloged, validate, extensions, refs);
         this.subject = subject;
     }
 

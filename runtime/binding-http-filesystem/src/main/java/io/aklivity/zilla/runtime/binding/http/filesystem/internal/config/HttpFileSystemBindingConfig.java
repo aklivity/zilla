@@ -24,6 +24,7 @@ import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 
 public final class HttpFileSystemBindingConfig
 {
@@ -44,12 +45,13 @@ public final class HttpFileSystemBindingConfig
     public final List<HttpFileSystemRouteConfig> routes;
 
     public HttpFileSystemBindingConfig(
-        BindingConfig binding)
+        BindingConfig binding,
+        EngineContext context)
     {
         this.id = binding.id;
         this.name = binding.name;
         this.kind = binding.kind;
-        this.routes = binding.routes.stream().map(HttpFileSystemRouteConfig::new).collect(toList());
+        this.routes = binding.routes.stream().map(r -> new HttpFileSystemRouteConfig(r, context)).collect(toList());
     }
 
     public HttpFileSystemRouteConfig resolve(

@@ -22,7 +22,9 @@ import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.Zill
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_BUDGET_ID;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_BYTE_ORDER;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_CAPABILITIES;
+import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_PADDABLE;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_PADDING;
+import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_REDIRECTED_ID;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_SHARED_WINDOW;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_STREAM_ID;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_THROTTLE;
@@ -34,7 +36,9 @@ import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.util.Conve
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.util.Conversions.convertToInt;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.util.Conversions.convertToLong;
 
+import java.util.EnumSet;
 import java.util.Objects;
+import java.util.Set;
 
 import io.aklivity.k3po.runtime.driver.internal.netty.bootstrap.channel.DefaultChannelConfig;
 
@@ -46,9 +50,11 @@ public class DefaultZillaChannelConfig extends DefaultChannelConfig implements Z
     private long budgetId;
     private long streamId;
     private int padding;
+    private Set<ZillaFrameKind> paddable = EnumSet.of(ZillaFrameKind.DATA);
     private ZillaThrottleMode throttle = ZillaThrottleMode.STREAM;
     private ZillaUpdateMode update = ZillaUpdateMode.STREAM;
     private long affinity;
+    private long redirectedId;
     private byte capabilities;
     private boolean timestamps;
 
@@ -135,6 +141,23 @@ public class DefaultZillaChannelConfig extends DefaultChannelConfig implements Z
     }
 
     @Override
+    public void setPaddable(String paddable)
+    {
+        final Set<ZillaFrameKind> kinds = EnumSet.noneOf(ZillaFrameKind.class);
+        for (String kind : paddable.trim().split("\\s+"))
+        {
+            kinds.add(ZillaFrameKind.decode(kind));
+        }
+        this.paddable = kinds;
+    }
+
+    @Override
+    public boolean isPaddable(ZillaFrameKind kind)
+    {
+        return paddable.contains(kind);
+    }
+
+    @Override
     public void setUpdate(
         ZillaUpdateMode update)
     {
@@ -177,6 +200,19 @@ public class DefaultZillaChannelConfig extends DefaultChannelConfig implements Z
     public long getAffinity()
     {
         return affinity;
+    }
+
+    @Override
+    public void setRedirectedId(
+        long redirectedId)
+    {
+        this.redirectedId = redirectedId;
+    }
+
+    @Override
+    public long getRedirectedId()
+    {
+        return redirectedId;
     }
 
     @Override
@@ -238,6 +274,10 @@ public class DefaultZillaChannelConfig extends DefaultChannelConfig implements Z
         {
             setPadding(convertToInt(value));
         }
+        else if (OPTION_PADDABLE.getName().equals(key))
+        {
+            setPaddable(Objects.toString(value, "data"));
+        }
         else if (OPTION_UPDATE.getName().equals(key))
         {
             setUpdate(ZillaUpdateMode.decode(Objects.toString(value, null)));
@@ -253,6 +293,10 @@ public class DefaultZillaChannelConfig extends DefaultChannelConfig implements Z
         else if (OPTION_AFFINITY.getName().equals(key))
         {
             setAffinity(convertToLong(value));
+        }
+        else if (OPTION_REDIRECTED_ID.getName().equals(key))
+        {
+            setRedirectedId(convertToLong(value));
         }
         else if (OPTION_CAPABILITIES.getName().equals(key))
         {

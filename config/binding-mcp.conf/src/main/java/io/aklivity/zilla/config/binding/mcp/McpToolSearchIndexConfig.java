@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.config.binding.mcp;
 
+import java.util.List;
+
 import io.aklivity.zilla.config.engine.Config;
 
 public abstract class McpToolSearchIndexConfig extends Config
@@ -24,5 +26,10 @@ public abstract class McpToolSearchIndexConfig extends Config
         String type)
     {
         this.type = type;
+    }
+
+    public List<Config.Reference> refs()
+    {
+        return List.of();
     }
 }

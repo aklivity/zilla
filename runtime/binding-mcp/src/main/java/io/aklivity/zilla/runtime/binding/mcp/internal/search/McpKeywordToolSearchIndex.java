@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchDocument;
 import io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchIndex;
@@ -35,6 +36,7 @@ final class McpKeywordToolSearchIndex implements McpToolSearchIndex
     private static final double K1 = 1.2;
     private static final double B = 0.75;
 
+    private final Consumer<Runnable> dispatch;
     private final List<String> fields;
     private final Map<String, Double> weights;
 
@@ -44,16 +46,19 @@ final class McpKeywordToolSearchIndex implements McpToolSearchIndex
     private double averageDocumentLength;
 
     McpKeywordToolSearchIndex(
+        Consumer<Runnable> dispatch,
         List<String> fields,
         Map<String, Double> weights)
     {
+        this.dispatch = dispatch;
         this.fields = fields != null ? fields : List.of();
         this.weights = weights != null ? weights : Map.of();
     }
 
     @Override
     public void index(
-        Collection<McpToolSearchDocument> documents)
+        Collection<McpToolSearchDocument> documents,
+        CompletionCallback<Void> completed)
     {
         termFrequenciesByDocument.clear();
         documentLengths.clear();
@@ -96,11 +101,14 @@ final class McpKeywordToolSearchIndex implements McpToolSearchIndex
 
         int documentCount = documentLengths.size();
         averageDocumentLength = documentCount == 0 ? 0.0 : totalLength / documentCount;
+
+        dispatch.accept(() -> completed.completed(null));
     }
 
     @Override
-    public List<McpToolSearchMatch> query(
-        String text)
+    public void query(
+        String text,
+        CompletionCallback<List<McpToolSearchMatch>> completed)
     {
         List<String> queryTerms = McpTextTokenizer.tokenize(text);
         List<McpToolSearchMatch> matches = new ArrayList<>();
@@ -139,6 +147,6 @@ final class McpKeywordToolSearchIndex implements McpToolSearchIndex
             matches.sort((a, b) -> Double.compare(b.score, a.score));
         }
 
-        return matches;
+        dispatch.accept(() -> completed.completed(matches));
     }
 }

@@ -223,4 +223,37 @@ public class JsonModelIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("value.pipeline.yaml")
+    @Specification({
+        "${net}/client.sent.json.valid/client",
+        "${app}/client.sent.json.valid/server"
+    })
+    public void shouldSupplyEncoderPipelineDeclaringNeitherIdentityNorDeterminism() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("json.ext.pipeline.yaml")
+    @Specification({
+        "${net}/client.sent.json.ext.uppercase/client",
+        "${app}/client.sent.json.ext.uppercase/server"
+    })
+    public void shouldSupplyEncoderPipelineWithInstalledExtensionDeclaringNeitherIdentityNorDeterminism() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("json.ext.pipeline.yaml")
+    @Specification({
+        "${net}/client.received.json.ext.uppercase/client",
+        "${app}/client.received.json.ext.uppercase/server"
+    })
+    public void shouldSupplyDecoderPipelineWithInstalledExtensionDeclaringNeitherIdentityNorDeterminism() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -207,6 +207,10 @@ public class UnsafeBufferExTest
             buffer.putStringUtf8(40, "Hello");
             assertEquals("Hello", buffer.getStringUtf8(40));
 
+            final int utf8Length = buffer.putStringWithoutLengthUtf8(96, "caf\u00e9");
+            assertEquals(5, utf8Length);
+            assertEquals("caf\u00e9", buffer.getStringWithoutLengthUtf8(96, utf8Length));
+
             assertEquals(0, buffer.putStringWithoutLengthAscii(80, (String) null));
         }
 

@@ -16,6 +16,7 @@ package io.aklivity.zilla.config.engine;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
 import java.util.Map;
@@ -30,6 +31,9 @@ public class ConfigExtAdapterTest
 {
     private final ConfigExtAdapter<TestRootConfig> adapter =
         new ConfigExtAdapter<>(Map.of(TestExtConfig.NAME, new TestExtConfigAdapter()));
+
+    private final ConfigExtAdapter<TestRootConfig> itemAdapter =
+        new ConfigExtAdapter<>(Map.of(), Map.of(), Map.of(TestExtConfig.NAME, new TestExtConfigAdapter()));
 
     @Test
     public void shouldAdaptToJsonWhenExtensionPresent()
@@ -90,5 +94,41 @@ public class ConfigExtAdapterTest
         TestLeafConfig config = adapter.adaptFromJson(object, new TestLeafConfigBuilder().name("leaf")).build();
 
         assertThat(config.ext(TestExtConfig.NAME, TestExtConfig.class).value, equalTo("value0"));
+    }
+
+    @Test
+    public void shouldAdaptItemToJsonWhenTypeMatches()
+    {
+        JsonObject object = itemAdapter.adaptItemToJson(TestExtConfig.NAME, new TestExtConfig("value0"));
+
+        assertThat(object, not(nullValue()));
+        assertThat(object.getString("value"), equalTo("value0"));
+    }
+
+    @Test
+    public void shouldReturnNullAdaptingItemToJsonWhenTypeNotHandled()
+    {
+        JsonObject object = itemAdapter.adaptItemToJson("other", new TestExtConfig("value0"));
+
+        assertThat(object, nullValue());
+    }
+
+    @Test
+    public void shouldAdaptItemFromJsonWhenTypeMatches()
+    {
+        JsonObject object = Json.createObjectBuilder().add("value", "value0").build();
+
+        TestExtConfig config = (TestExtConfig) itemAdapter.adaptItemFromJson(TestExtConfig.NAME, object);
+
+        assertThat(config, not(nullValue()));
+        assertThat(config.value, equalTo("value0"));
+    }
+
+    @Test
+    public void shouldReturnNullAdaptingItemFromJsonWhenTypeNotHandled()
+    {
+        JsonObject object = Json.createObjectBuilder().add("value", "value0").build();
+
+        assertThat(itemAdapter.adaptItemFromJson("other", object), nullValue());
     }
 }

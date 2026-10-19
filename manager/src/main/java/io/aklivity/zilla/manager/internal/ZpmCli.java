@@ -20,6 +20,7 @@ import com.github.rvesse.airline.help.Help;
 
 import io.aklivity.zilla.manager.internal.commands.clean.ZpmClean;
 import io.aklivity.zilla.manager.internal.commands.install.ZpmInstall;
+import io.aklivity.zilla.manager.internal.commands.install.ZpmResolve;
 import io.aklivity.zilla.manager.internal.commands.wrap.ZpmWrap;
 
 @Cli(name = "zpm",
@@ -30,6 +31,7 @@ import io.aklivity.zilla.manager.internal.commands.wrap.ZpmWrap;
         Help.class,
         ZpmWrap.class,
         ZpmInstall.class,
+        ZpmResolve.class,
         ZpmClean.class
     })
 public final class ZpmCli

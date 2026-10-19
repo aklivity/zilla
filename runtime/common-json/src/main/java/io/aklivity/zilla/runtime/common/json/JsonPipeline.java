@@ -47,10 +47,39 @@ public interface JsonPipeline
     void reset();
 
     /**
+     * Ends the current document — the prior {@link #transform} call must have returned
+     * {@link Status#COMPLETED} — and prepares this pipeline for the next top-level value in the same
+     * session: the parser resumes at its current stream position and every transform stage keeps whatever
+     * state it has accumulated. Distinct from {@link #reset()}, which discards all of that when handing a
+     * pooled instance to a wholly unrelated next value. Use this between the records of a single
+     * multi-document feed (line-delimited JSON, a multi-document YAML stream mapped through this pipeline,
+     * ...) instead of {@link #reset()}.
+     */
+    void nextDocument();
+
+    /**
+     * Sets the authorization in effect for the next datum {@link #transform fed} to this pipeline, reached
+     * by any stage via {@link JsonController#authorization()}. The default does nothing, for a pipeline
+     * that never carries one.
+     *
+     * @param authorization the authorization in effect for the next datum
+     */
+    default void authorization(
+        long authorization)
+    {
+    }
+
+    /**
      * Whether this pipeline reproduces its input bytes for every accepted datum — the composition of its
      * parser, transform stages, and terminal generator all being identity.
      */
     boolean identity();
+
+    /**
+     * Whether this pipeline always produces the same output for the same input, configuration and authorization
+     * — the composition of its parser, transform stages, and terminal generator all being deterministic.
+     */
+    boolean deterministic();
 
     /**
      * Transforms a whole value in one shot (equivalent to {@link #transform(DirectBufferEx, int, int, boolean)} with

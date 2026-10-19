@@ -76,6 +76,24 @@ public class ProduceIT
 
     @Test
     @Specification({
+        "${net}/broker.disconnect/client",
+        "${net}/broker.disconnect/server"})
+    public void shouldRefreshMetaWhenBrokerDisconnects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/network.exception/client",
+        "${net}/network.exception/server"})
+    public void shouldNetworkException() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/message.key/client",
         "${net}/message.key/server"})
     public void shouldSendMessageKey() throws Exception
@@ -289,6 +307,15 @@ public class ProduceIT
         "${net}/message.header/client",
         "${net}/message.header/server"})
     public void shouldSendMessageHeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/message.headers.large/client",
+        "${net}/message.headers.large/server"})
+    public void shouldSendMessageHeadersLarge() throws Exception
     {
         k3po.finish();
     }

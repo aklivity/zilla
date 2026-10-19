@@ -22,6 +22,8 @@ import java.util.function.LongSupplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import jakarta.json.JsonValue;
+
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.config.guard.inline.InlineOptionsConfig;
@@ -146,7 +148,7 @@ public class InlineGuardHandler implements GuardHandler
     }
 
     @Override
-    public String attribute(
+    public JsonValue attribute(
         long sessionId,
         String name)
     {

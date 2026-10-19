@@ -188,6 +188,16 @@ public class McpClientIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/tools.call.elicit.completed.proxied.string.id/client",
+        "${net}/tools.call.elicit.completed.proxied.string.id/server"})
+    public void shouldCallToolElicitCompletedProxiedStringId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/tools.call.elicit.declined.proxied/client",
         "${net}/tools.call.elicit.declined.proxied/server"})
     public void shouldCallToolElicitDeclinedProxied() throws Exception
@@ -211,6 +221,16 @@ public class McpClientIT
         "${app}/tools.call.elicit.completed.preauthorized/client",
         "${net}/tools.call.elicit.completed.proxied/server"})
     public void shouldCallToolElicitCompletedPreauthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.guarded.yaml")
+    @Specification({
+        "${app}/tools.call.concurrent.lifecycle.preauthorize/client",
+        "${net}/tools.call.concurrent.lifecycle.preauthorize/server"})
+    public void shouldCallToolConcurrentWithLifecyclePreauthorize() throws Exception
     {
         k3po.finish();
     }

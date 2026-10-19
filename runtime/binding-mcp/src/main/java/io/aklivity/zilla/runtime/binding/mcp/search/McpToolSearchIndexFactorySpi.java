@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 import io.aklivity.zilla.config.binding.mcp.McpToolSearchIndexConfig;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 
 /**
  * Service provider interface for a pluggable {@link McpToolSearchIndex} implementation.
@@ -43,12 +44,15 @@ public interface McpToolSearchIndexFactorySpi
     /**
      * Creates a new {@link McpToolSearchIndex} instance for the given indexer configuration.
      *
+     * @param context  the engine context, e.g. for {@code EngineContext.dispatch} or resolving
+     *                 other named engine concepts a backend depends on
      * @param config   the type-specific indexer configuration
      * @param fields   the shared list of document fields to index, in configuration order
      * @param weights  the shared per-field relative importance, keyed by field name
      * @return a new index instance
      */
     McpToolSearchIndex create(
+        EngineContext context,
         McpToolSearchIndexConfig config,
         List<String> fields,
         Map<String, Double> weights);

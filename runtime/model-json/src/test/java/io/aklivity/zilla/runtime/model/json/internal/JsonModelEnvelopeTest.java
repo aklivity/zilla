@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
@@ -44,6 +45,7 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.common.json.JsonTransformable;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelController;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelEvent;
@@ -53,13 +55,12 @@ import io.aklivity.zilla.runtime.engine.model.ModelSource;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
+import io.aklivity.zilla.runtime.model.json.ext.JsonCache;
 import io.aklivity.zilla.runtime.model.json.ext.JsonModelExtContext;
 import io.aklivity.zilla.runtime.model.json.ext.JsonModelExtHandler;
 
 public class JsonModelEnvelopeTest
 {
-    private static final int FLAGS_COMPLETE = 0x03;
-
     private static final String SCHEMA = """
         {
             "type": "object",
@@ -88,7 +89,7 @@ public class JsonModelEnvelopeTest
         envelope.set("mark", buffer("two"));
 
         JsonModelHandlerImpl handler = newHandler(List.of(echoingExt("mark", "echo")));
-        ModelPipeline pipeline = handler.supplyDecoder(envelope, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(envelope, ModelTransform.NONE, ModelCache.NONE);
 
         transform(pipeline);
 
@@ -121,7 +122,7 @@ public class JsonModelEnvelopeTest
         // both vocabularies observe one store
         Reading reading = new Reading(envelope, "mark");
         JsonModelHandlerImpl handler = newHandler(List.of(echoingExt("mark", "echo")));
-        ModelPipeline pipeline = handler.supplyDecoder(envelope, reading);
+        ModelPipeline pipeline = handler.supplyDecoder(envelope, reading, ModelCache.NONE);
 
         transform(pipeline);
 
@@ -136,7 +137,7 @@ public class JsonModelEnvelopeTest
         Observing observing = new Observing();
 
         JsonModelHandlerImpl handler = newHandler(List.of(observingExt(observing)));
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         transform(pipeline);
 
@@ -147,7 +148,7 @@ public class JsonModelEnvelopeTest
         ModelPipeline pipeline)
     {
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(JSON), 0, JSON.length, dst, 0, dst.capacity());
     }
 
@@ -190,7 +191,8 @@ public class JsonModelEnvelopeTest
 
             @Override
             public <T extends JsonTransformable<T>> T decode(
-                T transformable)
+                T transformable,
+                JsonCache cache)
             {
                 return transformable.transform(transform);
             }
@@ -214,7 +216,8 @@ public class JsonModelEnvelopeTest
 
             @Override
             public <T extends JsonTransformable<T>> T decode(
-                T transformable)
+                T transformable,
+                JsonCache cache)
             {
                 return transformable.transform(transform);
             }
@@ -235,7 +238,8 @@ public class JsonModelEnvelopeTest
         {
             @Override
             public <T extends JsonTransformable<T>> T decode(
-                T transformable)
+                T transformable,
+                JsonCache cache)
             {
                 return transformable.transform(observing);
             }
@@ -304,6 +308,12 @@ public class JsonModelEnvelopeTest
         }
 
         @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
+        @Override
         public Status transform(
             JsonController control,
             JsonSource avroSource,
@@ -348,6 +358,12 @@ public class JsonModelEnvelopeTest
         }
 
         @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
+        @Override
         public Status transform(
             JsonController control,
             JsonSource source,
@@ -374,6 +390,12 @@ public class JsonModelEnvelopeTest
         private JsonEnvelope envelope;
 
         @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
+        @Override
         public Status transform(
             JsonController control,
             JsonSource source,
@@ -394,6 +416,12 @@ public class JsonModelEnvelopeTest
     // a generic stage the caller composes over the same envelope it supplies to the pipeline
     private static final class Reading implements ModelTransform
     {
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
         private final ModelEnvelope envelope;
         private final String name;
         private final List<String> read = new ArrayList<>();

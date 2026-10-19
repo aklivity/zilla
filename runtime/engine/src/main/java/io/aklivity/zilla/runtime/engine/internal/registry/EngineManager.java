@@ -18,10 +18,12 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 import static java.util.stream.Collectors.toList;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -43,12 +45,16 @@ import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonPatch;
 import jakarta.json.JsonReader;
+import jakarta.json.JsonValue;
 import jakarta.json.spi.JsonProvider;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.CatalogConfig;
 import io.aklivity.zilla.config.engine.CatalogedConfig;
+import io.aklivity.zilla.config.engine.ClassifierConfig;
+import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ConfigException;
+import io.aklivity.zilla.config.engine.EmbeddingConfig;
 import io.aklivity.zilla.config.engine.EngineConfig;
 import io.aklivity.zilla.config.engine.EngineConfigReader;
 import io.aklivity.zilla.config.engine.EngineConfigWriter;
@@ -59,7 +65,6 @@ import io.aklivity.zilla.config.engine.GuardedConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.config.engine.MetricConfig;
 import io.aklivity.zilla.config.engine.MetricRefConfig;
-import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.NamedConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfigReader;
@@ -185,6 +190,7 @@ public class EngineManager
         Path watchedPath)
     {
         EngineConfig newConfig = null;
+        String newEtag = null;
 
         reconfigure:
         try
@@ -192,6 +198,7 @@ public class EngineManager
             int nonLocalConfigAt = 0;
 
             String newConfigText = Files.exists(configPath) ? Files.readString(configPath) : null;
+            newEtag = newConfigText != null ? etag(configPath) : null;
             if (localConfigPath != null &&
                 Files.exists(localConfigPath))
             {
@@ -228,10 +235,12 @@ public class EngineManager
                 {
                     if (newNamespace.configAt >= nonLocalConfigAt)
                     {
-                        break;
+                        newNamespace.etag = newEtag;
                     }
-
-                    newNamespace.vaults.forEach(v -> v.local = true);
+                    else
+                    {
+                        newNamespace.vaults.forEach(v -> v.local = true);
+                    }
                 }
 
                 final String oldConfigText = currentText;
@@ -245,6 +254,11 @@ public class EngineManager
                     current = newConfig;
 
                     register(newConfig);
+
+                    if (oldConfig != null)
+                    {
+                        events.configApplied(newEtag);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -266,11 +280,48 @@ public class EngineManager
                 .map(Throwable::getMessage)
                 .forEach(logger);
 
+            if (!Thread.currentThread().isInterrupted())
+            {
+                events.configRejected(newEtag, reason(ex));
+            }
+
             if (current == null)
             {
                 throw new ConfigException("Engine configuration failed", ex);
             }
         }
+    }
+
+    private static String etag(
+        Path path)
+    {
+        String etag = null;
+
+        try
+        {
+            if (Files.readAttributes(path, BasicFileAttributes.class).fileKey() instanceof String key)
+            {
+                etag = key;
+            }
+        }
+        catch (IOException | UnsupportedOperationException ex)
+        {
+            etag = null;
+        }
+
+        return etag;
+    }
+
+    private static String reason(
+        Exception ex)
+    {
+        Throwable cause = ex;
+        while (cause.getMessage() == null && cause.getCause() != null)
+        {
+            cause = cause.getCause();
+        }
+
+        return Objects.toString(cause.getMessage(), cause.getClass().getSimpleName());
     }
 
     private String buildSystemNamespaceIfNecessary()
@@ -283,6 +334,7 @@ public class EngineManager
             JsonObject systemBase = schemaProvider.createObjectBuilder()
                 .add("name", "sys")
                 .add("bindings", schemaProvider.createObjectBuilder())
+                .add("catalogs", schemaProvider.createObjectBuilder())
                 .build();
 
             JsonObject systemPatched = systemBase;
@@ -379,9 +431,37 @@ public class EngineManager
             store.id = resolver.resolve(store.name);
         }
 
+        for (EmbeddingConfig embedding : namespace.embeddings)
+        {
+            embedding.id = resolver.resolve(embedding.name);
+        }
+
+        for (ClassifierConfig classifier : namespace.classifiers)
+        {
+            classifier.id = resolver.resolve(classifier.name);
+            if (classifier.embedding != null)
+            {
+                classifier.embeddingId = resolver.resolve(classifier.embedding);
+                classifier.qembedding = resolver.format(classifier.embeddingId);
+            }
+            if (classifier.store != null)
+            {
+                classifier.storeId = resolver.resolve(classifier.store);
+                classifier.qstore = resolver.format(classifier.storeId);
+            }
+        }
+
         for (VaultConfig vault : namespace.vaults)
         {
             vault.id = resolver.resolve(vault.name);
+
+            if (vault.options != null)
+            {
+                for (Config.Reference ref : vault.options.refs())
+                {
+                    ref.visit(resolver);
+                }
+            }
         }
 
         for (CatalogConfig catalog : namespace.catalogs)
@@ -438,18 +518,15 @@ public class EngineManager
 
             if (binding.options != null)
             {
-                for (ModelConfig model : binding.options.models)
+                for (Config.Reference ref : binding.options.refs())
                 {
-                    for (NamedConfig ref : model.refs())
-                    {
-                        ref.id = resolver.resolve(ref.name);
-                    }
+                    ref.visit(resolver);
                 }
             }
 
             for (RouteConfig route : binding.routes)
             {
-                route.id = resolver.resolve(route.exit);
+                route.visit(resolver);
                 route.authorized = (session, resolve) -> true;
                 route.resolveId = binding.resolveId;
 
@@ -457,7 +534,7 @@ public class EngineManager
                 {
                     for (GuardedConfig guarded : route.guarded)
                     {
-                        guarded.id = resolver.resolve(guarded.name);
+                        guarded.visit(resolver);
 
                         LongObjectPredicate<UnaryOperator<String>> authorizer = guards.stream()
                             .filter(g -> g.id == guarded.id)
@@ -475,7 +552,7 @@ public class EngineManager
 
                         guarded.identity = identifier;
 
-                        LongObjectBiFunction<String, String> attributor = guards.stream()
+                        LongObjectBiFunction<String, JsonValue> attributor = guards.stream()
                             .filter(g -> g.id == guarded.id)
                             .findFirst()
                             .map(g -> guardByType.apply(g.type))
@@ -483,8 +560,6 @@ public class EngineManager
                             .orElse((session, name) -> null);
 
                         guarded.attributes = attributor;
-
-                        guarded.qname = resolver.format(guarded.id);
 
                         route.authorized = route.authorized.and(authorizer);
                     }
@@ -595,7 +670,7 @@ public class EngineManager
         }
     }
 
-    private final class NameResolver
+    private final class NameResolver implements Config.Resolver
     {
         private final int namespaceId;
         private final ThreadLocal<Matcher> matchName;
@@ -631,6 +706,30 @@ public class EngineManager
             return String.format("%s:%s",
                     supplyName.apply(NamespacedId.namespaceId(namespacedId)),
                     supplyName.apply(NamespacedId.localId(namespacedId)));
+        }
+
+        @Override
+        public void resolve(
+            NamedConfig config)
+        {
+            config.id = resolve(config.name);
+            config.qname = format(config.id);
+        }
+
+        @Override
+        public void resolve(
+            NamedConfig.Extensible config)
+        {
+            config.id = resolve(config.name);
+            config.qname = format(config.id);
+        }
+
+        @Override
+        public void resolve(
+            RouteConfig config)
+        {
+            config.id = resolve(config.exit);
+            config.qname = format(config.id);
         }
     }
 

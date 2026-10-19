@@ -31,3 +31,5 @@ connected
 read "Hello, world"
 
 read "Hello, again"
+
+read closed

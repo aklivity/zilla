@@ -65,6 +65,7 @@ final class AvroPipelineImpl implements AvroPipeline
 
     private boolean suspended;
     private AvroEvent suspendedEvent;
+    private boolean completed;
 
     AvroPipelineImpl(
         AvroParser parser,
@@ -91,13 +92,21 @@ final class AvroPipelineImpl implements AvroPipeline
         parser.reset();
         root.reset();
         suspended = false;
+        completed = false;
         diagnostic.message = null;
+        diagnostic.category = null;
     }
 
     @Override
     public boolean identity()
     {
         return parser.identity() && root.identity();
+    }
+
+    @Override
+    public boolean deterministic()
+    {
+        return parser.deterministic() && root.deterministic();
     }
 
     @Override
@@ -120,6 +129,15 @@ final class AvroPipelineImpl implements AvroPipeline
         int limit,
         boolean last)
     {
+        if (completed && offset == limit)
+        {
+            // the datum already finished on an earlier call (root reported COMPLETED before this window
+            // arrived) and the parser was left at Phase.DONE rather than reset -- this window is the
+            // caller's own separate, empty trailing confirmation for the same datum (e.g. a FIN-flagged
+            // fragment carrying no further bytes), not the start of a new one, so report COMPLETED again
+            // without re-driving the parser rather than letting it fall through to STARVED
+            return COMPLETED;
+        }
         Status status = ADVANCED;
         AvroEvent event = null;
         try
@@ -152,6 +170,7 @@ final class AvroPipelineImpl implements AvroPipeline
         {
             // inert today — no stage throws this yet; wired for when semantic validation lands
             diagnostic.message = ex.getMessage();
+            diagnostic.category = AvroDiagnostic.Category.VALIDATION;
             reporter.rejected(diagnostic);
             status = lenient ? COMPLETED : REJECTED;
         }
@@ -159,11 +178,13 @@ final class AvroPipelineImpl implements AvroPipeline
         {
             status = REJECTED;
             diagnostic.message = ex.getMessage();
+            diagnostic.category = AvroDiagnostic.Category.PARSING;
         }
         catch (AvroException ex)
         {
             status = REJECTED;
             diagnostic.message = ex.getMessage();
+            diagnostic.category = AvroDiagnostic.Category.TRANSFORM;
         }
         if (status == REJECTED)
         {
@@ -172,6 +193,7 @@ final class AvroPipelineImpl implements AvroPipeline
             reporter.rejected(diagnostic);
         }
         suspended = status == SUSPENDED;
+        completed = status == COMPLETED;
         // the pump remembers which event suspended (so the sink keeps no resume state); a re-suspend on
         // resume leaves event null, keeping the prior suspendedEvent
         if (suspended && event != null)
@@ -351,11 +373,18 @@ final class AvroPipelineImpl implements AvroPipeline
     private static final class Diagnostic implements AvroDiagnostic
     {
         private String message;
+        private Category category;
 
         @Override
         public String message()
         {
             return message;
+        }
+
+        @Override
+        public Category category()
+        {
+            return category;
         }
     }
 }

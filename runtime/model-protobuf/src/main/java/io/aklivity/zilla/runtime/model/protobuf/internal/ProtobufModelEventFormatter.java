@@ -20,6 +20,8 @@ import io.aklivity.zilla.runtime.engine.event.EventFormatterSpi;
 import io.aklivity.zilla.runtime.model.protobuf.internal.types.StringFW;
 import io.aklivity.zilla.runtime.model.protobuf.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.model.protobuf.internal.types.event.ProtobufModelEventExFW;
+import io.aklivity.zilla.runtime.model.protobuf.internal.types.event.ProtobufModelParsingFailedExFW;
+import io.aklivity.zilla.runtime.model.protobuf.internal.types.event.ProtobufModelTransformFailedExFW;
 import io.aklivity.zilla.runtime.model.protobuf.internal.types.event.ProtobufModelValidationFailedExFW;
 
 public final class ProtobufModelEventFormatter implements EventFormatterSpi
@@ -47,6 +49,18 @@ public final class ProtobufModelEventFormatter implements EventFormatterSpi
         {
             ProtobufModelValidationFailedExFW ex = extension.validationFailed();
             result = String.format("A message payload failed validation. %s.", asString(ex.error()));
+            break;
+        }
+        case PARSING_FAILED:
+        {
+            ProtobufModelParsingFailedExFW ex = extension.parsingFailed();
+            result = String.format("A message payload could not be parsed. %s.", asString(ex.error()));
+            break;
+        }
+        case TRANSFORM_FAILED:
+        {
+            ProtobufModelTransformFailedExFW ex = extension.transformFailed();
+            result = String.format("A message payload failed to transform. %s.", asString(ex.error()));
             break;
         }
         }

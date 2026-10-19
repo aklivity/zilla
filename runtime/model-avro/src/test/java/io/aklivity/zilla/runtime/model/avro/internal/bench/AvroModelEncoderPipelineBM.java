@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.model.avro.internal.bench;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.mockito.Mockito.mock;
@@ -69,8 +70,6 @@ import io.aklivity.zilla.runtime.model.avro.internal.AvroModelHandlerImpl;
 @OutputTimeUnit(SECONDS)
 public class AvroModelEncoderPipelineBM
 {
-    private static final int FLAGS_COMPLETE = 0x03;
-
     private static final String SCHEMA = """
         {
             "fields":
@@ -106,7 +105,7 @@ public class AvroModelEncoderPipelineBM
     @Benchmark
     public int encodeFromJson()
     {
-        ModelPipelineResult result = fromJson.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = fromJson.transform(0L, 0L, 0L, COMPLETE,
             jsonSrc, 0, JSON.length, dst, 0, dst.capacity());
         return result.produced();
     }
@@ -114,7 +113,7 @@ public class AvroModelEncoderPipelineBM
     @Benchmark
     public int encodeIdentity()
     {
-        ModelPipelineResult result = identity.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = identity.transform(0L, 0L, 0L, COMPLETE,
             avroSrc, 0, AVRO.length, dst, 0, dst.capacity());
         return result.produced();
     }

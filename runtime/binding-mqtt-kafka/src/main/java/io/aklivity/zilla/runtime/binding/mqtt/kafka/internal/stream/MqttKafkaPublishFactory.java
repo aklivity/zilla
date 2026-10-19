@@ -16,6 +16,10 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaAckMode.IN_SYNC_REPLICAS;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaAckMode.NONE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 import static java.time.Instant.now;
 
 import java.nio.ByteOrder;
@@ -90,9 +94,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
     private static final String KAFKA_TYPE_NAME = "kafka";
     private static final String MQTT_TYPE_NAME = "mqtt";
     private static final byte SLASH_BYTE = (byte) '/';
-    private static final int DATA_FLAG_INIT = 0x02;
-    private static final int DATA_FLAG_FIN = 0x01;
-    private static final int DATA_FLAG_COMPLETE = 0x03;
     private static final int PUBLISH_FLAGS_RETAINED_MASK = 1 << MqttPublishFlags.RETAIN.value();
     private static final int MQTT_PACKET_TOO_LARGE = 0x95;
     private static final int MQTT_IMPLEMENTATION_SPECIFIC_ERROR = 0x83;
@@ -485,7 +486,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
             int deferred;
 
-            if ((flags & DATA_FLAG_INIT) != 0x00)
+            if (hasInit(flags))
             {
                 assert mqttDataEx.kind() == MqttDataExFW.KIND_PUBLISH;
                 final MqttPublishDataExFW mqttPublishDataEx = mqttDataEx.publish();
@@ -546,7 +547,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
                 if (qos == MqttQoS.EXACTLY_ONCE.value())
                 {
-                    kafkaFlags = flags & ~DATA_FLAG_FIN;
+                    kafkaFlags = flags & ~FIN;
                     final long offsetKey = offsetKey(messages.topicString, messages.qos2PartitionId);
                     final KafkaOffsetMetadata metadata = offsets.get(offsetKey);
                     producerId = metadata.producerId;
@@ -582,13 +583,13 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                 deferred = 0;
                 if (qos == MqttQoS.EXACTLY_ONCE.value())
                 {
-                    kafkaFlags = flags & ~DATA_FLAG_FIN;
+                    kafkaFlags = flags & ~FIN;
                 }
             }
 
             messages.doKafkaData(traceId, authorization, budgetId, reserved, kafkaFlags, payload, kafkaDataEx);
 
-            if ((flags & DATA_FLAG_FIN) != 0x00 && qos == MqttQoS.EXACTLY_ONCE.value())
+            if (hasFin(flags) && qos == MqttQoS.EXACTLY_ONCE.value())
             {
                 doCommitOffsetIncomplete(traceId, authorization, messages.topicString,
                     messages.qos2PartitionId, packetId, messages);
@@ -604,7 +605,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
                     if (qos == MqttQoS.EXACTLY_ONCE.value())
                     {
-                        kafkaFlags = flags & ~DATA_FLAG_FIN;
+                        kafkaFlags = flags & ~FIN;
                         final long offsetKey = offsetKey(messages.topicString, messages.qos2PartitionId);
                         final KafkaOffsetMetadata metadata = offsets.get(offsetKey);
                         producerId = metadata.producerId;
@@ -628,7 +629,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
                     retained.doKafkaData(traceId, authorization, budgetId, reserved, kafkaFlags, payload, kafkaDataEx);
 
-                    if ((flags & DATA_FLAG_FIN) != 0x00 && qos == MqttQoS.EXACTLY_ONCE.value())
+                    if (hasFin(flags) && qos == MqttQoS.EXACTLY_ONCE.value())
                     {
                         doCommitOffsetIncomplete(traceId, authorization, retained.topicString,
                             retained.qos2PartitionId, packetId, retained);
@@ -648,7 +649,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                 }
             }
 
-            if ((flags & DATA_FLAG_FIN) != 0x00 && qos != MqttQoS.EXACTLY_ONCE.value())
+            if (hasFin(flags) && qos != MqttQoS.EXACTLY_ONCE.value())
             {
                 publishFlags = 0;
             }
@@ -828,9 +829,18 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             int padding,
             int capabilities)
         {
-            final boolean retainedFlag = hasPublishFlagRetained(publishFlags);
-            final long newInitialAck = retainedFlag ? Math.min(messages.initialAck, retained.initialAck) : messages.initialAck;
-            final int newInitialMax = retainedFlag ? Math.max(messages.initialMax, retained.initialMax) : messages.initialMax;
+            // messages and retained advertise credit differently - messages holds its ack at zero
+            // and grows its max, retained advances its ack against a fixed max - so minimizing ack
+            // and max independently would combine the ack of one with the max of the other and cap
+            // the stream for its whole lifetime; compare the budgets each one actually offers
+            final int messagesBudget = messages.initialMax - (int)(messages.initialSeq - messages.initialAck);
+            final int retainedBudget = retained.initialMax - (int)(retained.initialSeq - retained.initialAck);
+            final int newInitialBudget = retainAvailable ?
+                Math.min(messagesBudget, retainedBudget) : messagesBudget;
+            final int newInitialMax = retainAvailable ?
+                Math.min(messages.initialMax, retained.initialMax) : messages.initialMax;
+            final long newInitialAck =
+                Math.max(initialAck, initialSeq - Math.max(newInitialMax - newInitialBudget, 0));
 
             if (MqttKafkaState.initialOpened(messages.state) &&
                 (!retainAvailable || MqttKafkaState.initialOpened(retained.state)) &&
@@ -887,7 +897,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
             offsetCommit.unfinishedKafkas.add(kafka);
             partitions.computeIfAbsent(packetId, ArrayList::new).add(new KafkaTopicPartition(topic, partitionId));
-            offsetCommit.doKafkaData(traceId, authorization, 0, DATA_FLAG_COMPLETE, sessionOffsets, offsetsDataEx);
+            offsetCommit.doKafkaData(traceId, authorization, 0, COMPLETE, sessionOffsets, offsetsDataEx);
         }
 
         private void setHashKey(
@@ -1064,7 +1074,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            doKafkaData(traceId, authorization, 0, 0, DATA_FLAG_FIN, EMPTY_OCTETS, EMPTY_OCTETS);
+            doKafkaData(traceId, authorization, 0, 0, FIN, EMPTY_OCTETS, EMPTY_OCTETS);
         }
     }
 

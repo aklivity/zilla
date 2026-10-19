@@ -18,10 +18,12 @@ module io.aklivity.zilla.runtime.binding.mcp
     requires io.aklivity.zilla.runtime.common.json;
     requires io.aklivity.zilla.runtime.engine;
 
+    exports io.aklivity.zilla.runtime.binding.mcp.eager;
     exports io.aklivity.zilla.runtime.binding.mcp.search;
 
     opens io.aklivity.zilla.runtime.binding.mcp.internal.codec;
 
+    uses io.aklivity.zilla.runtime.binding.mcp.eager.McpToolsEagerFactorySpi;
     uses io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchIndexFactorySpi;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
@@ -29,6 +31,11 @@ module io.aklivity.zilla.runtime.binding.mcp
 
     provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
         with io.aklivity.zilla.runtime.binding.mcp.internal.McpEventFormatterFactory;
+
+    provides io.aklivity.zilla.runtime.binding.mcp.eager.McpToolsEagerFactorySpi
+        with io.aklivity.zilla.runtime.binding.mcp.internal.eager.McpNoneToolsEagerFactorySpi,
+             io.aklivity.zilla.runtime.binding.mcp.internal.eager.McpAllToolsEagerFactorySpi,
+             io.aklivity.zilla.runtime.binding.mcp.internal.eager.McpExplicitToolsEagerFactorySpi;
 
     provides io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchIndexFactorySpi
         with io.aklivity.zilla.runtime.binding.mcp.internal.search.McpKeywordToolSearchIndexFactorySpi;

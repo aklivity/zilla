@@ -39,7 +39,26 @@ public enum JsonEvent
     VALUE_FALSE,
     VALUE_NULL,
     SEGMENT,
-    VERBATIM;
+    VERBATIM,
+
+    /**
+     * Opens a scope whose content is the escaped form of a JSON document: the string value of a property
+     * that itself holds JSON text ("stringified JSON"). Delivered by a parser only after a stage has asked
+     * for it with {@link JsonController#escaped()}, and accepted by a sink in a value position, where the
+     * events that follow up to the matching {@link #END_ESCAPED} are the document held by the string. The
+     * markers do not nest the path: a pointer or schema sees the stringified document as the value of the
+     * key. A stage that does not recognize them forwards them untouched.
+     * <p>
+     * Within the scope the events are always structured, never {@link #SEGMENT} or {@link #VERBATIM}, and
+     * {@link JsonSource#getLocation()} reports the position within the decoded text of the document, not
+     * within the string token that carries it.
+     */
+    START_ESCAPED,
+
+    /**
+     * Closes the scope opened by the matching {@link #START_ESCAPED}.
+     */
+    END_ESCAPED;
 
     public boolean segmented()
     {
@@ -55,6 +74,14 @@ public enum JsonEvent
     public boolean isVerbatim()
     {
         return this == VERBATIM;
+    }
+
+    /**
+     * Whether this event is a marker of an escaped scope, {@link #START_ESCAPED} or {@link #END_ESCAPED}.
+     */
+    public boolean isEscaped()
+    {
+        return this == START_ESCAPED || this == END_ESCAPED;
     }
 
     public static JsonEvent of(

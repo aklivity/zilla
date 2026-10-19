@@ -1,0 +1,110 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+# the session's own kafka producer stream (mqtt-sessions, PRODUCE_ONLY) is
+# granted a real window just large enough to cover the self-covering expiry
+# writes below, but too small to also cover the eager will signal on abort --
+# this is the production gap between an attached kafka stream and the merged
+# kafka binding's async partition/metadata resolution granting real credit
+accept "zilla://streams/kafka0"
+        option zilla:window 67
+        option zilla:update "handshake"
+        option zilla:transmission "duplex"
+
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_ONLY")
+                                .topic("mqtt-sessions")
+                                .filter()
+                                    .key("client-1")
+                                    .build()
+                                .build()
+                            .build()}
+
+connected
+
+# no will cancellation signal due to clean-start
+
+# session expiry cancellation signal for client-1: the very first real
+# WINDOW to arrive triggers the one-time "wasOpen" cascade
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .produce()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#expiry")
+                               .hashKey("client-1")
+                               .header("type", "expiry-signal")
+                               .build()
+                           .build()}
+read zilla:data.null
+
+# session expire-later signal for client-1
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .produce()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#expiry")
+                               .hashKey("client-1")
+                               .header("type", "expiry-signal")
+                               .build()
+                           .build()}
+read ${mqtt:sessionSignal()
+           .expiry()
+               .instanceId("zilla-1")
+               .clientId("client-1")
+               .delay(1000)
+               .expireAt(-1)
+               .build()
+           .build()}
+
+# the session's kafka producer stream now has its real (small) window
+# granted; releasing the client's abort here reproduces the production gap
+# this regression guards -- the will signal below is not self-covered by
+# session padding the way the expiry writes are, so it must be skipped
+# rather than written
+write notify SESSION_STREAM_WINDOW_GRANTED
+
+# real session-expire-at signal on abort: self-covered by its own padding,
+# so it is written even though the real window is too small for the will
+# signal
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                             .produce()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("client-1#expiry")
+                               .hashKey("client-1")
+                               .header("type", "expiry-signal")
+                               .build()
+                           .build()}
+read ${mqtt:sessionSignal()
+           .expiry()
+               .instanceId("zilla-1")
+               .clientId("client-1")
+               .delay(1000)
+               .expireAt(2000)
+               .build()
+           .build()}
+
+read aborted
+write abort

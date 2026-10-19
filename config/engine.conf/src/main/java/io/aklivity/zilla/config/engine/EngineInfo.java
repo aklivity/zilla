@@ -30,6 +30,8 @@ public final class EngineInfo
 {
     private final Map<String, BindingInfo> bindings;
     private final Map<String, CatalogInfo> catalogs;
+    private final Map<String, EmbeddingInfo> embeddings;
+    private final Map<String, ClassifierInfo> classifiers;
     private final Map<String, GuardInfo> guards;
     private final Map<String, VaultInfo> vaults;
     private final Map<String, ExporterInfo> exporters;
@@ -41,6 +43,8 @@ public final class EngineInfo
     {
         this.bindings = TypedInfoFactory.bindings();
         this.catalogs = TypedInfoFactory.catalogs();
+        this.embeddings = TypedInfoFactory.embeddings();
+        this.classifiers = TypedInfoFactory.classifiers();
         this.guards = TypedInfoFactory.guards();
         this.vaults = TypedInfoFactory.vaults();
         this.exporters = TypedInfoFactory.exporters();
@@ -58,7 +62,14 @@ public final class EngineInfo
     {
         List<URL> patches = new ArrayList<>();
         patches.addAll(bindings.values().stream().map(BindingInfo::schema).filter(Objects::nonNull).collect(toList()));
+        patches.addAll(bindings.values().stream()
+            .flatMap(binding -> binding.extensions().stream())
+            .map(BindingExtInfo::schema)
+            .filter(Objects::nonNull)
+            .collect(toList()));
         patches.addAll(catalogs.values().stream().map(CatalogInfo::schema).filter(Objects::nonNull).collect(toList()));
+        patches.addAll(embeddings.values().stream().map(EmbeddingInfo::schema).filter(Objects::nonNull).collect(toList()));
+        patches.addAll(classifiers.values().stream().map(ClassifierInfo::schema).filter(Objects::nonNull).collect(toList()));
         patches.addAll(guards.values().stream().map(GuardInfo::schema).filter(Objects::nonNull).collect(toList()));
         patches.addAll(vaults.values().stream().map(VaultInfo::schema).filter(Objects::nonNull).collect(toList()));
         patches.addAll(exporters.values().stream().map(ExporterInfo::schema).filter(Objects::nonNull).collect(toList()));
@@ -81,6 +92,16 @@ public final class EngineInfo
     public Collection<CatalogInfo> catalogs()
     {
         return catalogs.values();
+    }
+
+    public Collection<EmbeddingInfo> embeddings()
+    {
+        return embeddings.values();
+    }
+
+    public Collection<ClassifierInfo> classifiers()
+    {
+        return classifiers.values();
     }
 
     public Collection<GuardInfo> guards()
@@ -119,6 +140,16 @@ public final class EngineInfo
         private static Map<String, CatalogInfo> catalogs()
         {
             return instantiate(load(CatalogInfo.class), map -> map);
+        }
+
+        private static Map<String, EmbeddingInfo> embeddings()
+        {
+            return instantiate(load(EmbeddingInfo.class), map -> map);
+        }
+
+        private static Map<String, ClassifierInfo> classifiers()
+        {
+            return instantiate(load(ClassifierInfo.class), map -> map);
         }
 
         private static Map<String, GuardInfo> guards()

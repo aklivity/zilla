@@ -23,15 +23,18 @@ import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 
 public class TestModelContext implements ModelContext
 {
+    private final EngineContext context;
+
     public TestModelContext(
         EngineContext context)
     {
+        this.context = context;
     }
 
     @Override
     public ModelHandler supplyHandler(
         ModelConfig config)
     {
-        return new TestModelHandler(TestModelConfig.class.cast(config));
+        return new TestModelHandler(TestModelConfig.class.cast(config), context);
     }
 }

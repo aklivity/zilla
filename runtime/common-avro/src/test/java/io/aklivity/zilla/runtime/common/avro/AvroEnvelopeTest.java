@@ -199,6 +199,12 @@ class AvroEnvelopeTest
         {
             return true;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     }
 
     // reads every value the envelope carries under one name, as the value opens
@@ -237,6 +243,12 @@ class AvroEnvelopeTest
         {
             return true;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     }
 
     // writes each string value it observes into the envelope under one name
@@ -266,6 +278,12 @@ class AvroEnvelopeTest
 
         @Override
         public boolean identity()
+        {
+            return true;
+        }
+
+        @Override
+        public boolean deterministic()
         {
             return true;
         }

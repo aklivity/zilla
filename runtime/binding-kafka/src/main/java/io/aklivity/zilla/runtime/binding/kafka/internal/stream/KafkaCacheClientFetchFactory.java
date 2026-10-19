@@ -27,6 +27,18 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffset
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType.LIVE;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_ID;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
+import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.SKIP;
+import static io.aklivity.zilla.runtime.engine.util.Flags.fin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.init;
+import static io.aklivity.zilla.runtime.engine.util.Flags.skip;
+import static java.lang.System.currentTimeMillis;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,11 +56,14 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCache;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorFactory;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorFactory.KafkaCacheCursor;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorFactory.KafkaFilterCondition;
+import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheHeadersEnvelope;
+import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheModel;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.Node;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheTopic;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ArrayFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
@@ -89,6 +104,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 public final class KafkaCacheClientFetchFactory implements BindingHandler
 {
@@ -101,12 +117,8 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
     private static final long OFFSET_LIVE = LIVE.value();
     private static final long OFFSET_HISTORICAL = HISTORICAL.value();
 
-    private static final int FLAG_FIN = 0x01;
-    private static final int FLAG_INIT = 0x02;
-    private static final int FLAG_SKIP = 0x08;
-    private static final int FLAG_NONE = 0x00;
-
     private static final int SIGNAL_FANOUT_REPLY_WINDOW = 1;
+    private static final int SIGNAL_RECONNECT = 2;
 
     private final BeginFW beginRO = new BeginFW();
     private final FlushFW flushRO = new FlushFW();
@@ -118,6 +130,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
     private final ExtensionFW extensionRO = new ExtensionFW();
     private final KafkaBeginExFW kafkaBeginExRO = new KafkaBeginExFW();
     private final KafkaFlushExFW kafkaFlushExRO = new KafkaFlushExFW();
+    private final KafkaResetExFW kafkaResetExRO = new KafkaResetExFW();
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -142,6 +155,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
+    private final LongSupplier supplyTraceId;
     private final LongFunction<String> supplyNamespace;
     private final LongFunction<String> supplyLocalName;
     private final LongFunction<BudgetDebitor> supplyDebitor;
@@ -149,6 +163,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
     private final Function<String, KafkaCache> supplyCache;
     private final LongFunction<KafkaCacheRoute> supplyCacheRoute;
     private final KafkaCacheCursorFactory cursorFactory;
+    private final int reconnectDelay;
 
     public KafkaCacheClientFetchFactory(
         KafkaConfiguration config,
@@ -166,12 +181,14 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
+        this.supplyTraceId = context::supplyTraceId;
         this.supplyNamespace = context::supplyNamespace;
         this.supplyLocalName = context::supplyLocalName;
         this.supplyBinding = supplyBinding;
         this.supplyDebitor = supplyDebitor;
         this.supplyCache = supplyCache;
         this.supplyCacheRoute = supplyCacheRoute;
+        this.reconnectDelay = config.cacheServerReconnect();
         this.cursorFactory = new KafkaCacheCursorFactory(context.writeBuffer().capacity());
     }
 
@@ -218,6 +235,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             final long partitionOffset = progress.partitionOffset();
             final KafkaCacheRoute cacheRoute = supplyCacheRoute.apply(resolvedId);
             final long partitionKey = cacheRoute.topicPartitionKey(topicName, partitionId);
+            final Int2IntHashMap leadersByPartitionId = cacheRoute.supplyLeadersByPartitionId(topicName);
 
             KafkaCacheClientFetchFanout fanout = cacheRoute.clientFetchFanoutsByTopicPartition.get(partitionKey);
             if (fanout == null)
@@ -236,6 +254,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                             resolvedId,
                             authorization,
                             affinity,
+                            leadersByPartitionId,
                             partition,
                             defaultOffset);
 
@@ -243,10 +262,10 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                 fanout = newFanout;
             }
 
+            final KafkaTopicType topicType = binding.resolveTopicType(topicName);
             final KafkaFilterCondition condition = cursorFactory.asCondition(filters, evaluation);
             final long latestOffset = kafkaFetchBeginEx.partition().latestOffset();
             final KafkaOffsetType maximumOffset = KafkaOffsetType.valueOf((byte) latestOffset);
-            final Int2IntHashMap leadersByPartitionId = cacheRoute.supplyLeadersByPartitionId(topicName);
             final int leaderId = leadersByPartitionId.get(partitionId);
 
             newStream = new KafkaCacheClientFetchStream(
@@ -261,7 +280,8 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                     condition,
                     maximumOffset,
                     deltaType,
-                    isolation)::onClientMessage;
+                    isolation,
+                    topicType)::onClientMessage;
         }
 
         return newStream;
@@ -511,6 +531,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         private final long originId;
         private final long routedId;
         private final long authorization;
+        private final Int2IntHashMap leadersByPartitionId;
         private final KafkaCachePartition partition;
         private final List<KafkaCacheClientFetchStream> members;
 
@@ -532,18 +553,22 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         private long partitionOffset;
         private long stableOffset;
         private long latestOffset;
+        private long reconnectAt = NO_CANCEL_ID;
+        private int reconnectAttempt;
 
         private KafkaCacheClientFetchFanout(
             long originId,
             long routedId,
             long authorization,
             long leaderId,
+            Int2IntHashMap leadersByPartitionId,
             KafkaCachePartition partition,
             long defaultOffset)
         {
             this.originId = originId;
             this.routedId = routedId;
             this.authorization = authorization;
+            this.leadersByPartitionId = leadersByPartitionId;
             this.partition = partition;
             this.partitionOffset = defaultOffset;
             this.stableOffset = DEFAULT_STABLE_OFFSET;
@@ -557,7 +582,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             long traceId,
             KafkaCacheClientFetchStream member)
         {
-            if (member.leaderId != leaderId && member.leaderId != LEADER_UNKNOWN)
+            if (leaderId != LEADER_UNKNOWN && member.leaderId != leaderId && member.leaderId != LEADER_UNKNOWN)
             {
                 doClientFanoutInitialAbortIfNecessary(traceId);
                 doClientFanoutReplyResetIfNecessary(traceId);
@@ -597,8 +622,25 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
 
             if (members.isEmpty())
             {
+                if (reconnectAt != NO_CANCEL_ID)
+                {
+                    signaler.cancel(reconnectAt);
+                    this.reconnectAt = NO_CANCEL_ID;
+                }
+
                 doClientFanoutInitialAbortIfNecessary(traceId);
                 doClientFanoutReplyResetIfNecessary(traceId);
+            }
+        }
+
+        void onLeaderReady(
+            long traceId)
+        {
+            if (leaderId == LEADER_UNKNOWN && reconnectAt != NO_CANCEL_ID)
+            {
+                signaler.cancel(reconnectAt);
+                this.reconnectAt = NO_CANCEL_ID;
+                doClientFanoutInitialBeginIfNecessary(traceId);
             }
         }
 
@@ -608,11 +650,46 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             if (KafkaState.closed(state))
             {
                 state = 0;
+                initialSeq = 0;
+                initialAck = 0;
+                initialMax = 0;
+                replySeq = 0;
+                replyAck = 0;
+                replyMax = 0;
             }
 
-            if (!KafkaState.initialOpening(state))
+            if (!KafkaState.initialOpening(state) && reconnectAt == NO_CANCEL_ID)
             {
-                doClientFanoutInitialBegin(traceId);
+                if (leaderId == LEADER_UNKNOWN)
+                {
+                    leaderId = leadersByPartitionId.get(partition.id());
+                }
+
+                if (leaderId != LEADER_UNKNOWN)
+                {
+                    doClientFanoutInitialBegin(traceId);
+                }
+                else
+                {
+                    doClientFanoutDiscoverLeaderIfNecessary(traceId);
+                }
+            }
+        }
+
+        private void doClientFanoutDiscoverLeaderIfNecessary(
+            long traceId)
+        {
+            if (reconnectDelay != 0 && !members.isEmpty())
+            {
+                if (reconnectAt != NO_CANCEL_ID)
+                {
+                    signaler.cancel(reconnectAt);
+                }
+
+                this.reconnectAt = signaler.signalAt(
+                    currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
+                    SIGNAL_RECONNECT,
+                    this::onClientFanoutSignal);
             }
         }
 
@@ -802,13 +879,48 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             final long traceId = reset.traceId();
             final OctetsFW extension = reset.extension();
 
-            members.forEach(s -> s.doClientInitialResetIfNecessary(traceId, extension));
-            members.forEach(s -> s.doClientReplyAbortIfNecessary(traceId));
-            members.clear();
-
             state = KafkaState.closedInitial(state);
 
             doClientFanoutReplyResetIfNecessary(traceId);
+
+            final KafkaResetExFW kafkaResetEx = extension.get(kafkaResetExRO::tryWrap);
+            final int error = kafkaResetEx != null ? kafkaResetEx.error() : -1;
+
+            if (error == ERROR_NOT_LEADER_FOR_PARTITION)
+            {
+                leaderId = LEADER_UNKNOWN;
+            }
+
+            if (reconnectDelay != 0 && !members.isEmpty() && KafkaError.of(error).isRetriable())
+            {
+                if (reconnectAt != NO_CANCEL_ID)
+                {
+                    signaler.cancel(reconnectAt);
+                }
+
+                this.reconnectAt = signaler.signalAt(
+                    currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
+                    SIGNAL_RECONNECT,
+                    this::onClientFanoutSignal);
+            }
+            else
+            {
+                members.forEach(s -> s.doClientInitialResetIfNecessary(traceId, extension));
+                members.forEach(s -> s.doClientReplyAbortIfNecessary(traceId));
+                members.clear();
+            }
+        }
+
+        private void onClientFanoutSignal(
+            int signalId)
+        {
+            assert signalId == SIGNAL_RECONNECT;
+
+            this.reconnectAt = NO_CANCEL_ID;
+
+            final long traceId = supplyTraceId.getAsLong();
+
+            doClientFanoutInitialBeginIfNecessary(traceId);
         }
 
         private void doClientFanoutInitialEndIfNecessary(
@@ -834,6 +946,8 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         {
             if (!KafkaState.initialOpened(state))
             {
+                this.reconnectAttempt = 0;
+
                 final long traceId = window.traceId();
 
                 state = KafkaState.openedInitial(state);
@@ -897,11 +1011,16 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         private final KafkaOffsetType maximumOffset;
         private final LongSupplier isolatedOffset;
         private final LongSupplier initialGroupIsolatedOffset;
+        private final KafkaCacheModel valueDecoder;
+        private final KafkaCacheHeadersEnvelope valueEnvelope;
+        private final MutableDirectBufferEx transformBuffer;
+        private final OctetsFW decodedValueRO = new OctetsFW();
 
         private KafkaCacheCursor cursor;
         private KafkaCacheCursor nextCursor;
         private int state;
         private int flushFramesSent;
+        private int decodedLength;
 
         private long replyDebIndex = NO_DEBITOR_INDEX;
         private BudgetDebitor replyDeb;
@@ -936,7 +1055,8 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             KafkaFilterCondition condition,
             KafkaOffsetType maximumOffset,
             KafkaDeltaType deltaType,
-            KafkaIsolation isolation)
+            KafkaIsolation isolation,
+            KafkaTopicType topicType)
         {
             this.group = group;
             this.sender = sender;
@@ -954,6 +1074,10 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             this.isolatedOffset = isolation == READ_COMMITTED ? () -> group.stableOffset : () -> group.latestOffset;
             this.initialGroupIsolatedOffset = isolation ==
                     READ_COMMITTED ? () -> initialGroupStableOffset : () -> initialGroupLatestOffset;
+            this.transformBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+            this.valueEnvelope = new KafkaCacheHeadersEnvelope();
+            this.valueDecoder =
+                KafkaCacheModel.reader(topicType.valueModel, ModelTransform.NONE, valueEnvelope, transformBuffer);
         }
 
         private void onClientMessage(
@@ -1265,7 +1389,16 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             final ArrayFW<KafkaHeaderFW> headers = nextEntry.headers();
             final ArrayFW<KafkaHeaderFW> trailers = nextEntry.trailers();
             final long ancestor = nextEntry.ancestor();
-            final OctetsFW value = nextEntry.value();
+            OctetsFW value = nextEntry.paddedValue().value();
+            if (!valueDecoder.identity() && value != null)
+            {
+                if (messageOffset == 0)
+                {
+                    valueEnvelope.wrap(headers, trailers);
+                    decodeValue(traceId, value);
+                }
+                value = decodedValueRO.wrap(transformBuffer, 0, decodedLength);
+            }
             final int remaining = value != null ? value.sizeof() - messageOffset : 0;
             assert remaining >= 0;
             final int lengthMin = Math.min(remaining, 1024);
@@ -1305,22 +1438,22 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                 final int deferred = remaining - length;
                 assert deferred >= 0 : String.format("%d >= 0", deferred);
 
-                int flags = 0x00;
+                int flags = NONE;
                 if (messageOffset == 0)
                 {
-                    flags |= FLAG_INIT;
+                    flags = init(flags);
                 }
                 if (length == remaining)
                 {
-                    flags |= FLAG_FIN;
+                    flags = fin(flags);
                 }
                 if ((entryFlags & CACHE_ENTRY_FLAGS_ABORTED) != 0)
                 {
-                    flags |= FLAG_SKIP;
+                    flags = skip(flags);
                 }
 
                 OctetsFW fragment = value;
-                if ((flags & ~FLAG_SKIP) != (FLAG_INIT | FLAG_FIN))
+                if ((flags & ~SKIP) != COMPLETE)
                 {
                     final int fragmentOffset = value.offset() + messageOffset;
                     final int fragmentLimit = fragmentOffset + length;
@@ -1328,28 +1461,28 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                 }
 
                 final int partitionId = group.partition.id();
-                switch (flags & ~FLAG_SKIP)
+                switch (flags & ~SKIP)
                 {
-                case FLAG_INIT | FLAG_FIN:
+                case COMPLETE:
                     doClientReplyDataFull(traceId, timestamp, timestampType, ownerId, filters, key, headers, trailers,
                         deltaType, ancestor, fragment, reserved, flags, partitionId, partitionOffset, stableOffset,
                         latestOffset);
                     break;
-                case FLAG_INIT:
+                case INIT:
                     doClientReplyDataInit(traceId, headers, trailers, deferred, timestamp, timestampType, ownerId, filters,
                         key, deltaType, ancestor, fragment, reserved, length, flags, partitionId, partitionOffset, stableOffset,
                         latestOffset);
                     break;
-                case FLAG_NONE:
+                case NONE:
                     doClientReplyDataNone(traceId, fragment, reserved, length, flags);
                     break;
-                case FLAG_FIN:
+                case FIN:
                     doClientReplyDataFin(traceId, headers, trailers, deltaType, ancestor, fragment,
                         reserved, length, flags, partitionId, partitionOffset, stableOffset, latestOffset);
                     break;
                 }
 
-                if ((flags & FLAG_FIN) == 0x00)
+                if (!hasFin(flags))
                 {
                     this.messageOffset += length;
                 }
@@ -1365,6 +1498,34 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                     cursor.advance(partitionOffset + 1);
                 }
             }
+        }
+
+        // resolves this consumer's own view of a cached value -- decrypted or redacted per this stream's
+        // live authorization -- from the cache's protected representation, once per message rather than
+        // once per fragment. A rejected value decodes to empty rather than falling back to the protected
+        // bytes, so a decode failure never leaks the still-protected form to this consumer.
+        private void decodeValue(
+            long traceId,
+            OctetsFW value)
+        {
+            decodedLength = 0;
+
+            final int decoded = valueDecoder.transform(traceId, routedId, authorization,
+                value.buffer(), value.offset(), value.limit(), this::onDecodedValueFragment);
+
+            if (decoded < 0)
+            {
+                decodedLength = 0;
+            }
+        }
+
+        private void onDecodedValueFragment(
+            DirectBufferEx buffer,
+            int index,
+            int length)
+        {
+            transformBuffer.putBytes(decodedLength, buffer, index, length);
+            decodedLength += length;
         }
 
         private void doClientReplyDataFull(

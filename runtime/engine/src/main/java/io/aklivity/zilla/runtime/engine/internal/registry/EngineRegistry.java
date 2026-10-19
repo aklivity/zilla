@@ -27,6 +27,8 @@ import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
+import io.aklivity.zilla.runtime.engine.classifier.ClassifierContext;
+import io.aklivity.zilla.runtime.engine.embedding.EmbeddingContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
@@ -43,6 +45,8 @@ public class EngineRegistry
     private final Function<String, GuardContext> guardsByType;
     private final Function<String, VaultContext> vaultsByType;
     private final Function<String, CatalogContext> catalogsByType;
+    private final Function<String, EmbeddingContext> embeddingsByType;
+    private final Function<String, ClassifierContext> classifiersByType;
     private final Function<String, MetricContext> metricsByName;
     private final Function<String, ExporterContext> exportersByType;
     private final Function<String, StoreContext> storesByType;
@@ -60,6 +64,8 @@ public class EngineRegistry
         Function<String, GuardContext> guardsByType,
         Function<String, VaultContext> vaultsByType,
         Function<String, CatalogContext> catalogsByType,
+        Function<String, EmbeddingContext> embeddingsByType,
+        Function<String, ClassifierContext> classifiersByType,
         Function<String, MetricContext> metricsByName,
         Function<String, ExporterContext> exportersByType,
         Function<String, StoreContext> storesByType,
@@ -75,6 +81,8 @@ public class EngineRegistry
         this.guardsByType = guardsByType;
         this.vaultsByType = vaultsByType;
         this.catalogsByType = catalogsByType;
+        this.embeddingsByType = embeddingsByType;
+        this.classifiersByType = classifiersByType;
         this.metricsByName = metricsByName;
         this.exportersByType = exportersByType;
         this.storesByType = storesByType;
@@ -162,6 +170,26 @@ public class EngineRegistry
         return namespace != null ? namespace.findCatalog(localId) : null;
     }
 
+    public EmbeddingRegistry resolveEmbedding(
+        long embeddingId)
+    {
+        int namespaceId = NamespacedId.namespaceId(embeddingId);
+        int localId = NamespacedId.localId(embeddingId);
+
+        NamespaceRegistry namespace = findNamespace(namespaceId);
+        return namespace != null ? namespace.findEmbedding(localId) : null;
+    }
+
+    public ClassifierRegistry resolveClassifier(
+        long classifierId)
+    {
+        int namespaceId = NamespacedId.namespaceId(classifierId);
+        int localId = NamespacedId.localId(classifierId);
+
+        NamespaceRegistry namespace = findNamespace(namespaceId);
+        return namespace != null ? namespace.findClassifier(localId) : null;
+    }
+
     public StoreRegistry resolveStore(
         long storeId)
     {
@@ -214,8 +242,8 @@ public class EngineRegistry
     {
         NamespaceRegistry registry =
                 new NamespaceRegistry(namespace, this::findNamespace, bindingsByType, guardsByType, vaultsByType, catalogsByType,
-                    metricsByName, exportersByType, storesByType, supplyLabelId, this::resolveMetric, exporterAttached,
-                    exporterDetached, supplyMetricRecorder, detachBinding, collector);
+                    embeddingsByType, classifiersByType, metricsByName, exportersByType, storesByType, supplyLabelId,
+                    this::resolveMetric, exporterAttached, exporterDetached, supplyMetricRecorder, detachBinding, collector);
         namespacesById.put(registry.namespaceId(), registry);
         registry.attach();
     }

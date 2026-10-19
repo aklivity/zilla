@@ -23,6 +23,7 @@ import java.io.Closeable;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -31,8 +32,6 @@ import java.util.TreeMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.IntPredicate;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.zip.CRC32;
 
 import jakarta.json.stream.JsonParser;
@@ -41,10 +40,12 @@ import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2LongHashMap;
 
 import io.aklivity.zilla.config.binding.mcp.McpCacheConfig;
-import io.aklivity.zilla.config.binding.mcp.McpCacheToolsEagerConfig;
-import io.aklivity.zilla.config.binding.mcp.McpCacheToolsEagerPolicy;
 import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.runtime.binding.mcp.eager.McpToolEagerDocument;
+import io.aklivity.zilla.runtime.binding.mcp.eager.McpToolsEager;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
+import io.aklivity.zilla.runtime.binding.mcp.internal.McpEventContext;
+import io.aklivity.zilla.runtime.binding.mcp.internal.eager.McpToolsEagerFactory;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpSearchToolDescriptor;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpToolByteRange;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpToolByteRangeScanner;
@@ -97,6 +98,7 @@ public final class McpProxyCache
     public long authorization;
 
     private final StoreHandler store;
+    final McpEventContext events;
     private final Int2ObjectHashMap<McpListCache> caches;
     private final Long2LongHashMap routeAuthorizations;
     private final List<Runnable> awaiters;
@@ -122,6 +124,7 @@ public final class McpProxyCache
     {
         this.bindingId = binding.id;
         this.store = context.supplyStore(binding.resolveId.applyAsLong(cache.store));
+        this.events = new McpEventContext(context);
         this.guard = Optional.ofNullable(cache.authorization)
             .map(a -> a.name)
             .map(binding.resolveId::applyAsLong)
@@ -142,7 +145,7 @@ public final class McpProxyCache
         if (filter.test(KIND_TOOLS_LIST))
         {
             final McpToolSearchIndex searchIndex = cache.tools != null
-                ? new McpToolSearchIndexFactory().create(cache.tools.search)
+                ? new McpToolSearchIndexFactory().create(context, cache.tools.search)
                 : null;
             final List<String> searchFields = cache.tools != null && cache.tools.search != null
                 ? cache.tools.search.fields
@@ -159,10 +162,12 @@ public final class McpProxyCache
             final byte[] executeToolBytes = cache.tools != null && cache.tools.search != null
                 ? McpSearchToolDescriptor.buildExecuteTool(searchToolkit)
                 : null;
-            final McpCacheToolsEagerConfig eager = cache.tools != null ? cache.tools.eager : null;
+            final McpToolsEager mcpToolsEager = cache.tools != null
+                ? new McpToolsEagerFactory().create(context, cache.tools.eager)
+                : null;
             caches.put(KIND_TOOLS_LIST,
                 new McpListCache(KIND_TOOLS_LIST, STORE_KEY_TOOLS, STORE_LOCK_KEY_TOOLS,
-                    searchIndex, searchFields, searchToolsBytes, describeToolBytes, executeToolBytes, eager));
+                    searchIndex, searchFields, searchToolsBytes, describeToolBytes, executeToolBytes, mcpToolsEager));
         }
         if (filter.test(KIND_RESOURCES_LIST))
         {
@@ -325,8 +330,7 @@ public final class McpProxyCache
         private final byte[] searchToolsBytes;
         private final byte[] describeToolBytes;
         private final byte[] executeToolBytes;
-        private final McpCacheToolsEagerPolicy eagerPolicy;
-        private final List<Pattern> eagerMatch;
+        private final McpToolsEager mcpToolsEager;
         private Map<CharSequence, List<String>> scopesByName = Collections.emptyMap();
         private Map<CharSequence, String> descriptionsByName = Collections.emptyMap();
         private Map<CharSequence, McpToolByteRange> toolRangesByName = Collections.emptyMap();
@@ -384,33 +388,12 @@ public final class McpProxyCache
 
         public boolean eagerConfigured()
         {
-            return eagerPolicy != null && eagerPolicy != McpCacheToolsEagerPolicy.NONE;
+            return mcpToolsEager != null;
         }
 
-        public boolean eager(
-            CharSequence name)
+        public McpToolsEager mcpToolsEager()
         {
-            return switch (eagerPolicy)
-            {
-            case ALL -> false;
-            case EXPLICIT -> admitsEager(name);
-            default -> true;
-            };
-        }
-
-        private boolean admitsEager(
-            CharSequence name)
-        {
-            boolean admitted = false;
-            for (Pattern pattern : eagerMatch)
-            {
-                if (pattern.matcher(name).matches())
-                {
-                    admitted = true;
-                    break;
-                }
-            }
-            return admitted;
+            return mcpToolsEager;
         }
 
         private McpListCache(
@@ -430,7 +413,7 @@ public final class McpProxyCache
             byte[] searchToolsBytes,
             byte[] describeToolBytes,
             byte[] executeToolBytes,
-            McpCacheToolsEagerConfig eager)
+            McpToolsEager mcpToolsEager)
         {
             this.kind = kind;
             this.storeKey = storeKey;
@@ -441,35 +424,7 @@ public final class McpProxyCache
             this.searchToolsBytes = searchToolsBytes;
             this.describeToolBytes = describeToolBytes;
             this.executeToolBytes = executeToolBytes;
-            this.eagerPolicy = eager != null ? eager.policy : McpCacheToolsEagerPolicy.NONE;
-            this.eagerMatch = eager != null && eager.match != null ? compileEagerMatch(eager.match) : null;
-        }
-
-        private List<Pattern> compileEagerMatch(
-            List<String> globs)
-        {
-            return globs.stream()
-                .map(McpListCache::compileGlob)
-                .collect(Collectors.toList());
-        }
-
-        private static Pattern compileGlob(
-            String glob)
-        {
-            final StringBuilder regex = new StringBuilder();
-            final String[] literals = glob.split("\\*", -1);
-            for (int index = 0; index < literals.length; index++)
-            {
-                if (index > 0)
-                {
-                    regex.append(".*");
-                }
-                if (!literals[index].isEmpty())
-                {
-                    regex.append(Pattern.quote(literals[index]));
-                }
-            }
-            return Pattern.compile(regex.toString());
+            this.mcpToolsEager = mcpToolsEager;
         }
 
         public void putFragment(
@@ -525,6 +480,17 @@ public final class McpProxyCache
             put(builder.toString(), completion);
         }
 
+        // a kind that no route could populate is still settled for this worker, but other workers only learn
+        // that through the store, so an empty listing is stored for them unless a listing is already present
+        public void putEmptyIfAbsent(
+            String prelude,
+            String close,
+            Consumer<String> completion)
+        {
+            store.putIfAbsent(storeKey, prelude + close, STORE_TTL_FOREVER,
+                existing -> get((key, value) -> completion.accept(key)));
+        }
+
         public void get(
             BiConsumer<String, String> completion)
         {
@@ -541,16 +507,121 @@ public final class McpProxyCache
             final boolean changed = lastChecksum != -1L && lastChecksum != newChecksum;
             lastChecksum = newChecksum;
             scopesByName = indexScopesByName(value);
-            if (searchIndex != null)
+            if (searchIndex != null || mcpToolsEager != null)
             {
-                final List<McpToolSearchDocument> documents = McpToolSearchDocumentScanner.scan(value, searchFields);
-                descriptionsByName = indexDescriptionsByName(documents);
-                searchIndex.index(documents);
                 toolsBytes = value.getBytes(StandardCharsets.UTF_8);
                 toolRangesByName = McpToolByteRangeScanner.scan(toolsBytes);
+                final List<McpToolSearchDocument> documents = searchIndex != null
+                    ? McpToolSearchDocumentScanner.scan(value, searchFields)
+                    : List.of();
+                if (searchIndex != null)
+                {
+                    descriptionsByName = indexDescriptionsByName(documents);
+                }
+                final Collection<McpToolEagerDocument> eagerDocuments = mcpToolsEager != null
+                    ? buildEagerDocuments(toolsBytes, toolRangesByName)
+                    : List.of();
+                indexSearchAndEager(documents, eagerDocuments, ex -> putToStore(value, changed, completion));
             }
+            else
+            {
+                putToStore(value, changed, completion);
+            }
+        }
+
+        private void putToStore(
+            String value,
+            boolean changed,
+            Consumer<String> completion)
+        {
             store.put(storeKey, value, STORE_TTL_FOREVER, completion.andThen(this::checkPut)
                 .andThen(k -> onSettled.accept(kind, changed, value)));
+        }
+
+        // a backend that can genuinely fail still proceeds to store the tools list rather than
+        // blocking it on search/eager availability -- stale/incomplete results until the next
+        // successful rebuild, not a lost cache write -- but the failure is reported via
+        // SEARCH_INDEX_FAILED/EAGER_INDEX_FAILED so it is not silently invisible. Joins whichever
+        // of searchIndex/mcpToolsEager is configured; the first failure from either wins.
+        private void indexSearchAndEager(
+            List<McpToolSearchDocument> documents,
+            Collection<McpToolEagerDocument> eagerDocuments,
+            Consumer<Throwable> completion)
+        {
+            final int total = (searchIndex != null ? 1 : 0) + (mcpToolsEager != null ? 1 : 0);
+            final int[] remaining = { total };
+            final boolean[] settled = { false };
+
+            if (searchIndex != null)
+            {
+                searchIndex.index(documents, new McpToolSearchIndex.CompletionCallback<>()
+                {
+                    @Override
+                    public void completed(
+                        Void result)
+                    {
+                        if (--remaining[0] == 0 && !settled[0])
+                        {
+                            settled[0] = true;
+                            completion.accept(null);
+                        }
+                    }
+
+                    @Override
+                    public void failed(
+                        Throwable ex)
+                    {
+                        events.searchIndexFailed(0L, bindingId, ex.getMessage());
+                        if (!settled[0])
+                        {
+                            settled[0] = true;
+                            completion.accept(ex);
+                        }
+                    }
+                });
+            }
+
+            if (mcpToolsEager != null)
+            {
+                mcpToolsEager.index(eagerDocuments, new McpToolsEager.CompletionCallback<>()
+                {
+                    @Override
+                    public void completed(
+                        Void result)
+                    {
+                        if (--remaining[0] == 0 && !settled[0])
+                        {
+                            settled[0] = true;
+                            completion.accept(null);
+                        }
+                    }
+
+                    @Override
+                    public void failed(
+                        Throwable ex)
+                    {
+                        events.eagerIndexFailed(0L, bindingId, ex.getMessage());
+                        if (!settled[0])
+                        {
+                            settled[0] = true;
+                            completion.accept(ex);
+                        }
+                    }
+                });
+            }
+        }
+
+        private static Collection<McpToolEagerDocument> buildEagerDocuments(
+            byte[] toolsBytes,
+            Map<CharSequence, McpToolByteRange> toolRangesByName)
+        {
+            List<McpToolEagerDocument> documents = new ArrayList<>(toolRangesByName.size());
+            for (Map.Entry<CharSequence, McpToolByteRange> entry : toolRangesByName.entrySet())
+            {
+                McpToolByteRange range = entry.getValue();
+                documents.add(new McpToolEagerDocument(entry.getKey().toString(), toolsBytes, range.offset(), range.length()));
+            }
+            return documents;
         }
 
         public void acquire(
@@ -593,28 +664,45 @@ public final class McpProxyCache
             String key,
             String value)
         {
-            final boolean changed;
             if (value != null)
             {
                 crc32.reset();
                 crc32.update(value.getBytes(StandardCharsets.UTF_8));
                 final long newChecksum = crc32.getValue();
-                changed = lastChecksum != -1L && lastChecksum != newChecksum;
+                final boolean changed = lastChecksum != -1L && lastChecksum != newChecksum;
                 lastChecksum = newChecksum;
                 scopesByName = indexScopesByName(value);
-                if (searchIndex != null)
+                if (searchIndex != null || mcpToolsEager != null)
                 {
-                    final List<McpToolSearchDocument> documents = McpToolSearchDocumentScanner.scan(value, searchFields);
-                    descriptionsByName = indexDescriptionsByName(documents);
-                    searchIndex.index(documents);
                     toolsBytes = value.getBytes(StandardCharsets.UTF_8);
                     toolRangesByName = McpToolByteRangeScanner.scan(toolsBytes);
+                    final List<McpToolSearchDocument> documents = searchIndex != null
+                        ? McpToolSearchDocumentScanner.scan(value, searchFields)
+                        : List.of();
+                    if (searchIndex != null)
+                    {
+                        descriptionsByName = indexDescriptionsByName(documents);
+                    }
+                    final Collection<McpToolEagerDocument> eagerDocuments = mcpToolsEager != null
+                        ? buildEagerDocuments(toolsBytes, toolRangesByName)
+                        : List.of();
+                    indexSearchAndEager(documents, eagerDocuments, ex -> finishCheckGet(value, changed));
+                }
+                else
+                {
+                    finishCheckGet(value, changed);
                 }
             }
             else
             {
-                changed = false;
+                finishCheckGet(null, false);
             }
+        }
+
+        private void finishCheckGet(
+            String value,
+            boolean changed)
+        {
             populated = value != null;
             checkReady();
             onSettled.accept(kind, changed, value);

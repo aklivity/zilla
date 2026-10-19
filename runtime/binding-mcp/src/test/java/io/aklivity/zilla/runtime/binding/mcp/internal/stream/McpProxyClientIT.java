@@ -97,7 +97,7 @@ public class McpProxyClientIT
     @Configuration("proxy.client.guarded.deferred.search.yaml")
     @Specification({
         "${app}/cache.serve.execute.tool/client",
-        "${net}/tools.call.acquired/server"})
+        "${net}/tools.call.acquired.execute/server"})
     @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
     @Configure(name = MCP_SESSION_ID_NAME,
         value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyClientIT::agentSessionId")

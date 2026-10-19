@@ -15,6 +15,8 @@
 package io.aklivity.zilla.runtime.model.protobuf.internal;
 
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -27,6 +29,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline.Status;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipelineResult;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelFieldBridge;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
@@ -41,23 +44,27 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 // observation-only, through ModelFieldBridge, until model-protobuf grows a native ModelTransform adapter.
 final class ProtobufModelDecoderPipeline implements ModelPipeline
 {
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_FIN = 0x01;
-
     private final ProtobufModelHandlerImpl handler;
     private final ModelFieldBridge bridge;
     private final ProtobufExtractor extractor;
     private final Map<String, ProtobufPipeline> pipelines;
     private final ProtobufEnvelope envelope;
     private final ModelPipelineResult result;
+    private final ModelCache cache;
+    private final boolean deterministic;
+    private final boolean identity;
 
     private ProtobufPipeline active;
     private String diagnostic;
+    private ProtobufDiagnostic.Category category;
+    private MutableDirectBufferEx framingBuffer;
+    private int framingAt;
 
     ProtobufModelDecoderPipeline(
         ProtobufModelHandlerImpl handler,
         ProtobufEnvelope envelope,
-        ModelTransform transform)
+        ModelTransform transform,
+        ModelCache cache)
     {
         this.envelope = envelope;
         this.handler = handler;
@@ -66,6 +73,9 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
         this.extractor = transform != ModelTransform.NONE ? new ProtobufExtractor() : null;
         this.pipelines = new HashMap<>();
         this.result = new ModelPipelineResult();
+        this.cache = cache;
+        this.deterministic = transform.deterministic() && handler.decodeDeterministic(cache);
+        this.identity = handler.decodeIdentity(cache) && (extractor == null || extractor.identity());
     }
 
     @Override
@@ -84,21 +94,39 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
         int srcLength = srcLimit - srcIndex;
         int dstLength = dstLimit - dstIndex;
         int prefix = 0;
-        if ((flags & FLAGS_INIT) != 0)
+        int framing = 0;
+        if (hasInit(flags))
         {
             // the catalog framing then the message-index prefix sit at the value start; strip both once on the
-            // first fragment and select the schema-bound pipeline, then later fragments stream straight through
+            // first fragment and select the schema-bound pipeline, then later fragments stream straight through.
+            // a value already in the form a WRITE pipeline produced carries no message-index framing, view or
+            // no view, since WRITE's decode output never re-emits it -- resolve the message via the same
+            // static, configured path the encode side already uses instead
             int catalogPrefix = handler.prefix(src, srcIndex, srcLength);
             int schemaId = handler.resolveSchemaId(src, srcIndex, srcLength);
-            int indexProgress = handler.messageProgress(src, srcIndex + catalogPrefix, srcLength - catalogPrefix);
-            ProtobufMessage message = handler.message(schemaId);
+            boolean cachedRead = handler.cachedRead(cache);
+            int indexProgress = cachedRead
+                ? 0
+                : handler.messageProgress(src, srcIndex + catalogPrefix, srcLength - catalogPrefix);
+            ProtobufMessage message = cachedRead
+                ? handler.message(schemaId, handler.messagePath(schemaId))
+                : handler.message(schemaId);
             prefix = catalogPrefix + indexProgress;
             active = schemaId != NO_SCHEMA_ID && message != null ? supplyPipeline(schemaId, message.name()) : null;
             if (active != null)
             {
                 active.reset();
+                if (cache == ModelCache.WRITE)
+                {
+                    // WRITE persists the resolved schema id as catalog framing ahead of its cached output, so
+                    // a later READ of this cached value recovers it directly instead of falling back to
+                    // static config resolution -- the case that matters is a per-message schema id (an
+                    // encoded strategy), which a view-converting WRITE output would otherwise discard
+                    framing = writeFraming(traceId, bindingId, schemaId, src, srcIndex, srcLength, dst, dstIndex);
+                }
             }
             diagnostic = null;
+            category = null;
         }
 
         ModelStatus status;
@@ -114,19 +142,36 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
         else
         {
             active.authorization(authorization);
-            boolean last = (flags & FLAGS_FIN) != 0;
-            ProtobufPipelineResult proto =
-                active.transform(src, srcIndex + prefix, srcIndex + srcLength, last, dst, dstIndex, dstIndex + dstLength);
+            boolean last = hasFin(flags);
+            ProtobufPipelineResult proto = active.transform(src, srcIndex + prefix, srcIndex + srcLength, last,
+                dst, dstIndex + framing, dstIndex + dstLength);
             status = map(proto.status());
             consumed = prefix + proto.consumed();
-            produced = proto.produced();
+            produced = framing + proto.produced();
             if (status == ModelStatus.COMPLETE && extractor != null)
             {
                 visitExtracted(authorization);
             }
             else if (status == ModelStatus.REJECTED)
             {
-                handler.validationFailure(traceId, bindingId, diagnostic != null ? diagnostic : ProtobufModel.NAME);
+                String reason = diagnostic != null ? diagnostic : ProtobufModel.NAME;
+                switch (category)
+                {
+                case PARSING:
+                    handler.parsingFailure(traceId, bindingId, reason);
+                    break;
+                case TRANSFORM:
+                    handler.transformFailure(traceId, bindingId, reason);
+                    break;
+                // a stage that rejects by returning Status.REJECTED directly, without throwing, never
+                // populates a category -- treat that the same as a schema-constraint violation, matching
+                // prior behavior
+                case null:
+                case VALIDATION:
+                default:
+                    handler.validationFailure(traceId, bindingId, reason);
+                    break;
+                }
             }
         }
         return result.set(status, consumed, produced);
@@ -135,7 +180,13 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
     @Override
     public boolean identity()
     {
-        return active != null && active.identity();
+        return identity;
+    }
+
+    @Override
+    public boolean deterministic()
+    {
+        return deterministic;
     }
 
     @Override
@@ -144,7 +195,12 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
         int index,
         int length)
     {
-        return handler.decodePadding(data, index, length);
+        int padding = handler.decodePadding(data, index, length);
+        if (cache == ModelCache.WRITE)
+        {
+            padding += handler.framingPadding(length);
+        }
+        return padding;
     }
 
     @Override
@@ -156,6 +212,7 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
         }
         active = null;
         diagnostic = null;
+        category = null;
     }
 
     private void visitExtracted(
@@ -180,7 +237,8 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
         ProtobufPipeline pipeline = pipelines.get(messageName);
         if (pipeline == null)
         {
-            pipeline = handler.newPipeline(schemaId, handler.decodeLenient, messageName, extractor, this::onRejected, envelope);
+            pipeline = handler.newPipeline(schemaId, handler.decodeLenient, messageName, extractor, this::onRejected, envelope,
+                cache);
             pipelines.put(messageName, pipeline);
         }
         return pipeline;
@@ -190,6 +248,32 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
         ProtobufDiagnostic diagnostic)
     {
         this.diagnostic = diagnostic.message();
+        this.category = diagnostic.category();
+    }
+
+    private int writeFraming(
+        long traceId,
+        long bindingId,
+        int schemaId,
+        DirectBufferEx src,
+        int srcIndex,
+        int srcLength,
+        MutableDirectBufferEx dst,
+        int dstIndex)
+    {
+        framingBuffer = dst;
+        framingAt = dstIndex;
+        handler.encodePrefix(traceId, bindingId, schemaId, src, srcIndex, srcLength, this::putFraming);
+        return framingAt - dstIndex;
+    }
+
+    private void putFraming(
+        DirectBufferEx buffer,
+        int index,
+        int length)
+    {
+        framingBuffer.putBytes(framingAt, buffer, index, length);
+        framingAt += length;
     }
 
     private static ModelStatus map(

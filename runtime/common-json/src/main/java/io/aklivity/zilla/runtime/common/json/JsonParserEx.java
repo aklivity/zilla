@@ -39,6 +39,41 @@ public interface JsonParserEx extends JsonParser
     String MAX_VALUE_SIZE = "io.aklivity.zilla.runtime.common.json.parser.maxValueSize";
 
     /**
+     * Config key (for {@link JsonEx#createParser(java.util.Map)}) whose {@link StringEventPositions} value selects
+     * where the stream position, as reported by {@link #remaining()}, lands after a value or key event.
+     * Absent ⇒ {@link StringEventPositions#UNQUOTED}.
+     */
+    String STRING_EVENT_POSITIONS = "io.aklivity.zilla.runtime.common.json.parser.stringEventPositions";
+
+    /**
+     * Where the position lands relative to a string value's quotes.
+     */
+    enum StringEventPositions
+    {
+        /**
+         * A key is positioned just past its closing quote, ahead of the separator, and a string value's
+         * position is not tied to its quotes, so a caller cannot rely on where they fall.
+         */
+        UNQUOTED,
+
+        /**
+         * A string value's quotes belong to the value, so positions fall on the boundaries of the quoted token:
+         * <ul>
+         * <li>after a {@link JsonEvent#KEY_NAME} the position is the start of the member's value token, past the
+         * separator and any whitespace around it and before the value's first byte, so a string value's opening
+         * quote is still ahead;</li>
+         * <li>after a complete value the position is just past its last byte, so a string value's closing quote is
+         * behind.</li>
+         * </ul>
+         * A key is delivered only once its separator, whitespace and the first byte of its value are in the window;
+         * otherwise the window ends before the key and the caller re-presents it with the next window. A key that is
+         * itself larger than the window is delivered in fragments, and its final fragment ends after the key's
+         * closing quote.
+         */
+        QUOTED
+    }
+
+    /**
      * Borrows {@code buffer} as the input window for the next pump, the half-open range
      * {@code [offset, limit)}. The buffer is read in place for the duration of the pump.
      * <p>
@@ -78,10 +113,23 @@ public interface JsonParserEx extends JsonParser
     void reset();
 
     /**
+     * Ends the current document — {@link #hasNextEvent()} must already be {@code false} from a delivered
+     * {@link JsonEvent#END_DOCUMENT} — and begins the next top-level value at the parser's current stream
+     * position, leaving the tokenizer's position and scratch state otherwise untouched. Distinct from
+     * {@link #reset()}, which rewinds the stream position to the start for a wholly unrelated next value.
+     */
+    void nextDocument();
+
+    /**
      * Whether this parser reads its input verbatim, leaving the bytes intact for an identity generator. A
      * cursor over the native JSON form is identity; one that parses a foreign representation is not.
      */
     boolean identity();
+
+    /**
+     * Whether this parser always yields the same events for the same input bytes.
+     */
+    boolean deterministic();
 
     /**
      * The number of bytes at the tail of the current window not yet consumed — what the caller retains and
@@ -166,10 +214,20 @@ public interface JsonParserEx extends JsonParser
      * Drops the value at the current member boundary — valid only when the current event is a
      * {@link JsonEvent#KEY_NAME} — advancing the parser past the whole member (key, separator, value) and the
      * verbatim cursor past its bytes so they are never emitted, folding in the leading-separator trim a prune
-     * needs to keep the surviving siblings well-formed. The {@link JsonSource#skipValue()} accessor promoted
-     * onto the parser surface.
+     * needs to keep the surviving siblings well-formed. A value that continues past the end of the input window
+     * is dropped as the rest of it arrives, and until it ends no further event is delivered. The
+     * {@link JsonSource#skipValue()} accessor promoted onto the parser surface.
      */
     void skipValue();
+
+    /**
+     * Records that the sink will read this parse as original source bytes. Declining the first fragment of an
+     * object member's key with {@link #consumed(int)} reporting zero then leaves that fragment, together with
+     * the separator and whitespace that introduced it, unconsumed for the caller to re-present at the front of
+     * the next input window; without it the parser accumulates the decoded characters, which cannot reproduce
+     * the original bytes. The {@link JsonController#verbatim()} request promoted onto the parser surface.
+     */
+    void verbatim();
 
     /**
      * Whether the current value has bytes still deferred to later events — {@code true} while more of this same

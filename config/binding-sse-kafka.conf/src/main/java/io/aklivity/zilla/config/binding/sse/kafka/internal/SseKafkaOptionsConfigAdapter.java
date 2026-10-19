@@ -33,6 +33,6 @@ public final class SseKafkaOptionsConfigAdapter extends ConfigAdapter<OptionsCon
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        return new OptionsConfig();
+        return new OptionsConfig(null, null);
     }
 }

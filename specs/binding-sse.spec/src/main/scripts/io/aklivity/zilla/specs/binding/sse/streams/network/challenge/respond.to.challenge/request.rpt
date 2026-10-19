@@ -43,6 +43,8 @@ read advise zilla:challenge ${http:challengeEx()
                                   .header("content-type", "application/x-challenge-response")
                                   .build()}
 
-read "event:challenge\n"
-     "data:{\"method\":\"POST\",\"headers\":{\"content-type\":\"application/x-challenge-response\"}}\n"
-     "\n"
+read zilla:data.ext ${http:matchDataEx()
+                            .typeId(zilla:id("http"))
+                            .header("type", "challenge")
+                            .build()}
+read "{\"method\":\"POST\",\"headers\":{\"content-type\":\"application/x-challenge-response\"}}"

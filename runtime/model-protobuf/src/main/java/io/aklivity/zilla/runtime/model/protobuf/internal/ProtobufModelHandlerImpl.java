@@ -38,11 +38,13 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufStream;
 import io.aklivity.zilla.runtime.common.protobuf.json.ProtobufJson;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
+import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufCache;
 import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufModelExtContext;
 
 // Per-worker factory for a protobuf model. One handler serves both directions: supplyDecoder vends a
@@ -63,6 +65,8 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
     private final Int2ObjectCache<int[]> messagePaths;
     private final ProtobufModelConfig options;
     private final List<ProtobufModelExtContext> exts;
+    private final boolean wireDeterministic;
+    private final boolean jsonDeterministic;
 
     public ProtobufModelHandlerImpl(
         ProtobufModelConfig config,
@@ -76,15 +80,18 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
         this.messagePaths = new Int2ObjectCache<>(1, 1024, i -> {});
         this.options = config;
         this.exts = exts;
+        this.wireDeterministic = Protobuf.parser().deterministic() && Protobuf.generator().deterministic();
+        this.jsonDeterministic = JsonEx.createParser().deterministic() && JsonEx.createGenerator().deterministic();
     }
 
     @Override
     public ModelPipeline supplyDecoder(
         ModelEnvelope envelope,
-        ModelTransform transform)
+        ModelTransform transform,
+        ModelCache cache)
     {
         return new ProtobufModelDecoderPipeline(this, ProtobufModelEnvelope.of(requireNonNull(envelope)),
-            requireNonNull(transform));
+            requireNonNull(transform), cache);
     }
 
     @Override
@@ -93,6 +100,20 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
         ModelTransform transform)
     {
         return new ProtobufModelEncoderPipeline(this, ProtobufModelEnvelope.of(requireNonNull(envelope)));
+    }
+
+    boolean decodeDeterministic(
+        ModelCache cache)
+    {
+        boolean source = cachedJsonView(cache) ? jsonDeterministic : wireDeterministic;
+        boolean sink = VIEW_JSON.equals(view) ? jsonDeterministic : wireDeterministic;
+        return exts.isEmpty() && source && sink;
+    }
+
+    boolean encodeDeterministic()
+    {
+        boolean source = VIEW_JSON.equals(view) ? jsonDeterministic : wireDeterministic;
+        return exts.isEmpty() && source && wireDeterministic;
     }
 
     int decodePadding(
@@ -179,6 +200,23 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
         return schema != null ? schema.messageByIndexes(decodedPath()) : null;
     }
 
+    // a value already in the form a WRITE pipeline produced carries no message-index framing to decode --
+    // WRITE's decode output never re-emits it, view or no view -- so READ instead resolves the message the
+    // same, static way the encode side already does, via the configured catalog.record path
+    boolean cachedRead(
+        ModelCache cache)
+    {
+        return cache == ModelCache.READ;
+    }
+
+    // a json view re-encodes the wire message into JSON with no framing of its own at all, so a READ of
+    // that cached form must parse json to match, rather than protobuf wire bytes
+    boolean cachedJsonView(
+        ModelCache cache)
+    {
+        return cache == ModelCache.READ && VIEW_JSON.equals(view);
+    }
+
     // avoids computeIfAbsent for the same reason as ProtobufModelHandler.supplySchema: a capturing method
     // reference argument is allocated on every call, not just on a cache miss
     int[] messagePath(
@@ -209,6 +247,16 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
     {
         ProtobufSchema schema = supplySchema(schemaId);
         return schema != null && path != null ? schema.messageByIndexes(path) : null;
+    }
+
+    // the catalog framing bytes a WRITE decode injects ahead of its cached output, so a later READ can
+    // recover the exact schema id WRITE resolved directly from the cached bytes, rather than falling back
+    // to static config resolution -- the one case that matters is a per-message schema id (an encoded
+    // strategy), which a view-converting WRITE output would otherwise discard with no way to recover it
+    int framingPadding(
+        int length)
+    {
+        return handler.encodePadding(length);
     }
 
     // writes the catalog framing prefix for the resolved schema id into next, returning the bytes written
@@ -243,6 +291,14 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
         return framing;
     }
 
+    // a catalog that frames values is stripped of it on decode (and re-emits it on WRITE), and a value outside a
+    // cached read carries a message index that decode strips, so the bytes change
+    boolean decodeIdentity(
+        ModelCache cache)
+    {
+        return cachedRead(cache) && !VIEW_JSON.equals(view) && exts.isEmpty() && handler.encodePadding(0) == 0;
+    }
+
     // read-direction pipeline; when extractor is null no extractor stage is wired so the verbatim/SEGMENTED
     // fast path stays in effect for a decode with no field extraction
     ProtobufPipeline newPipeline(
@@ -251,7 +307,8 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
         String messageName,
         ProtobufExtractor extractor,
         ProtobufReporter reporter,
-        ProtobufEnvelope envelope)
+        ProtobufEnvelope envelope,
+        ModelCache cache)
     {
         ProtobufSchema schema = supplySchema(schemaId);
         ProtobufPipeline pipeline = null;
@@ -262,14 +319,22 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
             ProtobufGenerator generator = VIEW_JSON.equals(view)
                 ? ProtobufJson.generator(JsonEx.createGenerator(), schema, messageName, jsonConfig)
                 : Protobuf.generator();
+            // READ resolves a value already in whatever form a WRITE pipeline produced -- when that form
+            // is a json view rather than protobuf wire bytes, the source must parse json to match, exactly
+            // as the encode-shaped pipeline's own json-view source does for a caller's json input
+            ProtobufStream source = cachedJsonView(cache)
+                ? Protobuf.stream(ProtobufJson.parser(JsonEx.createParser(), schema, messageName,
+                    Map.of(ProtobufJson.REJECT_UNKNOWN_FIELDS, Boolean.TRUE)))
+                : Protobuf.stream(Protobuf.parser(schema, messageName));
+            ProtobufStream extended = extendDecode(source, schema, cache);
             pipeline = extractor != null
-                ? extendDecode(Protobuf.stream(Protobuf.parser(schema, messageName)), schema)
+                ? extended
                     .transform(extractor)
                     .lenient(lenient)
                     .reporting(reporter)
                     .envelope(envelope)
                     .into(generator, schema, messageName)
-                : extendDecode(Protobuf.stream(Protobuf.parser(schema, messageName)), schema)
+                : extended
                     .lenient(lenient)
                     .reporting(reporter)
                     .envelope(envelope)
@@ -306,17 +371,30 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
 
     // folds every installed protobuf model extension's own decode stage(s) into the stream, in discovery
     // order, ahead of this handler's own extractor stage: the canonical value being decoded into the view
-    // delivered to a reader
+    // delivered to a reader, for the given cache context
     private ProtobufStream extendDecode(
         ProtobufStream stream,
-        ProtobufSchema schema)
+        ProtobufSchema schema,
+        ModelCache cache)
     {
+        ProtobufCache protobufCache = extCache(cache);
         ProtobufStream extended = stream;
         for (ProtobufModelExtContext ext : exts)
         {
-            extended = ext.supplyHandler(schema, options).decode(extended);
+            extended = ext.supplyHandler(schema, options).decode(extended, protobufCache);
         }
         return extended;
+    }
+
+    private static ProtobufCache extCache(
+        ModelCache cache)
+    {
+        return switch (cache)
+        {
+        case WRITE -> ProtobufCache.WRITE;
+        case READ -> ProtobufCache.READ;
+        default -> ProtobufCache.NONE;
+        };
     }
 
     // folds every installed protobuf model extension's own encode stage(s) into the stream, in discovery
@@ -340,5 +418,21 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
         String diagnostic)
     {
         event.validationFailure(traceId, bindingId, diagnostic);
+    }
+
+    void parsingFailure(
+        long traceId,
+        long bindingId,
+        String diagnostic)
+    {
+        event.parsingFailure(traceId, bindingId, diagnostic);
+    }
+
+    void transformFailure(
+        long traceId,
+        long bindingId,
+        String diagnostic)
+    {
+        event.transformFailure(traceId, bindingId, diagnostic);
     }
 }

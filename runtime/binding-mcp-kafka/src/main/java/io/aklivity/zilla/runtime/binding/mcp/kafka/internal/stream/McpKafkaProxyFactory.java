@@ -20,6 +20,10 @@ import static io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.
 import static io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.McpBeginExFW.KIND_TOOLS_CALL;
 import static io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.nio.ByteOrder;
@@ -257,9 +261,6 @@ public class McpKafkaProxyFactory implements BindingHandler
     private static final Set<String> RESETTABLE_GROUP_STATES = Set.of("Empty", "Dead");
 
     private static final int CAPABILITIES_TOOLS = 1;
-    private static final int FLAGS_INIT = 0x01;
-    private static final int FLAGS_FIN = 0x02;
-    private static final int FLAGS_COMPLETE = 0x03;
 
     private static final int ERROR_CODE_INVALID_PARAMS = -32602;
     private static final String ERROR_MESSAGE_INVALID_PARAMS = "Invalid params";
@@ -468,9 +469,8 @@ public class McpKafkaProxyFactory implements BindingHandler
                 {
                 case KIND_LIFECYCLE:
                 {
-                    final int capabilities = mcpBeginEx.lifecycle().capabilities();
                     final McpLifecycleProxy lifecycle = new McpLifecycleProxy(
-                        sender, originId, routedId, initialId, authorization, affinity, capabilities);
+                        sender, originId, routedId, initialId, authorization, affinity);
                     newStream = lifecycle::onMcpMessage;
                     break;
                 }
@@ -2083,7 +2083,6 @@ public class McpKafkaProxyFactory implements BindingHandler
         private final long replyId;
         private final long authorization;
         private final long affinity;
-        private final int capabilities;
 
         private int state;
 
@@ -2093,8 +2092,7 @@ public class McpKafkaProxyFactory implements BindingHandler
             long routedId,
             long initialId,
             long authorization,
-            long affinity,
-            int capabilities)
+            long affinity)
         {
             this.mcp = mcp;
             this.originId = originId;
@@ -2103,7 +2101,6 @@ public class McpKafkaProxyFactory implements BindingHandler
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.authorization = authorization;
             this.affinity = affinity;
-            this.capabilities = capabilities;
         }
 
         private void onMcpMessage(
@@ -2166,11 +2163,14 @@ public class McpKafkaProxyFactory implements BindingHandler
             long traceId)
         {
             final String sessionId = supplySessionId.get();
+            // this binding type is tools-only by construction (its route condition schema
+            // rejects prompt:/resource: selectors), so it always declares CAPABILITIES_TOOLS
+            // here rather than echoing whatever capabilities the connecting north forwarded
             final McpBeginExFW lifecycleEx = mcpBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(mcpTypeId)
                 .lifecycle(l -> l
                     .sessionId(sessionId)
-                    .capabilities(capabilities != 0 ? capabilities : CAPABILITIES_TOOLS))
+                    .capabilities(CAPABILITIES_TOOLS))
                 .build();
 
             doBegin(mcp, originId, routedId, replyId, traceId, authorization, affinity, lifecycleEx);
@@ -2328,7 +2328,7 @@ public class McpKafkaProxyFactory implements BindingHandler
          * Sends as much of {@link #toolsListPayload} (starting at {@link #toolsListProgress}) as the
          * most recently granted reply window allows, advancing {@link #replySeq}/{@link
          * #toolsListProgress} by however much fit; waits for the next {@code WINDOW} if that isn't
-         * the whole remainder. Every fragment uses {@code FLAGS_COMPLETE} - matching
+         * the whole remainder. Every fragment uses {@code COMPLETE} - matching
          * {@code McpProxyListFactory#encode} in {@code binding-mcp} - since this transport
          * concatenates reply payload bytes across frames rather than reassembling by INIT/FIN flag.
          */
@@ -2344,7 +2344,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 final boolean last = toolsListProgress + length == toolsListPayload.length;
 
                 doData(mcp, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
-                    replyBud, FLAGS_COMPLETE, length, toolsListBuffer, toolsListProgress, length);
+                    replyBud, COMPLETE, length, toolsListBuffer, toolsListProgress, length);
 
                 replySeq += length;
                 toolsListProgress += length;
@@ -3181,7 +3181,7 @@ public class McpKafkaProxyFactory implements BindingHandler
             MutableDirectBufferEx buffer,
             boolean isError)
         {
-            doMcpData(traceId, 0L, FLAGS_COMPLETE, length, buffer, 0, length);
+            doMcpData(traceId, 0L, COMPLETE, length, buffer, 0, length);
 
             if (isError)
             {
@@ -3796,8 +3796,8 @@ public class McpKafkaProxyFactory implements BindingHandler
                 final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
                 final boolean fin = consumeDone;
                 final int flags = !consumeStarted
-                    ? (fin ? FLAGS_COMPLETE : FLAGS_INIT)
-                    : (fin ? FLAGS_FIN : 0x00);
+                    ? (fin ? COMPLETE : INIT)
+                    : (fin ? FIN : NONE);
                 consumeStarted = true;
 
                 peer.doMcpData(traceId, 0L, flags, encodeSlotOffset, slot, 0, encodeSlotOffset);
@@ -3883,7 +3883,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 .build();
 
             doData(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization,
-                0L, FLAGS_COMPLETE, value.length, valueBuffer, 0, value.length, kafkaDataEx);
+                0L, COMPLETE, value.length, valueBuffer, 0, value.length, kafkaDataEx);
 
             initialSeq += value.length;
         }
@@ -4251,7 +4251,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 if (built)
                 {
                     doData(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization,
-                        budgetId, FLAGS_COMPLETE, requestLength, slot, 0, requestLength);
+                        budgetId, COMPLETE, requestLength, slot, 0, requestLength);
                     initialSeq += requestLength;
                 }
                 else
@@ -4655,7 +4655,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 if (built)
                 {
                     doData(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization,
-                        budgetId, FLAGS_COMPLETE, requestLength, slot, 0, requestLength);
+                        budgetId, COMPLETE, requestLength, slot, 0, requestLength);
                     initialSeq += requestLength;
                 }
                 else
@@ -5075,7 +5075,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 if (built)
                 {
                     doData(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization,
-                        budgetId, FLAGS_COMPLETE, requestLength, slot, 0, requestLength);
+                        budgetId, COMPLETE, requestLength, slot, 0, requestLength);
                     initialSeq += requestLength;
                 }
                 else
@@ -5469,7 +5469,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 if (built)
                 {
                     doData(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization,
-                        budgetId, FLAGS_COMPLETE, requestLength, slot, 0, requestLength);
+                        budgetId, COMPLETE, requestLength, slot, 0, requestLength);
                     initialSeq += requestLength;
                 }
                 else
@@ -5896,7 +5896,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 if (built)
                 {
                     doData(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization,
-                        budgetId, FLAGS_COMPLETE, requestLength, slot, 0, requestLength);
+                        budgetId, COMPLETE, requestLength, slot, 0, requestLength);
                     initialSeq += requestLength;
                 }
                 else
@@ -6306,7 +6306,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 if (built)
                 {
                     doData(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization,
-                        budgetId, FLAGS_COMPLETE, requestLength, slot, 0, requestLength);
+                        budgetId, COMPLETE, requestLength, slot, 0, requestLength);
                     initialSeq += requestLength;
                 }
                 else
@@ -6743,7 +6743,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 if (built)
                 {
                     doData(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization,
-                        budgetId, FLAGS_COMPLETE, requestLength, slot, 0, requestLength);
+                        budgetId, COMPLETE, requestLength, slot, 0, requestLength);
                     initialSeq += requestLength;
                 }
                 else
@@ -7306,7 +7306,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 if (built)
                 {
                     doData(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization,
-                        budgetId, FLAGS_COMPLETE, requestLength, slot, 0, requestLength);
+                        budgetId, COMPLETE, requestLength, slot, 0, requestLength);
                     initialSeq += requestLength;
                 }
                 else
@@ -7762,7 +7762,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 if (built)
                 {
                     doData(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization,
-                        budgetId, FLAGS_COMPLETE, requestLength, slot, 0, requestLength);
+                        budgetId, COMPLETE, requestLength, slot, 0, requestLength);
                     initialSeq += requestLength;
                 }
                 else
@@ -8155,7 +8155,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 if (built)
                 {
                     doData(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization,
-                        budgetId, FLAGS_COMPLETE, requestLength, slot, 0, requestLength);
+                        budgetId, COMPLETE, requestLength, slot, 0, requestLength);
                     initialSeq += requestLength;
                 }
                 else
@@ -8619,7 +8619,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 if (built)
                 {
                     doData(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization,
-                        budgetId, FLAGS_COMPLETE, requestLength, slot, 0, requestLength);
+                        budgetId, COMPLETE, requestLength, slot, 0, requestLength);
                     initialSeq += requestLength;
                 }
                 else
@@ -9042,16 +9042,23 @@ public class McpKafkaProxyFactory implements BindingHandler
                 traceId, authorization, affinity, kafkaBeginEx);
         }
 
+        /**
+         * Only the reply of the stage currently in flight closes the MCP reply; the previous stage's
+         * reply END arrives after {@link #advanceToOffsetCommit} has already opened the next stream.
+         */
         private void onKafkaEnd(
             EndFW end)
         {
             final long traceId = end.traceId();
 
-            state = McpKafkaState.closedReply(state);
-
-            if (stage == STAGE_OFFSET_COMMIT && mcpBegun)
+            if (end.streamId() == kafkaReplyId)
             {
-                peer.doMcpEnd(traceId);
+                state = McpKafkaState.closedReply(state);
+
+                if (stage == STAGE_OFFSET_COMMIT && mcpBegun)
+                {
+                    peer.doMcpEnd(traceId);
+                }
             }
         }
 
@@ -9115,7 +9122,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 if (built)
                 {
                     doData(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization,
-                        budgetId, FLAGS_COMPLETE, findCoordinatorRequestLength, slot, 0, findCoordinatorRequestLength);
+                        budgetId, COMPLETE, findCoordinatorRequestLength, slot, 0, findCoordinatorRequestLength);
                     initialSeq += findCoordinatorRequestLength;
                 }
                 else
@@ -9146,7 +9153,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 if (built)
                 {
                     doData(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization,
-                        budgetId, FLAGS_COMPLETE, describeGroupsRequestLength, slot, 0, describeGroupsRequestLength);
+                        budgetId, COMPLETE, describeGroupsRequestLength, slot, 0, describeGroupsRequestLength);
                     initialSeq += describeGroupsRequestLength;
                 }
                 else
@@ -9172,7 +9179,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 .build();
 
             doData(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization,
-                budgetId, FLAGS_COMPLETE, 0, emptyDecodeRO, 0, 0, kafkaDataEx);
+                budgetId, COMPLETE, 0, emptyDecodeRO, 0, 0, kafkaDataEx);
 
             doFlush(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization, emptyRO);
         }
@@ -9708,7 +9715,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 if (built)
                 {
                     doData(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization,
-                        budgetId, FLAGS_COMPLETE, offsetFetchRequestLength, slot, 0, offsetFetchRequestLength);
+                        budgetId, COMPLETE, offsetFetchRequestLength, slot, 0, offsetFetchRequestLength);
                     initialSeq += offsetFetchRequestLength;
                 }
                 else
@@ -9739,7 +9746,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 if (built)
                 {
                     doData(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization,
-                        budgetId, FLAGS_COMPLETE, listOffsetsRequestLength, slot, 0, listOffsetsRequestLength);
+                        budgetId, COMPLETE, listOffsetsRequestLength, slot, 0, listOffsetsRequestLength);
                     initialSeq += listOffsetsRequestLength;
                 }
                 else

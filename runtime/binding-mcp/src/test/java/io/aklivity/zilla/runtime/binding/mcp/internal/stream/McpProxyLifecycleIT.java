@@ -53,7 +53,7 @@ public class McpProxyLifecycleIT
     @Specification({
         "${app}/lifecycle.server.write.abort/client",
         "${app}/lifecycle.server.write.abort/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
     public void shouldLifecycleServerWriteAbort() throws Exception
     {
         k3po.finish();
@@ -64,7 +64,7 @@ public class McpProxyLifecycleIT
     @Specification({
         "${app}/lifecycle.server.write.close/client",
         "${app}/lifecycle.server.write.close/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
     public void shouldLifecycleServerWriteClose() throws Exception
     {
         k3po.finish();
@@ -75,7 +75,7 @@ public class McpProxyLifecycleIT
     @Specification({
         "${app}/lifecycle.server.read.abort/client",
         "${app}/lifecycle.server.read.abort/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
     public void shouldLifecycleServerReadAbort() throws Exception
     {
         k3po.finish();
@@ -86,7 +86,7 @@ public class McpProxyLifecycleIT
     @Specification({
         "${app}/lifecycle.client.write.abort/client",
         "${app}/lifecycle.client.write.abort/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
     public void shouldLifecycleClientWriteAbort() throws Exception
     {
         k3po.finish();
@@ -97,7 +97,7 @@ public class McpProxyLifecycleIT
     @Specification({
         "${app}/lifecycle.client.write.close/client",
         "${app}/lifecycle.client.write.close/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
     public void shouldLifecycleClientWriteClose() throws Exception
     {
         k3po.finish();
@@ -108,7 +108,7 @@ public class McpProxyLifecycleIT
     @Specification({
         "${app}/lifecycle.client.read.abort/client",
         "${app}/lifecycle.client.read.abort/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
     public void shouldLifecycleClientReadAbort() throws Exception
     {
         k3po.finish();
@@ -119,7 +119,7 @@ public class McpProxyLifecycleIT
     @Specification({
         "${app}/lifecycle.initialize.skip.bearer/client",
         "${app}/lifecycle.initialize.skip.bearer/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
     public void shouldInitializeLifecycleSkippingBearerRejectedRoute() throws Exception
     {
         k3po.finish();
@@ -129,6 +129,6 @@ public class McpProxyLifecycleIT
         long affinity)
     {
         assert affinity == 0L;
-        return "5ca1ab1e-c0de-4a11-b007-000100000000";
+        return "5ca1ab1e-c0de-4a11-b007-00010000003f";
     }
 }

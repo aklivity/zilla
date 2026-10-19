@@ -41,6 +41,8 @@ public class JsonModelContext implements ModelContext
     public ModelHandler supplyHandler(
         ModelConfig config)
     {
-        return new JsonModelHandlerImpl(JsonModelConfig.class.cast(config), context, exts);
+        JsonModelConfig jsonOptions = JsonModelConfig.class.cast(config);
+        exts.forEach(ext -> ext.attach(jsonOptions));
+        return new JsonModelHandlerImpl(jsonOptions, context, exts);
     }
 }

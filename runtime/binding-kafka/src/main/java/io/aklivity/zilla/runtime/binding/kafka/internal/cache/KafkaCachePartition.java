@@ -23,7 +23,6 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaT
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_ACKNOWLEDGE;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_ACK_MODE;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_ANCESTOR;
-import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_CONVERTED_POSITION;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_DELTA_POSITION;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_DESCENDANT;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_FLAGS;
@@ -34,8 +33,8 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.Kafka
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_PRODUCER_ID;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_SEQUENCE;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_TIMESTAMP;
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 import static java.nio.ByteBuffer.allocateDirect;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 import static org.agrona.BitUtil.SIZE_OF_INT;
 
@@ -70,7 +69,6 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaTimestampType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.String32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Varint32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheDeltaFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW;
@@ -98,14 +96,10 @@ public final class KafkaCachePartition
     private static final long NO_DESCENDANT_OFFSET = -1L;
     private static final int NO_SEQUENCE = -1;
     private static final int NO_ACKNOWLEDGE = 0;
-    private static final int NO_CONVERTED_POSITION = -1;
     private static final int NO_DELTA_POSITION = -1;
 
     private static final String FORMAT_FETCH_PARTITION_DIRECTORY = "%s-%d";
     private static final String FORMAT_PRODUCE_PARTITION_DIRECTORY = "%s-%d-%d";
-
-    private static final int FLAGS_COMPLETE = 0x03;
-    private static final int FLAGS_FIN = 0x01;
 
     private static final long OFFSET_HISTORICAL = KafkaOffsetType.HISTORICAL.value();
 
@@ -124,12 +118,12 @@ public final class KafkaCachePartition
 
     private final MutableDirectBufferEx entryInfo = new UnsafeBufferEx(new byte[FIELD_OFFSET_PADDED_KEY]);
     private final MutableDirectBufferEx valueInfo = new UnsafeBufferEx(new byte[Integer.BYTES]);
+    private final MutableInteger entryValueLimit = new MutableInteger(0);
+    private final MutableInteger entryHeadersMark = new MutableInteger(0);
 
     private final Varint32FW varintRO = new Varint32FW();
     private final KafkaCachePaddedKeyFW.Builder paddedKeyRW = new KafkaCachePaddedKeyFW.Builder()
         .wrap(new UnsafeBufferEx(new byte[8192]), 0, 8192);
-    private final String32FW.Builder stringRW = new String32FW.Builder()
-        .wrap(new UnsafeBufferEx(new byte[256]), 0, 256);
     private final Varint32FW.Builder varintRW = new Varint32FW.Builder().wrap(new UnsafeBufferEx(new byte[5]), 0, 5);
     private final Array32FW<KafkaHeaderFW> headersRO = new Array32FW<KafkaHeaderFW>(new KafkaHeaderFW());
     private final Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> trailersRW =
@@ -157,7 +151,6 @@ public final class KafkaCachePartition
     private final AtomicLong produceCapacity;
     private final OctetsFW octetsRO = new OctetsFW();
     private final KafkaKeyFW keyRO = new KafkaKeyFW();
-    private final KafkaEntrySink entrySink = new KafkaEntrySink();
 
     public KafkaCachePartition(
         Path location,
@@ -307,6 +300,7 @@ public final class KafkaCachePartition
         long offset,
         KafkaKeyFW key,
         int valueLength,
+        int valuePaddingMax,
         int headersSizeMax)
     {
         Node head = sentinel.previous;
@@ -318,7 +312,7 @@ public final class KafkaCachePartition
         else
         {
             final int logRequired = entryInfo.capacity() + key.sizeof() + valueInfo.capacity() +
-                    Math.max(valueLength, 0) + headersSizeMax;
+                    Math.max(valueLength, 0) + SIZEOF_PADDING_LENGTH + valuePaddingMax + headersSizeMax;
             final int hashKeyRequired = key.length() != -1 ? 1 : 0;
             final int hashHeaderRequiredMax = headersSizeMax >> 2;
             final int hashRequiredMax = (hashKeyRequired + hashHeaderRequiredMax) * SIZEOF_INDEX_RECORD;
@@ -365,15 +359,30 @@ public final class KafkaCachePartition
         OctetsFW value,
         int entryFlags,
         KafkaDeltaType deltaType,
-        KafkaPipeline pipeline,
+        KafkaCacheModel transformKey,
+        KafkaCacheModel transformValue,
+        KafkaCacheKeyEnvelope keyEnvelope,
+        KafkaCacheTrailerEnvelope valueEnvelope,
+        int trailersSizeMax,
         boolean verbose)
     {
         final int valueLength = value != null ? value.sizeof() : -1;
-        writeEntryStart(context, traceId, bindingId, authorization, offset, entryMark, valueMark, timestamp, timestampType,
-            producerId, key, valueLength, null, entryFlags, deltaType, value, pipeline, verbose);
-        writeEntryContinue(value);
-        writeEntryFinish(headers, deltaType, context, traceId, bindingId, authorization, FLAGS_COMPLETE, offset, entryMark,
-            valueMark, pipeline, verbose);
+        final int valuePaddingMax = valueLength != -1 && transformValue != KafkaCacheModel.NONE
+            ? transformValue.padding(value.buffer(), value.offset(), valueLength)
+            : 0;
+        final int headersMax = headers.sizeof();
+        entryValueLimit.value = 0;
+        writeEntryStart(context, traceId, bindingId, authorization, offset, entryMark, valueMark, entryValueLimit,
+            entryHeadersMark, timestamp, timestampType, producerId, key, valueLength, valuePaddingMax, headersMax,
+            trailersSizeMax, null, entryFlags, deltaType, value, transformKey, transformValue, keyEnvelope, valueEnvelope,
+            verbose);
+        if (value != null)
+        {
+            writeEntryContinue(traceId, bindingId, authorization, COMPLETE, entryMark, valueMark, entryValueLimit,
+                value, transformValue, valuePaddingMax);
+        }
+        writeEntryFinish(headers, deltaType, entryMark, valueMark, entryHeadersMark, headersMax, transformValue,
+            valueEnvelope, trailersSizeMax);
     }
 
     public void writeEntryStart(
@@ -384,16 +393,24 @@ public final class KafkaCachePartition
         long offset,
         MutableInteger entryMark,
         MutableInteger valueMark,
+        MutableInteger valueLimit,
+        MutableInteger headersMark,
         long timestamp,
         KafkaTimestampType timestampType,
         long producerId,
         KafkaKeyFW key,
         int valueLength,
+        int valuePaddingMax,
+        int headersMax,
+        int trailersSizeMax,
         IntFunction<KafkaCacheEntryFW> findAncestor,
         int entryFlags,
         KafkaDeltaType deltaType,
         OctetsFW payload,
-        KafkaPipeline pipeline,
+        KafkaCacheModel transformKey,
+        KafkaCacheModel transformValue,
+        KafkaCacheKeyEnvelope keyEnvelope,
+        KafkaCacheTrailerEnvelope valueEnvelope,
         boolean verbose)
     {
         assert offset > this.progress : String.format("%d > %d", offset, this.progress);
@@ -412,24 +429,10 @@ public final class KafkaCachePartition
         final KafkaCacheFile hashFile = segment.hashFile();
         final KafkaCacheFile keysFile = segment.keysFile();
         final KafkaCacheFile nullsFile = segment.nullsFile();
-        final KafkaCacheFile convertedFile = segment.convertedFile();
 
         final int valueMaxLength = valueLength == -1 ? 0 : valueLength;
 
         logFile.mark();
-
-        int convertedPos = NO_CONVERTED_POSITION;
-        if (valueLength != -1 && pipeline.transformsValue())
-        {
-            int convertedPadding = pipeline.padding(payload.buffer(), payload.offset(), payload.sizeof());
-            int convertedMaxLength = valueMaxLength + convertedPadding;
-
-            convertedPos = convertedFile.capacity();
-            convertedFile.advance(convertedPos + convertedMaxLength + SIZE_OF_INT * 2);
-
-            convertedFile.writeInt(convertedPos, 0); // length
-            convertedFile.writeInt(convertedPos + SIZE_OF_INT, convertedMaxLength); // padding
-        }
 
         entryMark.value = logFile.capacity();
 
@@ -441,7 +444,6 @@ public final class KafkaCachePartition
         entryInfo.putLong(FIELD_OFFSET_ANCESTOR, NO_ANCESTOR_OFFSET);
         entryInfo.putLong(FIELD_OFFSET_DESCENDANT, NO_DESCENDANT_OFFSET);
         entryInfo.putInt(FIELD_OFFSET_FLAGS, entryFlags);
-        entryInfo.putInt(FIELD_OFFSET_CONVERTED_POSITION, convertedPos);
         entryInfo.putInt(FIELD_OFFSET_DELTA_POSITION, NO_DELTA_POSITION);
         entryInfo.putShort(FIELD_OFFSET_ACK_MODE, KafkaAckMode.NONE.value());
 
@@ -474,11 +476,11 @@ public final class KafkaCachePartition
                 logFile.appendBytes(buffer, index, length);
             };
 
-            entrySink.begin(null);
+            keyEnvelope.reset();
 
             OctetsFW value = key.value();
-            int transformed = pipeline.transformKey(traceId, bindingId, authorization,
-                    value.buffer(), value.offset(), value.limit(), writeKey, entrySink);
+            int transformed = transformKey.transform(traceId, bindingId, authorization,
+                    value.buffer(), value.offset(), value.limit(), writeKey);
 
             if (transformed == -1)
             {
@@ -492,15 +494,42 @@ public final class KafkaCachePartition
             }
             logFile.appendInt(0);
 
-            if (transformed != -1)
+            if (transformed != -1 && !keyEnvelope.isEmpty())
             {
-                entrySink.commitKey(logFile, entryMark.value);
+                final boolean committed =
+                    commitKeyOverride(logFile, entryMark.value, keyEnvelope.get(KafkaCacheKeyEnvelope.NAME, 0));
+                if (!committed)
+                {
+                    logFile.writeInt(entryMark.value + FIELD_OFFSET_FLAGS, CACHE_ENTRY_FLAGS_ABORTED);
+                }
             }
         }
 
         logFile.appendInt(valueLength);
 
         valueMark.value = logFile.capacity();
+        valueLimit.value = valueMark.value;
+
+        final int paddingLenAt = valueMark.value + valueMaxLength;
+        logFile.advance(paddingLenAt + SIZEOF_PADDING_LENGTH + valuePaddingMax);
+        logFile.writeInt(paddingLenAt, valuePaddingMax);
+
+        headersMark.value = logFile.capacity();
+        if (valueLength != -1 && transformValue != KafkaCacheModel.NONE)
+        {
+            // headers aren't known until writeEntryFinish, but a composed transform's envelope must
+            // already be claimed before the first writeEntryContinue call -- so this reserves headersMax
+            // (a worst-case bound) immediately followed by trailersSizeMax, and claims the trailersSizeMax
+            // portion as scratch for envelope.set() calls during the value drive. writeEntryFinish later
+            // writes the real (smaller) headers and trailers contiguously starting at headersMark, reusing
+            // these same bytes once the scratch content has been drained, and folds whatever is left over
+            // into the entry's own trailing paddingLen/padding fields
+            final int reservedMax = headersMax + trailersSizeMax + SIZEOF_PADDING_LENGTH;
+            logFile.advance(headersMark.value + reservedMax);
+
+            valueEnvelope.reset();
+            valueEnvelope.claim(logFile, headersMark.value + headersMax, trailersSizeMax);
+        }
 
         final long keyHash = computeHash(logFile.readBytes(keyAt, keyRO::wrap));
 
@@ -508,7 +537,7 @@ public final class KafkaCachePartition
 
         final long ancestorOffset = ancestor != null ? ancestor.offset$() : NO_ANCESTOR_OFFSET;
         final int deltaPosition = deltaType == JSON_PATCH &&
-                                  ancestor != null && ancestor.valueLen() != -1 &&
+                                  ancestor != null && ancestor.paddedValue().length() != -1 &&
                                   valueLength != -1
                     ? deltaFile.capacity()
                     : NO_DELTA_POSITION;
@@ -534,8 +563,17 @@ public final class KafkaCachePartition
         keysFile.appendLong(keyEntry);
     }
 
-    public void writeEntryContinue(
-        OctetsFW payload)
+    public int writeEntryContinue(
+        long traceId,
+        long bindingId,
+        long authorization,
+        int flags,
+        MutableInteger entryMark,
+        MutableInteger valueMark,
+        MutableInteger valueLimit,
+        OctetsFW payload,
+        KafkaCacheModel transformValue,
+        int valuePaddingMax)
     {
         final Node head = sentinel.previous;
         assert head != sentinel;
@@ -545,26 +583,73 @@ public final class KafkaCachePartition
 
         final KafkaCacheFile logFile = headSegment.logFile();
 
-        final int logAvailable = logFile.available();
-        final int logRequired = payload.sizeof();
-        assert logAvailable >= logRequired;
+        int transformed = 0;
+        if (payload != null)
+        {
+            if (transformValue == KafkaCacheModel.NONE)
+            {
+                valueLimit.value += logFile.writeBytes(valueLimit.value, payload);
+            }
+            else
+            {
+                // valueMaxLength re-derives the reservation's raw-value bound from the placeholder length
+                // field writeEntryStart already wrote -- that field sits before the value region so it is
+                // never touched by value writes until the COMPLETE branch below finalizes it, so this stays
+                // stable across every fragment of the same value. valuePaddingMax, in contrast, must come in
+                // as a parameter rather than being re-read from its on-disk marker: a growing transform's
+                // output can legitimately write past valueMaxLength bytes into that marker's position, so a
+                // later fragment in the same value would read back corrupted data
+                final int valueMaxLength = Math.max(logFile.readInt(valueMark.value - SIZE_OF_INT), 0);
+                final int reservedMax = valueMaxLength + valuePaddingMax;
 
-        logFile.appendBytes(payload.buffer(), payload.offset(), payload.sizeof());
+                final KafkaCacheModel.Output consumeTransformed = (buffer, index, length) ->
+                {
+                    final int written = valueLimit.value - valueMark.value;
+                    if (written + length > reservedMax)
+                    {
+                        logFile.writeInt(entryMark.value + FIELD_OFFSET_FLAGS, CACHE_ENTRY_FLAGS_ABORTED);
+                    }
+                    else
+                    {
+                        logFile.writeBytes(valueLimit.value, buffer, index, length);
+                        valueLimit.value += length;
+                    }
+                };
+
+                final KafkaCacheModel.Result result = transformValue.transform(traceId, bindingId, authorization, flags,
+                    payload.buffer(), payload.offset(), payload.limit(), consumeTransformed);
+
+                if (result.status() == ModelStatus.REJECTED)
+                {
+                    transformed = -1;
+                    logFile.writeInt(entryMark.value + FIELD_OFFSET_FLAGS, CACHE_ENTRY_FLAGS_ABORTED);
+                }
+                else if (result.status() == ModelStatus.COMPLETE)
+                {
+                    // the transformed value's real length rarely matches the reservation sized from the
+                    // raw value -- finalize length in place and relocate paddingLen to absorb whatever
+                    // slack remains, exactly as commitKeyOverride does for a transformed key
+                    final int actualLength = valueLimit.value - valueMark.value;
+                    final int finalPaddingLen = reservedMax - actualLength;
+                    logFile.writeInt(valueMark.value - SIZE_OF_INT, actualLength);
+                    logFile.writeInt(valueLimit.value, finalPaddingLen);
+                }
+            }
+        }
+
+        return transformed;
     }
 
     public void writeEntryFinish(
         ArrayFW<KafkaHeaderFW> headers,
         KafkaDeltaType deltaType,
-        EngineContext context,
-        long traceId,
-        long bindingId,
-        long authorization,
-        int flags,
-        long offset,
         MutableInteger entryMark,
         MutableInteger valueMark,
-        KafkaPipeline pipeline,
-        boolean verbose)
+        MutableInteger headersMark,
+        int headersMax,
+        KafkaCacheModel transformValue,
+        KafkaCacheTrailerEnvelope valueEnvelope,
+        int trailersSizeMax)
     {
         final Node head = sentinel.previous;
         assert head != sentinel;
@@ -576,73 +661,57 @@ public final class KafkaCachePartition
         final KafkaCacheFile deltaFile = headSegment.deltaFile();
         final KafkaCacheFile hashFile = headSegment.hashFile();
         final KafkaCacheFile indexFile = headSegment.indexFile();
-        final KafkaCacheFile convertedFile = headSegment.convertedFile();
 
         final int valueLength = logFile.readInt(valueMark.value - SIZE_OF_INT);
-        assert logFile.capacity() - valueMark.value == Math.max(valueLength, 0);
-
-        final int logAvailable = logFile.available();
-        final int logRequired = headers.sizeof();
-        assert logAvailable >= logRequired : String.format("%s %d >= %d", headSegment, logAvailable, logRequired);
+        final int paddingLenAt = valueMark.value + Math.max(valueLength, 0);
+        final int valuePaddingMax = logFile.readInt(paddingLenAt);
+        final int valueEnd = paddingLenAt + SIZEOF_PADDING_LENGTH + valuePaddingMax;
+        assert headersMark.value == valueEnd;
 
         Array32FW<KafkaHeaderFW> trailers = EMPTY_TRAILERS;
 
-        if (valueLength != -1 && pipeline.transformsValue())
+        if (valueLength != -1 && transformValue != KafkaCacheModel.NONE)
         {
-            final KafkaCacheModel.Output consumeTransformed = (buffer, index, length) ->
-            {
-                final int convertedLengthAt = logFile.readInt(entryMark.value + FIELD_OFFSET_CONVERTED_POSITION);
-                final int convertedLength = convertedFile.readInt(convertedLengthAt);
-                final int convertedValueLimit = convertedLengthAt + SIZE_OF_INT + convertedLength;
-                final int convertedPadding = convertedFile.readInt(convertedValueLimit);
+            assert logFile.capacity() == headersMark.value + headersMax + trailersSizeMax + SIZEOF_PADDING_LENGTH;
 
-                if (convertedPadding < length)
+            final boolean aborted =
+                (logFile.readInt(entryMark.value + FIELD_OFFSET_FLAGS) & CACHE_ENTRY_FLAGS_ABORTED) != 0x00;
+
+            if (!aborted)
+            {
+                if (!valueEnvelope.isEmpty())
+                {
+                    valueEnvelope.writeHeaders(trailersRW.wrap(trailersRW.buffer(), 0, trailersRW.maxLimit()));
+                    trailers = trailersRW.build();
+                }
+
+                if (valueEnvelope.isOverflowed())
                 {
                     logFile.writeInt(entryMark.value + FIELD_OFFSET_FLAGS, CACHE_ENTRY_FLAGS_ABORTED);
-                    if (verbose)
-                    {
-                        System.out.printf("%s:%s %s: Skipping message on topic %s, partition %d, offset %d: " +
-                            "transformed value exceeded reserved capacity\n",
-                            System.currentTimeMillis(), context.supplyNamespace(bindingId),
-                            context.supplyLocalName(bindingId), topic, id, offset);
-                    }
-                }
-                else
-                {
-                    convertedFile.writeInt(convertedLengthAt, convertedLength + length);
-                    convertedFile.writeBytes(convertedValueLimit, buffer, index, length);
-                    convertedFile.writeInt(convertedValueLimit + length, convertedPadding - length);
-                }
-            };
-
-            int entryFlags = logFile.readInt(entryMark.value + FIELD_OFFSET_FLAGS);
-
-            if ((entryFlags & CACHE_ENTRY_FLAGS_ABORTED) == 0x00)
-            {
-                entrySink.begin(trailersRW.wrap(trailersRW.buffer(), 0, trailersRW.maxLimit()));
-
-                int transformed = pipeline.transformValue(traceId, bindingId, authorization, logFile.buffer(),
-                    valueMark.value, valueMark.value + valueLength, consumeTransformed, entrySink);
-                if (transformed == -1)
-                {
-                    logFile.writeInt(entryMark.value + FIELD_OFFSET_FLAGS, CACHE_ENTRY_FLAGS_ABORTED);
-                    if (verbose)
-                    {
-                        System.out.printf("%s:%s %s: Skipping invalid message on topic %s, partition %d, offset %d\n",
-                            System.currentTimeMillis(), context.supplyNamespace(bindingId),
-                            context.supplyLocalName(bindingId), topic, id, offset);
-                    }
-                }
-                else
-                {
-                    trailers = entrySink.commitTrailers();
                 }
             }
-        }
 
-        logFile.appendBytes(headers);
-        logFile.appendBytes(trailers);
-        logFile.appendInt(0);
+            // real headers and trailers are written contiguously starting at headersMark, reusing the
+            // bytes writeEntryStart reserved (and the composed transform's envelope used as scratch during
+            // the value drive) -- whatever is left over between their combined real size and the full
+            // worst-case reservation is folded into the entry's own trailing paddingLen/padding fields
+            logFile.writeBytes(headersMark.value, headers);
+            final int trailersAt = headersMark.value + headers.sizeof();
+            logFile.writeBytes(trailersAt, trailers);
+            final int entryPaddingLenAt = trailersAt + trailers.sizeof();
+            final int reservedEnd = headersMark.value + headersMax + trailersSizeMax + SIZEOF_PADDING_LENGTH;
+            logFile.writeInt(entryPaddingLenAt, reservedEnd - entryPaddingLenAt - SIZEOF_PADDING_LENGTH);
+        }
+        else
+        {
+            final int logAvailable = logFile.available();
+            final int logRequired = headers.sizeof();
+            assert logAvailable >= logRequired : String.format("%s %d >= %d", headSegment, logAvailable, logRequired);
+
+            logFile.appendBytes(headers);
+            logFile.appendBytes(EMPTY_TRAILERS);
+            logFile.appendInt(0);
+        }
 
         final long offsetDelta = (int)(progress - headSegment.baseOffset());
         final long indexEntry = (offsetDelta << 32) | logFile.markValue();
@@ -681,11 +750,11 @@ public final class KafkaCachePartition
         final KafkaCacheEntryFW headEntry = logFile.readBytes(logFile.markValue(), headEntryRO::wrap);
 
         if (deltaType == JSON_PATCH &&
-            ancestorEntry != null && ancestorEntry.valueLen() != -1 &&
-            headEntry.valueLen() != -1)
+            ancestorEntry != null && ancestorEntry.paddedValue().length() != -1 &&
+            headEntry.paddedValue().length() != -1)
         {
-            final OctetsFW ancestorValue = ancestorEntry.value();
-            final OctetsFW headValue = headEntry.value();
+            final OctetsFW ancestorValue = ancestorEntry.paddedValue().value();
+            final OctetsFW headValue = headEntry.paddedValue().value();
             assert headEntry.offset$() == progress;
 
             final JsonProvider json = JsonProvider.provider();
@@ -725,6 +794,7 @@ public final class KafkaCachePartition
         MutableInteger entryMark,
         MutableInteger valueMark,
         MutableInteger valueLimit,
+        MutableInteger trailersClaimMark,
         long timestamp,
         long ownerId,
         long producerId,
@@ -733,6 +803,7 @@ public final class KafkaCachePartition
         KafkaAckMode ackMode,
         KafkaKeyFW key,
         int valueLength,
+        int valuePaddingMax,
         ArrayFW<KafkaHeaderFW> headers,
         int trailersSizeMax,
         OctetsFW payload,
@@ -747,22 +818,8 @@ public final class KafkaCachePartition
 
         final KafkaCacheFile indexFile = segment.indexFile();
         final KafkaCacheFile logFile = segment.logFile();
-        final KafkaCacheFile convertedFile = segment.convertedFile();
 
         final int valueMaxLength = valueLength == -1 ? 0 : valueLength;
-
-        int convertedPos = NO_CONVERTED_POSITION;
-        if (valueLength != -1 && transformValue != KafkaCacheModel.NONE)
-        {
-            int convertedPadding = transformValue.padding(payload.buffer(), payload.offset(), payload.sizeof());
-            int convertedMaxLength = valueMaxLength + convertedPadding;
-
-            convertedPos = convertedFile.capacity();
-            convertedFile.advance(convertedPos + convertedMaxLength + SIZE_OF_INT * 2);
-
-            convertedFile.writeInt(convertedPos, 0); // length
-            convertedFile.writeInt(convertedPos + SIZE_OF_INT, convertedMaxLength); // padding
-        }
 
         entryMark.value = logFile.capacity();
 
@@ -776,7 +833,6 @@ public final class KafkaCachePartition
         entryInfo.putLong(FIELD_OFFSET_ANCESTOR, NO_ANCESTOR_OFFSET);
         entryInfo.putLong(FIELD_OFFSET_DESCENDANT, NO_DESCENDANT_OFFSET);
         entryInfo.putInt(FIELD_OFFSET_FLAGS, 0x00);
-        entryInfo.putInt(FIELD_OFFSET_CONVERTED_POSITION, convertedPos);
         entryInfo.putInt(FIELD_OFFSET_DELTA_POSITION, NO_DELTA_POSITION);
         entryInfo.putShort(FIELD_OFFSET_ACK_MODE, ackMode.value());
 
@@ -828,16 +884,25 @@ public final class KafkaCachePartition
             valueMark.value = logFile.capacity();
             valueLimit.value = valueMark.value;
 
-            final int logAvailable = logFile.available() - valueMaxLength;
+            final int paddingLenAt = valueMark.value + valueMaxLength;
+            final int logAvailable = logFile.available() - valueMaxLength - SIZEOF_PADDING_LENGTH - valuePaddingMax;
             final int logRequired = headers.sizeof();
             assert logAvailable >= logRequired : String.format("%s %d >= %d", segment, logAvailable, logRequired);
-            logFile.advance(valueMark.value + valueMaxLength);
+            logFile.advance(paddingLenAt + SIZEOF_PADDING_LENGTH + valuePaddingMax);
+            logFile.writeInt(paddingLenAt, valuePaddingMax);
             logFile.appendBytes(headers);
 
             final int trailersAt = logFile.capacity();
             logFile.advance(logFile.capacity() + trailersSizeMax + SIZEOF_PADDING_LENGTH);
             logFile.writeBytes(trailersAt, EMPTY_TRAILERS); // needed for incomplete tryWrap
             logFile.writeInt(trailersAt + SIZEOF_EMPTY_TRAILERS, trailersSizeMax - SIZEOF_EMPTY_TRAILERS);
+
+            // a second, separate claim: a block for a composed transform's envelope.set() calls during
+            // encode, written directly rather than staged in a heap-resident arena; consumed via
+            // KafkaCacheTrailerEnvelope.writeHeaders(...) before the claim above is overwritten with the
+            // final merged trailers
+            trailersClaimMark.value = logFile.capacity();
+            logFile.advance(trailersClaimMark.value + trailersSizeMax);
 
             final long offsetDelta = (int)(progress - segment.baseOffset());
             final long indexEntry = (offsetDelta << 32) | entryMark.value;
@@ -857,45 +922,64 @@ public final class KafkaCachePartition
         MutableInteger valueMark,
         MutableInteger valueLimit,
         OctetsFW payload,
-        KafkaCacheModel transformValue)
+        KafkaCacheModel transformValue,
+        int valuePaddingMax)
     {
         final KafkaCacheSegment segment = head.segment;
         assert segment != null;
 
         final KafkaCacheFile logFile = segment.logFile();
-        final KafkaCacheFile convertedFile = segment.convertedFile();
 
         int transformed = 0;
         if (payload != null)
         {
-            valueLimit.value += logFile.writeBytes(valueLimit.value, payload);
-
-            if (transformValue != KafkaCacheModel.NONE)
+            if (transformValue == KafkaCacheModel.NONE)
             {
+                valueLimit.value += logFile.writeBytes(valueLimit.value, payload);
+            }
+            else
+            {
+                // valueMaxLength re-derives the reservation's raw-value bound from the placeholder length
+                // field writeProduceEntryStart already wrote -- that field sits before the value region so
+                // it is never touched by value writes until the COMPLETE branch below finalizes it, so this
+                // stays stable across every fragment of the same value. valuePaddingMax, in contrast, must
+                // come in as a parameter rather than being re-read from its on-disk marker: a growing
+                // transform's output can legitimately write past valueMaxLength bytes into that marker's
+                // position, so a later fragment in the same value would read back corrupted data
+                final int valueMaxLength = Math.max(logFile.readInt(valueMark.value - SIZE_OF_INT), 0);
+                final int reservedMax = valueMaxLength + valuePaddingMax;
+
                 final KafkaCacheModel.Output consumeTransformed = (buffer, index, length) ->
                 {
-                    final int convertedLengthAt = logFile.readInt(entryMark.value + FIELD_OFFSET_CONVERTED_POSITION);
-                    final int convertedLength = convertedFile.readInt(convertedLengthAt);
-                    final int convertedValueLimit = convertedLengthAt + SIZE_OF_INT + convertedLength;
-                    final int convertedPadding = convertedFile.readInt(convertedValueLimit);
-
-                    if (convertedPadding < length)
+                    final int written = valueLimit.value - valueMark.value;
+                    if (written + length > reservedMax)
                     {
                         logFile.writeInt(entryMark.value + FIELD_OFFSET_FLAGS, CACHE_ENTRY_FLAGS_ABORTED);
                     }
                     else
                     {
-                        convertedFile.writeInt(convertedLengthAt, convertedLength + length);
-                        convertedFile.writeBytes(convertedValueLimit, buffer, index, length);
-                        convertedFile.writeInt(convertedValueLimit + length, convertedPadding - length);
+                        logFile.writeBytes(valueLimit.value, buffer, index, length);
+                        valueLimit.value += length;
                     }
                 };
 
-                final int valueLength = valueLimit.value - valueMark.value;
-                if ((flags & FLAGS_FIN) != 0x00)
+                final KafkaCacheModel.Result result = transformValue.transform(traceId, bindingId, authorization, flags,
+                    payload.buffer(), payload.offset(), payload.limit(), consumeTransformed);
+
+                if (result.status() == ModelStatus.REJECTED)
                 {
-                    transformed = transformValue.transform(traceId, bindingId, authorization, logFile.buffer(),
-                        valueMark.value, valueMark.value + valueLength, consumeTransformed);
+                    transformed = -1;
+                    logFile.writeInt(entryMark.value + FIELD_OFFSET_FLAGS, CACHE_ENTRY_FLAGS_ABORTED);
+                }
+                else if (result.status() == ModelStatus.COMPLETE)
+                {
+                    // the transformed value's real length rarely matches the reservation sized from the
+                    // raw value -- finalize length in place and relocate paddingLen to absorb whatever
+                    // slack remains, exactly as commitKeyOverride does for a transformed key
+                    final int actualLength = valueLimit.value - valueMark.value;
+                    final int finalPaddingLen = reservedMax - actualLength;
+                    logFile.writeInt(valueMark.value - SIZE_OF_INT, actualLength);
+                    logFile.writeInt(valueLimit.value, finalPaddingLen);
                 }
             }
         }
@@ -908,12 +992,16 @@ public final class KafkaCachePartition
         MutableInteger entryMark,
         MutableInteger valueLimit,
         long acknowledge,
-        Array32FW<KafkaHeaderFW> trailers)
+        Array32FW<KafkaHeaderFW> trailers,
+        boolean trailersOverflowed)
     {
         final KafkaCacheSegment segment = head.segment;
         assert segment != null;
 
         final KafkaCacheFile logFile = segment.logFile();
+
+        final int valuePaddingMax = logFile.readInt(valueLimit.value);
+        valueLimit.value += SIZEOF_PADDING_LENGTH + valuePaddingMax;
 
         final  Array32FW<KafkaHeaderFW> headers = logFile.readBytes(valueLimit.value, headersRO::wrap);
         valueLimit.value += headers.sizeof();
@@ -931,7 +1019,8 @@ public final class KafkaCachePartition
         valueLimit.value = trailersAt + trailersSizeMax;
 
         logFile.writeLong(entryMark.value + FIELD_OFFSET_ACKNOWLEDGE, acknowledge);
-        logFile.writeInt(entryMark.value + FIELD_OFFSET_FLAGS, CACHE_ENTRY_FLAGS_COMPLETED);
+        logFile.writeInt(entryMark.value + FIELD_OFFSET_FLAGS,
+            trailersOverflowed ? CACHE_ENTRY_FLAGS_ABORTED : CACHE_ENTRY_FLAGS_COMPLETED);
     }
 
     public long retainAt(
@@ -1010,105 +1099,34 @@ public final class KafkaCachePartition
         return checksum.getValue();
     }
 
-    // The terminal of the entry's KafkaPipeline: each lane's content lands in its destination region as
-    // the event arrives, so the transform chain never holds anything aside to be replayed once the value
-    // completes. The headers lane appends straight into the trailers being built for this entry. The key
-    // lane is the one exception, and only because its destination is the key itself: the key's own model
-    // is still appending it when the match arrives and the log file only grows forward, so the extracted
-    // key waits in a single slot until the key region is closed a few statements later.
-    //
-    // A lane switch selects the destination of the single field that follows it. A field arriving with no
-    // switch ahead of it is one the traversal merely surfaced on its way to its own destination, and this
-    // terminal writes nothing for it.
-    private final class KafkaEntrySink implements KafkaSink
+    // Overrides the already-reserved padded-key region in place with envelope's extracted key, in place of
+    // KafkaPipeline's old SWITCH_KEY lane and KafkaEntrySink's single-slot buffering. The override must fit
+    // within the padding the key's own model already reserved -- the log file only grows forward, so there
+    // is nowhere else for a larger key to go. Returns false when it doesn't fit, so the caller aborts the
+    // entry rather than writing a corrupt padded key, mirroring how a transformed value exceeding its own
+    // reservation is handled elsewhere in this file.
+    private boolean commitKeyOverride(
+        KafkaCacheFile logFile,
+        int entryAt,
+        DirectBufferEx override)
     {
-        private final MutableDirectBufferEx extracted = new ExpandableArrayBufferEx();
+        final int position = entryAt + FIELD_OFFSET_PADDED_KEY;
+        final KafkaCachePaddedKeyFW paddedKey = logFile.readBytes(position, paddedKeyRO::wrap);
+        final int paddedKeySize = paddedKey.sizeof();
+        final int overrideLength = override.capacity();
+        final KafkaCachePaddedKeyFW.Builder paddedKeyBuilder = paddedKeyRW;
+        final int keySize = paddedKeyBuilder
+            .key(k -> k.length(overrideLength).value(override, 0, overrideLength)).sizeof();
+        final int padding = paddedKeySize - keySize - SIZE_OF_INT;
 
-        private KafkaEvent lane;
-        private int extractedLength;
-        private boolean extractedKey;
-        private Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> trailers;
-        private boolean extractedHeaders;
-
-        @Override
-        public ModelStatus transform(
-            KafkaController control,
-            KafkaSource source,
-            KafkaEvent event)
+        final boolean fits = padding >= 0;
+        if (fits)
         {
-            if (event != KafkaEvent.FIELD)
-            {
-                lane = event;
-            }
-            else
-            {
-                if (lane == KafkaEvent.SWITCH_KEY)
-                {
-                    extractKey(source.getValue());
-                }
-                else if (lane == KafkaEvent.SWITCH_HEADERS && trailers != null)
-                {
-                    extractHeader(source.getPath(), source.getValue());
-                }
-                lane = null;
-            }
-
-            return ModelStatus.OK;
+            paddedKeyBuilder.padding(logFile.buffer(), 0, padding);
+            final KafkaCachePaddedKeyFW newPaddedKey = paddedKeyBuilder.build();
+            logFile.writeBytes(position, newPaddedKey.buffer(), newPaddedKey.offset(), newPaddedKey.sizeof());
         }
-
-        private void begin(
-            Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> trailers)
-        {
-            this.lane = null;
-            this.extractedLength = 0;
-            this.extractedKey = false;
-            this.trailers = trailers;
-            this.extractedHeaders = false;
-        }
-
-        private void extractKey(
-            DirectBufferEx value)
-        {
-            extractedLength = value.capacity();
-            extracted.putBytes(0, value, 0, extractedLength);
-            extractedKey = true;
-        }
-
-        private void extractHeader(
-            String name,
-            DirectBufferEx value)
-        {
-            final String32FW headerName = stringRW.set(name, UTF_8).build();
-            final int headerLength = value.capacity();
-            trailers.item(h -> h.nameLen(headerName.length())
-                .name(headerName.value(), 0, headerName.length())
-                .valueLen(headerLength)
-                .value(value, 0, headerLength));
-            extractedHeaders = true;
-        }
-
-        private void commitKey(
-            KafkaCacheFile logFile,
-            int entryAt)
-        {
-            if (extractedKey)
-            {
-                final int position = entryAt + FIELD_OFFSET_PADDED_KEY;
-                KafkaCachePaddedKeyFW paddedKey = logFile.readBytes(position, paddedKeyRO::wrap);
-                final int paddedKeySize = paddedKey.sizeof();
-                KafkaCachePaddedKeyFW.Builder paddedKeyBuilder = paddedKeyRW;
-                final int keySize = paddedKeyBuilder
-                    .key(k -> k.length(extractedLength).value(extracted, 0, extractedLength)).sizeof();
-                paddedKeyBuilder.padding(logFile.buffer(), 0, paddedKeySize - keySize - SIZE_OF_INT);
-                KafkaCachePaddedKeyFW newPaddedKey = paddedKeyBuilder.build();
-                logFile.writeBytes(position, newPaddedKey.buffer(), newPaddedKey.offset(), newPaddedKey.sizeof());
-            }
-        }
-
-        private Array32FW<KafkaHeaderFW> commitTrailers()
-        {
-            return extractedHeaders ? trailers.build() : EMPTY_TRAILERS;
-        }
+        return fits;
     }
 
     public final class Node

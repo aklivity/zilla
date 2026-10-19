@@ -15,11 +15,19 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import org.agrona.collections.MutableInteger;
 import org.junit.Test;
@@ -28,6 +36,7 @@ import io.aklivity.zilla.config.engine.test.internal.model.config.TestModelConfi
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelFieldBridge;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
@@ -109,12 +118,47 @@ public class KafkaCacheModelTest
     @Test
     public void shouldEncodeWholeValue()
     {
-        KafkaCacheModel model = KafkaCacheModel.encoder(handler(3), new UnsafeBufferEx(new byte[256]));
+        KafkaCacheModel model = KafkaCacheModel.encoder(handler(3), ModelEnvelope.NONE, new UnsafeBufferEx(new byte[256]));
 
         int produced = model.transform(0L, 0L, 0L, value("abc"), 0, 3, sink);
 
         assertEquals(3, produced);
         assertOutput("abc");
+    }
+
+    @Test
+    public void shouldForwardEnvelopeToEncoder()
+    {
+        CapturingHandler handler = new CapturingHandler();
+        ModelEnvelope envelope = new KafkaCacheTrailerEnvelope();
+
+        KafkaCacheModel.encoder(handler, envelope, new UnsafeBufferEx(new byte[256]));
+
+        assertSame(envelope, handler.encoderEnvelope);
+    }
+
+    @Test
+    public void shouldForwardEnvelopeToReader()
+    {
+        CapturingHandler handler = new CapturingHandler();
+        ModelEnvelope envelope = new KafkaCacheHeadersEnvelope();
+
+        KafkaCacheModel.reader(handler, ModelTransform.NONE, envelope, new UnsafeBufferEx(new byte[256]));
+
+        assertSame(envelope, handler.decoderEnvelope);
+        assertSame(ModelCache.READ, handler.decoderCache);
+    }
+
+    @Test
+    public void shouldForwardEnvelopeToWriter()
+    {
+        CapturingHandler handler = new CapturingHandler();
+        ModelEnvelope envelope = new KafkaCacheHeadersEnvelope();
+
+        KafkaCacheModel.writer(handler, ModelTransform.NONE, envelope, new UnsafeBufferEx(new byte[256]));
+
+        assertSame(envelope, handler.decoderEnvelope);
+        assertSame(ModelCache.WRITE, handler.decoderCache);
     }
 
     @Test
@@ -130,7 +174,8 @@ public class KafkaCacheModelTest
     public void shouldReportNoneAsDefaults()
     {
         assertSame(KafkaCacheModel.NONE, KafkaCacheModel.decoder(null, ModelTransform.NONE, new UnsafeBufferEx(new byte[8])));
-        assertSame(KafkaCacheModel.NONE, KafkaCacheModel.encoder(null, new UnsafeBufferEx(new byte[8])));
+        assertSame(KafkaCacheModel.NONE,
+            KafkaCacheModel.encoder(null, ModelEnvelope.NONE, new UnsafeBufferEx(new byte[8])));
         assertEquals(0, KafkaCacheModel.NONE.padding(value("x"), 0, 1));
 
         KafkaCacheModel.NONE.reset();
@@ -140,7 +185,7 @@ public class KafkaCacheModelTest
     public void shouldRejectValueRejectedByModel()
     {
         KafkaCacheModel model = new KafkaCacheModel(
-            rejectingHandler("$.id").supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE),
+            rejectingHandler("$.id").supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE),
             new UnsafeBufferEx(new byte[256]));
 
         int produced = model.transform(0L, 0L, 0L, value("hello"), 0, 5, sink);
@@ -171,6 +216,112 @@ public class KafkaCacheModelTest
         assertOutput("world");
     }
 
+    @Test
+    public void shouldTransformAcrossMultipleFragments()
+    {
+        PassthroughFragmentPipeline pipeline = new PassthroughFragmentPipeline();
+        KafkaCacheModel model = new KafkaCacheModel(pipeline, new UnsafeBufferEx(new byte[256]));
+
+        KafkaCacheModel.Result first = model.transform(0L, 0L, 0L, INIT, value("hel"), 0, 3, sink);
+        assertEquals(ModelStatus.UNDERFLOW, first.status());
+        assertEquals(3, first.consumed());
+        assertEquals(3, first.produced());
+
+        KafkaCacheModel.Result second = model.transform(0L, 0L, 0L, FIN, value("lo"), 0, 2, sink);
+        assertEquals(ModelStatus.COMPLETE, second.status());
+        assertEquals(2, second.consumed());
+        assertEquals(2, second.produced());
+
+        assertOutput("hello");
+        assertEquals(1, pipeline.resetCount);
+        assertEquals(1, (int) pipeline.flagsSeen.stream().filter(f -> hasInit(f)).count());
+    }
+
+    @Test
+    public void shouldDrainOverflowWithinOneFragment()
+    {
+        KafkaCacheModel model = KafkaCacheModel.decoder(handler(5), ModelTransform.NONE, new UnsafeBufferEx(new byte[2]));
+
+        KafkaCacheModel.Result result = model.transform(0L, 0L, 0L, COMPLETE, value("hello"), 0, 5, sink);
+
+        assertEquals(ModelStatus.COMPLETE, result.status());
+        assertEquals(5, result.produced());
+        assertOutput("hello");
+    }
+
+    @Test
+    public void shouldRejectThenRecoverOnSameInstance()
+    {
+        KafkaCacheModel model = KafkaCacheModel.decoder(handler(5), ModelTransform.NONE, new UnsafeBufferEx(new byte[256]));
+
+        KafkaCacheModel.Result rejected = model.transform(0L, 0L, 0L, COMPLETE, value("nope"), 0, 4, sink);
+        assertEquals(ModelStatus.REJECTED, rejected.status());
+
+        outputLength.value = 0;
+        KafkaCacheModel.Result recovered = model.transform(0L, 0L, 0L, COMPLETE, value("world"), 0, 5, sink);
+
+        assertEquals(ModelStatus.COMPLETE, recovered.status());
+        assertEquals(5, recovered.produced());
+        assertOutput("world");
+    }
+
+    @Test
+    public void shouldRejectWhenPipelineUnderflowsAtFin()
+    {
+        AlwaysUnderflowPipeline pipeline = new AlwaysUnderflowPipeline();
+        KafkaCacheModel model = new KafkaCacheModel(pipeline, new UnsafeBufferEx(new byte[256]));
+
+        KafkaCacheModel.Result result = model.transform(0L, 0L, 0L, COMPLETE, value("hello"), 0, 5, sink);
+
+        assertEquals(ModelStatus.REJECTED, result.status());
+        assertEquals(1, pipeline.resetCount);
+    }
+
+    @Test
+    public void shouldRetainAndPrependUnconsumedTailAcrossFragments()
+    {
+        UnderConsumingPipeline pipeline = new UnderConsumingPipeline();
+        KafkaCacheModel model = new KafkaCacheModel(pipeline, new UnsafeBufferEx(new byte[256]));
+
+        KafkaCacheModel.Result first = model.transform(0L, 0L, 0L, INIT, value("abc"), 0, 3, sink);
+        assertEquals(ModelStatus.UNDERFLOW, first.status());
+
+        KafkaCacheModel.Result second = model.transform(0L, 0L, 0L, 0x00, value("d"), 0, 1, sink);
+        assertEquals(ModelStatus.UNDERFLOW, second.status());
+
+        KafkaCacheModel.Result third = model.transform(0L, 0L, 0L, FIN, value("e"), 0, 1, sink);
+        assertEquals(ModelStatus.COMPLETE, third.status());
+
+        assertOutput("abcde");
+        assertEquals(1, pipeline.resetCount);
+    }
+
+    // regression coverage for zilla#2461: a self-delimiting format (e.g. a JSON-view protobuf
+    // encode) can recognize its own input is complete from content alone, before the caller's own
+    // FIN fragment arrives -- the real HTTP-to-Kafka produce mapping still always follows with a
+    // trailing FIN-flagged fragment carrying no further bytes, which must be absorbed as this
+    // value's true completion rather than treated as the start of a new, invalid empty value
+    @Test
+    public void shouldAbsorbTrailingEmptyFinAfterEarlyCompletion()
+    {
+        SelfDelimitingPipeline pipeline = new SelfDelimitingPipeline();
+        KafkaCacheModel model = new KafkaCacheModel(pipeline, new UnsafeBufferEx(new byte[256]));
+
+        KafkaCacheModel.Result first = model.transform(0L, 0L, 0L, INIT, value(""), 0, 0, sink);
+        assertEquals(ModelStatus.UNDERFLOW, first.status());
+
+        KafkaCacheModel.Result second = model.transform(0L, 0L, 0L, 0x00, value("hello"), 0, 5, sink);
+        assertEquals(ModelStatus.UNDERFLOW, second.status());
+        assertOutput("hello");
+
+        KafkaCacheModel.Result third = model.transform(0L, 0L, 0L, FIN, value(""), 0, 0, sink);
+        assertEquals(ModelStatus.COMPLETE, third.status());
+        assertEquals(0, third.produced());
+
+        assertEquals(2, pipeline.transformCount);
+        assertEquals(1, pipeline.resetCount);
+    }
+
     private static TestModelHandler handler(
         int length)
     {
@@ -194,7 +345,8 @@ public class KafkaCacheModelTest
             @Override
             public ModelPipeline supplyDecoder(
                 ModelEnvelope envelope,
-                ModelTransform transform)
+                ModelTransform transform,
+                ModelCache cache)
             {
                 return new RejectingPipeline(transform, path);
             }
@@ -204,7 +356,7 @@ public class KafkaCacheModelTest
                 ModelEnvelope envelope,
                 ModelTransform transform)
             {
-                return supplyDecoder(envelope, transform);
+                return supplyDecoder(envelope, transform, ModelCache.NONE);
             }
         };
     }
@@ -222,6 +374,223 @@ public class KafkaCacheModelTest
         byte[] actual = new byte[outputLength.value];
         output.getBytes(0, actual);
         assertArrayEquals(expected.getBytes(UTF_8), actual);
+    }
+
+    // a handler that records the envelope (and, for supplyDecoder, the cache mode) it was last
+    // supplied with, so a caller can assert on exactly what KafkaCacheModel forwarded
+    private static final class CapturingHandler implements ModelHandler
+    {
+        private ModelEnvelope encoderEnvelope;
+        private ModelEnvelope decoderEnvelope;
+        private ModelCache decoderCache;
+
+        @Override
+        public ModelPipeline supplyDecoder(
+            ModelEnvelope envelope,
+            ModelTransform transform,
+            ModelCache cache)
+        {
+            this.decoderEnvelope = envelope;
+            this.decoderCache = cache;
+            return null;
+        }
+
+        @Override
+        public ModelPipeline supplyEncoder(
+            ModelEnvelope envelope,
+            ModelTransform transform)
+        {
+            this.encoderEnvelope = envelope;
+            return null;
+        }
+    }
+
+    // an identity pipeline that echoes exactly what it is given each call and completes only under FIN --
+    // stands in for a real pipeline's fragment-boundary contract without any parsing of its own, so tests
+    // can isolate KafkaCacheModel's own INIT-once / reset-once-per-value mechanics
+    private static final class PassthroughFragmentPipeline implements ModelPipeline
+    {
+        private final ModelPipelineResult result = new ModelPipelineResult();
+        private final List<Integer> flagsSeen = new ArrayList<>();
+        private int resetCount;
+
+        @Override
+        public ModelPipelineResult transform(
+            long traceId,
+            long bindingId,
+            long authorization,
+            int flags,
+            DirectBufferEx src,
+            int srcIndex,
+            int srcLimit,
+            MutableDirectBufferEx dst,
+            int dstIndex,
+            int dstLimit)
+        {
+            flagsSeen.add(flags);
+            final int length = srcLimit - srcIndex;
+            dst.putBytes(dstIndex, src, srcIndex, length);
+            final ModelStatus status = hasFin(flags) ? ModelStatus.COMPLETE : ModelStatus.UNDERFLOW;
+            return result.set(status, length, length);
+        }
+
+        @Override
+        public boolean identity()
+        {
+            return true;
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
+        @Override
+        public void reset()
+        {
+            resetCount++;
+        }
+    }
+
+    // a pipeline that never resolves, even when handed FIN, standing in for a non-compliant
+    // pipeline so a test can prove KafkaCacheModel's own defensive REJECTED fallback
+    private static final class AlwaysUnderflowPipeline implements ModelPipeline
+    {
+        private final ModelPipelineResult result = new ModelPipelineResult();
+        private int resetCount;
+
+        @Override
+        public ModelPipelineResult transform(
+            long traceId,
+            long bindingId,
+            long authorization,
+            int flags,
+            DirectBufferEx src,
+            int srcIndex,
+            int srcLimit,
+            MutableDirectBufferEx dst,
+            int dstIndex,
+            int dstLimit)
+        {
+            final int length = srcLimit - srcIndex;
+            dst.putBytes(dstIndex, src, srcIndex, length);
+            return result.set(ModelStatus.UNDERFLOW, length, length);
+        }
+
+        @Override
+        public boolean identity()
+        {
+            return true;
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
+        @Override
+        public void reset()
+        {
+            resetCount++;
+        }
+    }
+
+    // a pipeline that only ever echoes a single byte per call, forcing KafkaCacheModel to carry the rest
+    // of each fragment forward and prepend it to the next one; resolves only once every real byte of the
+    // value has finally arrived under FIN, since there is no more input left to wait for by then
+    private static final class UnderConsumingPipeline implements ModelPipeline
+    {
+        private final ModelPipelineResult result = new ModelPipelineResult();
+        private int resetCount;
+
+        @Override
+        public ModelPipelineResult transform(
+            long traceId,
+            long bindingId,
+            long authorization,
+            int flags,
+            DirectBufferEx src,
+            int srcIndex,
+            int srcLimit,
+            MutableDirectBufferEx dst,
+            int dstIndex,
+            int dstLimit)
+        {
+            final boolean fin = hasFin(flags);
+            final int available = srcLimit - srcIndex;
+            final int consumed = fin ? available : Math.min(1, available);
+            dst.putBytes(dstIndex, src, srcIndex, consumed);
+            final ModelStatus status = fin ? ModelStatus.COMPLETE : ModelStatus.UNDERFLOW;
+            return result.set(status, consumed, consumed);
+        }
+
+        @Override
+        public boolean identity()
+        {
+            return true;
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
+        @Override
+        public void reset()
+        {
+            resetCount++;
+        }
+    }
+
+    // a pipeline that completes as soon as it sees a non-empty fragment, independent of the
+    // caller's own FIN bit -- stands in for a self-delimiting format (e.g. JSON) whose own content
+    // tells it the value is done
+    private static final class SelfDelimitingPipeline implements ModelPipeline
+    {
+        private final ModelPipelineResult result = new ModelPipelineResult();
+        private int resetCount;
+        private int transformCount;
+
+        @Override
+        public ModelPipelineResult transform(
+            long traceId,
+            long bindingId,
+            long authorization,
+            int flags,
+            DirectBufferEx src,
+            int srcIndex,
+            int srcLimit,
+            MutableDirectBufferEx dst,
+            int dstIndex,
+            int dstLimit)
+        {
+            transformCount++;
+            final int length = srcLimit - srcIndex;
+            dst.putBytes(dstIndex, src, srcIndex, length);
+            final ModelStatus status = length > 0 ? ModelStatus.COMPLETE : ModelStatus.UNDERFLOW;
+            return result.set(status, length, length);
+        }
+
+        @Override
+        public boolean identity()
+        {
+            return true;
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
+        @Override
+        public void reset()
+        {
+            resetCount++;
+        }
     }
 
     private static final class RejectingPipeline implements ModelPipeline
@@ -260,6 +629,12 @@ public class KafkaCacheModelTest
         public boolean identity()
         {
             return false;
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
         }
 
         @Override

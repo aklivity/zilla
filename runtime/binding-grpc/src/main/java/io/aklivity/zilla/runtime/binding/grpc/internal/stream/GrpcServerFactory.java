@@ -17,6 +17,11 @@ package io.aklivity.zilla.runtime.binding.grpc.internal.stream;
 import static io.aklivity.zilla.runtime.binding.grpc.internal.stream.GrpcServerFactory.ContentType.GRPC;
 import static io.aklivity.zilla.runtime.binding.grpc.internal.stream.GrpcServerFactory.ContentType.GRPC_WEB_PROTO;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 import static java.lang.Character.toLowerCase;
 import static java.lang.Character.toUpperCase;
 import static java.nio.charset.StandardCharsets.US_ASCII;
@@ -73,9 +78,6 @@ import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 public final class GrpcServerFactory implements GrpcStreamFactory
 {
     private static final int GRPC_MESSAGE_PADDING = 5;
-    private static final int DATA_FLAG_INIT = 0x02;
-    private static final int DATA_FLAG_CONT = 0x00;
-    private static final int DATA_FLAG_FIN = 0x01;
     private static final int EXPIRING_SIGNAL = 1;
     private static final String HTTP_TYPE_NAME = "http";
     private static final byte HYPHEN_BYTE = '-';
@@ -561,7 +563,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                             .deferred(messageDeferred)
                             .build() : EMPTY_OCTETS;
 
-                    int flags = messageDeferred > 0 ? DATA_FLAG_INIT : DATA_FLAG_INIT | DATA_FLAG_FIN;
+                    int flags = messageDeferred > 0 ? INIT : COMPLETE;
                     delegate.doAppData(traceId, authorization, budgetId, reserved, flags,
                         buffer, offset + GRPC_MESSAGE_PADDING, payloadSize, dataEx);
                 }
@@ -575,7 +577,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 messageDeferred -= size;
                 assert messageDeferred >= 0;
 
-                int flags = messageDeferred > 0 ? DATA_FLAG_CONT : DATA_FLAG_FIN;
+                int flags = messageDeferred > 0 ? NONE : FIN;
 
                 delegate.doAppData(traceId, authorization, budgetId, reserved, flags,
                     buffer, offset, size, EMPTY_OCTETS);
@@ -885,7 +887,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
                 if (replyWindow() >= reserved)
                 {
-                    doNetData(traceId, authorization, replyBud, reserved, DATA_FLAG_INIT | DATA_FLAG_FIN,
+                    doNetData(traceId, authorization, replyBud, reserved, COMPLETE,
                         encodeBuffer, encodeOffset, messageSize);
 
                     doEnd(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
@@ -1174,7 +1176,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
             int encodeProgress = encodeOffset;
 
-            if ((flags & DATA_FLAG_INIT) != 0x00)
+            if (hasInit(flags))
             {
                 final GrpcDataExFW grpcDataEx = extension.get(grpcDataExRO::tryWrap);
                 final int deferred = grpcDataEx != null ? grpcDataEx.deferred() : 0;

@@ -222,6 +222,42 @@ public class ProtobufSourceCompilerTest
     }
 
     @Test
+    public void shouldExposeMessageOptions()
+    {
+        ProtobufSchema schema = Protobuf.schema(
+            "syntax = \"proto3\";\n" +
+            "package test;\n" +
+            "option java_package = \"io.aklivity.test\";\n" +
+            "message M {\n" +
+            "  option (acme.owner) = \"payments\";\n" +
+            "  option (acme.meta) = { kind: \"A\" level: 2 };\n" +
+            "  string email = 1;\n" +
+            "}\n");
+
+        ProtobufMessage message = schema.message("test.M");
+        assertEquals(new ProtobufConstant.TextValue("payments"), message.option("(acme.owner)"));
+        assertNull(message.option("java_package"));
+        assertNull(message.option("(acme.missing)"));
+
+        ProtobufConstant.MessageValue meta = (ProtobufConstant.MessageValue) message.option("(acme.meta)");
+        assertEquals(new ProtobufConstant.TextValue("A"), meta.fields().get("kind"));
+        assertEquals(new ProtobufConstant.IntegerValue(2), meta.fields().get("level"));
+    }
+
+    @Test
+    public void shouldExposeProto2MessageOption()
+    {
+        ProtobufSchema schema = Protobuf.schema(
+            "syntax = \"proto2\";\n" +
+            "message M {\n" +
+            "  option (acme.owner) = \"payments\";\n" +
+            "  optional string email = 1;\n" +
+            "}\n");
+
+        assertEquals(new ProtobufConstant.TextValue("payments"), schema.message("M").option("(acme.owner)"));
+    }
+
+    @Test
     public void shouldStillRecognizeWellKnownOptionsAlongsideCustomOnes()
     {
         ProtobufSchema schema = Protobuf.schema(

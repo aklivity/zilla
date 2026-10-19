@@ -14,9 +14,11 @@
 # under the License.
 #
 
+property authorization 0L
 property networkAcceptWindow 8192
 
 accept "zilla://streams/net0"
+  option zilla:authorization ${authorization}
   option zilla:window ${networkAcceptWindow}
   option zilla:transmission "duplex"
   option zilla:byteorder "network"

@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 public enum DoubleFormat
@@ -145,7 +147,7 @@ public enum DoubleFormat
                 state.processed++;
             }
 
-            if ((flags & FLAGS_FIN) != 0x00)
+            if (hasFin(flags))
             {
                 state.value = Double.longBitsToDouble(state.decoded);
             }
@@ -160,8 +162,6 @@ public enum DoubleFormat
             return state.processed == DOUBLE_SIZE;
         }
     };
-
-    private static final int FLAGS_FIN = 0x01;
 
     public static final int INVALID_INDEX = -1;
 

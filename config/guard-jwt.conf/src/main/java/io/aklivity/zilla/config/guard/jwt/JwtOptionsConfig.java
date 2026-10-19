@@ -56,6 +56,7 @@ public class JwtOptionsConfig extends OptionsConfig
         String keysURL,
         Map<String, String> attributes)
     {
+        super(null, null);
         this.issuer = issuer;
         this.audience = audience;
         this.roles = roles;

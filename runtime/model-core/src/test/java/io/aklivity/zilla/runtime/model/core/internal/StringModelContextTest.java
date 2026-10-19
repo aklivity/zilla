@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -28,12 +29,14 @@ import io.aklivity.zilla.config.model.core.BytesModelConfig;
 import io.aklivity.zilla.config.model.core.StringModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
+import io.aklivity.zilla.runtime.model.core.ext.CoreCache;
 import io.aklivity.zilla.runtime.model.core.ext.StringController;
 import io.aklivity.zilla.runtime.model.core.ext.StringEvent;
 import io.aklivity.zilla.runtime.model.core.ext.StringModelExtContext;
@@ -45,8 +48,6 @@ import io.aklivity.zilla.runtime.model.core.ext.StringTransformable;
 
 public class StringModelContextTest
 {
-    private static final int FLAGS_COMPLETE = 0x03;
-
     @Test
     public void shouldPassThroughUnmodifiedWithZeroExtensions()
     {
@@ -55,11 +56,11 @@ public class StringModelContextTest
 
         assertThat(handler, instanceOf(CoreModelHandler.class));
 
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
         byte[] bytes = "hello".getBytes();
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
 
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -80,11 +81,11 @@ public class StringModelContextTest
 
         assertThat(handler, instanceOf(StringExtModelHandler.class));
 
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
         byte[] bytes = "ignored".getBytes();
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
 
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -109,9 +110,9 @@ public class StringModelContextTest
         byte[] bytes = "abc".getBytes();
         for (int i = 0; i < 3; i++)
         {
-            ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+            ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
             UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
-            pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+            pipeline.transform(0L, 0L, 0L, COMPLETE,
                 new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
         }
 
@@ -135,11 +136,11 @@ public class StringModelContextTest
         assertThat(stringHandler, instanceOf(StringExtModelHandler.class));
         assertThat(bytesHandler, instanceOf(CoreModelHandler.class));
 
-        ModelPipeline bytesPipeline = bytesHandler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline bytesPipeline = bytesHandler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
         byte[] bytes = { 1, 2, 3, 4 };
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
 
-        ModelPipelineResult result = bytesPipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = bytesPipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -153,7 +154,8 @@ public class StringModelContextTest
         {
             @Override
             public <T extends StringTransformable<T>> T decode(
-                T stream)
+                T stream,
+                CoreCache cache)
             {
                 return stream.transform(transform);
             }
@@ -175,7 +177,8 @@ public class StringModelContextTest
         {
             @Override
             public <T extends StringTransformable<T>> T decode(
-                T stream)
+                T stream,
+                CoreCache cache)
             {
                 return stream.transform(append);
             }
@@ -223,6 +226,12 @@ public class StringModelContextTest
             }
             return status;
         }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
     }
 
     // forwards every segment, then emits its own suffix once, at value end
@@ -259,6 +268,12 @@ public class StringModelContextTest
                 status = sink.transform(control, source, event);
             }
             return status;
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
         }
     }
 }

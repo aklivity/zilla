@@ -41,6 +41,6 @@ public final class EchoBindingInfo implements BindingInfo
     @Override
     public ConfigAdapter<OptionsConfig, JsonObject> options()
     {
-        return null;
+        return new EchoOptionsConfigAdapter();
     }
 }
