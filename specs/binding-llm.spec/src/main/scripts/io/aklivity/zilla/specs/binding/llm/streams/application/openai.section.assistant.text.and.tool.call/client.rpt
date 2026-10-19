@@ -27,26 +27,12 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-write "{\"model\":\""
-      ${model}
-      "\",\"messages\":[{\"role\":\"assistant\",\"content\":"
-write flush
-
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
 write "{\"text\":\"Let me check\"}"
-write flush
-
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-write ",\"tool_calls\":["
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -57,13 +43,6 @@ write zilla:data.ext ${llm:dataEx()
                           .attribute("tool-call-id", "call_1")
                           .build()}
 write "{\"arguments\":{\"city\":\"Paris\"}}"
-write flush
-
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .build()}
-write "]}]}"
 write flush
 
 write advise zilla:flush

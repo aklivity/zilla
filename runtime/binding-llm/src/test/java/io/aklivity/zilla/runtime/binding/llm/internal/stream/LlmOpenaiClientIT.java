@@ -401,16 +401,6 @@ public class LlmOpenaiClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
-        "${app}/openai.section.assistant.reasoning.history/client",
-        "${net}/openai.section.assistant.reasoning.history/server"})
-    public void shouldEncodeOpenaiSectionAssistantReasoningHistory() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.openai.yaml")
-    @Specification({
         "${app}/openai.section.assistant.refusal/client",
         "${net}/openai.section.assistant.refusal/server"})
     public void shouldEncodeOpenaiSectionAssistantRefusal() throws Exception
@@ -504,16 +494,6 @@ public class LlmOpenaiClientIT
         "${app}/openai.section.tool.result.100k.parts/client",
         "${net}/openai.section.tool.result.100k.parts/server"})
     public void shouldEncodeOpenaiSectionToolResult100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.openai.yaml")
-    @Specification({
-        "${app}/openai.section.unknown.part/client",
-        "${net}/openai.section.unknown.part/server"})
-    public void shouldEncodeOpenaiSectionUnknownPart() throws Exception
     {
         k3po.finish();
     }
@@ -1091,26 +1071,6 @@ public class LlmOpenaiClientIT
         "${app}/openai.section.message.name.tool.result/client",
         "${net}/openai.section.message.name.tool.result/server"})
     public void shouldEncodeOpenaiSectionMessageNameToolResult() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.openai.yaml")
-    @Specification({
-        "${app}/openai.request.options.early/client",
-        "${net}/openai.request.options.early/server"})
-    public void shouldEncodeOpenaiRequestOptionsEarly() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.openai.yaml")
-    @Specification({
-        "${app}/openai.section.model.last/client",
-        "${net}/openai.section.model.last/server"})
-    public void shouldEncodeOpenaiSectionModelLast() throws Exception
     {
         k3po.finish();
     }

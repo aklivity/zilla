@@ -13,28 +13,33 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property source "source"
+property target "target"
+property model "model"
+
 connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
-                           .model("gpt-4")
+                           .dialect(source)
+                           .model(model)
                            .build()}
 
 connected
 
 write advised zilla:challenge ${llm:matchChallengeEx()
                                     .typeId(zilla:id("llm"))
-                                    .dialect("openai")
-                                    .model("gpt-b")
+                                    .dialect(target)
                                     .build()}
 
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
+                          .type("CONTROL")
+                          .message(-1)
                           .build()}
-write "{\"model\":\"gpt-b\",\"messages\":[{\"role\":\"user\",\"content\":"
+write "{\"stream\":true}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -45,45 +50,47 @@ write zilla:data.ext ${llm:dataEx()
 write "{\"text\":\"Hello\"}"
 write flush
 
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .complete(true)
+                          .type("CONTROL")
+                          .message(-1)
                           .build()}
-write "}]}"
+write "{\"stream_options\":{\"include_usage\":true}}"
 write flush
 
 write advise zilla:flush
 
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
-                           .model("gpt-4")
-                           .id("chatcmpl_2")
+                           .dialect(target)
+                           .model(model)
+                           .id("id_1")
                            .build()}
-
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-read "{\"id\":\"chatcmpl_2\",\"object\":\"chat.completion\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":"
-
+read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-read "{\"text\":\"Hello! How can I help you today?\"}"
-
-read zilla:data.ext ${llm:matchDialectDataEx()
+read "{\"text\":\"Sure. \"}"
+read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .complete(true)
+                          .type("ASSISTANT_REASONING")
+                          .message(0)
+                          .attribute("reasoning-tag", "reasoning")
                           .build()}
-read "},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}}"
+read "{\"text\":\"Let me think.\"}"
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("ASSISTANT_TEXT")
+                          .message(0)
+                          .build()}
+read "{\"text\":\"Hello!\"}"
 
 read zilla:end.ext ${llm:matchEndEx()
                             .typeId(zilla:id("llm"))
                             .inputTokens(25)
                             .outputTokens(15)
-                            .totalTokens(40)
                             .finishReason("stop")
                             .build()}
 

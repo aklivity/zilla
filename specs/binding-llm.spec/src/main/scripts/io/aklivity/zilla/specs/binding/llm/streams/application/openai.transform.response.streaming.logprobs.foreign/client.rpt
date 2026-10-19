@@ -25,12 +25,6 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":"
-write flush
-
 write zilla:data.ext ${llm:dataEx()
                          .typeId(zilla:id("llm"))
                          .type("USER_TEXT")
@@ -39,11 +33,28 @@ write zilla:data.ext ${llm:dataEx()
 write "{\"text\":\"Hello\"}"
 write flush
 
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .complete(true)
+                          .type("CONTROL")
+                          .message(-1)
                           .build()}
-write "}],\"logprobs\":true,\"stream\":true,\"stream_options\":{\"include_usage\":true}}"
+write "{\"openai:logprobs\":true}"
+write flush
+
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("CONTROL")
+                          .message(-1)
+                          .build()}
+write "{\"stream\":true}"
+write flush
+
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("CONTROL")
+                          .message(-1)
+                          .build()}
+write "{\"stream_options\":{\"include_usage\":true}}"
 write flush
 
 write advise zilla:flush

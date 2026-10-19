@@ -27,14 +27,6 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-write "{\"model\":\""
-      ${model}
-      "\",\"messages\":[{\"role\":\"assistant\",\"content\":"
-write flush
-
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
@@ -43,25 +35,12 @@ write zilla:data.ext ${llm:dataEx()
 write "{\"text\":\"The sky is blue.\"}"
 write flush
 
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-write ",\"annotations\":"
-write flush
-
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("CITATIONS")
                           .message(0)
                           .build()}
 write "[{\"type\":\"url_citation\",\"url_citation\":{\"start_index\":0,\"end_index\":4,\"url\":\"https://example.com\",\"title\":\"Example\"}}]"
-write flush
-
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .build()}
-write "}]}"
 write flush
 
 write advise zilla:flush

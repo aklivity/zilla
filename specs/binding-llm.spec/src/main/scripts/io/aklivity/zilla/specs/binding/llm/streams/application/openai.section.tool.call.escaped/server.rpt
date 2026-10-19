@@ -27,13 +27,6 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-read "{\"model\":\""
-     ${model}
-     "\",\"messages\":[{\"role\":\"assistant\",\"content\":null,\"tool_calls\":["
-
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("TOOL_CALL")
@@ -42,12 +35,6 @@ read zilla:data.ext ${llm:matchDataEx()
                           .attribute("tool-call-id", "call_1")
                           .build()}
 read "{\"arguments\":{\"query\":\"say \\\"hi\\\" \\\\ done\\nnext\",\"text\":\"café ✓ 😀\",\"nested\":{\"items\":[1,2.5,true,null,{\"k\":\"v\"}],\"empty\":{},\"list\":[]}}}"
-
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .build()}
-read "]}]}"
 
 read advised zilla:flush
 

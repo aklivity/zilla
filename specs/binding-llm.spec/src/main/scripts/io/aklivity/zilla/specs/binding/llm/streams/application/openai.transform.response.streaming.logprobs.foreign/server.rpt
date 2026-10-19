@@ -27,11 +27,6 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-read "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":"
-
 read zilla:data.ext ${llm:matchDataEx()
                         .typeId(zilla:id("llm"))
                         .type("USER_TEXT")
@@ -39,11 +34,26 @@ read zilla:data.ext ${llm:matchDataEx()
                         .build()}
 read "{\"text\":\"Hello\"}"
 
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .complete(true)
+                          .type("CONTROL")
+                          .message(-1)
                           .build()}
-read "}],\"logprobs\":true,\"stream\":true,\"stream_options\":{\"include_usage\":true}}"
+read "{\"openai:logprobs\":true}"
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("CONTROL")
+                          .message(-1)
+                          .build()}
+read "{\"stream\":true}"
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("CONTROL")
+                          .message(-1)
+                          .build()}
+read "{\"stream_options\":{\"include_usage\":true}}"
 
 read advised zilla:flush
 

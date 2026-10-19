@@ -27,25 +27,12 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-read "{\"model\":\""
-     ${model}
-     "\",\"messages\":[{\"role\":\"assistant\",\"refusal\":"
-
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_REFUSAL")
                           .message(0)
                           .build()}
 read "{\"text\":\"I cannot help with that\"}"
-
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .build()}
-read "}]}"
 
 read advised zilla:flush
 

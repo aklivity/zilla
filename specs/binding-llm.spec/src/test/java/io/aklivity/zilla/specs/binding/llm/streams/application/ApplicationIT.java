@@ -2810,24 +2810,6 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/openai.section.model.override/client",
-        "${app}/openai.section.model.override/server"})
-    public void shouldReplaceOpenaiModelWhenChallenged() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/openai.section.model.last.override/client",
-        "${app}/openai.section.model.last.override/server"})
-    public void shouldReplaceOpenaiModelLastWhenChallenged() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/anthropic.section.model.override/client",
         "${app}/anthropic.section.model.override/server"})
     public void shouldReplaceAnthropicModelWhenChallenged() throws Exception
@@ -3398,6 +3380,69 @@ public class ApplicationIT
         "${app}/anthropic.section.assistant.text.flush.ignored/client",
         "${app}/anthropic.section.assistant.text.flush.ignored/server"})
     public void shouldAnthropicSectionAssistantTextFlushIgnored() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.transform.request.members/client",
+        "${app}/openai.transform.request.members/server"})
+    public void shouldOpenaiTransformRequestMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.transform.response.streaming/client",
+        "${app}/openai.transform.response.streaming/server"})
+    public void shouldOpenaiTransformResponseStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.transform.response.streaming.tool.call/client",
+        "${app}/openai.transform.response.streaming.tool.call/server"})
+    public void shouldOpenaiTransformResponseStreamingToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.transform.response.streaming.error/client",
+        "${app}/openai.transform.response.streaming.error/server"})
+    public void shouldOpenaiTransformResponseStreamingError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.transform.response.streaming.reasoning/client",
+        "${app}/openai.transform.response.streaming.reasoning/server"})
+    public void shouldOpenaiTransformResponseStreamingReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.transform.response.streaming.reasoning.tag/client",
+        "${app}/openai.transform.response.streaming.reasoning.tag/server"})
+    public void shouldOpenaiTransformResponseStreamingReasoningTag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.transform.response.streaming.reasoning.tag.fragmented/client",
+        "${app}/openai.transform.response.streaming.reasoning.tag.fragmented/server"})
+    public void shouldOpenaiTransformResponseStreamingReasoningTagFragmented() throws Exception
     {
         k3po.finish();
     }

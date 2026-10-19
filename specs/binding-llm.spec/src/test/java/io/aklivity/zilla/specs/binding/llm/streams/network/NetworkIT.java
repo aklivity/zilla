@@ -461,15 +461,6 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.request.options.early/client",
-        "${net}/openai.request.options.early/server"})
-    public void shouldOpenaiRequestOptionsEarly() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/openai.request.options.leading/client",
         "${net}/openai.request.options.leading/server"})
     public void shouldOpenaiRequestOptionsLeading() throws Exception
@@ -545,15 +536,6 @@ public class NetworkIT
         "${net}/openai.section.assistant.text.annotations/client",
         "${net}/openai.section.assistant.text.annotations/server"})
     public void shouldOpenaiSectionAssistantTextAnnotations() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/openai.section.assistant.reasoning.history/client",
-        "${net}/openai.section.assistant.reasoning.history/server"})
-    public void shouldDecodeOpenaiSectionAssistantReasoningHistory() throws Exception
     {
         k3po.finish();
     }
@@ -668,15 +650,6 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.section.unknown.part/client",
-        "${net}/openai.section.unknown.part/server"})
-    public void shouldOpenaiSectionUnknownPart() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/openai.section.user.image.10k/client",
         "${net}/openai.section.user.image.10k/server"})
     public void shouldOpenaiSectionUserImage10k() throws Exception
@@ -761,15 +734,6 @@ public class NetworkIT
         "${net}/openai.section.rejected.model.last.oversize/client",
         "${net}/openai.section.rejected.model.last.oversize/server"})
     public void shouldOpenaiSectionRejectedModelLastOversize() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/openai.section.model.last/client",
-        "${net}/openai.section.model.last/server"})
-    public void shouldOpenaiSectionModelLast() throws Exception
     {
         k3po.finish();
     }

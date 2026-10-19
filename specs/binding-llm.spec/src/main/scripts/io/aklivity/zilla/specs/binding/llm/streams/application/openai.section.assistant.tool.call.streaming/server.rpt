@@ -27,12 +27,12 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
+                          .type("CONTROL")
+                          .message(-1)
                           .build()}
-read "{\"model\":\""
-     ${model}
-     "\",\"stream\":true,\"messages\":[{\"role\":\"user\",\"content\":"
+read "{\"stream\":true}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
@@ -41,11 +41,12 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "{\"text\":\"What is the weather in Paris?\"}"
 
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .complete(true)
+                          .type("CONTROL")
+                          .message(-1)
                           .build()}
-read "}],\"stream_options\":{\"include_usage\":true}}"
+read "{\"stream_options\":{\"include_usage\":true}}"
 
 read advised zilla:flush
 

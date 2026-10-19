@@ -27,14 +27,6 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-write "{\"model\":\""
-      ${model}
-      "\",\"messages\":[{\"role\":\"user\",\"content\":"
-write flush
-
 write zilla:data.ext ${llm:dataEx()
                            .typeId(zilla:id("llm"))
                            .type("USER_TEXT")
@@ -43,11 +35,12 @@ write zilla:data.ext ${llm:dataEx()
 write "{\"text\":\"Hello\"}"
 write flush
 
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .complete(true)
+                          .type("CONTROL")
+                          .message(0)
                           .build()}
-write ",\"name\":\"alice\"}]}"
+write "{\"openai:name\":\"alice\"}"
 write flush
 
 write advise zilla:flush

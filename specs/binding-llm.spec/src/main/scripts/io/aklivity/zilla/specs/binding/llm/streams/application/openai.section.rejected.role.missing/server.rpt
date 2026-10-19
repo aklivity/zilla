@@ -27,5 +27,12 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("CONTROL")
+                          .message(0)
+                          .build()}
+read "{\"openai:name\":\"alice\"}"
+
 read aborted
 write aborted
