@@ -97,6 +97,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final String ANTHROPIC_VERSION = "2023-06-01";
     private static final String METHOD_POST = "POST";
     private static final String PATH_MESSAGES = "/messages";
+    private static final String VENDOR_PREFIX = NAME + ":";
     private static final String CONTENT_TYPE_JSON = "application/json";
     private static final Pattern CONTENT_TYPE = Pattern.compile("\\s*([^;\\s]+)\\s*(?:;.*)?");
     private static final String CONTENT_TYPE_EVENT_STREAM = "text/event-stream";
@@ -1127,11 +1128,11 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             {
                 neutral = switch (reported)
                 {
-                case "end_turn", "stop_sequence", "pause_turn" -> "stop";
+                case "end_turn" -> "stop";
                 case "max_tokens" -> "length";
                 case "tool_use" -> "tool-call";
                 case "refusal" -> "content-filter";
-                default -> reported;
+                default -> VENDOR_PREFIX + reported;
                 };
             }
 

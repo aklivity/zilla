@@ -1461,4 +1461,48 @@ public class LlmAnthropicServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"anthropic\"", "reason \"anthropic:stop_sequence\""})
+    @Specification({
+        "${net}/anthropic.transform.response.finish.reason.stop.sequence/client",
+        "${app}/transform.response.finish.reason/server"})
+    public void shouldRestoreStopSequenceFinishReasonFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"anthropic\"", "reason \"anthropic:pause_turn\""})
+    @Specification({
+        "${net}/anthropic.transform.response.finish.reason.pause.turn/client",
+        "${app}/transform.response.finish.reason/server"})
+    public void shouldRestorePauseTurnFinishReasonFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\"", "reason \"openai:max_messages\""})
+    @Specification({
+        "${net}/anthropic.transform.response.text/client",
+        "${app}/transform.response.finish.reason/server"})
+    public void shouldDropForeignPrefixedFinishReasonAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"anthropic\"", "reason \"unprefixed\""})
+    @Specification({
+        "${net}/anthropic.transform.response.text/client",
+        "${app}/transform.response.finish.reason/server"})
+    public void shouldDropUnprefixedFinishReasonAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
 }

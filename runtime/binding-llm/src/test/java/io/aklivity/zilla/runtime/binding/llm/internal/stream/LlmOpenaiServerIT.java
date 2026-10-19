@@ -1359,4 +1359,37 @@ public class LlmOpenaiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"openai\"", "reason \"openai:insufficient_system_resource\""})
+    @Specification({
+        "${net}/openai.transform.response.finish.reason.unknown/client",
+        "${app}/transform.response.finish.reason/server"})
+    public void shouldRestoreUnknownFinishReasonFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"anthropic\"", "reason \"anthropic:stop_sequence\""})
+    @Specification({
+        "${net}/openai.transform.response.text/client",
+        "${app}/transform.response.finish.reason/server"})
+    public void shouldDropForeignPrefixedFinishReasonAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"openai\"", "reason \"unprefixed\""})
+    @Specification({
+        "${net}/openai.transform.response.text/client",
+        "${app}/transform.response.finish.reason/server"})
+    public void shouldDropUnprefixedFinishReasonAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
 }

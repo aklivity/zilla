@@ -88,6 +88,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private static final String HEADER_AUTHORIZATION = "authorization";
     private static final String METHOD_POST = "POST";
     private static final String PATH_CHAT_COMPLETIONS = "/chat/completions";
+    private static final String VENDOR_PREFIX = NAME + ":";
     private static final String CONTENT_TYPE_JSON = "application/json";
     private static final Pattern CONTENT_TYPE = Pattern.compile("\\s*([^;\\s]+)\\s*(?:;.*)?");
     private static final String CONTENT_TYPE_EVENT_STREAM = "text/event-stream";
@@ -1107,9 +1108,10 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             {
                 neutral = switch (reported)
                 {
+                case "stop", "length" -> reported;
                 case "tool_calls", "function_call" -> "tool-call";
                 case "content_filter" -> "content-filter";
-                default -> reported;
+                default -> VENDOR_PREFIX + reported;
                 };
             }
 

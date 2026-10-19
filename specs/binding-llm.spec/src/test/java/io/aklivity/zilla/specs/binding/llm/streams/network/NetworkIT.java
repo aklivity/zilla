@@ -3302,4 +3302,31 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.finish.reason.stop.sequence/client",
+        "${net}/anthropic.transform.response.finish.reason.stop.sequence/server"})
+    public void shouldAnthropicTransformResponseFinishReasonStopSequence() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.finish.reason.pause.turn/client",
+        "${net}/anthropic.transform.response.finish.reason.pause.turn/server"})
+    public void shouldAnthropicTransformResponseFinishReasonPauseTurn() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.finish.reason.unknown/client",
+        "${net}/openai.transform.response.finish.reason.unknown/server"})
+    public void shouldOpenaiTransformResponseFinishReasonUnknown() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -1462,4 +1462,26 @@ public class LlmAnthropicClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"target \"anthropic\"", "reason \"anthropic:stop_sequence\""})
+    @Specification({
+        "${app}/anthropic.transform.response.finish.reason/client",
+        "${net}/anthropic.transform.response.finish.reason.stop.sequence/server"})
+    public void shouldPrefixStopSequenceFinishReasonAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"target \"anthropic\"", "reason \"anthropic:pause_turn\""})
+    @Specification({
+        "${app}/anthropic.transform.response.finish.reason/client",
+        "${net}/anthropic.transform.response.finish.reason.pause.turn/server"})
+    public void shouldPrefixPauseTurnFinishReasonAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
 }

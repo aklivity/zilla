@@ -3698,4 +3698,31 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/transform.response.finish.reason/client",
+        "${app}/transform.response.finish.reason/server"})
+    public void shouldTransformResponseFinishReason() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.transform.response.finish.reason/client",
+        "${app}/anthropic.transform.response.finish.reason/server"})
+    public void shouldAnthropicTransformResponseFinishReason() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.transform.response.finish.reason/client",
+        "${app}/openai.transform.response.finish.reason/server"})
+    public void shouldOpenaiTransformResponseFinishReason() throws Exception
+    {
+        k3po.finish();
+    }
 }

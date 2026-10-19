@@ -93,6 +93,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private static final String HEADER_AUTHORIZATION = "authorization";
     private static final String METHOD_POST = "POST";
     private static final String PATH_MESSAGES = "/v1/messages";
+    private static final String VENDOR_PREFIX = NAME + ":";
     private static final String STATUS_OK = "200";
     private static final String STATUS_UNAUTHORIZED = "401";
     private static final int NO_MAX_OUTPUT_TOKENS = -1;
@@ -5313,7 +5314,9 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 case "length" -> "max_tokens";
                 case "tool-call" -> "tool_use";
                 case "content-filter" -> "refusal";
-                default -> finishReason;
+                default -> NAME.equals(responseDialect) && finishReason.startsWith(VENDOR_PREFIX)
+                    ? finishReason.substring(VENDOR_PREFIX.length())
+                    : reason;
                 };
             }
 

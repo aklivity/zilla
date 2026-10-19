@@ -91,6 +91,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private static final String HEADER_AUTHORIZATION = "authorization";
     private static final String METHOD_POST = "POST";
     private static final String PATH_CHAT_COMPLETIONS = "/v1/chat/completions";
+    private static final String VENDOR_PREFIX = NAME + ":";
     private static final String STATUS_OK = "200";
     private static final String STATUS_UNAUTHORIZED = "401";
     private static final int NO_MAX_OUTPUT_TOKENS = -1;
@@ -5173,9 +5174,12 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             {
                 reason = switch (finishReason)
                 {
+                case "stop", "length" -> finishReason;
                 case "tool-call" -> "tool_calls";
                 case "content-filter" -> "content_filter";
-                default -> finishReason;
+                default -> NAME.equals(responseDialect) && finishReason.startsWith(VENDOR_PREFIX)
+                    ? finishReason.substring(VENDOR_PREFIX.length())
+                    : reason;
                 };
             }
 

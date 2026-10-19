@@ -1631,4 +1631,15 @@ public class LlmOpenaiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\"", "reason \"openai:insufficient_system_resource\""})
+    @Specification({
+        "${app}/openai.transform.response.finish.reason/client",
+        "${net}/openai.transform.response.finish.reason.unknown/server"})
+    public void shouldPrefixUnknownFinishReasonAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
 }
