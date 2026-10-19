@@ -197,6 +197,26 @@ public class LlmOpenaiControlToCanonicalTest
     }
 
     @Test
+    public void shouldDetectObfuscationDisabled()
+    {
+        assertTransforms(transform,
+            json("{'stream_options':{'include_obfuscation':false,'include_usage':true}}"),
+            json("{'stream_options':{'openai:include_obfuscation':false,'include_usage':true}}"));
+
+        assertThat(transform.obfuscationDisabled(), is(true));
+    }
+
+    @Test
+    public void shouldKeepObfuscationWhenEnabled()
+    {
+        assertTransforms(transform,
+            json("{'stream_options':{'include_obfuscation':true,'include_usage':true}}"),
+            json("{'stream_options':{'openai:include_obfuscation':true,'include_usage':true}}"));
+
+        assertThat(transform.obfuscationDisabled(), is(false));
+    }
+
+    @Test
     public void shouldRejectOptionsThatAreNotObjectOrNull()
     {
         assertRejects(transform, json("{'stream_options':'yes'}"));

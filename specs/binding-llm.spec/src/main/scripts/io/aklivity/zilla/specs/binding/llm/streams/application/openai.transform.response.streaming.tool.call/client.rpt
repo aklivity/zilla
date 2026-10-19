@@ -55,7 +55,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"stream_options\":{\"include_usage\":true}}"
+write "{\"stream_options\":{\"openai:include_obfuscation\":false,\"include_usage\":true}}"
 write flush
 
 write advise zilla:flush

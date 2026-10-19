@@ -23,11 +23,13 @@ final class LlmOpenaiControlToCanonical extends LlmToolTransform
     private static final String MEMBER_STREAM = "stream";
     private static final String MEMBER_STREAM_OPTIONS = "stream_options";
     private static final String MEMBER_INCLUDE_USAGE = "include_usage";
+    private static final String MEMBER_INCLUDE_OBFUSCATION = "include_obfuscation";
 
     private static final int REPLACING_NONE = 0;
     private static final int REPLACING_STREAM = 1;
     private static final int REPLACING_OPTIONS = 2;
     private static final int REPLACING_USAGE = 3;
+    private static final int REPLACING_OBFUSCATION = 4;
 
     private int replacing;
     private boolean streamSeen;
@@ -35,6 +37,12 @@ final class LlmOpenaiControlToCanonical extends LlmToolTransform
     private boolean optionsSeen;
     private boolean usageSeen;
     private boolean usageRequested;
+    private boolean obfuscationDisabled;
+
+    boolean obfuscationDisabled()
+    {
+        return obfuscationDisabled;
+    }
 
     boolean streamSeen()
     {
@@ -66,6 +74,7 @@ final class LlmOpenaiControlToCanonical extends LlmToolTransform
         optionsSeen = false;
         usageSeen = false;
         usageRequested = false;
+        obfuscationDisabled = false;
     }
 
     @Override
@@ -91,6 +100,12 @@ final class LlmOpenaiControlToCanonical extends LlmToolTransform
         {
             target = MEMBER_INCLUDE_USAGE;
             replacing = REPLACING_USAGE;
+            action = REPLACE_VALUE;
+        }
+        else if (depth == 2 && matches(key, MEMBER_INCLUDE_OBFUSCATION))
+        {
+            prefix(DIALECT, key);
+            replacing = REPLACING_OBFUSCATION;
             action = REPLACE_VALUE;
         }
         else
@@ -152,6 +167,15 @@ final class LlmOpenaiControlToCanonical extends LlmToolTransform
                 usageSeen = true;
                 usageRequested = event == JsonEvent.VALUE_TRUE;
                 emitIncludeUsage();
+                status = Status.ADVANCED;
+            }
+            break;
+        case REPLACING_OBFUSCATION:
+            if (flag)
+            {
+                obfuscationDisabled = event == JsonEvent.VALUE_FALSE;
+                emit(JsonEvent.KEY_NAME, target);
+                emit(event);
                 status = Status.ADVANCED;
             }
             break;

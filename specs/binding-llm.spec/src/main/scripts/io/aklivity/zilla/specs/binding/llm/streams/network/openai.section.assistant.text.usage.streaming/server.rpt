@@ -30,7 +30,7 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-read "{\"model\":\"gpt-4o-mini\",\"stream\":true,\"messages\":[{\"role\":\"user\",\"content\":\"Say hello in one sentence.\"}],\"stream_options\":{\"include_usage\":true}}"
+read "{\"model\":\"gpt-4o-mini\",\"stream\":true,\"messages\":[{\"role\":\"user\",\"content\":\"Say hello in one sentence.\"}],\"stream_options\":{\"include_obfuscation\":false,\"include_usage\":true}}"
 
 read closed
 

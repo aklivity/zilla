@@ -49,7 +49,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"stream_options\":{\"include_usage\":true}}"
+write "{\"stream_options\":{\"openai:include_obfuscation\":false,\"include_usage\":true}}"
 write flush
 
 write advise zilla:flush
@@ -74,12 +74,6 @@ read zilla:data.ext ${llm:matchDataEx()
                           .message(0)
                           .build()}
 read "{\"text\":\"Hi\"}"
-
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .build()}
-read "[DONE]"
 
 read zilla:end.ext ${llm:matchEndEx()
                             .typeId(zilla:id("llm"))

@@ -44,13 +44,6 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .id("chatcmpl_5")
                            .build()}
 
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-read "{\"id\":\"chatcmpl_5\",\"object\":\"chat.completion\",\"model\":\""
-     ${model}
-     "\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":"
-
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_REASONING")
@@ -66,11 +59,12 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "{\"text\":\"Hello\"}"
 
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .complete(true)
+                          .type("CONTROL")
+                          .message(-1)
                           .build()}
-read "},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}}"
+read "{\"openai:usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}}"
 
 read zilla:end.ext ${llm:matchEndEx()
                             .typeId(zilla:id("llm"))

@@ -52,13 +52,6 @@ read zilla:begin.ext ${llm:matchBeginEx()
                          .id("chatcmpl_1")
                          .build()}
 
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-read "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion\",\"model\":\""
-     ${model}
-     "\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":"
-
 read zilla:data.ext ${llm:matchDataEx()
                         .typeId(zilla:id("llm"))
                         .type("ASSISTANT_TEXT")
@@ -66,11 +59,19 @@ read zilla:data.ext ${llm:matchDataEx()
                         .build()}
 read "{\"text\":\"Hello!\"}"
 
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .complete(true)
+                          .type("CONTROL")
+                          .message(0)
                           .build()}
-read "},\"logprobs\":{\"content\":[{\"token\":\"Hello\",\"logprob\":-0.5,\"bytes\":[72,101,108,108,111],\"top_logprobs\":[]},{\"token\":\"!\",\"logprob\":-1.25e-1,\"bytes\":[33],\"top_logprobs\":[]}],\"refusal\":null},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}}"
+read "{\"openai:logprobs\":{\"content\":[{\"token\":\"Hello\",\"logprob\":-0.5,\"bytes\":[72,101,108,108,111],\"top_logprobs\":[]},{\"token\":\"!\",\"logprob\":-1.25e-1,\"bytes\":[33],\"top_logprobs\":[]}],\"refusal\":null}}"
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("CONTROL")
+                          .message(-1)
+                          .build()}
+read "{\"openai:usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}}"
 
 read zilla:end.ext ${llm:matchEndEx()
                           .typeId(zilla:id("llm"))

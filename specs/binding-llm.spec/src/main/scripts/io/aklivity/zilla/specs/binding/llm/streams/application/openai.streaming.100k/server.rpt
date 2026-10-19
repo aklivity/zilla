@@ -44,13 +44,6 @@ write zilla:begin.ext ${llm:beginEx()
                            .build()}
 write flush
 
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .build()}
-write "{\"id\":\"chatcmpl_2\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\"},\"finish_reason\":null}]}"
-write flush
-
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
@@ -61,25 +54,12 @@ write "{\"text\":\""
      "\"}"
 write flush
 
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .complete(true)
+                          .type("CONTROL")
+                          .message(-1)
                           .build()}
-write "{\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}"
-write flush
-
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .build()}
-write "{\"choices\":[],\"usage\":{\"prompt_tokens\":25,\"completion_tokens\":15}}"
-write flush
-
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .build()}
-write "[DONE]"
+write "{\"openai:usage\":{\"prompt_tokens\":25,\"completion_tokens\":15}}"
 write flush
 
 write zilla:end.ext ${llm:endEx()

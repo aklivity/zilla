@@ -30,9 +30,4 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-read "{\"model\":\"gpt-a\",\"messages\":[{\"role\":\"user\",\"content\":"
-
 read abort

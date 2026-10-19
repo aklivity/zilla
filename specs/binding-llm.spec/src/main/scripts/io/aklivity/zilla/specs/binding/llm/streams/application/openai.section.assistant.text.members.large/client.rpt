@@ -44,14 +44,14 @@ read zilla:begin.ext ${llm:matchBeginEx()
                          .id("chatcmpl_2")
                          .build()}
 
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
+                          .type("CONTROL")
+                          .message(-1)
                           .build()}
-read "{\"id\":\"chatcmpl_2\",\"object\":\"chat.completion\",\"model\":\""
-     ${model}
-     "\",\"x_large\":\""
+read "{\"openai:x_large\":\""
      ${core:randomBase64(10000)}
-     "\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":"
+     "\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                         .typeId(zilla:id("llm"))
@@ -60,11 +60,26 @@ read zilla:data.ext ${llm:matchDataEx()
                         .build()}
 read "{\"text\":\"Hello! How can I help you today?\"}"
 
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .complete(true)
+                          .type("CONTROL")
+                          .message(-1)
                           .build()}
-read "},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40},\"created\":1700000000,\"created\":1700000001}"
+read "{\"openai:usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}}"
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("CONTROL")
+                          .message(-1)
+                          .build()}
+read "{\"openai:created\":1700000000}"
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("CONTROL")
+                          .message(-1)
+                          .build()}
+read "{\"openai:created\":1700000001}"
 
 read zilla:end.ext ${llm:matchEndEx()
                           .typeId(zilla:id("llm"))
