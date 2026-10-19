@@ -55,4 +55,242 @@ public class LlmGeminiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.system.instruction/client",
+        "${app}/gemini.section.system.instruction/server"})
+    public void shouldForwardGeminiSectionSystemInstruction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.system.instruction.last/client",
+        "${app}/gemini.section.system.instruction.last/server"})
+    public void shouldForwardGeminiSectionSystemInstructionLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.system.instruction.parts/client",
+        "${app}/gemini.section.system.instruction.parts/server"})
+    public void shouldForwardGeminiSectionSystemInstructionParts() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.conversation/client",
+        "${app}/gemini.section.conversation/server"})
+    public void shouldForwardGeminiSectionConversation() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.user.text.parts/client",
+        "${app}/gemini.section.user.text.parts/server"})
+    public void shouldForwardGeminiSectionUserTextParts() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.user.text.multibyte/client",
+        "${app}/gemini.section.user.text.multibyte/server"})
+    public void shouldForwardGeminiSectionUserTextMultibyte() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.user.text.escaped/client",
+        "${app}/gemini.section.user.text.escaped/server"})
+    public void shouldForwardGeminiSectionUserTextEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.user.text.empty/client",
+        "${app}/gemini.section.user.text.empty/server"})
+    public void shouldForwardGeminiSectionUserTextEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.assistant.text.multibyte/client",
+        "${app}/gemini.section.assistant.text.multibyte/server"})
+    public void shouldForwardGeminiSectionAssistantTextMultibyte() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.assistant.text.escaped/client",
+        "${app}/gemini.section.assistant.text.escaped/server"})
+    public void shouldForwardGeminiSectionAssistantTextEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.user.text.split/client",
+        "${app}/gemini.section.user.text.split/server"})
+    public void shouldForwardGeminiSectionUserTextSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.options/client",
+        "${app}/gemini.request.options/server"})
+    public void shouldForwardGeminiRequestOptions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.options.leading/client",
+        "${app}/gemini.request.options.leading/server"})
+    public void shouldForwardGeminiRequestOptionsLeading() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.options.verbatim/client",
+        "${app}/gemini.request.options.verbatim/server"})
+    public void shouldForwardGeminiRequestOptionsVerbatim() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.guarded.yaml")
+    @Specification({
+        "${net}/gemini.authorized/client",
+        "${app}/gemini.authorized/server"})
+    public void shouldForwardGeminiAuthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.guarded.yaml")
+    @Specification({
+        "${net}/gemini.rejected.authorization/client"})
+    public void shouldForwardGeminiRejectedAuthorization() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.guarded.yaml")
+    @Specification({
+        "${net}/gemini.rejected.authorization.missing/client"})
+    public void shouldForwardGeminiRejectedAuthorizationMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.rejected.rate.limit/client",
+        "${app}/gemini.rejected.rate.limit/server"})
+    public void shouldForwardGeminiRejectedRateLimit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.rejected.model.not.found/client",
+        "${app}/gemini.rejected.model.not.found/server"})
+    public void shouldForwardGeminiRejectedModelNotFound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.usage/client",
+        "${app}/gemini.usage/server"})
+    public void shouldForwardGeminiUsage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.usage.cached/client",
+        "${app}/gemini.usage.cached/server"})
+    public void shouldForwardGeminiUsageCached() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.assistant.text.members/client",
+        "${app}/gemini.section.assistant.text.members/server"})
+    public void shouldForwardGeminiSectionAssistantTextMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.streaming.complete/client",
+        "${app}/gemini.streaming.complete/server"})
+    public void shouldForwardGeminiStreamingComplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.streaming.array/client",
+        "${app}/gemini.streaming.array/server"})
+    public void shouldForwardGeminiStreamingArray() throws Exception
+    {
+        k3po.finish();
+    }
 }

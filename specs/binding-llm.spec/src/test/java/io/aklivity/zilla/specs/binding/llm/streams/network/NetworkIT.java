@@ -3311,4 +3311,238 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.system.instruction/client",
+        "${net}/gemini.section.system.instruction/server"})
+    public void shouldEncodeGeminiSectionSystemInstruction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.system.instruction.last/client",
+        "${net}/gemini.section.system.instruction.last/server"})
+    public void shouldEncodeGeminiSectionSystemInstructionLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.system.instruction.parts/client",
+        "${net}/gemini.section.system.instruction.parts/server"})
+    public void shouldEncodeGeminiSectionSystemInstructionParts() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.conversation/client",
+        "${net}/gemini.section.conversation/server"})
+    public void shouldEncodeGeminiSectionConversation() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.user.text.parts/client",
+        "${net}/gemini.section.user.text.parts/server"})
+    public void shouldEncodeGeminiSectionUserTextParts() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.user.text.multibyte/client",
+        "${net}/gemini.section.user.text.multibyte/server"})
+    public void shouldEncodeGeminiSectionUserTextMultibyte() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.user.text.escaped/client",
+        "${net}/gemini.section.user.text.escaped/server"})
+    public void shouldEncodeGeminiSectionUserTextEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.user.text.empty/client",
+        "${net}/gemini.section.user.text.empty/server"})
+    public void shouldEncodeGeminiSectionUserTextEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.assistant.text.multibyte/client",
+        "${net}/gemini.section.assistant.text.multibyte/server"})
+    public void shouldEncodeGeminiSectionAssistantTextMultibyte() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.assistant.text.escaped/client",
+        "${net}/gemini.section.assistant.text.escaped/server"})
+    public void shouldEncodeGeminiSectionAssistantTextEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.user.text.split/client",
+        "${net}/gemini.section.user.text.split/server"})
+    public void shouldEncodeGeminiSectionUserTextSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.options/client",
+        "${net}/gemini.request.options/server"})
+    public void shouldEncodeGeminiRequestOptions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.options.leading/client",
+        "${net}/gemini.request.options.leading/server"})
+    public void shouldEncodeGeminiRequestOptionsLeading() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.options.verbatim/client",
+        "${net}/gemini.request.options.verbatim/server"})
+    public void shouldEncodeGeminiRequestOptionsVerbatim() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.authorized/client",
+        "${net}/gemini.authorized/server"})
+    public void shouldEncodeGeminiAuthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.rejected.authorization/client",
+        "${net}/gemini.rejected.authorization/server"})
+    public void shouldEncodeGeminiRejectedAuthorization() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.rejected.authorization.missing/client",
+        "${net}/gemini.rejected.authorization.missing/server"})
+    public void shouldEncodeGeminiRejectedAuthorizationMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.rejected.rate.limit/client",
+        "${net}/gemini.rejected.rate.limit/server"})
+    public void shouldEncodeGeminiRejectedRateLimit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.rejected.model.not.found/client",
+        "${net}/gemini.rejected.model.not.found/server"})
+    public void shouldEncodeGeminiRejectedModelNotFound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.usage/client",
+        "${net}/gemini.usage/server"})
+    public void shouldEncodeGeminiUsage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.usage.cached/client",
+        "${net}/gemini.usage.cached/server"})
+    public void shouldEncodeGeminiUsageCached() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.assistant.text.members/client",
+        "${net}/gemini.section.assistant.text.members/server"})
+    public void shouldEncodeGeminiSectionAssistantTextMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.assistant.text.empty/client",
+        "${net}/gemini.section.assistant.text.empty/server"})
+    public void shouldEncodeGeminiSectionAssistantTextEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.streaming.complete/client",
+        "${net}/gemini.streaming.complete/server"})
+    public void shouldEncodeGeminiStreamingComplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.streaming.array/client",
+        "${net}/gemini.streaming.array/server"})
+    public void shouldEncodeGeminiStreamingArray() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.streaming.usage/client",
+        "${net}/gemini.streaming.usage/server"})
+    public void shouldEncodeGeminiStreamingUsage() throws Exception
+    {
+        k3po.finish();
+    }
 }
