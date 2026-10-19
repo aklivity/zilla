@@ -488,4 +488,94 @@ public class LlmGeminiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.section.assistant.tool.call/client",
+        "${net}/gemini.section.assistant.tool.call/server"})
+    public void shouldForwardGeminiSectionAssistantToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.section.assistant.text.and.tool.call/client",
+        "${net}/gemini.section.assistant.text.and.tool.call/server"})
+    public void shouldForwardGeminiSectionAssistantTextAndToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.section.assistant.tool.calls/client",
+        "${net}/gemini.section.assistant.tool.calls/server"})
+    public void shouldForwardGeminiSectionAssistantToolCalls() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.section.assistant.tool.call.empty/client",
+        "${net}/gemini.section.assistant.tool.call.empty/server"})
+    public void shouldForwardGeminiSectionAssistantToolCallEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.section.assistant.tool.call.signature/client",
+        "${net}/gemini.section.assistant.tool.call.signature/server"})
+    public void shouldForwardGeminiSectionAssistantToolCallSignature() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.section.tool.call.history/client",
+        "${net}/gemini.section.tool.call.history/server"})
+    public void shouldForwardGeminiSectionToolCallHistory() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.streaming.tool.call/client",
+        "${net}/gemini.streaming.tool.call/server"})
+    public void shouldForwardGeminiStreamingToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.transform.assistant.tool.call/client",
+        "${net}/gemini.transform.assistant.tool.call/server"})
+    public void shouldForwardGeminiTransformAssistantToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.transform.assistant.text.and.tool.call/client",
+        "${net}/gemini.transform.assistant.text.and.tool.call/server"})
+    public void shouldForwardGeminiTransformAssistantTextAndToolCall() throws Exception
+    {
+        k3po.finish();
+    }
 }

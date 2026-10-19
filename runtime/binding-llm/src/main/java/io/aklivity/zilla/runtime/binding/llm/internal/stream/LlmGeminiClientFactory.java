@@ -120,6 +120,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final int KIND_ASSISTANT_TEXT = 6;
     private static final int KIND_ASSISTANT_REFUSAL = 7;
     private static final int KIND_TOOL_DEFINITION = 9;
+    private static final int KIND_TOOL_CALL = 10;
     private static final int KIND_CONTROL = 14;
     private static final int KIND_DROPPED = 16;
     private static final int KIND_UNSUPPORTED = 17;
@@ -153,6 +154,10 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final int TEXT_ESCAPE_EXPANSION = 6;
     private static final int TEXT_FRAMING = 48;
     private static final byte[] SECTION_SUFFIX = "\"}".getBytes(UTF_8);
+    private static final DirectBufferEx ARGUMENTS_PREFIX = new UnsafeBufferEx("{\"arguments\":".getBytes(UTF_8));
+    private static final DirectBufferEx ARGUMENTS_EMPTY = new UnsafeBufferEx("{\"arguments\":{}}".getBytes(UTF_8));
+    private static final DirectBufferEx ARGUMENTS_SUFFIX = new UnsafeBufferEx("}".getBytes(UTF_8));
+    private static final String TOOL_CALL_ID_PREFIX = "call_0_";
 
     private static final String KEY_FINISH_REASON = "finishReason";
     private static final String MEMBER_ROLE = "role";
@@ -167,6 +172,13 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final String MEMBER_ERROR = "error";
     private static final String MEMBER_MESSAGE = "message";
     private static final String MEMBER_STATUS = "status";
+    private static final String MEMBER_FUNCTION_CALL = "functionCall";
+    private static final String MEMBER_NAME = "name";
+    private static final String MEMBER_ID = "id";
+    private static final String MEMBER_ARGS = "args";
+    private static final String MEMBER_SIGNATURE = "thoughtSignature";
+    private static final String MEMBER_WIRE_SIGNATURE = ",\"gemini:thoughtSignature\":\"";
+    private static final String MEMBER_WIRE_ID = ",\"gemini:id\":\"";
     private static final String USAGE_PROMPT_TOKENS = "promptTokenCount";
     private static final String USAGE_CANDIDATES_TOKENS = "candidatesTokenCount";
     private static final String USAGE_CACHED_TOKENS = "cachedContentTokenCount";
@@ -362,6 +374,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         case ASSISTANT_TEXT -> KIND_ASSISTANT_TEXT;
         case ASSISTANT_REFUSAL -> KIND_ASSISTANT_REFUSAL;
         case TOOL_DEFINITION -> KIND_TOOL_DEFINITION;
+        case TOOL_CALL -> KIND_TOOL_CALL;
         case CONTROL -> KIND_CONTROL;
         case NONE -> 0;
         default -> KIND_UNSUPPORTED;
@@ -371,7 +384,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static int role(
         int kind)
     {
-        return kind == KIND_ASSISTANT_TEXT || kind == KIND_ASSISTANT_REFUSAL ? ROLE_MODEL : ROLE_USER;
+        return kind == KIND_ASSISTANT_TEXT || kind == KIND_ASSISTANT_REFUSAL || kind == KIND_TOOL_CALL ? ROLE_MODEL : ROLE_USER;
     }
 
     private static boolean text(
@@ -428,6 +441,13 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private final LlmGeminiResponseDecoder decodePartsStart = this::decodePartsStart;
         private final LlmGeminiResponseDecoder decodeParts = this::decodeParts;
         private final LlmGeminiResponseDecoder decodePart = this::decodePart;
+        private final LlmGeminiResponseDecoder decodeCallStart = this::decodeCallStart;
+        private final LlmGeminiResponseDecoder decodeCall = this::decodeCall;
+        private final LlmGeminiResponseDecoder decodeCallName = this::decodeCallName;
+        private final LlmGeminiResponseDecoder decodeCallId = this::decodeCallId;
+        private final LlmGeminiResponseDecoder decodeCallArguments = this::decodeCallArguments;
+        private final LlmGeminiResponseDecoder decodeCapture = this::decodeCapture;
+        private final LlmGeminiResponseDecoder decodeSignature = this::decodeSignature;
         private final LlmGeminiResponseDecoder decodeBlockText = this::decodeBlockText;
         private final LlmGeminiResponseDecoder decodeFinishReason = this::decodeFinishReason;
         private final LlmGeminiResponseDecoder decodeId = this::decodeId;
@@ -505,6 +525,18 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private String finishReason;
 
         private int usageField;
+        private String callName;
+        private String callId;
+        private int callOrdinal;
+        private int toolCalls;
+        private int callArguments = NONE;
+        private String sectionToolCallId;
+        private String sectionToolName;
+        private String sectionSignature;
+        private final StringBuilder signatureBuilder = new StringBuilder();
+        private LlmGeminiResponseDecoder captureThen;
+        private int captureDepth;
+        private int captureFrom;
 
         private boolean sectionOpen;
         private boolean sectionStarted;
@@ -582,7 +614,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
         private int sectionClosing()
         {
-            return sectionOpen ? SECTION_SUFFIX.length + replyPad : 0;
+            return sectionOpen ? SECTION_SUFFIX.length + replyPad + signatureClosing() : 0;
         }
 
         private boolean replyAvailable()
@@ -984,7 +1016,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             {
                 neutral = switch (reported)
                 {
-                case "STOP" -> "stop";
+                case "STOP" -> toolCalls > 0 ? "tool-call" : "stop";
                 case "MAX_TOKENS" -> "length";
                 case "SAFETY", "RECITATION", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII", "IMAGE_SAFETY", "LANGUAGE" ->
                     "content-filter";
@@ -1195,6 +1227,11 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 controlFrom = offset;
             }
 
+            if (decoder == decodeCapture)
+            {
+                captureFrom = offset;
+            }
+
             parser.wrap(buffer, offset, windowLimit, windowLast);
 
             LlmGeminiResponseDecoder previous = null;
@@ -1202,6 +1239,11 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             {
                 previous = decoder;
                 decoder.decode(buffer, offset, windowLimit);
+            }
+
+            if (decoder == decodeCapture)
+            {
+                flushCapture(buffer);
             }
 
             int progress = position();
@@ -1644,6 +1686,11 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
                 if (event == JsonEvent.END_OBJECT)
                 {
+                    if (sectionType == LlmSectionType.TOOL_CALL)
+                    {
+                        closeSection();
+                    }
+
                     decoder = decodeParts;
                 }
                 else if (parser.deferredBytes())
@@ -1654,6 +1701,15 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 {
                     beginText(LlmSectionType.ASSISTANT_TEXT, decodePart);
                 }
+                else if (MEMBER_FUNCTION_CALL.contentEquals(parser.getStringView()))
+                {
+                    decoder = decodeCallStart;
+                }
+                else if (MEMBER_SIGNATURE.contentEquals(parser.getStringView()))
+                {
+                    signatureBuilder.setLength(0);
+                    decoder = decodeSignature;
+                }
                 else
                 {
                     skipMember(decodePart);
@@ -1661,6 +1717,252 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             }
 
             return position();
+        }
+
+        private int decodeSignature(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeSignature && hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.VALUE_STRING)
+                {
+                    final boolean deferred = parser.deferredBytes();
+                    final CharSequence chars = parser.getStringView();
+                    final int length = chars.length();
+
+                    signatureBuilder.append(chars);
+
+                    if (deferred)
+                    {
+                        parser.consumed(length);
+                    }
+                    else
+                    {
+                        sectionSignature = sectionOpen ? signatureBuilder.toString() : null;
+                        signatureBuilder.setLength(0);
+                        decoder = decodePart;
+                    }
+                }
+                else
+                {
+                    skipAfter(event, decodePart);
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeCallStart(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            if (hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.START_OBJECT)
+                {
+                    callName = null;
+                    callId = null;
+                    callArguments = NONE;
+                    decoder = decodeCall;
+                }
+                else
+                {
+                    skipAfter(event, decodePart);
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeCall(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeCall && hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.END_OBJECT)
+                {
+                    endCall();
+                    decoder = decodePart;
+                }
+                else if (parser.deferredBytes())
+                {
+                    parser.consumed(0);
+                }
+                else
+                {
+                    final CharSequence member = parser.getStringView();
+
+                    if (MEMBER_NAME.contentEquals(member))
+                    {
+                        valueThen = decodeCall;
+                        decoder = decodeCallName;
+                    }
+                    else if (MEMBER_ID.contentEquals(member))
+                    {
+                        valueThen = decodeCall;
+                        decoder = decodeCallId;
+                    }
+                    else if (MEMBER_ARGS.contentEquals(member))
+                    {
+                        decoder = decodeCallArguments;
+                    }
+                    else
+                    {
+                        skipMember(decodeCall);
+                    }
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeCallName(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeCallName && hasNextEvent())
+            {
+                final String value = stringValue(parser.nextEvent(), valueThen);
+
+                if (value != null)
+                {
+                    callName = value;
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeCallId(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeCallId && hasNextEvent())
+            {
+                final String value = stringValue(parser.nextEvent(), valueThen);
+
+                if (value != null)
+                {
+                    callId = value;
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeCallArguments(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            if (hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.START_OBJECT && callName != null)
+                {
+                    openCall();
+                    callArguments = 0;
+                    sectionStarted = true;
+                    writeSection(ARGUMENTS_PREFIX, 0, ARGUMENTS_PREFIX.capacity(), false);
+
+                    captureThen = decodeCall;
+                    captureDepth = 1;
+                    captureFrom = position() - 1;
+                    decoder = decodeCapture;
+                }
+                else if (callName == null)
+                {
+                    parseRejected = true;
+                }
+                else
+                {
+                    skipAfter(event, decodeCall);
+                }
+            }
+
+            return position();
+        }
+
+        private void endCall()
+        {
+            if (callArguments != NONE && callId != null && !callId.equals(sectionToolCallId))
+            {
+                writeSection(textBuffer, 0, encodeWireId(callId), false);
+            }
+
+            if (callArguments == NONE)
+            {
+                if (callName == null)
+                {
+                    parseRejected = true;
+                }
+                else
+                {
+                    openCall();
+                }
+            }
+        }
+
+        private void openCall()
+        {
+            final String toolCallId = callId != null ? callId : TOOL_CALL_ID_PREFIX + callOrdinal++;
+
+            closeSection();
+            openSection(LlmSectionType.TOOL_CALL, toolCallId, callName);
+        }
+
+        private int decodeCapture(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeCapture && parser.hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+                final boolean deferred = deferredScalar(event);
+
+                captureDepth += nesting(event);
+
+                if (deferred)
+                {
+                    parser.consumed(deferredLength(event));
+                }
+                else if (captureDepth == 0)
+                {
+                    flushCapture(buffer);
+                    decoder = captureThen;
+                }
+            }
+
+            return position();
+        }
+
+        private void flushCapture(
+            DirectBufferEx buffer)
+        {
+            final int end = position();
+
+            if (end > captureFrom)
+            {
+                writeSection(buffer, captureFrom, end - captureFrom, false);
+                callArguments = end - captureFrom;
+            }
+
+            captureFrom = end;
         }
 
         private int decodeBlockText(
@@ -2252,7 +2554,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             {
                 if (!sectionOpen)
                 {
-                    openSection(LlmSectionType.ASSISTANT_TEXT);
+                    openSection(LlmSectionType.ASSISTANT_TEXT, null, null);
                 }
 
                 emitStreamed(encodeText(chars, false));
@@ -2592,7 +2894,9 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         }
 
         private void openSection(
-            LlmSectionType type)
+            LlmSectionType type,
+            String toolCallId,
+            String toolName)
         {
             emitControls();
 
@@ -2600,11 +2904,33 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             sectionStarted = false;
             sectionWritten = false;
             sectionType = type;
+            sectionToolCallId = toolCallId;
+            sectionToolName = toolName;
+            sectionSignature = null;
+
+            if (type == LlmSectionType.TOOL_CALL)
+            {
+                toolCalls++;
+            }
         }
 
         private void closeSection()
         {
-            if (sectionOpen && sectionStarted)
+            if (sectionOpen && sectionType == LlmSectionType.TOOL_CALL && sectionSignature != null)
+            {
+                final int encoded = encodeToolCallEnd();
+
+                sectionOpen = false;
+                writeSection(textBuffer, 0, encoded, true);
+            }
+            else if (sectionOpen && sectionType == LlmSectionType.TOOL_CALL)
+            {
+                final DirectBufferEx end = sectionStarted ? ARGUMENTS_SUFFIX : ARGUMENTS_EMPTY;
+
+                sectionOpen = false;
+                writeSection(end, 0, end.capacity(), true);
+            }
+            else if (sectionOpen && sectionStarted)
             {
                 final int encoded = encodeText("", true);
 
@@ -2627,7 +2953,8 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
             sectionWritten = true;
 
-            doAppFrame(http.decodeTraceId, fin ? Flags.fin(flags) : flags, sectionType, 0, null, null, buffer, offset, length);
+            doAppFrame(http.decodeTraceId, fin ? Flags.fin(flags) : flags, sectionType, 0, sectionToolCallId,
+                sectionToolName, buffer, offset, length);
         }
 
         private void commitDocument()
@@ -2661,7 +2988,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             boolean last)
         {
             final int length = chars.length();
-            final int capacity = length * TEXT_ESCAPE_EXPANSION + TEXT_FRAMING;
+            final int capacity = length * TEXT_ESCAPE_EXPANSION + TEXT_FRAMING + (last ? signatureRoom() : 0);
 
             if (textBytes.length < capacity)
             {
@@ -2739,8 +3066,100 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             if (last)
             {
                 textBytes[position++] = '"';
+                position = putSignature(position);
                 textBytes[position++] = '}';
             }
+
+            return position;
+        }
+
+        private int signatureRoom()
+        {
+            return sectionSignature != null ? sectionSignature.length() + MEMBER_WIRE_SIGNATURE.length() + 2 : 0;
+        }
+
+        private int signatureClosing()
+        {
+            return signatureRoom();
+        }
+
+        private int putSignature(
+            int position)
+        {
+            int next = position;
+
+            if (sectionSignature != null)
+            {
+                for (int i = 0; i < MEMBER_WIRE_SIGNATURE.length(); i++)
+                {
+                    textBytes[next++] = (byte) MEMBER_WIRE_SIGNATURE.charAt(i);
+                }
+
+                for (int i = 0; i < sectionSignature.length(); i++)
+                {
+                    next = putEscaped(sectionSignature.charAt(i), next);
+                }
+
+                textBytes[next++] = '"';
+                sectionSignature = null;
+            }
+
+            return next;
+        }
+
+        private int encodeToolCallEnd()
+        {
+            final int capacity = signatureRoom() + ARGUMENTS_EMPTY.capacity() + TEXT_FRAMING;
+
+            if (textBytes.length < capacity)
+            {
+                textBytes = new byte[capacity];
+                textBuffer = new UnsafeBufferEx(textBytes);
+            }
+
+            int position = 0;
+
+            if (!sectionStarted)
+            {
+                for (int i = 0; i < ARGUMENTS_PREFIX.capacity(); i++)
+                {
+                    textBytes[position++] = ARGUMENTS_PREFIX.getByte(i);
+                }
+
+                textBytes[position++] = '{';
+                textBytes[position++] = '}';
+            }
+
+            position = putSignature(position);
+            textBytes[position++] = '}';
+
+            return position;
+        }
+
+        private int encodeWireId(
+            String wireId)
+        {
+            final int capacity = wireId.length() * TEXT_ESCAPE_EXPANSION + TEXT_FRAMING;
+
+            if (textBytes.length < capacity)
+            {
+                textBytes = new byte[capacity];
+                textBuffer = new UnsafeBufferEx(textBytes);
+            }
+
+            int position = 0;
+
+            for (int i = 0; i < MEMBER_WIRE_ID.length(); i++)
+            {
+                textBytes[position++] = (byte) MEMBER_WIRE_ID.charAt(i);
+            }
+
+            for (int index = 0; index < wireId.length(); index++)
+            {
+                position = putEscaped(wireId.charAt(index), position);
+            }
+
+            textBytes[position++] = '"';
 
             return position;
         }
@@ -3091,6 +3510,9 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private boolean rawOpen;
         private LlmSectionPipeline sectionPipeline;
         private LlmSectionPipeline toolDefinitionPipeline;
+        private LlmSectionPipeline toolCallPipeline;
+        private LlmGeminiToolCallFromCanonical toolCallTransform;
+        private int messageToolCalls;
         private LlmSectionPipeline controlPipeline;
         private LlmGeminiControlFromCanonical controlTransform;
         private int controlMessage;
@@ -3197,6 +3619,17 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             sectionKind = KIND_DROPPED;
         }
 
+        private LlmSectionPipeline toolCallPipeline()
+        {
+            if (toolCallPipeline == null)
+            {
+                toolCallTransform = new LlmGeminiToolCallFromCanonical();
+                toolCallPipeline = new LlmSectionPipeline(toolCallTransform, transformBuffer);
+            }
+
+            return toolCallPipeline;
+        }
+
         private LlmSectionPipeline toolDefinitionPipeline()
         {
             if (toolDefinitionPipeline == null)
@@ -3243,7 +3676,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         {
             sectionKind = kind;
             sectionOpen = false;
-            translated = kind == KIND_CONTROL || kind == KIND_TOOL_DEFINITION;
+            translated = kind == KIND_CONTROL || kind == KIND_TOOL_DEFINITION || kind == KIND_TOOL_CALL;
 
             if (kind == 0 || kind == KIND_UNSUPPORTED)
             {
@@ -3313,8 +3746,17 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 openMessage(role, message);
             }
 
-            beginTextBlock();
-            sectionOpen = !encodeFailed;
+            if (kind == KIND_TOOL_CALL)
+            {
+                toolCallPipeline();
+                toolCallTransform.placeholder(messageToolCalls++ == 0);
+                beginSectionStreaming(toolCallPipeline, sectionOutput);
+            }
+            else
+            {
+                beginTextBlock();
+                sectionOpen = !encodeFailed;
+            }
         }
 
         private void openRegion(
@@ -3394,6 +3836,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
             messageIndex = message;
             messageRole = role;
+            messageToolCalls = 0;
         }
 
         private void closeMessage()
