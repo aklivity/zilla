@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmGeminiDialectFactorySpi.NAME;
+
 import io.aklivity.zilla.runtime.binding.llm.config.LlmBindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectContext;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectHandler;
@@ -24,6 +26,8 @@ final class LlmGeminiDialectContext implements LlmDialectContext
 {
     private final LlmConfiguration config;
     private final EngineContext context;
+
+    private LlmGeminiServerFactory server;
 
     LlmGeminiDialectContext(
         LlmConfiguration config,
@@ -37,12 +41,42 @@ final class LlmGeminiDialectContext implements LlmDialectContext
     public LlmDialectHandler attach(
         LlmBindingConfig binding)
     {
-        return null;
+        final String fixed = binding.options.dialect;
+
+        LlmDialectHandler handler = null;
+
+        switch (binding.kind)
+        {
+        case SERVER:
+            if (fixed == null || NAME.equals(fixed))
+            {
+                handler = supplyServer();
+                server.attach(binding);
+            }
+            break;
+        default:
+            break;
+        }
+
+        return handler;
     }
 
     @Override
     public void detach(
         long bindingId)
     {
+        if (server != null)
+        {
+            server.detach(bindingId);
+        }
+    }
+
+    private LlmGeminiServerFactory supplyServer()
+    {
+        if (server == null)
+        {
+            server = new LlmGeminiServerFactory(context);
+        }
+        return server;
     }
 }
