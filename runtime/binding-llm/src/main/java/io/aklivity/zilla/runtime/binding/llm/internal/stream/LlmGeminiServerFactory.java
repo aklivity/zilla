@@ -1131,6 +1131,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             switch (event)
             {
             case START_OBJECT:
+                server.hold();
                 server.decoder = decodeToolKey;
                 break;
             case END_ARRAY:
@@ -1169,7 +1170,14 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 {
                     if (matches(parser.getStringView(), MEMBER_FUNCTION_DECLARATIONS))
                     {
+                        server.release();
                         server.decoder = decodeDeclarationsStart;
+                    }
+                    else if (server.holding)
+                    {
+                        server.probe(LlmSectionType.SERVER_TOOL_DEFINITION, -1, decodeTool, decodeTools);
+                        server.probe.attributes().toolName(parser.getStringView().toString());
+                        server.captureProbed();
                     }
                     else
                     {
@@ -1178,6 +1186,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 }
                 break;
             case END_OBJECT:
+                server.release();
                 server.decoder = decodeTools;
                 break;
             default:

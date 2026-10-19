@@ -4436,4 +4436,103 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.server.tool.definition/client",
+        "${net}/gemini.section.server.tool.definition/server"})
+    public void shouldEncodeGeminiSectionServerToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.server.tool.definition.leading/client",
+        "${net}/gemini.section.server.tool.definition.leading/server"})
+    public void shouldEncodeGeminiSectionServerToolDefinitionLeading() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.server.tool.definition.code.execution/client",
+        "${net}/gemini.section.server.tool.definition.code.execution/server"})
+    public void shouldEncodeGeminiSectionServerToolDefinitionCodeExecution() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.server.tool.definition.url.context/client",
+        "${net}/gemini.section.server.tool.definition.url.context/server"})
+    public void shouldEncodeGeminiSectionServerToolDefinitionUrlContext() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.server.tool.definition.snake/client",
+        "${net}/gemini.section.server.tool.definition.snake/server"})
+    public void shouldEncodeGeminiSectionServerToolDefinitionSnake() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.server.tool.definition.options/client",
+        "${net}/gemini.section.server.tool.definition.options/server"})
+    public void shouldEncodeGeminiSectionServerToolDefinitionOptions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.server.tool.definition.multiple/client",
+        "${net}/gemini.section.server.tool.definition.multiple/server"})
+    public void shouldEncodeGeminiSectionServerToolDefinitionMultiple() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.server.tool.definition.mixed/client",
+        "${net}/gemini.section.server.tool.definition.mixed/server"})
+    public void shouldEncodeGeminiSectionServerToolDefinitionMixed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.server.tool.definition.mixed.reversed/client",
+        "${net}/gemini.section.server.tool.definition.mixed.reversed/server"})
+    public void shouldEncodeGeminiSectionServerToolDefinitionMixedReversed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.server.tool.definition.mixed.between/client",
+        "${net}/gemini.section.server.tool.definition.mixed.between/server"})
+    public void shouldEncodeGeminiSectionServerToolDefinitionMixedBetween() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.rejected.server.tool.definition/client",
+        "${net}/gemini.transform.rejected.server.tool.definition/server"})
+    public void shouldEncodeGeminiTransformRejectedServerToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
 }

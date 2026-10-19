@@ -127,6 +127,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final int KIND_TOOL_DEFINITION = 9;
     private static final int KIND_TOOL_CALL = 10;
     private static final int KIND_TOOL_RESULT = 11;
+    private static final int KIND_SERVER_TOOL_DEFINITION = 13;
     private static final int KIND_CONTROL = 14;
     private static final int KIND_DROPPED = 16;
     private static final int KIND_UNSUPPORTED = 17;
@@ -144,6 +145,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final int REGION_CONTENTS = 1;
     private static final int REGION_SYSTEM = 2;
     private static final int REGION_TOOLS = 3;
+    private static final int REGION_DECLARATIONS = 4;
 
     private static final int NO_MESSAGE = -2;
     private static final int ESCAPE_EXPANSION = 6;
@@ -395,6 +397,8 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         case ASSISTANT_REASONING -> KIND_ASSISTANT_REASONING;
         case ASSISTANT_REFUSAL -> KIND_ASSISTANT_REFUSAL;
         case TOOL_DEFINITION -> KIND_TOOL_DEFINITION;
+        case SERVER_TOOL_DEFINITION -> KIND_SERVER_TOOL_DEFINITION;
+        case SERVER_TOOL_CALL, SERVER_TOOL_RESULT, CITATIONS -> KIND_DROPPED;
         case TOOL_CALL -> KIND_TOOL_CALL;
         case TOOL_RESULT -> KIND_TOOL_RESULT;
         case CONTROL -> KIND_CONTROL;
@@ -3578,6 +3582,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private LlmSectionPipeline sectionPipeline;
         private LlmSectionPipeline toolDefinitionPipeline;
         private LlmSectionPipeline toolCallPipeline;
+        private LlmSectionPipeline serverToolPipeline;
         private final LlmSectionPipeline[] mediaPipelines = new LlmSectionPipeline[MEDIA_KINDS];
         private LlmGeminiToolCallFromCanonical toolCallTransform;
         private LlmGeminiSignatureFromCanonical signatureTransform;
@@ -3756,6 +3761,16 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             return mediaPipelines[index];
         }
 
+        private LlmSectionPipeline serverToolPipeline()
+        {
+            if (serverToolPipeline == null)
+            {
+                serverToolPipeline = new LlmSectionPipeline(new LlmGeminiServerToolFromCanonical(), transformBuffer);
+            }
+
+            return serverToolPipeline;
+        }
+
         private LlmSectionPipeline toolDefinitionPipeline()
         {
             if (toolDefinitionPipeline == null)
@@ -3800,15 +3815,23 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             int message,
             String toolCallId)
         {
-            if (kind == KIND_ASSISTANT_REASONING && stream.crossDialect)
+            if (kind == KIND_DROPPED || kind == KIND_ASSISTANT_REASONING && stream.crossDialect)
             {
                 doEncodeDialectDropped();
                 return;
             }
 
+            if (kind == KIND_SERVER_TOOL_DEFINITION && stream.crossDialect)
+            {
+                sectionKind = KIND_UNSUPPORTED;
+                encodeFailed = true;
+                return;
+            }
+
             sectionKind = kind;
             sectionOpen = false;
-            translated = kind == KIND_CONTROL || kind == KIND_TOOL_DEFINITION || kind == KIND_TOOL_CALL || media(kind);
+            translated = kind == KIND_CONTROL || kind == KIND_TOOL_DEFINITION || kind == KIND_SERVER_TOOL_DEFINITION ||
+                kind == KIND_TOOL_CALL || media(kind);
 
             if (kind == 0 || kind == KIND_UNSUPPORTED)
             {
@@ -3825,8 +3848,14 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 else if (kind == KIND_TOOL_DEFINITION)
                 {
                     closeTextBlock();
-                    openRegion(REGION_TOOLS);
+                    openRegion(REGION_DECLARATIONS);
                     beginSectionStreaming(toolDefinitionPipeline(), sectionOutput);
+                }
+                else if (kind == KIND_SERVER_TOOL_DEFINITION)
+                {
+                    closeTextBlock();
+                    openRegion(REGION_TOOLS);
+                    beginSectionStreaming(serverToolPipeline(), sectionOutput);
                 }
                 else
                 {
@@ -3961,39 +3990,77 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         {
             if (region != next)
             {
-                closeRegion();
+                if (tools(region) && tools(next))
+                {
+                    closeDeclarations();
 
-                final boolean reopened = switch (next)
-                {
-                case REGION_CONTENTS -> contentsOpened;
-                case REGION_SYSTEM -> systemOpened;
-                default -> toolsOpened;
-                };
-
-                if (reopened)
-                {
-                    encodeFailed = true;
-                }
-                else
-                {
-                    switch (next)
+                    if (next == REGION_DECLARATIONS)
                     {
-                    case REGION_CONTENTS:
-                        contentsOpened = true;
-                        generator.writeStartArray(MEMBER_CONTENTS);
-                        break;
-                    case REGION_SYSTEM:
-                        systemOpened = true;
-                        generator.writeStartObject(MEMBER_SYSTEM_INSTRUCTION).writeStartArray(MEMBER_PARTS);
-                        break;
-                    default:
-                        toolsOpened = true;
-                        generator.writeStartArray(MEMBER_TOOLS).writeStartObject().writeStartArray(MEMBER_FUNCTION_DECLARATIONS);
-                        break;
+                        openDeclarations();
                     }
 
                     region = next;
                 }
+                else
+                {
+                    closeRegion();
+
+                    final boolean reopened = switch (next)
+                    {
+                    case REGION_CONTENTS -> contentsOpened;
+                    case REGION_SYSTEM -> systemOpened;
+                    default -> toolsOpened;
+                    };
+
+                    if (reopened)
+                    {
+                        encodeFailed = true;
+                    }
+                    else
+                    {
+                        switch (next)
+                        {
+                        case REGION_CONTENTS:
+                            contentsOpened = true;
+                            generator.writeStartArray(MEMBER_CONTENTS);
+                            break;
+                        case REGION_SYSTEM:
+                            systemOpened = true;
+                            generator.writeStartObject(MEMBER_SYSTEM_INSTRUCTION).writeStartArray(MEMBER_PARTS);
+                            break;
+                        case REGION_TOOLS:
+                            toolsOpened = true;
+                            generator.writeStartArray(MEMBER_TOOLS);
+                            break;
+                        default:
+                            toolsOpened = true;
+                            generator.writeStartArray(MEMBER_TOOLS);
+                            openDeclarations();
+                            break;
+                        }
+
+                        region = next;
+                    }
+                }
+            }
+        }
+
+        private static boolean tools(
+            int region)
+        {
+            return region == REGION_TOOLS || region == REGION_DECLARATIONS;
+        }
+
+        private void openDeclarations()
+        {
+            generator.writeStartObject().writeStartArray(MEMBER_FUNCTION_DECLARATIONS);
+        }
+
+        private void closeDeclarations()
+        {
+            if (region == REGION_DECLARATIONS)
+            {
+                generator.writeEnd().writeEnd();
             }
         }
 
@@ -4008,15 +4075,12 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
             if (region != REGION_NONE)
             {
+                closeDeclarations();
                 generator.writeEnd();
 
                 if (region == REGION_SYSTEM)
                 {
                     generator.writeEnd();
-                }
-                else if (region == REGION_TOOLS)
-                {
-                    generator.writeEnd().writeEnd();
                 }
 
                 region = REGION_NONE;
