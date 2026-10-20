@@ -104,6 +104,7 @@
 #  27. north_llm_server_gemini, north_llm_proxy and south_llm_client_gemini
 #      record the llm.* metrics of a Gemini exchange, token total included
 
+import json
 import os
 import re
 import socket
@@ -113,6 +114,7 @@ import time
 import urllib.request
 from types import SimpleNamespace
 
+import httpx
 from anthropic import Anthropic, BadRequestError as AnthropicBadRequestError
 from google import genai
 from google.genai import types as genai_types
@@ -263,6 +265,30 @@ GEMINI_TOOLS = [genai_types.Tool(function_declarations=[genai_types.FunctionDecl
     parameters_json_schema={"type": "object", "properties": {"city": {"type": "string"}}})])]
 
 
+# The SDK's stream parser only strips a literal "data: " prefix, while the http
+# binding frames events as "data:" (equivalent per the SSE specification), so the
+# event stream is read with a specification-compliant parser instead.
+def gemini_stream_chunks(model, contents, tools):
+    body = {"contents": [{"role": "user", "parts": [{"text": contents}]}]}
+    if tools is not None:
+        body["tools"] = [tool.model_dump(by_alias=True, exclude_none=True, mode="json") for tool in tools]
+
+    url = f"{GEMINI_BASE_URL}/v1beta/models/{model}:streamGenerateContent?alt=sse"
+    headers = {"x-goog-api-key": "test-gemini-key"}
+    chunks = []
+    with httpx.stream("POST", url, json=body, headers=headers, timeout=10) as response:
+        response.raise_for_status()
+        data = []
+        for line in response.iter_lines():
+            if line.startswith("data:"):
+                value = line[len("data:"):]
+                data.append(value[1:] if value.startswith(" ") else value)
+            elif not line and data:
+                chunks.append(genai_types.GenerateContentResponse.model_validate(json.loads("\n".join(data))))
+                data = []
+    return chunks
+
+
 def gemini_generate(model, streaming, tools=None, upstream_sse=None):
     upstream_sse = streaming if upstream_sse is None else upstream_sse
     client = gemini_client()
@@ -280,7 +306,7 @@ def gemini_generate(model, streaming, tools=None, upstream_sse=None):
             tool_calls=[(call.name, dict(call.args)) for call in resp.function_calls or []])
 
     streamed = SimpleNamespace(text="", finish_reason=None, tool_calls=[])
-    for chunk in client.models.generate_content_stream(model=model, contents=contents, config=config):
+    for chunk in gemini_stream_chunks(model, contents, tools):
         streamed.text += chunk.text or ""
         streamed.tool_calls += [(call.name, dict(call.args)) for call in chunk.function_calls or []]
         if chunk.candidates and chunk.candidates[0].finish_reason:
@@ -785,7 +811,8 @@ def check_credential_pass_through_to_openai():
 #       configured in zilla.yaml
 def check_credential_pass_through_to_gemini():
     token = f"caller-gemini-token-{os.getpid()}"
-    gemini_client(api_key=token).models.generate_content(model="gemini-2.5-flash", contents="Hello")
+    client = gemini_client(api_key=token)
+    client.models.generate_content(model="gemini-2.5-flash", contents="Hello")
     logs = service_logs(PROJECT, "mock-gemini")
     assert f"x-goog-api-key: {token}" in logs, logs
 
