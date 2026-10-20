@@ -56,6 +56,24 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/begin.attributes/client",
+        "${app}/begin.attributes/server"})
+    public void shouldReceiveBeginAttributes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/begin.attributes.unconstrained/client",
+        "${app}/begin.attributes.unconstrained/server"})
+    public void shouldReceiveBeginWithAttributesUnconstrained() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.echo/client",
         "${app}/openai.echo/server"})
     public void shouldForwardOpenaiRequest() throws Exception
@@ -2813,6 +2831,33 @@ public class ApplicationIT
         "${app}/openai.proxy.fallback.accepted/client",
         "${app}/openai.proxy.fallback.accepted/server"})
     public void shouldAcceptOpenaiProxyFallbackAttempt() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.attributes/client",
+        "${app}/openai.proxy.attributes/server"})
+    public void shouldRouteOpenaiWithAttributes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.fallback.attributes/client",
+        "${app}/openai.proxy.fallback.attributes/server"})
+    public void shouldTellCallerTheFallbackModelOpenaiWithAttributes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.fallback.attributes.accepted/client",
+        "${app}/openai.proxy.fallback.attributes.accepted/server"})
+    public void shouldAcceptOpenaiProxyFallbackAttemptWithAttributes() throws Exception
     {
         k3po.finish();
     }
