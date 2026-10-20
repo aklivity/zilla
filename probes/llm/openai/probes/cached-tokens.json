@@ -1,0 +1,100 @@
+{
+  "area": "Cached tokens",
+  "area_id": "cached-tokens",
+  "probes": [
+    {
+      "id": "cached-tokens",
+      "requires": [],
+      "steps": [
+        {
+          "id": "a",
+          "method": "POST",
+          "path": "/chat/completions",
+          "body": {
+            "model": {
+              "$model": "model"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": {
+                  "$gen": "long_prompt"
+                }
+              }
+            ],
+            "$cap": 8
+          },
+          "pause": 3
+        },
+        {
+          "id": "b",
+          "method": "POST",
+          "path": "/chat/completions",
+          "body": {
+            "model": {
+              "$model": "model"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": {
+                  "$gen": "long_prompt"
+                }
+              }
+            ],
+            "$cap": 8
+          }
+        }
+      ],
+      "derive": [
+        {
+          "id": "c",
+          "fn": "cached_tokens",
+          "args": {
+            "first": "a",
+            "second": "b"
+          }
+        }
+      ],
+      "classify": [
+        {
+          "when": {
+            "path": "b.status",
+            "op": "status_class",
+            "value": 4
+          },
+          "outcome": "unsupported",
+          "observed": "long prompt rejected (HTTP {b.status}): {b.json.error.message}"
+        },
+        {
+          "when": {
+            "path": "c.standard",
+            "op": "eq",
+            "value": true
+          },
+          "outcome": "compliant",
+          "observed": "usage.prompt_tokens_details.cached_tokens={c.value} on second call (first {c.first_value})"
+        },
+        {
+          "when": {
+            "path": "c.where",
+            "op": "ne",
+            "value": "none"
+          },
+          "outcome": "adjustment-needed",
+          "observed": "cached tokens reported at usage.{c.where}={c.value}",
+          "adjustment": "normalise-telemetry"
+        },
+        {
+          "when": {
+            "path": "c.where",
+            "op": "eq",
+            "value": "none"
+          },
+          "outcome": "unsupported",
+          "observed": "no cached-token field in usage (prompt_tokens={c.prompt_tokens})"
+        }
+      ]
+    }
+  ]
+}

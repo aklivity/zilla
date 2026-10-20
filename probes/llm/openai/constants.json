@@ -1,0 +1,43 @@
+{
+    "weather_tool": {
+        "type": "function",
+        "function": {
+            "name": "get_weather",
+            "description": "Get the current weather for a city",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "city": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "city"
+                ]
+            }
+        }
+    },
+    "person_schema": {
+        "type": "object",
+        "properties": {
+            "name": {
+                "type": "string"
+            },
+            "age": {
+                "type": "integer"
+            }
+        },
+        "required": [
+            "name",
+            "age"
+        ],
+        "additionalProperties": false
+    },
+    "stop_five": [
+        "zz1",
+        "zz2",
+        "zz3",
+        "zz4",
+        "5"
+    ]
+}

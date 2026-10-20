@@ -1,0 +1,83 @@
+{
+  "area": "Model identity",
+  "area_id": "model-identity",
+  "probes": [
+    {
+      "id": "model-identity",
+      "requires": [],
+      "steps": [
+        {
+          "id": "a",
+          "method": "POST",
+          "path": "/chat/completions",
+          "body": {
+            "model": {
+              "$model": "model"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": "Say hi."
+              }
+            ],
+            "$cap": 8
+          }
+        }
+      ],
+      "derive": [
+        {
+          "id": "m",
+          "fn": "model_identity",
+          "args": {
+            "from": "a"
+          }
+        }
+      ],
+      "classify": [
+        {
+          "when": {
+            "path": "a.status",
+            "op": "status_class",
+            "value": 4
+          },
+          "outcome": "unsupported",
+          "observed": "request rejected (HTTP {a.status}): {a.json.error.message}"
+        },
+        {
+          "when": {
+            "path": "m.relation",
+            "op": "in",
+            "value": [
+              "equal",
+              "prefix"
+            ]
+          },
+          "outcome": "compliant",
+          "observed": "requested {m.requested}; returned {m.returned}"
+        },
+        {
+          "when": {
+            "path": "m.relation",
+            "op": "in",
+            "value": [
+              "contains",
+              "different"
+            ]
+          },
+          "outcome": "adjustment-needed",
+          "observed": "requested {m.requested}; returned {m.returned}",
+          "adjustment": "normalise-telemetry"
+        },
+        {
+          "when": {
+            "path": "m.relation",
+            "op": "eq",
+            "value": "missing"
+          },
+          "outcome": "unsupported",
+          "observed": "no model field in response"
+        }
+      ]
+    }
+  ]
+}

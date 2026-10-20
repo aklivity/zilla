@@ -1,0 +1,186 @@
+{
+  "area": "Responses",
+  "area_id": "responses",
+  "probes": [
+    {
+      "id": "responses-basic",
+      "requires": [
+        "responses"
+      ],
+      "zilla": {
+        "unsupported": "binding-llm openai dialect serves /v1/chat/completions only; /v1/responses is not expressible through llm(server)"
+      },
+      "steps": [
+        {
+          "id": "a",
+          "method": "POST",
+          "path": "/responses",
+          "body": {
+            "model": {
+              "$model": "model"
+            },
+            "input": "Reply with the word: hello",
+            "max_output_tokens": 256
+          }
+        }
+      ],
+      "derive": [
+        {
+          "id": "t",
+          "fn": "response_text",
+          "args": {
+            "from": "a"
+          }
+        }
+      ],
+      "classify": [
+        {
+          "when": {
+            "all": [
+              {
+                "path": "a.status",
+                "op": "eq",
+                "value": 200
+              },
+              {
+                "path": "t.object",
+                "op": "eq",
+                "value": "response"
+              },
+              {
+                "path": "t.has_id",
+                "op": "eq",
+                "value": true
+              }
+            ]
+          },
+          "outcome": "compliant",
+          "observed": "/responses returned a response object"
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "eq",
+            "value": 200
+          },
+          "outcome": "adjustment-needed",
+          "observed": "/responses returned HTTP 200 with an unexpected shape",
+          "adjustment": "rename-reshape"
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "status_class",
+            "value": 4
+          },
+          "outcome": "unsupported",
+          "observed": "/responses rejected (HTTP {a.status}): {a.json.error.message}"
+        }
+      ]
+    },
+    {
+      "id": "responses-store",
+      "requires": [
+        "responses"
+      ],
+      "zilla": {
+        "unsupported": "binding-llm openai dialect serves /v1/chat/completions only; /v1/responses is not expressible through llm(server)"
+      },
+      "steps": [
+        {
+          "id": "a",
+          "method": "POST",
+          "path": "/responses",
+          "body": {
+            "model": {
+              "$model": "model"
+            },
+            "input": "Reply with the word: hello",
+            "max_output_tokens": 256,
+            "store": true
+          }
+        }
+      ],
+      "derive": [
+        {
+          "id": "t",
+          "fn": "response_text",
+          "args": {
+            "from": "a"
+          }
+        }
+      ],
+      "classify": [
+        {
+          "when": {
+            "all": [
+              {
+                "path": "a.status",
+                "op": "eq",
+                "value": 200
+              },
+              {
+                "path": "t.store",
+                "op": "eq",
+                "value": false
+              }
+            ]
+          },
+          "outcome": "unsupported",
+          "observed": "store:true accepted; response reports store=false",
+          "silent": true
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "path": "a.status",
+                "op": "eq",
+                "value": 200
+              },
+              {
+                "path": "t.has_id",
+                "op": "eq",
+                "value": true
+              }
+            ]
+          },
+          "outcome": "compliant",
+          "observed": "store:true accepted; response id returned"
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "eq",
+            "value": 200
+          },
+          "outcome": "adjustment-needed",
+          "observed": "store:true accepted; no response id",
+          "adjustment": "rename-reshape"
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "in",
+            "value": [
+              404,
+              405
+            ]
+          },
+          "outcome": "unsupported",
+          "observed": "/responses not available (HTTP {a.status})"
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "status_class",
+            "value": 4
+          },
+          "outcome": "adjustment-needed",
+          "observed": "store rejected (HTTP {a.status}): {a.json.error.message}",
+          "adjustment": "handle-unsupported"
+        }
+      ]
+    }
+  ]
+}
