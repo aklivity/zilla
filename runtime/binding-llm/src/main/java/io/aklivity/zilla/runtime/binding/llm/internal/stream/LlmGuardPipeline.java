@@ -45,6 +45,8 @@ interface LlmGuardPipeline
         int dstIndex,
         int dstLimit);
 
+    boolean finishes();
+
     int closeWidth();
 
     int close(

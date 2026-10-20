@@ -30,15 +30,12 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
-read option zilla:flags "init"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-read "{\"anthropic:cache_control\":{\"type\":\"ephemeral\"},\"text\":\"my ******"
-read option zilla:flags "fin"
-read "\"}"
+read "{\"anthropic:cache_control\":{\"type\":\"ephemeral\"},\"text\":\"my ******\"}"
 
 read advised zilla:flush
 

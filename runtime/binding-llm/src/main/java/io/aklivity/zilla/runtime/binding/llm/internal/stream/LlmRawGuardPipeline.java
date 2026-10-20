@@ -82,6 +82,12 @@ final class LlmRawGuardPipeline implements LlmGuardPipeline
     }
 
     @Override
+    public boolean finishes()
+    {
+        return false;
+    }
+
+    @Override
     public int closeWidth()
     {
         return 0;

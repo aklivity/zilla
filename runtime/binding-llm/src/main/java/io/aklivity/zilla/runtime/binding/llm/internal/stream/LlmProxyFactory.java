@@ -1563,6 +1563,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
         {
             int position = offset;
             boolean init = sectionInit;
+            boolean finished = false;
             LlmGuardVerdict verdict = null;
 
             while (verdict == null)
@@ -1577,9 +1578,18 @@ public final class LlmProxyFactory implements LlmStreamFactory
                 position += result.consumed();
                 init = false;
 
-                if (produced > 0)
+                final boolean closing = status == ModelStatus.COMPLETE && Flags.hasFin(flags) && position == limit &&
+                    sectionPipeline.finishes();
+
+                if (produced > 0 || closing)
                 {
-                    doForwardOutput(traceId, authorization, budgetId, produced, false);
+                    doForwardOutput(traceId, authorization, budgetId, produced, closing);
+                }
+
+                if (closing)
+                {
+                    sectionPipeline.reset();
+                    finished = true;
                 }
 
                 switch (status)
@@ -1601,7 +1611,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
 
             this.progress = position;
 
-            if (verdict == LlmGuardVerdict.ACCEPTED && Flags.hasFin(flags))
+            if (verdict == LlmGuardVerdict.ACCEPTED && Flags.hasFin(flags) && !finished)
             {
                 this.outputPending = true;
                 this.settling = SETTLE_FINISH;
