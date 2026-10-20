@@ -20,7 +20,10 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.Test;
@@ -294,6 +297,180 @@ public class LlmFunctionsTest
         assertEquals(2, dataEx.message());
         assertEquals(Map.of("media-type", "image/png", "source", "url"), attributesOf(dataEx));
         assertEquals(3, dataEx.extension().sizeof());
+    }
+
+    @Test
+    public void shouldGenerateDataExWithRanges()
+    {
+        byte[] bytes = LlmFunctions.dataEx()
+            .typeId(0)
+            .type("ASSISTANT_TEXT")
+            .message(0)
+            .range(14)
+            .rangeAttribute("test:filter", "{}")
+            .rangeAttribute("test:token", "Hello")
+            .range(3)
+            .rangeOpen()
+            .build();
+
+        LlmSectionDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length).section();
+        assertEquals(List.of("14:closing:{test:filter={}, test:token=Hello}", "3:open:{}"), rangesOf(dataEx));
+        assertEquals(Map.of(), attributesOf(dataEx));
+    }
+
+    @Test
+    public void shouldGenerateDataExRangeWithoutSectionType()
+    {
+        byte[] bytes = LlmFunctions.dataEx()
+            .typeId(0)
+            .range(2)
+            .rangeAttribute("test:filter", "{}")
+            .build();
+
+        LlmSectionDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length).section();
+        assertEquals(LlmSectionType.NONE, dataEx.type().get());
+        assertEquals(List.of("2:closing:{test:filter={}}"), rangesOf(dataEx));
+    }
+
+    @Test
+    public void shouldMatchDataExRanges() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchDataEx()
+            .typeId(0)
+            .range(14)
+            .rangeAttribute("test:token", "Hello")
+            .rangeAttribute("test:filter", "{}")
+            .range(3)
+            .rangeOpen()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.dataEx()
+            .typeId(0)
+            .range(14)
+            .rangeAttribute("test:filter", "{}")
+            .rangeAttribute("test:token", "Hello")
+            .range(3)
+            .rangeOpen()
+            .build());
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchDataExWithoutRangesWhenRangesNotSpecified() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchDataEx()
+            .typeId(0)
+            .type("USER_TEXT")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.dataEx()
+            .typeId(0)
+            .type("USER_TEXT")
+            .range(5)
+            .build());
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchDataExRangesNull() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchDataEx()
+            .typeId(0)
+            .rangesNull()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.dataEx()
+            .typeId(0)
+            .type("USER_TEXT")
+            .build());
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchDataExRangesNullWithRanges() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchDataEx()
+            .typeId(0)
+            .rangesNull()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.dataEx()
+            .typeId(0)
+            .range(1)
+            .build());
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchDataExRangesWithDifferentLength() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchDataEx()
+            .typeId(0)
+            .range(14)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.dataEx()
+            .typeId(0)
+            .range(15)
+            .build());
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchDataExRangesWithDifferentClosing() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchDataEx()
+            .typeId(0)
+            .range(14)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.dataEx()
+            .typeId(0)
+            .range(14)
+            .rangeOpen()
+            .build());
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchDataExRangesWithDifferentAttribute() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchDataEx()
+            .typeId(0)
+            .range(14)
+            .rangeAttribute("test:filter", "{}")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.dataEx()
+            .typeId(0)
+            .range(14)
+            .rangeAttribute("test:filter", "{\"hate\":1}")
+            .build());
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchDataExRangesWithExtraRange() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchDataEx()
+            .typeId(0)
+            .range(14)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.dataEx()
+            .typeId(0)
+            .range(14)
+            .range(2)
+            .build());
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
     }
 
     @Test
@@ -1851,6 +2028,19 @@ public class LlmFunctionsTest
             .build();
 
         assertNotNull(matcher.match(ByteBuffer.wrap(beginEx)));
+    }
+
+    private static List<String> rangesOf(
+        LlmSectionDataExFW dataEx)
+    {
+        final List<String> ranges = new ArrayList<>();
+        dataEx.ranges().forEach(r ->
+        {
+            final Map<String, String> attributes = new LinkedHashMap<>();
+            r.attributes().forEach(a -> attributes.put(a.name().asString(), a.value().asString()));
+            ranges.add("%d:%s:%s".formatted(r.length(), r.closing() != 0 ? "closing" : "open", attributes));
+        });
+        return ranges;
     }
 
     private static Map<String, String> attributesOf(

@@ -54,11 +54,19 @@ scope llm
             CONTROL(17)
         }
 
+        struct LlmRange
+        {
+            int32 length;
+            uint8 closing = 1;
+            LlmAttribute[] attributes;
+        }
+
         struct LlmSectionDataEx
         {
             LlmSectionType type = NONE;
             int32 message = -1;
             LlmAttribute[] attributes;
+            LlmRange[] ranges;
             octets extension;
         }
 

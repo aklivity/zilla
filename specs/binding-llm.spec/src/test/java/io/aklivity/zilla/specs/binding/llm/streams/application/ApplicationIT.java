@@ -425,6 +425,24 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.proxy.guardrail.transform.members.leading/client",
+        "${app}/openai.proxy.guardrail.transform.members.leading/server"})
+    public void shouldGuardOpenaiTransformMembersLeadingNet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.transform.members.leading.exit/client",
+        "${app}/openai.proxy.guardrail.transform.members.leading.exit/server"})
+    public void shouldGuardOpenaiTransformMembersLeadingExit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.proxy.guardrail.response.accepted.tool.call/client",
         "${app}/openai.proxy.guardrail.response.accepted.tool.call/server"})
     public void shouldGuardOpenaiResponseAcceptedToolCall() throws Exception

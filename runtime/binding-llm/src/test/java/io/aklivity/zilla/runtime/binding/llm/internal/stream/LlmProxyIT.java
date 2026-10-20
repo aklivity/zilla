@@ -244,6 +244,17 @@ public class LlmProxyIT
     }
 
     @Test
+    @Configuration("proxy.guardrail.mask.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.transform.members.leading/client",
+        "${app}/openai.proxy.guardrail.transform.members.leading.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayTransformedSectionsKeepingLeadingMembersInOrder() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.guardrail.chain.yaml")
     @Specification({
         "${app}/openai.proxy.guardrail.chain.accepted/client",
