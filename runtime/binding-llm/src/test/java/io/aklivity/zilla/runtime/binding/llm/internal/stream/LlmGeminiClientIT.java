@@ -1228,4 +1228,14 @@ public class LlmGeminiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.transform.request.extension/client",
+        "${net}/gemini.transform.request.extension/server"})
+    public void shouldForwardGeminiTransformRequestExtension() throws Exception
+    {
+        k3po.finish();
+    }
 }
