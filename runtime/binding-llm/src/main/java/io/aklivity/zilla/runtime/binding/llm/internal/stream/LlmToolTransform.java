@@ -46,6 +46,7 @@ abstract class LlmToolTransform implements JsonTransform
     protected static final int REPLACE_VALUE = 13;
     protected static final int DESCEND_KEPT_OR_REPLACE = 14;
     protected static final int CONVERT_STRING = 15;
+    protected static final int DESCEND_KEPT_OR_ELEMENTS = 16;
 
     protected static final int MODE_OBJECT = 0;
     protected static final int MODE_EXTRACT = 1;
@@ -129,6 +130,12 @@ abstract class LlmToolTransform implements JsonTransform
         int depth)
     {
         return Status.ADVANCED;
+    }
+
+    protected int element(
+        int depth)
+    {
+        return PASS_VALUE;
     }
 
     protected void onValueEnd()
@@ -591,8 +598,41 @@ abstract class LlmToolTransform implements JsonTransform
             arrayOpen = false;
             status = Status.ADVANCED;
         }
+        else if (depth > 0)
+        {
+            status = event == JsonEvent.END_ARRAY ? endElements(event) : beginElement(event);
+        }
 
         return status;
+    }
+
+    private Status beginElement(
+        JsonEvent event)
+    {
+        target = null;
+        pending = element(depth);
+
+        Status status = Status.REJECTED;
+
+        if (pending != REJECT)
+        {
+            status = begin(event);
+        }
+        else
+        {
+            pending = NONE;
+        }
+
+        return status;
+    }
+
+    private Status endElements(
+        JsonEvent event)
+    {
+        pass(event);
+        depth--;
+
+        return Status.ADVANCED;
     }
 
     private Status begin(
@@ -646,8 +686,18 @@ abstract class LlmToolTransform implements JsonTransform
             status = event == JsonEvent.VALUE_STRING ? hold() : Status.REJECTED;
             break;
         case CONVERT_STRING:
-            converting = event == JsonEvent.VALUE_STRING;
-            status = converting ? hold() : Status.REJECTED;
+            if (event == JsonEvent.START_ARRAY)
+            {
+                status = descendElements(event);
+            }
+            else
+            {
+                converting = event == JsonEvent.VALUE_STRING;
+                status = converting ? hold() : Status.REJECTED;
+            }
+            break;
+        case DESCEND_KEPT_OR_ELEMENTS:
+            status = descendKeptOrElements(event);
             break;
         case ESCAPE_OBJECT:
             if (event == JsonEvent.START_OBJECT)
@@ -673,7 +723,7 @@ abstract class LlmToolTransform implements JsonTransform
     private Status descendKept(
         JsonEvent event)
     {
-        if (mode != MODE_EXTRACT)
+        if (mode != MODE_EXTRACT && target != null)
         {
             emit(JsonEvent.KEY_NAME, target);
         }
@@ -682,6 +732,41 @@ abstract class LlmToolTransform implements JsonTransform
         depth++;
 
         return onDescend(depth);
+    }
+
+    private Status descendElements(
+        JsonEvent event)
+    {
+        if (mode != MODE_EXTRACT && target != null)
+        {
+            emit(JsonEvent.KEY_NAME, target);
+        }
+
+        pass(event);
+        depth++;
+
+        return Status.ADVANCED;
+    }
+
+    private Status descendKeptOrElements(
+        JsonEvent event)
+    {
+        final Status status;
+
+        if (event == JsonEvent.START_OBJECT)
+        {
+            status = descendKept(event);
+        }
+        else if (event == JsonEvent.START_ARRAY)
+        {
+            status = descendElements(event);
+        }
+        else
+        {
+            status = beginPass(event);
+        }
+
+        return status;
     }
 
     private Status replace(
@@ -776,7 +861,7 @@ abstract class LlmToolTransform implements JsonTransform
     private Status beginPass(
         JsonEvent event)
     {
-        if (mode != MODE_EXTRACT || depth > 1)
+        if ((mode != MODE_EXTRACT || depth > 1) && target != null)
         {
             emit(JsonEvent.KEY_NAME, target);
         }
@@ -942,7 +1027,12 @@ abstract class LlmToolTransform implements JsonTransform
                 if (converting)
                 {
                     converting = false;
-                    emit(JsonEvent.KEY_NAME, target);
+
+                    if (target != null)
+                    {
+                        emit(JsonEvent.KEY_NAME, target);
+                    }
+
                     emit(JsonEvent.VALUE_STRING, converted(value));
                 }
                 else

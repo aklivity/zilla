@@ -14,23 +14,33 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import java.util.BitSet;
+
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 final class LlmGeminiToolDefinitionToCanonical extends LlmToolTransform
 {
     private static final String DIALECT = "gemini";
-    private static final int NAMES_DEPTH_MAX = 62;
+
+    private final BitSet names;
+    private final BitSet types;
 
     private boolean named;
-    private long names;
+
+    LlmGeminiToolDefinitionToCanonical()
+    {
+        this.names = new BitSet();
+        this.types = new BitSet();
+    }
 
     @Override
     public void reset()
     {
         super.reset();
         named = false;
-        names = 0L;
+        names.clear();
+        types.clear();
     }
 
     @Override
@@ -79,29 +89,33 @@ final class LlmGeminiToolDefinitionToCanonical extends LlmToolTransform
         int depth,
         CharSequence key)
     {
-        final boolean propertyName = depth <= NAMES_DEPTH_MAX && (names & (1L << depth)) != 0L;
         int action;
 
-        if (propertyName)
+        if (names.get(depth))
         {
             target = key.toString();
-            action = DESCEND_KEPT;
+            nested(depth + 1, false, false);
+            action = DESCEND_KEPT_OR_ELEMENTS;
         }
         else if (matches(key, "type"))
         {
             target = "type";
+            nested(depth + 1, false, true);
             action = CONVERT_STRING;
         }
-        else if (matches(key, "properties") && depth < NAMES_DEPTH_MAX)
+        else if (matches(key, "properties") || matches(key, "patternProperties") ||
+            matches(key, "$defs") || matches(key, "definitions"))
         {
-            names |= 1L << (depth + 1);
-            target = "properties";
-            action = DESCEND_KEPT;
+            target = name(key);
+            nested(depth + 1, true, false);
+            action = DESCEND_KEPT_OR_ELEMENTS;
         }
-        else if (matches(key, "items"))
+        else if (matches(key, "items") || matches(key, "additionalProperties") ||
+            matches(key, "anyOf") || matches(key, "oneOf") || matches(key, "allOf"))
         {
-            target = "items";
-            action = DESCEND_KEPT;
+            target = name(key);
+            nested(depth + 1, false, false);
+            action = DESCEND_KEPT_OR_ELEMENTS;
         }
         else
         {
@@ -110,6 +124,38 @@ final class LlmGeminiToolDefinitionToCanonical extends LlmToolTransform
         }
 
         return action;
+    }
+
+    @Override
+    protected int element(
+        int depth)
+    {
+        int action;
+
+        if (types.get(depth))
+        {
+            action = CONVERT_STRING;
+        }
+        else if (names.get(depth))
+        {
+            action = PASS_VALUE;
+        }
+        else
+        {
+            nested(depth + 1, false, false);
+            action = DESCEND_KEPT_OR_ELEMENTS;
+        }
+
+        return action;
+    }
+
+    private void nested(
+        int depth,
+        boolean mapped,
+        boolean typed)
+    {
+        names.set(depth, mapped);
+        types.set(depth, typed);
     }
 
     @Override
@@ -140,11 +186,6 @@ final class LlmGeminiToolDefinitionToCanonical extends LlmToolTransform
 
         if (depth > 1)
         {
-            if (depth <= NAMES_DEPTH_MAX)
-            {
-                names &= ~(1L << depth);
-            }
-
             pass(JsonEvent.END_OBJECT);
             status = Status.ADVANCED;
         }
