@@ -22,7 +22,7 @@ connected
 
 read option zilla:flags "init"
 read "abcdefghijklmnop"
-read notify WINDOW_RELAYED
+read notify FIRST_RELAYED
 
 read option zilla:flags "fin"
 read "qrstuvwx"

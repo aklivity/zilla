@@ -20,7 +20,7 @@ connected
 
 write option zilla:flags "init"
 write "abcdefghijkl"
-write await WINDOW_RELAYED
+write await FIRST_RELAYED
 
 write option zilla:flags "fin"
 write "mnopqrstuvwx"

@@ -13,15 +13,16 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/app0"
-        option zilla:transmission "duplex"
-        option zilla:window 8192
+accept "zilla://streams/net0"
+       option zilla:transmission "duplex"
+       option zilla:window 8192
+
+accepted
 connected
 
-write option zilla:flags "init"
-write "abcd"
-write await FIRST_WINDOW_RELAYED
+read option zilla:flags "init"
+read "aaaaaaaaaaaaaaaaaaaaaaaaprompt.i"
+read notify FIRST_RELAYED
 
-write option zilla:flags "fin"
-write "efghijklmnopqrstuvwx"
-write close
+read option zilla:flags "none"
+read "njectionbbbbbbbbbbbbbbbbbbbbbbbb"

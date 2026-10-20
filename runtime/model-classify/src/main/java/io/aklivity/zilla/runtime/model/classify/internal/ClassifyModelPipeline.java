@@ -26,20 +26,19 @@ import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 
-// Presents a value to the classifiers in windows. The text that has arrived since the last window is classified once
-// it fills a window, which starts at the initial window and doubles with each window that passes up to the full
-// window, or when the value ends, together with the trailing overlap of what was classified before, so a
-// pattern straddling two windows is seen whole. A window that passes is relayed, apart from its trailing overlap, which
-// is held until the next window passes or the value ends. A window that is rejected rejects the value, so the text
-// that was relayed before it is the only part of the value the caller has seen.
+// Presents a value to the classifiers as it arrives. Whenever no classification is in flight, the text that has arrived
+// since the last one is classified together with the trailing overlap of what was classified before, so a pattern
+// straddling two classifications is seen whole; text that arrives meanwhile waits and is classified as one. Nothing is
+// released until the text outgrows the overlap, or the value ends. What passes is relayed, apart from its trailing
+// overlap, which is held until the next classification passes or the value ends. A rejection rejects the value, so the
+// text relayed before it is the only part of the value the caller has seen. An overlap of the full length holds the
+// value until it is complete and classifies it once.
 final class ClassifyModelPipeline implements ModelPipeline
 {
     private static final long NO_FIN = -1L;
 
     private final List<Detector> detectors;
     private final int maxLength;
-    private final int initialWindow;
-    private final int window;
     private final int overlap;
     private final Runnable resumed;
     private final ExpandableArrayBufferEx buffer;
@@ -53,7 +52,6 @@ final class ClassifyModelPipeline implements ModelPipeline
     private long verified;
     private long detectEnd;
     private long finLength;
-    private int nextWindow;
     private int detecting;
     private boolean awaiting;
     private ModelStatus resolved;
@@ -62,16 +60,11 @@ final class ClassifyModelPipeline implements ModelPipeline
     ClassifyModelPipeline(
         List<Detector> detectors,
         int maxLength,
-        int initialWindow,
-        int window,
         int overlap,
         Runnable resumed)
     {
         this.detectors = detectors;
         this.maxLength = maxLength;
-        this.initialWindow = initialWindow;
-        this.nextWindow = initialWindow;
-        this.window = window;
         this.overlap = overlap;
         this.resumed = resumed;
         this.buffer = new ExpandableArrayBufferEx();
@@ -142,7 +135,7 @@ final class ClassifyModelPipeline implements ModelPipeline
                     finLength = length;
                 }
 
-                if (length - verified > 0 && (finLength != NO_FIN || length - verified >= nextWindow))
+                if (length - verified > 0 && (finLength != NO_FIN || length > overlap))
                 {
                     detect(traceId, bindingId);
                     status = ModelStatus.SUSPENDED;
@@ -184,7 +177,6 @@ final class ClassifyModelPipeline implements ModelPipeline
         verified = 0L;
         detectEnd = 0L;
         finLength = NO_FIN;
-        nextWindow = initialWindow;
         detecting = 0;
         awaiting = false;
         resolved = null;
@@ -279,7 +271,6 @@ final class ClassifyModelPipeline implements ModelPipeline
             else if (--detecting == 0)
             {
                 verified = detectEnd;
-                nextWindow = (int) Math.min(2L * nextWindow, window);
                 release();
             }
 

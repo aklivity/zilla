@@ -15,8 +15,6 @@
 package io.aklivity.zilla.runtime.model.classify.internal;
 
 import static io.aklivity.zilla.runtime.model.classify.internal.ClassifyModelConfigurationTest.CLASSIFY_OVERLAP_NAME;
-import static io.aklivity.zilla.runtime.model.classify.internal.ClassifyModelConfigurationTest.CLASSIFY_WINDOW_INITIAL_NAME;
-import static io.aklivity.zilla.runtime.model.classify.internal.ClassifyModelConfigurationTest.CLASSIFY_WINDOW_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -63,7 +61,6 @@ public class ClassifyModelIT
 
     @Test
     @Configuration("reject.yaml")
-    @Configure(name = CLASSIFY_WINDOW_NAME, value = "16")
     @Configure(name = CLASSIFY_OVERLAP_NAME, value = "4")
     @Specification({
         "${net}/client.sent.text.fragmented.accepted/client",
@@ -76,7 +73,6 @@ public class ClassifyModelIT
 
     @Test
     @Configuration("reject.request.yaml")
-    @Configure(name = CLASSIFY_WINDOW_NAME, value = "16")
     @Configure(name = CLASSIFY_OVERLAP_NAME, value = "4")
     @Specification({
         "${net}/client.sent.text.fragmented.accepted/client",
@@ -111,40 +107,24 @@ public class ClassifyModelIT
 
     @Test
     @Configuration("reject.response.yaml")
-    @Configure(name = CLASSIFY_WINDOW_NAME, value = "16")
     @Configure(name = CLASSIFY_OVERLAP_NAME, value = "4")
     @Specification({
         "${net}/streaming.text.accepted/client",
         "${app}/streaming.text.accepted/server"
     })
-    public void shouldRelayWindowBeforeFin() throws Exception
+    public void shouldRelayBeforeFin() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Configuration("reject.response.yaml")
-    @Configure(name = CLASSIFY_WINDOW_INITIAL_NAME, value = "8")
-    @Configure(name = CLASSIFY_WINDOW_NAME, value = "16")
-    @Configure(name = CLASSIFY_OVERLAP_NAME, value = "4")
-    @Specification({
-        "${net}/streaming.text.ramped.accepted/client",
-        "${app}/streaming.text.ramped.accepted/server"
-    })
-    public void shouldRelayInitialWindowBeforeFin() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("reject.response.yaml")
-    @Configure(name = CLASSIFY_WINDOW_NAME, value = "32")
     @Configure(name = CLASSIFY_OVERLAP_NAME, value = "16")
     @Specification({
-        "${net}/streaming.text.rejected.straddling.windows/client",
-        "${app}/streaming.text.rejected.straddling.windows/server"
+        "${net}/streaming.text.rejected.straddling/client",
+        "${app}/streaming.text.rejected.straddling/server"
     })
-    public void shouldAbortTextStraddlingWindows() throws Exception
+    public void shouldAbortTextStraddlingCalls() throws Exception
     {
         k3po.finish();
     }

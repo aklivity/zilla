@@ -81,27 +81,17 @@ public class NetworkIT
         "${net}/streaming.text.accepted/client",
         "${net}/streaming.text.accepted/server"
     })
-    public void shouldRelayWindowBeforeFin() throws Exception
+    public void shouldRelayBeforeFin() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/streaming.text.ramped.accepted/client",
-        "${net}/streaming.text.ramped.accepted/server"
+        "${net}/streaming.text.rejected.straddling/client",
+        "${net}/streaming.text.rejected.straddling/server"
     })
-    public void shouldRelayInitialWindowBeforeFin() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/streaming.text.rejected.straddling.windows/client",
-        "${net}/streaming.text.rejected.straddling.windows/server"
-    })
-    public void shouldRejectTextStraddlingWindows() throws Exception
+    public void shouldRejectTextStraddlingCalls() throws Exception
     {
         k3po.finish();
     }

@@ -22,6 +22,6 @@ connected
 
 read option zilla:flags "init"
 read "aaaaaaaaaaaaaaaa"
-read notify WINDOW_RELAYED
+read notify FIRST_RELAYED
 
 read aborted

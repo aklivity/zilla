@@ -13,14 +13,13 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/net0"
+connect "zilla://streams/app0"
         option zilla:transmission "duplex"
         option zilla:window 8192
 connected
 
 write option zilla:flags "init"
-write "aaaaaaaaaaaaaaaaaaaaaaaaprompt.i"
-write await WINDOW_RELAYED
+write "aaaaaaaaaaaaaaaa"
+write await FIRST_RELAYED
 
-write option zilla:flags "none"
-write "njectionbbbbbbbbbbbbbbbbbbbbbbbb"
+write abort
