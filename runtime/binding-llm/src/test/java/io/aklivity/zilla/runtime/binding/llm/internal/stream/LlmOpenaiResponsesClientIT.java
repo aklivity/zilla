@@ -1053,4 +1053,618 @@ public class LlmOpenaiResponsesClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.reasoning/client",
+        "${net}/openai.responses.reasoning/server"})
+    public void shouldForwardOpenaiResponsesReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.reasoning.stream/client",
+        "${net}/openai.responses.reasoning.stream/server"})
+    public void shouldForwardOpenaiResponsesReasoningStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.reasoning.no.summary/client",
+        "${net}/openai.responses.reasoning.no.summary/server"})
+    public void shouldForwardOpenaiResponsesReasoningNoSummary() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.reasoning.no.summary.stream/client",
+        "${net}/openai.responses.reasoning.no.summary.stream/server"})
+    public void shouldForwardOpenaiResponsesReasoningNoSummaryStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.reasoning.tool.call/client",
+        "${net}/openai.responses.reasoning.tool.call/server"})
+    public void shouldForwardOpenaiResponsesReasoningToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.reasoning.tool.call.stream/client",
+        "${net}/openai.responses.reasoning.tool.call.stream/server"})
+    public void shouldForwardOpenaiResponsesReasoningToolCallStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.reasoning.id/client",
+        "${net}/openai.responses.reasoning.id/server"})
+    public void shouldForwardOpenaiResponsesReasoningId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.reasoning.id.stream/client",
+        "${net}/openai.responses.reasoning.id.stream/server"})
+    public void shouldForwardOpenaiResponsesReasoningIdStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.reasoning.large/client",
+        "${net}/openai.responses.reasoning.large/server"})
+    public void shouldForwardOpenaiResponsesReasoningLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.reasoning.large.stream/client",
+        "${net}/openai.responses.reasoning.large.stream/server"})
+    public void shouldForwardOpenaiResponsesReasoningLargeStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.refusal/client",
+        "${net}/openai.responses.refusal/server"})
+    public void shouldForwardOpenaiResponsesRefusal() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.refusal.stream/client",
+        "${net}/openai.responses.refusal.stream/server"})
+    public void shouldForwardOpenaiResponsesRefusalStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.text.citations/client",
+        "${net}/openai.responses.text.citations/server"})
+    public void shouldForwardOpenaiResponsesTextCitations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.text.citations.stream/client",
+        "${net}/openai.responses.text.citations.stream/server"})
+    public void shouldForwardOpenaiResponsesTextCitationsStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.text.citations.members/client",
+        "${net}/openai.responses.text.citations.members/server"})
+    public void shouldForwardOpenaiResponsesTextCitationsMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.text.citations.members.stream/client",
+        "${net}/openai.responses.text.citations.members.stream/server"})
+    public void shouldForwardOpenaiResponsesTextCitationsMembersStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.reasoning.real/client",
+        "${net}/openai.responses.reasoning.real/server"})
+    public void shouldForwardOpenaiResponsesReasoningReal() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.reasoning.real.stream/client",
+        "${net}/openai.responses.reasoning.real.stream/server"})
+    public void shouldForwardOpenaiResponsesReasoningRealStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.reasoning.no.summary/client",
+        "${net}/openai.responses.reasoning.real.no.summary/server"})
+    public void shouldForwardOpenaiResponsesReasoningRealNoSummary() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.reasoning.no.summary.stream/client",
+        "${net}/openai.responses.reasoning.real.no.summary.stream/server"})
+    public void shouldForwardOpenaiResponsesReasoningRealNoSummaryStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.text.citations.stream/client",
+        "${net}/openai.responses.text.citations.between.stream/server"})
+    public void shouldForwardOpenaiResponsesTextCitationsBetweenStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.text.citations.stream/client",
+        "${net}/openai.responses.text.citations.done.stream/server"})
+    public void shouldForwardOpenaiResponsesTextCitationsDoneStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.text.citations/client",
+        "${net}/openai.responses.text.citations.api/server"})
+    public void shouldForwardOpenaiResponsesTextCitationsApi() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.reasoning.real.huge/client",
+        "${net}/openai.responses.reasoning.real.huge/server"})
+    public void shouldFailOpenaiResponsesReasoningRealHuge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.section.reasoning/client",
+        "${net}/openai.responses.section.reasoning/server"})
+    public void shouldEncodeOpenaiResponsesSectionReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.section.reasoning.no.summary/client",
+        "${net}/openai.responses.section.reasoning.no.summary/server"})
+    public void shouldEncodeOpenaiResponsesSectionReasoningNoSummary() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.section.reasoning.parts/client",
+        "${net}/openai.responses.section.reasoning.parts/server"})
+    public void shouldEncodeOpenaiResponsesSectionReasoningParts() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.section.reasoning.items/client",
+        "${net}/openai.responses.section.reasoning.items/server"})
+    public void shouldEncodeOpenaiResponsesSectionReasoningItems() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.section.reasoning.large/client",
+        "${net}/openai.responses.section.reasoning.large/server"})
+    public void shouldEncodeOpenaiResponsesSectionReasoningLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.section.assistant.refusal/client",
+        "${net}/openai.responses.section.assistant.refusal/server"})
+    public void shouldEncodeOpenaiResponsesSectionAssistantRefusal() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.section.assistant.text.citations/client",
+        "${net}/openai.responses.section.assistant.text.citations/server"})
+    public void shouldEncodeOpenaiResponsesSectionAssistantTextCitations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.section.assistant.text.citations.members/client",
+        "${net}/openai.responses.section.assistant.text.citations.members/server"})
+    public void shouldEncodeOpenaiResponsesSectionAssistantTextCitationsMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.section.assistant.text.citations.extra/client",
+        "${net}/openai.responses.section.assistant.text.citations.extra/server"})
+    public void shouldEncodeOpenaiResponsesSectionAssistantTextCitationsExtra() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.section.assistant.text.parts/client",
+        "${net}/openai.responses.section.assistant.text.parts/server"})
+    public void shouldEncodeOpenaiResponsesSectionAssistantTextParts() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.section.user.image/client",
+        "${net}/openai.responses.section.user.image/server"})
+    public void shouldEncodeOpenaiResponsesSectionUserImage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.section.user.image.inline/client",
+        "${net}/openai.responses.section.user.image.inline/server"})
+    public void shouldEncodeOpenaiResponsesSectionUserImageInline() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.section.user.image.reference/client",
+        "${net}/openai.responses.section.user.image.reference/server"})
+    public void shouldEncodeOpenaiResponsesSectionUserImageReference() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.section.user.image.detail.first/client",
+        "${net}/openai.responses.section.user.image.detail.first/server"})
+    public void shouldEncodeOpenaiResponsesSectionUserImageDetailFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.section.user.image.10k/client",
+        "${net}/openai.responses.section.user.image.10k/server"})
+    public void shouldEncodeOpenaiResponsesSectionUserImage10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.section.user.image.url.10k/client",
+        "${net}/openai.responses.section.user.image.url.10k/server"})
+    public void shouldEncodeOpenaiResponsesSectionUserImageUrl10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.section.user.image.url.100k/client",
+        "${net}/openai.responses.section.user.image.url.100k/server"})
+    public void shouldEncodeOpenaiResponsesSectionUserImageUrl100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.section.user.document/client",
+        "${net}/openai.responses.section.user.document/server"})
+    public void shouldEncodeOpenaiResponsesSectionUserDocument() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.section.user.document.inline/client",
+        "${net}/openai.responses.section.user.document.inline/server"})
+    public void shouldEncodeOpenaiResponsesSectionUserDocumentInline() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.section.user.document.reference/client",
+        "${net}/openai.responses.section.user.document.reference/server"})
+    public void shouldEncodeOpenaiResponsesSectionUserDocumentReference() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.section.user.document.detail/client",
+        "${net}/openai.responses.section.user.document.detail/server"})
+    public void shouldEncodeOpenaiResponsesSectionUserDocumentDetail() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.section.user.audio/client",
+        "${net}/openai.responses.section.user.audio/server"})
+    public void shouldEncodeOpenaiResponsesSectionUserAudio() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @ScriptProperty({"target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.user.image/client",
+        "${net}/openai.responses.transform.user.image/server"})
+    public void shouldTransformUserImageAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @ScriptProperty({"target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.user.image.inline/client",
+        "${net}/openai.responses.transform.user.image.inline/server"})
+    public void shouldTransformUserImageInlineAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @ScriptProperty({"target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.user.image.10k/client",
+        "${net}/openai.responses.transform.user.image.10k/server"})
+    public void shouldTransformUserImage10kAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @ScriptProperty({"target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.user.image.url.10k/client",
+        "${net}/openai.responses.transform.user.image.url.10k/server"})
+    public void shouldTransformUserImageUrl10kAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @ScriptProperty({"target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.user.image.url.100k/client",
+        "${net}/openai.responses.transform.user.image.url.100k/server"})
+    public void shouldTransformUserImageUrl100kAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @ScriptProperty({"target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.user.document.inline/client",
+        "${net}/openai.responses.transform.user.document.inline/server"})
+    public void shouldTransformUserDocumentInlineAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @ScriptProperty({"target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.user.document.reference/client",
+        "${net}/openai.responses.transform.user.document.reference/server"})
+    public void shouldTransformUserDocumentReferenceAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @ScriptProperty({"target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.assistant.reasoning/client",
+        "${net}/openai.responses.transform.assistant.reasoning/server"})
+    public void shouldTransformAssistantReasoningAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @ScriptProperty({"target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.assistant.refusal/client",
+        "${net}/openai.responses.transform.assistant.refusal/server"})
+    public void shouldTransformAssistantRefusalAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @ScriptProperty({"target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.rejected.user.video/client",
+        "${net}/openai.responses.transform.rejected.user.video/server"})
+    public void shouldRejectUserVideoAsOpenaiResponsesNamingSectionAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @ScriptProperty({"target \"openai/responses\""})
+    @Specification({
+        "${app}/openai.transform.assistant.text.citations/client",
+        "${net}/openai.responses.transform.assistant.text.citations/server"})
+    public void shouldTransformAssistantTextCitationsAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @ScriptProperty({"target \"openai/responses\""})
+    @Specification({
+        "${app}/anthropic.transform.assistant.text.citations/client",
+        "${net}/openai.responses.transform.assistant.text.citations.anthropic/server"})
+    public void shouldTransformAnthropicAssistantTextCitationsAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @ScriptProperty({"target \"openai/responses\""})
+    @Specification({
+        "${app}/openai.responses.transform.response.reasoning/client",
+        "${net}/openai.responses.transform.response.reasoning/server"})
+    public void shouldTransformResponseReasoningAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @ScriptProperty({"target \"openai/responses\""})
+    @Specification({
+        "${app}/openai.responses.transform.response.reasoning/client",
+        "${net}/openai.responses.transform.response.reasoning.sse/server"})
+    public void shouldTransformResponseReasoningSseAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -36,7 +36,7 @@ public class LlmOpenaiResponsesItemsTest
         assertThat(LlmOpenaiResponsesItems.kind("tool_search_output"), is(LlmOpenaiResponsesItems.KIND_RESULT));
         assertThat(LlmOpenaiResponsesItems.kind("web_search_call"), is(LlmOpenaiResponsesItems.KIND_CALL));
         assertThat(LlmOpenaiResponsesItems.kind("mcp_list_tools"), is(LlmOpenaiResponsesItems.KIND_CALL));
-        assertThat(LlmOpenaiResponsesItems.kind("reasoning"), is(LlmOpenaiResponsesItems.KIND_NONE));
+        assertThat(LlmOpenaiResponsesItems.kind("reasoning"), is(LlmOpenaiResponsesItems.KIND_REASONING));
     }
 
     @Test
@@ -94,6 +94,7 @@ public class LlmOpenaiResponsesItemsTest
         assertThat(LlmOpenaiResponsesItems.prefix("image_generation_call"), equalTo("ig"));
         assertThat(LlmOpenaiResponsesItems.prefix("file_search_call"), equalTo("fs"));
         assertThat(LlmOpenaiResponsesItems.prefix("message"), equalTo("msg"));
+        assertThat(LlmOpenaiResponsesItems.prefix("reasoning"), equalTo("rs"));
         assertThat(LlmOpenaiResponsesItems.prefix("computer_call"), equalTo("computer"));
     }
 

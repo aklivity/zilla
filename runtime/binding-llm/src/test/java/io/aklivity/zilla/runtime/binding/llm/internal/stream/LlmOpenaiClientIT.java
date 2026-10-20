@@ -1642,4 +1642,15 @@ public class LlmOpenaiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\""})
+    @Specification({
+        "${app}/openai.responses.transform.assistant.reasoning.members/client",
+        "${net}/openai.transform.assistant.reasoning/server"})
+    public void shouldDropOpenaiResponsesAssistantReasoningAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
 }

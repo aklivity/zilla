@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmAttributeProbeRunner.WHOLE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -112,6 +113,104 @@ public class LlmOpenaiResponsesAttributeProbeTest
     {
         assertThat(run(LlmSectionType.TOOL_CALL, "function_call", null, null,
             "{\"call_id\":\"" + "x".repeat(4096) + "\"}", 96),
+            equalTo(LlmAttributeProbe.Status.REJECTED));
+    }
+
+    @Test
+    public void shouldProbeImageUrl()
+    {
+        final String json = "{\"type\":\"input_image\",\"image_url\":\"https://example.com/cat.png\",\"detail\":\"low\"}";
+
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_IMAGE, json, WHOLE),
+            equalTo(LlmAttributeProbe.Status.RESOLVED));
+        assertThat(probe.attributes().source(), equalTo("url"));
+        assertThat(probe.attributes().mediaType(), nullValue());
+    }
+
+    @Test
+    public void shouldProbeImageDataUrlAfterDetail()
+    {
+        final String json = "{\"type\":\"input_image\",\"detail\":\"low\",\"image_url\":\"data:image/png;base64,AAAA\"}";
+
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_IMAGE, json, WHOLE),
+            equalTo(LlmAttributeProbe.Status.RESOLVED));
+        assertThat(probe.attributes().source(), equalTo("inline"));
+        assertThat(probe.attributes().mediaType(), equalTo("image/png"));
+    }
+
+    @Test
+    public void shouldProbeFragmentedImageDataUrl()
+    {
+        final String json = "{\"type\":\"input_image\",\"image_url\":\"data:image/png;base64," + "A".repeat(4096) + "\"}";
+
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_IMAGE, json, 96),
+            equalTo(LlmAttributeProbe.Status.RESOLVED));
+        assertThat(probe.attributes().source(), equalTo("inline"));
+        assertThat(probe.attributes().mediaType(), equalTo("image/png"));
+    }
+
+    @Test
+    public void shouldProbeImageReference()
+    {
+        final String json = "{\"type\":\"input_image\",\"file_id\":\"file-abc123\"}";
+
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_IMAGE, json, WHOLE),
+            equalTo(LlmAttributeProbe.Status.RESOLVED));
+        assertThat(probe.attributes().source(), equalTo("reference"));
+        assertThat(probe.attributes().refId(), equalTo("file-abc123"));
+    }
+
+    @Test
+    public void shouldProbeDocumentData()
+    {
+        final String json = "{\"type\":\"input_file\",\"filename\":\"a.pdf\"," +
+            "\"file_data\":\"data:application/pdf;base64,AAAA\"}";
+
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_DOCUMENT, json, WHOLE),
+            equalTo(LlmAttributeProbe.Status.RESOLVED));
+        assertThat(probe.attributes().source(), equalTo("inline"));
+        assertThat(probe.attributes().mediaType(), equalTo("application/pdf"));
+        assertThat(probe.attributes().filename(), equalTo("a.pdf"));
+    }
+
+    @Test
+    public void shouldProbeDocumentUrl()
+    {
+        final String json = "{\"type\":\"input_file\",\"file_url\":\"https://example.com/a.pdf\"}";
+
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_DOCUMENT, json, WHOLE),
+            equalTo(LlmAttributeProbe.Status.RESOLVED));
+        assertThat(probe.attributes().source(), equalTo("url"));
+    }
+
+    @Test
+    public void shouldProbeDocumentReference()
+    {
+        final String json = "{\"type\":\"input_file\",\"file_id\":\"file-abc123\"}";
+
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_DOCUMENT, json, WHOLE),
+            equalTo(LlmAttributeProbe.Status.RESOLVED));
+        assertThat(probe.attributes().source(), equalTo("reference"));
+        assertThat(probe.attributes().refId(), equalTo("file-abc123"));
+    }
+
+    @Test
+    public void shouldProbeAudio()
+    {
+        final String json = "{\"type\":\"input_audio\",\"input_audio\":{\"format\":\"mp3\",\"data\":\"AAAA\"}}";
+
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_AUDIO, json, WHOLE),
+            equalTo(LlmAttributeProbe.Status.RESOLVED));
+        assertThat(probe.attributes().source(), equalTo("inline"));
+        assertThat(probe.attributes().mediaType(), equalTo("audio/mpeg"));
+    }
+
+    @Test
+    public void shouldRejectFilenameLargerThanWindow()
+    {
+        final String json = "{\"type\":\"input_file\",\"filename\":\"" + "a".repeat(4096) + "\"}";
+
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_DOCUMENT, json, 96),
             equalTo(LlmAttributeProbe.Status.REJECTED));
     }
 

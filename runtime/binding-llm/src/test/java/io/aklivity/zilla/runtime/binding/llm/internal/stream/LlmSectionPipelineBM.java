@@ -93,6 +93,17 @@ public class LlmSectionPipelineBM
         "\"char_location\",\"anthropic:cited_text\":\"blue\",\"anthropic:document_index\":0," +
         "\"anthropic:start_char_index\":0,\"anthropic:end_char_index\":4}]";
 
+    private static final String REASONING_RESPONSES_CANONICAL =
+        "{\"text\":\"Let me think about it\",\"openai:id\":\"rs_1\",\"openai:encrypted_content\":\"" + DATA + "\"}";
+    private static final String IMAGE_RESPONSES_NATIVE =
+        "{\"type\":\"input_image\",\"image_url\":\"data:image/png;base64," + DATA + "\",\"detail\":\"low\"}";
+    private static final String IMAGE_RESPONSES_CANONICAL =
+        "{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64," + DATA + "\",\"detail\":\"low\"}}";
+    private static final String CITATIONS_RESPONSES_NATIVE =
+        "[{\"type\":\"url_citation\",\"end_index\":8,\"start_index\":0,\"title\":\"Sky colour\"," +
+        "\"url\":\"https://example.com/sky\"},{\"type\":\"file_citation\",\"file_id\":\"file_1\"," +
+        "\"filename\":\"a.pdf\",\"index\":0}]";
+
     private static final String CONTROL_VALUE =
         "{\"user_id\":\"u_1\",\"tags\":[\"a\",\"b\",\"c\"],\"nested\":{\"k\":\"v\",\"n\":[1,2,3]}}";
     private static final String CONTROL_NATIVE = "{\"metadata\":" + CONTROL_VALUE + "}";
@@ -127,6 +138,10 @@ public class LlmSectionPipelineBM
     private LlmSectionPipeline controlAnthropicFromCanonical;
     private LlmSectionPipeline controlOpenaiToCanonical;
     private LlmSectionPipeline controlOpenaiFromCanonical;
+    private LlmSectionPipeline reasoningResponsesFromCanonical;
+    private LlmSectionPipeline imageResponsesToCanonical;
+    private LlmSectionPipeline imageResponsesFromCanonical;
+    private LlmSectionPipeline citationsResponsesToCanonical;
 
     private UnsafeBufferEx toolDefinitionNative;
     private UnsafeBufferEx toolDefinitionCanonical;
@@ -142,6 +157,10 @@ public class LlmSectionPipelineBM
     private UnsafeBufferEx controlAnthropicCanonical;
     private UnsafeBufferEx controlOpenaiCanonical;
     private UnsafeBufferEx textObject;
+    private UnsafeBufferEx reasoningResponsesCanonical;
+    private UnsafeBufferEx imageResponsesNative;
+    private UnsafeBufferEx imageResponsesCanonical;
+    private UnsafeBufferEx citationsResponsesNative;
 
     @Setup(Level.Trial)
     public void init()
@@ -163,6 +182,11 @@ public class LlmSectionPipelineBM
         controlOpenaiToCanonical = pipeline(new LlmOpenaiControlToCanonical());
         controlOpenaiFromCanonical = pipeline(new LlmOpenaiControlFromCanonical(true));
 
+        reasoningResponsesFromCanonical = pipeline(new LlmOpenaiResponsesReasoningFromCanonical(true));
+        imageResponsesToCanonical = pipeline(LlmOpenaiResponsesMediaToCanonical.image());
+        imageResponsesFromCanonical = pipeline(LlmOpenaiResponsesMediaFromCanonical.image(true));
+        citationsResponsesToCanonical = pipeline(LlmOpenaiResponsesCitationsToCanonical.array());
+
         toolCallAttributes.toolCallId("toolu_1");
         toolCallAttributes.toolName("get_weather");
         imageAttributes.source(LlmSectionAttributes.SOURCE_INLINE);
@@ -182,6 +206,10 @@ public class LlmSectionPipelineBM
         controlAnthropicCanonical = buffer(CONTROL_ANTHROPIC_CANONICAL);
         controlOpenaiCanonical = buffer(CONTROL_OPENAI_CANONICAL);
         textObject = buffer(TEXT_OBJECT);
+        reasoningResponsesCanonical = buffer(REASONING_RESPONSES_CANONICAL);
+        imageResponsesNative = buffer(IMAGE_RESPONSES_NATIVE);
+        imageResponsesCanonical = buffer(IMAGE_RESPONSES_CANONICAL);
+        citationsResponsesNative = buffer(CITATIONS_RESPONSES_NATIVE);
     }
 
     @Benchmark
@@ -285,6 +313,37 @@ public class LlmSectionPipelineBM
     public int citationsFromCanonicalOpenai()
     {
         return run(citationsFromOpenai, none, citationsCanonical, citationsCanonical.capacity());
+    }
+
+    @Benchmark
+    public int reasoningFromCanonicalResponses()
+    {
+        return run(reasoningResponsesFromCanonical, none, reasoningResponsesCanonical,
+            reasoningResponsesCanonical.capacity());
+    }
+
+    @Benchmark
+    public int reasoningFromCanonicalResponsesFragmented()
+    {
+        return run(reasoningResponsesFromCanonical, none, reasoningResponsesCanonical, WINDOW);
+    }
+
+    @Benchmark
+    public int imageToCanonicalResponses()
+    {
+        return run(imageResponsesToCanonical, none, imageResponsesNative, imageResponsesNative.capacity());
+    }
+
+    @Benchmark
+    public int imageFromCanonicalResponses()
+    {
+        return run(imageResponsesFromCanonical, none, imageResponsesCanonical, imageResponsesCanonical.capacity());
+    }
+
+    @Benchmark
+    public int citationsToCanonicalResponses()
+    {
+        return run(citationsResponsesToCanonical, none, citationsResponsesNative, citationsResponsesNative.capacity());
     }
 
     @Benchmark

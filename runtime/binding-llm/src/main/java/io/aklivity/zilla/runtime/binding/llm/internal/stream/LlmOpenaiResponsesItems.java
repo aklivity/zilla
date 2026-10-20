@@ -24,8 +24,10 @@ final class LlmOpenaiResponsesItems
     static final int KIND_FUNCTION_OUTPUT = 3;
     static final int KIND_CALL = 4;
     static final int KIND_RESULT = 5;
+    static final int KIND_REASONING = 6;
 
     static final String TYPE_MESSAGE = "message";
+    static final String TYPE_REASONING = "reasoning";
     static final String TYPE_FUNCTION_CALL = "function_call";
     static final String TYPE_FUNCTION_OUTPUT = "function_call_output";
     static final String TYPE_CUSTOM_CALL = "custom_tool_call";
@@ -58,6 +60,13 @@ final class LlmOpenaiResponsesItems
         "response.mcp_call.completed",
         "response.mcp_list_tools.in_progress",
         "response.mcp_list_tools.completed",
+        "response.reasoning_summary_part.added",
+        "response.reasoning_summary_part.done",
+        "response.reasoning_summary_text.delta",
+        "response.reasoning_summary_text.done",
+        "response.refusal.delta",
+        "response.refusal.done",
+        "response.output_text.annotation.added",
         "response.web_search_call.in_progress",
         "response.web_search_call.searching",
         "response.web_search_call.completed",
@@ -76,6 +85,10 @@ final class LlmOpenaiResponsesItems
         if (TYPE_MESSAGE.equals(type))
         {
             kind = KIND_MESSAGE;
+        }
+        else if (TYPE_REASONING.equals(type))
+        {
+            kind = KIND_REASONING;
         }
         else if (TYPE_FUNCTION_CALL.equals(type))
         {
@@ -243,6 +256,9 @@ final class LlmOpenaiResponsesItems
             break;
         case TYPE_MESSAGE:
             prefix = "msg";
+            break;
+        case TYPE_REASONING:
+            prefix = "rs";
             break;
         default:
             prefix = toolName(type);

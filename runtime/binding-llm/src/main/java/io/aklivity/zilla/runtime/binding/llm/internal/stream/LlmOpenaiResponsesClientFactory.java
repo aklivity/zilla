@@ -143,6 +143,12 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
     private static final String TYPE_CODE_DELTA = "response.code_interpreter_call_code.delta";
     private static final String TYPE_MCP_DELTA = "response.mcp_call_arguments.delta";
     private static final String TYPE_ITEM_DONE = "response.output_item.done";
+    private static final String TYPE_REFUSAL_DELTA = "response.refusal.delta";
+    private static final String TYPE_REFUSAL_DONE = "response.refusal.done";
+    private static final String TYPE_SUMMARY_PART_ADDED = "response.reasoning_summary_part.added";
+    private static final String TYPE_SUMMARY_DELTA = "response.reasoning_summary_text.delta";
+    private static final String TYPE_REASONING_DELTA = "response.reasoning_text.delta";
+    private static final String TYPE_ANNOTATION_ADDED = "response.output_text.annotation.added";
     private static final String TYPE_COMPLETED = "response.completed";
     private static final String TYPE_INCOMPLETE = "response.incomplete";
     private static final String TYPE_FAILED = "response.failed";
@@ -150,7 +156,8 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
     {
         TYPE_ERROR, TYPE_TEXT_DELTA, TYPE_TEXT_DONE, TYPE_PART_ADDED, TYPE_PART_DONE, TYPE_ITEM_ADDED, TYPE_ITEM_DONE,
         TYPE_COMPLETED, TYPE_INCOMPLETE, TYPE_FAILED, TYPE_FUNCTION_DELTA, TYPE_CUSTOM_DELTA, TYPE_CODE_DELTA,
-        TYPE_MCP_DELTA
+        TYPE_MCP_DELTA, TYPE_REFUSAL_DELTA, TYPE_REFUSAL_DONE, TYPE_SUMMARY_PART_ADDED, TYPE_SUMMARY_DELTA,
+        TYPE_REASONING_DELTA, TYPE_ANNOTATION_ADDED
     };
     private static final String PART_OUTPUT_TEXT = "output_text";
     private static final String STATUS_COMPLETED = "completed";
@@ -177,6 +184,12 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
     private static final int KIND_TOOL_RESULT = 9;
     private static final int KIND_SERVER_TOOL_CALL = 10;
     private static final int KIND_SERVER_TOOL_RESULT = 11;
+    private static final int KIND_USER_IMAGE = 12;
+    private static final int KIND_USER_DOCUMENT = 13;
+    private static final int KIND_USER_AUDIO = 14;
+    private static final int KIND_ASSISTANT_REFUSAL = 15;
+    private static final int KIND_ASSISTANT_REASONING = 16;
+    private static final int KIND_CITATIONS = 17;
     private static final int CONTROL_SEEN_MAX = 64;
     private static final int CONTROL_CLOSING = 1;
     private static final int CONTROL_HEADER = 2 * Integer.BYTES;
@@ -185,6 +198,10 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
     private static final int CONTENT_HELD = 1;
     private static final int CONTENT_ARRAY = 2;
     private static final int CONTENT_CLOSED = 3;
+    private static final int CONTENT_PART = 4;
+    private static final int REASONING_CLOSED = 0;
+    private static final int REASONING_SUMMARY = 1;
+    private static final int REASONING_MEMBERS = 2;
 
     private static final String MEMBER_ITEM_ID = "item_id";
     private static final String MEMBER_NAME = "name";
@@ -238,12 +255,35 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
     private static final String ROLE_ASSISTANT = "assistant";
     private static final String ROLE_DEVELOPER = "developer";
     private static final String PART_INPUT_TEXT = "input_text";
+    private static final String PART_REFUSAL = "refusal";
+    private static final String PART_SUMMARY_TEXT = "summary_text";
+    private static final String PART_REASONING_TEXT = "reasoning_text";
+    private static final String MEMBER_ANNOTATION = "annotation";
+    private static final String MEMBER_ENCRYPTED = "encrypted_content";
+    private static final String MEMBER_OPENAI_ID = VENDOR_PREFIX + "id";
+    private static final String MEMBER_OPENAI_ENCRYPTED = VENDOR_PREFIX + MEMBER_ENCRYPTED;
+    private static final String MESSAGE_ENCRYPTED_BOUND =
+        "Encrypted content preceding the reasoning summary exceeds the supported bound.";
+    private static final String MESSAGE_ANNOTATIONS_BOUND = "Annotations exceed the supported bound.";
+    private static final String MESSAGE_ANNOTATIONS_INVALID = "Unsupported output annotation.";
+    private static final int REASONING_IGNORE = 0;
+    private static final int REASONING_STREAMED = 1;
+    private static final int REASONING_PENDING = 2;
+    private static final int REASONING_READY = 3;
+    private static final int MEMBER_ROOM = 96;
+    private static final int CITATIONS_GROWTH = 4;
+    private static final String MEMBER_REFUSAL = "refusal";
+    private static final String MEMBER_SUMMARY = "summary";
+    private static final String MEMBER_ANNOTATIONS = "annotations";
+    private static final String TYPE_REASONING = "reasoning";
     private static final String ROLE_TOOL = "tool";
     private static final String MEMBER_TOOLS = "tools";
     private static final String MEMBER_CALL_ID = "call_id";
     private static final String TYPE_FUNCTION_OUTPUT = "function_call_output";
     private static final DirectBufferEx OBJECT_CLOSE = new UnsafeBufferEx("}".getBytes(UTF_8));
     private static final DirectBufferEx ITEM_SEPARATOR = new UnsafeBufferEx(",".getBytes(UTF_8));
+    private static final DirectBufferEx ARRAY_OPEN = new UnsafeBufferEx("[".getBytes(UTF_8));
+    private static final DirectBufferEx ARRAY_CLOSE = new UnsafeBufferEx("]".getBytes(UTF_8));
 
     private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx(new byte[0]);
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
@@ -417,7 +457,18 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             kind == KIND_TOOL_DEFINITION ||
             kind == KIND_TOOL_CALL ||
             kind == KIND_SERVER_TOOL_CALL ||
-            kind == KIND_SERVER_TOOL_RESULT;
+            kind == KIND_SERVER_TOOL_RESULT ||
+            kind == KIND_USER_IMAGE ||
+            kind == KIND_USER_DOCUMENT ||
+            kind == KIND_USER_AUDIO ||
+            kind == KIND_ASSISTANT_REASONING ||
+            kind == KIND_CITATIONS;
+    }
+
+    private static boolean part(
+        int kind)
+    {
+        return kind == KIND_USER_IMAGE || kind == KIND_USER_DOCUMENT || kind == KIND_USER_AUDIO;
     }
 
     private static int sectionKind(
@@ -436,7 +487,12 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         case SERVER_TOOL_DEFINITION -> sameDialect ? KIND_SERVER_TOOL_DEFINITION : KIND_DROPPED;
         case SERVER_TOOL_CALL -> sameDialect ? KIND_SERVER_TOOL_CALL : KIND_DROPPED;
         case SERVER_TOOL_RESULT -> sameDialect ? KIND_SERVER_TOOL_RESULT : KIND_DROPPED;
-        case ASSISTANT_REFUSAL, ASSISTANT_REASONING, CITATIONS -> KIND_DROPPED;
+        case USER_IMAGE -> KIND_USER_IMAGE;
+        case USER_DOCUMENT -> KIND_USER_DOCUMENT;
+        case USER_AUDIO -> KIND_USER_AUDIO;
+        case ASSISTANT_REFUSAL -> KIND_ASSISTANT_REFUSAL;
+        case ASSISTANT_REASONING -> sameDialect ? KIND_ASSISTANT_REASONING : KIND_DROPPED;
+        case CITATIONS -> KIND_CITATIONS;
         default -> 0;
         };
     }
@@ -447,7 +503,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         return switch (kind)
         {
         case KIND_SYSTEM_INSTRUCTION -> ROLE_DEVELOPER;
-        case KIND_ASSISTANT_TEXT -> ROLE_ASSISTANT;
+        case KIND_ASSISTANT_TEXT, KIND_ASSISTANT_REFUSAL -> ROLE_ASSISTANT;
         case KIND_TOOL_RESULT -> ROLE_TOOL;
         default -> ROLE_USER;
         };
@@ -459,6 +515,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         return kind == KIND_SYSTEM_INSTRUCTION ||
             kind == KIND_USER_TEXT ||
             kind == KIND_ASSISTANT_TEXT ||
+            kind == KIND_ASSISTANT_REFUSAL ||
             kind == KIND_TOOL_RESULT;
     }
 
@@ -474,6 +531,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         return type == LlmSectionType.SYSTEM_INSTRUCTION ||
             type == LlmSectionType.USER_TEXT ||
             type == LlmSectionType.ASSISTANT_TEXT ||
+            type == LlmSectionType.ASSISTANT_REFUSAL ||
             type == LlmSectionType.ASSISTANT_REASONING;
     }
 
@@ -539,6 +597,15 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         private final LlmOpenaiResponsesDecoder decodePart = this::decodePart;
         private final LlmOpenaiResponsesDecoder decodePartType = this::decodePartType;
         private final LlmOpenaiResponsesDecoder decodeText = this::decodeText;
+        private final LlmOpenaiResponsesDecoder decodeReasoning = this::decodeReasoning;
+        private final LlmOpenaiResponsesDecoder decodeReasoningId = this::decodeReasoningId;
+        private final LlmOpenaiResponsesDecoder decodeReasoningArrayStart = this::decodeReasoningArrayStart;
+        private final LlmOpenaiResponsesDecoder decodeReasoningArray = this::decodeReasoningArray;
+        private final LlmOpenaiResponsesDecoder decodeReasoningPart = this::decodeReasoningPart;
+        private final LlmOpenaiResponsesDecoder decodeEncryptedHold = this::decodeEncryptedHold;
+        private final LlmOpenaiResponsesDecoder decodeReasoningTail = this::decodeReasoningTail;
+        private final LlmOpenaiResponsesDecoder decodeAnnotation = this::decodeAnnotation;
+        private final LlmOpenaiResponsesDecoder decodeCitations = this::decodeCitations;
         private final LlmOpenaiResponsesDecoder decodeUsage = this::decodeUsage;
         private final LlmOpenaiResponsesDecoder decodeSkip = this::decodeSkip;
         private final LlmOpenaiResponsesDecoder decodeControlValue = this::decodeControlValue;
@@ -659,6 +726,24 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         private String usageKey;
         private int usageDepth;
 
+        private final LlmHeldTail encrypted;
+        private final LlmHeldTail annotations;
+        private final LlmSectionAttributes annotationAttributes = new LlmSectionAttributes();
+        private final LlmSectionPipeline.Output citationsOutput =
+            (buffer, offset, length, last) -> putCitations(buffer, offset, length);
+        private LlmSectionPipeline annotationPipeline;
+        private LlmOpenaiResponsesDecoder annotationThen;
+        private int annotationFrom = NONE;
+        private int annotationDepth;
+        private int annotationObjects;
+        private int annotationSeen;
+        private int reasoningMode;
+        private int reasoningParts;
+        private String reasoningId;
+        private String reasoningKey;
+        private String textMember;
+        private String sectionMember;
+
         private final ResponseItem[] items;
         private int itemCount;
         private int itemSerial;
@@ -713,6 +798,8 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             this.controlGenerator = JsonEx.createGenerator();
             this.controlBytes = new byte[CONTROL_HEADER];
             this.controlBuffer = new UnsafeBufferEx(controlBytes);
+            this.encrypted = new LlmHeldTail(encodePool);
+            this.annotations = new LlmHeldTail(encodePool);
             this.items = new ResponseItem[ITEMS_MAX];
             this.itemBytes = new byte[ENCODE_SLACK];
             this.itemBuffer = new UnsafeBufferEx(itemBytes);
@@ -743,7 +830,9 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
 
         private int sectionClosing()
         {
-            return sectionOpen && http.framing && objectShaped(sectionType) ? TEXT_SUFFIX.length + replyPad : 0;
+            return sectionOpen && objectShaped(sectionType) && (http.framing || sectionType == LlmSectionType.ASSISTANT_REASONING)
+                ? TEXT_SUFFIX.length + replyPad
+                : 0;
         }
 
         private boolean replyAvailable()
@@ -873,7 +962,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                 {
                     http.doEncodeSectionData(payload.buffer(), payload.offset(), payload.sizeof(), fin);
                 }
-                else if (fin && (http.sectionStreaming || http.encodeText != null))
+                else if (fin && http.streaming())
                 {
                     http.doEncodeSectionData(EMPTY_OCTETS.buffer(), 0, 0, true);
                 }
@@ -933,6 +1022,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             http.doNetAbort(traceId);
             cleanupControlSlot();
             cleanupHeldSlot();
+            cleanupHolds();
             http.cleanupEncodeSlot();
         }
 
@@ -961,6 +1051,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             http.doNetAbort(traceId);
             cleanupEncodeSlot();
             cleanupHeldSlot();
+            cleanupHolds();
             http.cleanupEncodeSlot();
             http.cleanupDecodeSlot();
         }
@@ -1206,7 +1297,8 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
 
         private void closeText()
         {
-            if (sectionOpen && sectionType == LlmSectionType.ASSISTANT_TEXT)
+            if (sectionOpen &&
+                (sectionType == LlmSectionType.ASSISTANT_TEXT || sectionType == LlmSectionType.ASSISTANT_REFUSAL))
             {
                 closeSection();
             }
@@ -1249,6 +1341,10 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                 {
                     closeText();
                 }
+            }
+            else if (kind == LlmOpenaiResponsesItems.KIND_REASONING)
+            {
+                beginReasoning();
             }
             else if (kind == LlmOpenaiResponsesItems.KIND_FUNCTION_CALL || kind == LlmOpenaiResponsesItems.KIND_CALL)
             {
@@ -2378,9 +2474,15 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             itemFrom = NONE;
             stagedBytes = 0;
             toolCalls = 0;
+            annotationFrom = NONE;
+            annotationSeen = 0;
+            reasoningMode = REASONING_IGNORE;
+            reasoningParts = 0;
+            reasoningId = null;
             cleanupEncodeSlot();
             cleanupControlSlot();
             cleanupHeldSlot();
+            cleanupHolds();
         }
 
         private int decodeResponse(
@@ -2517,6 +2619,11 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                 itemFrom = offset;
             }
 
+            if (annotationFrom != NONE)
+            {
+                annotationFrom = offset;
+            }
+
             parser.wrap(buffer, offset, windowLimit, windowLast);
 
             LlmOpenaiResponsesDecoder previous = null;
@@ -2539,6 +2646,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             {
                 flushControl(progress);
                 flushItem(progress);
+                flushAnnotation(progress);
             }
 
             return parseRejected ? windowLimit : progress;
@@ -2747,7 +2855,20 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                     }
                     else if (MEMBER_DELTA.contentEquals(member) && TYPE_TEXT_DELTA.equals(documentType))
                     {
-                        beginText(decodeRoot);
+                        beginText(LlmSectionType.ASSISTANT_TEXT, decodeRoot);
+                    }
+                    else if (MEMBER_DELTA.contentEquals(member) && TYPE_REFUSAL_DELTA.equals(documentType))
+                    {
+                        beginText(LlmSectionType.ASSISTANT_REFUSAL, decodeRoot);
+                    }
+                    else if (MEMBER_DELTA.contentEquals(member) &&
+                        (TYPE_SUMMARY_DELTA.equals(documentType) || TYPE_REASONING_DELTA.equals(documentType)))
+                    {
+                        beginText(LlmSectionType.ASSISTANT_REASONING, decodeRoot);
+                    }
+                    else if (MEMBER_ANNOTATION.contentEquals(member) && TYPE_ANNOTATION_ADDED.equals(documentType))
+                    {
+                        beginAnnotation(decodeRoot);
                     }
                     else if (MEMBER_DELTA.contentEquals(member) && itemDelta(documentType))
                     {
@@ -2847,7 +2968,8 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                     documentType = eventType(parser.getStringView());
                     decoder = decodeRoot;
 
-                    if (TYPE_TEXT_DONE.equals(documentType) || TYPE_PART_DONE.equals(documentType))
+                    if (TYPE_TEXT_DONE.equals(documentType) || TYPE_PART_DONE.equals(documentType) ||
+                        TYPE_REFUSAL_DONE.equals(documentType))
                     {
                         closeText();
                     }
@@ -3174,6 +3296,595 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             return position();
         }
 
+        private void beginReasoning()
+        {
+            final boolean added = TYPE_ITEM_ADDED.equals(documentType);
+
+            closeText();
+
+            reasoningId = itemId;
+            reasoningMode = added
+                ? REASONING_IGNORE
+                : http.framing && reasoningParts > 0 ? REASONING_STREAMED : REASONING_PENDING;
+            reasoningParts = added ? 0 : reasoningParts;
+            decoder = decodeReasoning;
+        }
+
+        private int decodeReasoning(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeReasoning && hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.END_OBJECT)
+                {
+                    decoder = reasoningMode == REASONING_IGNORE ? itemThen : decodeReasoningTail;
+                }
+                else if (parser.deferredBytes())
+                {
+                    parser.consumed(0);
+                }
+                else
+                {
+                    onReasoningMember(parser.getStringView());
+                }
+            }
+
+            return position();
+        }
+
+        private void onReasoningMember(
+            CharSequence key)
+        {
+            if (reasoningMode == REASONING_IGNORE)
+            {
+                skipMember(decodeReasoning);
+            }
+            else if (MEMBER_ID.contentEquals(key))
+            {
+                decoder = decodeReasoningId;
+            }
+            else if (reasoningMode == REASONING_PENDING &&
+                (MEMBER_SUMMARY.contentEquals(key) || MEMBER_CONTENT.contentEquals(key)))
+            {
+                reasoningKey = MEMBER_SUMMARY.contentEquals(key) ? MEMBER_SUMMARY : MEMBER_CONTENT;
+                decoder = decodeReasoningArrayStart;
+            }
+            else if (MEMBER_ENCRYPTED.contentEquals(key))
+            {
+                beginEncrypted();
+            }
+            else
+            {
+                skipMember(decodeReasoning);
+            }
+        }
+
+        private void beginEncrypted()
+        {
+            if (reasoningId != null && reasoningMode != REASONING_PENDING && !encrypted.held())
+            {
+                textType = LlmSectionType.ASSISTANT_REASONING;
+                textMember = MEMBER_OPENAI_ENCRYPTED;
+                textThen = decodeReasoning;
+                decoder = decodeText;
+            }
+            else
+            {
+                decoder = decodeEncryptedHold;
+            }
+        }
+
+        private int decodeReasoningId(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeReasoningId && hasNextEvent())
+            {
+                final String value = stringValue(parser.nextEvent(), decodeReasoning);
+
+                if (value != null)
+                {
+                    reasoningId = value;
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeReasoningArrayStart(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            if (hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.START_ARRAY)
+                {
+                    decoder = decodeReasoningArray;
+                }
+                else
+                {
+                    skipAfter(event, decodeReasoning);
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeReasoningArray(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeReasoningArray && hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.START_OBJECT)
+                {
+                    openReasoningPart();
+                    decoder = decodeReasoningPart;
+                }
+                else if (event == JsonEvent.END_ARRAY)
+                {
+                    reasoningMode = MEMBER_SUMMARY.equals(reasoningKey) ? REASONING_READY : reasoningMode;
+                    decoder = decodeReasoning;
+                }
+                else
+                {
+                    skipAfter(event, decodeReasoningArray);
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeReasoningPart(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeReasoningPart && hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.END_OBJECT)
+                {
+                    decoder = decodeReasoningArray;
+                }
+                else if (parser.deferredBytes())
+                {
+                    parser.consumed(0);
+                }
+                else if (MEMBER_TEXT.contentEquals(parser.getStringView()))
+                {
+                    beginText(LlmSectionType.ASSISTANT_REASONING, decodeReasoningPart);
+                }
+                else
+                {
+                    skipMember(decodeReasoningPart);
+                }
+            }
+
+            return position();
+        }
+
+        private void openReasoningPart()
+        {
+            if (sectionOpen && sectionType == LlmSectionType.ASSISTANT_REASONING)
+            {
+                closeSection();
+            }
+
+            openText(LlmSectionType.ASSISTANT_REASONING);
+            reasoningParts++;
+        }
+
+        private int decodeEncryptedHold(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeEncryptedHold && hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.VALUE_STRING)
+                {
+                    final boolean deferred = parser.deferredBytes();
+                    final CharSequence chars = parser.getStringView();
+                    final int length = chars.length();
+                    final int decoded = encodeText(chars, length, !deferred);
+
+                    if (!encrypted.append(replyId, textBuffer, 0, decoded))
+                    {
+                        rejectOutput(MESSAGE_ENCRYPTED_BOUND);
+                    }
+                    else if (deferred)
+                    {
+                        parser.consumed(length);
+                    }
+                    else
+                    {
+                        decoder = decodeReasoning;
+                    }
+                }
+                else
+                {
+                    skipAfter(event, decodeReasoning);
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeReasoningTail(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            boolean progress = true;
+
+            while (decoder == decodeReasoningTail && progress && !parseRejected)
+            {
+                if (encrypted.remaining() > 0)
+                {
+                    final int take = tailAllowance();
+
+                    progress = take > 0;
+
+                    if (progress)
+                    {
+                        textType = LlmSectionType.ASSISTANT_REASONING;
+                        textMember = MEMBER_OPENAI_ENCRYPTED;
+                        text(encrypted.buffer(), encrypted.offset(), take);
+                        encrypted.consumed(take);
+                    }
+                }
+                else
+                {
+                    progress = tailCredit() >= finishCost();
+
+                    if (progress)
+                    {
+                        finishReasoning();
+                        decoder = itemThen;
+                    }
+                }
+            }
+
+            return position();
+        }
+
+        private int tailCredit()
+        {
+            return replyMax - (int) (replySeq - replyAck) - encodeSlotOffset - controlSlotOffset - headHeld();
+        }
+
+        private int tailAllowance()
+        {
+            final MutableDirectBufferEx held = encrypted.buffer();
+            final int from = encrypted.offset();
+            final int length = encrypted.remaining();
+            final int credit = tailCredit();
+
+            int cost = (headerPending() ? memberHeaderLength() + replyPad : 0) + replyPad + TEXT_SUFFIX.length + replyPad;
+            int take = 0;
+            boolean fits = true;
+
+            while (fits && take < length)
+            {
+                final int next = cost + escapedWidth((char) (held.getByte(from + take) & 0xFF));
+
+                fits = next <= credit;
+
+                if (fits)
+                {
+                    cost = next;
+                    take++;
+                }
+            }
+
+            return take;
+        }
+
+        private int finishCost()
+        {
+            return TEXT_SUFFIX.length + replyPad +
+                (sectionMember == null && reasoningId != null ? memberHeaderLength() + replyPad : 0);
+        }
+
+        private void finishReasoning()
+        {
+            if (sectionOpen && sectionMember != null)
+            {
+                closeSection();
+            }
+            else if (reasoningId != null)
+            {
+                emitIdMember();
+            }
+            else if (sectionOpen)
+            {
+                closeSection();
+            }
+
+            encrypted.release();
+            reasoningParts = 0;
+            reasoningId = null;
+            reasoningMode = REASONING_IGNORE;
+        }
+
+        private void emitIdMember()
+        {
+            if (!sectionOpen)
+            {
+                openText(LlmSectionType.ASSISTANT_REASONING);
+            }
+
+            if (sectionOpen)
+            {
+                reservePiece(memberHeaderLength());
+                generator.wrap(pieceBuffer, 0, pieceBytes.length);
+
+                if (sectionStarted)
+                {
+                    generator.writeEndEscaped();
+                }
+                else
+                {
+                    generator.reset();
+                    generator.writeStartObject();
+                }
+
+                generator.write(MEMBER_OPENAI_ID, reasoningId).writeEnd();
+                emitFrame(pieceBuffer, 0, generator.length(), true);
+                emitControls();
+            }
+        }
+
+        private boolean headerPending()
+        {
+            return textMember != null && (!sectionOpen || !textMember.equals(sectionMember));
+        }
+
+        private int memberHeaderLength()
+        {
+            return MEMBER_ROOM + (reasoningId != null ? reasoningId.length() * ESCAPE_EXPANSION : 0);
+        }
+
+        private void reservePiece(
+            int capacity)
+        {
+            if (pieceBytes.length < capacity)
+            {
+                pieceBytes = new byte[capacity];
+                pieceBuffer = new UnsafeBufferEx(pieceBytes);
+            }
+        }
+
+        private void emitMemberHeader()
+        {
+            reservePiece(memberHeaderLength());
+            generator.wrap(pieceBuffer, 0, pieceBytes.length);
+
+            if (sectionStarted)
+            {
+                generator.writeEndEscaped();
+            }
+            else
+            {
+                generator.reset();
+                generator.writeStartObject();
+            }
+
+            if (reasoningId != null)
+            {
+                generator.write(MEMBER_OPENAI_ID, reasoningId);
+            }
+
+            generator.writeKey(textMember).writeStartEscaped();
+            sectionMember = textMember;
+            emitFrame(pieceBuffer, 0, generator.length(), false);
+        }
+
+        private void beginAnnotation(
+            LlmOpenaiResponsesDecoder then)
+        {
+            annotationThen = then;
+            annotationSeen++;
+
+            appendAnnotation(annotationObjects == 0 ? ARRAY_OPEN : ITEM_SEPARATOR, 0, 1);
+            annotationObjects++;
+            startAnnotationCapture();
+        }
+
+        private void beginAnnotations(
+            LlmOpenaiResponsesDecoder then)
+        {
+            annotationThen = then;
+
+            startAnnotationCapture();
+        }
+
+        private void startAnnotationCapture()
+        {
+            annotationDepth = 0;
+            annotationFrom = position();
+            decoder = decodeAnnotation;
+        }
+
+        private int decodeAnnotation(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeAnnotation && hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+                final boolean deferred = deferredScalar(event);
+
+                annotationDepth += nesting(event);
+
+                if (deferred)
+                {
+                    parser.consumed(deferredLength(event));
+                }
+                else if (annotationDepth == 0)
+                {
+                    flushAnnotation(position());
+                    annotationFrom = NONE;
+                    decoder = annotationThen;
+                }
+            }
+
+            return position();
+        }
+
+        private void flushAnnotation(
+            int to)
+        {
+            if (annotationFrom != NONE && to > annotationFrom)
+            {
+                appendAnnotation(decodeInput, annotationFrom, to - annotationFrom);
+                annotationFrom = to;
+            }
+        }
+
+        private void appendAnnotation(
+            DirectBufferEx source,
+            int offset,
+            int length)
+        {
+            if (!parseRejected && !annotations.append(replyId, source, offset, length))
+            {
+                rejectOutput(MESSAGE_ANNOTATIONS_BOUND);
+            }
+        }
+
+        private void emitCitations(
+            LlmOpenaiResponsesDecoder then)
+        {
+            annotationThen = then;
+            decoder = then;
+
+            if (annotationObjects > 0)
+            {
+                appendAnnotation(ARRAY_CLOSE, 0, 1);
+                annotationObjects = 0;
+            }
+
+            if (annotations.held() && !parseRejected)
+            {
+                if (annotated())
+                {
+                    annotationAttributes.clear();
+                    annotationPipeline().begin(annotationAttributes);
+                    openText(LlmSectionType.CITATIONS);
+                }
+
+                if (sectionOpen && sectionType == LlmSectionType.CITATIONS)
+                {
+                    decoder = decodeCitations;
+                }
+                else
+                {
+                    annotations.release();
+                }
+            }
+        }
+
+        private boolean annotated()
+        {
+            final MutableDirectBufferEx held = annotations.buffer();
+
+            boolean found = false;
+
+            for (int index = 0; index < annotations.length() && !found; index++)
+            {
+                found = held.getByte(index) == '{';
+            }
+
+            return found;
+        }
+
+        private LlmSectionPipeline annotationPipeline()
+        {
+            if (annotationPipeline == null)
+            {
+                annotationPipeline = new LlmSectionPipeline(LlmOpenaiResponsesCitationsToCanonical.array(), transformBuffer);
+            }
+
+            return annotationPipeline;
+        }
+
+        private int decodeCitations(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            boolean progress = true;
+
+            while (decoder == decodeCitations && progress && !parseRejected)
+            {
+                final int remaining = annotations.remaining();
+                final int take = Math.min(remaining, citationsAllowance());
+
+                progress = take > 0;
+
+                if (progress)
+                {
+                    final boolean last = take == remaining;
+
+                    if (!annotationPipeline.feed(annotations.buffer(), annotations.offset(), take, last, citationsOutput))
+                    {
+                        rejectOutput(MESSAGE_ANNOTATIONS_INVALID);
+                    }
+
+                    annotations.consumed(take);
+
+                    if (last)
+                    {
+                        closeSection();
+                        annotations.release();
+                        decoder = annotationThen;
+                    }
+                }
+            }
+
+            return position();
+        }
+
+        private int citationsAllowance()
+        {
+            return Math.max(0, (Math.min(tailCredit(), encodeMax) - 3 * replyPad - TEXT_SUFFIX.length) / CITATIONS_GROWTH);
+        }
+
+        private void putCitations(
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            if (length > 0)
+            {
+                emitSection(buffer, offset, length, false);
+            }
+        }
+
+        private void cleanupHolds()
+        {
+            encrypted.release();
+            annotations.release();
+            annotationObjects = 0;
+        }
+
         private int decodeContentStart(
             DirectBufferEx buffer,
             int offset,
@@ -3207,6 +3918,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
 
                 if (event == JsonEvent.START_OBJECT)
                 {
+                    annotationSeen = 0;
                     decoder = decodeContentPart;
                 }
                 else if (event == JsonEvent.END_ARRAY)
@@ -3233,7 +3945,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
 
                 if (event == JsonEvent.END_OBJECT)
                 {
-                    decoder = decodeContent;
+                    emitCitations(decodeContent);
                 }
                 else if (parser.deferredBytes())
                 {
@@ -3250,7 +3962,15 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                     }
                     else if (MEMBER_TEXT.contentEquals(member))
                     {
-                        beginText(decodeContentPart);
+                        beginText(LlmSectionType.ASSISTANT_TEXT, decodeContentPart);
+                    }
+                    else if (MEMBER_REFUSAL.contentEquals(member))
+                    {
+                        beginText(LlmSectionType.ASSISTANT_REFUSAL, decodeContentPart);
+                    }
+                    else if (MEMBER_ANNOTATIONS.contentEquals(member))
+                    {
+                        beginAnnotations(decodeContentPart);
                     }
                     else
                     {
@@ -3295,7 +4015,14 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
 
                 if (event == JsonEvent.END_OBJECT)
                 {
-                    decoder = decodeRoot;
+                    if (TYPE_PART_DONE.equals(documentType))
+                    {
+                        emitCitations(decodeRoot);
+                    }
+                    else
+                    {
+                        decoder = decodeRoot;
+                    }
                 }
                 else if (parser.deferredBytes())
                 {
@@ -3305,6 +4032,11 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                 {
                     valueThen = decodePart;
                     decoder = decodePartType;
+                }
+                else if (MEMBER_ANNOTATIONS.contentEquals(parser.getStringView()) &&
+                    TYPE_PART_DONE.equals(documentType) && annotationSeen == 0)
+                {
+                    beginAnnotations(decodePart);
                 }
                 else
                 {
@@ -3324,17 +4056,46 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             {
                 final String value = stringValue(parser.nextEvent(), valueThen);
 
-                if (value != null && !PART_OUTPUT_TEXT.equals(value))
+                if (value != null)
                 {
-                    rejectOutput(MESSAGE_PART_UNSUPPORTED.formatted(value));
-                }
-                else if (value != null && TYPE_PART_ADDED.equals(documentType))
-                {
-                    openText(LlmSectionType.ASSISTANT_TEXT);
+                    onPartType(value);
                 }
             }
 
             return position();
+        }
+
+        private void onPartType(
+            String value)
+        {
+            final boolean added = TYPE_PART_ADDED.equals(documentType);
+
+            if (PART_OUTPUT_TEXT.equals(value))
+            {
+                if (added)
+                {
+                    annotationSeen = 0;
+                    openText(LlmSectionType.ASSISTANT_TEXT);
+                }
+            }
+            else if (PART_REFUSAL.equals(value))
+            {
+                if (added)
+                {
+                    openText(LlmSectionType.ASSISTANT_REFUSAL);
+                }
+            }
+            else if (PART_SUMMARY_TEXT.equals(value) || PART_REASONING_TEXT.equals(value))
+            {
+                if (added || TYPE_SUMMARY_PART_ADDED.equals(documentType))
+                {
+                    openReasoningPart();
+                }
+            }
+            else
+            {
+                rejectOutput(MESSAGE_PART_UNSUPPORTED.formatted(value));
+            }
         }
 
         private int decodeText(
@@ -3848,9 +4609,11 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         }
 
         private void beginText(
+            LlmSectionType type,
             LlmOpenaiResponsesDecoder then)
         {
-            textType = LlmSectionType.ASSISTANT_TEXT;
+            textType = type;
+            textMember = null;
             textThen = then;
             decoder = decodeText;
         }
@@ -3872,7 +4635,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                 text(textBuffer, 0, decoded);
             }
 
-            if (finished && !http.framing)
+            if (finished && !http.framing && textType != LlmSectionType.ASSISTANT_REASONING)
             {
                 if (!sectionOpen)
                 {
@@ -3896,7 +4659,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             final int length = chars.length();
             final int credit = replyMax - (int) (replySeq - replyAck) - encodeSlotOffset;
 
-            int cost = sectionOpen ? 0 : TEXT_PREFIX.length + replyPad;
+            int cost = headerPending() ? memberHeaderLength() + replyPad : sectionOpen ? 0 : TEXT_PREFIX.length + replyPad;
             int take = 0;
             int index = 0;
             boolean fits = true;
@@ -3910,7 +4673,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                 final int escaped = pair ? 4 : escapedWidth(c);
                 final int next = cost + escaped;
                 final boolean last = index + width == length;
-                final boolean closes = last && !deferred && !http.framing;
+                final boolean closes = last && !deferred && !http.framing && textType != LlmSectionType.ASSISTANT_REASONING;
 
                 fits = next + (closes ? TEXT_SUFFIX.length + replyPad : 0) <= credit;
 
@@ -3922,7 +4685,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                 }
             }
 
-            if (length == 0 && !deferred && !http.framing &&
+            if (length == 0 && !deferred && !http.framing && textType != LlmSectionType.ASSISTANT_REASONING &&
                 cost + TEXT_SUFFIX.length + replyPad > credit)
             {
                 take = -1;
@@ -3977,6 +4740,11 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
 
             if (sectionOpen)
             {
+                if (headerPending())
+                {
+                    emitMemberHeader();
+                }
+
                 final int encoded = encodePiece(buffer, offset, length);
 
                 emitFrame(pieceBuffer, 0, encoded, false);
@@ -4262,6 +5030,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             sectionToolId = toolCallId;
             sectionToolName = toolName;
             sectionTag = null;
+            sectionMember = null;
         }
 
         private void closeSection()
@@ -4611,6 +5380,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                     cleanupEncodeSlot();
                     cleanupControlSlot();
                     cleanupHeldSlot();
+                    cleanupHolds();
                 }
             }
         }
@@ -4646,6 +5416,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                 cleanupEncodeSlot();
                 cleanupControlSlot();
                 cleanupHeldSlot();
+                cleanupHolds();
             }
         }
 
@@ -4782,6 +5553,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             cleanupEncodeSlot();
             cleanupControlSlot();
             cleanupHeldSlot();
+            cleanupHolds();
             http.cleanupEncodeSlot();
             http.cleanupDecodeSlot();
         }
@@ -4838,6 +5610,11 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         private LlmSectionPipeline toolDefinitionPipeline;
         private LlmSectionPipeline toolCallPipeline;
         private LlmSectionPipeline serverToolPipeline;
+        private LlmSectionPipeline imagePipeline;
+        private LlmSectionPipeline documentPipeline;
+        private LlmSectionPipeline audioPipeline;
+        private LlmSectionPipeline citationsPipeline;
+        private LlmSectionPipeline reasoningPipeline;
         private LlmOpenaiResponsesServerToolFromCanonical serverToolTransform;
         private final CallOutput callOutput = new CallOutput();
         private final ContinuationOutput continuationOutput = new ContinuationOutput();
@@ -4850,11 +5627,15 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         private int controlMessage;
         private LlmTextPipeline encodeText;
         private final LlmTextPipeline sectionText = new LlmTextPipeline(this::onSectionText);
+        private final LlmTextPipeline reasoningText = new LlmTextPipeline(this::onReasoningText, true);
+        private final LlmEdgeFilter reasoningMembers =
+            new LlmEdgeFilter((buffer, offset, length, last) -> putReasoningMembers(buffer, offset, length));
         private final LlmSectionPipeline.Output rawOutput = (buffer, offset, length, last) -> putRaw(buffer, offset, length);
         private final LlmSectionPipeline.Output controlOutput =
             (buffer, offset, length, last) -> putControl(buffer, offset, length);
         private String messageRole;
         private int contentState;
+        private int reasoningState;
         private int sectionKind;
         private boolean sectionOpen;
         private boolean sectionArrayPart;
@@ -4967,8 +5748,65 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             case KIND_TOOL_DEFINITION -> toolDefinitionPipeline();
             case KIND_TOOL_CALL -> toolCallPipeline();
             case KIND_SERVER_TOOL_CALL, KIND_SERVER_TOOL_RESULT -> serverToolPipeline();
+            case KIND_USER_IMAGE -> imagePipeline();
+            case KIND_USER_DOCUMENT -> documentPipeline();
+            case KIND_USER_AUDIO -> audioPipeline();
+            case KIND_CITATIONS -> citationsPipeline();
             default -> null;
             };
+        }
+
+        private LlmSectionPipeline imagePipeline()
+        {
+            if (imagePipeline == null)
+            {
+                imagePipeline = new LlmSectionPipeline(LlmOpenaiResponsesMediaFromCanonical.image(sameDialect), transformBuffer);
+            }
+
+            return imagePipeline;
+        }
+
+        private LlmSectionPipeline documentPipeline()
+        {
+            if (documentPipeline == null)
+            {
+                documentPipeline = new LlmSectionPipeline(LlmOpenaiResponsesMediaFromCanonical.document(sameDialect),
+                    transformBuffer);
+            }
+
+            return documentPipeline;
+        }
+
+        private LlmSectionPipeline audioPipeline()
+        {
+            if (audioPipeline == null)
+            {
+                audioPipeline = new LlmSectionPipeline(LlmOpenaiMediaFromCanonical.audio(sameDialect), transformBuffer);
+            }
+
+            return audioPipeline;
+        }
+
+        private LlmSectionPipeline citationsPipeline()
+        {
+            if (citationsPipeline == null)
+            {
+                citationsPipeline = new LlmSectionPipeline(LlmOpenaiResponsesCitationsFromCanonical.array(sameDialect),
+                    transformBuffer);
+            }
+
+            return citationsPipeline;
+        }
+
+        private LlmSectionPipeline reasoningPipeline()
+        {
+            if (reasoningPipeline == null)
+            {
+                reasoningPipeline = new LlmSectionPipeline(new LlmOpenaiResponsesReasoningFromCanonical(sameDialect),
+                    transformBuffer);
+            }
+
+            return reasoningPipeline;
         }
 
         private LlmSectionPipeline toolDefinitionPipeline()
@@ -5031,28 +5869,88 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             }
         }
 
+        private void onReasoningText(
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            if (reasoningState == REASONING_SUMMARY)
+            {
+                if (!sectionArrayPart)
+                {
+                    generator.writeStartObject().write(MEMBER_TYPE, PART_SUMMARY_TEXT).writeKey(MEMBER_TEXT);
+                    generator.writeStartEscaped();
+                    sectionArrayPart = true;
+                }
+
+                putEscaped(buffer, offset, length);
+            }
+            else
+            {
+                encodeFailed = true;
+            }
+        }
+
+        private void putReasoningMembers(
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            if (length > 0)
+            {
+                if (reasoningState == REASONING_SUMMARY)
+                {
+                    closeSummaryPart();
+                    generator.writeEnd();
+                    putRaw(ITEM_SEPARATOR, 0, ITEM_SEPARATOR.capacity());
+                    reasoningState = REASONING_MEMBERS;
+                }
+
+                putRaw(buffer, offset, length);
+            }
+        }
+
+        private void closeSummaryPart()
+        {
+            if (sectionArrayPart)
+            {
+                generator.writeEndEscaped().writeEnd();
+                sectionArrayPart = false;
+            }
+        }
+
         private int modelRoom()
         {
             return stream.model != null ? stream.model.length() * ESCAPE_EXPANSION : 0;
         }
 
+        private boolean annotatable(
+            int message)
+        {
+            return message == messageIndex &&
+                ROLE_ASSISTANT.equals(messageRole) &&
+                (contentState == CONTENT_HELD || contentState == CONTENT_PART);
+        }
+
         private void doEncodeSectionBegin(
-            int kind,
+            int requested,
             int message,
             String toolCallId,
             String itemType)
         {
+            final int kind = requested == KIND_CITATIONS && !annotatable(message) ? KIND_DROPPED : requested;
             final boolean continuation = kind == KIND_SERVER_TOOL_RESULT &&
                 pendingItemType != null &&
                 pendingItemType.equals(itemType) &&
                 pendingItemId != null &&
                 pendingItemId.equals(toolCallId);
+            final boolean summarizing = kind == KIND_ASSISTANT_REASONING && reasoningState == REASONING_SUMMARY;
             final boolean instructions = kind == KIND_SYSTEM_INSTRUCTION && instructionsMessage == NO_MESSAGE;
             final boolean regional = kind == KIND_CONTROL ||
                 kind == KIND_TOOL_DEFINITION ||
                 kind == KIND_SERVER_TOOL_DEFINITION;
 
-            if (kind != KIND_DROPPED && !continuation)
+            if (kind != KIND_DROPPED && !continuation && !summarizing)
             {
                 closePendingItem();
             }
@@ -5089,14 +5987,30 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                 {
                     beginInstructions(message);
                 }
+                else if (kind == KIND_ASSISTANT_REASONING)
+                {
+                    beginReasoning(summarizing);
+                }
                 else if (item(kind))
                 {
                     beginItem(continuation);
                 }
+                else if (kind == KIND_CITATIONS)
+                {
+                    beginCitations();
+                }
                 else
                 {
                     ensureMessage(kind, message, toolCallId);
-                    beginText();
+
+                    if (part(kind))
+                    {
+                        beginPart();
+                    }
+                    else
+                    {
+                        beginText(kind);
+                    }
                 }
 
                 if (translated && !encodeFailed)
@@ -5146,6 +6060,11 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             {
             case KIND_CONTROL:
                 beginSectionStreaming(pipelineFor(kind), controlOutput);
+                break;
+            case KIND_ASSISTANT_REASONING:
+                reasoningText.begin();
+                reasoningPipeline().begin(sectionAttributes);
+                reasoningMembers.reset();
                 break;
             case KIND_SERVER_TOOL_CALL:
                 callOutput.begin();
@@ -5208,17 +6127,62 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             }
         }
 
+        private void beginReasoning(
+            boolean summarizing)
+        {
+            if (!summarizing)
+            {
+                openInput();
+                closeMessage();
+
+                generator.writeStartObject().write(MEMBER_TYPE, TYPE_REASONING).writeStartArray(MEMBER_SUMMARY);
+                pendingItemType = TYPE_REASONING;
+                reasoningState = REASONING_SUMMARY;
+            }
+        }
+
         private void closePendingItem()
         {
             if (pendingItemType != null && beginEncode(ENCODE_STRUCTURE))
             {
-                generator.writeSegment(OBJECT_CLOSE, 0, OBJECT_CLOSE.capacity(), Completion.INCOMPLETE);
-                generator.writeSegment(EMPTY_BUFFER, 0, 0, Completion.COMPLETE);
-                rawOpen = false;
+                if (reasoningState == REASONING_SUMMARY)
+                {
+                    generator.writeEnd().writeEnd();
+                    reasoningState = REASONING_CLOSED;
+                }
+                else
+                {
+                    generator.writeSegment(OBJECT_CLOSE, 0, OBJECT_CLOSE.capacity(), Completion.INCOMPLETE);
+                    generator.writeSegment(EMPTY_BUFFER, 0, 0, Completion.COMPLETE);
+                    rawOpen = false;
+                }
+
                 pendingItemType = null;
                 pendingItemId = null;
                 endEncode();
             }
+        }
+
+        private void endReasoning()
+        {
+            closeSummaryPart();
+
+            if (reasoningState == REASONING_MEMBERS)
+            {
+                generator.writeEnd();
+                reasoningState = REASONING_CLOSED;
+                pendingItemType = null;
+            }
+        }
+
+        private void beginCitations()
+        {
+            if (contentState == CONTENT_HELD)
+            {
+                commitPart();
+            }
+
+            generator.writeKey(MEMBER_ANNOTATIONS);
         }
 
         private void beginSectionStreaming(
@@ -5443,11 +6407,38 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                     encodeFailed = true;
                 }
             }
+            else if (translated && sectionKind == KIND_ASSISTANT_REASONING)
+            {
+                feedReasoning(buffer, offset, length, fin);
+            }
             else if (!translated && sectionKind != 0 && sectionKind != KIND_DROPPED && beginEncode(0))
             {
                 putRaw(buffer, offset, length);
                 endEncode();
             }
+        }
+
+        private void feedReasoning(
+            DirectBufferEx buffer,
+            int offset,
+            int length,
+            boolean fin)
+        {
+            if (beginEncode(ENCODE_STRUCTURE))
+            {
+                if (!reasoningText.feed(buffer, offset, length, fin) ||
+                    !reasoningPipeline.feed(buffer, offset, length, fin, reasoningMembers))
+                {
+                    encodeFailed = true;
+                }
+
+                endEncode();
+            }
+        }
+
+        private boolean streaming()
+        {
+            return sectionStreaming || encodeText != null || translated && sectionKind == KIND_ASSISTANT_REASONING;
         }
 
         private void stageText(
@@ -5486,11 +6477,30 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                     endRaw();
                 }
 
+                if (sectionKind == KIND_ASSISTANT_REASONING)
+                {
+                    endReasoning();
+                }
+                else if (sectionKind == KIND_CITATIONS)
+                {
+                    generator.writeEnd();
+                    contentState = CONTENT_ARRAY;
+                }
+
                 if (sectionOpen)
                 {
                     if (sectionArrayPart)
                     {
-                        generator.writeEndEscaped().writeEnd();
+                        generator.writeEndEscaped();
+
+                        if (sectionKind == KIND_ASSISTANT_TEXT)
+                        {
+                            contentState = CONTENT_PART;
+                        }
+                        else
+                        {
+                            generator.writeEnd();
+                        }
                     }
                     else if (contentState != CONTENT_HELD)
                     {
@@ -5623,26 +6633,45 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             {
                 generator.writeEnd();
             }
+            else if (contentState == CONTENT_PART)
+            {
+                generator.writeEnd().writeEnd();
+            }
 
             contentState = CONTENT_CLOSED;
         }
 
-        private void beginText()
+        private void beginText(
+            int kind)
         {
             switch (contentState)
             {
             case CONTENT_NONE:
-                holdSlot = stagePool.acquire(initialId);
-                holdLength = 0;
-                encodeFailed |= holdSlot == NO_SLOT;
-                contentState = CONTENT_HELD;
+                if (kind == KIND_ASSISTANT_REFUSAL)
+                {
+                    generator.writeStartArray(contentKey());
+                    contentState = CONTENT_ARRAY;
+                    beginTextPart(kind);
+                }
+                else
+                {
+                    holdSlot = stagePool.acquire(initialId);
+                    holdLength = 0;
+                    encodeFailed |= holdSlot == NO_SLOT;
+                    contentState = CONTENT_HELD;
+                }
                 break;
             case CONTENT_HELD:
                 commitArray(false);
-                beginTextPart();
+                beginTextPart(kind);
                 break;
             case CONTENT_ARRAY:
-                beginTextPart();
+                beginTextPart(kind);
+                break;
+            case CONTENT_PART:
+                generator.writeEnd();
+                contentState = CONTENT_ARRAY;
+                beginTextPart(kind);
                 break;
             default:
                 encodeFailed = true;
@@ -5652,9 +6681,37 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             sectionOpen = !encodeFailed;
         }
 
-        private void beginTextPart()
+        private void beginPart()
         {
-            generator.writeStartObject().write(MEMBER_TYPE, partType()).writeKey(MEMBER_TEXT);
+            switch (contentState)
+            {
+            case CONTENT_NONE:
+                generator.writeStartArray(contentKey());
+                contentState = CONTENT_ARRAY;
+                break;
+            case CONTENT_HELD:
+                commitArray(false);
+                break;
+            case CONTENT_ARRAY:
+                break;
+            case CONTENT_PART:
+                generator.writeEnd();
+                contentState = CONTENT_ARRAY;
+                break;
+            default:
+                encodeFailed = true;
+                break;
+            }
+        }
+
+        private void beginTextPart(
+            int kind)
+        {
+            final boolean refusal = kind == KIND_ASSISTANT_REFUSAL;
+
+            generator.writeStartObject()
+                .write(MEMBER_TYPE, refusal ? PART_REFUSAL : partType())
+                .writeKey(refusal ? MEMBER_REFUSAL : MEMBER_TEXT);
             generator.writeStartEscaped();
             sectionArrayPart = true;
         }
@@ -5662,6 +6719,22 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         private String partType()
         {
             return ROLE_ASSISTANT.equals(messageRole) ? PART_OUTPUT_TEXT : PART_INPUT_TEXT;
+        }
+
+        private void commitPart()
+        {
+            generator.writeStartArray(contentKey());
+            generator.writeStartObject().write(MEMBER_TYPE, PART_OUTPUT_TEXT).writeKey(MEMBER_TEXT);
+            generator.writeStartEscaped();
+
+            if (holdLength > 0)
+            {
+                generator.writeSegment(stagePool.buffer(holdSlot), 0, holdLength);
+            }
+
+            generator.writeEndEscaped();
+            releaseHold();
+            contentState = CONTENT_PART;
         }
 
         private void commitString()

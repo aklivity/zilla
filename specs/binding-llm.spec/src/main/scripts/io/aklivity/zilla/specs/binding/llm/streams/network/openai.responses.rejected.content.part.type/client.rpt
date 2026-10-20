@@ -28,7 +28,7 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-write "{\"model\":\"gpt-4\",\"input\":[{\"role\":\"user\",\"content\":[{\"type\":\"input_image\",\"image_url\":\"https://x/y.png\"}]}]}"
+write "{\"model\":\"gpt-4\",\"input\":[{\"role\":\"user\",\"content\":[{\"type\":\"input_video\",\"video_url\":\"https://x/y.mp4\"}]}]}"
 
 write aborted
 
@@ -38,6 +38,6 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("content-type", "application/json")
                            .build()}
 
-read "{\"error\":{\"message\":\"Unsupported content part type: 'input_image'.\",\"type\":\"invalid_request_error\",\"param\":null,\"code\":null}}"
+read "{\"error\":{\"message\":\"Unsupported content part type: 'input_video'.\",\"type\":\"invalid_request_error\",\"param\":null,\"code\":null}}"
 
 read closed
