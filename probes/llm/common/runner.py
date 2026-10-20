@@ -86,7 +86,8 @@ def run(args, env=os.environ):
         for target in targets:
             ctx = {"constants": constants, "models": models, "zilla_ref": args.zilla_ref,
                    "timeout": args.timeout, "seen_headers": []}
-            for probe in probes:
+            skipped_areas = provider.get("zilla_skip_areas", []) if target.via == "zilla" else []
+            for probe in [p for p in probes if p["area_id"] not in skipped_areas]:
                 if target.via == "zilla" and not bearer:
                     probe = dict(probe, zilla={"unsupported": "provider auth is not a Bearer Authorization header"})
                 records.append(engine.run_probe(probe, provider, target, ctx, budget, scrub))

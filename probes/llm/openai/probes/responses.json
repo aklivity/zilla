@@ -20,7 +20,9 @@
               "$model": "model"
             },
             "input": "Reply with the word: hello",
-            "max_output_tokens": 256
+            "max_output_tokens": {
+              "$responses_cap": 256
+            }
           }
         }
       ],
@@ -96,7 +98,9 @@
               "$model": "model"
             },
             "input": "Reply with the word: hello",
-            "max_output_tokens": 256,
+            "max_output_tokens": {
+              "$responses_cap": 256
+            },
             "store": true
           }
         }

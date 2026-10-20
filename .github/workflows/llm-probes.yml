@@ -155,7 +155,7 @@ jobs:
     needs: setup
     if: needs.setup.outputs.count != '0'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     environment: llm-probes
     strategy:
       fail-fast: false

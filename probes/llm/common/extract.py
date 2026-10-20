@@ -176,7 +176,9 @@ def effort_compare(facts, args, ctx):
             kind = "completion_tokens"
         measures[label] = (tokens, kind)
     low, high = measures["low"][0], measures["high"][0]
-    return {"low": low, "high": high, "kind": measures["high"][1], "effective": high >= max(low * 1.25, low + 20)}
+    capped = all(jsonpath.get(facts[args[label]], "json.choices[0].finish_reason") == "length" for label in ("low", "high"))
+    return {"low": low, "high": high, "kind": measures["high"][1], "capped": capped,
+            "effective": high >= max(low * 1.25, low + 20)}
 
 
 @derive("cached_tokens")

@@ -90,6 +90,8 @@ def resolve(value, facts, ctx):
         if "$cap" in value:
             result = {k: resolve(v, facts, ctx) for k, v in value.items() if k != "$cap"}
             result[ctx["cap_param"]] = ctx["cap_override"] or max(value["$cap"], ctx["baseline_cap"])
+        elif "$responses_cap" in value:
+            result = ctx["responses_cap"] or value["$responses_cap"]
         elif "$ref" in value:
             result = jsonpath.get(facts, value["$ref"])
         elif "$const" in value:
@@ -209,6 +211,7 @@ def _execute(probe, provider, target, ctx, budget, record):
     ctx_models["model"] = ctx_models["reasoning" if probe.get("model") == "reasoning" else "chat"]
     local = {"constants": ctx["constants"], "models": ctx_models, "cap_param": provider.get("cap_param", "max_tokens"),
              "baseline_cap": provider.get("baseline_cap", BASELINE_CAP),
+             "responses_cap": provider.get("responses_cap"),
              "cap_override": provider.get("reasoning_cap") if probe.get("model") == "reasoning" else None}
     derive_ctx = {"constants": ctx["constants"], "models": ctx_models, "seen_headers": ctx["seen_headers"]}
     prompt_tokens = completion_tokens = 0

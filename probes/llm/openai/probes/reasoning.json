@@ -166,6 +166,15 @@
         },
         {
           "when": {
+            "path": "e.capped",
+            "op": "eq",
+            "value": true
+          },
+          "outcome": "not-applicable",
+          "observed": "both calls hit the output cap ({e.kind} low={e.low} high={e.high}); effect not measurable"
+        },
+        {
+          "when": {
             "path": "e.effective",
             "op": "eq",
             "value": true

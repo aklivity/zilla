@@ -4515,7 +4515,12 @@
           "enable_thinking": false
         }
       },
-      "reasoning_cap": 400
+      "reasoning_cap": 150,
+      "responses_cap": 64,
+      "zilla_skip_areas": [
+        "reasoning",
+        "reasoning-replay"
+      ]
     },
     {
       "id": "ollama",
@@ -4682,7 +4687,12 @@
       "baseline_params": {
         "reasoning_effort": "none"
       },
-      "reasoning_cap": 400
+      "reasoning_cap": 150,
+      "responses_cap": 64,
+      "zilla_skip_areas": [
+        "reasoning",
+        "reasoning-replay"
+      ]
     },
     {
       "id": "sglang",
@@ -4840,7 +4850,12 @@
           "enable_thinking": false
         }
       },
-      "reasoning_cap": 400
+      "reasoning_cap": 150,
+      "responses_cap": 64,
+      "zilla_skip_areas": [
+        "reasoning",
+        "reasoning-replay"
+      ]
     },
     {
       "id": "vllm",
@@ -5021,7 +5036,12 @@
           "enable_thinking": false
         }
       },
-      "reasoning_cap": 400
+      "reasoning_cap": 150,
+      "responses_cap": 64,
+      "zilla_skip_areas": [
+        "reasoning",
+        "reasoning-replay"
+      ]
     },
     {
       "id": "baseten",

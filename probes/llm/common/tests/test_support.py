@@ -65,6 +65,15 @@ class ScanTests(unittest.TestCase):
         self.assertNotIn("sk-test-abcdef123456", scrub.text("https://x/v1?key=sk-test-abcdef123456 and sk-test-abcdef123456"))
 
 
+class EffortTests(unittest.TestCase):
+    def test_both_capped_is_not_measurable(self):
+        from .. import extract
+        step = {"json": {"choices": [{"finish_reason": "length"}], "usage": {"completion_tokens": 150}}}
+        result = extract.FUNCS["effort_compare"]({"low": step, "high": step}, {"low": "low", "high": "high"}, {})
+        self.assertTrue(result["capped"])
+        self.assertFalse(result["effective"])
+
+
 class ReplayTests(unittest.TestCase):
     def test_replay_accepted_when_reasoning_field_is_returned(self):
         _, _, got, _, _ = run_against({"reasoning": "reasoning_content"}, probes="reasoning-replay")
