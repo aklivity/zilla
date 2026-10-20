@@ -588,4 +588,15 @@ public class LlmProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/openai.responses.proxy/client",
+        "${app}/openai.responses.proxy/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRouteOpenaiResponsesToAppZeroByVendor() throws Exception
+    {
+        k3po.finish();
+    }
 }

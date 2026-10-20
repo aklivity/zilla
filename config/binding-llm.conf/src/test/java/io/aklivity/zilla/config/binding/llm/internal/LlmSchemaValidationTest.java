@@ -74,6 +74,26 @@ public class LlmSchemaValidationTest
     }
 
     @Test
+    public void shouldAcceptServerWithOpenaiResponsesDialect()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: server
+                options:
+                  dialect: openai/responses
+                exit: app0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
     public void shouldAcceptServerWithAnthropicDialect()
     {
         String text =
@@ -123,6 +143,27 @@ public class LlmSchemaValidationTest
                 kind: client
                 options:
                   dialect: openai
+                  server: http://example.com:8080
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptClientWithOpenaiResponsesDialect()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai/responses
                   server: http://example.com:8080
                 exit: net0
             """;
@@ -433,6 +474,31 @@ public class LlmSchemaValidationTest
                   - dialect: openai
                     model: [ gpt-4o, gpt-4o-mini ]
                   exit: app0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptProxyWithRoutesWhenOpenaiResponsesDialect()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                routes:
+                - when:
+                  - dialect: openai/responses
+                    model: [ gpt-4.1-mini ]
+                  exit: app0
+                - when:
+                  - dialect: openai
+                  exit: app1
             """;
 
         EngineConfig engine = reader.read(text);
