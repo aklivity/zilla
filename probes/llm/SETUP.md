@@ -92,7 +92,7 @@ Then widen in steps:
 Notes:
 
 - `zilla_ref` is a published image tag, or a git ref built from source. No `develop` image is published, so `develop`
-  builds Zilla in the workflow, which uses many Actions minutes. For routine runs pass a published tag such as `2.6.0-rc1`.
+  builds Zilla in the workflow with `./mvnw clean install -DskipTests`, which uses more Actions minutes than a pull. For routine runs a published tag such as `2.6.0-rc1` is quicker.
 - `via=direct` skips Zilla entirely (no image pull or build).
 - `budget_usd` is split equally between hosted providers; the runner stops probing a provider when its share is spent.
 - Results: the run summary shows the chart; the `llm-probes-merged` artifact has `COMPATIBILITY.md` and `merged.json`;

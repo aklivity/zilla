@@ -135,7 +135,7 @@ jobs:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          ./mvnw -B -nsu -ntp -DskipTests -DskipITs -Ddocker.logStdout install -pl cloud/docker-image -am
+          ./mvnw -B -nsu -ntp clean install -DskipTests
           image=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep '^ghcr.io/aklivity/zilla:' | grep -v -- '-alpine$' | head -n 1)
           test -n "$image"
           echo "image=$image" >> "$GITHUB_OUTPUT"
