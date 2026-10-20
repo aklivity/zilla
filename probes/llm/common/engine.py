@@ -228,6 +228,7 @@ def _execute(probe, provider, target, ctx, budget, record):
         facts[step["id"]] = result
         executed.append(step["id"])
         ctx["seen_headers"].append(result["headers"])
+        record["retries"] = record.get("retries", 0) + result.get("retries", 0)
         prompt, completion = extract.usage_tokens(result)
         prompt_tokens += prompt
         completion_tokens += completion

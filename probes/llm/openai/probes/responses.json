@@ -8,7 +8,7 @@
         "responses"
       ],
       "zilla": {
-        "unsupported": "binding-llm openai dialect serves /v1/chat/completions only; /v1/responses is not expressible through llm(server)"
+        "unsupported": "binding-llm openai server serves chat completions only; /v1/responses is not expressible through llm(server) until aklivity/zilla#2761 is released"
       },
       "steps": [
         {
@@ -86,7 +86,7 @@
         "responses"
       ],
       "zilla": {
-        "unsupported": "binding-llm openai dialect serves /v1/chat/completions only; /v1/responses is not expressible through llm(server)"
+        "unsupported": "binding-llm openai server serves chat completions only; /v1/responses is not expressible through llm(server) until aklivity/zilla#2761 is released"
       },
       "steps": [
         {

@@ -4,6 +4,8 @@ Live, behavioural probes that measure how closely OpenAI-compatible providers fo
 `llm(server)` → `llm(client)` pair with the `openai` dialect (endpoint and credentials only) passes each behaviour through.
 Each probe is sent twice: directly to the provider, and through a Zilla container started from the image for `zilla_ref`.
 
+Setup (environment, keys) and targeted runs: see [SETUP.md](SETUP.md).
+
 Run it from the Actions tab: **llm-probes** (`workflow_dispatch` only). The chart is written to the run summary and uploaded,
 with the merged JSON, as the `llm-probes-merged` artifact.
 

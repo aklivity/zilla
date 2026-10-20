@@ -20,6 +20,7 @@ import time
 from urllib.parse import urlsplit
 
 MAX_RETRY_WAIT = 20
+GATEWAY_ERRORS = (502, 503, 504)
 MAX_STREAM_BYTES = 2_000_000
 
 
@@ -106,7 +107,8 @@ def send(method, url, headers, body=None, stream=False, timeout=90, retries=2, s
         sleep(delay)
         attempt += 1
         result = _once(method, url, headers, body, stream, timeout)
-    if result["error"] and retries:
+    if (result["error"] or result["status"] in GATEWAY_ERRORS) and retries:
+        sleep(1)
         result = _once(method, url, headers, body, stream, timeout)
         attempt += 1
     result["retries"] = attempt

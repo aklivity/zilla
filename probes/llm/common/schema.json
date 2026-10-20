@@ -177,6 +177,10 @@
                 "cost_usd": {
                     "type": "number"
                 },
+                "retries": {
+                    "type": "integer",
+                    "description": "requests retried after a 429 or a gateway error"
+                },
                 "elapsed_ms": {
                     "type": "integer",
                     "description": "total time spent in the probe's requests"

@@ -65,6 +65,34 @@ class ScanTests(unittest.TestCase):
         self.assertNotIn("sk-test-abcdef123456", scrub.text("https://x/v1?key=sk-test-abcdef123456 and sk-test-abcdef123456"))
 
 
+class RetryTests(unittest.TestCase):
+    def test_gateway_error_is_retried_once(self):
+        import threading
+        from http.server import BaseHTTPRequestHandler, HTTPServer
+        from .. import client
+        calls = []
+
+        class Flaky(BaseHTTPRequestHandler):
+            def do_POST(self):
+                calls.append(1)
+                self.rfile.read(int(self.headers.get("Content-Length", 0)))
+                status = 503 if len(calls) == 1 else 200
+                body = b"{}"
+                self.send_response(status)
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            def log_message(self, *args):
+                return None
+
+        server = HTTPServer(("127.0.0.1", 0), Flaky)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        result = client.send("POST", f"http://127.0.0.1:{server.server_address[1]}/x", {}, {"a": 1}, sleep=lambda _: None)
+        server.shutdown()
+        self.assertEqual((result["status"], result["retries"], len(calls)), (200, 1, 2))
+
+
 class EffortTests(unittest.TestCase):
     def test_both_capped_is_not_measurable(self):
         from .. import extract
