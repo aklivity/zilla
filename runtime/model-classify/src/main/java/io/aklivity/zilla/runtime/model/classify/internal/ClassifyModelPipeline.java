@@ -26,17 +26,32 @@ import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 
+// Presents a value to the classifiers as it arrives. Whenever no classification is in flight, the text that has arrived
+// since the last one is classified together with the trailing overlap of what was classified before, so a pattern
+// straddling two classifications is seen whole; text that arrives meanwhile waits and is classified as one. Nothing is
+// released until the text outgrows the overlap, or the value ends. What passes is relayed, apart from its trailing
+// overlap, which is held until the next classification passes or the value ends. A rejection rejects the value, so the
+// text relayed before it is the only part of the value the caller has seen. An overlap of the full length holds the
+// value until it is complete and classifies it once.
 final class ClassifyModelPipeline implements ModelPipeline
 {
+    private static final long NO_FIN = -1L;
+
     private final List<Detector> detectors;
     private final int maxLength;
+    private final int overlap;
     private final Runnable resumed;
     private final ExpandableArrayBufferEx buffer;
     private final ModelPipelineResult result;
     private final Detector.CompletionCallback completion;
 
-    private int length;
-    private int drained;
+    private long base;
+    private long length;
+    private long drained;
+    private long released;
+    private long verified;
+    private long detectEnd;
+    private long finLength;
     private int detecting;
     private boolean awaiting;
     private ModelStatus resolved;
@@ -45,13 +60,16 @@ final class ClassifyModelPipeline implements ModelPipeline
     ClassifyModelPipeline(
         List<Detector> detectors,
         int maxLength,
+        int overlap,
         Runnable resumed)
     {
         this.detectors = detectors;
         this.maxLength = maxLength;
+        this.overlap = overlap;
         this.resumed = resumed;
         this.buffer = new ExpandableArrayBufferEx();
         this.result = new ModelPipelineResult();
+        this.finLength = NO_FIN;
         this.completion = new Detector.CompletionCallback()
         {
             @Override
@@ -93,53 +111,43 @@ final class ClassifyModelPipeline implements ModelPipeline
         {
             status = ModelStatus.REJECTED;
         }
-        else if (resolved == ModelStatus.OK)
-        {
-            int remaining = length - drained;
-
-            if (dst.isExpandable())
-            {
-                final int required = dstIndex + remaining;
-                if (required > dst.capacity())
-                {
-                    dst.checkLimit(required);
-                }
-                dstLimit = Math.max(dstLimit, dst.capacity());
-            }
-
-            int available = Math.min(remaining, dstLimit - dstIndex);
-            dst.putBytes(dstIndex, buffer, drained, available);
-            drained += available;
-            produced = available;
-            status = drained < length ? ModelStatus.OVERFLOW : ModelStatus.COMPLETE;
-        }
         else if (awaiting)
         {
             status = ModelStatus.SUSPENDED;
         }
         else
         {
-            int available = srcLimit - srcIndex;
+            final int available = srcLimit - srcIndex;
 
-            if (length + available > maxLength)
+            if (length - drained + available > maxLength)
             {
                 resolved = ModelStatus.REJECTED;
                 status = ModelStatus.REJECTED;
             }
             else
             {
-                buffer.putBytes(length, src, srcIndex, available);
+                buffer.putBytes((int) (length - base), src, srcIndex, available);
                 length += available;
                 consumed = available;
 
                 if (hasFin(flags))
+                {
+                    finLength = length;
+                }
+
+                if (length - verified > 0 && (finLength != NO_FIN || length > overlap))
                 {
                     detect(traceId, bindingId);
                     status = ModelStatus.SUSPENDED;
                 }
                 else
                 {
-                    status = ModelStatus.UNDERFLOW;
+                    release();
+                    produced = drain(dst, dstIndex, dstLimit);
+
+                    status = drained < released ? ModelStatus.OVERFLOW
+                        : drained == finLength ? ModelStatus.COMPLETE
+                        : ModelStatus.UNDERFLOW;
                 }
             }
         }
@@ -162,12 +170,77 @@ final class ClassifyModelPipeline implements ModelPipeline
     @Override
     public void reset()
     {
-        length = 0;
-        drained = 0;
+        base = 0L;
+        length = 0L;
+        drained = 0L;
+        released = 0L;
+        verified = 0L;
+        detectEnd = 0L;
+        finLength = NO_FIN;
         detecting = 0;
         awaiting = false;
         resolved = null;
         generation++;
+    }
+
+    private void release()
+    {
+        final long bound = finLength != NO_FIN && verified == length ? length : verified - overlap;
+
+        released = Math.max(released, boundary(bound));
+    }
+
+    private long boundary(
+        long position)
+    {
+        long aligned = position;
+
+        while (aligned > drained && aligned < length && (buffer.getByte((int) (aligned - base)) & 0xC0) == 0x80)
+        {
+            aligned--;
+        }
+
+        return aligned;
+    }
+
+    private int drain(
+        MutableDirectBufferEx dst,
+        int dstIndex,
+        int dstLimit)
+    {
+        final int remaining = (int) (released - drained);
+        int limit = dstLimit;
+
+        if (dst.isExpandable())
+        {
+            final int required = dstIndex + remaining;
+            if (required > dst.capacity())
+            {
+                dst.checkLimit(required);
+            }
+            limit = Math.max(limit, dst.capacity());
+        }
+
+        final int available = Math.min(remaining, limit - dstIndex);
+
+        dst.putBytes(dstIndex, buffer, (int) (drained - base), available);
+        drained += available;
+        compact();
+
+        return available;
+    }
+
+    private void compact()
+    {
+        final int shift = (int) (drained - base);
+
+        if (shift > 0)
+        {
+            final byte[] bytes = buffer.byteArray();
+
+            System.arraycopy(bytes, shift, bytes, 0, (int) (length - drained));
+            base = drained;
+        }
     }
 
     private void detect(
@@ -176,8 +249,12 @@ final class ClassifyModelPipeline implements ModelPipeline
     {
         awaiting = true;
         detecting = detectors.size();
+        detectEnd = length;
+
         final long contextId = ++generation;
-        final String text = buffer.getStringWithoutLengthUtf8(0, length);
+        final int from = (int) (boundary(Math.max(verified - overlap, drained)) - base);
+        final String text = buffer.getStringWithoutLengthUtf8(from, (int) (detectEnd - base) - from);
+
         detectors.forEach(detector -> detector.detect(traceId, bindingId, contextId, text, completion));
     }
 
@@ -193,10 +270,11 @@ final class ClassifyModelPipeline implements ModelPipeline
             }
             else if (--detecting == 0)
             {
-                resolved = ModelStatus.OK;
+                verified = detectEnd;
+                release();
             }
 
-            if (resolved != null)
+            if (resolved != null || detecting == 0)
             {
                 awaiting = false;
                 resumed.run();

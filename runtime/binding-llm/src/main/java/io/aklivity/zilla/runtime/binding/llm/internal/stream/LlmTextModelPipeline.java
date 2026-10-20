@@ -31,9 +31,8 @@ import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.util.Flags;
 
 // A section is a `{"text":…}` object, decoded on arrival and presented to the chain as one continuous text value.
-// The chain is fed all but the trailing overlap bytes of what has arrived, so a pattern straddling two fragments is
-// seen whole; what the chain produces for the bytes it was fed is embedded in an object of the section being
-// delivered, and the held bytes are fed when more text arrives or the section ends.
+// The chain is fed all of what has arrived, and what it produces is embedded in an object of the section being
+// delivered; a chain that needs context across fragments retains it itself.
 final class LlmTextModelPipeline implements LlmGuardPipeline
 {
     private static final String MEMBER_TEXT = "text";
@@ -46,7 +45,6 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
     private static final DirectBufferEx EMPTY_TEXT = new UnsafeBufferEx(new byte[0]);
 
     private final ModelPipeline pipeline;
-    private final int overlap;
     private final BufferPool pool;
     private final long streamId;
     private final MutableDirectBufferEx transformBuffer;
@@ -68,13 +66,11 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
 
     LlmTextModelPipeline(
         ModelPipeline pipeline,
-        int overlap,
         BufferPool pool,
         long streamId,
         MutableDirectBufferEx transformBuffer)
     {
         this.pipeline = pipeline;
-        this.overlap = overlap;
         this.pool = pool;
         this.streamId = streamId;
         this.transformBuffer = transformBuffer;
@@ -140,7 +136,7 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
         }
         else
         {
-            outcome = run(traceId, bindingId, authorization, 0, feedLimit(false), consumed, dst, dstIndex, dstLimit);
+            outcome = run(traceId, bindingId, authorization, 0, consumed, dst, dstIndex, dstLimit);
         }
 
         return outcome;
@@ -155,7 +151,7 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
         int dstIndex,
         int dstLimit)
     {
-        return run(traceId, bindingId, authorization, Flags.FIN, feedLimit(true), 0, dst, dstIndex, dstLimit);
+        return run(traceId, bindingId, authorization, Flags.FIN, 0, dst, dstIndex, dstLimit);
     }
 
     @Override
@@ -257,7 +253,6 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
         long bindingId,
         long authorization,
         int flags,
-        int limit,
         int consumed,
         MutableDirectBufferEx dst,
         int dstIndex,
@@ -269,7 +264,7 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
         ModelRejection rejection = null;
         int produced = 0;
 
-        if (limit > textProgress || fin)
+        if (textLength > textProgress || fin)
         {
             final int innerFlags = started ? flags : flags | Flags.INIT;
 
@@ -277,7 +272,7 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
                 transformBuffer.capacity());
 
             final ModelPipelineResult inner = pipeline.transform(traceId, bindingId, authorization, innerFlags,
-                slot != NO_SLOT ? slotBuffer : EMPTY_TEXT, textProgress, limit, transformBuffer, 0, room);
+                slot != NO_SLOT ? slotBuffer : EMPTY_TEXT, textProgress, textLength, transformBuffer, 0, room);
 
             status = inner.status();
             rejection = inner.rejection();
@@ -289,24 +284,6 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
         }
 
         return result.set(status, consumed, produced, rejection);
-    }
-
-    private int feedLimit(
-        boolean flush)
-    {
-        int limit = textLength;
-
-        if (!flush)
-        {
-            limit = Math.max(textLength - overlap, textProgress);
-
-            while (limit > textProgress && limit < textLength && (slotBuffer.getByte(limit) & 0xC0) == 0x80)
-            {
-                limit--;
-            }
-        }
-
-        return limit;
     }
 
     private int embed(

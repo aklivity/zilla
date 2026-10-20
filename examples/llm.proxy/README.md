@@ -207,10 +207,11 @@ one of the labels listed under `reject`. The classifiers are declared at the top
 - **Both directions.** A `response` stage applies to the sections the upstream produces. When a stage rejects
   one, the caller never receives it: the proxy aborts the response toward the caller and resets the upstream. A
   `gpt-4o` response that carries a private key is withheld by the `assistant-text` stage: the SDK reports a
-  failed connection. A streamed reply is one section
-  however the upstream splits it into deltas, so a `classify` stage, which needs the whole value to label it, holds
-  the reply until the section is complete and then relays it: the caller sees it arrive at the end, not as it is
-  generated.
+  failed connection. A streamed response is one section
+  delivered in fragments. On a `response` stage the `classify` model checks the text as it arrives, together with the
+  trailing overlap of the text already checked, so a pattern that spans fragments is still matched. What passes is
+  relayed as it passes, apart from the overlap, and a rejection aborts the response after the text already relayed. On a
+  `request` stage the value is classified and relayed once it is complete.
 - **Fallback.** A request that falls back to another model passes through the stages of the requested model,
   followed by those of the model it falls back to. `claude-unreachable` has no stages of its own, so a prompt
   over 200 characters sent to it is rejected by the stage of `claude-3-5-haiku-20241022`, the model it falls
