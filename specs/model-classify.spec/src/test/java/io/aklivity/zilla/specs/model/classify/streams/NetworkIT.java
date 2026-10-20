@@ -48,6 +48,16 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/client.sent.text.fragmented.accepted/client",
+        "${net}/client.sent.text.fragmented.accepted/server"
+    })
+    public void shouldForwardFragmentedAcceptedTextWhole() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/client.sent.text.rejected/client",
         "${net}/client.sent.text.rejected/server"
     })

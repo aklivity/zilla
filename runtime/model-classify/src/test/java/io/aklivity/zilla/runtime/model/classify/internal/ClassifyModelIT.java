@@ -62,6 +62,32 @@ public class ClassifyModelIT
 
     @Test
     @Configuration("reject.yaml")
+    @Configure(name = CLASSIFY_WINDOW_NAME, value = "16")
+    @Configure(name = CLASSIFY_OVERLAP_NAME, value = "4")
+    @Specification({
+        "${net}/client.sent.text.fragmented.accepted/client",
+        "${app}/client.sent.text.fragmented.accepted/server"
+    })
+    public void shouldReleaseFragmentedTextWholeWithoutDirection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("reject.request.yaml")
+    @Configure(name = CLASSIFY_WINDOW_NAME, value = "16")
+    @Configure(name = CLASSIFY_OVERLAP_NAME, value = "4")
+    @Specification({
+        "${net}/client.sent.text.fragmented.accepted/client",
+        "${app}/client.sent.text.fragmented.accepted/server"
+    })
+    public void shouldReleaseFragmentedTextWholeForRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("reject.yaml")
     @Specification({
         "${net}/client.sent.text.rejected/client",
         "${app}/client.sent.text.rejected/server"
@@ -83,7 +109,7 @@ public class ClassifyModelIT
     }
 
     @Test
-    @Configuration("reject.yaml")
+    @Configuration("reject.response.yaml")
     @Configure(name = CLASSIFY_WINDOW_NAME, value = "16")
     @Configure(name = CLASSIFY_OVERLAP_NAME, value = "4")
     @Specification({
@@ -96,7 +122,7 @@ public class ClassifyModelIT
     }
 
     @Test
-    @Configuration("reject.yaml")
+    @Configuration("reject.response.yaml")
     @Configure(name = CLASSIFY_WINDOW_NAME, value = "32")
     @Configure(name = CLASSIFY_OVERLAP_NAME, value = "16")
     @Specification({
