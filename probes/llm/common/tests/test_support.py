@@ -115,6 +115,19 @@ class RetryTests(unittest.TestCase):
         self.assertEqual((result["status"], result["retries"], len(calls)), (200, 1, 2))
 
 
+class TimeoutRetryTests(unittest.TestCase):
+    def test_timeout_is_not_retried(self):
+        import socket
+        from .. import client
+        listener = socket.socket()
+        listener.bind(("127.0.0.1", 0))
+        listener.listen(5)
+        result = client.send("POST", f"http://127.0.0.1:{listener.getsockname()[1]}/x", {}, {"a": 1}, timeout=1, sleep=lambda _: None)
+        listener.close()
+        self.assertTrue(result["error"].startswith("TimeoutError"))
+        self.assertEqual(result["retries"], 0)
+
+
 class EffortTests(unittest.TestCase):
     def test_both_capped_is_not_measurable(self):
         from .. import extract

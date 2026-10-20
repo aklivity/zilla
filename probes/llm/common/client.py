@@ -107,7 +107,8 @@ def send(method, url, headers, body=None, stream=False, timeout=90, retries=2, s
         sleep(delay)
         attempt += 1
         result = _once(method, url, headers, body, stream, timeout)
-    if (result["error"] or result["status"] in GATEWAY_ERRORS) and retries:
+    retryable = result["error"] is not None and not result["error"].startswith("TimeoutError")
+    if (retryable or result["status"] in GATEWAY_ERRORS) and retries:
         sleep(1)
         result = _once(method, url, headers, body, stream, timeout)
         attempt += 1
