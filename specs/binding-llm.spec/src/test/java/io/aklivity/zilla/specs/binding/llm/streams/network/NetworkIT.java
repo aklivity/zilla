@@ -4544,4 +4544,58 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.assistant.server.tool.call/client",
+        "${net}/gemini.section.assistant.server.tool.call/server"})
+    public void shouldEncodeGeminiSectionAssistantServerToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.streaming.assistant.server.tool.call/client",
+        "${net}/gemini.streaming.assistant.server.tool.call/server"})
+    public void shouldEncodeGeminiStreamingAssistantServerToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.assistant.server.tool.call.signature/client",
+        "${net}/gemini.section.assistant.server.tool.call.signature/server"})
+    public void shouldEncodeGeminiSectionAssistantServerToolCallSignature() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.server.tool.call.history/client",
+        "${net}/gemini.section.server.tool.call.history/server"})
+    public void shouldEncodeGeminiSectionServerToolCallHistory() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.server.tool.call.history.snake/client",
+        "${net}/gemini.section.server.tool.call.history.snake/server"})
+    public void shouldEncodeGeminiSectionServerToolCallHistorySnake() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.server.tool.call.skipped/client",
+        "${net}/gemini.transform.server.tool.call.skipped/server"})
+    public void shouldEncodeGeminiTransformServerToolCallSkipped() throws Exception
+    {
+        k3po.finish();
+    }
 }

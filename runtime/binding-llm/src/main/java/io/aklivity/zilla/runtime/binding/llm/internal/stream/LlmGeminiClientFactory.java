@@ -129,6 +129,8 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final int KIND_TOOL_RESULT = 11;
     private static final int KIND_SERVER_TOOL_DEFINITION = 13;
     private static final int KIND_CONTROL = 14;
+    private static final int KIND_SERVER_TOOL_CALL = 18;
+    private static final int KIND_SERVER_TOOL_RESULT = 19;
     private static final int KIND_DROPPED = 16;
     private static final int KIND_UNSUPPORTED = 17;
     private static final int CALLS_MAX = 16;
@@ -191,6 +193,10 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final String MEMBER_OUTPUT = "output";
     private static final String MEMBER_ERROR_RESPONSE = "error";
     private static final String MEMBER_SIGNATURE = "thoughtSignature";
+    private static final String MEMBER_EXECUTABLE_CODE = "executableCode";
+    private static final String MEMBER_CODE_EXECUTION_RESULT = "codeExecutionResult";
+    private static final String SERVER_TOOL_NAME = "code_execution";
+    private static final DirectBufferEx RESULT_PREFIX = new UnsafeBufferEx("{\"codeExecutionResult\":".getBytes(UTF_8));
     private static final String MEMBER_WIRE_SIGNATURE = ",\"gemini:thoughtSignature\":\"";
     private static final String MEMBER_WIRE_ID = ",\"gemini:id\":\"";
     private static final String USAGE_PROMPT_TOKENS = "promptTokenCount";
@@ -398,7 +404,9 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         case ASSISTANT_REFUSAL -> KIND_ASSISTANT_REFUSAL;
         case TOOL_DEFINITION -> KIND_TOOL_DEFINITION;
         case SERVER_TOOL_DEFINITION -> KIND_SERVER_TOOL_DEFINITION;
-        case SERVER_TOOL_CALL, SERVER_TOOL_RESULT, CITATIONS -> KIND_DROPPED;
+        case SERVER_TOOL_CALL -> KIND_SERVER_TOOL_CALL;
+        case SERVER_TOOL_RESULT -> KIND_SERVER_TOOL_RESULT;
+        case CITATIONS -> KIND_DROPPED;
         case TOOL_CALL -> KIND_TOOL_CALL;
         case TOOL_RESULT -> KIND_TOOL_RESULT;
         case CONTROL -> KIND_CONTROL;
@@ -413,6 +421,8 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         return kind == KIND_ASSISTANT_TEXT ||
             kind == KIND_ASSISTANT_REASONING ||
             kind == KIND_ASSISTANT_REFUSAL ||
+            kind == KIND_SERVER_TOOL_CALL ||
+            kind == KIND_SERVER_TOOL_RESULT ||
             kind == KIND_TOOL_CALL ? ROLE_MODEL : ROLE_USER;
     }
 
@@ -488,6 +498,8 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private final LlmGeminiResponseDecoder decodeCallArguments = this::decodeCallArguments;
         private final LlmGeminiResponseDecoder decodeCapture = this::decodeCapture;
         private final LlmGeminiResponseDecoder decodeSignature = this::decodeSignature;
+        private final LlmGeminiResponseDecoder decodeServerCallStart = this::decodeServerCallStart;
+        private final LlmGeminiResponseDecoder decodeServerResultStart = this::decodeServerResultStart;
         private final LlmGeminiResponseDecoder decodePartHold = this::decodePartHold;
         private final LlmGeminiResponseDecoder decodeBlockText = this::decodeBlockText;
         private final LlmGeminiResponseDecoder decodeFinishReason = this::decodeFinishReason;
@@ -579,6 +591,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private String sectionToolCallId;
         private String sectionToolName;
         private String sectionSignature;
+        private String serverCallId;
         private final StringBuilder signatureBuilder = new StringBuilder();
         private LlmGeminiResponseDecoder captureThen;
         private int captureDepth;
@@ -1756,7 +1769,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
                 if (event == JsonEvent.END_OBJECT)
                 {
-                    if (sectionType == LlmSectionType.TOOL_CALL)
+                    if (callSection(sectionType))
                     {
                         closeSection();
                     }
@@ -1775,6 +1788,14 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 {
                     decoder = decodeCallStart;
                 }
+                else if (MEMBER_EXECUTABLE_CODE.contentEquals(parser.getStringView()))
+                {
+                    decoder = decodeServerCallStart;
+                }
+                else if (MEMBER_CODE_EXECUTION_RESULT.contentEquals(parser.getStringView()))
+                {
+                    decoder = decodeServerResultStart;
+                }
                 else if (MEMBER_SIGNATURE.contentEquals(parser.getStringView()))
                 {
                     signatureBuilder.setLength(0);
@@ -1787,6 +1808,75 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             }
 
             return position();
+        }
+
+        private int decodeServerCallStart(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            if (hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.START_OBJECT)
+                {
+                    closeSection();
+                    serverCallId = TOOL_CALL_ID_PREFIX + callOrdinal++;
+                    openSection(LlmSectionType.SERVER_TOOL_CALL, serverCallId, SERVER_TOOL_NAME);
+                    beginSectionObject(ARGUMENTS_PREFIX);
+                }
+                else
+                {
+                    skipAfter(event, decodePart);
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeServerResultStart(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            if (hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.START_OBJECT)
+                {
+                    closeSection();
+                    openSection(LlmSectionType.SERVER_TOOL_RESULT, serverCallId, null);
+                    beginSectionObject(RESULT_PREFIX);
+                }
+                else
+                {
+                    skipAfter(event, decodePart);
+                }
+            }
+
+            return position();
+        }
+
+        private void beginSectionObject(
+            DirectBufferEx prefix)
+        {
+            sectionStarted = true;
+            writeSection(prefix, 0, prefix.capacity(), false);
+
+            captureThen = decodePart;
+            captureDepth = 1;
+            captureFrom = position() - 1;
+            decoder = decodeCapture;
+        }
+
+        private static boolean callSection(
+            LlmSectionType type)
+        {
+            return type == LlmSectionType.TOOL_CALL ||
+                type == LlmSectionType.SERVER_TOOL_CALL ||
+                type == LlmSectionType.SERVER_TOOL_RESULT;
         }
 
         private int decodeSignature(
@@ -2987,14 +3077,14 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
         private void closeSection()
         {
-            if (sectionOpen && sectionType == LlmSectionType.TOOL_CALL && sectionSignature != null)
+            if (sectionOpen && callSection(sectionType) && sectionSignature != null)
             {
                 final int encoded = encodeToolCallEnd();
 
                 sectionOpen = false;
                 writeSection(textBuffer, 0, encoded, true);
             }
-            else if (sectionOpen && sectionType == LlmSectionType.TOOL_CALL)
+            else if (sectionOpen && callSection(sectionType))
             {
                 final DirectBufferEx end = sectionStarted ? ARGUMENTS_SUFFIX : ARGUMENTS_EMPTY;
 
@@ -3583,6 +3673,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private LlmSectionPipeline toolDefinitionPipeline;
         private LlmSectionPipeline toolCallPipeline;
         private LlmSectionPipeline serverToolPipeline;
+        private LlmSectionPipeline serverToolCallPipeline;
         private final LlmSectionPipeline[] mediaPipelines = new LlmSectionPipeline[MEDIA_KINDS];
         private LlmGeminiToolCallFromCanonical toolCallTransform;
         private LlmGeminiSignatureFromCanonical signatureTransform;
@@ -3712,6 +3803,12 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             return toolCallPipeline;
         }
 
+        private static boolean serverPart(
+            int kind)
+        {
+            return kind == KIND_ASSISTANT_REASONING || kind == KIND_SERVER_TOOL_CALL || kind == KIND_SERVER_TOOL_RESULT;
+        }
+
         private boolean signing(
             int kind)
         {
@@ -3759,6 +3856,16 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             }
 
             return mediaPipelines[index];
+        }
+
+        private LlmSectionPipeline serverToolCallPipeline()
+        {
+            if (serverToolCallPipeline == null)
+            {
+                serverToolCallPipeline = new LlmSectionPipeline(new LlmGeminiServerToolCallFromCanonical(), transformBuffer);
+            }
+
+            return serverToolCallPipeline;
         }
 
         private LlmSectionPipeline serverToolPipeline()
@@ -3815,7 +3922,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             int message,
             String toolCallId)
         {
-            if (kind == KIND_DROPPED || kind == KIND_ASSISTANT_REASONING && stream.crossDialect)
+            if (kind == KIND_DROPPED || stream.crossDialect && serverPart(kind))
             {
                 doEncodeDialectDropped();
                 return;
@@ -3831,7 +3938,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             sectionKind = kind;
             sectionOpen = false;
             translated = kind == KIND_CONTROL || kind == KIND_TOOL_DEFINITION || kind == KIND_SERVER_TOOL_DEFINITION ||
-                kind == KIND_TOOL_CALL || media(kind);
+                kind == KIND_TOOL_CALL || kind == KIND_SERVER_TOOL_CALL || kind == KIND_SERVER_TOOL_RESULT || media(kind);
 
             if (kind == 0 || kind == KIND_UNSUPPORTED)
             {
@@ -3925,6 +4032,14 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             else if (media(kind))
             {
                 beginSectionStreaming(mediaPipeline(kind), sectionOutput);
+            }
+            else if (kind == KIND_SERVER_TOOL_CALL)
+            {
+                beginSectionStreaming(serverToolCallPipeline(), sectionOutput);
+            }
+            else if (kind == KIND_SERVER_TOOL_RESULT)
+            {
+                beginSectionStreaming(serverToolPipeline(), sectionOutput);
             }
             else
             {

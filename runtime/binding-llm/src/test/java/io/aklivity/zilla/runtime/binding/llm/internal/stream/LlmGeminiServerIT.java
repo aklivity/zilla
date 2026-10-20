@@ -1062,4 +1062,44 @@ public class LlmGeminiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.assistant.server.tool.call/client",
+        "${app}/gemini.section.assistant.server.tool.call/server"})
+    public void shouldForwardGeminiSectionAssistantServerToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.assistant.server.tool.call.signature/client",
+        "${app}/gemini.section.assistant.server.tool.call.signature/server"})
+    public void shouldForwardGeminiSectionAssistantServerToolCallSignature() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.server.tool.call.history/client",
+        "${app}/gemini.section.server.tool.call.history/server"})
+    public void shouldForwardGeminiSectionServerToolCallHistory() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.server.tool.call.history.snake/client",
+        "${app}/gemini.section.server.tool.call.history.snake/server"})
+    public void shouldForwardGeminiSectionServerToolCallHistorySnake() throws Exception
+    {
+        k3po.finish();
+    }
 }
