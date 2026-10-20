@@ -29,8 +29,9 @@ gemini client ──────►│ tcp(7163) → http(server) → llm(server
                      └──────────────────────────────────────────────────────────────┘│
 ```
 
-`north_llm_proxy` then picks one of five `llm(client)` legs, each behind its
-own `http(client)` → `tcp(client)`, purely from the stream's `dialect`/`model`:
+`north_llm_proxy` then picks one of five `llm(client)` legs, purely from the stream's `dialect`/`model`. Each
+leg exits to the system `sys:http_client`, which does the HTTP framing, and the TLS and TCP connection for the
+`server` the leg names:
 
 | Inbound dialect | Model | Routed to | Translated? |
 | --- | --- | --- | --- |
@@ -249,7 +250,7 @@ bindings:
       authorization:
         api_key:
           credentials: "{credentials}"
-    exit: south_http_client_anthropic
+    exit: sys:http_client
 ```
 
 The `api_key` guard doesn't validate anything -- it accepts whatever
@@ -276,9 +277,8 @@ forwarded upstream as `Authorization: Bearer {credentials}`.
 docker compose up -d
 ```
 
-`etc/zilla.yaml` connects to the real OpenAI, Anthropic and Gemini APIs, each through its own
-`http(client)` → `tls(client)` → `tcp(client)` leg. The first start also downloads the embedding model for the
-semantic guardrail, so it can take a few minutes. On an arm64 host (such as Apple silicon) the embedding image
+`etc/zilla.yaml` connects to the real OpenAI, Anthropic and Gemini APIs. The first start also downloads the
+embedding model for the semantic guardrail, so it can take a few minutes. On an arm64 host (such as Apple silicon) the embedding image
 needs its own tag:
 
 ```bash
@@ -463,7 +463,9 @@ unbounded values.
 
 ## Real endpoints
 
-Each `llm(client)` in `etc/zilla.yaml` names its provider in `options.server` and reaches it over TLS:
+Each `llm(client)` in `etc/zilla.yaml` names its provider in `options.server` and exits to `sys:http_client`, the
+system `http(client)` that routes `https` to a TLS connection and `http` to plain TCP, taking the host, port and
+server name from the `server` URL:
 
 ```yaml
 south_llm_client_gemini:
@@ -475,38 +477,16 @@ south_llm_client_gemini:
     authorization:
       api_key:
         credentials: "{credentials}"
-  exit: south_http_client_gemini
-south_http_client_gemini:
-  type: http
-  kind: client
-  exit: south_tls_client_gemini
-south_tls_client_gemini:
-  type: tls
-  kind: client
-  vault: south_clients
-  options:
-    trustcacerts: true
-    sni:
-      - generativelanguage.googleapis.com
-  exit: south_tcp_client_gemini
-south_tcp_client_gemini:
-  type: tcp
-  kind: client
-  options:
-    host: generativelanguage.googleapis.com
-    port: 443
-vaults:
-  south_clients:
-    type: filesystem
-    options: {}
+  exit: sys:http_client
 ```
 
-OpenAI and Anthropic follow the same shape with `api.openai.com` and `api.anthropic.com`. The Gemini client's
-default path is `/v1beta`; set `options.server` to `https://generativelanguage.googleapis.com:443/v1` for the
-stable API instead. `trustcacerts: true` trusts the CA bundle shipped in the Zilla image; behind a TLS-intercepting
-proxy, add the proxy's CA to a truststore in the `south_clients` vault and list it under the `tls(client)`
-`options.trust`. See the [TLS binding reference](https://docs.aklivity.io/zilla/latest/reference/config/bindings/tls/)
-for the full set of options.
+OpenAI and Anthropic follow the same shape with `https://api.openai.com:443` and `https://api.anthropic.com:443`.
+The Gemini client's default path is `/v1beta`; set `options.server` to
+`https://generativelanguage.googleapis.com:443/v1` for the stable API instead. The system TLS client trusts the CA
+bundle shipped in the Zilla image. To trust an additional CA, such as a TLS-intercepting proxy's, or to present a
+client certificate, exit to your own `http(client)` → `tls(client)` → `tcp(client)` legs with a `vault` instead of
+`sys:http_client`; see the
+[TLS binding reference](https://docs.aklivity.io/zilla/latest/reference/config/bindings/tls/) for the options.
 
 ## Testing against mocks instead
 
@@ -514,7 +494,7 @@ CI verifies this example without API keys or network access to any provider. `.g
 `COMPOSE_FILE` to merge `.github/compose.mock.yaml` into `compose.yaml`, which stands up one mock per upstream
 (`.github/mock-openai`, `.github/mock-anthropic`, `.github/mock-gemini` and the two secondary same-dialect
 deployments) and points `zilla` at `.github/zilla.yaml` -- the same topology, with each `llm(client)` targeting its
-mock over plain HTTP instead of the provider over TLS. Run it the same way CI does:
+mock over plain HTTP instead of the provider over TLS, still through `sys:http_client`. Run it the same way CI does:
 
 ```bash
 ./.github/test.sh

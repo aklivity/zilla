@@ -222,8 +222,9 @@ bindings:
           - dialect: gemini
         exit: south_llm_client_gemini
 
-  # Every south_llm_client_* below targets the real OpenAI/Anthropic API
-  # directly over TLS -- see README.md's "Credential pass-through" section:
+  # Every south_llm_client_* below targets its real provider's API over TLS
+  # through the system sys:http_client, which takes the scheme, host and port
+  # from options.server -- see README.md's "Credential pass-through" section:
   # options.authorization templates the *caller's own* credential rather than
   # configuring one of Zilla's own, so no API key is ever written here. The
   # secondary deployments point at the same real API as their primary -- this
@@ -243,27 +244,7 @@ bindings:
     telemetry:
       metrics:
         - llm.*
-    exit: south_http_client_anthropic
-  south_http_client_anthropic:
-    type: http
-    kind: client
-    exit: south_tls_client_anthropic
-  south_tls_client_anthropic:
-    type: tls
-    kind: client
-    vault: south_clients
-    options:
-      trustcacerts: true
-      sni:
-        - api.anthropic.com
-    exit: south_tcp_client_anthropic
-  south_tcp_client_anthropic:
-    type: tcp
-    kind: client
-    options:
-      host: api.anthropic.com
-      port: 443
-
+    exit: sys:http_client
   south_llm_client_openai:
     type: llm
     kind: client
@@ -276,27 +257,7 @@ bindings:
     telemetry:
       metrics:
         - llm.*
-    exit: south_http_client_openai
-  south_http_client_openai:
-    type: http
-    kind: client
-    exit: south_tls_client_openai
-  south_tls_client_openai:
-    type: tls
-    kind: client
-    vault: south_clients
-    options:
-      trustcacerts: true
-      sni:
-        - api.openai.com
-    exit: south_tcp_client_openai
-  south_tcp_client_openai:
-    type: tcp
-    kind: client
-    options:
-      host: api.openai.com
-      port: 443
-
+    exit: sys:http_client
   # Second same-dialect (openai) deployment: north_llm_proxy routes gpt-4o here
   # instead of translating to Anthropic -- no dialect translation happens on
   # this leg at all, same dialect in as out.
@@ -312,27 +273,7 @@ bindings:
     telemetry:
       metrics:
         - llm.*
-    exit: south_http_client_openai_secondary
-  south_http_client_openai_secondary:
-    type: http
-    kind: client
-    exit: south_tls_client_openai_secondary
-  south_tls_client_openai_secondary:
-    type: tls
-    kind: client
-    vault: south_clients
-    options:
-      trustcacerts: true
-      sni:
-        - api.openai.com
-    exit: south_tcp_client_openai_secondary
-  south_tcp_client_openai_secondary:
-    type: tcp
-    kind: client
-    options:
-      host: api.openai.com
-      port: 443
-
+    exit: sys:http_client
   # Second same-dialect (anthropic) deployment: north_llm_proxy routes
   # claude-3-5-haiku-20241022 here instead of translating to OpenAI.
   south_llm_client_anthropic_secondary:
@@ -347,27 +288,7 @@ bindings:
     telemetry:
       metrics:
         - llm.*
-    exit: south_http_client_anthropic_secondary
-  south_http_client_anthropic_secondary:
-    type: http
-    kind: client
-    exit: south_tls_client_anthropic_secondary
-  south_tls_client_anthropic_secondary:
-    type: tls
-    kind: client
-    vault: south_clients
-    options:
-      trustcacerts: true
-      sni:
-        - api.anthropic.com
-    exit: south_tcp_client_anthropic_secondary
-  south_tcp_client_anthropic_secondary:
-    type: tcp
-    kind: client
-    options:
-      host: api.anthropic.com
-      port: 443
-
+    exit: sys:http_client
   # Targets the real Gemini API over TLS. The caller's own API key is passed
   # through as x-goog-api-key, as options.authorization templates it. A Gemini
   # SDK client asking for a gemini-* model is not translated; an OpenAI or
@@ -385,28 +306,4 @@ bindings:
     telemetry:
       metrics:
         - llm.*
-    exit: south_http_client_gemini
-  south_http_client_gemini:
-    type: http
-    kind: client
-    exit: south_tls_client_gemini
-  south_tls_client_gemini:
-    type: tls
-    kind: client
-    vault: south_clients
-    options:
-      trustcacerts: true
-      sni:
-        - generativelanguage.googleapis.com
-    exit: south_tcp_client_gemini
-  south_tcp_client_gemini:
-    type: tcp
-    kind: client
-    options:
-      host: generativelanguage.googleapis.com
-      port: 443
-
-vaults:
-  south_clients:
-    type: filesystem
-    options: {}
+    exit: sys:http_client

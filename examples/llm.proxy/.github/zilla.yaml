@@ -240,18 +240,7 @@ bindings:
     telemetry:
       metrics:
         - llm.*
-    exit: south_http_client_anthropic
-  south_http_client_anthropic:
-    type: http
-    kind: client
-    exit: south_tcp_client_anthropic
-  south_tcp_client_anthropic:
-    type: tcp
-    kind: client
-    options:
-      host: mock-anthropic
-      port: 4102
-
+    exit: sys:http_client
   # Nothing listens on this port, so the connection is refused before the llm
   # client grants any credit and north_llm_proxy falls back to the next model
   # in the claude-unreachable route, which routes to the secondary deployment.
@@ -267,18 +256,7 @@ bindings:
     telemetry:
       metrics:
         - llm.*
-    exit: south_http_client_anthropic_unreachable
-  south_http_client_anthropic_unreachable:
-    type: http
-    kind: client
-    exit: south_tcp_client_anthropic_unreachable
-  south_tcp_client_anthropic_unreachable:
-    type: tcp
-    kind: client
-    options:
-      host: mock-anthropic
-      port: 4999
-
+    exit: sys:http_client
   south_llm_client_openai:
     type: llm
     kind: client
@@ -291,18 +269,7 @@ bindings:
     telemetry:
       metrics:
         - llm.*
-    exit: south_http_client_openai
-  south_http_client_openai:
-    type: http
-    kind: client
-    exit: south_tcp_client_openai
-  south_tcp_client_openai:
-    type: tcp
-    kind: client
-    options:
-      host: mock-openai
-      port: 4101
-
+    exit: sys:http_client
   # Second same-dialect (openai) deployment: north_llm_proxy routes gpt-4o here
   # instead of translating to mock-anthropic -- no dialect translation happens
   # on this leg at all, same dialect in as out.
@@ -318,18 +285,7 @@ bindings:
     telemetry:
       metrics:
         - llm.*
-    exit: south_http_client_openai_secondary
-  south_http_client_openai_secondary:
-    type: http
-    kind: client
-    exit: south_tcp_client_openai_secondary
-  south_tcp_client_openai_secondary:
-    type: tcp
-    kind: client
-    options:
-      host: mock-openai-secondary
-      port: 4103
-
+    exit: sys:http_client
   # Second same-dialect (anthropic) deployment: north_llm_proxy routes
   # claude-3-5-haiku-20241022 here instead of translating to mock-openai.
   south_llm_client_anthropic_secondary:
@@ -344,18 +300,7 @@ bindings:
     telemetry:
       metrics:
         - llm.*
-    exit: south_http_client_anthropic_secondary
-  south_http_client_anthropic_secondary:
-    type: http
-    kind: client
-    exit: south_tcp_client_anthropic_secondary
-  south_tcp_client_anthropic_secondary:
-    type: tcp
-    kind: client
-    options:
-      host: mock-anthropic-secondary
-      port: 4104
-
+    exit: sys:http_client
   south_llm_client_gemini:
     type: llm
     kind: client
@@ -368,14 +313,4 @@ bindings:
     telemetry:
       metrics:
         - llm.*
-    exit: south_http_client_gemini
-  south_http_client_gemini:
-    type: http
-    kind: client
-    exit: south_tcp_client_gemini
-  south_tcp_client_gemini:
-    type: tcp
-    kind: client
-    options:
-      host: mock-gemini
-      port: 4105
+    exit: sys:http_client
