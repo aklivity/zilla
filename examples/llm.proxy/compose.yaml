@@ -71,8 +71,8 @@ services:
   # plain `docker compose up` never starts it, and `docker compose run` enables
   # the profile of the service it targets. CI additionally merges in
   # .github/compose.mock.yaml (see .github/.env.test) to point zilla at mock
-  # backends instead of the real OpenAI/Anthropic APIs this compose file
-  # targets by default -- depending only on zilla's own health is still enough
+  # backends instead of the real OpenAI, Anthropic and Gemini APIs this compose
+  # file targets by default -- depending only on zilla's own health is still enough
   # to gate the whole topology either way, since only zilla (not verify) ever
   # depends on the mocks. The docker socket is mounted so the credential
   # pass-through assertions can read a mock's own logs via `docker logs`.
@@ -80,7 +80,7 @@ services:
   # Runs the checks through the real openai / anthropic / google-genai Python SDKs rather
   # than hand-built HTTP calls, so python3 + docker-cli (for the credential
   # pass-through log reads) are the only extra tools this needs -- no Node
-  # here, unlike the mocks above.
+  # here, unlike the mocks in .github/compose.mock.yaml.
   verify:
     image: python:3.13-alpine
     profiles: ["test"]
