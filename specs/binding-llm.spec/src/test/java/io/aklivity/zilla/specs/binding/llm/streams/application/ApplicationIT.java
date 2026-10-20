@@ -389,24 +389,6 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/openai.proxy.guardrail.transform.overlap/client",
-        "${app}/openai.proxy.guardrail.transform.overlap/server"})
-    public void shouldGuardOpenaiTransformOverlapNet() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/openai.proxy.guardrail.transform.overlap.exit/client",
-        "${app}/openai.proxy.guardrail.transform.overlap.exit/server"})
-    public void shouldGuardOpenaiTransformOverlapExit() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/openai.proxy.guardrail.transform.members/client",
         "${app}/openai.proxy.guardrail.transform.members/server"})
     public void shouldGuardOpenaiTransformMembersNet() throws Exception

@@ -32,7 +32,6 @@ import io.aklivity.zilla.runtime.binding.llm.config.LlmGuardrail;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmGuardrailStage;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmRouteConfig;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmBinding;
-import io.aklivity.zilla.runtime.binding.llm.internal.LlmConfiguration;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.BeginFW;
@@ -121,7 +120,6 @@ public final class LlmProxyFactory implements LlmStreamFactory
     private final MutableDirectBufferEx transformBuffer;
     private final BufferPool heldPool;
     private final BufferPool runPool;
-    private final int guardrailOverlap;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final BindingHandler streamFactory;
@@ -130,7 +128,6 @@ public final class LlmProxyFactory implements LlmStreamFactory
     private final Long2ObjectHashMap<LlmBindingConfig> bindings;
 
     public LlmProxyFactory(
-        LlmConfiguration config,
         EngineContext context)
     {
         this.writeBuffer = requireNonNull(context.writeBuffer());
@@ -139,7 +136,6 @@ public final class LlmProxyFactory implements LlmStreamFactory
         this.transformBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.heldPool = context.bufferPool();
         this.runPool = context.bufferPool().duplicate();
-        this.guardrailOverlap = config.guardrailOverlap();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();
@@ -1338,7 +1334,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
 
             this.pipelines = new EnumMap<>(LlmSectionType.class);
             chains.forEach((section, chain) -> pipelines.put(section, LlmTextModelPipeline.objectShaped(section)
-                ? new LlmTextModelPipeline(chain, guardrailOverlap, runPool, streamId, transformBuffer)
+                ? new LlmTextModelPipeline(chain, runPool, streamId, transformBuffer)
                 : new LlmRawGuardPipeline(chain)));
         }
 

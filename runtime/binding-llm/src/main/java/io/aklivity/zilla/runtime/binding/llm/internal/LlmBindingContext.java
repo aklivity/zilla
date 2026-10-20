@@ -48,7 +48,7 @@ final class LlmBindingContext implements BindingContext
         this.factories = Map.of(
             SERVER, new LlmServerFactory(context, dialectContexts),
             CLIENT, new LlmClientFactory(context, dialectContexts),
-            PROXY, new LlmProxyFactory(config, context));
+            PROXY, new LlmProxyFactory(context));
     }
 
     @Override
