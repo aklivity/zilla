@@ -3683,6 +3683,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/transform.request.extension/client",
+        "${app}/transform.request.extension/server"})
+    public void shouldTransformRequestExtension() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/gemini/client",
         "${app}/gemini/server"})
     public void shouldForwardGeminiNonstreaming() throws Exception
@@ -4892,6 +4901,15 @@ public class ApplicationIT
         "${app}/gemini.rejected.model.retired/client",
         "${app}/gemini.rejected.model.retired/server"})
     public void shouldForwardGeminiRejectedModelRetired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.transform.request.extension/client",
+        "${app}/gemini.transform.request.extension/server"})
+    public void shouldForwardGeminiTransformRequestExtension() throws Exception
     {
         k3po.finish();
     }
