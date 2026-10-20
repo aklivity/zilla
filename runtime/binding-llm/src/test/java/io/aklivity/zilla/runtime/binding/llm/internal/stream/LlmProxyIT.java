@@ -599,4 +599,35 @@ public class LlmProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.openai.responses.yaml")
+    @ScriptProperty({"clientAddress \"zilla://streams/net0\""})
+    @Specification({
+        "${app}/openai.responses.proxy/client",
+        "${app}/openai.responses.proxy/server"})
+    public void shouldRouteOpenaiResponsesToAppZeroByDialect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.openai.responses.yaml")
+    @Specification({
+        "${net}/proxy.route.unmatched.dialect/client"})
+    public void shouldRejectOpenaiOnOpenaiResponsesRoute() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.proxy.fallback/client",
+        "${app}/openai.proxy.fallback.refused/server",
+        "${app}/openai.responses.proxy.fallback.accepted/server"})
+    public void shouldFallbackFromOpenaiResponsesToOpenaiRoute() throws Exception
+    {
+        k3po.finish();
+    }
 }

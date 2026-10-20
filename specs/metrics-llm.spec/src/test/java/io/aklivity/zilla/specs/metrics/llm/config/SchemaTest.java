@@ -90,4 +90,12 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateOpenaiResponsesUsage()
+    {
+        JsonObject config = schema.validate("openai.responses.usage.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }

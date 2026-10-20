@@ -76,6 +76,17 @@ public class LlmHeldTailTest
     }
 
     @Test
+    public void shouldRejectAppendBeyondGivenBoundBelowCapacity()
+    {
+        assertThat(tail.append(1L, buffer("0123"), 0, 4, 6), is(true));
+        assertThat(tail.append(1L, buffer("abc"), 0, 3, 6), is(false));
+        assertThat(tail.append(1L, buffer("ab"), 0, 2, 6), is(true));
+
+        assertThat(tail.length(), is(6));
+        assertThat(text(), equalTo("0123ab"));
+    }
+
+    @Test
     public void shouldIgnoreEmptyAppend()
     {
         assertThat(tail.append(1L, buffer("abc"), 0, 0), is(true));

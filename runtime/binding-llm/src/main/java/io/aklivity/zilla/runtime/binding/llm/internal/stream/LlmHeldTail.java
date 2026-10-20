@@ -47,6 +47,16 @@ final class LlmHeldTail
         int sourceOffset,
         int length)
     {
+        return append(streamId, source, sourceOffset, length, Integer.MAX_VALUE);
+    }
+
+    boolean append(
+        long streamId,
+        DirectBufferEx source,
+        int sourceOffset,
+        int length,
+        int bound)
+    {
         boolean fits = true;
 
         if (length > 0)
@@ -56,7 +66,7 @@ final class LlmHeldTail
                 slot = pool.acquire(streamId);
             }
 
-            fits = slot != NO_SLOT && limit + length <= pool.slotCapacity();
+            fits = slot != NO_SLOT && limit + length <= Math.min(pool.slotCapacity(), bound);
 
             if (fits)
             {

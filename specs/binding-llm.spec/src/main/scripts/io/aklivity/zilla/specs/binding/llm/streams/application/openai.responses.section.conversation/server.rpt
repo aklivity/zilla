@@ -30,28 +30,28 @@ connected
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
                          .type("SYSTEM_INSTRUCTION")
-                         .message(0)
+                         .message(-1)
                          .build()}
 read "{\"text\":\"You answer briefly.\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
                          .type("USER_TEXT")
-                         .message(1)
+                         .message(0)
                          .build()}
 read "{\"text\":\"Capital of France?\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
                          .type("ASSISTANT_TEXT")
-                         .message(2)
+                         .message(1)
                          .build()}
 read "{\"text\":\"Paris.\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
                          .type("USER_TEXT")
-                         .message(3)
+                         .message(2)
                          .build()}
 read "{\"text\":\"And of Italy?\"}"
 

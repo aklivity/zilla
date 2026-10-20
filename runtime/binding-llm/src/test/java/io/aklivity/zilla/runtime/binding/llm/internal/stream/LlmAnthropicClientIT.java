@@ -1495,4 +1495,227 @@ public class LlmAnthropicClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.user.text/client",
+        "${net}/anthropic.transform.user.text/server"})
+    public void shouldTransformUserTextFromOpenaiResponsesAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.system.instruction/client",
+        "${net}/anthropic.transform.system.instruction/server"})
+    public void shouldTransformSystemInstructionFromOpenaiResponsesAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.assistant.text/client",
+        "${net}/anthropic.transform.assistant.text/server"})
+    public void shouldTransformAssistantTextFromOpenaiResponsesAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.tool.definition/client",
+        "${net}/anthropic.transform.tool.definition/server"})
+    public void shouldTransformToolDefinitionFromOpenaiResponsesAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.assistant.tool.call/client",
+        "${net}/anthropic.transform.assistant.tool.call/server"})
+    public void shouldTransformAssistantToolCallFromOpenaiResponsesAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.tool.result/client",
+        "${net}/anthropic.transform.tool.result/server"})
+    public void shouldTransformToolResultFromOpenaiResponsesAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.user.image/client",
+        "${net}/anthropic.transform.user.image/server"})
+    public void shouldTransformUserImageFromOpenaiResponsesAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.user.document.inline/client",
+        "${net}/anthropic.transform.user.document.inline/server"})
+    public void shouldTransformUserDocumentInlineFromOpenaiResponsesAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.mixed.content/client",
+        "${net}/anthropic.transform.mixed.content/server"})
+    public void shouldTransformMixedContentFromOpenaiResponsesAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.max.output.tokens/client",
+        "${net}/anthropic.transform.request.max.output.tokens/server"})
+    public void shouldTransformRequestMaxOutputTokensFromOpenaiResponsesAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.assistant.text.and.tool.call/client",
+        "${net}/anthropic.transform.assistant.text.and.tool.call/server"})
+    public void shouldTransformAssistantTextAndToolCallFromOpenaiResponsesAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.rejected.user.video/client",
+        "${net}/anthropic.transform.rejected.user.video/server"})
+    public void shouldRejectUserVideoFromOpenaiResponsesAsAnthropicNamingSectionAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"target \"anthropic\""})
+    @Specification({
+        "${app}/openai.responses.transform.rejected.user.audio/client",
+        "${net}/anthropic.transform.rejected.user.audio/server"})
+    public void shouldRejectUserAudioFromOpenaiResponsesAsAnthropicNamingSectionAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/openai.responses.transform.conversation/client",
+        "${net}/anthropic.transform.conversation/server"})
+    public void shouldTransformConversationFromOpenaiResponsesAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/openai.responses.transform.request.members/client",
+        "${net}/anthropic.transform.user.text/server"})
+    public void shouldDropRequestMembersFromOpenaiResponsesAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/openai.responses.transform.assistant.tool.call.members/client",
+        "${net}/anthropic.transform.assistant.tool.call/server"})
+    public void shouldDropToolCallMembersFromOpenaiResponsesAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/openai.responses.transform.tool.definition.members/client",
+        "${net}/anthropic.transform.tool.definition/server"})
+    public void shouldDropToolDefinitionMembersFromOpenaiResponsesAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/openai.responses.transform.assistant.text.citations.members/client",
+        "${net}/anthropic.transform.assistant.text.citations/server"})
+    public void shouldDropAssistantTextCitationsMembersFromOpenaiResponsesAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/openai.responses.transform.user.document.members/client",
+        "${net}/anthropic.transform.user.document.inline/server"})
+    public void shouldDropUserDocumentMembersFromOpenaiResponsesAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/openai.responses.transform.server.tool/client",
+        "${net}/anthropic.transform.server.tool.definition/server"})
+    public void shouldDropServerToolDefinitionAndCallFromOpenaiResponsesAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/openai.responses.transform.assistant.reasoning.members/client",
+        "${net}/anthropic.transform.assistant.reasoning.unsigned/server"})
+    public void shouldDropAssistantReasoningMembersFromOpenaiResponsesAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -1392,4 +1392,59 @@ public class LlmOpenaiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"openai/responses\""})
+    @Specification({
+        "${net}/openai.transform.response.text/client",
+        "${app}/openai.responses.transform.response.text/server"})
+    public void shouldTransformResponseTextOfOpenaiResponsesAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"openai/responses\""})
+    @Specification({
+        "${net}/openai.transform.response.reasoning/client",
+        "${app}/openai.responses.transform.response.reasoning/server"})
+    public void shouldTransformResponseReasoningOfOpenaiResponsesAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"openai/responses\""})
+    @Specification({
+        "${net}/openai.transform.response.text.and.tool.call/client",
+        "${app}/openai.responses.transform.response.text.and.tool.call/server"})
+    public void shouldTransformResponseTextAndToolCallOfOpenaiResponsesAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"openai/responses\"", "reason \"openai:max_messages\""})
+    @Specification({
+        "${net}/openai.transform.response.text/client",
+        "${app}/transform.response.finish.reason/server"})
+    public void shouldDropOpenaiResponsesFinishReasonAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"openai/responses\""})
+    @Specification({
+        "${net}/openai.transform.response.streaming/client",
+        "${app}/openai.responses.transform.response.streaming/server"})
+    public void shouldTransformResponseStreamingOfOpenaiResponsesAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
 }

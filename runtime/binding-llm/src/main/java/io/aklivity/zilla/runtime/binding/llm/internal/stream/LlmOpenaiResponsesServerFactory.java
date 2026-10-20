@@ -738,7 +738,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             switch (event)
             {
             case VALUE_STRING:
-                server.beginMessage(null);
+                server.beginInstructions();
                 server.text(LlmSectionType.SYSTEM_INSTRUCTION, decodeRoot);
                 progress = decodeTextValue(server, traceId, authorization, buffer, progress, limit, event, eventFrom);
                 break decode;
@@ -3024,6 +3024,12 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             beginMessage(type == LlmSectionType.ASSISTANT_TEXT);
         }
 
+        private void beginInstructions()
+        {
+            itemMessage = NONE;
+            assistantMessage = NONE;
+        }
+
         private void beginMessage(
             boolean assistant)
         {
@@ -4883,7 +4889,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private void ackReply(
             long traceId)
         {
-            final long replyAckMax = replySeq - server.encodeSlotRawOffset;
+            final long replyAckMax = replySeq - server.encodeSlotRawOffset - partHeld.remaining();
 
             if (replyAckMax > replyAck)
             {
@@ -5359,6 +5365,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private int openItem;
         private int partValue;
         private int partMode;
+        private int releasedRaw;
         private int partKind;
         private int partAnnotations = NONE;
         private byte[] partKinds;
@@ -5466,8 +5473,9 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             }
             else if (encodeLength() > 0)
             {
-                server.doNetData(copyBuffer, 0, encodeLength(), reserved, Flags.COMPLETE, EMPTY_OCTETS, budgetId, traceId,
-                    authorization);
+                server.doNetData(copyBuffer, 0, encodeLength(), reserved + releasedRaw, Flags.COMPLETE, EMPTY_OCTETS, budgetId,
+                    traceId, authorization);
+                releasedRaw = 0;
             }
             else
             {
@@ -5897,6 +5905,16 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             partMode = PART_DIRECT;
         }
 
+        private void ensureEncodeRoom(
+            int length)
+        {
+            if (copyBuffer.capacity() - encodeLength() - CHUNK_RESERVE < length)
+            {
+                doEncodeFlush(0, 0L, encodeTraceId, encodeAuthorization);
+                beginEncode();
+            }
+        }
+
         private void writeHeld(
             LlmHeldTail held,
             boolean escaped)
@@ -5917,6 +5935,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 if (escaped)
                 {
                     generator.writeSegment(held.buffer(), held.offset(), take);
+                    releasedRaw += take;
                 }
                 else
                 {
@@ -5971,9 +5990,10 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 {
                     generator.writeSegment(payload, offset, length);
                 }
-                else if (!partHeld.append(replyId, payload, offset, length))
+                else if (!partHeld.append(replyId, payload, offset, length, replyMax >> 1))
                 {
                     flushHeldPart();
+                    ensureEncodeRoom(length * RESPONSE_ESCAPE_EXPANSION);
                     generator.writeSegment(payload, offset, length);
                 }
             }

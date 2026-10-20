@@ -37,7 +37,7 @@ read "{\"text\":\"Hello\"}"
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
                          .type("SYSTEM_INSTRUCTION")
-                         .message(1)
+                         .message(-1)
                          .build()}
 read "{\"text\":\"You are helpful.\"}"
 

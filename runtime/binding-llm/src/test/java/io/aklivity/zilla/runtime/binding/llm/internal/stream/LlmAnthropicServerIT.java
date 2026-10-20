@@ -1505,4 +1505,81 @@ public class LlmAnthropicServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai/responses\""})
+    @Specification({
+        "${net}/anthropic.transform.response.text/client",
+        "${app}/openai.responses.transform.response.text/server"})
+    public void shouldTransformResponseTextOfOpenaiResponsesAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai/responses\""})
+    @Specification({
+        "${net}/anthropic.transform.response.reasoning/client",
+        "${app}/openai.responses.transform.response.reasoning/server"})
+    public void shouldTransformResponseReasoningOfOpenaiResponsesAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai/responses\""})
+    @Specification({
+        "${net}/anthropic.transform.response.tool.call/client",
+        "${app}/openai.responses.transform.response.tool.call/server"})
+    public void shouldTransformResponseToolCallOfOpenaiResponsesAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai/responses\""})
+    @Specification({
+        "${net}/anthropic.transform.response.tool.calls/client",
+        "${app}/openai.responses.transform.response.tool.calls/server"})
+    public void shouldTransformResponseToolCallsOfOpenaiResponsesAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai/responses\""})
+    @Specification({
+        "${net}/anthropic.transform.response.text.and.tool.call/client",
+        "${app}/openai.responses.transform.response.text.and.tool.call/server"})
+    public void shouldTransformResponseTextAndToolCallOfOpenaiResponsesAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai/responses\""})
+    @Specification({
+        "${net}/anthropic.transform.response.tool.call.empty/client",
+        "${app}/openai.responses.transform.response.tool.call.empty/server"})
+    public void shouldTransformResponseToolCallEmptyOfOpenaiResponsesAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai/responses\"", "reason \"openai:max_messages\""})
+    @Specification({
+        "${net}/anthropic.transform.response.text/client",
+        "${app}/transform.response.finish.reason/server"})
+    public void shouldDropOpenaiResponsesFinishReasonAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -30,7 +30,7 @@ connected
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
                          .type("SYSTEM_INSTRUCTION")
-                         .message(0)
+                         .message(-1)
                          .build()}
 read "{\"text\":\"You answer in one short sentence.\"}"
 
@@ -44,28 +44,28 @@ read "{\"openai:store\":false}"
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
                          .type("SYSTEM_INSTRUCTION")
-                         .message(1)
+                         .message(0)
                          .build()}
 read "{\"text\":\"Always end with the word done.\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
                          .type("USER_TEXT")
-                         .message(2)
+                         .message(1)
                          .build()}
 read "{\"text\":\"What is the capital of France?\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
                          .type("ASSISTANT_TEXT")
-                         .message(3)
+                         .message(2)
                          .build()}
 read "{\"text\":\"Paris, done.\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
                          .type("USER_TEXT")
-                         .message(4)
+                         .message(3)
                          .build()}
 read "{\"text\":\"And of Italy?\"}"
 
