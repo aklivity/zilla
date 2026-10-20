@@ -1,7 +1,11 @@
 name: llm-probes
 
-# Manual only. No pull_request, pull_request_target or push trigger: nothing a fork can fire.
+# Manual runs, plus a minimal smoke run on pull requests from this repository that change this workflow file.
+# There is no pull_request_target, push or schedule trigger, and jobs refuse pull requests from forks.
 on:
+  pull_request:
+    paths:
+      - .github/workflows/llm-probes.yml
   workflow_dispatch:
     inputs:
       dialect:
@@ -38,9 +42,18 @@ concurrency:
   group: llm-probes
   cancel-in-progress: false
 
+env:
+  INPUT_DIALECT: ${{ inputs.dialect || 'openai' }}
+  INPUT_PROVIDERS: ${{ inputs.providers || 'openai' }}
+  INPUT_PROBES: ${{ inputs.probes || 'model-identity' }}
+  INPUT_VIA: ${{ inputs.via || 'direct' }}
+  INPUT_ZILLA_REF: ${{ inputs.zilla_ref || 'develop' }}
+  INPUT_BUDGET_USD: ${{ inputs.budget_usd || '0.25' }}
+
 jobs:
   setup:
     name: Setup
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 90
     outputs:
@@ -55,12 +68,12 @@ jobs:
       - name: Validate inputs and expand the provider matrix
         id: expand
         env:
-          DIALECT: ${{ inputs.dialect }}
-          PROVIDERS: ${{ inputs.providers }}
-          PROBES: ${{ inputs.probes }}
-          VIA: ${{ inputs.via }}
-          BUDGET_USD: ${{ inputs.budget_usd }}
-          ZILLA_REF: ${{ inputs.zilla_ref }}
+          DIALECT: ${{ env.INPUT_DIALECT }}
+          PROVIDERS: ${{ env.INPUT_PROVIDERS }}
+          PROBES: ${{ env.INPUT_PROBES }}
+          VIA: ${{ env.INPUT_VIA }}
+          BUDGET_USD: ${{ env.INPUT_BUDGET_USD }}
+          ZILLA_REF: ${{ env.INPUT_ZILLA_REF }}
         run: |
           echo "$ZILLA_REF" | grep -Eq '^[A-Za-z0-9._/-]{1,100}$' || { echo "invalid zilla_ref"; exit 1; }
           mkdir -p results
@@ -77,8 +90,8 @@ jobs:
       - name: Resolve the Zilla image
         id: image
         env:
-          ZILLA_REF: ${{ inputs.zilla_ref }}
-          VIA: ${{ inputs.via }}
+          ZILLA_REF: ${{ env.INPUT_ZILLA_REF }}
+          VIA: ${{ env.INPUT_VIA }}
         run: |
           if [ "$VIA" = "direct" ]; then
             echo "build=false" >> "$GITHUB_OUTPUT"
@@ -94,7 +107,7 @@ jobs:
         if: steps.image.outputs.build == 'true'
         uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.zilla_ref }}
+          ref: ${{ env.INPUT_ZILLA_REF }}
           path: zilla-src
 
       - name: Route Docker Hub pulls through mirror.gcr.io
@@ -153,7 +166,7 @@ jobs:
   probe:
     name: Probe ${{ matrix.name }}
     needs: setup
-    if: needs.setup.outputs.count != '0'
+    if: needs.setup.result == 'success' && needs.setup.outputs.count != '0'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: llm-probes
@@ -185,14 +198,14 @@ jobs:
         run: probes/llm/common/local_host.sh "$HOST" >> "$GITHUB_ENV"
 
       - name: Load the built Zilla image
-        if: inputs.via != 'direct' && needs.setup.outputs.build == 'true'
+        if: env.INPUT_VIA != 'direct' && needs.setup.outputs.build == 'true'
         uses: actions/download-artifact@v8
         with:
           name: zilla-image
           path: ~/docker-cache
 
       - name: Prepare the Zilla image
-        if: inputs.via != 'direct'
+        if: env.INPUT_VIA != 'direct'
         env:
           BUILD: ${{ needs.setup.outputs.build }}
           IMAGE: ${{ needs.setup.outputs.image }}
@@ -204,9 +217,9 @@ jobs:
           fi
 
       - name: Start Zilla with the generated llm(server) to llm(client) config
-        if: inputs.via != 'direct'
+        if: env.INPUT_VIA != 'direct'
         env:
-          DIALECT: ${{ inputs.dialect }}
+          DIALECT: ${{ env.INPUT_DIALECT }}
           PROVIDER: ${{ matrix.id }}
           IMAGE: ${{ needs.setup.outputs.image }}
           PROBE_ENV_NAME_2: ${{ matrix.extra_secret_1 }}
@@ -228,11 +241,11 @@ jobs:
 
       - name: Run probes
         env:
-          DIALECT: ${{ inputs.dialect }}
+          DIALECT: ${{ env.INPUT_DIALECT }}
           PROVIDER: ${{ matrix.id }}
-          PROBES: ${{ inputs.probes }}
-          VIA: ${{ inputs.via }}
-          ZILLA_REF: ${{ inputs.zilla_ref }}
+          PROBES: ${{ env.INPUT_PROBES }}
+          VIA: ${{ env.INPUT_VIA }}
+          ZILLA_REF: ${{ env.INPUT_ZILLA_REF }}
           BUDGET_USD: ${{ matrix.budget_usd }}
           HOST_OUTCOME: ${{ steps.host.outcome }}
           PROBE_ENV_NAME_1: ${{ matrix.secret }}
@@ -271,7 +284,7 @@ jobs:
   aggregate:
     name: Aggregate
     needs: [ setup, probe ]
-    if: always()
+    if: always() && needs.setup.result != 'skipped'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -294,7 +307,7 @@ jobs:
           CURRENT_RUN: ${{ github.run_id }}
         run: |
           mkdir -p previous
-          for run in $(gh run list --workflow llm-probes.yml --status success --limit 10 --json databaseId --jq '.[].databaseId'); do
+          for run in $(gh run list --workflow llm-probes.yml --event workflow_dispatch --status success --limit 10 --json databaseId --jq '.[].databaseId'); do
             if [ "$run" != "$CURRENT_RUN" ] && gh run download "$run" --name llm-probes-merged --dir previous 2> /dev/null; then
               echo "compared against run $run"
               break
@@ -303,8 +316,8 @@ jobs:
 
       - name: Render COMPATIBILITY.md
         env:
-          ZILLA_REF: ${{ inputs.zilla_ref }}
-          DIALECT: ${{ inputs.dialect }}
+          ZILLA_REF: ${{ env.INPUT_ZILLA_REF }}
+          DIALECT: ${{ env.INPUT_DIALECT }}
         run: |
           mkdir -p chart
           PYTHONPATH=probes/llm python3 -m common.chart \

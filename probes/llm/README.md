@@ -70,4 +70,6 @@ and the image of your choice on port 7161.
 - Credentials are never written to `zilla.yaml`: the caller's own bearer token is passed through Zilla.
 - Recorded requests are redacted by header name, by the exact secret values and by common token patterns; the workflow runs
   `scan_secrets` before every upload and fails the job on a hit.
-- The workflow has no `pull_request`, `pull_request_target` or `push` trigger.
+- The workflow runs on `workflow_dispatch`, and on pull requests from this repository only when the workflow file itself
+  changes (a one-request smoke run). It has no `pull_request_target`, `push` or `schedule` trigger, and its jobs refuse
+  pull requests from forks. A unit test pins this.

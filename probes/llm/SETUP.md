@@ -66,6 +66,16 @@ comparison (Gemini, Anthropic) is made against it. Then add providers one at a t
 Not run in CI: TGI (maintenance mode, GPU-only start command) and Lambda (the Inference API appears retired).
 Additional secrets are expanded into the base URL and are masked in logs.
 
+### Pull request runs
+
+A pull request from this repository that changes `.github/workflows/llm-probes.yml` starts a minimal smoke run:
+provider `openai`, probe `model-identity`, `via=direct`, budget $0.25 (one request). It uses the same environment, so it
+waits for a reviewer to approve the deployment, and it does not run for forks or for any other change. Only approve it
+after reading the workflow diff: a pull request run uses the pull request's own copy of the workflow.
+
+If the environment restricts deployment branches, a pull request run executes on `refs/pull/<n>/merge`, which may not
+match a branch rule; add that pattern or the run will be refused at the environment.
+
 ## 3. Run a targeted probe to verify a key
 
 Open **Actions → llm-probes → Run workflow** and fill in the inputs, or use the CLI.

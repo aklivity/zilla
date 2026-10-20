@@ -65,6 +65,28 @@ class ScanTests(unittest.TestCase):
         self.assertNotIn("sk-test-abcdef123456", scrub.text("https://x/v1?key=sk-test-abcdef123456 and sk-test-abcdef123456"))
 
 
+class WorkflowTriggerTests(unittest.TestCase):
+    TEXT = (Path(__file__).resolve().parents[4] / ".github" / "workflows" / "llm-probes.yml").read_text()
+
+    def trigger_block(self):
+        start = self.TEXT.index("\non:\n") + 1
+        return self.TEXT[start:self.TEXT.index("\npermissions:")]
+
+    def test_only_manual_and_workflow_scoped_pull_request(self):
+        block = self.trigger_block()
+        keys = [line.strip().rstrip(":") for line in block.splitlines() if line.startswith("  ") and not line.startswith("    ")]
+        self.assertEqual(sorted(keys), ["pull_request", "workflow_dispatch"])
+        paths = [line.strip()[2:] for line in block.split("paths:")[1].split("workflow_dispatch:")[0].splitlines() if "- " in line]
+        self.assertEqual(paths, [".github/workflows/llm-probes.yml"])
+
+    def test_jobs_refuse_forks(self):
+        self.assertIn("github.event.pull_request.head.repo.full_name == github.repository", self.TEXT)
+        self.assertNotIn("pull_request_target", self.TEXT.split("jobs:")[0].replace("There is no pull_request_target", ""))
+
+    def test_every_probe_job_uses_the_environment(self):
+        self.assertEqual(self.TEXT.count("environment: llm-probes"), 1)
+
+
 class RetryTests(unittest.TestCase):
     def test_gateway_error_is_retried_once(self):
         import threading
