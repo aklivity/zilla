@@ -30,15 +30,15 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-read "{\"contents\":[{\"parts\":[{\"text\":\"Hello\"}],\"role\":\"model\"}]}"
+read "{\"contents\":[{\"parts\":[{\"text\":\"Hi\"}],\"role\":\"user\"},{\"parts\":[{\"text\":\"Hello!\"}],\"role\":\"model\"}]}"
 
 read closed
 
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
-                            .header(":status", "400")
+                            .header(":status", "200")
                             .header("content-type", "application/json")
                             .build()}
 
-write "{\"error\":{\"code\":400,\"message\":\"role must precede parts in each content\",\"status\":\"INVALID_ARGUMENT\"}}"
+write "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello! How can I help you today?\"}],\"role\":\"model\"},\"finishReason\":\"STOP\",\"index\":0}],\"usageMetadata\":{\"promptTokenCount\":8,\"candidatesTokenCount\":9,\"totalTokenCount\":17},\"modelVersion\":\"gemini-3.6-flash\",\"responseId\":\"resp_01\"}"
 write close
