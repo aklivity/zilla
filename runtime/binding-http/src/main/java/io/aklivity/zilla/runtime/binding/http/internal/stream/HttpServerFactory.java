@@ -174,6 +174,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private static final int EVENT_FIELD_VALUE_MAX = 255;
     private static final String8FW HEADER_CONTENT_TYPE = new String8FW("content-type");
     private static final byte[] CONTENT_TYPE_EVENT_STREAM = "text/event-stream".getBytes(UTF_8);
+    private static final byte[] CONTENT_TYPE_PARAMETER_SPACE = "space=1".getBytes(UTF_8);
     private static final String8FW HEADER_NAME_EVENT_TYPE = new String8FW("type");
     private static final String8FW HEADER_NAME_EVENT_ID = new String8FW("id");
     private static final String8FW HEADER_NAME_EVENT_RETRY = new String8FW("retry");
@@ -432,6 +433,13 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> altSvcHeadersRW =
             new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW());
     private final String16FW.Builder altSvcValueRW = new String16FW.Builder();
+
+    private final MutableDirectBufferEx eventStreamHeadersBuffer = new UnsafeBufferEx(new byte[16384]);
+    private final MutableDirectBufferEx eventStreamRawBuffer = new UnsafeBufferEx(new byte[8192]);
+    private final MutableDirectBufferEx eventStreamValueBuffer = new UnsafeBufferEx(new byte[8194]);
+    private final Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> eventStreamHeadersRW =
+            new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW());
+    private final String16FW.Builder eventStreamValueRW = new String16FW.Builder();
 
     private final String16FW.Builder httpStatusRW =
             new String16FW.Builder().wrap(new UnsafeBufferEx(new byte[16]), 0, 16);
@@ -2782,7 +2790,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         {
             assert exchange == this.exchange;
 
-            final OctetsFW payload = exchange.eventFraming ? encodeEvent(flags, data, extension) : data;
+            final OctetsFW payload = exchange.eventFraming ? encodeEvent(flags, data, extension, exchange.eventSpace) : data;
 
             if (payload != null)
             {
@@ -3026,6 +3034,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             private boolean responseChunked;
             private boolean responseClosing;
             private boolean eventFraming;
+            private boolean eventSpace;
             private HttpModel eventModel = HttpModel.NONE;
             private long lastEventAt;
             private int eventPadAdvertised;
@@ -3420,9 +3429,14 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
                 else
                 {
-                    final Array32FW<HttpHeaderFW> headers = responseEx != null ? responseEx.headers() : DEFAULT_HEADERS;
+                    final Array32FW<HttpHeaderFW> responseHeaders = responseEx != null ? responseEx.headers() : DEFAULT_HEADERS;
 
-                    eventFraming = canFrame(requestCaps) && isEventStream(headers);
+                    eventFraming = canFrame(requestCaps) && isEventStream(responseHeaders);
+                    eventSpace = eventFraming && isEventStreamSpace(responseHeaders);
+
+                    final Array32FW<HttpHeaderFW> headers =
+                        eventSpace ? withoutEventStreamSpace(responseHeaders) : responseHeaders;
+
                     eventModel = response != null ? HttpModel.decoder(response.content, modelBuffer) : HttpModel.NONE;
                     responseState = HttpExchangeState.OPEN;
                     doEncodeHeaders(this, traceId, sessionId, 0L, headers);
@@ -6323,6 +6337,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             private long responseAck;
             private int responseMax;
             private boolean eventFraming;
+            private boolean eventSpace;
             private HttpModel eventModel = HttpModel.NONE;
             private long lastEventAt;
             private int eventPadAdvertised;
@@ -6753,13 +6768,18 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
                 else
                 {
-                    final Array32FW<HttpHeaderFW> headers = responseEx != null ? responseEx.headers() : headers200;
+                    final Array32FW<HttpHeaderFW> responseHeaders = responseEx != null ? responseEx.headers() : headers200;
+
+                    eventFraming = canFrame(requestCaps) && isEventStream(responseHeaders);
+                    eventSpace = eventFraming && isEventStreamSpace(responseHeaders);
+
+                    final Array32FW<HttpHeaderFW> headers =
+                        eventSpace ? withoutEventStreamSpace(responseHeaders) : responseHeaders;
 
                     final HttpHeaderFW contentLengthHeader = headers.matchFirst(header ->
                             header.name().equals(HEADER_CONTENT_LENGTH));
                     responseContentLength =
                         contentLengthHeader != null ? parseInt(contentLengthHeader.value().asString()) : -1;
-                    eventFraming = canFrame(requestCaps) && isEventStream(headers);
                     eventModel = response != null ? HttpModel.decoder(response.content, modelBuffer) : HttpModel.NONE;
 
                     doEncodeHeaders(traceId, authorization, streamId, policy, origin, headers, responseContentLength == 0);
@@ -6880,7 +6900,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                     final int flags = data.flags();
                     final OctetsFW dataPayload =
                         validateEvent(eventModel, routedId, traceId, authorization, flags, data.payload());
-                    final OctetsFW payload = eventFraming ? encodeEvent(flags, dataPayload, data.extension()) : dataPayload;
+                    final OctetsFW payload =
+                        eventFraming ? encodeEvent(flags, dataPayload, data.extension(), eventSpace) : dataPayload;
 
                     if (dataPayload == null && data.payload() != null)
                     {
@@ -7948,6 +7969,131 @@ public final class HttpServerFactory implements HttpStreamFactory
         return eventStream;
     }
 
+    private static boolean isEventStreamSpace(
+        Array32FW<HttpHeaderFW> headers)
+    {
+        final HttpHeaderFW contentType = headers.matchFirst(h -> HEADER_CONTENT_TYPE.equals(h.name()));
+
+        return contentType != null && indexOfEventStreamSpace(contentType.value().value()) != -1;
+    }
+
+    private Array32FW<HttpHeaderFW> withoutEventStreamSpace(
+        Array32FW<HttpHeaderFW> headers)
+    {
+        final Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> builder =
+            eventStreamHeadersRW.wrap(eventStreamHeadersBuffer, 0, eventStreamHeadersBuffer.capacity());
+
+        headers.forEach(h ->
+        {
+            final DirectBufferEx value = h.value().value();
+            final int spaceAt = HEADER_CONTENT_TYPE.equals(h.name()) ? indexOfEventStreamSpace(value) : -1;
+
+            if (spaceAt != -1)
+            {
+                final int spaceEnd = indexOfContentTypeParameterEnd(value, spaceAt + 1);
+                final int remaining = value.capacity() - spaceEnd;
+
+                eventStreamRawBuffer.putBytes(0, value, 0, spaceAt);
+                eventStreamRawBuffer.putBytes(spaceAt, value, spaceEnd, remaining);
+
+                final String16FW stripped = eventStreamValueRW
+                    .wrap(eventStreamValueBuffer, 0, eventStreamValueBuffer.capacity())
+                    .set(eventStreamRawBuffer, 0, spaceAt + remaining)
+                    .build();
+
+                builder.item(item -> item.name(h.name()).value(stripped));
+            }
+            else
+            {
+                builder.item(item -> item.name(h.name()).value(h.value()));
+            }
+        });
+
+        return builder.build();
+    }
+
+    private static int indexOfEventStreamSpace(
+        DirectBufferEx contentType)
+    {
+        int spaceAt = -1;
+
+        if (contentType != null)
+        {
+            int parameterAt = indexOfContentTypeParameter(contentType, CONTENT_TYPE_EVENT_STREAM.length);
+
+            while (spaceAt == -1 && parameterAt != -1)
+            {
+                final int parameterEnd = indexOfContentTypeParameterEnd(contentType, parameterAt + 1);
+
+                if (isContentTypeParameterSpace(contentType, parameterAt + 1, parameterEnd))
+                {
+                    spaceAt = parameterAt;
+                }
+
+                parameterAt = parameterEnd < contentType.capacity() ? parameterEnd : -1;
+            }
+        }
+
+        return spaceAt;
+    }
+
+    private static int indexOfContentTypeParameter(
+        DirectBufferEx contentType,
+        int offset)
+    {
+        int parameterAt = offset;
+
+        while (parameterAt < contentType.capacity() && contentType.getByte(parameterAt) != ';')
+        {
+            parameterAt++;
+        }
+
+        return parameterAt < contentType.capacity() ? parameterAt : -1;
+    }
+
+    private static int indexOfContentTypeParameterEnd(
+        DirectBufferEx contentType,
+        int offset)
+    {
+        final int parameterEnd = indexOfContentTypeParameter(contentType, offset);
+
+        return parameterEnd != -1 ? parameterEnd : contentType.capacity();
+    }
+
+    private static boolean isContentTypeParameterSpace(
+        DirectBufferEx contentType,
+        int offset,
+        int limit)
+    {
+        int start = offset;
+        int end = limit;
+
+        while (start < end && isContentTypeParameterPadding(contentType.getByte(start)))
+        {
+            start++;
+        }
+
+        while (end > start && isContentTypeParameterPadding(contentType.getByte(end - 1)))
+        {
+            end--;
+        }
+
+        boolean space = end - start == CONTENT_TYPE_PARAMETER_SPACE.length;
+
+        for (int i = 0; space && i < CONTENT_TYPE_PARAMETER_SPACE.length; i++)
+        {
+            space = contentType.getByte(start + i) == CONTENT_TYPE_PARAMETER_SPACE[i];
+        }
+
+        return space;
+    }
+
+    private static boolean isContentTypeParameterPadding(
+        byte ch)
+    {
+        return ch == ' ' || ch == '\t';
+    }
+
     private static boolean canFrame(
         int capabilities)
     {
@@ -7957,7 +8103,8 @@ public final class HttpServerFactory implements HttpStreamFactory
     private OctetsFW encodeEvent(
         int flags,
         OctetsFW payload,
-        OctetsFW extension)
+        OctetsFW extension,
+        boolean space)
     {
         DirectBufferEx id = null;
         DirectBufferEx type = null;
@@ -7978,6 +8125,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         {
             final HttpSseEventFW event = eventRW.wrap(eventBuffer, 0, eventBuffer.capacity())
                     .flags(flags)
+                    .space(space)
                     .id(id)
                     .type(type)
                     .retry(retry)
