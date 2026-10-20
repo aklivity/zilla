@@ -389,24 +389,6 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/openai.proxy.guardrail.transform.overlap/client",
-        "${app}/openai.proxy.guardrail.transform.overlap/server"})
-    public void shouldGuardOpenaiTransformOverlapNet() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/openai.proxy.guardrail.transform.overlap.exit/client",
-        "${app}/openai.proxy.guardrail.transform.overlap.exit/server"})
-    public void shouldGuardOpenaiTransformOverlapExit() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/openai.proxy.guardrail.transform.members/client",
         "${app}/openai.proxy.guardrail.transform.members/server"})
     public void shouldGuardOpenaiTransformMembersNet() throws Exception
@@ -3701,6 +3683,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/transform.request.extension/client",
+        "${app}/transform.request.extension/server"})
+    public void shouldTransformRequestExtension() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/gemini/client",
         "${app}/gemini/server"})
     public void shouldForwardGeminiNonstreaming() throws Exception
@@ -3998,6 +3989,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/gemini.model.colon/client",
+        "${app}/gemini.model.colon/server"})
+    public void shouldForwardGeminiModelColon() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/gemini.section.role.model.after.parts.split/client",
         "${app}/gemini.section.role.model.after.parts.split/server"})
     public void shouldForwardGeminiSectionRoleModelAfterPartsSplit() throws Exception
@@ -4010,6 +4010,15 @@ public class ApplicationIT
         "${app}/gemini.section.role.after.parts.text.image.100k/client",
         "${app}/gemini.section.role.after.parts.text.image.100k/server"})
     public void shouldForwardGeminiSectionRoleAfterPartsTextImage100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.model.colon.encoded/client",
+        "${app}/gemini.model.colon.encoded/server"})
+    public void shouldForwardGeminiModelColonEncoded() throws Exception
     {
         k3po.finish();
     }
@@ -4937,6 +4946,15 @@ public class ApplicationIT
         "${app}/gemini.rejected.model.retired/client",
         "${app}/gemini.rejected.model.retired/server"})
     public void shouldForwardGeminiRejectedModelRetired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.transform.request.extension/client",
+        "${app}/gemini.transform.request.extension/server"})
+    public void shouldForwardGeminiTransformRequestExtension() throws Exception
     {
         k3po.finish();
     }

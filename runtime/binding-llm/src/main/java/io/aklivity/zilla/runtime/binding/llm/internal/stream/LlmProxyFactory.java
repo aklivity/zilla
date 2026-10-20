@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmGuardEnvelope.DIRECTION_REQUEST;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmGuardEnvelope.DIRECTION_RESPONSE;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.util.Objects.requireNonNull;
 
@@ -32,7 +34,6 @@ import io.aklivity.zilla.runtime.binding.llm.config.LlmGuardrail;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmGuardrailStage;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmRouteConfig;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmBinding;
-import io.aklivity.zilla.runtime.binding.llm.internal.LlmConfiguration;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.BeginFW;
@@ -121,7 +122,6 @@ public final class LlmProxyFactory implements LlmStreamFactory
     private final MutableDirectBufferEx transformBuffer;
     private final BufferPool heldPool;
     private final BufferPool runPool;
-    private final int guardrailOverlap;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final BindingHandler streamFactory;
@@ -130,7 +130,6 @@ public final class LlmProxyFactory implements LlmStreamFactory
     private final Long2ObjectHashMap<LlmBindingConfig> bindings;
 
     public LlmProxyFactory(
-        LlmConfiguration config,
         EngineContext context)
     {
         this.writeBuffer = requireNonNull(context.writeBuffer());
@@ -139,7 +138,6 @@ public final class LlmProxyFactory implements LlmStreamFactory
         this.transformBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.heldPool = context.bufferPool();
         this.runPool = context.bufferPool().duplicate();
-        this.guardrailOverlap = config.guardrailOverlap();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();
@@ -687,7 +685,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             private LlmRequestGuard(
                 List<LlmGuardrailStage> stages)
             {
-                super(routedId, initialId, stages);
+                super(routedId, initialId, DIRECTION_REQUEST, stages);
             }
 
             @Override
@@ -1142,7 +1140,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             private LlmReplyGuard(
                 List<LlmGuardrailStage> stages)
             {
-                super(net.routedId, replyId, stages);
+                super(net.routedId, replyId, DIRECTION_RESPONSE, stages);
             }
 
             @Override
@@ -1318,6 +1316,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
         private LlmSectionGuard(
             long routedId,
             long streamId,
+            String direction,
             List<LlmGuardrailStage> stages)
         {
             this.routedId = routedId;
@@ -1328,17 +1327,18 @@ public final class LlmProxyFactory implements LlmStreamFactory
             this.frameAttributes = new LlmSectionAttributes();
 
             final Map<LlmSectionType, ModelPipeline> chains = new EnumMap<>(LlmSectionType.class);
+            final ModelEnvelope envelope = new LlmGuardEnvelope(direction);
 
             for (LlmGuardrailStage stage : stages)
             {
-                final ModelPipeline pipeline = stage.handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE,
+                final ModelPipeline pipeline = stage.handler.supplyDecoder(envelope, ModelTransform.NONE,
                     this::onResumed);
                 stage.sections.forEach(section -> chains.merge(section, pipeline, ModelPipeline::andThen));
             }
 
             this.pipelines = new EnumMap<>(LlmSectionType.class);
             chains.forEach((section, chain) -> pipelines.put(section, LlmTextModelPipeline.objectShaped(section)
-                ? new LlmTextModelPipeline(chain, guardrailOverlap, runPool, streamId, transformBuffer)
+                ? new LlmTextModelPipeline(chain, runPool, streamId, transformBuffer)
                 : new LlmRawGuardPipeline(chain)));
         }
 

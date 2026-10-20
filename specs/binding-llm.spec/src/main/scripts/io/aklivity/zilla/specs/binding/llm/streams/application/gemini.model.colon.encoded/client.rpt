@@ -13,17 +13,15 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property clientAddress "zilla://streams/app0"
-property model "gpt-a"
-
-connect ${clientAddress}
+connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
-                           .model(model)
+                           .dialect("gemini")
+                           .model("amazon.nova-micro-v1:0")
+                           .extension("generateContent")
                            .build()}
 
 connected
@@ -33,15 +31,16 @@ write zilla:data.ext ${llm:dataEx()
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-write "{\"text\":\"my secret is safe\"}"
+write "{\"text\":\"Hello\"}"
 write flush
 
 write advise zilla:flush
 
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
-                           .model(model)
+                           .dialect("gemini")
+                           .model("gemini-3.6-flash")
+                           .id("resp_01")
                            .build()}
 
 read zilla:data.ext ${llm:matchDataEx()
@@ -49,7 +48,22 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-read "{\"text\":\"Hi\"}"
+read "{\"text\":\"Hello! How can I help you today?\"}"
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("CONTROL")
+                          .message(-1)
+                          .build()}
+read "{\"gemini:usageMetadata\":{\"promptTokenCount\":8,\"candidatesTokenCount\":9,\"totalTokenCount\":17}}"
+
+read zilla:end.ext ${llm:matchEndEx()
+                            .typeId(zilla:id("llm"))
+                            .inputTokens(8)
+                            .outputTokens(9)
+                            .totalTokens(17)
+                            .finishReason("stop")
+                            .build()}
 
 read closed
 

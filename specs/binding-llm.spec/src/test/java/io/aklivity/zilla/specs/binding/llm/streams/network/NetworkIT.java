@@ -3305,6 +3305,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/anthropic.transform.request.extension/client",
+        "${net}/anthropic.transform.request.extension/server"})
+    public void shouldAnthropicTransformRequestExtension() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/gemini/client",
         "${net}/gemini/server"})
     public void shouldEncodeGeminiNonstreaming() throws Exception
@@ -3839,6 +3848,24 @@ public class NetworkIT
         "${net}/gemini.section.role.after.parts/client",
         "${net}/gemini.section.role.after.parts/server"})
     public void shouldEncodeGeminiSectionRoleAfterParts() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.model.colon/client",
+        "${net}/gemini.model.colon/server"})
+    public void shouldEncodeGeminiModelColon() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.model.colon.encoded/client",
+        "${net}/gemini.model.colon.encoded/server"})
+    public void shouldEncodeGeminiModelColonEncoded() throws Exception
     {
         k3po.finish();
     }
@@ -4739,6 +4766,15 @@ public class NetworkIT
         "${net}/gemini.rejected.model.retired/client",
         "${net}/gemini.rejected.model.retired/server"})
     public void shouldEncodeGeminiRejectedModelRetired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.request.extension/client",
+        "${net}/gemini.transform.request.extension/server"})
+    public void shouldEncodeGeminiTransformRequestExtension() throws Exception
     {
         k3po.finish();
     }

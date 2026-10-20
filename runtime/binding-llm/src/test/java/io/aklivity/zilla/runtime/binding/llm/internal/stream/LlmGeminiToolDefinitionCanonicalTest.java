@@ -38,11 +38,59 @@ public class LlmGeminiToolDefinitionCanonicalTest
     }
 
     @Test
-    public void shouldWrapOpenApiParametersAsParameters()
+    public void shouldWrapSnakeCaseJsonSchemaAsParameters()
     {
         assertTransforms(to,
-            json("{'name':'get_weather','parameters':{'type':'OBJECT'}}"),
-            json("{'type':'function','function':{'name':'get_weather','parameters':{'type':'OBJECT'}}}"));
+            json("{'name':'get_weather','parameters_json_schema':{'type':'object','properties':{'city':{'type':'string'}}}}"),
+            json("{'type':'function','function':{'name':'get_weather'," +
+                "'parameters':{'type':'object','properties':{'city':{'type':'string'}}}}}"));
+    }
+
+    @Test
+    public void shouldWrapOpenApiParametersAsJsonSchema()
+    {
+        assertTransforms(to,
+            json("{'name':'get_weather','parameters':{'type':'OBJECT','properties':{'city':{'type':'STRING'," +
+                "'description':'City name'}},'required':['city']}}"),
+            json("{'type':'function','function':{'name':'get_weather','parameters':{'type':'object'," +
+                "'properties':{'city':{'type':'string','description':'City name'}},'required':['city']}}}"));
+    }
+
+    @Test
+    public void shouldWrapOpenApiParametersWithPropertyNamedType()
+    {
+        assertTransforms(to,
+            json("{'name':'f','parameters':{'type':'OBJECT','properties':{'type':{'type':'INTEGER'},'city':{'type':'STRING'}}}}"),
+            json("{'type':'function','function':{'name':'f','parameters':{'type':'object'," +
+                "'properties':{'type':{'type':'integer'},'city':{'type':'string'}}}}}"));
+    }
+
+    @Test
+    public void shouldWrapOpenApiParametersWithNestedSchemas()
+    {
+        assertTransforms(to,
+            json("{'name':'f','parameters':{'type':'OBJECT','properties':{'tags':{'type':'ARRAY','items':{'type':'STRING'}}," +
+                "'place':{'type':'OBJECT','properties':{'city':{'type':'STRING'}}},'n':{'type':'NUMBER','nullable':true}}}}"),
+            json("{'type':'function','function':{'name':'f','parameters':{'type':'object','properties':{" +
+                "'tags':{'type':'array','items':{'type':'string'}}," +
+                "'place':{'type':'object','properties':{'city':{'type':'string'}}},'n':{'type':'number','nullable':true}}}}}"));
+    }
+
+    @Test
+    public void shouldKeepOpenApiTypeThatIsNotAnEnumName()
+    {
+        assertTransforms(to,
+            json("{'name':'f','parameters':{'type':'custom','description':'TYPE_UNSPECIFIED'}}"),
+            json("{'type':'function','function':{'name':'f','parameters':{'type':'custom','description':'TYPE_UNSPECIFIED'}}}"));
+    }
+
+    @Test
+    public void shouldWrapOpenApiParametersLargerThanWindow()
+    {
+        assertTransforms(to,
+            json("{'name':'f','parameters':{'type':'OBJECT','description':'" + HUGE + "','properties':{'a':{'type':'STRING'}}}}"),
+            json("{'type':'function','function':{'name':'f','parameters':{'type':'object','description':'" + HUGE +
+                "','properties':{'a':{'type':'string'}}}}}"));
     }
 
     @Test

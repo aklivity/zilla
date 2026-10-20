@@ -20,19 +20,28 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 final class LlmGeminiToolDefinitionToCanonical extends LlmToolTransform
 {
     private static final String DIALECT = "gemini";
+    private static final int NAMES_DEPTH_MAX = 62;
 
     private boolean named;
+    private long names;
 
     @Override
     public void reset()
     {
         super.reset();
         named = false;
+        names = 0L;
     }
 
     @Override
     protected int member(
         int depth,
+        CharSequence key)
+    {
+        return depth == 1 ? declarationMember(key) : schemaMember(depth, key);
+    }
+
+    private int declarationMember(
         CharSequence key)
     {
         int action;
@@ -48,10 +57,15 @@ final class LlmGeminiToolDefinitionToCanonical extends LlmToolTransform
             target = "description";
             action = PASS_STRING_OR_DROP;
         }
-        else if (matches(key, "parametersJsonSchema") || matches(key, "parameters"))
+        else if (matches(key, "parametersJsonSchema") || matches(key, "parameters_json_schema"))
         {
             target = "parameters";
             action = PASS_OBJECT;
+        }
+        else if (matches(key, "parameters"))
+        {
+            target = "parameters";
+            action = DESCEND_KEPT;
         }
         else
         {
@@ -59,6 +73,54 @@ final class LlmGeminiToolDefinitionToCanonical extends LlmToolTransform
         }
 
         return action;
+    }
+
+    private int schemaMember(
+        int depth,
+        CharSequence key)
+    {
+        final boolean propertyName = depth <= NAMES_DEPTH_MAX && (names & (1L << depth)) != 0L;
+        int action;
+
+        if (propertyName)
+        {
+            target = key.toString();
+            action = DESCEND_KEPT;
+        }
+        else if (matches(key, "type"))
+        {
+            target = "type";
+            action = CONVERT_STRING;
+        }
+        else if (matches(key, "properties") && depth < NAMES_DEPTH_MAX)
+        {
+            names |= 1L << (depth + 1);
+            target = "properties";
+            action = DESCEND_KEPT;
+        }
+        else if (matches(key, "items"))
+        {
+            target = "items";
+            action = DESCEND_KEPT;
+        }
+        else
+        {
+            target = key.toString();
+            action = PASS_VALUE;
+        }
+
+        return action;
+    }
+
+    @Override
+    protected String converted(
+        String value)
+    {
+        return switch (value)
+        {
+        case "STRING", "NUMBER", "INTEGER", "BOOLEAN", "ARRAY", "OBJECT", "NULL" -> value.toLowerCase();
+        default -> value;
+        };
     }
 
     @Override
@@ -76,7 +138,17 @@ final class LlmGeminiToolDefinitionToCanonical extends LlmToolTransform
     {
         Status status = Status.REJECTED;
 
-        if (named)
+        if (depth > 1)
+        {
+            if (depth <= NAMES_DEPTH_MAX)
+            {
+                names &= ~(1L << depth);
+            }
+
+            pass(JsonEvent.END_OBJECT);
+            status = Status.ADVANCED;
+        }
+        else if (named)
         {
             emit(JsonEvent.END_OBJECT);
             pass(JsonEvent.END_OBJECT);

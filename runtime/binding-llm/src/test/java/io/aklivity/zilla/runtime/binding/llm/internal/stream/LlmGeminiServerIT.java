@@ -406,6 +406,16 @@ public class LlmGeminiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/gemini.model.colon/client",
+        "${app}/gemini.model.colon/server"})
+    public void shouldForwardGeminiModelColon() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/gemini.section.reasoning.history.role.last/client",
         "${app}/gemini.section.reasoning.history/server"})
     public void shouldForwardGeminiSectionReasoningHistoryRoleLast() throws Exception
@@ -539,6 +549,16 @@ public class LlmGeminiServerIT
         "${net}/gemini.section.rejected.role.model.after.media/client",
         "${app}/gemini.section.rejected.role.model.after.media/server"})
     public void shouldForwardGeminiSectionRejectedRoleModelAfterMedia() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.model.colon.encoded/client",
+        "${app}/gemini.model.colon.encoded/server"})
+    public void shouldForwardGeminiModelColonEncoded() throws Exception
     {
         k3po.finish();
     }

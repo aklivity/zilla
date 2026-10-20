@@ -13,51 +13,36 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property clientAddress "zilla://streams/app0"
-property model "gpt-a"
+property source "source"
 
-connect ${clientAddress}
+connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
-                           .model(model)
+                           .dialect(source)
+                           .model("model")
+                           .extension("generateContent")
                            .build()}
 
 connected
 
-write option zilla:flags "init"
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-write "{\"text\":\"my ******"
-write flush
-write option zilla:flags "none"
-write " is safe"
-write flush
-write option zilla:flags "fin"
-write "\"}"
+write "{\"text\":\"Hi\"}"
 write flush
 
 write advise zilla:flush
 
-read zilla:begin.ext ${llm:matchBeginEx()
+read zilla:reset.ext ${llm:matchResetEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
-                           .model(model)
+                           .status(400)
+                           .type("INVALID_ARGUMENT")
+                           .message("Invalid request")
                            .build()}
 
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("ASSISTANT_TEXT")
-                          .message(0)
-                          .build()}
-read "{\"text\":\"Hi\"}"
-
-read closed
-
-write close
+write aborted
