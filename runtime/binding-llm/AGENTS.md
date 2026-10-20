@@ -43,17 +43,24 @@ a `closing` flag (default `1`) and a list of `LlmAttribute` (name, value). (the 
 - A producer should align frames to its source's chunks, so one frame carries one
   range, and split a range only when credit forces it. A consumer must handle both.
 
-### Through llm(proxy) (planned)
+### Through llm(proxy)
+
+Only the init frame of a section carries the section type, message and attributes. A
+later frame's extension carries only ranges, and is omitted when it has none.
 
 | Guardrail pipeline for the section type | Ranges and attributes |
 |---|---|
-| none, or `identity()` | relayed, re-cut to the output frames by cumulative byte count |
-| not identity | kept until the first byte that differs from the input, verified in lockstep, then dropped for the rest of the section |
-| unknown | dropped |
+| none | relayed with the frames |
+| `identity()` | **implemented**: relayed, re-cut to the output frames by cumulative byte count; parts of one range that leave in the same frame are merged |
+| not identity | **implemented**: dropped for the section |
+| not identity, bytes unchanged up to the first edit | planned: kept until the first byte that differs from the input, verified in lockstep, then dropped for the rest of the section |
 
 Attributes that a stage could have changed are dropped, never forwarded. A later
 refinement may let a stage report omitted, injected and retained bytes per range so
 that ranges after an edit survive.
+
+The ranges pending for a section are bounded by what one frame extension can carry,
+and are dropped for the rest of the section once they exceed it.
 
 ## Per section type
 

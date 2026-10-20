@@ -389,6 +389,78 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.proxy.guardrail.ranges.unguarded/client",
+        "${app}/openai.proxy.guardrail.ranges.unguarded/server"})
+    public void shouldGuardOpenaiRangesUnguardedNet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.ranges.unguarded.exit/client",
+        "${app}/openai.proxy.guardrail.ranges.unguarded.exit/server"})
+    public void shouldGuardOpenaiRangesUnguardedExit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.ranges.identity/client",
+        "${app}/openai.proxy.guardrail.ranges.identity/server"})
+    public void shouldGuardOpenaiRangesIdentityNet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.ranges.identity.exit/client",
+        "${app}/openai.proxy.guardrail.ranges.identity.exit/server"})
+    public void shouldGuardOpenaiRangesIdentityExit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.ranges.transformed/client",
+        "${app}/openai.proxy.guardrail.ranges.transformed/server"})
+    public void shouldGuardOpenaiRangesTransformedNet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.ranges.transformed.exit/client",
+        "${app}/openai.proxy.guardrail.ranges.transformed.exit/server"})
+    public void shouldGuardOpenaiRangesTransformedExit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.ranges.tool.call/client",
+        "${app}/openai.proxy.guardrail.ranges.tool.call/server"})
+    public void shouldGuardOpenaiRangesToolCallNet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.ranges.tool.call.exit/client",
+        "${app}/openai.proxy.guardrail.ranges.tool.call.exit/server"})
+    public void shouldGuardOpenaiRangesToolCallExit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.proxy.guardrail.transform.streaming/client",
         "${app}/openai.proxy.guardrail.transform.streaming/server"})
     public void shouldGuardOpenaiTransformStreamingNet() throws Exception

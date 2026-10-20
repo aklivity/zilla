@@ -55,6 +55,7 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
     private boolean started;
     private int textProduced;
     private ModelStatus textStatus;
+    private int values;
 
     LlmTextModelPipeline(
         ModelPipeline pipeline,
@@ -109,6 +110,8 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
         int produced = 0;
         ModelStatus status = ModelStatus.UNDERFLOW;
         boolean stopped = false;
+
+        values = 0;
 
         while (!stopped && position < srcLimit)
         {
@@ -196,6 +199,8 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
         int produced = 0;
         ModelStatus status = ModelStatus.COMPLETE;
 
+        values = 0;
+
         if (scanner.region() != LlmTextObjectScanner.TAIL)
         {
             finishText(traceId, bindingId, authorization, dst, dstIndex, dstLimit);
@@ -211,6 +216,18 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
     public boolean finishes()
     {
         return true;
+    }
+
+    @Override
+    public boolean identity()
+    {
+        return pipeline.identity();
+    }
+
+    @Override
+    public int values()
+    {
+        return values;
     }
 
     @Override
@@ -281,6 +298,7 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
             slot != NO_SLOT ? slotBuffer : EMPTY_TEXT, textProgress, textLength, transformBuffer, 0, room);
 
         textProgress += inner.consumed();
+        values += inner.produced();
         started = true;
         textStatus = inner.status();
         textProduced = embed(inner.produced(), dst, dstIndex, dstLimit);

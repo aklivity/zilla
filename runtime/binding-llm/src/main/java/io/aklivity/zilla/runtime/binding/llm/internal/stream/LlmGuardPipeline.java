@@ -47,6 +47,10 @@ interface LlmGuardPipeline
 
     boolean finishes();
 
+    boolean identity();
+
+    int values();
+
     int closeWidth();
 
     int close(
