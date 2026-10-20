@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmGuardEnvelope.DIRECTION_REQUEST;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmGuardEnvelope.DIRECTION_RESPONSE;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.util.Objects.requireNonNull;
 
@@ -683,7 +685,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             private LlmRequestGuard(
                 List<LlmGuardrailStage> stages)
             {
-                super(routedId, initialId, stages);
+                super(routedId, initialId, DIRECTION_REQUEST, stages);
             }
 
             @Override
@@ -1138,7 +1140,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             private LlmReplyGuard(
                 List<LlmGuardrailStage> stages)
             {
-                super(net.routedId, replyId, stages);
+                super(net.routedId, replyId, DIRECTION_RESPONSE, stages);
             }
 
             @Override
@@ -1314,6 +1316,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
         private LlmSectionGuard(
             long routedId,
             long streamId,
+            String direction,
             List<LlmGuardrailStage> stages)
         {
             this.routedId = routedId;
@@ -1324,10 +1327,11 @@ public final class LlmProxyFactory implements LlmStreamFactory
             this.frameAttributes = new LlmSectionAttributes();
 
             final Map<LlmSectionType, ModelPipeline> chains = new EnumMap<>(LlmSectionType.class);
+            final ModelEnvelope envelope = new LlmGuardEnvelope(direction);
 
             for (LlmGuardrailStage stage : stages)
             {
-                final ModelPipeline pipeline = stage.handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE,
+                final ModelPipeline pipeline = stage.handler.supplyDecoder(envelope, ModelTransform.NONE,
                     this::onResumed);
                 stage.sections.forEach(section -> chains.merge(section, pipeline, ModelPipeline::andThen));
             }

@@ -80,6 +80,17 @@ public class LlmProxyIT
     }
 
     @Test
+    @Configuration("proxy.guardrail.direction.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.accepted/client",
+        "${app}/openai.proxy.guardrail.accepted/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldSupplyDirectionToGuardedSections() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.guardrail.yaml")
     @Specification({
         "${app}/openai.proxy.guardrail.control/client",
