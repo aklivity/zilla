@@ -55,7 +55,7 @@ abstract class LlmToolTransform implements JsonTransform
     private static final String BASE64_MARKER = ";base64,";
     private static final int NONE = -1;
     private static final int QUEUE_CAPACITY = 16;
-    private static final int HELD_MAX = 4096;
+    static final int HELD_MAX = 4096;
     private static final int NAMES_CAPACITY = 32;
 
     protected String target;

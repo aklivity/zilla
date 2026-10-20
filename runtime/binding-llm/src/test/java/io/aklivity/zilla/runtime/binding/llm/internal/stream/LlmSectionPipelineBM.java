@@ -78,6 +78,23 @@ public class LlmSectionPipelineBM
     private static final String TOOL_CALL_OPENAI_CANONICAL =
         "{\"arguments\":{\"city\":\"Paris\",\"unit\":\"c\",\"days\":[1,2,3]}}";
 
+    private static final String TOOL_DEFINITION_GEMINI_NATIVE =
+        "{\"name\":\"get_weather\",\"description\":\"Get the weather\",\"parametersJsonSchema\":{\"type\":\"object\"," +
+        "\"properties\":{\"city\":{\"type\":\"string\"},\"unit\":{\"type\":\"string\",\"enum\":[\"c\",\"f\"]}}," +
+        "\"required\":[\"city\"]}}";
+    private static final String TOOL_DEFINITION_GEMINI_CANONICAL =
+        "{\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"description\":\"Get the weather\"," +
+        "\"parameters\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"},\"unit\":" +
+        "{\"type\":\"string\",\"enum\":[\"c\",\"f\"]}},\"required\":[\"city\"]}}}";
+    private static final String TOOL_CALL_GEMINI_NATIVE =
+        "{\"functionCall\":{\"name\":\"get_weather\",\"args\":{\"city\":\"Paris\",\"unit\":\"c\",\"days\":[1,2,3]}," +
+        "\"id\":\"call_1\"},\"thoughtSignature\":\"c2ln\"}";
+    private static final String TOOL_CALL_GEMINI_CANONICAL =
+        "{\"arguments\":{\"city\":\"Paris\",\"unit\":\"c\",\"days\":[1,2,3]},\"gemini:id\":\"call_1\"," +
+        "\"gemini:thoughtSignature\":\"c2ln\"}";
+    private static final String IMAGE_GEMINI_NATIVE =
+        "{\"inlineData\":{\"mimeType\":\"image/png\",\"data\":\"" + DATA + "\"}}";
+
     private static final String IMAGE_NATIVE =
         "{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image/png\",\"data\":\"" + DATA + "\"}}";
     private static final String IMAGE_CANONICAL =
@@ -118,6 +135,12 @@ public class LlmSectionPipelineBM
     private LlmSectionPipeline toolCallFromCanonical;
     private LlmSectionPipeline toolCallOpenaiToCanonical;
     private LlmSectionPipeline toolCallOpenaiFromCanonical;
+    private LlmSectionPipeline toolDefinitionGeminiToCanonical;
+    private LlmSectionPipeline toolDefinitionGeminiFromCanonical;
+    private LlmSectionPipeline toolCallGeminiToCanonical;
+    private LlmSectionPipeline toolCallGeminiFromCanonical;
+    private LlmSectionPipeline imageGeminiToCanonical;
+    private LlmSectionPipeline imageGeminiFromCanonical;
     private LlmSectionPipeline imageToCanonical;
     private LlmSectionPipeline imageFromAnthropic;
     private LlmSectionPipeline citationsToCanonical;
@@ -134,6 +157,11 @@ public class LlmSectionPipelineBM
     private UnsafeBufferEx toolCallCanonical;
     private UnsafeBufferEx toolCallOpenaiNative;
     private UnsafeBufferEx toolCallOpenaiCanonical;
+    private UnsafeBufferEx toolDefinitionGeminiNative;
+    private UnsafeBufferEx toolDefinitionGeminiCanonical;
+    private UnsafeBufferEx toolCallGeminiNative;
+    private UnsafeBufferEx toolCallGeminiCanonical;
+    private UnsafeBufferEx imageGeminiNative;
     private UnsafeBufferEx imageNative;
     private UnsafeBufferEx imageCanonical;
     private UnsafeBufferEx citationsNative;
@@ -153,6 +181,12 @@ public class LlmSectionPipelineBM
         toolCallFromCanonical = pipeline(new LlmAnthropicToolCallFromCanonical("tool_use"));
         toolCallOpenaiToCanonical = pipeline(new LlmOpenaiToolCallToCanonical());
         toolCallOpenaiFromCanonical = pipeline(new LlmOpenaiToolCallFromCanonical());
+        toolDefinitionGeminiToCanonical = pipeline(new LlmGeminiToolDefinitionToCanonical());
+        toolDefinitionGeminiFromCanonical = pipeline(new LlmGeminiToolDefinitionFromCanonical());
+        toolCallGeminiToCanonical = pipeline(new LlmGeminiToolCallToCanonical());
+        toolCallGeminiFromCanonical = pipeline(new LlmGeminiToolCallFromCanonical());
+        imageGeminiToCanonical = pipeline(LlmGeminiMediaToCanonical.image());
+        imageGeminiFromCanonical = pipeline(LlmGeminiMediaFromCanonical.image());
         imageToCanonical = pipeline(LlmAnthropicMediaToCanonical.image());
         imageFromAnthropic = pipeline(LlmAnthropicMediaFromCanonical.image());
         citationsToCanonical = pipeline(new LlmAnthropicCitationsToCanonical());
@@ -174,6 +208,11 @@ public class LlmSectionPipelineBM
         toolCallCanonical = buffer(TOOL_CALL_CANONICAL);
         toolCallOpenaiNative = buffer(TOOL_CALL_OPENAI_NATIVE);
         toolCallOpenaiCanonical = buffer(TOOL_CALL_OPENAI_CANONICAL);
+        toolDefinitionGeminiNative = buffer(TOOL_DEFINITION_GEMINI_NATIVE);
+        toolDefinitionGeminiCanonical = buffer(TOOL_DEFINITION_GEMINI_CANONICAL);
+        toolCallGeminiNative = buffer(TOOL_CALL_GEMINI_NATIVE);
+        toolCallGeminiCanonical = buffer(TOOL_CALL_GEMINI_CANONICAL);
+        imageGeminiNative = buffer(IMAGE_GEMINI_NATIVE);
         imageNative = buffer(IMAGE_NATIVE);
         imageCanonical = buffer(IMAGE_CANONICAL);
         citationsNative = buffer(CITATIONS_NATIVE);
@@ -267,6 +306,56 @@ public class LlmSectionPipelineBM
     public int imageInlineFromCanonicalAnthropic()
     {
         return run(imageFromAnthropic, imageAttributes, imageCanonical, imageCanonical.capacity());
+    }
+
+    @Benchmark
+    public int toolDefinitionToCanonicalGemini()
+    {
+        return run(toolDefinitionGeminiToCanonical, none, toolDefinitionGeminiNative, toolDefinitionGeminiNative.capacity());
+    }
+
+    @Benchmark
+    public int toolDefinitionFromCanonicalGemini()
+    {
+        return run(toolDefinitionGeminiFromCanonical, none, toolDefinitionGeminiCanonical,
+            toolDefinitionGeminiCanonical.capacity());
+    }
+
+    @Benchmark
+    public int toolCallToCanonicalGemini()
+    {
+        return run(toolCallGeminiToCanonical, toolCallAttributes, toolCallGeminiNative, toolCallGeminiNative.capacity());
+    }
+
+    @Benchmark
+    public int toolCallToCanonicalGeminiFragmented()
+    {
+        return run(toolCallGeminiToCanonical, toolCallAttributes, toolCallGeminiNative, WINDOW);
+    }
+
+    @Benchmark
+    public int toolCallFromCanonicalGemini()
+    {
+        return run(toolCallGeminiFromCanonical, toolCallAttributes, toolCallGeminiCanonical,
+            toolCallGeminiCanonical.capacity());
+    }
+
+    @Benchmark
+    public int imageInlineToCanonicalGemini()
+    {
+        return run(imageGeminiToCanonical, imageAttributes, imageGeminiNative, imageGeminiNative.capacity());
+    }
+
+    @Benchmark
+    public int imageInlineToCanonicalGeminiFragmented()
+    {
+        return run(imageGeminiToCanonical, imageAttributes, imageGeminiNative, WINDOW);
+    }
+
+    @Benchmark
+    public int imageInlineFromCanonicalGemini()
+    {
+        return run(imageGeminiFromCanonical, imageAttributes, imageCanonical, imageCanonical.capacity());
     }
 
     @Benchmark
