@@ -40,5 +40,5 @@ write zilla:begin.ext ${http:beginEx()
                             .header("content-type", "application/json")
                             .build()}
 
-write "{\"id\":\"resp_1\",\"object\":\"response\",\"model\":\"gpt-4\",\"output\":[{\"id\":\"msg_1\",\"type\":\"message\",\"content\":[{\"type\":\"output_text\",\"annotations\":[],\"logprobs\":[],\"text\":\"ok\"}],\"role\":\"assistant\",\"status\":\"completed\"}],\"status\":\"completed\",\"usage\":{\"input_tokens\":4019,\"input_tokens_details\":{\"cache_write_tokens\":0,\"cached_tokens\":3840},\"output_tokens\":2,\"output_tokens_details\":{\"reasoning_tokens\":0},\"total_tokens\":4021}}"
+write "{\"id\":\"resp_1\",\"object\":\"response\",\"model\":\"gpt-4\",\"output\":[{\"id\":\"msg_1\",\"type\":\"message\",\"content\":[{\"type\":\"output_text\",\"text\":\"ok\",\"annotations\":[],\"logprobs\":[]}],\"role\":\"assistant\",\"status\":\"completed\"}],\"status\":\"completed\",\"usage\":{\"input_tokens\":4019,\"input_tokens_details\":{\"cache_write_tokens\":0,\"cached_tokens\":3840},\"output_tokens\":2,\"output_tokens_details\":{\"reasoning_tokens\":0},\"total_tokens\":4021}}"
 write close

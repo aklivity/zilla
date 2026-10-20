@@ -37,6 +37,6 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("content-type", "application/json")
                            .build()}
 
-read "{\"id\":\"id_1\",\"object\":\"response\",\"model\":\"model\",\"output\":[{\"type\":\"reasoning\",\"summary\":[{\"type\":\"summary_text\",\"text\":\"Let me think about it.\"}],\"id\":\"rs_1\"},{\"id\":\"msg_2\",\"type\":\"message\",\"content\":[{\"type\":\"output_text\",\"annotations\":[],\"logprobs\":[],\"text\":\"Hello!\"}],\"role\":\"assistant\",\"status\":\"completed\"}],\"status\":\"completed\",\"usage\":{\"input_tokens\":25,\"output_tokens\":15,\"total_tokens\":40}}"
+read "{\"id\":\"id_1\",\"object\":\"response\",\"model\":\"model\",\"output\":[{\"type\":\"reasoning\",\"summary\":[{\"type\":\"summary_text\",\"text\":\"Let me think about it.\"}],\"id\":\"rs_1\"},{\"id\":\"msg_2\",\"type\":\"message\",\"content\":[{\"type\":\"output_text\",\"text\":\"Hello!\",\"annotations\":[],\"logprobs\":[]}],\"role\":\"assistant\",\"status\":\"completed\"}],\"status\":\"completed\",\"usage\":{\"input_tokens\":25,\"output_tokens\":15,\"total_tokens\":40}}"
 
 read closed

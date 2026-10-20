@@ -5156,4 +5156,67 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.proxy.guardrail.rejected/client",
+        "${net}/openai.responses.proxy.guardrail.rejected/server"})
+    public void shouldOpenaiResponsesProxyGuardrailRejected() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.proxy.guardrail.transformed/client",
+        "${net}/openai.responses.proxy.guardrail.transformed/server"})
+    public void shouldOpenaiResponsesProxyGuardrailTransformed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.text.citations.members.api/client",
+        "${net}/openai.responses.text.citations.members.api/server"})
+    public void shouldOpenaiResponsesTextCitationsMembersApi() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.text.citations.long/client",
+        "${net}/openai.responses.text.citations.long/server"})
+    public void shouldOpenaiResponsesTextCitationsLong() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.response.controls.inline/client",
+        "${net}/openai.responses.response.controls.inline/server"})
+    public void shouldOpenaiResponsesResponseControlsInline() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.response.controls.held.large/client",
+        "${net}/openai.responses.response.controls.held.large/server"})
+    public void shouldOpenaiResponsesResponseControlsHeldLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.response.controls.held.small.slot/client",
+        "${net}/openai.responses.response.controls.held.small.slot/server"})
+    public void shouldOpenaiResponsesResponseControlsHeldSmallSlot() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -34,6 +34,11 @@ final class LlmTextTransform extends LlmToolTransform
         this.optional = optional;
     }
 
+    boolean extracted()
+    {
+        return extracted;
+    }
+
     @Override
     public void reset()
     {

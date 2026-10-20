@@ -37,6 +37,6 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("content-type", "application/json")
                            .build()}
 
-read "{\"id\":\"resp_1\",\"object\":\"response\",\"model\":\"gpt-4\",\"output\":[{\"type\":\"reasoning\",\"summary\":[{\"type\":\"summary_text\",\"text\":\"Thinking\"}],\"id\":\"rs_orig\",\"encrypted_content\":\"gAAAAABq1ouh2zy2x7xA\"},{\"id\":\"msg_2\",\"type\":\"message\",\"content\":[{\"type\":\"output_text\",\"annotations\":[],\"logprobs\":[],\"text\":\"Hello there\"}],\"role\":\"assistant\",\"status\":\"completed\"}],\"status\":\"completed\",\"usage\":{\"input_tokens\":25,\"output_tokens\":15,\"total_tokens\":40}}"
+read "{\"id\":\"resp_1\",\"object\":\"response\",\"model\":\"gpt-4\",\"output\":[{\"type\":\"reasoning\",\"summary\":[{\"type\":\"summary_text\",\"text\":\"Thinking\"}],\"id\":\"rs_orig\",\"encrypted_content\":\"gAAAAABq1ouh2zy2x7xA\"},{\"id\":\"msg_2\",\"type\":\"message\",\"content\":[{\"type\":\"output_text\",\"text\":\"Hello there\",\"annotations\":[],\"logprobs\":[]}],\"role\":\"assistant\",\"status\":\"completed\"}],\"status\":\"completed\",\"usage\":{\"input_tokens\":25,\"output_tokens\":15,\"total_tokens\":40}}"
 
 read closed

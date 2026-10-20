@@ -2016,4 +2016,24 @@ public class LlmOpenaiResponsesClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.text.citations.long/client",
+        "${net}/openai.responses.text.citations.long/server"})
+    public void shouldForwardOpenaiResponsesTextCitationsLong() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.responses.text.citations.members/client",
+        "${net}/openai.responses.text.citations.members.api/server"})
+    public void shouldForwardOpenaiResponsesTextCitationsMembersApi() throws Exception
+    {
+        k3po.finish();
+    }
 }

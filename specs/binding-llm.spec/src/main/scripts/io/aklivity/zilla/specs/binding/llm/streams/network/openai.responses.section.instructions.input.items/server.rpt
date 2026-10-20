@@ -40,5 +40,5 @@ write zilla:begin.ext ${http:beginEx()
                             .header("content-type", "application/json")
                             .build()}
 
-write "{\"id\":\"resp_1\",\"object\":\"response\",\"model\":\"gpt-4\",\"output\":[{\"id\":\"msg_1\",\"type\":\"message\",\"content\":[{\"type\":\"output_text\",\"annotations\":[],\"logprobs\":[],\"text\":\"Rome, done.\"}],\"role\":\"assistant\",\"status\":\"completed\"}],\"status\":\"completed\",\"usage\":{\"input_tokens\":52,\"output_tokens\":5,\"total_tokens\":57}}"
+write "{\"id\":\"resp_1\",\"object\":\"response\",\"model\":\"gpt-4\",\"output\":[{\"id\":\"msg_1\",\"type\":\"message\",\"content\":[{\"type\":\"output_text\",\"text\":\"Rome, done.\",\"annotations\":[],\"logprobs\":[]}],\"role\":\"assistant\",\"status\":\"completed\"}],\"status\":\"completed\",\"usage\":{\"input_tokens\":52,\"output_tokens\":5,\"total_tokens\":57}}"
 write close

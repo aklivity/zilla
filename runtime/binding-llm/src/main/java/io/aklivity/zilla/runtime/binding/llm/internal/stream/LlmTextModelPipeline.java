@@ -34,16 +34,38 @@ import io.aklivity.zilla.runtime.engine.util.Flags;
 // The chain is fed all but the trailing overlap bytes of what has arrived, so a pattern straddling two fragments is
 // seen whole; what the chain produces for the bytes it was fed is embedded in an object of the section being
 // delivered, and the held bytes are fed when more text arrives or the section ends.
+//
+// The members next to the text are carried untouched, after the text. Those that arrive before the text wait for it
+// in half of a slot, and a section whose members before the text exceed that half is rejected. Once the text has
+// been delivered, the members that follow it are released as the destination credit allows while the section
+// continues, so their size is bounded by the credit and not by the slot. The members that arrive with the last
+// fragment of the section ride in its closing frame when it fits the credit, and are released ahead of it otherwise.
 final class LlmTextModelPipeline implements LlmGuardPipeline
 {
     private static final String MEMBER_TEXT = "text";
     private static final byte[] PREFIX = "{\"text\":\"".getBytes(UTF_8);
-    private static final byte[] SUFFIX = "\"}".getBytes(UTF_8);
+    private static final byte OPEN = '{';
     private static final byte COMMA = ',';
+    private static final byte CLOSE = '}';
+    private static final int QUOTE_WIDTH = 1;
     private static final int ESCAPE_EXPANSION = 6;
-    private static final int RESIDUAL_CHUNK = 256;
-    private static final int RESIDUAL_EMPTY = 2;
+    private static final int MEMBERS_CHUNK = 256;
     private static final DirectBufferEx EMPTY_TEXT = new UnsafeBufferEx(new byte[0]);
+
+    @FunctionalInterface
+    private interface Stage
+    {
+        ModelPipelineResult run(
+            long traceId,
+            long bindingId,
+            long authorization,
+            boolean flush,
+            boolean last,
+            int consumed,
+            MutableDirectBufferEx dst,
+            int dstIndex,
+            int dstLimit);
+    }
 
     private final ModelPipeline pipeline;
     private final int overlap;
@@ -53,14 +75,20 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
     private final LlmTextPipeline decoder;
     private final JsonGeneratorEx generator;
     private final ModelPipelineResult result;
-    private final LlmSectionPipeline residual;
-    private final LlmSectionPipeline.Output residualOutput;
-    private final LlmSectionAttributes residualAttributes;
+    private final LlmSectionPipeline members;
+    private final LlmEdgeFilter membersEdge;
+    private final LlmSectionAttributes memberAttributes;
 
+    private final Stage textStage;
+    private final Stage tailStage;
+
+    private Stage stage;
     private int slot;
     private MutableDirectBufferEx slotBuffer;
     private int textCapacity;
-    private int residualLength;
+    private int memberLength;
+    private int memberProgress;
+    private int memberEmitted;
     private int textLength;
     private int textProgress;
     private int emitted;
@@ -71,7 +99,8 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
         int overlap,
         BufferPool pool,
         long streamId,
-        MutableDirectBufferEx transformBuffer)
+        MutableDirectBufferEx transformBuffer,
+        boolean optional)
     {
         this.pipeline = pipeline;
         this.overlap = overlap;
@@ -79,12 +108,15 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
         this.streamId = streamId;
         this.transformBuffer = transformBuffer;
         this.slot = NO_SLOT;
-        this.residual = new LlmSectionPipeline(new LlmTextResidualTransform(), new UnsafeBufferEx(new byte[RESIDUAL_CHUNK]));
-        this.residualOutput = (buffer, offset, length, last) -> onResidual(buffer, offset, length);
-        this.residualAttributes = new LlmSectionAttributes();
-        this.decoder = new LlmTextPipeline(this::onText);
+        this.members = new LlmSectionPipeline(new LlmTextResidualTransform(), new UnsafeBufferEx(new byte[MEMBERS_CHUNK]));
+        this.membersEdge = new LlmEdgeFilter((buffer, offset, length, last) -> onMember(buffer, offset, length));
+        this.memberAttributes = new LlmSectionAttributes();
+        this.decoder = new LlmTextPipeline(this::onText, optional);
         this.generator = JsonEx.createGenerator();
         this.result = new ModelPipelineResult();
+        this.textStage = this::runText;
+        this.tailStage = this::runTail;
+        this.stage = textStage;
         decoder.begin();
     }
 
@@ -102,9 +134,12 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
         pipeline.reset();
         decoder.begin();
         releaseSlot();
+        stage = textStage;
         textLength = 0;
         textProgress = 0;
-        residualLength = 0;
+        memberLength = 0;
+        memberProgress = 0;
+        memberEmitted = 0;
         emitted = 0;
         started = false;
     }
@@ -128,8 +163,12 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
         if (sectionInit)
         {
             decoder.begin();
-            residualLength = 0;
-            residual.begin(residualAttributes);
+            members.begin(memberAttributes);
+            membersEdge.reset();
+            stage = textStage;
+            memberLength = 0;
+            memberProgress = 0;
+            memberEmitted = 0;
         }
 
         ModelPipelineResult outcome = null;
@@ -140,7 +179,8 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
         }
         else
         {
-            outcome = run(traceId, bindingId, authorization, 0, feedLimit(false), consumed, dst, dstIndex, dstLimit);
+            outcome = stage.run(traceId, bindingId, authorization, !sectionFin && releasable(), sectionFin, consumed,
+                dst, dstIndex, dstLimit);
         }
 
         return outcome;
@@ -155,13 +195,19 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
         int dstIndex,
         int dstLimit)
     {
-        return run(traceId, bindingId, authorization, Flags.FIN, feedLimit(true), 0, dst, dstIndex, dstLimit);
+        return stage.run(traceId, bindingId, authorization, true, true, 0, dst, dstIndex, dstLimit);
     }
 
     @Override
     public int closeWidth()
     {
-        return PREFIX.length + SUFFIX.length + (residualLength > RESIDUAL_EMPTY ? residualLength : 0);
+        final boolean text = decoder.extracted();
+        final int backlog = memberLength - memberProgress;
+        final int open = memberEmitted > 0 ? 0 : text
+            ? (emitted == 0 ? PREFIX.length : 0) + QUOTE_WIDTH + (backlog > 0 ? 1 : 0)
+            : 1;
+
+        return open + backlog + 1;
     }
 
     @Override
@@ -169,34 +215,45 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
         MutableDirectBufferEx dst,
         int dstIndex)
     {
-        generator.wrap(dst, dstIndex, dst.capacity());
+        int position = dstIndex;
 
-        if (emitted == 0)
+        if (memberEmitted == 0)
         {
-            beginObject();
+            if (decoder.extracted())
+            {
+                generator.wrap(dst, dstIndex, dst.capacity());
+
+                if (emitted == 0)
+                {
+                    beginObject();
+                }
+
+                generator.writeEndEscaped();
+                position += generator.length();
+
+                if (memberLength > memberProgress)
+                {
+                    dst.putByte(position++, COMMA);
+                }
+            }
+            else
+            {
+                dst.putByte(position++, OPEN);
+            }
         }
 
-        generator.writeEndEscaped();
-
-        final boolean members = residualLength > RESIDUAL_EMPTY;
-
-        if (!members)
+        if (memberLength > memberProgress)
         {
-            generator.writeEnd();
+            dst.putBytes(position, slotBuffer, textCapacity + memberProgress, memberLength - memberProgress);
+            position += memberLength - memberProgress;
         }
 
-        int position = dstIndex + generator.length();
-
-        if (members)
-        {
-            dst.putByte(position++, COMMA);
-            dst.putBytes(position, slotBuffer, textCapacity + 1, residualLength - RESIDUAL_EMPTY);
-            position += residualLength - RESIDUAL_EMPTY;
-            dst.putByte(position++, SUFFIX[1]);
-        }
+        dst.putByte(position++, CLOSE);
 
         emitted = 0;
-        residualLength = 0;
+        memberLength = 0;
+        memberProgress = 0;
+        memberEmitted = 0;
 
         return position - dstIndex;
     }
@@ -207,9 +264,18 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
         int length,
         boolean sectionFin)
     {
-        return acquireSlot() && textLength + length <= textCapacity && residualLength + length <= residualCapacity() &&
+        compactMembers();
+
+        return acquireSlot() &&
+            (decoder.completed() || textLength + length <= textCapacity) &&
+            memberLength + length + QUOTE_WIDTH <= memberCapacity() &&
             decoder.feed(src, srcIndex, length, sectionFin) &&
-            residual.feed(src, srcIndex, length, sectionFin, residualOutput);
+            members.feed(src, srcIndex, length, sectionFin, membersEdge);
+    }
+
+    private boolean releasable()
+    {
+        return decoder.completed() && memberLength > memberProgress;
     }
 
     private boolean acquireSlot()
@@ -238,40 +304,41 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
         }
     }
 
-    private int residualCapacity()
+    private int memberCapacity()
     {
         return pool.slotCapacity() - textCapacity;
     }
 
-    private void onResidual(
+    private void onMember(
         DirectBufferEx buffer,
         int offset,
         int length)
     {
-        slotBuffer.putBytes(textCapacity + residualLength, buffer, offset, length);
-        residualLength += length;
+        slotBuffer.putBytes(textCapacity + memberLength, buffer, offset, length);
+        memberLength += length;
     }
 
-    private ModelPipelineResult run(
+    private ModelPipelineResult runText(
         long traceId,
         long bindingId,
         long authorization,
-        int flags,
-        int limit,
+        boolean flush,
+        boolean last,
         int consumed,
         MutableDirectBufferEx dst,
         int dstIndex,
         int dstLimit)
     {
-        final boolean fin = Flags.hasFin(flags);
+        final int limit = feedLimit(flush);
+        final boolean absent = decoder.completed() && !decoder.extracted();
 
-        ModelStatus status = ModelStatus.UNDERFLOW;
+        ModelStatus status = flush && absent ? ModelStatus.COMPLETE : ModelStatus.UNDERFLOW;
         ModelRejection rejection = null;
         int produced = 0;
 
-        if (limit > textProgress || fin)
+        if (!absent && (limit > textProgress || flush))
         {
-            final int innerFlags = started ? flags : flags | Flags.INIT;
+            final int innerFlags = (started ? 0 : Flags.INIT) | (flush ? Flags.FIN : 0);
 
             final int room = Math.min(Math.max(dstLimit - dstIndex - (emitted == 0 ? PREFIX.length : 0), 0) / ESCAPE_EXPANSION,
                 transformBuffer.capacity());
@@ -288,7 +355,97 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
             compact();
         }
 
+        if (flush && status != ModelStatus.OVERFLOW && status != ModelStatus.REJECTED && status != ModelStatus.SUSPENDED)
+        {
+            stage = tailStage;
+
+            final ModelPipelineResult tail = runTail(traceId, bindingId, authorization, flush, last, consumed, dst,
+                dstIndex + produced, dstLimit);
+
+            status = tail.status();
+            produced += tail.produced();
+        }
+
         return result.set(status, consumed, produced, rejection);
+    }
+
+    private ModelPipelineResult runTail(
+        long traceId,
+        long bindingId,
+        long authorization,
+        boolean flush,
+        boolean last,
+        int consumed,
+        MutableDirectBufferEx dst,
+        int dstIndex,
+        int dstLimit)
+    {
+        final int room = dstLimit - dstIndex;
+        final boolean drain = memberLength > memberProgress && (!last || closeWidth() > room);
+
+        int produced = 0;
+
+        if (drain)
+        {
+            produced = drainMembers(dst, dstIndex, dstLimit);
+        }
+
+        return result.set(drain ? ModelStatus.OVERFLOW : ModelStatus.COMPLETE, consumed, produced);
+    }
+
+    private int drainMembers(
+        MutableDirectBufferEx dst,
+        int dstIndex,
+        int dstLimit)
+    {
+        final boolean text = decoder.extracted();
+        final int open = memberEmitted > 0 ? 0 : text
+            ? (emitted == 0 ? PREFIX.length : 0) + QUOTE_WIDTH + 1
+            : 1;
+        final int take = Math.min(memberLength - memberProgress, Math.max(dstLimit - dstIndex - open, 0));
+
+        int produced = 0;
+
+        if (take > 0)
+        {
+            int position = dstIndex;
+
+            if (memberEmitted == 0)
+            {
+                if (text)
+                {
+                    generator.wrap(dst, dstIndex, dstLimit);
+
+                    if (emitted == 0)
+                    {
+                        beginObject();
+                    }
+
+                    generator.writeEndEscaped();
+                    position += generator.length();
+                    emitted += generator.length();
+                    dst.putByte(position++, COMMA);
+                }
+                else
+                {
+                    dst.putByte(position++, OPEN);
+                }
+            }
+
+            dst.putBytes(position, slotBuffer, textCapacity + memberProgress, take);
+            position += take;
+            memberEmitted += take;
+            memberProgress += take;
+            produced = position - dstIndex;
+
+            if (memberProgress == memberLength)
+            {
+                memberProgress = 0;
+                memberLength = 0;
+            }
+        }
+
+        return produced;
     }
 
     private int feedLimit(
@@ -358,6 +515,22 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
 
             textLength = remaining;
             textProgress = 0;
+        }
+    }
+
+    private void compactMembers()
+    {
+        if (memberProgress > 0)
+        {
+            final int remaining = memberLength - memberProgress;
+
+            for (int index = 0; index < remaining; index++)
+            {
+                slotBuffer.putByte(textCapacity + index, slotBuffer.getByte(textCapacity + memberProgress + index));
+            }
+
+            memberLength = remaining;
+            memberProgress = 0;
         }
     }
 

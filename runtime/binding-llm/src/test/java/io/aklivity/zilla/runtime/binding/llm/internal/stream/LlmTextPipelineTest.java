@@ -109,6 +109,42 @@ public class LlmTextPipelineTest
         assertThat(output.toString(UTF_8), equalTo("A B"));
     }
 
+    @Test
+    public void shouldCompleteAtEndOfText()
+    {
+        final byte[] bytes = json("{'text':'t','openai:id':'rs_1'").getBytes(UTF_8);
+
+        pipeline.begin();
+
+        assertThat(pipeline.completed(), is(false));
+        assertThat(pipeline.feed(new UnsafeBufferEx(bytes), 0, bytes.length, false), is(true));
+        assertThat(pipeline.completed(), is(true));
+        assertThat(pipeline.extracted(), is(true));
+    }
+
+    @Test
+    public void shouldNotCompleteBeforeTextEnds()
+    {
+        final byte[] bytes = json("{'text':'partial").getBytes(UTF_8);
+
+        pipeline.begin();
+
+        assertThat(pipeline.feed(new UnsafeBufferEx(bytes), 0, bytes.length, false), is(true));
+        assertThat(pipeline.completed(), is(false));
+    }
+
+    @Test
+    public void shouldCompleteWithoutTextWhenOptional()
+    {
+        final byte[] bytes = json("{'openai:id':'rs_1'}").getBytes(UTF_8);
+
+        optional.begin();
+
+        assertThat(optional.feed(new UnsafeBufferEx(bytes), 0, bytes.length, true), is(true));
+        assertThat(optional.completed(), is(true));
+        assertThat(optional.extracted(), is(false));
+    }
+
     private void assertDelivers(
         String json,
         String expected)

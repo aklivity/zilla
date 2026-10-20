@@ -37,6 +37,6 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("content-type", "application/json")
                            .build()}
 
-read "{\"id\":\"id_1\",\"object\":\"response\",\"model\":\"model\",\"output\":[{\"id\":\"msg_1\",\"type\":\"message\",\"content\":[{\"type\":\"output_text\",\"annotations\":[],\"logprobs\":[],\"text\":\"Hello! How can I help you today?\"}],\"role\":\"assistant\",\"status\":\"incomplete\"}],\"status\":\"incomplete\",\"incomplete_details\":{\"reason\":\"insufficient_system_resource\"},\"usage\":{\"input_tokens\":25,\"output_tokens\":15,\"total_tokens\":40}}"
+read "{\"id\":\"id_1\",\"object\":\"response\",\"model\":\"model\",\"output\":[{\"id\":\"msg_1\",\"type\":\"message\",\"content\":[{\"type\":\"output_text\",\"text\":\"Hello! How can I help you today?\",\"annotations\":[],\"logprobs\":[]}],\"role\":\"assistant\",\"status\":\"incomplete\"}],\"status\":\"incomplete\",\"incomplete_details\":{\"reason\":\"insufficient_system_resource\"},\"usage\":{\"input_tokens\":25,\"output_tokens\":15,\"total_tokens\":40}}"
 
 read closed

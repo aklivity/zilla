@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -28,6 +29,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class LlmOpenaiResponsesServerIT
 {
@@ -1754,6 +1756,47 @@ public class LlmOpenaiResponsesServerIT
         "${net}/openai.responses.transform.response.text/client",
         "${app}/anthropic.transform.response.frames/server"})
     public void shouldDropAnthropicResponseMembersFromAnthropicAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.text.citations.long/client",
+        "${app}/openai.responses.text.citations.long/server"})
+    public void shouldEncodeOpenaiResponsesTextCitationsLong() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.response.controls.inline/client",
+        "${app}/openai.responses.response.controls.inline/server"})
+    public void shouldEncodeOpenaiResponsesResponseControlsInline() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.response.controls.held.large/client",
+        "${app}/openai.responses.response.controls.held.large/server"})
+    public void shouldEncodeOpenaiResponsesResponseControlsHeldLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/openai.responses.response.controls.held.small.slot/client",
+        "${app}/openai.responses.response.controls.held.small.slot/server"})
+    public void shouldEncodeOpenaiResponsesResponseControlsHeldSmallSlot() throws Exception
     {
         k3po.finish();
     }

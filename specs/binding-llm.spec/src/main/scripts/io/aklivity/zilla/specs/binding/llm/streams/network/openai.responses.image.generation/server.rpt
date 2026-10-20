@@ -42,5 +42,5 @@ write zilla:begin.ext ${http:beginEx()
 
 write "{\"id\":\"resp_1\",\"object\":\"response\",\"model\":\"gpt-4\",\"output\":[{\"id\":\"ig_1\",\"type\":\"image_generation_call\",\"action\":\"generate\",\"background\":\"opaque\",\"output_format\":\"png\",\"quality\":\"low\",\"result\":\""
       ${core:randomBase64(40000)}
-      "\",\"revised_prompt\":\"A small red circle\",\"size\":\"1024x1024\",\"status\":\"completed\"},{\"id\":\"msg_2\",\"type\":\"message\",\"content\":[{\"type\":\"output_text\",\"annotations\":[],\"logprobs\":[],\"text\":\"Here is a small red circle.\"}],\"role\":\"assistant\",\"status\":\"completed\"}],\"status\":\"completed\",\"usage\":{\"input_tokens\":25,\"output_tokens\":15,\"total_tokens\":40}}"
+      "\",\"revised_prompt\":\"A small red circle\",\"size\":\"1024x1024\",\"status\":\"completed\"},{\"id\":\"msg_2\",\"type\":\"message\",\"content\":[{\"type\":\"output_text\",\"text\":\"Here is a small red circle.\",\"annotations\":[],\"logprobs\":[]}],\"role\":\"assistant\",\"status\":\"completed\"}],\"status\":\"completed\",\"usage\":{\"input_tokens\":25,\"output_tokens\":15,\"total_tokens\":40}}"
 write close

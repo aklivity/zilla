@@ -28,7 +28,7 @@ final class LlmTextResidualTransform extends LlmToolTransform
 
         if (!matches(key, "text"))
         {
-            target = key.toString();
+            target = name(key);
             action = PASS_VALUE;
         }
 

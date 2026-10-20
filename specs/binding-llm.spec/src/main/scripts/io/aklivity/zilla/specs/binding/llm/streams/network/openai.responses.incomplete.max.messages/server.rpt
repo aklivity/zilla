@@ -40,5 +40,5 @@ write zilla:begin.ext ${http:beginEx()
                             .header("content-type", "application/json")
                             .build()}
 
-write "{\"id\":\"resp_1\",\"object\":\"response\",\"model\":\"gpt-4\",\"output\":[{\"id\":\"msg_1\",\"type\":\"message\",\"content\":[{\"type\":\"output_text\",\"annotations\":[],\"logprobs\":[],\"text\":\"The history of the printing press\"}],\"role\":\"assistant\",\"status\":\"incomplete\"}],\"status\":\"incomplete\",\"incomplete_details\":{\"reason\":\"max_messages\"},\"usage\":{\"input_tokens\":22,\"output_tokens\":16,\"total_tokens\":38}}"
+write "{\"id\":\"resp_1\",\"object\":\"response\",\"model\":\"gpt-4\",\"output\":[{\"id\":\"msg_1\",\"type\":\"message\",\"content\":[{\"type\":\"output_text\",\"text\":\"The history of the printing press\",\"annotations\":[],\"logprobs\":[]}],\"role\":\"assistant\",\"status\":\"incomplete\"}],\"status\":\"incomplete\",\"incomplete_details\":{\"reason\":\"max_messages\"},\"usage\":{\"input_tokens\":22,\"output_tokens\":16,\"total_tokens\":38}}"
 write close

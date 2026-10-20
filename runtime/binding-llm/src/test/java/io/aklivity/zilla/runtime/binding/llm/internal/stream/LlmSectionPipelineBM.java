@@ -33,8 +33,14 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
+import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
+import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
+import io.aklivity.zilla.runtime.engine.model.ModelStatus;
+import io.aklivity.zilla.runtime.engine.util.Flags;
 
 /**
  * Measures the canonical conversions of the llm section kinds: tool definition, tool call, inline media,
@@ -118,6 +124,9 @@ public class LlmSectionPipelineBM
     private final LlmSectionPipeline.Output counter = (buffer, offset, length, last) -> produced += length;
     private final LlmTextPipeline textPipeline = new LlmTextPipeline((buffer, offset, length) -> produced += length);
 
+    private final LlmTextModelPipeline guardedPipeline = new LlmTextModelPipeline(new GuardChain(), 0,
+        new LlmTestBufferPool(32 * 1024, 1), 1L, new UnsafeBufferEx(new byte[OUTPUT]), true);
+    private final MutableDirectBufferEx guardedOutput = new UnsafeBufferEx(new byte[OUTPUT]);
     private final LlmSectionAttributes toolCallAttributes = new LlmSectionAttributes();
     private final LlmSectionAttributes imageAttributes = new LlmSectionAttributes();
     private final LlmSectionAttributes none = new LlmSectionAttributes();
@@ -377,6 +386,18 @@ public class LlmSectionPipelineBM
     }
 
     @Benchmark
+    public int guardedSection()
+    {
+        return guard(reasoningResponsesCanonical.capacity());
+    }
+
+    @Benchmark
+    public int guardedSectionFragmented()
+    {
+        return guard(WINDOW);
+    }
+
+    @Benchmark
     public int textDecode()
     {
         return decode(textObject.capacity());
@@ -410,6 +431,47 @@ public class LlmSectionPipelineBM
         return produced;
     }
 
+    private int guard(
+        int window)
+    {
+        produced = 0;
+
+        final int length = reasoningResponsesCanonical.capacity();
+
+        for (int offset = 0; offset < length; offset += window)
+        {
+            final int size = Math.min(window, length - offset);
+
+            int position = 0;
+            ModelPipelineResult result;
+
+            do
+            {
+                result = guardedPipeline.accept(1L, 2L, 3L, offset + position == 0, offset + size == length,
+                    reasoningResponsesCanonical, offset + position, offset + size, guardedOutput, 0, OUTPUT);
+
+                position += result.consumed();
+                produced += result.produced();
+            }
+            while (result.status() == ModelStatus.OVERFLOW && (result.consumed() > 0 || result.produced() > 0));
+        }
+
+        ModelPipelineResult result;
+
+        do
+        {
+            result = guardedPipeline.finish(1L, 2L, 3L, guardedOutput, 0, OUTPUT);
+            produced += result.produced();
+        }
+        while (result.status() == ModelStatus.OVERFLOW && result.produced() > 0);
+
+        produced += guardedPipeline.close(guardedOutput, 0);
+
+        guardedPipeline.reset();
+
+        return produced;
+    }
+
     private int decode(
         int window)
     {
@@ -439,6 +501,48 @@ public class LlmSectionPipelineBM
         String json)
     {
         return new UnsafeBufferEx(json.getBytes(UTF_8));
+    }
+
+    private static final class GuardChain implements ModelPipeline
+    {
+        private final ModelPipelineResult result = new ModelPipelineResult();
+
+        @Override
+        public ModelPipelineResult transform(
+            long traceId,
+            long bindingId,
+            long authorization,
+            int flags,
+            DirectBufferEx src,
+            int srcIndex,
+            int srcLimit,
+            MutableDirectBufferEx dst,
+            int dstIndex,
+            int dstLimit)
+        {
+            final int length = Math.min(srcLimit - srcIndex, dstLimit - dstIndex);
+
+            dst.putBytes(dstIndex, src, srcIndex, length);
+
+            return result.set(Flags.hasFin(flags) ? ModelStatus.COMPLETE : ModelStatus.UNDERFLOW, length, length);
+        }
+
+        @Override
+        public boolean identity()
+        {
+            return true;
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
+        @Override
+        public void reset()
+        {
+        }
     }
 
     public static void main(
