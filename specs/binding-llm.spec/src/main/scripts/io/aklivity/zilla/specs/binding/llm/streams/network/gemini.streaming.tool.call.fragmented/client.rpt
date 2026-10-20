@@ -34,7 +34,7 @@ write close
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
                            .header(":status", "200")
-                           .header("content-type", "text/event-stream")
+                           .header("content-type", "text/event-stream;space=1")
                            .build()}
 read "{\"candidates\":[{\"content\":{\"parts\":[{\"functionCall\":{\"name\":\"get_weather\",\"args\":{\"city\":\"San Francisco\"},\"id\":\"call_1\"}}],\"role\":\"model\"},\"index\":0}],\"modelVersion\":\"gemini-3.6-flash\",\"responseId\":\"resp_01\"}"
 read "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"\"}],\"role\":\"model\"},\"finishReason\":\"STOP\",\"index\":0}],\"usageMetadata\":{\"promptTokenCount\":8,\"candidatesTokenCount\":9,\"totalTokenCount\":17},\"modelVersion\":\"gemini-3.6-flash\",\"responseId\":\"resp_01\"}"

@@ -37,7 +37,7 @@ read closed
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
                             .header(":status", "200")
-                            .header("content-type", "text/event-stream")
+                            .header("content-type", "text/event-stream;space=1")
                             .build()}
 write "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello\"}],\"role\":\"model\"},\"index\":0}],\"modelVersion\":\"gemini-3.6-flash\",\"responseId\":\"resp_01\"}"
 write "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\" there\"}],\"role\":\"model\"},\"index\":0}],\"modelVersion\":\"gemini-3.6-flash\",\"responseId\":\"resp_01\"}"

@@ -394,20 +394,10 @@ client = genai.Client(
 for model in ("gemini-2.5-flash", "claude-3-opus-20240229", "gpt-4"):
     resp = client.models.generate_content(model=model, contents="Hello")
     print(model, "->", resp.text)
+
+for chunk in client.models.generate_content_stream(model="gpt-4", contents="Hello"):
+    print(chunk.text, end="")
 ```
-
-Streaming is served as server-sent events on `:streamGenerateContent?alt=sse`:
-
-```bash
-curl -N -H "x-goog-api-key: your-gemini-key" -H "Content-Type: application/json" \
-  -d '{"contents":[{"role":"user","parts":[{"text":"Hello"}]}]}' \
-  "http://localhost:7163/v1beta/models/gpt-4:streamGenerateContent?alt=sse"
-```
-
-The `google-genai` SDK's own `generate_content_stream` only strips a literal
-`data: ` prefix, while the `http` binding frames events as `data:` (equivalent
-under the SSE specification), so `etc/test/verify.py` reads the event stream
-with a specification-compliant parser instead.
 
 Add a `tools` definition to either cross-dialect request (see
 `etc/test/verify.py` for the full shape) to see a tool-call response

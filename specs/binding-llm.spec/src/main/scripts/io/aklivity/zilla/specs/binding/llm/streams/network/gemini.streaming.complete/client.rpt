@@ -34,7 +34,7 @@ write close
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
                            .header(":status", "200")
-                           .header("content-type", "text/event-stream")
+                           .header("content-type", "text/event-stream;space=1")
                            .build()}
 read "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello\"}],\"role\":\"model\"},\"index\":0}],\"modelVersion\":\"gemini-3.6-flash\",\"responseId\":\"resp_01\"}"
 read "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\" there\"}],\"role\":\"model\"},\"index\":0}],\"modelVersion\":\"gemini-3.6-flash\",\"responseId\":\"resp_01\"}"

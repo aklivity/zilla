@@ -101,7 +101,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private static final int NO_MAX_OUTPUT_TOKENS = -1;
     private static final String CONTENT_TYPE_JSON = "application/json";
     private static final Pattern CONTENT_TYPE = Pattern.compile("\\s*([^;\\s]+)\\s*(?:;.*)?");
-    private static final String CONTENT_TYPE_EVENT_STREAM = "text/event-stream";
+    private static final String CONTENT_TYPE_EVENT_STREAM = "text/event-stream;space=1";
     private static final Set<String> STATUSES = Set.of("INVALID_ARGUMENT", "FAILED_PRECONDITION", "OUT_OF_RANGE",
         "UNAUTHENTICATED", "PERMISSION_DENIED", "NOT_FOUND", "ABORTED", "ALREADY_EXISTS", "RESOURCE_EXHAUSTED", "CANCELLED",
         "DATA_LOSS", "UNKNOWN", "INTERNAL", "UNIMPLEMENTED", "UNAVAILABLE", "DEADLINE_EXCEEDED");
