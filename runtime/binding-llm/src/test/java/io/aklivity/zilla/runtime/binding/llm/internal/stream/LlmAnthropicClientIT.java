@@ -1462,4 +1462,17 @@ public class LlmAnthropicClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({
+        "source \"gemini\"",
+        "extension \"streamGenerateContent\""})
+    @Specification({
+        "${app}/transform.request.extension/client",
+        "${net}/anthropic.transform.request.extension/server"})
+    public void shouldIgnoreBeginExtensionFromAnotherDialect() throws Exception
+    {
+        k3po.finish();
+    }
 }

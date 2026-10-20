@@ -16,6 +16,7 @@ package io.aklivity.zilla.config.binding.llm.internal;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
@@ -51,6 +52,7 @@ public final class LlmOptionsConfigAdapter extends ConfigAdapter.Extensible<Opti
     private static final int PORT_HTTP = 80;
     private static final int PORT_HTTPS = 443;
     private static final String DEFAULT_PATH = "/v1";
+    private static final Map<String, String> DEFAULT_PATHS = Map.of("gemini", "/v1beta");
 
     public LlmOptionsConfigAdapter(
         List<ConfigExtAdapter<OptionsConfig>> extensions)
@@ -141,7 +143,7 @@ public final class LlmOptionsConfigAdapter extends ConfigAdapter.Extensible<Opti
 
         if (object.containsKey(SERVER_NAME))
         {
-            adaptServer(llmOptions, object.getString(SERVER_NAME));
+            adaptServer(llmOptions, object.getString(DIALECT_NAME, null), object.getString(SERVER_NAME));
         }
 
         if (object.containsKey(GUARDRAILS_NAME))
@@ -182,13 +184,14 @@ public final class LlmOptionsConfigAdapter extends ConfigAdapter.Extensible<Opti
 
     private static void adaptServer(
         LlmOptionsConfigBuilder<LlmOptionsConfig> llmOptions,
+        String dialect,
         String server)
     {
         URI uri = URI.create(server);
         String scheme = uri.getScheme();
         int port = uri.getPort() != -1 ? uri.getPort() : defaultPort(scheme);
         String trimmed = uri.getPath().replaceAll("/+$", "");
-        String path = trimmed.isEmpty() ? DEFAULT_PATH : trimmed;
+        String path = trimmed.isEmpty() ? defaultPath(dialect) : trimmed;
 
         llmOptions.server()
             .scheme(scheme)
@@ -196,6 +199,12 @@ public final class LlmOptionsConfigAdapter extends ConfigAdapter.Extensible<Opti
             .port(port)
             .path(path)
             .build();
+    }
+
+    private static String defaultPath(
+        String dialect)
+    {
+        return dialect != null ? DEFAULT_PATHS.getOrDefault(dialect, DEFAULT_PATH) : DEFAULT_PATH;
     }
 
     private static int defaultPort(

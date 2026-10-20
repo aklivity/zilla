@@ -14,8 +14,8 @@
 # specific language governing permissions and limitations under the License.
 #
 
-# Assertions, all driven through the *official* openai / anthropic Python
-# SDKs rather than hand-built HTTP calls -- proving the dialects this example
+# Assertions, all driven through the *official* openai / anthropic / google-genai
+# Python SDKs rather than hand-built HTTP calls -- proving the dialects this example
 # exercises are wire-compatible enough for an off-the-shelf client to
 # succeed against them unmodified, not just compatible with our own
 # hand-rolled request/response shapes.
@@ -87,6 +87,22 @@
 #      upstream answers with a single document, text and tool calls, in both
 #      directions
 #  21. a tool call streamed by a same-dialect deployment reaches the SDK intact
+#  22. a Gemini SDK client talking to the gemini-facing frontend
+#      (north_llm_server_gemini, port 7163) and asking for a gemini-* model is
+#      served by mock-gemini with no translation, text and tool calls, in both
+#      non-streaming and streaming form
+#  23. a Gemini SDK client asking for a Claude model or a GPT model gets back a
+#      response the SDK parses as Gemini-shaped, translated from mock-anthropic
+#      or mock-openai, text and tool calls, non-streaming and streaming
+#  24. an OpenAI SDK client and an Anthropic SDK client asking for a gemini-*
+#      model get back responses of their own dialect, translated from
+#      mock-gemini's native Gemini responses, text and tool calls
+#  25. the Gemini response is streamed or not as mock-gemini's content type
+#      says, not as the request's operation says
+#  26. south_llm_client_gemini forwards the caller's own credential upstream as
+#      x-goog-api-key, whichever dialect the caller speaks
+#  27. north_llm_server_gemini, north_llm_proxy and south_llm_client_gemini
+#      record the llm.* metrics of a Gemini exchange, token total included
 
 import os
 import re
@@ -98,6 +114,8 @@ import urllib.request
 from types import SimpleNamespace
 
 from anthropic import Anthropic, BadRequestError as AnthropicBadRequestError
+from google import genai
+from google.genai import types as genai_types
 from openai import APIConnectionError, BadRequestError, OpenAI
 
 FAIL_FAST = os.environ.get("FAIL_FAST", "0") == "1"
@@ -105,6 +123,7 @@ GITHUB_ACTIONS = os.environ.get("GITHUB_ACTIONS")
 
 OPENAI_BASE_URL = "http://zilla:7161/v1"
 ANTHROPIC_BASE_URL = "http://zilla:7162"
+GEMINI_BASE_URL = "http://zilla:7163"
 METRICS_URL = "http://zilla:7190/metrics"
 
 failures = []
@@ -166,6 +185,12 @@ def openai_client(api_key="test-openai-key"):
 
 def anthropic_client(api_key="test-anthropic-key"):
     return Anthropic(base_url=ANTHROPIC_BASE_URL, api_key=api_key, timeout=10.0)
+
+
+def gemini_client(api_key="test-gemini-key"):
+    return genai.Client(
+        api_key=api_key,
+        http_options=genai_types.HttpOptions(base_url=GEMINI_BASE_URL, api_version="v1beta", timeout=10000))
 
 
 # The mocks answer with server-sent events when the prompt carries this marker,
@@ -231,6 +256,179 @@ def anthropic_message(model, streaming, tools=None, upstream_sse=None):
             elif event.type == "message_delta":
                 streamed.stop_reason = event.delta.stop_reason
     return streamed
+
+
+GEMINI_TOOLS = [genai_types.Tool(function_declarations=[genai_types.FunctionDeclaration(
+    name="get_weather",
+    parameters_json_schema={"type": "object", "properties": {"city": {"type": "string"}}})])]
+
+
+def gemini_generate(model, streaming, tools=None, upstream_sse=None):
+    upstream_sse = streaming if upstream_sse is None else upstream_sse
+    client = gemini_client()
+    text = "What is the weather in Paris?" if tools is not None else "Hello"
+    config = genai_types.GenerateContentConfig(
+        tools=tools,
+        automatic_function_calling=genai_types.AutomaticFunctionCallingConfig(disable=True))
+    contents = prompt_for(text, upstream_sse)
+
+    if not streaming:
+        resp = client.models.generate_content(model=model, contents=contents, config=config)
+        return SimpleNamespace(
+            text=resp.text or "",
+            finish_reason=resp.candidates[0].finish_reason,
+            tool_calls=[(call.name, dict(call.args)) for call in resp.function_calls or []])
+
+    streamed = SimpleNamespace(text="", finish_reason=None, tool_calls=[])
+    for chunk in client.models.generate_content_stream(model=model, contents=contents, config=config):
+        streamed.text += chunk.text or ""
+        streamed.tool_calls += [(call.name, dict(call.args)) for call in chunk.function_calls or []]
+        if chunk.candidates and chunk.candidates[0].finish_reason:
+            streamed.finish_reason = chunk.candidates[0].finish_reason
+    return streamed
+
+
+def assert_gemini_text(result):
+    assert result.text == "Hello! How can I help you today?", result
+    assert result.finish_reason == genai_types.FinishReason.STOP, result
+
+
+def assert_gemini_tool_call(result):
+    assert result.tool_calls == [("get_weather", {"city": "Paris"})], result
+    assert result.finish_reason == genai_types.FinishReason.STOP, result
+
+
+# WHEN: a Gemini SDK client asks the gemini-facing frontend for a gemini-* model,
+#       which north_llm_proxy routes to mock-gemini
+# THEN: the SDK parses the response with no translation on either leg
+def check_gemini_text():
+    assert_gemini_text(gemini_generate("gemini-2.5-flash", streaming=False))
+
+
+def check_gemini_text_streaming():
+    assert_gemini_text(gemini_generate("gemini-2.5-flash", streaming=True))
+
+
+def check_gemini_tools():
+    assert_gemini_tool_call(gemini_generate("gemini-2.5-flash", streaming=False, tools=GEMINI_TOOLS))
+
+
+def check_gemini_tools_streaming():
+    assert_gemini_tool_call(gemini_generate("gemini-2.5-flash", streaming=True, tools=GEMINI_TOOLS))
+
+
+# WHEN: a Gemini SDK client asks for a Claude model or a GPT model
+# THEN: north_llm_proxy routes on the model and translates across dialects, and
+#       the SDK parses a Gemini-shaped response, text and tool calls
+def check_gemini_to_anthropic_text():
+    assert_gemini_text(gemini_generate("claude-3-opus-20240229", streaming=False))
+
+
+def check_gemini_to_anthropic_text_streaming():
+    assert_gemini_text(gemini_generate("claude-3-opus-20240229", streaming=True))
+
+
+def check_gemini_to_anthropic_tools():
+    assert_gemini_tool_call(gemini_generate("claude-3-opus-20240229", streaming=False, tools=GEMINI_TOOLS))
+
+
+def check_gemini_to_anthropic_tools_streaming():
+    assert_gemini_tool_call(gemini_generate("claude-3-opus-20240229", streaming=True, tools=GEMINI_TOOLS))
+
+
+def check_gemini_to_openai_text():
+    assert_gemini_text(gemini_generate("gpt-4", streaming=False))
+
+
+def check_gemini_to_openai_text_streaming():
+    assert_gemini_text(gemini_generate("gpt-4", streaming=True))
+
+
+def check_gemini_to_openai_tools():
+    assert_gemini_tool_call(gemini_generate("gpt-4", streaming=False, tools=GEMINI_TOOLS))
+
+
+def check_gemini_to_openai_tools_streaming():
+    assert_gemini_tool_call(gemini_generate("gpt-4", streaming=True, tools=GEMINI_TOOLS))
+
+
+# WHEN: an OpenAI SDK client or an Anthropic SDK client asks for a gemini-* model
+# THEN: the SDK parses a response of its own dialect, translated from the
+#       native Gemini response of mock-gemini, text and tool calls
+def check_openai_to_gemini_text():
+    resp = openai_chat("gemini-2.5-flash", streaming=False)
+    assert resp.choices[0].message.content == "Hello! How can I help you today?", resp
+    assert resp.choices[0].finish_reason == "stop", resp
+
+
+def check_openai_to_gemini_text_streaming():
+    streamed = openai_chat("gemini-2.5-flash", streaming=True)
+    assert streamed.content == "Hello! How can I help you today?", streamed
+    assert streamed.finish_reason == "stop", streamed
+
+
+def check_openai_to_gemini_tools():
+    resp = openai_chat("gemini-2.5-flash", streaming=False, tools=OPENAI_TOOLS)
+    assert resp.choices[0].finish_reason == "tool_calls", resp
+    assert resp.choices[0].message.tool_calls[0].function.name == "get_weather", resp
+    assert resp.choices[0].message.tool_calls[0].function.arguments == "{\"city\":\"Paris\"}", resp
+
+
+def check_openai_to_gemini_tools_streaming():
+    assert_openai_streamed_tool_call(openai_chat("gemini-2.5-flash", streaming=True, tools=OPENAI_TOOLS))
+
+
+def check_anthropic_to_gemini_text():
+    resp = anthropic_message("gemini-2.5-flash", streaming=False)
+    assert resp.content[0].text == "Hello! How can I help you today?", resp
+    assert resp.stop_reason == "end_turn", resp
+
+
+def check_anthropic_to_gemini_text_streaming():
+    streamed = anthropic_message("gemini-2.5-flash", streaming=True)
+    assert streamed.text == "Hello! How can I help you today?", streamed
+    assert streamed.stop_reason == "end_turn", streamed
+
+
+def check_anthropic_to_gemini_tools():
+    resp = anthropic_message("gemini-2.5-flash", streaming=False, tools=ANTHROPIC_TOOLS)
+    assert resp.stop_reason == "tool_use", resp
+    assert resp.content[0].type == "tool_use", resp
+    assert resp.content[0].name == "get_weather", resp
+    assert resp.content[0].input == {"city": "Paris"}, resp
+
+
+def check_anthropic_to_gemini_tools_streaming():
+    assert_anthropic_streamed_tool_call(anthropic_message("gemini-2.5-flash", streaming=True, tools=ANTHROPIC_TOOLS))
+
+
+# WHEN: the Gemini SDK client does not stream, but mock-gemini answers with
+#       server-sent events anyway, or the client streams and it answers with a
+#       single document
+# THEN: the SDK still receives a complete response, because the llm binding
+#       follows the upstream's content type, not the request's operation
+def check_gemini_text_upstream_sse():
+    assert_gemini_text(gemini_generate("gemini-2.5-flash", streaming=False, upstream_sse=True))
+
+
+def check_gemini_tools_upstream_sse():
+    assert_gemini_tool_call(gemini_generate("gemini-2.5-flash", streaming=False, tools=GEMINI_TOOLS, upstream_sse=True))
+
+
+def check_gemini_text_streaming_upstream_json():
+    assert_gemini_text(gemini_generate("gemini-2.5-flash", streaming=True, upstream_sse=False))
+
+
+def check_gemini_tools_streaming_upstream_json():
+    assert_gemini_tool_call(
+        gemini_generate("gemini-2.5-flash", streaming=True, tools=GEMINI_TOOLS, upstream_sse=False))
+
+
+# WHEN: a client sends a model that neither the claude-*, gpt-* nor gemini-*
+#       route names to the gemini-facing frontend
+# THEN: the dialect-only route serves it from the Gemini provider, with no translation
+def check_gemini_other_model_same_dialect():
+    assert_gemini_text(gemini_generate("llama-3", streaming=False))
 
 
 # WHEN: an OpenAI SDK client sends a plain chat request naming a Claude model
@@ -473,7 +671,7 @@ def scrape_metrics():
 # Histogram sums are reported from bucket limits, not exact values, so a
 # recorded value is asserted by the power-of-two bucket it lands in: the
 # cumulative bucket at limit grows by one, the one below it does not.
-def assert_llm_metrics(exchange, bindings):
+def assert_llm_metrics(exchange, bindings, total=False):
     before = scrape_metrics()
     exchange()
     after = scrape_metrics()
@@ -488,7 +686,12 @@ def assert_llm_metrics(exchange, bindings):
         assert delta("llm_tokens_output_count", binding) == 1, (binding, "output count")
         assert delta("llm_tokens_output_bucket", binding, "16") == 1, (binding, "output 15 < 16")
         assert delta("llm_tokens_output_bucket", binding, "8") == 0, (binding, "output 15 >= 8")
-        assert delta("llm_tokens_total_count", binding) == 0, (binding, "total not reported")
+        if total:
+            assert delta("llm_tokens_total_count", binding) == 1, (binding, "total count")
+            assert delta("llm_tokens_total_bucket", binding, "64") == 1, (binding, "total 40 < 64")
+            assert delta("llm_tokens_total_bucket", binding, "32") == 0, (binding, "total 40 >= 32")
+        else:
+            assert delta("llm_tokens_total_count", binding) == 0, (binding, "total not reported")
         assert delta("llm_duration_milliseconds_count", binding) == 1, (binding, "duration count")
         assert after.get(("llm_active_requests", binding, None), 0) == 0, (binding, "active requests")
 
@@ -513,6 +716,18 @@ def check_anthropic_llm_metrics():
     assert_llm_metrics(
         lambda: anthropic_message("gpt-4", streaming=False),
         ["north_llm_server_anthropic", "north_llm_proxy", "south_llm_client_openai"])
+
+
+# WHEN: a Gemini SDK client sends a request for a gemini-* model, which
+#       mock-gemini answers reporting prompt, candidate and total tokens
+# THEN: north_llm_server_gemini, north_llm_proxy and south_llm_client_gemini
+#       each record the reported tokens, the total included, and one duration
+#       sample, and have no request left active
+def check_gemini_llm_metrics():
+    assert_llm_metrics(
+        lambda: gemini_generate("gemini-2.5-flash", streaming=False),
+        ["north_llm_server_gemini", "north_llm_proxy", "south_llm_client_gemini"],
+        total=True)
 
 
 # Reads a compose service's own docker logs, by compose project + service
@@ -560,6 +775,28 @@ def check_credential_pass_through_to_openai():
         model="gpt-4", max_tokens=1024, messages=[{"role": "user", "content": "Hello"}])
     logs = service_logs(PROJECT, "mock-openai")
     assert f"authorization: Bearer {token}" in logs, logs
+
+
+# WHEN: a caller presents its own API key to the gemini-facing frontend and asks
+#       for a gemini-* model, or its own bearer token to the openai-facing
+#       frontend and asks for one
+# THEN: south_llm_client_gemini forwards that exact token upstream as
+#       x-goog-api-key -- the caller's own credential, not a separate secret
+#       configured in zilla.yaml
+def check_credential_pass_through_to_gemini():
+    token = f"caller-gemini-token-{os.getpid()}"
+    client = gemini_client(api_key=token)
+    client.models.generate_content(model="gemini-2.5-flash", contents="Hello")
+    logs = service_logs(PROJECT, "mock-gemini")
+    assert f"x-goog-api-key: {token}" in logs, logs
+
+
+def check_credential_pass_through_openai_to_gemini():
+    token = f"caller-openai-token-to-gemini-{os.getpid()}"
+    openai_client(api_key=token).chat.completions.create(
+        model="gemini-2.5-flash", messages=[{"role": "user", "content": "Hello"}])
+    logs = service_logs(PROJECT, "mock-gemini")
+    assert f"x-goog-api-key: {token}" in logs, logs
 
 
 # WHEN: a caller asks the openai-facing frontend for gpt-4o with a prompt that
@@ -713,6 +950,34 @@ run_check("credential_pass_through_to_anthropic", check_credential_pass_through_
 run_check("credential_pass_through_to_openai", check_credential_pass_through_to_openai)
 run_check("openai_llm_metrics", check_openai_llm_metrics)
 run_check("anthropic_llm_metrics", check_anthropic_llm_metrics)
+run_check("gemini_text", check_gemini_text)
+run_check("gemini_text_streaming", check_gemini_text_streaming)
+run_check("gemini_tools", check_gemini_tools)
+run_check("gemini_tools_streaming", check_gemini_tools_streaming)
+run_check("gemini_text_upstream_sse", check_gemini_text_upstream_sse)
+run_check("gemini_tools_upstream_sse", check_gemini_tools_upstream_sse)
+run_check("gemini_text_streaming_upstream_json", check_gemini_text_streaming_upstream_json)
+run_check("gemini_tools_streaming_upstream_json", check_gemini_tools_streaming_upstream_json)
+run_check("gemini_to_anthropic_text", check_gemini_to_anthropic_text)
+run_check("gemini_to_anthropic_text_streaming", check_gemini_to_anthropic_text_streaming)
+run_check("gemini_to_anthropic_tools", check_gemini_to_anthropic_tools)
+run_check("gemini_to_anthropic_tools_streaming", check_gemini_to_anthropic_tools_streaming)
+run_check("gemini_to_openai_text", check_gemini_to_openai_text)
+run_check("gemini_to_openai_text_streaming", check_gemini_to_openai_text_streaming)
+run_check("gemini_to_openai_tools", check_gemini_to_openai_tools)
+run_check("gemini_to_openai_tools_streaming", check_gemini_to_openai_tools_streaming)
+run_check("openai_to_gemini_text", check_openai_to_gemini_text)
+run_check("openai_to_gemini_text_streaming", check_openai_to_gemini_text_streaming)
+run_check("openai_to_gemini_tools", check_openai_to_gemini_tools)
+run_check("openai_to_gemini_tools_streaming", check_openai_to_gemini_tools_streaming)
+run_check("anthropic_to_gemini_text", check_anthropic_to_gemini_text)
+run_check("anthropic_to_gemini_text_streaming", check_anthropic_to_gemini_text_streaming)
+run_check("anthropic_to_gemini_tools", check_anthropic_to_gemini_tools)
+run_check("anthropic_to_gemini_tools_streaming", check_anthropic_to_gemini_tools_streaming)
+run_check("gemini_other_model_same_dialect", check_gemini_other_model_same_dialect)
+run_check("credential_pass_through_to_gemini", check_credential_pass_through_to_gemini)
+run_check("credential_pass_through_openai_to_gemini", check_credential_pass_through_openai_to_gemini)
+run_check("gemini_llm_metrics", check_gemini_llm_metrics)
 run_check("openai_guardrail_rejects_section", check_openai_guardrail_rejects_section)
 run_check("openai_guardrail_chain_rejects_section", check_openai_guardrail_chain_rejects_section)
 run_check("openai_guardrail_rejects_pii", check_openai_guardrail_rejects_pii)

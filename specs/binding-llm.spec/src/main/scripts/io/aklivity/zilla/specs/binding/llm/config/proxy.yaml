@@ -28,3 +28,7 @@ bindings:
       - dialect: anthropic
         model: [ gpt-b ]
       exit: app1
+    - when:
+      - dialect: gemini
+        model: [ gemini-a ]
+      exit: app0
