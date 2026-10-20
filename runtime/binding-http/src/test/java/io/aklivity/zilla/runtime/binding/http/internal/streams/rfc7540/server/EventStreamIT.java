@@ -156,4 +156,14 @@ public class EventStreamIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/response.sse.field.space/client",
+        "${app}/response.sse.field.space/server" })
+    public void shouldReceiveResponseFieldSpace() throws Exception
+    {
+        k3po.finish();
+    }
 }
