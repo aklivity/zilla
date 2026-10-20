@@ -4880,6 +4880,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/gemini.section.server.tool.call.history.no.id/client",
+        "${app}/gemini.section.server.tool.call.history.no.id/server"})
+    public void shouldForwardGeminiSectionServerToolCallHistoryNoId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/gemini.section.server.tool.call.history.snake/client",
         "${app}/gemini.section.server.tool.call.history.snake/server"})
     public void shouldForwardGeminiSectionServerToolCallHistorySnake() throws Exception

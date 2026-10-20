@@ -39,16 +39,16 @@ write zilla:data.ext ${llm:dataEx()
                           .type("SERVER_TOOL_CALL")
                           .message(1)
                           .attribute("tool-name", "code_execution")
-                          .attribute("tool-call-id", "call_55063")
+                          .attribute("tool-call-id", "call_1_0")
                           .build()}
-write "{\"arguments\":{\"language\":\"PYTHON\",\"code\":\"print(17**13)\\n\"}}"
+write "{\"arguments\":{\"language\":\"PYTHON\",\"code\":\"print(17**13)\\n\"},\"gemini:id\":\"call_55063\"}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("SERVER_TOOL_RESULT")
                           .message(1)
-                          .attribute("tool-call-id", "call_55063")
+                          .attribute("tool-call-id", "call_1_0")
                           .build()}
 write "{\"codeExecutionResult\":{\"outcome\":\"OUTCOME_OK\",\"output\":\"9904578032905937\\n\",\"id\":\"call_55063\"}}"
 write flush

@@ -22,19 +22,6 @@ final class LlmGeminiServerToolCallToCanonical extends LlmToolTransform
     private static final String DIALECT = "gemini";
     private static final String MEMBER_WIRE_ID = "gemini:id";
 
-    private final boolean keepId;
-
-    LlmGeminiServerToolCallToCanonical()
-    {
-        this(false);
-    }
-
-    LlmGeminiServerToolCallToCanonical(
-        boolean keepId)
-    {
-        this.keepId = keepId;
-    }
-
     @Override
     protected int member(
         int depth,
@@ -49,7 +36,7 @@ final class LlmGeminiServerToolCallToCanonical extends LlmToolTransform
         }
         else if (depth == 2 && matches(key, "id"))
         {
-            action = keepId ? HOLD_STRING : DROP;
+            action = HOLD_STRING;
         }
         else if (depth == 2)
         {

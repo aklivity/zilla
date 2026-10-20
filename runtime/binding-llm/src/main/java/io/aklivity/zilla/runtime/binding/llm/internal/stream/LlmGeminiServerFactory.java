@@ -991,7 +991,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                     {
                         server.probe(LlmSectionType.SERVER_TOOL_CALL, textMessage(server), decodeTool, decodeParts);
                         server.probe.attributes().toolName(SERVER_TOOL_NAME);
-                        server.decoder = decodeAttributes;
+                        server.captureProbed();
                     }
                     else if (serverResult(key) && textSection(server) == LlmSectionType.ASSISTANT_TEXT)
                     {
@@ -2104,7 +2104,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             probeThen = then;
             holdMax = switch (type)
             {
-            case TOOL_CALL, TOOL_RESULT, SERVER_TOOL_CALL -> TOOL_HOLD_MAX;
+            case TOOL_CALL, TOOL_RESULT -> TOOL_HOLD_MAX;
             case USER_IMAGE, USER_DOCUMENT, USER_AUDIO, USER_VIDEO -> holdLimit();
             case ASSISTANT_TEXT -> Math.min(TOOL_HOLD_MAX, holdLimit());
             default -> HOLD_MAX;
@@ -2383,12 +2383,8 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                     }
                     else if (blockSection == LlmSectionType.SERVER_TOOL_CALL)
                     {
-                        if (probe.attributes().toolCallId() == null)
-                        {
-                            probe.attributes().toolCallId(synthesizeToolCallId());
-                        }
-
-                        serverCallId = probe.attributes().toolCallId();
+                        serverCallId = synthesizeToolCallId();
+                        probe.attributes().toolCallId(serverCallId);
                     }
                     else if (blockSection == LlmSectionType.SERVER_TOOL_RESULT)
                     {

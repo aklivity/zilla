@@ -4583,6 +4583,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/gemini.section.server.tool.call.history.no.id/client",
+        "${net}/gemini.section.server.tool.call.history.no.id/server"})
+    public void shouldEncodeGeminiSectionServerToolCallHistoryNoId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/gemini.section.server.tool.call.history.snake/client",
         "${net}/gemini.section.server.tool.call.history.snake/server"})
     public void shouldEncodeGeminiSectionServerToolCallHistorySnake() throws Exception

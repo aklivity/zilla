@@ -31,14 +31,14 @@ public class LlmGeminiServerToolCallCanonicalTest
     public void shouldCanonicalizeExecutableCodeAsArguments()
     {
         assertTransforms(toCanonical,
-            json("{'executableCode':{'language':'PYTHON','code':'print(1)','id':'call_1'}}"),
+            json("{'executableCode':{'language':'PYTHON','code':'print(1)'}}"),
             json("{'arguments':{'language':'PYTHON','code':'print(1)'}}"));
     }
 
     @Test
     public void shouldKeepWireIdAsPeerOfArguments()
     {
-        assertTransforms(new LlmGeminiServerToolCallToCanonical(true),
+        assertTransforms(toCanonical,
             json("{'executableCode':{'language':'PYTHON','code':'print(1)','id':'call_1'}}"),
             json("{'arguments':{'language':'PYTHON','code':'print(1)'},'gemini:id':'call_1'}"));
     }
@@ -76,11 +76,11 @@ public class LlmGeminiServerToolCallCanonicalTest
     }
 
     @Test
-    public void shouldRestoreExecutableCodeWithAttributeId()
+    public void shouldNotWriteIdFromAttribute()
     {
         assertTransforms(fromCanonical, attributes -> attributes.toolCallId("call_2"), null,
             json("{'arguments':{'language':'PYTHON','code':'print(1)'}}"),
-            json("{'executableCode':{'language':'PYTHON','code':'print(1)','id':'call_2'}}"));
+            json("{'executableCode':{'language':'PYTHON','code':'print(1)'}}"));
     }
 
     @Test
@@ -94,7 +94,7 @@ public class LlmGeminiServerToolCallCanonicalTest
     @Test
     public void shouldRoundTripExecutableCode()
     {
-        assertRoundTrips(new LlmGeminiServerToolCallToCanonical(true), fromCanonical,
+        assertRoundTrips(toCanonical, fromCanonical,
             json("{'executableCode':{'language':'PYTHON','code':'" + CODE + "','id':'call_1'},'thoughtSignature':'c2ln'}"));
     }
 }

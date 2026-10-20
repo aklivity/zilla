@@ -1096,6 +1096,16 @@ public class LlmGeminiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/gemini.section.server.tool.call.history.no.id/client",
+        "${app}/gemini.section.server.tool.call.history.no.id/server"})
+    public void shouldForwardGeminiSectionServerToolCallHistoryNoId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/gemini.section.server.tool.call.history.snake/client",
         "${app}/gemini.section.server.tool.call.history.snake/server"})
     public void shouldForwardGeminiSectionServerToolCallHistorySnake() throws Exception

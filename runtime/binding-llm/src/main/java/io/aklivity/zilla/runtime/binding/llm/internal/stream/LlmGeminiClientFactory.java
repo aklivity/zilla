@@ -1877,7 +1877,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         {
             if (serverCallPipeline == null)
             {
-                serverCallPipeline = new LlmSectionPipeline(new LlmGeminiServerToolCallToCanonical(true), transformBuffer);
+                serverCallPipeline = new LlmSectionPipeline(new LlmGeminiServerToolCallToCanonical(), transformBuffer);
             }
 
             serverCallPipeline.begin(captureAttributes);

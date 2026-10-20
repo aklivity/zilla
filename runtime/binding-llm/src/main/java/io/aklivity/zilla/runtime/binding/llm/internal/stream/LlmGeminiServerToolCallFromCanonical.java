@@ -100,12 +100,10 @@ final class LlmGeminiServerToolCallFromCanonical extends LlmToolTransform
         {
             called = true;
 
-            final String toolCallId = held() != null ? held() : attribute("tool-call-id");
-
-            if (toolCallId != null)
+            if (held() != null)
             {
                 emit(JsonEvent.KEY_NAME, "id");
-                emit(JsonEvent.VALUE_STRING, toolCallId);
+                emit(JsonEvent.VALUE_STRING, held());
             }
 
             emit(JsonEvent.END_OBJECT);
