@@ -19,22 +19,18 @@ import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmGeminiDia
 import io.aklivity.zilla.runtime.binding.llm.config.LlmBindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectContext;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectHandler;
-import io.aklivity.zilla.runtime.binding.llm.internal.LlmConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 
 final class LlmGeminiDialectContext implements LlmDialectContext
 {
-    private final LlmConfiguration config;
     private final EngineContext context;
 
     private LlmGeminiServerFactory server;
     private LlmGeminiClientFactory client;
 
     LlmGeminiDialectContext(
-        LlmConfiguration config,
         EngineContext context)
     {
-        this.config = config;
         this.context = context;
     }
 

@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectFactorySpi;
-import io.aklivity.zilla.runtime.binding.llm.internal.LlmConfiguration;
 import io.aklivity.zilla.runtime.engine.Configuration;
 
 public final class LlmGeminiDialectFactorySpi implements LlmDialectFactorySpi
@@ -33,6 +32,6 @@ public final class LlmGeminiDialectFactorySpi implements LlmDialectFactorySpi
     public LlmDialect create(
         Configuration config)
     {
-        return new LlmGeminiDialect(new LlmConfiguration(config));
+        return new LlmGeminiDialect();
     }
 }
