@@ -48,6 +48,16 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/client.sent.text.fragmented.accepted/client",
+        "${app}/client.sent.text.fragmented.accepted/server"
+    })
+    public void shouldForwardFragmentedAcceptedTextWhole() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/client.sent.text.rejected/client",
         "${app}/client.sent.text.rejected/server"
     })
@@ -62,6 +72,26 @@ public class ApplicationIT
         "${app}/client.sent.text.rejected.by.second.classifier/server"
     })
     public void shouldRejectTextBySecondClassifier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/streaming.text.accepted/client",
+        "${app}/streaming.text.accepted/server"
+    })
+    public void shouldRelayBeforeFin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/streaming.text.rejected.straddling/client",
+        "${app}/streaming.text.rejected.straddling/server"
+    })
+    public void shouldRejectTextStraddlingCalls() throws Exception
     {
         k3po.finish();
     }

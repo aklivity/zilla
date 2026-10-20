@@ -655,8 +655,8 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             this.binding = binding;
             this.model = model;
             this.dialect = dialect;
-            this.operation = operation;
             this.crossDialect = !NAME.equals(dialect);
+            this.operation = crossDialect ? null : operation;
             this.http = new LlmGeminiHttpStream(this);
             this.parser = JsonEx.createParser(Map.of(JsonParserEx.STRING_EVENT_POSITIONS, StringEventPositions.QUOTED));
             this.textBytes = new byte[1024];

@@ -48,6 +48,16 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/client.sent.text.fragmented.accepted/client",
+        "${net}/client.sent.text.fragmented.accepted/server"
+    })
+    public void shouldForwardFragmentedAcceptedTextWhole() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/client.sent.text.rejected/client",
         "${net}/client.sent.text.rejected/server"
     })
@@ -62,6 +72,26 @@ public class NetworkIT
         "${net}/client.sent.text.rejected.by.second.classifier/server"
     })
     public void shouldRejectTextBySecondClassifier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/streaming.text.accepted/client",
+        "${net}/streaming.text.accepted/server"
+    })
+    public void shouldRelayBeforeFin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/streaming.text.rejected.straddling/client",
+        "${net}/streaming.text.rejected.straddling/server"
+    })
+    public void shouldRejectTextStraddlingCalls() throws Exception
     {
         k3po.finish();
     }
