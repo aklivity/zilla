@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import java.util.BitSet;
+import java.util.Locale;
 
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
@@ -164,7 +165,7 @@ final class LlmGeminiToolDefinitionToCanonical extends LlmToolTransform
     {
         return switch (value)
         {
-        case "STRING", "NUMBER", "INTEGER", "BOOLEAN", "ARRAY", "OBJECT", "NULL" -> value.toLowerCase();
+        case "STRING", "NUMBER", "INTEGER", "BOOLEAN", "ARRAY", "OBJECT", "NULL" -> value.toLowerCase(Locale.ROOT);
         default -> value;
         };
     }

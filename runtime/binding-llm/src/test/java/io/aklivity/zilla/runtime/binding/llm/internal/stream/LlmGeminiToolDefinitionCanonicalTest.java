@@ -19,6 +19,8 @@ import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmToolTrans
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmToolTransformRunner.assertTransforms;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmToolTransformRunner.json;
 
+import java.util.Locale;
+
 import org.junit.Test;
 
 public class LlmGeminiToolDefinitionCanonicalTest
@@ -273,6 +275,26 @@ public class LlmGeminiToolDefinitionCanonicalTest
             json("{'type':'function','function':{'name':'f','parameters':" +
                 nested("{'type':'object','properties':{'p':", "{'type':'object','properties':{'type':true,'items':false}}") +
                 "}}"));
+    }
+
+    @Test
+    public void shouldLowercaseTypesIndependentOfDefaultLocale()
+    {
+        final Locale locale = Locale.getDefault();
+
+        try
+        {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+
+            assertTransforms(to,
+                json("{'name':'f','parameters':{'type':'OBJECT','properties':{'a':{'type':'INTEGER'}}}}"),
+                json("{'type':'function','function':{'name':'f','parameters':{'type':'object','properties':{" +
+                    "'a':{'type':'integer'}}}}}"));
+        }
+        finally
+        {
+            Locale.setDefault(locale);
+        }
     }
 
     @Test
