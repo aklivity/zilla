@@ -30,10 +30,12 @@ connected
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("USER_TEXT")
+                          .type("USER_IMAGE")
                           .message(0)
+                          .attribute("media-type", "image/png")
+                          .attribute("source", "inline")
                           .build()}
-read "{\"text\":\"Hello\"}"
+read "{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,iVBORw0KGgo=\"}}"
 
 read aborted
 write aborted

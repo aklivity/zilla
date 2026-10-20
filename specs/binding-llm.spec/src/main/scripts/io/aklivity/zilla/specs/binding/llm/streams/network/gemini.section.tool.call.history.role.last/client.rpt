@@ -28,15 +28,15 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-write "{\"contents\":[{\"parts\":[{\"text\":\"Hello\"}],\"role\":\"model\"}]}"
+write "{\"contents\":[{\"parts\":[{\"text\":\"Weather in Paris?\"}],\"role\":\"user\"},{\"parts\":[{\"functionCall\":{\"name\":\"get_weather\",\"args\":{\"city\":\"Paris\"},\"id\":\"call_1\"},\"thoughtSignature\":\"c2lnbmF0dXJl\"}],\"role\":\"model\"}]}"
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
-                           .header(":status", "400")
+                           .header(":status", "200")
                            .header("content-type", "application/json")
                            .build()}
 
-read "{\"error\":{\"code\":400,\"message\":\"role must precede parts in each content\",\"status\":\"INVALID_ARGUMENT\"}}"
+read "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello! How can I help you today?\"}],\"role\":\"model\"},\"finishReason\":\"STOP\",\"index\":0}],\"usageMetadata\":{\"promptTokenCount\":8,\"candidatesTokenCount\":9,\"totalTokenCount\":17},\"modelVersion\":\"gemini-3.6-flash\",\"responseId\":\"resp_01\"}"
 
 read closed

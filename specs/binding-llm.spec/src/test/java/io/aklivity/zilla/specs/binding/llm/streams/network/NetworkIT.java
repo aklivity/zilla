@@ -3674,9 +3674,135 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/gemini.section.rejected.role.order/client",
-        "${net}/gemini.section.rejected.role.order/server"})
-    public void shouldEncodeGeminiSectionRejectedRoleOrder() throws Exception
+        "${net}/gemini.section.conversation.role.last/client",
+        "${net}/gemini.section.conversation.role.last/server"})
+    public void shouldEncodeGeminiSectionConversationRoleLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.reasoning.history.role.last/client",
+        "${net}/gemini.section.reasoning.history.role.last/server"})
+    public void shouldEncodeGeminiSectionReasoningHistoryRoleLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.reasoning.history.thought.first.role.last/client",
+        "${net}/gemini.section.reasoning.history.thought.first.role.last/server"})
+    public void shouldEncodeGeminiSectionReasoningHistoryThoughtFirstRoleLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.reasoning.history.signature.role.last/client",
+        "${net}/gemini.section.reasoning.history.signature.role.last/server"})
+    public void shouldEncodeGeminiSectionReasoningHistorySignatureRoleLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.reasoning.history.tool.call.role.last/client",
+        "${net}/gemini.section.reasoning.history.tool.call.role.last/server"})
+    public void shouldEncodeGeminiSectionReasoningHistoryToolCallRoleLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.server.tool.call.history.role.last/client",
+        "${net}/gemini.section.server.tool.call.history.role.last/server"})
+    public void shouldEncodeGeminiSectionServerToolCallHistoryRoleLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.tool.call.history.role.last/client",
+        "${net}/gemini.section.tool.call.history.role.last/server"})
+    public void shouldEncodeGeminiSectionToolCallHistoryRoleLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.tool.call.history.synthesized.role.last/client",
+        "${net}/gemini.section.tool.call.history.synthesized.role.last/server"})
+    public void shouldEncodeGeminiSectionToolCallHistorySynthesizedRoleLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.tool.result.role.last/client",
+        "${net}/gemini.section.tool.result.role.last/server"})
+    public void shouldEncodeGeminiSectionToolResultRoleLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.tool.results.role.last/client",
+        "${net}/gemini.section.tool.results.role.last/server"})
+    public void shouldEncodeGeminiSectionToolResultsRoleLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.role.model.after.parts/client",
+        "${net}/gemini.section.role.model.after.parts/server"})
+    public void shouldEncodeGeminiSectionRoleModelAfterParts() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.role.model.after.parts.split/client",
+        "${net}/gemini.section.role.model.after.parts.split/server"})
+    public void shouldEncodeGeminiSectionRoleModelAfterPartsSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.role.after.parts.text.image.100k/client",
+        "${net}/gemini.section.role.after.parts.text.image.100k/server"})
+    public void shouldEncodeGeminiSectionRoleAfterPartsTextImage100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.rejected.content.size/client",
+        "${net}/gemini.section.rejected.content.size/server"})
+    public void shouldEncodeGeminiSectionRejectedContentSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.rejected.role.model.after.media/client",
+        "${net}/gemini.section.rejected.role.model.after.media/server"})
+    public void shouldEncodeGeminiSectionRejectedRoleModelAfterMedia() throws Exception
     {
         k3po.finish();
     }

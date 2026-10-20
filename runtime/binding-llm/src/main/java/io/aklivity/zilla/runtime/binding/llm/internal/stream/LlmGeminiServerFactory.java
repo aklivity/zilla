@@ -111,7 +111,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private static final String MESSAGE_API_KEY_INVALID = "API key not valid. Please pass a valid API key.";
     private static final String REASON_API_KEY_INVALID = "API_KEY_INVALID";
     private static final String MESSAGE_PARSE_ERROR = "Invalid JSON payload received.";
-    private static final String MESSAGE_ROLE_ORDER = "role must precede parts in each content";
+    private static final String MESSAGE_CONTENT_SIZE = "content too large to decode before role";
     private static final String MESSAGE_ROLE_INVALID = "Role '%s' is not supported. Please use a valid role: user, model.";
     private static final String MESSAGE_BLOCK_INVALID = "Invalid content part";
     private static final String MESSAGE_TOOL_UNSUPPORTED = "Unsupported tool";
@@ -148,6 +148,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private static final DirectBufferEx STREAM_OPTIONS_SECTION =
         new UnsafeBufferEx("{\"stream_options\":{\"include_usage\":true}}".getBytes(UTF_8));
     private static final DirectBufferEx CONTROL_CLOSE = new UnsafeBufferEx("}".getBytes(UTF_8));
+    private static final DirectBufferEx PARTS_PREFIX = new UnsafeBufferEx("{\"contents\":[{\"parts\":[".getBytes(UTF_8));
 
     private static final int MIN_WINDOW = 64;
     private static final int CONTROL_GROWTH = 3;
@@ -221,6 +222,10 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private final LlmGeminiServerDecoder decodeContents = this::decodeContents;
     private final LlmGeminiServerDecoder decodeContent = this::decodeContent;
     private final LlmGeminiServerDecoder decodeRole = this::decodeRole;
+    private final LlmGeminiServerDecoder decodeLookaheadParts = this::decodeLookaheadParts;
+    private final LlmGeminiServerDecoder decodeLookaheadPart = this::decodeLookaheadPart;
+    private final LlmGeminiServerDecoder decodeLookaheadContent = this::decodeLookaheadContent;
+    private final LlmGeminiServerDecoder decodeLookaheadRole = this::decodeLookaheadRole;
     private final LlmGeminiServerDecoder decodeSystemStart = this::decodeSystemStart;
     private final LlmGeminiServerDecoder decodeSystem = this::decodeSystem;
     private final LlmGeminiServerDecoder decodePartsStart = this::decodePartsStart;
@@ -652,7 +657,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             case START_OBJECT:
                 server.message++;
                 server.role = null;
-                server.roleAssumed = false;
                 server.context = CONTEXT_MESSAGE;
                 server.decoder = decodeContent;
                 break;
@@ -700,11 +704,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 }
                 else if (matches(key, "parts"))
                 {
-                    if (server.role == null)
-                    {
-                        server.role = ROLE_USER;
-                        server.roleAssumed = true;
-                    }
                     server.partsThen = decodeContent;
                     server.decoder = decodePartsStart;
                 }
@@ -754,15 +753,181 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             {
                 final String role = parser.getString();
 
-                if (server.roleAssumed && !ROLE_USER.equals(role))
+                if (!ROLE_USER.equals(role) && !ROLE_MODEL.equals(role))
                 {
-                    server.onDecodeInvalidRequest(traceId, MESSAGE_ROLE_ORDER);
+                    server.onDecodeInvalidRequest(traceId, MESSAGE_ROLE_INVALID.formatted(role));
                 }
-                else if (ROLE_USER.equals(role) || ROLE_MODEL.equals(role))
+                else if (server.role != null && !server.role.equals(role))
+                {
+                    server.onDecodeInvalidRequest(traceId, MESSAGE_BLOCK_INVALID);
+                }
+                else
                 {
                     server.role = role;
-                    server.roleAssumed = false;
                     server.decoder = decodeContent;
+                }
+            }
+        }
+
+        return server.position();
+    }
+
+    private int decodeLookaheadParts(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        decode:
+        if (parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            switch (event)
+            {
+            case START_OBJECT:
+                server.decoder = decodeLookaheadPart;
+                break;
+            case END_ARRAY:
+                server.decoder = decodeLookaheadContent;
+                break;
+            default:
+                server.onDecodeParseError(traceId);
+                break decode;
+            }
+        }
+
+        return server.position();
+    }
+
+    private int decodeLookaheadPart(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        decode:
+        if (parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            switch (event)
+            {
+            case KEY_NAME:
+                if (parser.deferredBytes())
+                {
+                    break;
+                }
+                if (media(parser.getStringView()))
+                {
+                    server.replay(ROLE_USER, limit);
+                }
+                else
+                {
+                    server.skip(decodeLookaheadPart);
+                    server.decoder = decodeSkip;
+                }
+                break;
+            case END_OBJECT:
+                server.decoder = decodeLookaheadParts;
+                break;
+            default:
+                server.onDecodeParseError(traceId);
+                break decode;
+            }
+        }
+
+        return server.position();
+    }
+
+    private int decodeLookaheadContent(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        decode:
+        if (parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            switch (event)
+            {
+            case KEY_NAME:
+                if (parser.deferredBytes())
+                {
+                    break;
+                }
+                if (matches(parser.getStringView(), "role"))
+                {
+                    server.decoder = decodeLookaheadRole;
+                }
+                else
+                {
+                    server.skip(decodeLookaheadContent);
+                    server.decoder = decodeSkip;
+                }
+                break;
+            case END_OBJECT:
+                server.replay(ROLE_USER, limit);
+                break;
+            default:
+                server.onDecodeParseError(traceId);
+                break decode;
+            }
+        }
+
+        return server.position();
+    }
+
+    private int decodeLookaheadRole(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        decode:
+        if (parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            if (event != JsonEvent.VALUE_STRING)
+            {
+                server.onDecodeParseError(traceId);
+                break decode;
+            }
+
+            if (!parser.deferredBytes())
+            {
+                final String role = parser.getString();
+
+                if (ROLE_USER.equals(role) || ROLE_MODEL.equals(role))
+                {
+                    server.replay(role, limit);
                 }
                 else
                 {
@@ -953,7 +1118,18 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 {
                     final CharSequence key = parser.getStringView();
 
-                    if (matches(key, "text") && textSection(server) == LlmSectionType.ASSISTANT_TEXT && server.partThought)
+                    if (roleUnknown(server) && media(key))
+                    {
+                        server.role = ROLE_USER;
+                    }
+
+                    if (roleUnknown(server) && (matches(key, "text") || serverCall(key) || serverResult(key)))
+                    {
+                        server.lookahead();
+                        server.skip(decodeLookaheadPart);
+                        server.decoder = decodeSkip;
+                    }
+                    else if (matches(key, "text") && textSection(server) == LlmSectionType.ASSISTANT_TEXT && server.partThought)
                     {
                         server.captureHeld(LlmSectionType.ASSISTANT_REASONING, textMessage(server), decodeParts, 1);
                         server.decoder = decodePart;
@@ -1512,6 +1688,12 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             matches(key, "fileData") || matches(key, "file_data");
     }
 
+    private static boolean roleUnknown(
+        LlmGeminiServer server)
+    {
+        return server.context == CONTEXT_MESSAGE && server.role == null;
+    }
+
     private static LlmSectionType textSection(
         LlmGeminiServer server)
     {
@@ -1711,7 +1893,6 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
         private int message;
         private String role;
-        private boolean roleAssumed;
         private int context;
         private LlmGeminiServerDecoder partsThen;
 
@@ -1740,6 +1921,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         private LlmGeminiServerDecoder probeThen;
         private int probeMessage;
         private int holdMax = HOLD_MAX;
+        private String holdRejection;
         private boolean probing;
 
         private long decodeTraceId;
@@ -2026,7 +2208,12 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 retained = position() - holdFrom;
                 progress = holdFrom;
 
-                if (retained > holdMax)
+                if (retained > holdMax && holdRejection != null)
+                {
+                    onDecodeInvalidRequest(traceId, holdRejection);
+                    progress = limit;
+                }
+                else if (retained > holdMax)
                 {
                     onDecodeParseError(traceId);
                     progress = limit;
@@ -2130,6 +2317,31 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             captureHeld(probe.type(), probeMessage, probeThen, probe.depth());
             probing = true;
             decoder = probeCapture;
+        }
+
+        private void lookahead()
+        {
+            holdMax = holdLimit();
+            holdRejection = MESSAGE_CONTENT_SIZE;
+        }
+
+        private void replay(
+            String resolved,
+            int limit)
+        {
+            role = resolved;
+            holdRejection = null;
+            release();
+
+            parser.reset();
+            parser.wrap(PARTS_PREFIX, 0, PARTS_PREFIX.capacity(), false);
+            while (parser.hasNextEvent())
+            {
+                parser.nextEvent();
+            }
+            parser.wrap(decodedInput, holdFrom, decodedWindowLimit, decodedLast && decodedWindowLimit == limit);
+
+            decoder = decodeParts;
         }
 
         private void hold()

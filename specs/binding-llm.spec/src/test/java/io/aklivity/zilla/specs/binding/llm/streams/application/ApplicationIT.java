@@ -3989,6 +3989,33 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/gemini.section.role.model.after.parts/client",
+        "${app}/gemini.section.role.model.after.parts/server"})
+    public void shouldForwardGeminiSectionRoleModelAfterParts() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.section.role.model.after.parts.split/client",
+        "${app}/gemini.section.role.model.after.parts.split/server"})
+    public void shouldForwardGeminiSectionRoleModelAfterPartsSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.section.role.after.parts.text.image.100k/client",
+        "${app}/gemini.section.role.after.parts.text.image.100k/server"})
+    public void shouldForwardGeminiSectionRoleAfterPartsTextImage100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/gemini.10k/client",
         "${app}/gemini.10k/server"})
     public void shouldForwardGemini10K() throws Exception

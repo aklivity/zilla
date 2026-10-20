@@ -357,16 +357,6 @@ public class LlmGeminiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/gemini.section.rejected.role.order/client",
-        "${app}/gemini.section.rejected.role.order/server"})
-    public void shouldForwardGeminiSectionRejectedRoleOrder() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
         "${net}/gemini.section.rejected.trailing.content/client",
         "${app}/gemini.section.rejected.trailing.content/server"})
     public void shouldForwardGeminiSectionRejectedTrailingContent() throws Exception
@@ -399,6 +389,156 @@ public class LlmGeminiServerIT
         "${net}/gemini.section.role.after.parts/client",
         "${app}/gemini.section.role.after.parts/server"})
     public void shouldForwardGeminiSectionRoleAfterParts() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.conversation.role.last/client",
+        "${app}/gemini.section.conversation/server"})
+    public void shouldForwardGeminiSectionConversationRoleLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.reasoning.history.role.last/client",
+        "${app}/gemini.section.reasoning.history/server"})
+    public void shouldForwardGeminiSectionReasoningHistoryRoleLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.reasoning.history.thought.first.role.last/client",
+        "${app}/gemini.section.reasoning.history.thought.first/server"})
+    public void shouldForwardGeminiSectionReasoningHistoryThoughtFirstRoleLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.reasoning.history.signature.role.last/client",
+        "${app}/gemini.section.reasoning.history.signature/server"})
+    public void shouldForwardGeminiSectionReasoningHistorySignatureRoleLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.reasoning.history.tool.call.role.last/client",
+        "${app}/gemini.section.reasoning.history.tool.call/server"})
+    public void shouldForwardGeminiSectionReasoningHistoryToolCallRoleLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.server.tool.call.history.role.last/client",
+        "${app}/gemini.section.server.tool.call.history/server"})
+    public void shouldForwardGeminiSectionServerToolCallHistoryRoleLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.tool.call.history.role.last/client",
+        "${app}/gemini.section.tool.call.history/server"})
+    public void shouldForwardGeminiSectionToolCallHistoryRoleLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.tool.call.history.synthesized.role.last/client",
+        "${app}/gemini.section.tool.call.history.synthesized/server"})
+    public void shouldForwardGeminiSectionToolCallHistorySynthesizedRoleLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.tool.result.role.last/client",
+        "${app}/gemini.section.tool.result/server"})
+    public void shouldForwardGeminiSectionToolResultRoleLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.tool.results.role.last/client",
+        "${app}/gemini.section.tool.results/server"})
+    public void shouldForwardGeminiSectionToolResultsRoleLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.role.model.after.parts/client",
+        "${app}/gemini.section.role.model.after.parts/server"})
+    public void shouldForwardGeminiSectionRoleModelAfterParts() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.role.model.after.parts.split/client",
+        "${app}/gemini.section.role.model.after.parts.split/server"})
+    public void shouldForwardGeminiSectionRoleModelAfterPartsSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.role.after.parts.text.image.100k/client",
+        "${app}/gemini.section.role.after.parts.text.image.100k/server"})
+    public void shouldForwardGeminiSectionRoleAfterPartsTextImage100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.rejected.content.size/client",
+        "${app}/gemini.section.rejected.content.size/server"})
+    public void shouldForwardGeminiSectionRejectedContentSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.rejected.role.model.after.media/client",
+        "${app}/gemini.section.rejected.role.model.after.media/server"})
+    public void shouldForwardGeminiSectionRejectedRoleModelAfterMedia() throws Exception
     {
         k3po.finish();
     }
