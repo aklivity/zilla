@@ -4119,10 +4119,10 @@
         "notes": "Authorization: Bearer <OPENROUTER_API_KEY>. Optional attribution headers HTTP-Referer, X-OpenRouter-Title (X-Title also accepted), X-OpenRouter-Categories."
       },
       "models": {
-        "chat": "openrouter/free",
+        "chat": "nvidia/nemotron-3-super-120b-a12b:free",
         "reasoning": "nvidia/nemotron-3-super-120b-a12b:free",
         "source": "official-page",
-        "notes": "openrouter/free (Free Models Router) is documented and appears in GET /api/v1/models with $0 pricing, 200K context, supported_parameters including reasoning/tools/structured_outputs; it picks a random free model per request, so pin a :free slug for repeatable probes. nvidia/nemotron-3-super-120b-a12b:free is in the live models list with $0 pricing and supported_parameters reasoning, tools, structured_outputs (checked 2026-10-20); the free roster churns frequently."
+        "notes": "chat and reasoning use one pinned :free slug because openrouter/free picks a different free model per request (seen in a live run); openrouter/free (Free Models Router) is documented and appears in GET /api/v1/models with $0 pricing, 200K context, supported_parameters including reasoning/tools/structured_outputs; it picks a random free model per request, so pin a :free slug for repeatable probes. nvidia/nemotron-3-super-120b-a12b:free is in the live models list with $0 pricing and supported_parameters reasoning, tools, structured_outputs (checked 2026-10-20); the free roster churns frequently."
       },
       "price_usd_per_mtok": {
         "input": 0,

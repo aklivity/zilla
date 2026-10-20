@@ -133,6 +133,10 @@ class QuirkyProvider(unittest.TestCase):
         self.assertTrue(all(r["outcome"] == "error" for r in got.values()))
         self.assertIn("model unavailable", got["roles.name-field"]["observed"])
 
+    def test_payment_required_is_an_error(self):
+        step = {"status": 402, "error": None, "text": "Insufficient Balance"}
+        self.assertEqual(engine._prelude({"a": step}, ["a"])[0], "payment required")
+
     def test_model_not_exist_wording_is_an_error(self):
         step = {"status": 400, "error": None, "text": '{"error":{"message":"Model Not Exist"}}'}
         self.assertEqual(engine._prelude({"a": step}, ["a"])[0], "model unavailable")

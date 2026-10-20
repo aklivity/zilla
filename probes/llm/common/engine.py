@@ -136,6 +136,8 @@ def _prelude(facts, executed):
             verdict = ("transport error", step["error"])
         elif status in (401, 403):
             verdict = ("authentication rejected", f"HTTP {status}")
+        elif status == 402:
+            verdict = ("payment required", f"HTTP 402: {text[:120]}")
         elif status == 429:
             verdict = ("rate limited", f"HTTP 429 after {step.get('retries', 0)} retries")
         elif status is not None and status >= 500:
