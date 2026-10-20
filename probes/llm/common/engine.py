@@ -231,13 +231,15 @@ def _execute(probe, provider, target, ctx, budget, record):
         budget.add(budget.cost(prompt, completion))
         record["evidence"].append({
             "step": step["id"], "request": {"method": step.get("method", "POST"), "path": step["path"], "body": body},
-            "status": result["status"], "response": _excerpt(result), "error": result["error"]})
+            "status": result["status"], "elapsed_ms": result["elapsed_ms"], "response": _excerpt(result),
+            "error": result["error"]})
         for item in probe.get("derive", []):
             if item.get("after") == step["id"]:
                 _derive(item, facts, derive_ctx)
         if step.get("pause"):
             time.sleep(step["pause"])
     record["tokens"] = {"input": prompt_tokens, "output": completion_tokens}
+    record["elapsed_ms"] = sum(e["elapsed_ms"] for e in record["evidence"])
     record["cost_usd"] = round(budget.cost(prompt_tokens, completion_tokens), 6)
     record["status"] = next((facts[s]["status"] for s in executed), None)
     verdict = _prelude(facts, executed)

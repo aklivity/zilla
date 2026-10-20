@@ -177,6 +177,10 @@
                 "cost_usd": {
                     "type": "number"
                 },
+                "elapsed_ms": {
+                    "type": "integer",
+                    "description": "total time spent in the probe's requests"
+                },
                 "cost_estimated": {
                     "type": "boolean",
                     "description": "true when the price used was a fallback because the provider's price is unknown"
