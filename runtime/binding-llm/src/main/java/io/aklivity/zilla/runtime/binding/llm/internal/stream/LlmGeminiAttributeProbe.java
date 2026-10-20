@@ -283,7 +283,7 @@ final class LlmGeminiAttributeProbe extends LlmAttributeProbe
     {
         return switch (type)
         {
-        case TOOL_CALL -> SECTION_TOOL_CALL;
+        case TOOL_CALL, SERVER_TOOL_CALL -> SECTION_TOOL_CALL;
         case TOOL_RESULT -> SECTION_TOOL_RESULT;
         case TOOL_DEFINITION -> SECTION_TOOL_DEFINITION;
         case USER_IMAGE, USER_DOCUMENT, USER_AUDIO, USER_VIDEO -> SECTION_MEDIA;

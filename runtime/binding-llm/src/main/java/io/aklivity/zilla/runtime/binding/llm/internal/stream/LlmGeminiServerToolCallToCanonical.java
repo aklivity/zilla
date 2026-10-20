@@ -20,6 +20,20 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 final class LlmGeminiServerToolCallToCanonical extends LlmToolTransform
 {
     private static final String DIALECT = "gemini";
+    private static final String MEMBER_WIRE_ID = "gemini:id";
+
+    private final boolean keepId;
+
+    LlmGeminiServerToolCallToCanonical()
+    {
+        this(false);
+    }
+
+    LlmGeminiServerToolCallToCanonical(
+        boolean keepId)
+    {
+        this.keepId = keepId;
+    }
 
     @Override
     protected int member(
@@ -28,10 +42,19 @@ final class LlmGeminiServerToolCallToCanonical extends LlmToolTransform
     {
         int action;
 
-        if (matches(key, "executableCode") || matches(key, "executable_code"))
+        if (depth == 1 && (matches(key, "executableCode") || matches(key, "executable_code")))
         {
             target = "arguments";
-            action = PASS_OBJECT;
+            action = DESCEND_KEPT;
+        }
+        else if (depth == 2 && matches(key, "id"))
+        {
+            action = keepId ? HOLD_STRING : DROP;
+        }
+        else if (depth == 2)
+        {
+            target = key.toString();
+            action = PASS_VALUE;
         }
         else
         {
@@ -51,6 +74,13 @@ final class LlmGeminiServerToolCallToCanonical extends LlmToolTransform
         int depth)
     {
         pass(JsonEvent.END_OBJECT);
+
+        if (depth == 2 && held() != null)
+        {
+            emit(JsonEvent.KEY_NAME, MEMBER_WIRE_ID);
+            emit(JsonEvent.VALUE_STRING, held());
+            clearHeld();
+        }
 
         return Status.ADVANCED;
     }

@@ -196,6 +196,8 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final String MEMBER_EXECUTABLE_CODE = "executableCode";
     private static final String MEMBER_CODE_EXECUTION_RESULT = "codeExecutionResult";
     private static final String SERVER_TOOL_NAME = "code_execution";
+    private static final DirectBufferEx SERVER_CALL_PREFIX = new UnsafeBufferEx("{\"executableCode\":".getBytes(UTF_8));
+    private static final int SERVER_CALL_GROWTH = ",\"gemini:id\":\"\"".length() - ",\"id\":\"\"".length();
     private static final DirectBufferEx RESULT_PREFIX = new UnsafeBufferEx("{\"codeExecutionResult\":".getBytes(UTF_8));
     private static final String MEMBER_WIRE_SIGNATURE = ",\"gemini:thoughtSignature\":\"";
     private static final String MEMBER_WIRE_ID = ",\"gemini:id\":\"";
@@ -592,6 +594,11 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private String sectionToolName;
         private String sectionSignature;
         private String serverCallId;
+        private LlmSectionPipeline serverCallPipeline;
+        private LlmSectionPipeline capturePipeline;
+        private final LlmSectionAttributes captureAttributes = new LlmSectionAttributes();
+        private final LlmSectionPipeline.Output captureOutput = (buffer, offset, length, last) ->
+            writeSection(buffer, offset, length, false);
         private final StringBuilder signatureBuilder = new StringBuilder();
         private LlmGeminiResponseDecoder captureThen;
         private int captureDepth;
@@ -673,7 +680,14 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
         private int sectionClosing()
         {
-            return sectionOpen ? SECTION_SUFFIX.length + replyPad + signatureClosing() : 0;
+            return sectionOpen
+                ? SECTION_SUFFIX.length + replyPad + signatureClosing() + serverCallClosing()
+                : 0;
+        }
+
+        private int serverCallClosing()
+        {
+            return sectionType == LlmSectionType.SERVER_TOOL_CALL ? SERVER_CALL_GROWTH : 0;
         }
 
         private boolean replyAvailable()
@@ -1824,7 +1838,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                     closeSection();
                     serverCallId = TOOL_CALL_ID_PREFIX + callOrdinal++;
                     openSection(LlmSectionType.SERVER_TOOL_CALL, serverCallId, SERVER_TOOL_NAME);
-                    beginSectionObject(ARGUMENTS_PREFIX);
+                    beginServerCall();
                 }
                 else
                 {
@@ -1857,6 +1871,24 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             }
 
             return position();
+        }
+
+        private void beginServerCall()
+        {
+            if (serverCallPipeline == null)
+            {
+                serverCallPipeline = new LlmSectionPipeline(new LlmGeminiServerToolCallToCanonical(true), transformBuffer);
+            }
+
+            serverCallPipeline.begin(captureAttributes);
+            serverCallPipeline.feed(SERVER_CALL_PREFIX, 0, SERVER_CALL_PREFIX.capacity(), false, captureOutput);
+            sectionStarted = true;
+
+            capturePipeline = serverCallPipeline;
+            captureThen = decodePart;
+            captureDepth = 1;
+            captureFrom = position() - 1;
+            decoder = decodeCapture;
         }
 
         private void beginSectionObject(
@@ -2116,13 +2148,22 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         {
             final int end = position();
 
-            if (end > captureFrom)
+            if (end > captureFrom && capturePipeline != null)
+            {
+                capturePipeline.feed(buffer, captureFrom, end - captureFrom, false, captureOutput);
+            }
+            else if (end > captureFrom)
             {
                 writeSection(buffer, captureFrom, end - captureFrom, false);
                 callArguments = end - captureFrom;
             }
 
             captureFrom = end;
+
+            if (captureDepth == 0)
+            {
+                capturePipeline = null;
+            }
         }
 
         private int decodeBlockText(

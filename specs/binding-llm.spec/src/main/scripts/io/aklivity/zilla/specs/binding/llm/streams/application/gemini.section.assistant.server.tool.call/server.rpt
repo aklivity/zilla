@@ -52,7 +52,7 @@ write zilla:data.ext ${llm:dataEx()
                           .attribute("tool-name", "code_execution")
                           .attribute("tool-call-id", "call_0_0")
                           .build()}
-write "{\"arguments\":{\"language\":\"PYTHON\",\"code\":\"print(17**13)\\n\",\"id\":\"call_55063\"}}"
+write "{\"arguments\":{\"language\":\"PYTHON\",\"code\":\"print(17**13)\\n\"},\"gemini:id\":\"call_55063\"}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()

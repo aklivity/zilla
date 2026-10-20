@@ -20,6 +20,18 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 final class LlmGeminiServerToolCallFromCanonical extends LlmToolTransform
 {
     private static final String DIALECT = "gemini";
+    private static final String MEMBER_WIRE_ID = "gemini:id";
+
+    private boolean opened;
+    private boolean called;
+
+    @Override
+    public void reset()
+    {
+        super.reset();
+        opened = false;
+        called = false;
+    }
 
     @Override
     protected int member(
@@ -28,13 +40,23 @@ final class LlmGeminiServerToolCallFromCanonical extends LlmToolTransform
     {
         int action;
 
-        if (matches(key, "arguments"))
+        if (depth == 1 && matches(key, "arguments"))
         {
-            target = "executableCode";
-            action = PASS_OBJECT;
+            action = DESCEND;
+        }
+        else if (depth == 2)
+        {
+            target = key.toString();
+            action = PASS_VALUE;
+        }
+        else if (depth == 1 && matches(key, MEMBER_WIRE_ID))
+        {
+            action = HOLD_STRING;
         }
         else
         {
+            endCall();
+
             action = contains(key, ':') ? unprefix(DIALECT, key) : DROP;
         }
 
@@ -44,15 +66,50 @@ final class LlmGeminiServerToolCallFromCanonical extends LlmToolTransform
     @Override
     protected void onOpen()
     {
+        opened = true;
+
+        emit(JsonEvent.KEY_NAME, "executableCode");
+        emit(JsonEvent.START_OBJECT);
     }
 
     @Override
     protected Status onClose(
         int depth)
     {
-        pass(JsonEvent.END_OBJECT);
-
         return Status.ADVANCED;
+    }
+
+    @Override
+    protected Status onEndObject()
+    {
+        Status status = Status.REJECTED;
+
+        if (opened)
+        {
+            endCall();
+            emit(JsonEvent.END_OBJECT);
+            status = Status.ADVANCED;
+        }
+
+        return status;
+    }
+
+    private void endCall()
+    {
+        if (opened && !called)
+        {
+            called = true;
+
+            final String toolCallId = held() != null ? held() : attribute("tool-call-id");
+
+            if (toolCallId != null)
+            {
+                emit(JsonEvent.KEY_NAME, "id");
+                emit(JsonEvent.VALUE_STRING, toolCallId);
+            }
+
+            emit(JsonEvent.END_OBJECT);
+        }
     }
 
     private static boolean contains(

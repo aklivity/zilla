@@ -50,7 +50,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .attribute("tool-name", "code_execution")
                           .attribute("tool-call-id", "call_0_0")
                           .build()}
-read "{\"arguments\":{\"language\":\"PYTHON\",\"code\":\"print(17**13)\\n\",\"id\":\"call_55063\"}}"
+read "{\"arguments\":{\"language\":\"PYTHON\",\"code\":\"print(17**13)\\n\"},\"gemini:id\":\"call_55063\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))

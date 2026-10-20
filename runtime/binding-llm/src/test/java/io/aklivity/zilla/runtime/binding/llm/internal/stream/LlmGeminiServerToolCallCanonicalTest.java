@@ -32,7 +32,15 @@ public class LlmGeminiServerToolCallCanonicalTest
     {
         assertTransforms(toCanonical,
             json("{'executableCode':{'language':'PYTHON','code':'print(1)','id':'call_1'}}"),
-            json("{'arguments':{'language':'PYTHON','code':'print(1)','id':'call_1'}}"));
+            json("{'arguments':{'language':'PYTHON','code':'print(1)'}}"));
+    }
+
+    @Test
+    public void shouldKeepWireIdAsPeerOfArguments()
+    {
+        assertTransforms(new LlmGeminiServerToolCallToCanonical(true),
+            json("{'executableCode':{'language':'PYTHON','code':'print(1)','id':'call_1'}}"),
+            json("{'arguments':{'language':'PYTHON','code':'print(1)'},'gemini:id':'call_1'}"));
     }
 
     @Test
@@ -60,11 +68,19 @@ public class LlmGeminiServerToolCallCanonicalTest
     }
 
     @Test
-    public void shouldRestoreExecutableCode()
+    public void shouldRestoreExecutableCodeWithWireIdMember()
     {
         assertTransforms(fromCanonical,
-            json("{'arguments':{'language':'PYTHON','code':'print(1)','id':'call_1'},'gemini:thoughtSignature':'c2ln'}"),
+            json("{'arguments':{'language':'PYTHON','code':'print(1)'},'gemini:id':'call_1','gemini:thoughtSignature':'c2ln'}"),
             json("{'executableCode':{'language':'PYTHON','code':'print(1)','id':'call_1'},'thoughtSignature':'c2ln'}"));
+    }
+
+    @Test
+    public void shouldRestoreExecutableCodeWithAttributeId()
+    {
+        assertTransforms(fromCanonical, attributes -> attributes.toolCallId("call_2"), null,
+            json("{'arguments':{'language':'PYTHON','code':'print(1)'}}"),
+            json("{'executableCode':{'language':'PYTHON','code':'print(1)','id':'call_2'}}"));
     }
 
     @Test
@@ -78,7 +94,7 @@ public class LlmGeminiServerToolCallCanonicalTest
     @Test
     public void shouldRoundTripExecutableCode()
     {
-        assertRoundTrips(toCanonical, fromCanonical,
+        assertRoundTrips(new LlmGeminiServerToolCallToCanonical(true), fromCanonical,
             json("{'executableCode':{'language':'PYTHON','code':'" + CODE + "','id':'call_1'},'thoughtSignature':'c2ln'}"));
     }
 }
