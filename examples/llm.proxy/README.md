@@ -409,6 +409,12 @@ relays unchanged. The routes and guardrails in `etc/zilla.yaml` are keyed on `gp
 `claude-3-5-haiku-20241022`; replace those with models your accounts can call if you want to exercise the
 same-dialect routes and the guardrail stages against the real APIs.
 
+Gemini thinking models spend output tokens on thinking, and the output limit counts them: `max_tokens` on the
+openai and anthropic frontends and `maxOutputTokens` on the gemini frontend all become the same Gemini limit, and the
+`output_tokens` reported back include the thinking tokens. A small limit can be used up before any text is
+produced, so the reply ends with a `max_tokens` stop reason, possibly with no content at all. Use a generous limit,
+as the examples above do.
+
 Add a `tools` definition to either cross-dialect request (see
 `etc/test/verify.py` for the full shape) to see a tool-call response
 translated across dialects too.
