@@ -37,6 +37,9 @@ public final class HttpSseEventFW extends Flyweight
     private static final byte[] RETRY_FIELD_HEADER = "retry:".getBytes(UTF_8);
     private static final byte[] COMMENT_FIELD_HEADER = ":".getBytes(UTF_8);
 
+    private static final byte FIELD_SPACE = 0x20;
+    private static final int FIELD_SPACE_LENGTH = 1;
+
     private static final byte FIELD_TRAILER = 0x0a;
     private static final int FIELD_TRAILER_LENGTH = 1;
 
@@ -70,6 +73,7 @@ public final class HttpSseEventFW extends Flyweight
     {
         private OctetsFW data;
         private int flags;
+        private boolean space;
         private DirectBufferEx id;
         private DirectBufferEx type;
         private DirectBufferEx retry;
@@ -90,6 +94,7 @@ public final class HttpSseEventFW extends Flyweight
 
             data = null;
             flags = 0;
+            space = false;
             id = null;
             type = null;
             retry = null;
@@ -102,6 +107,13 @@ public final class HttpSseEventFW extends Flyweight
             int flags)
         {
             this.flags = flags;
+            return this;
+        }
+
+        public Builder space(
+            boolean space)
+        {
+            this.space = space;
             return this;
         }
 
@@ -223,9 +235,14 @@ public final class HttpSseEventFW extends Flyweight
 
             if (hasInit(flags))
             {
-                checkLimit(limit() + DATA_FIELD_HEADER.length, maxLimit());
+                checkLimit(limit() + DATA_FIELD_HEADER.length + (space ? FIELD_SPACE_LENGTH : 0), maxLimit());
                 buffer.putBytes(limit(), DATA_FIELD_HEADER);
                 limit(limit() + DATA_FIELD_HEADER.length);
+
+                if (space)
+                {
+                    buildSpace();
+                }
             }
 
             if (length > 0)
@@ -244,20 +261,34 @@ public final class HttpSseEventFW extends Flyweight
             return this;
         }
 
+        private void buildSpace()
+        {
+            buffer().putByte(limit(), FIELD_SPACE);
+            limit(limit() + FIELD_SPACE_LENGTH);
+        }
+
         private Builder buildField(
             byte[] header,
             DirectBufferEx value)
         {
             if (value != null)
             {
+                final boolean spaced = space && header != COMMENT_FIELD_HEADER;
+
                 checkLimit(limit() +
                            header.length +
+                           (spaced ? FIELD_SPACE_LENGTH : 0) +
                            value.capacity() +
                            FIELD_TRAILER_LENGTH,
                            maxLimit());
 
                 buffer().putBytes(limit(), header);
                 limit(limit() + header.length);
+
+                if (spaced)
+                {
+                    buildSpace();
+                }
 
                 buffer().putBytes(limit(), value, 0, value.capacity());
                 limit(limit() + value.capacity());

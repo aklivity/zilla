@@ -121,6 +121,13 @@ abstract class LlmAttributeProbe
                 parser.consumed(declined ? 0 : length);
             }
             break;
+        case VALUE_TRUE:
+        case VALUE_FALSE:
+            if (depth < MAX_DEPTH && !continued)
+            {
+                onLiteral(depth, event);
+            }
+            break;
         default:
             break;
         }
@@ -147,6 +154,12 @@ abstract class LlmAttributeProbe
         int depth,
         CharSequence value,
         boolean deferred);
+
+    protected void onLiteral(
+        int depth,
+        JsonEvent event)
+    {
+    }
 
     protected final int key(
         int depth)

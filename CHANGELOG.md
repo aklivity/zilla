@@ -4,9 +4,15 @@
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/2.5.0...HEAD)
 
+**Closed issues:**
+
+- binding-llm: gemini dialect [\#2742](https://github.com/aklivity/zilla/issues/2742) ([jfallows](https://github.com/jfallows))
+
 **Merged pull requests:**
 
 - feat\(binding-llm\): control section for non-section members, remove dialect frames [\#2748](https://github.com/aklivity/zilla/pull/2748) ([jfallows](https://github.com/jfallows))
+- feat\(binding-llm\): gemini dialect [\#2749](https://github.com/aklivity/zilla/pull/2749) ([jfallows](https://github.com/jfallows))
+- feat\(binding-http\): optional space after event stream field names via content-type parameter [\#2750](https://github.com/aklivity/zilla/pull/2750) ([jfallows](https://github.com/jfallows))
 
 ## [2.5.0](https://github.com/aklivity/zilla/tree/2.5.0) (2026-10-19)
 
