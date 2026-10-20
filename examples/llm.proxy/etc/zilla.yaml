@@ -115,12 +115,36 @@ bindings:
         - llm.*
     exit: north_llm_proxy
 
-  north_tcp_server_responses:
+  north_tcp_server_gemini:
     type: tcp
     kind: server
     options:
       host: 0.0.0.0
       port: 7163
+    exit: north_http_server_gemini
+  north_http_server_gemini:
+    type: http
+    kind: server
+    exit: north_llm_server_gemini
+  north_llm_server_gemini:
+    type: llm
+    kind: server
+    options:
+      dialect: gemini
+      authorization:
+        api_key:
+          credentials: "{credentials}"
+    telemetry:
+      metrics:
+        - llm.*
+    exit: north_llm_proxy
+
+  north_tcp_server_responses:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port: 7164
     exit: north_http_server_responses
   north_http_server_responses:
     type: http
@@ -140,9 +164,9 @@ bindings:
         - llm.*
     exit: north_llm_proxy
 
-  # Shared by all three frontends: routes purely on LlmBeginEx.dialect/model,
-  # never on request content. The model names the backend, so a request reaches
-  # the provider that serves its model whichever dialect the client speaks: a
+  # Shared by all four frontends: routes purely on LlmBeginEx.dialect/model, never
+  # on request content. The model names the backend, so a request reaches the
+  # provider that serves its model whichever dialect the client speaks: a
   # claude-* model reaches Anthropic and a gpt-* model reaches OpenAI. A client
   # speaking another dialect is translated across dialects on the way (an OpenAI
   # SDK client asking for a Claude model, an Anthropic SDK client asking for a
@@ -255,6 +279,9 @@ bindings:
           - model: [ "gpt-*" ]
         exit: south_llm_client_openai
       - when:
+          - model: [ "gemini-*" ]
+        exit: south_llm_client_gemini
+      - when:
           - dialect: openai/responses
         exit: south_llm_client_openai_responses
       - when:
@@ -263,9 +290,13 @@ bindings:
       - when:
           - dialect: anthropic
         exit: south_llm_client_anthropic
+      - when:
+          - dialect: gemini
+        exit: south_llm_client_gemini
 
-  # Every south_llm_client_* below targets the real OpenAI/Anthropic API
-  # directly over TLS -- see README.md's "Credential pass-through" section:
+  # Every south_llm_client_* below targets its real provider's API over TLS
+  # through the system sys:http_client, which takes the scheme, host and port
+  # from options.server -- see README.md's "Credential pass-through" section:
   # options.authorization templates the *caller's own* credential rather than
   # configuring one of Zilla's own, so no API key is ever written here. The
   # secondary deployments point at the same real API as their primary -- this
@@ -285,27 +316,7 @@ bindings:
     telemetry:
       metrics:
         - llm.*
-    exit: south_http_client_anthropic
-  south_http_client_anthropic:
-    type: http
-    kind: client
-    exit: south_tls_client_anthropic
-  south_tls_client_anthropic:
-    type: tls
-    kind: client
-    vault: south_clients
-    options:
-      trustcacerts: true
-      sni:
-        - api.anthropic.com
-    exit: south_tcp_client_anthropic
-  south_tcp_client_anthropic:
-    type: tcp
-    kind: client
-    options:
-      host: api.anthropic.com
-      port: 443
-
+    exit: sys:http_client
   south_llm_client_openai:
     type: llm
     kind: client
@@ -318,27 +329,7 @@ bindings:
     telemetry:
       metrics:
         - llm.*
-    exit: south_http_client_openai
-  south_http_client_openai:
-    type: http
-    kind: client
-    exit: south_tls_client_openai
-  south_tls_client_openai:
-    type: tls
-    kind: client
-    vault: south_clients
-    options:
-      trustcacerts: true
-      sni:
-        - api.openai.com
-    exit: south_tcp_client_openai
-  south_tcp_client_openai:
-    type: tcp
-    kind: client
-    options:
-      host: api.openai.com
-      port: 443
-
+    exit: sys:http_client
   # Responses API client (dialect openai/responses) on the same OpenAI host:
   # north_llm_proxy routes gpt-5* models here, and any other model a Responses
   # request names, so a Responses request is same-dialect on this leg and a Chat
@@ -355,27 +346,7 @@ bindings:
     telemetry:
       metrics:
         - llm.*
-    exit: south_http_client_openai_responses
-  south_http_client_openai_responses:
-    type: http
-    kind: client
-    exit: south_tls_client_openai_responses
-  south_tls_client_openai_responses:
-    type: tls
-    kind: client
-    vault: south_clients
-    options:
-      trustcacerts: true
-      sni:
-        - api.openai.com
-    exit: south_tcp_client_openai_responses
-  south_tcp_client_openai_responses:
-    type: tcp
-    kind: client
-    options:
-      host: api.openai.com
-      port: 443
-
+    exit: sys:http_client
   # Second same-dialect (openai) deployment: north_llm_proxy routes gpt-4o here
   # instead of translating to Anthropic -- no dialect translation happens on
   # this leg at all, same dialect in as out.
@@ -391,27 +362,7 @@ bindings:
     telemetry:
       metrics:
         - llm.*
-    exit: south_http_client_openai_secondary
-  south_http_client_openai_secondary:
-    type: http
-    kind: client
-    exit: south_tls_client_openai_secondary
-  south_tls_client_openai_secondary:
-    type: tls
-    kind: client
-    vault: south_clients
-    options:
-      trustcacerts: true
-      sni:
-        - api.openai.com
-    exit: south_tcp_client_openai_secondary
-  south_tcp_client_openai_secondary:
-    type: tcp
-    kind: client
-    options:
-      host: api.openai.com
-      port: 443
-
+    exit: sys:http_client
   # Second same-dialect (anthropic) deployment: north_llm_proxy routes
   # claude-3-5-haiku-20241022 here instead of translating to OpenAI.
   south_llm_client_anthropic_secondary:
@@ -426,28 +377,22 @@ bindings:
     telemetry:
       metrics:
         - llm.*
-    exit: south_http_client_anthropic_secondary
-  south_http_client_anthropic_secondary:
-    type: http
-    kind: client
-    exit: south_tls_client_anthropic_secondary
-  south_tls_client_anthropic_secondary:
-    type: tls
-    kind: client
-    vault: south_clients
-    options:
-      trustcacerts: true
-      sni:
-        - api.anthropic.com
-    exit: south_tcp_client_anthropic_secondary
-  south_tcp_client_anthropic_secondary:
-    type: tcp
+    exit: sys:http_client
+  # Targets the real Gemini API over TLS. The caller's own API key is passed
+  # through as x-goog-api-key, as options.authorization templates it. A Gemini
+  # SDK client asking for a gemini-* model is not translated; an OpenAI or
+  # Anthropic SDK client asking for one is, and a Gemini SDK client asking for a
+  # claude-* or gpt-* model is routed to those providers and translated.
+  south_llm_client_gemini:
+    type: llm
     kind: client
     options:
-      host: api.anthropic.com
-      port: 443
-
-vaults:
-  south_clients:
-    type: filesystem
-    options: {}
+      dialect: gemini
+      server: https://generativelanguage.googleapis.com:443
+      authorization:
+        api_key:
+          credentials: "{credentials}"
+    telemetry:
+      metrics:
+        - llm.*
+    exit: sys:http_client

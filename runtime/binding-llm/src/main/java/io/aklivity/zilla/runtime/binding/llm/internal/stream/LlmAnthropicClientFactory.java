@@ -685,8 +685,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             this.binding = binding;
             this.model = model;
             this.dialect = dialect;
-            this.beta = beta;
             this.crossDialect = !NAME.equals(dialect);
+            this.beta = crossDialect ? null : beta;
             this.http = new LlmAnthropicHttpStream(this);
             this.parser = JsonEx.createParser(Map.of(JsonParserEx.STRING_EVENT_POSITIONS, StringEventPositions.QUOTED));
             this.textBytes = new byte[1024];

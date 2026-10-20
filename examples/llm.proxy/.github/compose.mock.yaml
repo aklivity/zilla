@@ -1,8 +1,12 @@
 # CI-only overlay: merged in via COMPOSE_FILE in .github/.env.test. Stands up
-# the four mock backends and points zilla at .github/zilla.yaml (mock
-# hostnames, no TLS) instead of ../etc/zilla.yaml (the real OpenAI/Anthropic
-# APIs), so this example is verifiable without real API keys or network
-# access to either provider.
+# the five mock backends and points zilla at .github/zilla.yaml (mock
+# hostnames, no TLS) instead of ../etc/zilla.yaml (the real OpenAI, Anthropic
+# and Gemini APIs), so this example is verifiable without real API keys or
+# network access to any provider.
+#
+# Relative paths here resolve against the project directory (the base
+# compose.yaml's directory / CWD), not against this file's own .github/
+# directory -- so this is `./.github/...`, not `./...`.
 services:
   # Mock OpenAI API backing south_llm_client_openai (chat completions) and
   # south_llm_client_openai_responses (responses).
@@ -15,7 +19,7 @@ services:
     environment:
       PORT: "4101"
     volumes:
-      - ./mock-openai:/app
+      - ./.github/mock-openai:/app
     healthcheck:
       interval: 5s
       timeout: 3s
@@ -34,7 +38,7 @@ services:
     environment:
       PORT: "4102"
     volumes:
-      - ./mock-anthropic:/app
+      - ./.github/mock-anthropic:/app
     healthcheck:
       interval: 5s
       timeout: 3s
@@ -56,7 +60,7 @@ services:
     environment:
       PORT: "4103"
     volumes:
-      - ./mock-openai-secondary:/app
+      - ./.github/mock-openai-secondary:/app
     healthcheck:
       interval: 5s
       timeout: 3s
@@ -77,7 +81,7 @@ services:
     environment:
       PORT: "4104"
     volumes:
-      - ./mock-anthropic-secondary:/app
+      - ./.github/mock-anthropic-secondary:/app
     healthcheck:
       interval: 5s
       timeout: 3s
@@ -85,6 +89,25 @@ services:
       start_period: 30s
       start_interval: 250ms
       test: ["CMD", "nc", "-z", "127.0.0.1", "4104"]
+
+  # Mock Gemini generateContent API backing south_llm_client_gemini.
+  mock-gemini:
+    image: node:20-alpine
+    hostname: mock-gemini
+    restart: unless-stopped
+    working_dir: /app
+    command: ["sh", "-c", "npm install --no-audit --no-fund --silent && node server.mjs"]
+    environment:
+      PORT: "4105"
+    volumes:
+      - ./.github/mock-gemini:/app
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
+      start_interval: 250ms
+      test: ["CMD", "nc", "-z", "127.0.0.1", "4105"]
 
   # Overrides the base compose.yaml's zilla service: swaps in the mock-backed
   # config and waits on every mock's health, neither of which the real-API
@@ -100,4 +123,6 @@ services:
       mock-openai-secondary:
         condition: service_healthy
       mock-anthropic-secondary:
+        condition: service_healthy
+      mock-gemini:
         condition: service_healthy

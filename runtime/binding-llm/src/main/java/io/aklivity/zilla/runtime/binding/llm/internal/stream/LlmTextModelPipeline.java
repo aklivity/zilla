@@ -31,9 +31,8 @@ import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.util.Flags;
 
 // A section is a `{"text":…}` object, decoded on arrival and presented to the chain as one continuous text value.
-// The chain is fed all but the trailing overlap bytes of what has arrived, so a pattern straddling two fragments is
-// seen whole; what the chain produces for the bytes it was fed is embedded in an object of the section being
-// delivered, and the held bytes are fed when more text arrives or the section ends.
+// The chain is fed all of what has arrived, and what it produces is embedded in an object of the section being
+// delivered; a chain that needs context across fragments retains it itself.
 //
 // The members next to the text are carried untouched, after the text. Those that arrive before the text wait for it
 // in half of a slot, and a section whose members before the text exceed that half is rejected. Once the text has
@@ -68,7 +67,6 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
     }
 
     private final ModelPipeline pipeline;
-    private final int overlap;
     private final BufferPool pool;
     private final long streamId;
     private final MutableDirectBufferEx transformBuffer;
@@ -96,14 +94,12 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
 
     LlmTextModelPipeline(
         ModelPipeline pipeline,
-        int overlap,
         BufferPool pool,
         long streamId,
         MutableDirectBufferEx transformBuffer,
         boolean optional)
     {
         this.pipeline = pipeline;
-        this.overlap = overlap;
         this.pool = pool;
         this.streamId = streamId;
         this.transformBuffer = transformBuffer;
@@ -329,14 +325,13 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
         int dstIndex,
         int dstLimit)
     {
-        final int limit = feedLimit(flush);
         final boolean absent = decoder.completed() && !decoder.extracted();
 
         ModelStatus status = flush && absent ? ModelStatus.COMPLETE : ModelStatus.UNDERFLOW;
         ModelRejection rejection = null;
         int produced = 0;
 
-        if (!absent && (limit > textProgress || flush))
+        if (!absent && (textLength > textProgress || flush))
         {
             final int innerFlags = (started ? 0 : Flags.INIT) | (flush ? Flags.FIN : 0);
 
@@ -344,7 +339,7 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
                 transformBuffer.capacity());
 
             final ModelPipelineResult inner = pipeline.transform(traceId, bindingId, authorization, innerFlags,
-                slot != NO_SLOT ? slotBuffer : EMPTY_TEXT, textProgress, limit, transformBuffer, 0, room);
+                slot != NO_SLOT ? slotBuffer : EMPTY_TEXT, textProgress, textLength, transformBuffer, 0, room);
 
             status = inner.status();
             rejection = inner.rejection();
@@ -446,24 +441,6 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
         }
 
         return produced;
-    }
-
-    private int feedLimit(
-        boolean flush)
-    {
-        int limit = textLength;
-
-        if (!flush)
-        {
-            limit = Math.max(textLength - overlap, textProgress);
-
-            while (limit > textProgress && limit < textLength && (slotBuffer.getByte(limit) & 0xC0) == 0x80)
-            {
-                limit--;
-            }
-        }
-
-        return limit;
     }
 
     private int embed(

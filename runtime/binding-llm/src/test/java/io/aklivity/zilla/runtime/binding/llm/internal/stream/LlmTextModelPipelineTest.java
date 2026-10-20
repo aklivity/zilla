@@ -342,12 +342,12 @@ public class LlmTextModelPipelineTest
     private LlmTextModelPipeline pipeline(
         ModelPipeline chain)
     {
-        return new LlmTextModelPipeline(chain, 0, pool, 1L, transformBuffer, false);
+        return new LlmTextModelPipeline(chain, pool, 1L, transformBuffer, false);
     }
 
     private LlmTextModelPipeline optional()
     {
-        return new LlmTextModelPipeline(new EchoChain(), 0, pool, 1L, transformBuffer, true);
+        return new LlmTextModelPipeline(new EchoChain(), pool, 1L, transformBuffer, true);
     }
 
     private Delivery drive(

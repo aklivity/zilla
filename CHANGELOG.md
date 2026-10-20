@@ -1,5 +1,27 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.5.0...HEAD)
+
+**Closed issues:**
+
+- binding-llm: classifier-based guardrail models retain their own overlap [\#2737](https://github.com/aklivity/zilla/issues/2737) ([jfallows](https://github.com/jfallows))
+- binding-llm: gemini dialect [\#2742](https://github.com/aklivity/zilla/issues/2742) ([jfallows](https://github.com/jfallows))
+- binding-llm: gemini dialect rejects role "model" after parts in a contents entry [\#2754](https://github.com/aklivity/zilla/issues/2754) ([jfallows](https://github.com/jfallows))
+- binding-llm: gemini dialect cannot route a model identifier containing a colon [\#2756](https://github.com/aklivity/zilla/issues/2756) ([jfallows](https://github.com/jfallows))
+
+**Merged pull requests:**
+
+- feat\(binding-llm\): control section for non-section members, remove dialect frames [\#2748](https://github.com/aklivity/zilla/pull/2748) ([jfallows](https://github.com/jfallows))
+- feat\(binding-llm\): gemini dialect [\#2749](https://github.com/aklivity/zilla/pull/2749) ([jfallows](https://github.com/jfallows))
+- feat\(binding-http\): optional space after event stream field names via content-type parameter [\#2750](https://github.com/aklivity/zilla/pull/2750) ([jfallows](https://github.com/jfallows))
+- fix\(binding-llm\): gemini request to another dialect keeps its begin extension and tool schema [\#2752](https://github.com/aklivity/zilla/pull/2752) ([jfallows](https://github.com/jfallows))
+- feat\(model-classify\): classify streamed values in windows with model-owned overlap [\#2753](https://github.com/aklivity/zilla/pull/2753) ([jfallows](https://github.com/jfallows))
+- fix\(binding-llm\): decode gemini role after parts [\#2755](https://github.com/aklivity/zilla/pull/2755) ([jfallows](https://github.com/jfallows))
+- fix\(binding-llm\): route gemini model identifiers containing a colon [\#2757](https://github.com/aklivity/zilla/pull/2757) ([jfallows](https://github.com/jfallows))
+- fix\(binding-llm\): lowercase type names in every nested gemini tool schema [\#2758](https://github.com/aklivity/zilla/pull/2758) ([jfallows](https://github.com/jfallows))
+
 ## [2.5.0](https://github.com/aklivity/zilla/tree/2.5.0) (2026-10-19)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/2.4.7...2.5.0)

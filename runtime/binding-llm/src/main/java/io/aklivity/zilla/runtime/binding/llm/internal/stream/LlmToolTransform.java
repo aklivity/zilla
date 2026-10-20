@@ -45,6 +45,8 @@ abstract class LlmToolTransform implements JsonTransform
     protected static final int STRIP_DATA_URI = 12;
     protected static final int REPLACE_VALUE = 13;
     protected static final int DESCEND_KEPT_OR_REPLACE = 14;
+    protected static final int CONVERT_STRING = 15;
+    protected static final int DESCEND_KEPT_OR_ELEMENTS = 16;
 
     protected static final int MODE_OBJECT = 0;
     protected static final int MODE_EXTRACT = 1;
@@ -55,7 +57,7 @@ abstract class LlmToolTransform implements JsonTransform
     private static final String BASE64_MARKER = ";base64,";
     private static final int NONE = -1;
     private static final int QUEUE_CAPACITY = 16;
-    private static final int HELD_MAX = 4096;
+    static final int HELD_MAX = 4096;
     private static final int NAMES_CAPACITY = 32;
 
     protected String target;
@@ -86,6 +88,7 @@ abstract class LlmToolTransform implements JsonTransform
     private boolean skipping;
     private int skipDepth;
     private boolean holding;
+    private boolean converting;
     private boolean awaitingContent;
     private boolean valueStarted;
     private boolean arrayOpen;
@@ -148,8 +151,20 @@ abstract class LlmToolTransform implements JsonTransform
         return Status.ADVANCED;
     }
 
+    protected int element(
+        int depth)
+    {
+        return PASS_VALUE;
+    }
+
     protected void onValueEnd()
     {
+    }
+
+    protected String converted(
+        String value)
+    {
+        return value;
     }
 
     protected Status onReplace(
@@ -377,6 +392,7 @@ abstract class LlmToolTransform implements JsonTransform
         passEscaped = false;
         skipping = false;
         holding = false;
+        converting = false;
         awaitingContent = false;
         valueStarted = false;
         arrayOpen = false;
@@ -601,8 +617,41 @@ abstract class LlmToolTransform implements JsonTransform
             arrayOpen = false;
             status = Status.ADVANCED;
         }
+        else if (depth > 0)
+        {
+            status = event == JsonEvent.END_ARRAY ? endElements(event) : beginElement(event);
+        }
 
         return status;
+    }
+
+    private Status beginElement(
+        JsonEvent event)
+    {
+        target = null;
+        pending = element(depth);
+
+        Status status = Status.REJECTED;
+
+        if (pending != REJECT)
+        {
+            status = begin(event);
+        }
+        else
+        {
+            pending = NONE;
+        }
+
+        return status;
+    }
+
+    private Status endElements(
+        JsonEvent event)
+    {
+        pass(event);
+        depth--;
+
+        return Status.ADVANCED;
     }
 
     private Status begin(
@@ -655,6 +704,20 @@ abstract class LlmToolTransform implements JsonTransform
         case HOLD_STRING:
             status = event == JsonEvent.VALUE_STRING ? hold() : Status.REJECTED;
             break;
+        case CONVERT_STRING:
+            if (event == JsonEvent.START_ARRAY)
+            {
+                status = descendElements(event);
+            }
+            else
+            {
+                converting = event == JsonEvent.VALUE_STRING;
+                status = converting ? hold() : Status.REJECTED;
+            }
+            break;
+        case DESCEND_KEPT_OR_ELEMENTS:
+            status = descendKeptOrElements(event);
+            break;
         case ESCAPE_OBJECT:
             if (event == JsonEvent.START_OBJECT)
             {
@@ -679,7 +742,7 @@ abstract class LlmToolTransform implements JsonTransform
     private Status descendKept(
         JsonEvent event)
     {
-        if (mode != MODE_EXTRACT)
+        if (mode != MODE_EXTRACT && target != null)
         {
             emit(JsonEvent.KEY_NAME, target);
         }
@@ -688,6 +751,41 @@ abstract class LlmToolTransform implements JsonTransform
         depth++;
 
         return onDescend(depth);
+    }
+
+    private Status descendElements(
+        JsonEvent event)
+    {
+        if (mode != MODE_EXTRACT && target != null)
+        {
+            emit(JsonEvent.KEY_NAME, target);
+        }
+
+        pass(event);
+        depth++;
+
+        return Status.ADVANCED;
+    }
+
+    private Status descendKeptOrElements(
+        JsonEvent event)
+    {
+        final Status status;
+
+        if (event == JsonEvent.START_OBJECT)
+        {
+            status = descendKept(event);
+        }
+        else if (event == JsonEvent.START_ARRAY)
+        {
+            status = descendElements(event);
+        }
+        else
+        {
+            status = beginPass(event);
+        }
+
+        return status;
     }
 
     private Status replace(
@@ -782,7 +880,7 @@ abstract class LlmToolTransform implements JsonTransform
     private Status beginPass(
         JsonEvent event)
     {
-        if (mode != MODE_EXTRACT || depth > extractDepth)
+        if ((mode != MODE_EXTRACT || depth > extractDepth) && target != null)
         {
             emit(JsonEvent.KEY_NAME, target);
         }
@@ -942,8 +1040,25 @@ abstract class LlmToolTransform implements JsonTransform
 
             if (!holding)
             {
-                held = name(heldBuilder);
+                final String value = name(heldBuilder);
                 heldBuilder.setLength(0);
+
+                if (converting)
+                {
+                    converting = false;
+
+                    if (target != null)
+                    {
+                        emit(JsonEvent.KEY_NAME, target);
+                    }
+
+                    emit(JsonEvent.VALUE_STRING, converted(value));
+                }
+                else
+                {
+                    held = value;
+                }
+
                 status = Status.ADVANCED;
             }
         }

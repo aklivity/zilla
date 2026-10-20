@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.llm.internal.LlmConfigurationTest.LLM_GUARDRAIL_OVERLAP_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -29,7 +28,6 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
-import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class LlmProxyIT
 {
@@ -77,6 +75,17 @@ public class LlmProxyIT
         "${app}/openai.proxy.guardrail.accepted/server"})
     @ScriptProperty("clientAddress \"zilla://streams/net0\"")
     public void shouldRelayGuardedSection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.direction.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.accepted/client",
+        "${app}/openai.proxy.guardrail.accepted/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldSupplyDirectionToGuardedSections() throws Exception
     {
         k3po.finish();
     }
@@ -208,18 +217,6 @@ public class LlmProxyIT
         "${app}/openai.proxy.guardrail.transform.streaming.exit/server"})
     @ScriptProperty("clientAddress \"zilla://streams/net0\"")
     public void shouldRelayTransformedStreamingSections() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.guardrail.mask.yaml")
-    @Configure(name = LLM_GUARDRAIL_OVERLAP_NAME, value = "8")
-    @Specification({
-        "${app}/openai.proxy.guardrail.transform.overlap/client",
-        "${app}/openai.proxy.guardrail.transform.overlap.exit/server"})
-    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
-    public void shouldRelayTransformedOverlapSections() throws Exception
     {
         k3po.finish();
     }
@@ -601,6 +598,17 @@ public class LlmProxyIT
     }
 
     @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/gemini.proxy/client",
+        "${app}/gemini.proxy/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRouteGeminiToAppZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.openai.responses.yaml")
     @ScriptProperty({"clientAddress \"zilla://streams/net0\""})
     @Specification({
@@ -643,12 +651,34 @@ public class LlmProxyIT
     }
 
     @Test
+    @Configuration("proxy.guardrail.yaml")
+    @Specification({
+        "${app}/gemini.proxy.guardrail.accepted/client",
+        "${app}/gemini.proxy.guardrail.accepted/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayGeminiGuardedSection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.openai.responses.guardrail.yaml")
     @Specification({
         "${app}/openai.responses.proxy.guardrail.control/client",
         "${app}/openai.responses.proxy.guardrail.control/server"})
     @ScriptProperty("clientAddress \"zilla://streams/net0\"")
     public void shouldRelayControlSectionsUnguardedForOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.yaml")
+    @Specification({
+        "${app}/gemini.proxy.guardrail.rejected/client",
+        "${app}/gemini.proxy.guardrail.rejected.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRejectGeminiGuardedSection() throws Exception
     {
         k3po.finish();
     }
@@ -715,18 +745,6 @@ public class LlmProxyIT
         "${app}/openai.responses.proxy.guardrail.transform.streaming.exit/server"})
     @ScriptProperty("clientAddress \"zilla://streams/net0\"")
     public void shouldRelayTransformedStreamingSectionsForOpenaiResponses() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.openai.responses.guardrail.mask.yaml")
-    @Configure(name = LLM_GUARDRAIL_OVERLAP_NAME, value = "8")
-    @Specification({
-        "${app}/openai.responses.proxy.guardrail.transform.overlap/client",
-        "${app}/openai.responses.proxy.guardrail.transform.overlap.exit/server"})
-    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
-    public void shouldRelayTransformedOverlapSectionsForOpenaiResponses() throws Exception
     {
         k3po.finish();
     }
@@ -1100,6 +1118,16 @@ public class LlmProxyIT
         "${net}/openai.responses.proxy.guardrail.transformed/client",
         "${app}/openai.responses.proxy.guardrail.transformed.exit/server"})
     public void shouldRelayTransformedSectionsFromNetworkForOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.proxy.guardrail.yaml")
+    @Specification({
+        "${net}/gemini.proxy.guardrail.rejected/client",
+        "${app}/gemini.proxy.guardrail.rejected.request/server"})
+    public void shouldRejectGeminiGuardedSectionFromNetwork() throws Exception
     {
         k3po.finish();
     }

@@ -39,6 +39,7 @@ public final class ClassifyModelContext implements ModelContext
     {
         ClassifyModelConfig options = ClassifyModelConfig.class.cast(config);
 
-        return new ClassifyModelHandlerImpl(context, options, this.config.maxLength());
+        return new ClassifyModelHandlerImpl(context, options, this.config.maxLength(),
+            this.config.overlap());
     }
 }
