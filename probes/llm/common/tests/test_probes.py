@@ -138,6 +138,18 @@ class QuirkyProvider(unittest.TestCase):
         self.assertTrue(all(r["outcome"] == "error" and r["error_kind"] == "zilla-inexpressible" for r in records))
 
 
+class ProviderSettings(unittest.TestCase):
+    def test_baseline_params_and_reasoning_cap_apply(self):
+        overrides = {"baseline_params": {"chat_template_kwargs": {"enable_thinking": False}}, "reasoning_cap": 400}
+        _, _, _, _, mock = run_against({}, overrides, probes="roles.name-field,reasoning.reasoning-shape")
+        baseline = next(r for _, _, r in mock.state.requests if r["model"] == "mock-chat")
+        reasoning = next(r for _, _, r in mock.state.requests if r["model"] == "mock-reason")
+        self.assertEqual(baseline["chat_template_kwargs"], {"enable_thinking": False})
+        self.assertNotIn("chat_template_kwargs", reasoning)
+        self.assertEqual(reasoning["max_tokens"], 400)
+        self.assertEqual(baseline["max_tokens"] if "max_tokens" in baseline else 1024, 1024)
+
+
 class BudgetTests(unittest.TestCase):
     def test_budget_stops_probing(self):
         budget = engine.Budget(0.0, {"input": 1.0, "output": 1.0}, False)

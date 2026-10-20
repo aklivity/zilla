@@ -4509,7 +4509,13 @@
         "source": "official-page (README, docker.md, GHCR manifest, HF API). Fit on 4 vCPU/16GB is an estimate (Q4_K_M 1.7B roughly 1.1GB, repo total 4.07GB includes unused quants); not run here."
       },
       "extra_env": [],
-      "ci_start": "llamacpp"
+      "ci_start": "llamacpp",
+      "baseline_params": {
+        "chat_template_kwargs": {
+          "enable_thinking": false
+        }
+      },
+      "reasoning_cap": 400
     },
     {
       "id": "ollama",
@@ -4672,7 +4678,11 @@
         "source": "official-page for docker run, /api/pull shape, base URL and /v1 behavior; Hugging Face docs for hf.co syntax; HF API for repo files. Fit on 4 vCPU/16GB is an estimate (Q4_K_M 1.7B roughly 1.1GB); not run here."
       },
       "extra_env": [],
-      "ci_start": "ollama"
+      "ci_start": "ollama",
+      "baseline_params": {
+        "reasoning_effort": "none"
+      },
+      "reasoning_cap": 400
     },
     {
       "id": "sglang",
@@ -4824,7 +4834,13 @@
         "source": "official-page (docs cpu_server.mdx, xeon.Dockerfile, release workflow, Docker Hub API) for image, launch flags and tag existence; reasoning parser from reasoning docs. Not run; fit depends on whether the runner CPU supports the AMX-optimized kernels and on a 2GB image pull."
       },
       "extra_env": [],
-      "ci_start": "sglang"
+      "ci_start": "sglang",
+      "baseline_params": {
+        "chat_template_kwargs": {
+          "enable_thinking": false
+        }
+      },
+      "reasoning_cap": 400
     },
     {
       "id": "vllm",
@@ -4999,7 +5015,13 @@
         "source": "official-page: install CPU docs (image names, docker run shape, launch example), Dockerfile.cpu (entrypoint), reasoning_outputs.md (Qwen3-0.6B + qwen3 parser), Docker Hub API (tags). Fit on 4 vCPU/16GB is an estimate (0.6B bf16 weights ~1.2GB plus 4GiB KV cache); not run here."
       },
       "extra_env": [],
-      "ci_start": "vllm"
+      "ci_start": "vllm",
+      "baseline_params": {
+        "chat_template_kwargs": {
+          "enable_thinking": false
+        }
+      },
+      "reasoning_cap": 400
     },
     {
       "id": "baseten",

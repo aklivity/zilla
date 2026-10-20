@@ -89,7 +89,7 @@ def resolve(value, facts, ctx):
     if isinstance(value, dict):
         if "$cap" in value:
             result = {k: resolve(v, facts, ctx) for k, v in value.items() if k != "$cap"}
-            result[ctx["cap_param"]] = max(value["$cap"], ctx["baseline_cap"])
+            result[ctx["cap_param"]] = ctx["cap_override"] or max(value["$cap"], ctx["baseline_cap"])
         elif "$ref" in value:
             result = jsonpath.get(facts, value["$ref"])
         elif "$const" in value:
@@ -208,7 +208,8 @@ def _execute(probe, provider, target, ctx, budget, record):
     ctx_models = dict(ctx["models"])
     ctx_models["model"] = ctx_models["reasoning" if probe.get("model") == "reasoning" else "chat"]
     local = {"constants": ctx["constants"], "models": ctx_models, "cap_param": provider.get("cap_param", "max_tokens"),
-             "baseline_cap": provider.get("baseline_cap", BASELINE_CAP)}
+             "baseline_cap": provider.get("baseline_cap", BASELINE_CAP),
+             "cap_override": provider.get("reasoning_cap") if probe.get("model") == "reasoning" else None}
     derive_ctx = {"constants": ctx["constants"], "models": ctx_models, "seen_headers": ctx["seen_headers"]}
     prompt_tokens = completion_tokens = 0
     for step in probe["steps"]:
@@ -216,6 +217,8 @@ def _execute(probe, provider, target, ctx, budget, record):
             facts[step["id"]] = {"skipped": True, "status": None}
             continue
         body = resolve(step.get("body"), facts, local)
+        if probe.get("model") != "reasoning" and isinstance(body, dict) and "messages" in body:
+            body = {**provider.get("baseline_params", {}), **body}
         result = client.send(step.get("method", "POST"), target.base_url + step["path"], target.headers, body,
                              stream=bool(isinstance(body, dict) and body.get("stream")), timeout=ctx["timeout"])
         result["expect_model_error"] = step.get("expect_model_error", False)

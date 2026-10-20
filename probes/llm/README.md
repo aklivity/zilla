@@ -43,6 +43,11 @@ Outcomes: `compliant`, `adjustment-needed` (with one of `rename-reshape`, `map-s
 Python (standard library only) was chosen for the runner: it ships on every runner image, needs no install step, and
 handles the streaming (SSE) analysis the probes need.
 
+Per-provider settings in `providers.json` that shape the requests: `cap_param` (`max_tokens` or `max_completion_tokens`),
+`baseline_cap` (floor for the output cap of non-capping probes, default 1024, so models that think by default can answer),
+`baseline_params` (extra body fields for every non-reasoning probe, used to turn thinking off on local hosts) and
+`reasoning_cap` (output cap for the reasoning probes).
+
 ## Running locally
 
 ```bash
