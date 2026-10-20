@@ -3719,6 +3719,24 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/gemini.model.colon/client",
+        "${net}/gemini.model.colon/server"})
+    public void shouldEncodeGeminiModelColon() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.model.colon.encoded/client",
+        "${net}/gemini.model.colon.encoded/server"})
+    public void shouldEncodeGeminiModelColonEncoded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/gemini.10k/client",
         "${net}/gemini.10k/server"})
     public void shouldEncodeGemini10K() throws Exception
