@@ -69,6 +69,17 @@ public class LlmProxyIT
     }
 
     @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/openai.proxy.attributes/client",
+        "${app}/openai.proxy.attributes/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayBeginAttributes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.guardrail.yaml")
     @Specification({
         "${app}/openai.proxy.guardrail.accepted/client",
@@ -361,6 +372,17 @@ public class LlmProxyIT
         "${app}/openai.proxy.fallback.refused/server",
         "${app}/openai.proxy.fallback.accepted/server"})
     public void shouldFallbackToNextModelWhenExitRefusesStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.fallback.yaml")
+    @Specification({
+        "${app}/openai.proxy.fallback.attributes/client",
+        "${app}/openai.proxy.fallback.refused/server",
+        "${app}/openai.proxy.fallback.attributes.accepted/server"})
+    public void shouldRelayBeginAttributesToFallbackModel() throws Exception
     {
         k3po.finish();
     }

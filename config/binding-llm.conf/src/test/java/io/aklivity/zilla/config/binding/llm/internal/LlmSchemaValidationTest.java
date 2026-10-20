@@ -1359,4 +1359,110 @@ public class LlmSchemaValidationTest
 
         assertThat(engine, not(nullValue()));
     }
+
+    @Test
+    public void shouldAcceptClientWithDialectOptions()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: test-dialect
+                  server: http://example.com:8080
+                  test-settings:
+                    region: us-east-1
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptClientWithExtensionDialectWithoutOptions()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: test-dialect
+                  server: http://example.com:8080
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectDialectOptionsForOtherDialect()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                  test-settings:
+                    region: us-east-1
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectUnknownOptionForExtensionDialect()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: test-dialect
+                  server: http://example.com:8080
+                  bogus: true
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectInvalidDialectOptions()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: test-dialect
+                  server: http://example.com:8080
+                  test-settings:
+                    bogus: true
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
 }

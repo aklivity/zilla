@@ -1,0 +1,206 @@
+{
+  "area": "Reasoning replay",
+  "area_id": "reasoning-replay",
+  "probes": [
+    {
+      "id": "reasoning-replay",
+      "requires": [
+        "reasoning"
+      ],
+      "model": "reasoning",
+      "steps": [
+        {
+          "id": "a",
+          "method": "POST",
+          "path": "/chat/completions",
+          "body": {
+            "model": {
+              "$model": "model"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": "What is 17 times 24? Think it through."
+              }
+            ],
+            "$cap": 1500
+          }
+        },
+        {
+          "id": "b",
+          "method": "POST",
+          "path": "/chat/completions",
+          "body": {
+            "model": {
+              "$model": "model"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": "What is 17 times 24? Think it through."
+              },
+              {
+                "$ref": "m.message"
+              },
+              {
+                "role": "user",
+                "content": "Now multiply that result by 2."
+              }
+            ],
+            "$cap": 1500
+          },
+          "when": {
+            "path": "m.available",
+            "op": "eq",
+            "value": true
+          }
+        },
+        {
+          "id": "c",
+          "method": "POST",
+          "path": "/chat/completions",
+          "body": {
+            "model": {
+              "$model": "model"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": "What is 17 times 24? Think it through."
+              },
+              {
+                "role": "assistant",
+                "content": {
+                  "$ref": "a.json.choices[0].message.content"
+                }
+              },
+              {
+                "role": "user",
+                "content": "Now multiply that result by 2."
+              }
+            ],
+            "$cap": 1500
+          },
+          "when": {
+            "path": "m.available",
+            "op": "eq",
+            "value": true
+          }
+        }
+      ],
+      "derive": [
+        {
+          "id": "r",
+          "fn": "reasoning_location",
+          "args": {
+            "from": "a"
+          },
+          "after": "a"
+        },
+        {
+          "id": "m",
+          "fn": "replay_message",
+          "args": {
+            "from": "a",
+            "location": "r"
+          },
+          "after": "a"
+        }
+      ],
+      "classify": [
+        {
+          "when": {
+            "path": "a.status",
+            "op": "status_class",
+            "value": 4
+          },
+          "outcome": "error",
+          "observed": "first turn rejected (HTTP {a.status}): {a.json.error.message}"
+        },
+        {
+          "when": {
+            "path": "m.available",
+            "op": "eq",
+            "value": false
+          },
+          "outcome": "not-applicable",
+          "observed": "no separate reasoning field returned to replay (reasoning shape: {r.where})"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "path": "b.status",
+                "op": "eq",
+                "value": 200
+              },
+              {
+                "path": "c.status",
+                "op": "eq",
+                "value": 200
+              }
+            ]
+          },
+          "outcome": "compliant",
+          "observed": "replayed reasoning accepted; omitting it also accepted"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "path": "b.status",
+                "op": "status_class",
+                "value": 4
+              },
+              {
+                "path": "c.status",
+                "op": "eq",
+                "value": 200
+              }
+            ]
+          },
+          "outcome": "adjustment-needed",
+          "observed": "replayed reasoning rejected (HTTP {b.status}): {b.json.error.message}; strip before replay",
+          "adjustment": "map-sections"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "path": "b.status",
+                "op": "eq",
+                "value": 200
+              },
+              {
+                "path": "c.status",
+                "op": "status_class",
+                "value": 4
+              }
+            ]
+          },
+          "outcome": "adjustment-needed",
+          "observed": "follow-up without replayed reasoning rejected (HTTP {c.status}): {c.json.error.message}",
+          "adjustment": "map-sections"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "path": "b.status",
+                "op": "status_class",
+                "value": 4
+              },
+              {
+                "path": "c.status",
+                "op": "status_class",
+                "value": 4
+              }
+            ]
+          },
+          "outcome": "error",
+          "observed": "follow-up turn rejected with and without replay"
+        }
+      ]
+    }
+  ]
+}
