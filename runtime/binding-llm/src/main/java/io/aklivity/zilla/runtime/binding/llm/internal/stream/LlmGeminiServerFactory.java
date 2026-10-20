@@ -18,6 +18,7 @@ import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmGeminiDia
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.net.URLDecoder;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
@@ -89,7 +90,8 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private static final String HEADER_API_KEY = "x-goog-api-key";
     private static final String METHOD_POST = "POST";
     private static final Pattern PATH_OPERATION =
-        Pattern.compile("^/v1(?:beta)?/models/([^/:?]+):(generateContent|streamGenerateContent)(?:\\?(.*))?$");
+        Pattern.compile("^/v1(?:beta)?/models/((?:[^/?%]|%[0-9A-Fa-f]{2})+):" +
+            "(generateContent|streamGenerateContent)(?:\\?(.*))?$");
     private static final String OPERATION_STREAM = "streamGenerateContent";
     private static final String QUERY_ALT_SSE = "alt=sse";
     private static final String STATUS_OK = "200";
@@ -348,7 +350,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                                 route.id,
                                 authResult.authorization(),
                                 contentType,
-                                operation.group(1),
+                                model(operation.group(1)),
                                 operation.group(2),
                                 operation.group(3),
                                 authResult.deauthorize())::onNetMessage;
@@ -406,6 +408,12 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         final Matcher matcher = path != null ? PATH_OPERATION.matcher(path) : null;
 
         return matcher != null && matcher.matches() ? matcher : null;
+    }
+
+    private static String model(
+        String encoded)
+    {
+        return encoded.indexOf('%') != -1 ? URLDecoder.decode(encoded.replace("+", "%2B"), UTF_8) : encoded;
     }
 
     private static String errorBody(

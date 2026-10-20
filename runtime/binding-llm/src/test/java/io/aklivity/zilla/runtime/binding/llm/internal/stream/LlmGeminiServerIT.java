@@ -406,6 +406,26 @@ public class LlmGeminiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/gemini.model.colon/client",
+        "${app}/gemini.model.colon/server"})
+    public void shouldForwardGeminiModelColon() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.model.colon.encoded/client",
+        "${app}/gemini.model.colon.encoded/server"})
+    public void shouldForwardGeminiModelColonEncoded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/gemini.10k/client",
         "${app}/gemini.10k/server"})
     public void shouldForwardGemini10K() throws Exception
