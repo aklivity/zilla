@@ -20,6 +20,8 @@
 - feat\(model-classify\): classify streamed values in windows with model-owned overlap [\#2753](https://github.com/aklivity/zilla/pull/2753) ([jfallows](https://github.com/jfallows))
 - fix\(binding-llm\): decode gemini role after parts [\#2755](https://github.com/aklivity/zilla/pull/2755) ([jfallows](https://github.com/jfallows))
 - fix\(binding-llm\): route gemini model identifiers containing a colon [\#2757](https://github.com/aklivity/zilla/pull/2757) ([jfallows](https://github.com/jfallows))
+- fix\(binding-llm\): lowercase type names in every nested gemini tool schema [\#2758](https://github.com/aklivity/zilla/pull/2758) ([jfallows](https://github.com/jfallows))
+- fix\(binding-llm\): lowercase gemini tool schema types independent of the default locale [\#2759](https://github.com/aklivity/zilla/pull/2759) ([jfallows](https://github.com/jfallows))
 
 ## [2.5.0](https://github.com/aklivity/zilla/tree/2.5.0) (2026-10-19)
 
