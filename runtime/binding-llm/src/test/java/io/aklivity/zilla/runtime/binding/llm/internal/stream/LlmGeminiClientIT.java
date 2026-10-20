@@ -1218,4 +1218,14 @@ public class LlmGeminiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.rejected.model.retired/client",
+        "${net}/gemini.rejected.model.retired/server"})
+    public void shouldForwardGeminiRejectedModelRetired() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -4904,4 +4904,13 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/gemini.rejected.model.retired/client",
+        "${app}/gemini.rejected.model.retired/server"})
+    public void shouldForwardGeminiRejectedModelRetired() throws Exception
+    {
+        k3po.finish();
+    }
 }

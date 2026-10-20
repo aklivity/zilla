@@ -4607,4 +4607,13 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/gemini.rejected.model.retired/client",
+        "${net}/gemini.rejected.model.retired/server"})
+    public void shouldEncodeGeminiRejectedModelRetired() throws Exception
+    {
+        k3po.finish();
+    }
 }
