@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.5.0...HEAD)
+
+**Merged pull requests:**
+
+- feat\(binding-llm\): control section for non-section members, remove dialect frames [\#2748](https://github.com/aklivity/zilla/pull/2748) ([jfallows](https://github.com/jfallows))
+
 ## [2.5.0](https://github.com/aklivity/zilla/tree/2.5.0) (2026-10-19)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/2.4.7...2.5.0)
