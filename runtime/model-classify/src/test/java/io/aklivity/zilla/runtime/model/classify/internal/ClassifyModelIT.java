@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.model.classify.internal;
 
+import static io.aklivity.zilla.runtime.model.classify.internal.ClassifyModelConfigurationTest.CLASSIFY_OVERLAP_NAME;
+import static io.aklivity.zilla.runtime.model.classify.internal.ClassifyModelConfigurationTest.CLASSIFY_WINDOW_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -27,6 +29,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class ClassifyModelIT
 {
@@ -75,6 +78,32 @@ public class ClassifyModelIT
         "${app}/client.sent.text.rejected.by.second.classifier/server"
     })
     public void shouldAbortTextRejectedBySecondClassifier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("reject.yaml")
+    @Configure(name = CLASSIFY_WINDOW_NAME, value = "16")
+    @Configure(name = CLASSIFY_OVERLAP_NAME, value = "4")
+    @Specification({
+        "${net}/streaming.text.accepted/client",
+        "${app}/streaming.text.accepted/server"
+    })
+    public void shouldRelayWindowBeforeFin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("reject.yaml")
+    @Configure(name = CLASSIFY_WINDOW_NAME, value = "32")
+    @Configure(name = CLASSIFY_OVERLAP_NAME, value = "16")
+    @Specification({
+        "${net}/streaming.text.rejected.straddling.windows/client",
+        "${app}/streaming.text.rejected.straddling.windows/server"
+    })
+    public void shouldAbortTextStraddlingWindows() throws Exception
     {
         k3po.finish();
     }

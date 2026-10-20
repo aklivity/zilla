@@ -20,14 +20,20 @@ public final class ClassifyModelConfiguration extends Configuration
 {
     private static final ConfigurationDef CLASSIFY_MODEL_CONFIG;
     private static final int DEFAULT_MAX_LENGTH = 1024 * 1024;
+    private static final int DEFAULT_WINDOW = 1024;
+    private static final int DEFAULT_OVERLAP = 128;
 
     static final IntPropertyDef MAX_LENGTH;
+    static final IntPropertyDef WINDOW;
+    static final IntPropertyDef OVERLAP;
 
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.model.classify");
 
         MAX_LENGTH = config.property("max.length", DEFAULT_MAX_LENGTH);
+        WINDOW = config.property("window", DEFAULT_WINDOW);
+        OVERLAP = config.property("overlap", DEFAULT_OVERLAP);
 
         CLASSIFY_MODEL_CONFIG = config;
     }
@@ -41,5 +47,15 @@ public final class ClassifyModelConfiguration extends Configuration
     public int maxLength()
     {
         return MAX_LENGTH.getAsInt(this);
+    }
+
+    public int window()
+    {
+        return WINDOW.getAsInt(this);
+    }
+
+    public int overlap()
+    {
+        return OVERLAP.getAsInt(this);
     }
 }

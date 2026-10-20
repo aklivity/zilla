@@ -65,4 +65,24 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/streaming.text.accepted/client",
+        "${app}/streaming.text.accepted/server"
+    })
+    public void shouldRelayWindowBeforeFin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/streaming.text.rejected.straddling.windows/client",
+        "${app}/streaming.text.rejected.straddling.windows/server"
+    })
+    public void shouldRejectTextStraddlingWindows() throws Exception
+    {
+        k3po.finish();
+    }
 }

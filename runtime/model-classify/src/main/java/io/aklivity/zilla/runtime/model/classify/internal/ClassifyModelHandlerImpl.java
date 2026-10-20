@@ -33,16 +33,22 @@ final class ClassifyModelHandlerImpl implements ModelHandler
 
     private final List<Detector> detectors;
     private final int maxLength;
+    private final int window;
+    private final int overlap;
 
     ClassifyModelHandlerImpl(
         EngineContext context,
         ClassifyModelConfig config,
-        int maxLength)
+        int maxLength,
+        int window,
+        int overlap)
     {
         this.detectors = config.reject.stream()
             .map(entry -> context.supplyClassifier(entry.id).initDetector(entry.labels))
             .toList();
         this.maxLength = maxLength;
+        this.window = window;
+        this.overlap = overlap;
     }
 
     @Override
@@ -68,7 +74,7 @@ final class ClassifyModelHandlerImpl implements ModelHandler
         ModelTransform transform,
         Runnable resumed)
     {
-        return new ClassifyModelPipeline(detectors, maxLength, resumed);
+        return new ClassifyModelPipeline(detectors, maxLength, window, overlap, resumed);
     }
 
     @Override
@@ -77,6 +83,6 @@ final class ClassifyModelHandlerImpl implements ModelHandler
         ModelTransform transform,
         Runnable resumed)
     {
-        return new ClassifyModelPipeline(detectors, maxLength, resumed);
+        return new ClassifyModelPipeline(detectors, maxLength, window, overlap, resumed);
     }
 }

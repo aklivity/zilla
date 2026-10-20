@@ -38,6 +38,8 @@ import io.aklivity.zilla.runtime.engine.test.internal.classifier.TestClassifierH
 public class ClassifyModelPipelineTest
 {
     private static final int MAX_LENGTH = 64;
+    private static final int WINDOW = 1024;
+    private static final int OVERLAP = 16;
 
     private final Queue<Runnable> tasks = new ArrayDeque<>();
     private final UnsafeBufferEx dst = new UnsafeBufferEx(new byte[128]);
@@ -236,6 +238,121 @@ public class ClassifyModelPipelineTest
             equalTo("a completely unrelated message that outgrows its destination"));
     }
 
+    @Test
+    public void shouldRelayWindowBeforeFinKeepingOverlap()
+    {
+        ClassifyModelPipeline pipeline = newPipeline(detectors(), 16, 8);
+
+        ModelPipelineResult suspended = fragment(pipeline, text("0123456789abcdefghijklmnopqrstuv"), NONE);
+        assertThat(suspended.status(), equalTo(ModelStatus.SUSPENDED));
+        assertThat(suspended.consumed(), equalTo(32));
+        drain();
+
+        ModelPipelineResult relayed = drained(pipeline);
+        assertThat(relayed.status(), equalTo(ModelStatus.UNDERFLOW));
+        assertThat(relayed(relayed), equalTo("0123456789abcdefghijklmn"));
+
+        ModelPipelineResult last = fragment(pipeline, text("end"), FIN);
+        assertThat(last.status(), equalTo(ModelStatus.SUSPENDED));
+        drain();
+
+        ModelPipelineResult rest = drained(pipeline);
+        assertThat(rest.status(), equalTo(ModelStatus.COMPLETE));
+        assertThat(relayed(rest), equalTo("opqrstuvend"));
+    }
+
+    @Test
+    public void shouldRejectLabelStraddlingWindowsWithoutRelayingIt()
+    {
+        ClassifyModelPipeline pipeline = newPipeline(detectors(), 16, 16);
+
+        fragment(pipeline, text("message containing prompt.inj"), NONE);
+        drain();
+
+        ModelPipelineResult relayed = drained(pipeline);
+        assertThat(relayed.status(), equalTo(ModelStatus.UNDERFLOW));
+        assertThat(relayed(relayed), equalTo("message conta"));
+
+        fragment(pipeline, text("ection and the rest"), FIN);
+        drain();
+
+        assertThat(drained(pipeline).status(), equalTo(ModelStatus.REJECTED));
+    }
+
+    @Test
+    public void shouldRejectLabelInWindowAlreadyVerifiedContext()
+    {
+        ClassifyModelPipeline pipeline = newPipeline(detectors(), 16, 16);
+
+        fragment(pipeline, text("clean text more clean text"), NONE);
+        drain();
+        drained(pipeline);
+
+        fragment(pipeline, text(" and prompt.injection"), NONE);
+        drain();
+
+        assertThat(drained(pipeline).status(), equalTo(ModelStatus.REJECTED));
+    }
+
+    @Test
+    public void shouldNotSplitCharacterWhenReleasingWindow()
+    {
+        ClassifyModelPipeline pipeline = newPipeline(detectors(), 4, 1);
+
+        fragment(pipeline, text("aa\u00e9"), NONE);
+        drain();
+
+        ModelPipelineResult relayed = drained(pipeline);
+        assertThat(relayed.status(), equalTo(ModelStatus.UNDERFLOW));
+        assertThat(relayed(relayed), equalTo("aa"));
+
+        fragment(pipeline, text("b"), FIN);
+        drain();
+
+        ModelPipelineResult rest = drained(pipeline);
+        assertThat(rest.status(), equalTo(ModelStatus.COMPLETE));
+        assertThat(relayed(rest), equalTo("\u00e9b"));
+    }
+
+    @Test
+    public void shouldStreamValueLongerThanMaxLength()
+    {
+        ClassifyModelPipeline pipeline = newPipeline(detectors(), 16, 8);
+        final StringBuilder streamed = new StringBuilder();
+
+        for (int fragment = 0; fragment < 20; fragment++)
+        {
+            ModelPipelineResult accepted = fragment(pipeline, text("0123456789abcdef"), NONE);
+            assertThat(accepted.status(), equalTo(ModelStatus.SUSPENDED));
+            drain();
+            streamed.append(relayed(drained(pipeline)));
+        }
+
+        fragment(pipeline, text("."), FIN);
+        drain();
+        ModelPipelineResult rest = drained(pipeline);
+        streamed.append(relayed(rest));
+
+        assertThat(rest.status(), equalTo(ModelStatus.COMPLETE));
+        assertThat(streamed.toString(), equalTo("0123456789abcdef".repeat(20) + "."));
+    }
+
+    @Test
+    public void shouldCompleteEmptyFinAfterStreamedWindows()
+    {
+        ClassifyModelPipeline pipeline = newPipeline(detectors(), 16, 8);
+
+        fragment(pipeline, text("0123456789abcdefghijklmn"), NONE);
+        drain();
+        drained(pipeline);
+
+        ModelPipelineResult last = fragment(pipeline, text(""), FIN);
+
+        assertThat(last.status(), equalTo(ModelStatus.COMPLETE));
+        assertThat(relayed(last), equalTo("ghijklmn"));
+        assertThat(tasks.isEmpty(), equalTo(true));
+    }
+
     private List<Detector> detectors()
     {
         return List.of(
@@ -246,7 +363,29 @@ public class ClassifyModelPipelineTest
     private ClassifyModelPipeline newPipeline(
         List<Detector> detectors)
     {
-        return new ClassifyModelPipeline(detectors, MAX_LENGTH, () -> resumed++);
+        return newPipeline(detectors, WINDOW, OVERLAP);
+    }
+
+    private ClassifyModelPipeline newPipeline(
+        List<Detector> detectors,
+        int window,
+        int overlap)
+    {
+        return new ClassifyModelPipeline(detectors, MAX_LENGTH, window, overlap, () -> resumed++);
+    }
+
+    private ModelPipelineResult fragment(
+        ClassifyModelPipeline pipeline,
+        UnsafeBufferEx src,
+        int flags)
+    {
+        return pipeline.transform(0L, 0L, 0L, flags, src, 0, src.capacity(), dst, 0, dst.capacity());
+    }
+
+    private String relayed(
+        ModelPipelineResult result)
+    {
+        return dst.getStringWithoutLengthUtf8(0, result.produced());
     }
 
     private ModelPipelineResult finish(
