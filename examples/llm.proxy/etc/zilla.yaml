@@ -76,6 +76,8 @@ bindings:
     type: http
     kind: server
     exit: north_llm_server_openai
+  # dialect: openai names the vendor, so this server serves both of its APIs,
+  # told apart by path: POST /v1/chat/completions and POST /v1/responses.
   north_llm_server_openai:
     type: llm
     kind: server
@@ -113,26 +115,90 @@ bindings:
         - llm.*
     exit: north_llm_proxy
 
-  # Shared by both frontends: routes purely on LlmBeginEx.dialect/model, never on
-  # request content. The model names the backend, so a request reaches the
-  # provider that serves its model whichever dialect the client speaks: a
+  north_tcp_server_responses:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port: 7163
+    exit: north_http_server_responses
+  north_http_server_responses:
+    type: http
+    kind: server
+    exit: north_llm_server_responses
+  # Pins the Responses API: only POST /v1/responses is served here.
+  north_llm_server_responses:
+    type: llm
+    kind: server
+    options:
+      dialect: openai/responses
+      authorization:
+        api_key:
+          credentials: "Bearer {credentials}"
+    telemetry:
+      metrics:
+        - llm.*
+    exit: north_llm_proxy
+
+  # Shared by all three frontends: routes purely on LlmBeginEx.dialect/model,
+  # never on request content. The model names the backend, so a request reaches
+  # the provider that serves its model whichever dialect the client speaks: a
   # claude-* model reaches Anthropic and a gpt-* model reaches OpenAI. A client
-  # speaking the other dialect is translated across dialects on the way (an
-  # OpenAI SDK client asking for a Claude model, an Anthropic SDK client asking
-  # for a GPT model), and a client already speaking the backend's dialect is
-  # not. Two specific models are picked off first and sent, same-dialect, to a
-  # second deployment instead -- the intra-dialect failover/multi-backend
-  # routing this binding kind exists for. Any other model is served by the
-  # provider of the client's own dialect, with no translation. The claude-*
-  # route lists a fallback model: when its exit resets the stream before
-  # sending a window, such as when the upstream server cannot be reached, the
-  # request is retried with that model, routed like any other request for it.
+  # speaking another dialect is translated across dialects on the way (an OpenAI
+  # SDK client asking for a Claude model, an Anthropic SDK client asking for a
+  # GPT model), and a client already speaking the backend's dialect is not.
+  #
+  # OpenAI has two dialects: openai (Chat Completions, POST /v1/chat/completions)
+  # and openai/responses (Responses, POST /v1/responses). A `dialect: openai`
+  # condition names the vendor and matches both; `dialect: openai/responses`
+  # pins the Responses API alone. gpt-4o goes first to a second deployment that
+  # speaks Chat Completions, so a Responses request for it is translated there.
+  # A gpt-5* model is served by the Responses backend: a Responses request
+  # reaches it same-dialect, a Chat Completions or Anthropic request is
+  # translated. Any other gpt-* model is served by the Chat Completions
+  # backend, so a Responses request for it is translated.
+  #
+  # Two specific models are picked off first and sent, same-dialect, to a second
+  # deployment instead -- the intra-dialect failover/multi-backend routing this
+  # binding kind exists for. Any other model is served by the provider of the
+  # client's own dialect, with no translation.
+  #
+  # The claude-* route lists a fallback model: when its exit resets the stream
+  # before sending a window, such as when the upstream server cannot be reached,
+  # the request is retried with that model, routed like any other request for it.
   north_llm_proxy:
     type: llm
     kind: proxy
     options:
       guardrails:
         gpt-4o:
+          request:
+            - section: user-text
+              value:
+                model: string
+                maxLength: 2000
+            - section: user-text
+              value:
+                model: classify
+                reject:
+                  moderator0:
+                    - jailbreak
+                  secrets0:
+                    - secret.aws_key
+                    - secret.github_token
+                  presidio0:
+                    - email
+                    - person
+          response:
+            - section: assistant-text
+              value:
+                model: classify
+                reject:
+                  secrets0:
+                    - secret.private_key
+                  presidio0:
+                    - email
+        gpt-5:
           request:
             - section: user-text
               value:
@@ -183,8 +249,14 @@ bindings:
         with:
           fallback: [ claude-3-5-haiku-20241022 ]
       - when:
+          - model: [ "gpt-5*" ]
+        exit: south_llm_client_openai_responses
+      - when:
           - model: [ "gpt-*" ]
         exit: south_llm_client_openai
+      - when:
+          - dialect: openai/responses
+        exit: south_llm_client_openai_responses
       - when:
           - dialect: openai
         exit: south_llm_client_openai
@@ -261,6 +333,43 @@ bindings:
         - api.openai.com
     exit: south_tcp_client_openai
   south_tcp_client_openai:
+    type: tcp
+    kind: client
+    options:
+      host: api.openai.com
+      port: 443
+
+  # Responses API client (dialect openai/responses) on the same OpenAI host:
+  # north_llm_proxy routes gpt-5* models here, and any other model a Responses
+  # request names, so a Responses request is same-dialect on this leg and a Chat
+  # Completions request for a gpt-5* model is translated to POST /v1/responses.
+  south_llm_client_openai_responses:
+    type: llm
+    kind: client
+    options:
+      dialect: openai/responses
+      server: https://api.openai.com:443
+      authorization:
+        api_key:
+          credentials: "Bearer {credentials}"
+    telemetry:
+      metrics:
+        - llm.*
+    exit: south_http_client_openai_responses
+  south_http_client_openai_responses:
+    type: http
+    kind: client
+    exit: south_tls_client_openai_responses
+  south_tls_client_openai_responses:
+    type: tls
+    kind: client
+    vault: south_clients
+    options:
+      trustcacerts: true
+      sni:
+        - api.openai.com
+    exit: south_tcp_client_openai_responses
+  south_tcp_client_openai_responses:
     type: tcp
     kind: client
     options:

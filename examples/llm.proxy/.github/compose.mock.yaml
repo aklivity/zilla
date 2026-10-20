@@ -4,7 +4,8 @@
 # APIs), so this example is verifiable without real API keys or network
 # access to either provider.
 services:
-  # Mock OpenAI chat completions API backing south_llm_client_openai.
+  # Mock OpenAI API backing south_llm_client_openai (chat completions) and
+  # south_llm_client_openai_responses (responses).
   mock-openai:
     image: node:20-alpine
     hostname: mock-openai
@@ -44,7 +45,8 @@ services:
 
   # Second openai-dialect deployment backing south_llm_client_openai_secondary;
   # north_llm_proxy routes gpt-4o here instead of translating to mock-anthropic
-  # -- no dialect translation happens on this leg at all.
+  # -- no dialect translation happens on this leg for a chat completions request,
+  # while a responses request is translated to chat completions.
   mock-openai-secondary:
     image: node:20-alpine
     hostname: mock-openai-secondary
