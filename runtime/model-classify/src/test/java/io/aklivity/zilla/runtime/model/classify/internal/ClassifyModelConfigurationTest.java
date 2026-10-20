@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.model.classify.internal;
 import static io.aklivity.zilla.runtime.model.classify.internal.ClassifyModelConfiguration.MAX_LENGTH;
 import static io.aklivity.zilla.runtime.model.classify.internal.ClassifyModelConfiguration.OVERLAP;
 import static io.aklivity.zilla.runtime.model.classify.internal.ClassifyModelConfiguration.WINDOW;
+import static io.aklivity.zilla.runtime.model.classify.internal.ClassifyModelConfiguration.WINDOW_INITIAL;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
@@ -27,6 +28,7 @@ import io.aklivity.zilla.runtime.engine.Configuration;
 public class ClassifyModelConfigurationTest
 {
     public static final String CLASSIFY_WINDOW_NAME = "zilla.model.classify.window";
+    public static final String CLASSIFY_WINDOW_INITIAL_NAME = "zilla.model.classify.window.initial";
     public static final String CLASSIFY_OVERLAP_NAME = "zilla.model.classify.overlap";
 
     @Test
@@ -34,6 +36,7 @@ public class ClassifyModelConfigurationTest
     {
         assertThat(MAX_LENGTH.name(), equalTo("zilla.model.classify.max.length"));
         assertThat(WINDOW.name(), equalTo(CLASSIFY_WINDOW_NAME));
+        assertThat(WINDOW_INITIAL.name(), equalTo(CLASSIFY_WINDOW_INITIAL_NAME));
         assertThat(OVERLAP.name(), equalTo(CLASSIFY_OVERLAP_NAME));
     }
 
@@ -49,6 +52,7 @@ public class ClassifyModelConfigurationTest
         ClassifyModelConfiguration config = new ClassifyModelConfiguration(new Configuration());
 
         assertThat(config.window(), equalTo(1024));
+        assertThat(config.windowInitial(), equalTo(256));
         assertThat(config.overlap(), equalTo(128));
     }
 }

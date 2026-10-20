@@ -88,6 +88,16 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/streaming.text.ramped.accepted/client",
+        "${app}/streaming.text.ramped.accepted/server"
+    })
+    public void shouldRelayInitialWindowBeforeFin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/streaming.text.rejected.straddling.windows/client",
         "${app}/streaming.text.rejected.straddling.windows/server"
     })

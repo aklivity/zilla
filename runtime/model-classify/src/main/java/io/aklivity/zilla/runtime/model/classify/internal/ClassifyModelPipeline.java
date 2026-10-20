@@ -27,7 +27,8 @@ import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 
 // Presents a value to the classifiers in windows. The text that has arrived since the last window is classified once
-// it fills a window, or when the value ends, together with the trailing overlap of what was classified before, so a
+// it fills a window, which starts at the initial window and doubles with each window that passes up to the full
+// window, or when the value ends, together with the trailing overlap of what was classified before, so a
 // pattern straddling two windows is seen whole. A window that passes is relayed, apart from its trailing overlap, which
 // is held until the next window passes or the value ends. A window that is rejected rejects the value, so the text
 // that was relayed before it is the only part of the value the caller has seen.
@@ -37,6 +38,7 @@ final class ClassifyModelPipeline implements ModelPipeline
 
     private final List<Detector> detectors;
     private final int maxLength;
+    private final int initialWindow;
     private final int window;
     private final int overlap;
     private final Runnable resumed;
@@ -51,6 +53,7 @@ final class ClassifyModelPipeline implements ModelPipeline
     private long verified;
     private long detectEnd;
     private long finLength;
+    private int nextWindow;
     private int detecting;
     private boolean awaiting;
     private ModelStatus resolved;
@@ -59,12 +62,15 @@ final class ClassifyModelPipeline implements ModelPipeline
     ClassifyModelPipeline(
         List<Detector> detectors,
         int maxLength,
+        int initialWindow,
         int window,
         int overlap,
         Runnable resumed)
     {
         this.detectors = detectors;
         this.maxLength = maxLength;
+        this.initialWindow = initialWindow;
+        this.nextWindow = initialWindow;
         this.window = window;
         this.overlap = overlap;
         this.resumed = resumed;
@@ -136,7 +142,7 @@ final class ClassifyModelPipeline implements ModelPipeline
                     finLength = length;
                 }
 
-                if (length - verified > 0 && (finLength != NO_FIN || length - verified >= window))
+                if (length - verified > 0 && (finLength != NO_FIN || length - verified >= nextWindow))
                 {
                     detect(traceId, bindingId);
                     status = ModelStatus.SUSPENDED;
@@ -178,6 +184,7 @@ final class ClassifyModelPipeline implements ModelPipeline
         verified = 0L;
         detectEnd = 0L;
         finLength = NO_FIN;
+        nextWindow = initialWindow;
         detecting = 0;
         awaiting = false;
         resolved = null;
@@ -272,6 +279,7 @@ final class ClassifyModelPipeline implements ModelPipeline
             else if (--detecting == 0)
             {
                 verified = detectEnd;
+                nextWindow = (int) Math.min(2L * nextWindow, window);
                 release();
             }
 

@@ -353,6 +353,64 @@ public class ClassifyModelPipelineTest
         assertThat(tasks.isEmpty(), equalTo(true));
     }
 
+    @Test
+    public void shouldClassifyMoreThanWindowInOneCall()
+    {
+        ClassifyModelPipeline pipeline = newPipeline(detectors(), 16, 4);
+
+        ModelPipelineResult suspended = fragment(pipeline, text("0123456789abcdefghijklmnopqrstuvwxyz0123"), NONE);
+        assertThat(suspended.status(), equalTo(ModelStatus.SUSPENDED));
+        assertThat(tasks.size(), equalTo(2));
+        drain();
+
+        ModelPipelineResult relayed = drained(pipeline);
+        assertThat(relayed.status(), equalTo(ModelStatus.UNDERFLOW));
+        assertThat(relayed(relayed), equalTo("0123456789abcdefghijklmnopqrstuvwxyz"));
+    }
+
+    @Test
+    public void shouldRampWindowFromInitialToFull()
+    {
+        ClassifyModelPipeline pipeline = newPipeline(detectors(), 8, 16, 4);
+
+        ModelPipelineResult first = fragment(pipeline, text("01234567"), NONE);
+        assertThat(first.status(), equalTo(ModelStatus.SUSPENDED));
+        drain();
+
+        ModelPipelineResult firstRelayed = drained(pipeline);
+        assertThat(relayed(firstRelayed), equalTo("0123"));
+
+        ModelPipelineResult second = fragment(pipeline, text("89abcdef"), NONE);
+        assertThat(second.status(), equalTo(ModelStatus.UNDERFLOW));
+        assertThat(second.produced(), equalTo(0));
+        assertThat(tasks.isEmpty(), equalTo(true));
+
+        ModelPipelineResult third = fragment(pipeline, text("ghijklmn"), NONE);
+        assertThat(third.status(), equalTo(ModelStatus.SUSPENDED));
+        drain();
+
+        ModelPipelineResult thirdRelayed = drained(pipeline);
+        assertThat(relayed(thirdRelayed), equalTo("456789abcdefghij"));
+
+        ModelPipelineResult fourth = fragment(pipeline, text("opqrstuv"), NONE);
+        assertThat(fourth.status(), equalTo(ModelStatus.UNDERFLOW));
+        assertThat(tasks.isEmpty(), equalTo(true));
+    }
+
+    @Test
+    public void shouldRestoreInitialWindowOnReset()
+    {
+        ClassifyModelPipeline pipeline = newPipeline(detectors(), 8, 16, 4);
+
+        fragment(pipeline, text("01234567"), NONE);
+        drain();
+        drained(pipeline);
+        pipeline.reset();
+
+        ModelPipelineResult restarted = fragment(pipeline, text("01234567"), NONE);
+        assertThat(restarted.status(), equalTo(ModelStatus.SUSPENDED));
+    }
+
     private List<Detector> detectors()
     {
         return List.of(
@@ -371,7 +429,16 @@ public class ClassifyModelPipelineTest
         int window,
         int overlap)
     {
-        return new ClassifyModelPipeline(detectors, MAX_LENGTH, window, overlap, () -> resumed++);
+        return newPipeline(detectors, window, window, overlap);
+    }
+
+    private ClassifyModelPipeline newPipeline(
+        List<Detector> detectors,
+        int initialWindow,
+        int window,
+        int overlap)
+    {
+        return new ClassifyModelPipeline(detectors, MAX_LENGTH, initialWindow, window, overlap, () -> resumed++);
     }
 
     private ModelPipelineResult fragment(

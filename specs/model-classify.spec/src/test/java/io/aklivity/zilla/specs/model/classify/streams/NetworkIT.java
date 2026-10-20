@@ -88,6 +88,16 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/streaming.text.ramped.accepted/client",
+        "${net}/streaming.text.ramped.accepted/server"
+    })
+    public void shouldRelayInitialWindowBeforeFin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/streaming.text.rejected.straddling.windows/client",
         "${net}/streaming.text.rejected.straddling.windows/server"
     })

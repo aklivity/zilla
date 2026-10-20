@@ -38,6 +38,7 @@ final class ClassifyModelHandlerImpl implements ModelHandler
 
     private final List<Detector> detectors;
     private final int maxLength;
+    private final int windowInitial;
     private final int window;
     private final int overlap;
 
@@ -45,6 +46,7 @@ final class ClassifyModelHandlerImpl implements ModelHandler
         EngineContext context,
         ClassifyModelConfig config,
         int maxLength,
+        int windowInitial,
         int window,
         int overlap)
     {
@@ -52,6 +54,7 @@ final class ClassifyModelHandlerImpl implements ModelHandler
             .map(entry -> context.supplyClassifier(entry.id).initDetector(entry.labels))
             .toList();
         this.maxLength = maxLength;
+        this.windowInitial = windowInitial;
         this.window = window;
         this.overlap = overlap;
     }
@@ -97,8 +100,10 @@ final class ClassifyModelHandlerImpl implements ModelHandler
     {
         final boolean streaming = responding(envelope);
 
-        return new ClassifyModelPipeline(detectors, maxLength,
-            streaming ? window : (int) Math.min(maxLength + 1L, Integer.MAX_VALUE), streaming ? overlap : 0, resumed);
+        final int whole = (int) Math.min(maxLength + 1L, Integer.MAX_VALUE);
+
+        return new ClassifyModelPipeline(detectors, maxLength, streaming ? Math.min(windowInitial, window) : whole,
+            streaming ? window : whole, streaming ? overlap : 0, resumed);
     }
 
     private static boolean responding(

@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.model.classify.internal;
 
 import static io.aklivity.zilla.runtime.model.classify.internal.ClassifyModelConfigurationTest.CLASSIFY_OVERLAP_NAME;
+import static io.aklivity.zilla.runtime.model.classify.internal.ClassifyModelConfigurationTest.CLASSIFY_WINDOW_INITIAL_NAME;
 import static io.aklivity.zilla.runtime.model.classify.internal.ClassifyModelConfigurationTest.CLASSIFY_WINDOW_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -117,6 +118,20 @@ public class ClassifyModelIT
         "${app}/streaming.text.accepted/server"
     })
     public void shouldRelayWindowBeforeFin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("reject.response.yaml")
+    @Configure(name = CLASSIFY_WINDOW_INITIAL_NAME, value = "8")
+    @Configure(name = CLASSIFY_WINDOW_NAME, value = "16")
+    @Configure(name = CLASSIFY_OVERLAP_NAME, value = "4")
+    @Specification({
+        "${net}/streaming.text.ramped.accepted/client",
+        "${app}/streaming.text.ramped.accepted/server"
+    })
+    public void shouldRelayInitialWindowBeforeFin() throws Exception
     {
         k3po.finish();
     }
