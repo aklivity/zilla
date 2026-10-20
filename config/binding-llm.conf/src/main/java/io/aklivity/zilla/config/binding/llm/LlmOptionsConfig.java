@@ -15,6 +15,7 @@
 package io.aklivity.zilla.config.binding.llm;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.Config;
@@ -43,9 +44,10 @@ public final class LlmOptionsConfig extends OptionsConfig
         LlmAuthorizationConfig authorization,
         LlmServerConfig server,
         List<LlmGuardrailConfig> guardrails,
+        Map<String, Config> extensions,
         List<Config.Reference> refs)
     {
-        super(null, refs);
+        super(extensions, refs);
         this.dialect = dialect;
         this.authorization = authorization;
         this.server = server;

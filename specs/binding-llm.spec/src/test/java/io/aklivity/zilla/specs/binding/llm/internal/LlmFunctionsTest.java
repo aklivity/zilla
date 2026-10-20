@@ -1614,6 +1614,178 @@ public class LlmFunctionsTest
     }
 
     @Test
+    public void shouldGenerateBeginExWithoutAttributes()
+    {
+        byte[] bytes = LlmFunctions.beginEx()
+            .typeId(0)
+            .dialect("openai")
+            .build();
+
+        LlmBeginExFW beginEx = new LlmBeginExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+
+        assertEquals(Map.of(), attributesOf(beginEx));
+    }
+
+    @Test
+    public void shouldGenerateBeginExWithAttributes()
+    {
+        byte[] bytes = LlmFunctions.beginEx()
+            .typeId(0)
+            .dialect("openai")
+            .model("gpt-x")
+            .attribute("test:flavor", "mild")
+            .attribute("test:level", "2")
+            .build();
+
+        LlmBeginExFW beginEx = new LlmBeginExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+
+        assertEquals("openai", beginEx.dialect().asString());
+        assertEquals("gpt-x", beginEx.model().asString());
+        assertEquals(Map.of("test:flavor", "mild", "test:level", "2"), attributesOf(beginEx));
+    }
+
+    @Test
+    public void shouldGenerateBeginExWithAttributesBeforeExtension()
+    {
+        byte[] bytes = LlmFunctions.beginEx()
+            .typeId(0)
+            .dialect("anthropic")
+            .attribute("test:flavor", "mild")
+            .extension("ext")
+            .build();
+
+        LlmBeginExFW beginEx = new LlmBeginExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+
+        assertEquals(Map.of("test:flavor", "mild"), attributesOf(beginEx));
+        assertEquals(3, beginEx.extension().sizeof());
+    }
+
+    @Test
+    public void shouldMatchBeginExAttributes() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchBeginEx()
+            .typeId(0)
+            .dialect("openai")
+            .attribute("test:flavor", "mild")
+            .attribute("test:level", "2")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.beginEx()
+            .typeId(0)
+            .dialect("openai")
+            .attribute("test:flavor", "mild")
+            .attribute("test:level", "2")
+            .build());
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchBeginExAttributesInAnyOrder() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchBeginEx()
+            .typeId(0)
+            .attribute("test:level", "2")
+            .attribute("test:flavor", "mild")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.beginEx()
+            .typeId(0)
+            .dialect("openai")
+            .attribute("test:flavor", "mild")
+            .attribute("test:level", "2")
+            .build());
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchBeginExWithoutConstrainingAttributes() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchBeginEx()
+            .typeId(0)
+            .dialect("openai")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.beginEx()
+            .typeId(0)
+            .dialect("openai")
+            .attribute("test:flavor", "mild")
+            .build());
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchBeginExAttributesWithExtraAttribute() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchBeginEx()
+            .typeId(0)
+            .attribute("test:flavor", "mild")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.beginEx()
+            .typeId(0)
+            .dialect("openai")
+            .attribute("test:flavor", "mild")
+            .attribute("test:level", "2")
+            .build());
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchBeginExAttributesWithMissingAttribute() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchBeginEx()
+            .typeId(0)
+            .attribute("test:flavor", "mild")
+            .attribute("test:level", "2")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.beginEx()
+            .typeId(0)
+            .dialect("openai")
+            .attribute("test:flavor", "mild")
+            .build());
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchBeginExAttributesWithoutAttributes() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchBeginEx()
+            .typeId(0)
+            .attribute("test:flavor", "mild")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.beginEx()
+            .typeId(0)
+            .dialect("openai")
+            .build());
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchBeginExAttributesMismatch() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchBeginEx()
+            .typeId(0)
+            .attribute("test:flavor", "mild")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.beginEx()
+            .typeId(0)
+            .dialect("openai")
+            .attribute("test:flavor", "sharp")
+            .build());
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
     public void shouldGenerateAndMatchEndExFinishReason() throws Exception
     {
         byte[] bytes = LlmFunctions.endEx()
@@ -1679,6 +1851,14 @@ public class LlmFunctionsTest
             .build();
 
         assertNotNull(matcher.match(ByteBuffer.wrap(beginEx)));
+    }
+
+    private static Map<String, String> attributesOf(
+        LlmBeginExFW beginEx)
+    {
+        final Map<String, String> attributes = new HashMap<>();
+        beginEx.attributes().forEach(a -> attributes.put(a.name().asString(), a.value().asString()));
+        return attributes;
     }
 
     private static Map<String, String> attributesOf(

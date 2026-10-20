@@ -167,6 +167,14 @@ public final class LlmFunctions
             return this;
         }
 
+        public LlmBeginExBuilder attribute(
+            String name,
+            String value)
+        {
+            beginExRW.attributesItem(a -> a.name(name).value(value));
+            return this;
+        }
+
         public LlmBeginExBuilder extension(
             String extension)
         {
@@ -195,6 +203,7 @@ public final class LlmFunctions
         private String contentType;
         private String model;
         private String id;
+        private Map<String, String> attributes;
         private String extension;
         private boolean extensionNull;
 
@@ -233,6 +242,19 @@ public final class LlmFunctions
             return this;
         }
 
+        public LlmBeginExMatcherBuilder attribute(
+            String name,
+            String value)
+        {
+            if (attributes == null)
+            {
+                attributes = new LinkedHashMap<>();
+            }
+
+            attributes.put(name, value);
+            return this;
+        }
+
         public LlmBeginExMatcherBuilder extension(
             String extension)
         {
@@ -268,6 +290,7 @@ public final class LlmFunctions
                 matchContentType(beginEx) &&
                 matchModel(beginEx) &&
                 matchId(beginEx) &&
+                matchAttributes(beginEx) &&
                 matchExtension(beginEx))
             {
                 byteBuf.position(byteBuf.position() + beginEx.sizeof());
@@ -305,6 +328,15 @@ public final class LlmFunctions
             LlmBeginExFW beginEx)
         {
             return id == null || beginEx.id() != null && id.equals(beginEx.id().asString());
+        }
+
+        private boolean matchAttributes(
+            LlmBeginExFW beginEx)
+        {
+            final Map<String, String> actual = new LinkedHashMap<>();
+            beginEx.attributes().forEach(a -> actual.put(a.name().asString(), a.value().asString()));
+
+            return attributes == null || attributes.equals(actual);
         }
 
         private boolean matchExtension(

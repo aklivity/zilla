@@ -606,6 +606,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
 
             final OctetsFW extension = original.extension();
             final LlmBeginExFW llmBeginEx = builder
+                .attributes(original.attributes())
                 .extension(extension.buffer(), extension.offset(), extension.sizeof())
                 .build();
 
