@@ -1,0 +1,217 @@
+{
+  "area": "Structured output",
+  "area_id": "structured-output",
+  "probes": [
+    {
+      "id": "json-schema-strict",
+      "requires": [],
+      "steps": [
+        {
+          "id": "a",
+          "method": "POST",
+          "path": "/chat/completions",
+          "body": {
+            "model": {
+              "$model": "model"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": "Return a JSON object with keys \"name\" (string) and \"age\" (integer) for a person named Ada aged 36."
+              }
+            ],
+            "$cap": 100,
+            "response_format": {
+              "type": "json_schema",
+              "json_schema": {
+                "name": "person",
+                "strict": true,
+                "schema": {
+                  "$const": "person_schema"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "derive": [
+        {
+          "id": "j",
+          "fn": "json_content",
+          "args": {
+            "from": "a"
+          }
+        },
+        {
+          "id": "v",
+          "fn": "schema_check",
+          "args": {
+            "from": "j",
+            "schema": "person_schema"
+          }
+        }
+      ],
+      "classify": [
+        {
+          "when": {
+            "all": [
+              {
+                "path": "a.status",
+                "op": "eq",
+                "value": 200
+              },
+              {
+                "path": "v.valid",
+                "op": "eq",
+                "value": true
+              },
+              {
+                "path": "j.fenced",
+                "op": "eq",
+                "value": false
+              }
+            ]
+          },
+          "outcome": "compliant",
+          "observed": "strict json_schema output validates"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "path": "a.status",
+                "op": "eq",
+                "value": 200
+              },
+              {
+                "path": "v.valid",
+                "op": "eq",
+                "value": true
+              }
+            ]
+          },
+          "outcome": "adjustment-needed",
+          "observed": "valid JSON but wrapped in a code fence",
+          "adjustment": "rename-reshape"
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "eq",
+            "value": 200
+          },
+          "outcome": "unsupported",
+          "observed": "json_schema strict accepted; output does not validate: {v.errors}",
+          "silent": true
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "status_class",
+            "value": 4
+          },
+          "outcome": "unsupported",
+          "observed": "json_schema rejected (HTTP {a.status}): {a.json.error.message}"
+        }
+      ]
+    },
+    {
+      "id": "json-object",
+      "requires": [],
+      "steps": [
+        {
+          "id": "a",
+          "method": "POST",
+          "path": "/chat/completions",
+          "body": {
+            "model": {
+              "$model": "model"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": "Return a JSON object with keys \"name\" (string) and \"age\" (integer) for a person named Ada aged 36."
+              }
+            ],
+            "$cap": 100,
+            "response_format": {
+              "type": "json_object"
+            }
+          }
+        }
+      ],
+      "derive": [
+        {
+          "id": "j",
+          "fn": "json_content",
+          "args": {
+            "from": "a"
+          }
+        }
+      ],
+      "classify": [
+        {
+          "when": {
+            "all": [
+              {
+                "path": "a.status",
+                "op": "eq",
+                "value": 200
+              },
+              {
+                "path": "j.is_object",
+                "op": "eq",
+                "value": true
+              },
+              {
+                "path": "j.fenced",
+                "op": "eq",
+                "value": false
+              }
+            ]
+          },
+          "outcome": "compliant",
+          "observed": "json_object output is a JSON object"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "path": "a.status",
+                "op": "eq",
+                "value": 200
+              },
+              {
+                "path": "j.is_object",
+                "op": "eq",
+                "value": true
+              }
+            ]
+          },
+          "outcome": "adjustment-needed",
+          "observed": "JSON object wrapped in a code fence",
+          "adjustment": "rename-reshape"
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "eq",
+            "value": 200
+          },
+          "outcome": "unsupported",
+          "observed": "json_object accepted; output is not a JSON object",
+          "silent": true
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "status_class",
+            "value": 4
+          },
+          "outcome": "unsupported",
+          "observed": "json_object rejected (HTTP {a.status}): {a.json.error.message}"
+        }
+      ]
+    }
+  ]
+}
