@@ -143,6 +143,11 @@
 #      including llm.interactions: the same-dialect hop records the total token
 #      count the Responses API always reports, a hop to Anthropic leaves it
 #      unrecorded
+#  36. Gemini and Responses reach each other: a Gemini SDK client asking for
+#      gpt-5 is served by the Responses backend and parses a Gemini-shaped
+#      response, and a Responses SDK client asking for a gemini-* model is
+#      served by mock-gemini and parses a Response object, text and tool calls,
+#      streamed or not
 
 import json
 import os
@@ -1356,6 +1361,44 @@ def check_anthropic_to_responses_tools_streaming():
     assert_anthropic_streamed_tool_call(anthropic_message("gpt-5", streaming=True, tools=ANTHROPIC_TOOLS))
 
 
+# WHEN: a Gemini SDK client asks for gpt-5, which only the Responses backend serves
+# THEN: the SDK parses a Gemini-shaped response translated from the Response,
+#       text and tool calls
+def check_gemini_to_responses_text():
+    assert_gemini_text(gemini_generate("gpt-5", streaming=False))
+
+
+def check_gemini_to_responses_text_streaming():
+    assert_gemini_text(gemini_generate("gpt-5", streaming=True))
+
+
+def check_gemini_to_responses_tools():
+    assert_gemini_tool_call(gemini_generate("gpt-5", streaming=False, tools=GEMINI_TOOLS))
+
+
+def check_gemini_to_responses_tools_streaming():
+    assert_gemini_tool_call(gemini_generate("gpt-5", streaming=True, tools=GEMINI_TOOLS))
+
+
+# WHEN: a Responses SDK client asks for a gemini-* model
+# THEN: the SDK parses a Response object translated from the native Gemini
+#       response of mock-gemini, text and function calls
+def check_responses_to_gemini_text():
+    assert_response_text(openai_response("gemini-2.5-flash", streaming=False), text=HELLO, usage=False)
+
+
+def check_responses_to_gemini_text_streaming():
+    assert_streamed_text(openai_response("gemini-2.5-flash", streaming=True), text=HELLO)
+
+
+def check_responses_to_gemini_function_call():
+    assert_response_function_call(openai_response("gemini-2.5-flash", streaming=False, tools=RESPONSES_TOOLS))
+
+
+def check_responses_to_gemini_function_call_streaming():
+    assert_streamed_function_call(openai_response("gemini-2.5-flash", streaming=True, tools=RESPONSES_TOOLS))
+
+
 # WHEN: a Responses SDK client asks for each model of the routing table
 # THEN: the mock the route names received the request on the endpoint of the
 #       dialect the route's client speaks, carrying the caller's own token
@@ -1616,6 +1659,14 @@ run_check("chat_to_responses_controls_dropped", check_chat_to_responses_controls
 run_check("anthropic_to_responses_text", check_anthropic_to_responses_text)
 run_check("anthropic_to_responses_text_streaming", check_anthropic_to_responses_text_streaming)
 run_check("anthropic_to_responses_tools_streaming", check_anthropic_to_responses_tools_streaming)
+run_check("gemini_to_responses_text", check_gemini_to_responses_text)
+run_check("gemini_to_responses_text_streaming", check_gemini_to_responses_text_streaming)
+run_check("gemini_to_responses_tools", check_gemini_to_responses_tools)
+run_check("gemini_to_responses_tools_streaming", check_gemini_to_responses_tools_streaming)
+run_check("responses_to_gemini_text", check_responses_to_gemini_text)
+run_check("responses_to_gemini_text_streaming", check_responses_to_gemini_text_streaming)
+run_check("responses_to_gemini_function_call", check_responses_to_gemini_function_call)
+run_check("responses_to_gemini_function_call_streaming", check_responses_to_gemini_function_call_streaming)
 run_check("responses_route_gpt_5", partial(check_responses_route, "gpt-5", "mock-openai", "/v1/responses"))
 run_check("responses_route_other_model", partial(check_responses_route, "llama-3", "mock-openai", "/v1/responses"))
 run_check("responses_route_gpt_4", partial(check_responses_route, "gpt-4", "mock-openai", "/v1/chat/completions"))

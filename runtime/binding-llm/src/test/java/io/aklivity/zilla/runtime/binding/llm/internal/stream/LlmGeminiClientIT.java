@@ -433,7 +433,7 @@ public class LlmGeminiClientIT
     @Configuration("client.gemini.yaml")
     @ScriptProperty({"source \"gemini\"", "target \"gemini\"", "reason \"gemini:MALFORMED_FUNCTION_CALL\""})
     @Specification({
-        "${app}/transform.response.finish.reason/client",
+        "${app}/gemini.transform.response.finish.reason/client",
         "${net}/gemini.transform.response.finish.reason.unknown/server"})
     public void shouldPrefixUnknownFinishReasonAsGemini() throws Exception
     {
