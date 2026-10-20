@@ -117,6 +117,10 @@ def main(argv=None):
     for record in records:
         counts[record["outcome"]] = counts.get(record["outcome"], 0) + 1
     print(f"{meta['provider']}: skipped={meta['skipped']} spent=${meta['spent_usd']} outcomes={counts}")
+    for record in records:
+        if record["outcome"] != "compliant":
+            print(f"  {record['via']:6} {record['probe']}: {record['outcome']}"
+                  f"{' (silent)' if record['silent'] else ''} - {record['observed'][:240]}")
     return 0
 
 

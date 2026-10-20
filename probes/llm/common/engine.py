@@ -27,7 +27,7 @@ from .expr import evaluate, render
 OUTCOMES = ("compliant", "adjustment-needed", "unsupported", "not-applicable", "error")
 ADJUSTMENTS = ("rename-reshape", "map-sections", "normalise-telemetry", "declare-capability", "handle-unsupported")
 FALLBACK_PRICE = {"input": 5.0, "output": 15.0}
-MODEL_UNKNOWN = ("not found", "does not exist", "unknown model", "invalid model", "no such model", "not supported model")
+MODEL_UNKNOWN = ("not found", "not exist", "unknown model", "invalid model", "no such model", "not supported model")
 EXCERPT = 1500
 BASELINE_CAP = 1024
 

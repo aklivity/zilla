@@ -70,10 +70,12 @@ class ChartTests(unittest.TestCase):
     def test_sections(self):
         text, records = self.render()
         for heading in ("Matrix", "Changed since last run", "Silent behaviours", "Documented vs observed", "First-party comparison",
-                        "Adjustments needed", "Anthropic-compatible endpoints noted", "Run metadata"):
+                        "Adjustments needed", "Unsupported and errors", "Anthropic-compatible endpoints noted", "Run metadata"):
             self.assertIn(f"## {heading}", text)
         self.assertIn("| groq | ranges.n-2 | direct |", text)
         self.assertIn("**Map sections**", text)
+        failures = text.split("## Unsupported and errors")[1].split("## Anthropic")[0]
+        self.assertIn("| groq | ranges.n-2 | direct | unsupported |", failures)
         self.assertIn("roles.developer-role", text.split("## First-party comparison")[1].split("## Adjustments")[0])
 
     def test_changes_since_previous(self):

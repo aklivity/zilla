@@ -133,6 +133,10 @@ class QuirkyProvider(unittest.TestCase):
         self.assertTrue(all(r["outcome"] == "error" for r in got.values()))
         self.assertIn("model unavailable", got["roles.name-field"]["observed"])
 
+    def test_model_not_exist_wording_is_an_error(self):
+        step = {"status": 400, "error": None, "text": '{"error":{"message":"Model Not Exist"}}'}
+        self.assertEqual(engine._prelude({"a": step}, ["a"])[0], "model unavailable")
+
     def test_zilla_inexpressible_probe(self):
         _, records, _, _, _ = run_against({}, probes="responses", via="zilla")
         self.assertTrue(all(r["outcome"] == "error" and r["error_kind"] == "zilla-inexpressible" for r in records))

@@ -175,6 +175,13 @@ def adjustments_section(records):
     return "\n\n".join(parts)
 
 
+def failures_section(records):
+    rows = [f"| {r['provider']} | {r['probe']} | {r['via']} | {r['outcome']} | {esc(r['observed'])} |"
+            for r in sorted(records, key=lambda r: (r["provider"], r["probe"], r["via"]))
+            if r["outcome"] in ("unsupported", "error")]
+    return ("| Provider | Probe | Via | Outcome | Observed |\n|---|---|---|---|---|\n" + "\n".join(rows)) if rows else "None."
+
+
 def anthropic_section(providers):
     rows = [f"| {p['name']} | {p['anthropic_messages_endpoint'].get('url') or 'n/a'} | {p['anthropic_messages_endpoint'].get('source')} |"
             for p in providers.values()
@@ -212,6 +219,7 @@ def render(metas, records, previous, providers, areas, zilla_ref, run_url=None):
         ("## Documented vs observed", documented_section(records, providers)),
         ("## First-party comparison", first_party_section(metas, records)),
         ("## Adjustments needed", adjustments_section(records)),
+        ("## Unsupported and errors", failures_section(records)),
         ("## Anthropic-compatible endpoints noted", anthropic_section(providers)),
         ("## Run metadata", metadata_section(metas, records, providers, zilla_ref, run_url)),
     ]
