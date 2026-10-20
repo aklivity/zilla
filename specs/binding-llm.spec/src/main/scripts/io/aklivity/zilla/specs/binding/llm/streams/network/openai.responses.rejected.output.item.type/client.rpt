@@ -37,6 +37,6 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("content-type", "application/json")
                            .build()}
 
-read "{\"id\":\"resp_1\",\"object\":\"response\",\"model\":\"gpt-4\",\"output\":[{\"id\":\"fc_1\",\"type\":\"function_call\",\"status\":\"completed\",\"arguments\":\"{}\",\"call_id\":\"call_1\",\"name\":\"f\"}],\"status\":\"completed\"}"
+read "{\"id\":\"resp_1\",\"object\":\"response\",\"model\":\"gpt-4\",\"output\":[{\"id\":\"fi_1\",\"type\":\"future_item\",\"status\":\"completed\"}],\"status\":\"completed\"}"
 
 read closed

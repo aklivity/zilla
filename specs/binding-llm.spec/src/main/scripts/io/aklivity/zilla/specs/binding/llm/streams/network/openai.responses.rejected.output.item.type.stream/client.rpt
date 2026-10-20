@@ -51,6 +51,6 @@ read zilla:data.ext ${http:matchDataEx()
                           .typeId(zilla:id("http"))
                           .header("type", "response.output_item.added")
                           .build()}
-read "{\"type\":\"response.output_item.added\",\"item\":{\"id\":\"fc_1\",\"type\":\"function_call\",\"status\":\"in_progress\",\"arguments\":\"\",\"call_id\":\"call_1\",\"name\":\"f\"},\"output_index\":0,\"sequence_number\":2}"
+read "{\"type\":\"response.output_item.added\",\"item\":{\"id\":\"fi_1\",\"type\":\"future_item\",\"status\":\"in_progress\"},\"output_index\":0,\"sequence_number\":2}"
 
 read closed

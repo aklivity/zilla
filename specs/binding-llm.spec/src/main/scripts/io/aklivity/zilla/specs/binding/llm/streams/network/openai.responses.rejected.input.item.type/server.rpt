@@ -30,7 +30,7 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-read "{\"model\":\"gpt-4\",\"input\":[{\"type\":\"function_call\",\"call_id\":\"call_1\",\"name\":\"f\",\"arguments\":\"{}\"}]}"
+read "{\"model\":\"gpt-4\",\"input\":[{\"type\":\"future_item\",\"call_id\":\"call_1\"}]}"
 
 read abort
 
@@ -40,5 +40,5 @@ write zilla:begin.ext ${http:beginEx()
                             .header("content-type", "application/json")
                             .build()}
 
-write "{\"error\":{\"message\":\"Unsupported input item type: 'function_call'.\",\"type\":\"invalid_request_error\",\"param\":null,\"code\":null}}"
+write "{\"error\":{\"message\":\"Unsupported input item type: 'future_item'.\",\"type\":\"invalid_request_error\",\"param\":null,\"code\":null}}"
 write close

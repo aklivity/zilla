@@ -61,7 +61,7 @@ read zilla:begin.ext ${llm:matchBeginEx()
 read zilla:abort.ext ${llm:matchAbortEx()
                           .typeId(zilla:id("llm"))
                           .type("server_error")
-                          .message("Unsupported output item type: 'function_call'.")
+                          .message("Unsupported output item type: 'future_item'.")
                           .build()}
 
 read aborted

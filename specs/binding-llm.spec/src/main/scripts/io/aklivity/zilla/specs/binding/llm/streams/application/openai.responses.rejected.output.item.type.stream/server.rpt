@@ -61,7 +61,7 @@ write flush
 write zilla:abort.ext ${llm:abortEx()
                            .typeId(zilla:id("llm"))
                            .type("server_error")
-                           .message("Unsupported output item type: 'function_call'.")
+                           .message("Unsupported output item type: 'future_item'.")
                            .build()}
 
 write abort
