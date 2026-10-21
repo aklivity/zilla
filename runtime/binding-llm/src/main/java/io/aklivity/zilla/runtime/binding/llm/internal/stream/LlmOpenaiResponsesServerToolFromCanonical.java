@@ -25,7 +25,6 @@ final class LlmOpenaiResponsesServerToolFromCanonical extends LlmToolTransform
     static final int PART_OUTPUT = 3;
     static final int PART_EXTRAS = 4;
 
-    private static final String DIALECT = "openai";
     private static final String STATUS_COMPLETED = "completed";
 
     private int part;
@@ -33,9 +32,9 @@ final class LlmOpenaiResponsesServerToolFromCanonical extends LlmToolTransform
     private String exclude;
 
     LlmOpenaiResponsesServerToolFromCanonical(
-        boolean sameDialect)
+        String dialect)
     {
-        super(MODE_OBJECT, sameDialect);
+        super(MODE_OBJECT, dialect);
     }
 
     void configure(
@@ -75,7 +74,7 @@ final class LlmOpenaiResponsesServerToolFromCanonical extends LlmToolTransform
         }
         else
         {
-            action = unprefix(DIALECT, key);
+            action = unprefix(key);
         }
 
         return action;

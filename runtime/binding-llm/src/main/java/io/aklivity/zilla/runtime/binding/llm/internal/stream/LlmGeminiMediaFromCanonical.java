@@ -57,7 +57,7 @@ final class LlmGeminiMediaFromCanonical extends LlmToolTransform
         boolean formatted,
         boolean sameDialect)
     {
-        super(MODE_OBJECT, sameDialect);
+        super(MODE_OBJECT, sameDialect ? DIALECT : null);
         this.container = container;
         this.dataMember = dataMember;
         this.urlMember = urlMember;
@@ -89,7 +89,7 @@ final class LlmGeminiMediaFromCanonical extends LlmToolTransform
         }
         else
         {
-            action = contains(key, ':') ? unprefix(DIALECT, key) : DROP;
+            action = contains(key, ':') ? unprefix(key) : DROP;
         }
 
         return action;

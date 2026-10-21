@@ -24,9 +24,10 @@ public class LlmOpenaiResponsesMediaFromCanonicalTest
 {
     private static final String DATA = "QUJD".repeat(1250);
 
-    private final LlmOpenaiResponsesMediaFromCanonical image = LlmOpenaiResponsesMediaFromCanonical.image(true);
-    private final LlmOpenaiResponsesMediaFromCanonical document = LlmOpenaiResponsesMediaFromCanonical.document(true);
-    private final LlmOpenaiResponsesMediaFromCanonical foreignDocument = LlmOpenaiResponsesMediaFromCanonical.document(false);
+    private final LlmOpenaiResponsesMediaFromCanonical image = LlmOpenaiResponsesMediaFromCanonical.image("openai/rs");
+    private final LlmOpenaiResponsesMediaFromCanonical document = LlmOpenaiResponsesMediaFromCanonical.document("openai/rs");
+    private final LlmOpenaiResponsesMediaFromCanonical foreignDocument =
+        LlmOpenaiResponsesMediaFromCanonical.document("openai/ccs");
 
     @Test
     public void shouldFlattenUrlImage()
@@ -64,7 +65,7 @@ public class LlmOpenaiResponsesMediaFromCanonicalTest
     public void shouldRestoreOwnPrefixedMembers()
     {
         assertTransforms(document,
-            json("{'type':'file','file':{'file_data':'data:application/pdf;base64,QUJD','openai:detail':'high'}}"),
+            json("{'type':'file','file':{'file_data':'data:application/pdf;base64,QUJD','openai/rs:detail':'high'}}"),
             json("{'type':'input_file','file_data':'data:application/pdf;base64,QUJD','detail':'high'}"));
     }
 
@@ -72,7 +73,7 @@ public class LlmOpenaiResponsesMediaFromCanonicalTest
     public void shouldDropOtherDialectMembers()
     {
         assertTransforms(foreignDocument,
-            json("{'type':'file','file':{'file_data':'data:application/pdf;base64,QUJD','openai:detail':'high'}," +
+            json("{'type':'file','file':{'file_data':'data:application/pdf;base64,QUJD','openai/rs:detail':'high'}," +
                 "'anthropic:title':'T'}"),
             json("{'type':'input_file','file_data':'data:application/pdf;base64,QUJD'}"));
     }

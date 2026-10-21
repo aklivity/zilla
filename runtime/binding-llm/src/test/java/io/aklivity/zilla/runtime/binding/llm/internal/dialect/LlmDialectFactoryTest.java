@@ -38,7 +38,16 @@ public class LlmDialectFactoryTest
     {
         final LlmDialectFactory factory = new LlmDialectFactory(config);
 
-        assertThat(factory.dialects().containsKey("openai"), equalTo(true));
+        assertThat(factory.dialects().containsKey("openai/ccs"), equalTo(true));
+        assertThat(factory.dialects().containsKey("openai/rs"), equalTo(true));
+    }
+
+    @Test
+    public void shouldNotRegisterVendorAsDialect()
+    {
+        final LlmDialectFactory factory = new LlmDialectFactory(config);
+
+        assertThat(factory.dialects().containsKey("openai"), equalTo(false));
     }
 
     @Test

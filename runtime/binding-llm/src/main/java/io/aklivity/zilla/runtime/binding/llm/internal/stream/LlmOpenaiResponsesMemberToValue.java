@@ -23,7 +23,7 @@ final class LlmOpenaiResponsesMemberToValue extends LlmToolTransform
     LlmOpenaiResponsesMemberToValue(
         String member)
     {
-        super(MODE_EXTRACT, false, 2);
+        super(MODE_EXTRACT, null, 2);
         this.member = member;
     }
 

@@ -79,7 +79,7 @@ final class LlmAnthropicControlFromCanonical extends LlmFormatFromCanonical
         boolean sameDialect,
         LlmModelCapability capability)
     {
-        super(mode, sameDialect);
+        super(mode, sameDialect ? DIALECT : null);
         this.members = mode == MODE_OBJECT;
         this.choice = new LlmToolChoice();
         this.scanner = new LlmSchemaScanner(LlmSchemaScanner.TARGET_ANTHROPIC);
@@ -162,7 +162,7 @@ final class LlmAnthropicControlFromCanonical extends LlmFormatFromCanonical
         }
         else
         {
-            action = unprefix(DIALECT, key);
+            action = unprefix(key);
 
             if (depth == 1 && action != DROP && (!members || member == null))
             {

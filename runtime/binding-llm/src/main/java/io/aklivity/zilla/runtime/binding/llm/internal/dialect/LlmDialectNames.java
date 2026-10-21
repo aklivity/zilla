@@ -14,9 +14,12 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.dialect;
 
+import java.util.Map;
+
 public final class LlmDialectNames
 {
     private static final char VARIANT = '/';
+    private static final Map<String, String> DEFAULTS = Map.of("openai", "openai/ccs");
 
     public static String vendor(
         String dialect)
@@ -26,16 +29,68 @@ public final class LlmDialectNames
         return variant < 0 ? dialect : dialect.substring(0, variant);
     }
 
+    public static String defaultOf(
+        String dialect)
+    {
+        return dialect != null ? DEFAULTS.getOrDefault(dialect, dialect) : null;
+    }
+
     public static boolean admits(
         String pattern,
         String dialect)
     {
-        return pattern.equals(dialect) ||
-            pattern.indexOf(VARIANT) < 0 &&
-            dialect != null &&
-            dialect.length() > pattern.length() &&
-            dialect.charAt(pattern.length()) == VARIANT &&
-            dialect.startsWith(pattern);
+        return pattern != null && admits(pattern, 0, pattern.length(), dialect);
+    }
+
+    public static boolean admits(
+        CharSequence pattern,
+        int from,
+        int to,
+        String dialect)
+    {
+        boolean admitted = false;
+
+        if (pattern != null && dialect != null)
+        {
+            final int length = to - from;
+            final boolean named = dialect.length() == length;
+            final boolean vendor = dialect.length() > length && dialect.charAt(length) == VARIANT;
+
+            admitted = (named || vendor && !variant(pattern, from, to)) && prefixes(pattern, from, length, dialect);
+        }
+
+        return admitted;
+    }
+
+    private static boolean variant(
+        CharSequence pattern,
+        int from,
+        int to)
+    {
+        boolean found = false;
+
+        for (int index = from; !found && index < to; index++)
+        {
+            found = pattern.charAt(index) == VARIANT;
+        }
+
+        return found;
+    }
+
+    private static boolean prefixes(
+        CharSequence pattern,
+        int from,
+        int length,
+        String dialect)
+    {
+        boolean matched = true;
+
+        for (int index = 0; matched && index < length; index++)
+        {
+            matched = pattern.charAt(from + index) == dialect.charAt(index);
+        }
+
+        return matched;
     }
 
     private LlmDialectNames()

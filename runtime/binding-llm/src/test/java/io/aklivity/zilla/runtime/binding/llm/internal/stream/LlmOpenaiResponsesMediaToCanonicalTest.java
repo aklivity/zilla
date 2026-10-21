@@ -72,7 +72,7 @@ public class LlmOpenaiResponsesMediaToCanonicalTest
     {
         assertTransforms(image,
             json("{'type':'input_image','image_url':'https://example.com/a.png','extra':[1,{'a':null}]}"),
-            json("{'type':'image_url','image_url':{'url':'https://example.com/a.png','openai:extra':[1,{'a':null}]}}"));
+            json("{'type':'image_url','image_url':{'url':'https://example.com/a.png','openai/rs:extra':[1,{'a':null}]}}"));
     }
 
     @Test
@@ -104,7 +104,7 @@ public class LlmOpenaiResponsesMediaToCanonicalTest
     {
         assertTransforms(document,
             json("{'type':'input_file','file_data':'data:application/pdf;base64,QUJD','detail':'high'}"),
-            json("{'type':'file','file':{'file_data':'data:application/pdf;base64,QUJD','openai:detail':'high'}}"));
+            json("{'type':'file','file':{'file_data':'data:application/pdf;base64,QUJD','openai/rs:detail':'high'}}"));
     }
 
     @Test

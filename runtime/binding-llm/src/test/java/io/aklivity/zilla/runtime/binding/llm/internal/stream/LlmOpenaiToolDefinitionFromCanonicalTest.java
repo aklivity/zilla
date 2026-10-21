@@ -25,8 +25,8 @@ public class LlmOpenaiToolDefinitionFromCanonicalTest
     private static final String LONG = "x".repeat(300);
     private static final String HUGE = "x".repeat(5000);
 
-    private final LlmOpenaiToolDefinitionFromCanonical transform = new LlmOpenaiToolDefinitionFromCanonical(true);
-    private final LlmOpenaiToolDefinitionFromCanonical foreign = new LlmOpenaiToolDefinitionFromCanonical(false);
+    private final LlmOpenaiToolDefinitionFromCanonical transform = new LlmOpenaiToolDefinitionFromCanonical("openai/ccs");
+    private final LlmOpenaiToolDefinitionFromCanonical foreign = new LlmOpenaiToolDefinitionFromCanonical("openai/rs");
 
     @Test
     public void shouldPassCanonicalToolDefinition()
@@ -69,7 +69,7 @@ public class LlmOpenaiToolDefinitionFromCanonicalTest
     public void shouldStripOwnPrefixedMembers()
     {
         assertTransforms(transform,
-            json("{'type':'function','function':{'openai:note':'x','name':'ping'}}"),
+            json("{'type':'function','function':{'openai/ccs:note':'x','name':'ping'}}"),
             json("{'type':'function','function':{'note':'x','name':'ping'}}"));
     }
 
@@ -91,7 +91,7 @@ public class LlmOpenaiToolDefinitionFromCanonicalTest
     public void shouldDropOwnPrefixedMemberAcrossDialects()
     {
         assertTransforms(foreign,
-            json("{'type':'function','function':{'openai:note':'x','name':'ping'}}"),
+            json("{'type':'function','function':{'openai/ccs:note':'x','name':'ping'}}"),
             json("{'type':'function','function':{'name':'ping'}}"));
     }
 

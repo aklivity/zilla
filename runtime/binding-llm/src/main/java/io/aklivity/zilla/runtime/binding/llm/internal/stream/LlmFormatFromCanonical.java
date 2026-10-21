@@ -41,9 +41,9 @@ abstract class LlmFormatFromCanonical extends LlmToolTransform
 
     protected LlmFormatFromCanonical(
         int mode,
-        boolean sameDialect)
+        String dialect)
     {
-        super(mode, sameDialect);
+        super(mode, dialect);
     }
 
     protected abstract boolean formatObject();

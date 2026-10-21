@@ -204,11 +204,11 @@ public class LlmSectionPipelineBM
     {
         toolDefinitionToCanonical = pipeline(new LlmAnthropicToolDefinitionToCanonical());
         toolDefinitionFromAnthropic = pipeline(new LlmAnthropicToolDefinitionFromCanonical(true));
-        toolDefinitionFromOpenai = pipeline(new LlmOpenaiToolDefinitionFromCanonical(true));
+        toolDefinitionFromOpenai = pipeline(new LlmOpenaiToolDefinitionFromCanonical("openai/ccs"));
         toolCallToCanonical = pipeline(new LlmAnthropicToolCallToCanonical());
         toolCallFromCanonical = pipeline(new LlmAnthropicToolCallFromCanonical("tool_use", true));
         toolCallOpenaiToCanonical = pipeline(new LlmOpenaiToolCallToCanonical());
-        toolCallOpenaiFromCanonical = pipeline(new LlmOpenaiToolCallFromCanonical(true));
+        toolCallOpenaiFromCanonical = pipeline(new LlmOpenaiToolCallFromCanonical("openai/ccs"));
         toolDefinitionGeminiToCanonical = pipeline(new LlmGeminiToolDefinitionToCanonical());
         toolDefinitionGeminiFromCanonical = pipeline(new LlmGeminiToolDefinitionFromCanonical(true));
         toolCallGeminiToCanonical = pipeline(new LlmGeminiToolCallToCanonical());
@@ -219,15 +219,15 @@ public class LlmSectionPipelineBM
         imageFromAnthropic = pipeline(LlmAnthropicMediaFromCanonical.image(true));
         citationsToCanonical = pipeline(new LlmAnthropicCitationsToCanonical());
         citationsFromAnthropic = pipeline(new LlmAnthropicCitationsFromCanonical(true));
-        citationsFromOpenai = pipeline(new LlmOpenaiCitationsFromCanonical(true));
+        citationsFromOpenai = pipeline(new LlmOpenaiCitationsFromCanonical("openai/ccs"));
         controlAnthropicToCanonical = pipeline(new LlmAnthropicControlToCanonical());
         controlAnthropicFromCanonical = pipeline(new LlmAnthropicControlFromCanonical(true));
-        controlOpenaiToCanonical = pipeline(new LlmOpenaiControlToCanonical());
-        controlOpenaiFromCanonical = pipeline(new LlmOpenaiControlFromCanonical(true));
+        controlOpenaiToCanonical = pipeline(new LlmOpenaiControlToCanonical("openai/ccs"));
+        controlOpenaiFromCanonical = pipeline(new LlmOpenaiControlFromCanonical("openai/ccs", true));
 
-        reasoningResponsesFromCanonical = pipeline(new LlmOpenaiResponsesReasoningFromCanonical(true));
+        reasoningResponsesFromCanonical = pipeline(new LlmOpenaiResponsesReasoningFromCanonical("openai/rs"));
         imageResponsesToCanonical = pipeline(LlmOpenaiResponsesMediaToCanonical.image());
-        imageResponsesFromCanonical = pipeline(LlmOpenaiResponsesMediaFromCanonical.image(true));
+        imageResponsesFromCanonical = pipeline(LlmOpenaiResponsesMediaFromCanonical.image("openai/rs"));
         citationsResponsesToCanonical = pipeline(LlmOpenaiResponsesCitationsToCanonical.array());
 
         toolCallAttributes.toolCallId("toolu_1");

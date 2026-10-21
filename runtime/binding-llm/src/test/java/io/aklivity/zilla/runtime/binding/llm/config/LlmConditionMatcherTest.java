@@ -118,10 +118,10 @@ public class LlmConditionMatcherTest
             .build();
         LlmConditionMatcher matcher = new LlmConditionMatcher(condition);
 
-        assertTrue(matcher.matches("openai", null));
-        assertTrue(matcher.matches("openai/responses", null));
+        assertTrue(matcher.matches("openai/ccs", null));
+        assertTrue(matcher.matches("openai/rs", null));
         assertFalse(matcher.matches("openai-compatible", null));
-        assertFalse(matcher.matches("openaix/responses", null));
+        assertFalse(matcher.matches("openaix/rs", null));
         assertFalse(matcher.matches("anthropic", null));
     }
 
@@ -129,14 +129,14 @@ public class LlmConditionMatcherTest
     public void shouldMatchOnlyNamedDialectWhenConditionNamesDialectVariant()
     {
         LlmConditionConfig condition = LlmConditionConfig.builder()
-            .dialect("openai/responses")
+            .dialect("openai/rs")
             .build();
         LlmConditionMatcher matcher = new LlmConditionMatcher(condition);
 
-        assertTrue(matcher.matches("openai/responses", null));
+        assertTrue(matcher.matches("openai/rs", null));
         assertFalse(matcher.matches("openai", null));
-        assertFalse(matcher.matches("openai/completions", null));
-        assertFalse(matcher.matches("openai/responses/v2", null));
+        assertFalse(matcher.matches("openai/ccs", null));
+        assertFalse(matcher.matches("openai/rs/v2", null));
     }
 
     @Test
@@ -148,8 +148,9 @@ public class LlmConditionMatcherTest
             .build();
         LlmConditionMatcher matcher = new LlmConditionMatcher(condition);
 
-        assertTrue(matcher.matches("openai/responses", "gpt-4o"));
-        assertFalse(matcher.matches("openai/responses", "gpt-4o-mini"));
+        assertTrue(matcher.matches("openai/rs", "gpt-4o"));
+        assertTrue(matcher.matches("openai/ccs", "gpt-4o"));
+        assertFalse(matcher.matches("openai/rs", "gpt-4o-mini"));
         assertFalse(matcher.matches("anthropic/messages", "gpt-4o"));
     }
 }

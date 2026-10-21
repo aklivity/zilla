@@ -90,7 +90,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private static final String HEADER_AUTHORIZATION = "authorization";
     private static final String METHOD_POST = "POST";
     private static final String PATH_CHAT_COMPLETIONS = "/chat/completions";
-    private static final String VENDOR_PREFIX = NAME + ":";
+    private static final String DIALECT_PREFIX = NAME + ":";
     private static final String CONTENT_TYPE_JSON = "application/json";
     private static final Pattern CONTENT_TYPE = Pattern.compile("\\s*([^;\\s]+)\\s*(?:;.*)?");
     private static final String CONTENT_TYPE_EVENT_STREAM = "text/event-stream";
@@ -1118,7 +1118,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 case "stop", "length" -> reported;
                 case "tool_calls", "function_call" -> "tool-call";
                 case "content_filter" -> "content-filter";
-                default -> VENDOR_PREFIX + reported;
+                default -> DIALECT_PREFIX + reported;
                 };
             }
 
@@ -3268,7 +3268,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             LlmOpenaiResponseDecoder then)
         {
             controlKey.setLength(0);
-            controlKey.append(NAME).append(':').append(member);
+            controlKey.append(LlmOpenaiMembers.scope(NAME, member)).append(':').append(member);
 
             final int capacity = controlKey.length() * REASONING_ESCAPE_EXPANSION + CONTROL_HEADER;
 
@@ -4216,7 +4216,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             if (imagePipeline == null)
             {
-                imagePipeline = new LlmSectionPipeline(LlmOpenaiMediaFromCanonical.image(sameDialect), transformBuffer);
+                imagePipeline = new LlmSectionPipeline(LlmOpenaiMediaFromCanonical.image(NAME), transformBuffer);
             }
 
             return imagePipeline;
@@ -4226,7 +4226,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             if (documentPipeline == null)
             {
-                documentPipeline = new LlmSectionPipeline(LlmOpenaiMediaFromCanonical.document(sameDialect), transformBuffer);
+                documentPipeline = new LlmSectionPipeline(LlmOpenaiMediaFromCanonical.document(NAME), transformBuffer);
             }
 
             return documentPipeline;
@@ -4236,7 +4236,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             if (audioPipeline == null)
             {
-                audioPipeline = new LlmSectionPipeline(LlmOpenaiMediaFromCanonical.audio(sameDialect), transformBuffer);
+                audioPipeline = new LlmSectionPipeline(LlmOpenaiMediaFromCanonical.audio(NAME), transformBuffer);
             }
 
             return audioPipeline;
@@ -4246,7 +4246,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             if (toolCallPipeline == null)
             {
-                toolCallPipeline = new LlmSectionPipeline(new LlmOpenaiToolCallFromCanonical(sameDialect), transformBuffer);
+                toolCallPipeline = new LlmSectionPipeline(new LlmOpenaiToolCallFromCanonical(NAME), transformBuffer);
             }
 
             return toolCallPipeline;
@@ -4256,7 +4256,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             if (citationsPipeline == null)
             {
-                citationsPipeline = new LlmSectionPipeline(new LlmOpenaiCitationsFromCanonical(sameDialect), transformBuffer);
+                citationsPipeline = new LlmSectionPipeline(new LlmOpenaiCitationsFromCanonical(NAME), transformBuffer);
             }
 
             return citationsPipeline;
@@ -4272,7 +4272,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             if (controlPipeline == null)
             {
                 capability = stream.binding.capability(stream.model);
-                controlTransform = LlmOpenaiControlFromCanonical.members(sameDialect, capability);
+                controlTransform = LlmOpenaiControlFromCanonical.members(NAME, sameDialect, capability);
                 controlPipeline = new LlmSectionPipeline(controlTransform, transformBuffer);
             }
 
@@ -4283,7 +4283,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             if (toolDefinitionPipeline == null)
             {
-                toolDefinitionPipeline = new LlmSectionPipeline(new LlmOpenaiToolDefinitionFromCanonical(sameDialect),
+                toolDefinitionPipeline = new LlmSectionPipeline(new LlmOpenaiToolDefinitionFromCanonical(NAME),
                     transformBuffer);
             }
 

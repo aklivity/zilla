@@ -22,9 +22,10 @@ import org.junit.Test;
 
 public class LlmOpenaiResponsesCitationsFromCanonicalTest
 {
-    private final LlmOpenaiResponsesCitationsFromCanonical same = LlmOpenaiResponsesCitationsFromCanonical.array(true);
-    private final LlmOpenaiResponsesCitationsFromCanonical foreign = LlmOpenaiResponsesCitationsFromCanonical.array(false);
-    private final LlmOpenaiResponsesCitationsFromCanonical sameObject = LlmOpenaiResponsesCitationsFromCanonical.object(true);
+    private final LlmOpenaiResponsesCitationsFromCanonical same = LlmOpenaiResponsesCitationsFromCanonical.array("openai/rs");
+    private final LlmOpenaiResponsesCitationsFromCanonical foreign = LlmOpenaiResponsesCitationsFromCanonical.array("openai/ccs");
+    private final LlmOpenaiResponsesCitationsFromCanonical sameObject =
+        LlmOpenaiResponsesCitationsFromCanonical.object("openai/rs");
 
     @Test
     public void shouldFlattenUrlCitation()
@@ -47,7 +48,8 @@ public class LlmOpenaiResponsesCitationsFromCanonicalTest
     public void shouldRestoreOtherCitations()
     {
         assertTransforms(same,
-            json("[{'openai:type':'file_citation','openai:file_id':'file_1','openai:filename':'a.pdf','openai:index':0}]"),
+            json("[{'openai/rs:type':'file_citation','openai/rs:file_id':'file_1','openai/rs:filename':'a.pdf'," +
+                "'openai/rs:index':0}]"),
             json("[{'type':'file_citation','file_id':'file_1','filename':'a.pdf','index':0}]"));
     }
 
@@ -55,7 +57,7 @@ public class LlmOpenaiResponsesCitationsFromCanonicalTest
     public void shouldRestoreExtraMembers()
     {
         assertTransforms(same,
-            json("[{'type':'url_citation','url_citation':{'url':'https://example.com'},'openai:extra':true}]"),
+            json("[{'type':'url_citation','url_citation':{'url':'https://example.com'},'openai/rs:extra':true}]"),
             json("[{'type':'url_citation','url':'https://example.com','extra':true}]"));
     }
 
@@ -72,7 +74,7 @@ public class LlmOpenaiResponsesCitationsFromCanonicalTest
     public void shouldSkipCitationsWithoutHome()
     {
         assertTransforms(foreign,
-            json("[{'openai:type':'file_citation','openai:file_id':'file_1'}," +
+            json("[{'openai/rs:type':'file_citation','openai/rs:file_id':'file_1'}," +
                 "{'type':'url_citation','url_citation':{'url':'https://example.com'}}]"),
             json("[{'type':'url_citation','url':'https://example.com'}]"));
     }

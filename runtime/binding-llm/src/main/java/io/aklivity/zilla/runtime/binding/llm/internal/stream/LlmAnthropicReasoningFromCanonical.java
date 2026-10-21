@@ -38,7 +38,7 @@ final class LlmAnthropicReasoningFromCanonical extends LlmToolTransform
         boolean unsigned,
         boolean sameDialect)
     {
-        super(MODE_OBJECT, sameDialect);
+        super(MODE_OBJECT, sameDialect ? DIALECT : null);
         this.unsigned = unsigned;
     }
 
@@ -65,7 +65,7 @@ final class LlmAnthropicReasoningFromCanonical extends LlmToolTransform
         }
         else
         {
-            action = unprefix(DIALECT, key);
+            action = unprefix(key);
         }
 
         return action;

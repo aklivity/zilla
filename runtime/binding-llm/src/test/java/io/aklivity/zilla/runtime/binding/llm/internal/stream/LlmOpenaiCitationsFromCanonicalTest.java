@@ -21,8 +21,8 @@ import org.junit.Test;
 
 public class LlmOpenaiCitationsFromCanonicalTest
 {
-    private final LlmOpenaiCitationsFromCanonical transform = new LlmOpenaiCitationsFromCanonical(true);
-    private final LlmOpenaiCitationsFromCanonical foreign = new LlmOpenaiCitationsFromCanonical(false);
+    private final LlmOpenaiCitationsFromCanonical transform = new LlmOpenaiCitationsFromCanonical("openai/ccs");
+    private final LlmOpenaiCitationsFromCanonical foreign = new LlmOpenaiCitationsFromCanonical("openai/rs");
 
     @Test
     public void shouldKeepUrlCitation()
@@ -64,7 +64,7 @@ public class LlmOpenaiCitationsFromCanonicalTest
     public void shouldDropOwnPrefixedMemberAcrossDialects()
     {
         assertTransforms(foreign,
-            json("[{'type':'url_citation','url_citation':{'url':'https://example.com','openai:extra':1}}]"),
+            json("[{'type':'url_citation','url_citation':{'url':'https://example.com','openai/ccs:extra':1}}]"),
             json("[{'type':'url_citation','url_citation':{'url':'https://example.com'}}]"));
     }
 

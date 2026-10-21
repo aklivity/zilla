@@ -33,8 +33,11 @@ public final class LlmModelDefaults
     {
         final List<LlmModelConfig> models = new ArrayList<>();
 
-        final InputStream input = dialect != null && dialect.matches("[a-z0-9-]+")
-            ? LlmModelDefaults.class.getResourceAsStream(RESOURCE.formatted(dialect))
+        final int variant = dialect != null ? dialect.indexOf('/') : -1;
+        final String vendor = variant < 0 ? dialect : dialect.substring(0, variant);
+
+        final InputStream input = vendor != null && vendor.matches("[a-z0-9-]+")
+            ? LlmModelDefaults.class.getResourceAsStream(RESOURCE.formatted(vendor))
             : null;
 
         if (input != null)

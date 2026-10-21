@@ -19,12 +19,11 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 final class LlmOpenaiResponsesReasoningFromCanonical extends LlmToolTransform
 {
-    private static final String DIALECT = "openai";
 
     LlmOpenaiResponsesReasoningFromCanonical(
-        boolean sameDialect)
+        String dialect)
     {
-        super(MODE_OBJECT, sameDialect);
+        super(MODE_OBJECT, dialect);
     }
 
     @Override
@@ -32,7 +31,7 @@ final class LlmOpenaiResponsesReasoningFromCanonical extends LlmToolTransform
         int depth,
         CharSequence key)
     {
-        return hasPrefix(key) ? unprefix(DIALECT, key) : DROP;
+        return hasPrefix(key) ? unprefix(key) : DROP;
     }
 
     @Override
