@@ -33,6 +33,6 @@ public class LlmDialectRegistrationTest
         final List<String> names = new ArrayList<>();
         ServiceLoader.load(LlmDialectFactorySpi.class).forEach(factory -> names.add(factory.name()));
 
-        assertThat(names, containsInAnyOrder("openai", "anthropic", "gemini"));
+        assertThat(names, containsInAnyOrder("openai", "openai/responses", "anthropic", "gemini"));
     }
 }

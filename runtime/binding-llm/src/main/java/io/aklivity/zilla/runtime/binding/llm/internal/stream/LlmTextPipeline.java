@@ -34,6 +34,7 @@ final class LlmTextPipeline
     }
 
     private final JsonPipeline pipeline;
+    private final LlmTextTransform transform;
     private final UnsafeBufferEx windowBuffer;
 
     private byte[] window;
@@ -52,9 +53,20 @@ final class LlmTextPipeline
     {
         this.windowBuffer = new UnsafeBufferEx();
         this.window = new byte[0];
+        this.transform = new LlmTextTransform(optional);
         this.pipeline = JsonEx.stream(JsonEx.createParser())
-            .transform(new LlmTextTransform(optional))
+            .transform(transform)
             .into(new LlmTextSink(output));
+    }
+
+    boolean completed()
+    {
+        return completed;
+    }
+
+    boolean extracted()
+    {
+        return transform.extracted();
     }
 
     void begin()

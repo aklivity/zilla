@@ -23,6 +23,12 @@ final class LlmGeminiToolDefinitionFromCanonical extends LlmToolTransform
 
     private boolean named;
 
+    LlmGeminiToolDefinitionFromCanonical(
+        boolean sameDialect)
+    {
+        super(MODE_OBJECT, sameDialect);
+    }
+
     @Override
     public void reset()
     {

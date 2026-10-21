@@ -162,7 +162,7 @@ public class LlmGeminiMediaCanonicalTest
     @Test
     public void shouldWriteInlineImageFromDataUri()
     {
-        assertTransforms(LlmGeminiMediaFromCanonical.image(), inlinePng, null,
+        assertTransforms(LlmGeminiMediaFromCanonical.image(true), inlinePng, null,
             json("{'type':'image_url','image_url':{'url':'data:image/png;base64,QUJD'}}"),
             json("{'inlineData':{'mimeType':'image/png','data':'QUJD'}}"));
     }
@@ -170,7 +170,7 @@ public class LlmGeminiMediaCanonicalTest
     @Test
     public void shouldWriteInlineImageLargerThanWindow()
     {
-        assertTransforms(LlmGeminiMediaFromCanonical.image(), inlinePng, null,
+        assertTransforms(LlmGeminiMediaFromCanonical.image(true), inlinePng, null,
             json("{'type':'image_url','image_url':{'url':'data:image/png;base64," + DATA + "'}}"),
             json("{'inlineData':{'mimeType':'image/png','data':'" + DATA + "'}}"));
     }
@@ -178,7 +178,7 @@ public class LlmGeminiMediaCanonicalTest
     @Test
     public void shouldWriteUrlImageWithoutMediaType()
     {
-        assertTransforms(LlmGeminiMediaFromCanonical.image(), url, null,
+        assertTransforms(LlmGeminiMediaFromCanonical.image(true), url, null,
             json("{'type':'image_url','image_url':{'url':'https://example.com/a.png'}}"),
             json("{'fileData':{'fileUri':'https://example.com/a.png'}}"));
     }
@@ -186,7 +186,7 @@ public class LlmGeminiMediaCanonicalTest
     @Test
     public void shouldWriteReferenceImageAsFileUri()
     {
-        assertTransforms(LlmGeminiMediaFromCanonical.image(), reference, null,
+        assertTransforms(LlmGeminiMediaFromCanonical.image(true), reference, null,
             json("{'type':'image_url','image_url':{'file_id':'files/abc'}}"),
             json("{'fileData':{'mimeType':'image/png','fileUri':'files/abc'}}"));
     }
@@ -194,7 +194,7 @@ public class LlmGeminiMediaCanonicalTest
     @Test
     public void shouldWriteInlineDocument()
     {
-        assertTransforms(LlmGeminiMediaFromCanonical.document(), inlinePdf, null,
+        assertTransforms(LlmGeminiMediaFromCanonical.document(true), inlinePdf, null,
             json("{'type':'file','file':{'file_data':'data:application/pdf;base64,QUJD'}}"),
             json("{'inlineData':{'mimeType':'application/pdf','data':'QUJD'}}"));
     }
@@ -202,7 +202,7 @@ public class LlmGeminiMediaCanonicalTest
     @Test
     public void shouldWriteInlineAudioWithoutFormat()
     {
-        assertTransforms(LlmGeminiMediaFromCanonical.audio(), inlineWav, null,
+        assertTransforms(LlmGeminiMediaFromCanonical.audio(true), inlineWav, null,
             json("{'type':'input_audio','input_audio':{'data':'QUJD','format':'wav'}}"),
             json("{'inlineData':{'mimeType':'audio/wav','data':'QUJD'}}"));
     }
@@ -210,7 +210,7 @@ public class LlmGeminiMediaCanonicalTest
     @Test
     public void shouldWriteUrlVideo()
     {
-        assertTransforms(LlmGeminiMediaFromCanonical.video(), urlMp4, null,
+        assertTransforms(LlmGeminiMediaFromCanonical.video(true), urlMp4, null,
             json("{'type':'input_video','input_video':{'url':'https://example.com/a.mp4','format':'mp4'}}"),
             json("{'fileData':{'mimeType':'video/mp4','fileUri':'https://example.com/a.mp4'}}"));
     }
@@ -218,7 +218,7 @@ public class LlmGeminiMediaCanonicalTest
     @Test
     public void shouldRestoreOwnPrefixAndDropOtherMembers()
     {
-        assertTransforms(LlmGeminiMediaFromCanonical.image(), inlinePng, null,
+        assertTransforms(LlmGeminiMediaFromCanonical.image(true), inlinePng, null,
             json("{'type':'image_url','gemini:videoMetadata':{'startOffset':'1s'},'openai:x':1," +
                 "'image_url':{'url':'data:image/png;base64,QUJD','detail':'high','gemini:displayName':'cat','anthropic:y':2}}"),
             json("{'videoMetadata':{'startOffset':'1s'},'inlineData':{'mimeType':'image/png','data':'QUJD'," +
@@ -228,7 +228,7 @@ public class LlmGeminiMediaCanonicalTest
     @Test
     public void shouldRejectMediaWithoutSource()
     {
-        assertRejects(LlmGeminiMediaFromCanonical.image(), attributes ->
+        assertRejects(LlmGeminiMediaFromCanonical.image(true), attributes ->
         {
         }, null, json("{'type':'image_url','image_url':{'url':'https://example.com/a.png'}}"));
     }

@@ -86,6 +86,7 @@ app.post("/v1/messages", (req, res) =>
     // credential here via options.authorization pass-through; logged so
     // verify.py can confirm it arrived unchanged.
     console.log(`x-api-key: ${req.headers["x-api-key"] ?? "(none)"}`);
+    console.log(`received /v1/messages members=${Object.keys(req.body ?? {}).join(",")}`);
 
     const { model, tools, messages } = req.body ?? {};
 

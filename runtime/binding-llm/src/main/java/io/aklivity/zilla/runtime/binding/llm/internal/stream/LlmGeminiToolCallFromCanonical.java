@@ -32,8 +32,10 @@ final class LlmGeminiToolCallFromCanonical extends LlmToolTransform
     private boolean called;
     private boolean signed;
 
-    LlmGeminiToolCallFromCanonical()
+    LlmGeminiToolCallFromCanonical(
+        boolean sameDialect)
     {
+        super(MODE_OBJECT, sameDialect);
     }
 
     void placeholder(

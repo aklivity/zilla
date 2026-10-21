@@ -27,7 +27,7 @@ public class LlmGeminiControlFromCanonicalTest
     private static final String LONG = "x".repeat(300);
     private static final String HUGE = "x".repeat(5000);
 
-    private final LlmGeminiControlFromCanonical transform = new LlmGeminiControlFromCanonical();
+    private final LlmGeminiControlFromCanonical transform = new LlmGeminiControlFromCanonical(true);
 
     @Test
     public void shouldRestoreOwnPrefixedMember()

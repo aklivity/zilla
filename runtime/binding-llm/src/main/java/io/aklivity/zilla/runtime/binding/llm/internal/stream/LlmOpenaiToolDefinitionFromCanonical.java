@@ -21,6 +21,12 @@ final class LlmOpenaiToolDefinitionFromCanonical extends LlmToolTransform
 {
     private static final String DIALECT = "openai";
 
+    LlmOpenaiToolDefinitionFromCanonical(
+        boolean sameDialect)
+    {
+        super(MODE_OBJECT, sameDialect);
+    }
+
     @Override
     protected int member(
         int depth,

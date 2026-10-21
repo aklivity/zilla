@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.config.binding.llm.LlmConditionConfig;
+import io.aklivity.zilla.runtime.binding.llm.internal.dialect.LlmDialectNames;
 import io.aklivity.zilla.runtime.common.lang.Matchers;
 
 final class LlmConditionMatcher
@@ -42,7 +43,7 @@ final class LlmConditionMatcher
     private boolean matchesDialect(
         String dialect)
     {
-        return this.dialect == null || this.dialect.equals(dialect);
+        return this.dialect == null || LlmDialectNames.admits(this.dialect, dialect);
     }
 
     private boolean matchesModel(

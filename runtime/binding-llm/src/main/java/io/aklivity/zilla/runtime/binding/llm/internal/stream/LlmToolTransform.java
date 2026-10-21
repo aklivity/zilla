@@ -63,6 +63,8 @@ abstract class LlmToolTransform implements JsonTransform
     protected String target;
 
     private final int mode;
+    private final boolean sameDialect;
+    private final int extractDepth;
     private final JsonEvent[] queueEvents;
     private final String[] queueTexts;
     private final boolean[] queueSources;
@@ -101,7 +103,24 @@ abstract class LlmToolTransform implements JsonTransform
     protected LlmToolTransform(
         int mode)
     {
+        this(mode, false);
+    }
+
+    protected LlmToolTransform(
+        int mode,
+        boolean sameDialect)
+    {
+        this(mode, sameDialect, 1);
+    }
+
+    protected LlmToolTransform(
+        int mode,
+        boolean sameDialect,
+        int extractDepth)
+    {
         this.mode = mode;
+        this.sameDialect = sameDialect;
+        this.extractDepth = extractDepth;
         this.queueEvents = new JsonEvent[QUEUE_CAPACITY];
         this.queueTexts = new String[QUEUE_CAPACITY];
         this.queueSources = new boolean[QUEUE_CAPACITY];
@@ -255,7 +274,7 @@ abstract class LlmToolTransform implements JsonTransform
         {
             target = name(null, key);
         }
-        else if (regionMatches(key, 0, colon, dialect))
+        else if (sameDialect && regionMatches(key, 0, colon, dialect))
         {
             target = name(null, key, colon + 1, length);
         }
@@ -861,7 +880,7 @@ abstract class LlmToolTransform implements JsonTransform
     private Status beginPass(
         JsonEvent event)
     {
-        if ((mode != MODE_EXTRACT || depth > 1) && target != null)
+        if ((mode != MODE_EXTRACT || depth > extractDepth) && target != null)
         {
             emit(JsonEvent.KEY_NAME, target);
         }

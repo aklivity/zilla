@@ -21,6 +21,12 @@ final class LlmGeminiTextFromCanonical extends LlmToolTransform
 {
     private static final String DIALECT = "gemini";
 
+    LlmGeminiTextFromCanonical(
+        boolean sameDialect)
+    {
+        super(MODE_OBJECT, sameDialect);
+    }
+
     @Override
     protected int member(
         int depth,

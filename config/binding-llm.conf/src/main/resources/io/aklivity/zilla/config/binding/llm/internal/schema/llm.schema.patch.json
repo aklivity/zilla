@@ -158,7 +158,7 @@
                                                         "dialect":
                                                         {
                                                             "title": "Dialect",
-                                                            "description": "Matches when the request's resolved dialect equals this value.",
+                                                            "description": "Matches when the request's resolved dialect equals this value. A vendor name such as openai also matches every dialect of that vendor.",
                                                             "$ref": "#/$defs/binding-ext/llm/dialect"
                                                         },
                                                         "model":
@@ -226,13 +226,13 @@
                     "dialect":
                     {
                         "title": "Dialect",
-                        "description": "The dialect this client speaks to the large language model server named by server. Accepts the name of any dialect registered with the binding, for example openai, anthropic or gemini. When it differs from the dialect resolved on the paired server side, requests and responses are translated between the two dialects automatically, subject to each dialect's own capabilities.",
+                        "description": "The dialect this client speaks to the large language model server named by server. Accepts the name of any dialect registered with the binding, for example openai, anthropic or gemini. When it differs from the dialect resolved on the paired server side, requests and responses are translated between the two dialects automatically, subject to each dialect's own capabilities. A vendor name such as openai speaks the dialect of the inbound request when it is one of that vendor's, and the vendor's default otherwise.",
                         "$ref": "#/$defs/binding-ext/llm/dialect"
                     },
                     "server":
                     {
                         "title": "Server",
-                        "description": "Base URL of the large language model server this client connects to, mirroring the base_url convention of the official SDKs: the whole origin plus a shared path prefix (for example https://aicomp.ai/v1), with the resolved dialect appending only its own fixed operation suffix on top (/chat/completions for openai, /messages for anthropic, /models/{model}:generateContent or :streamGenerateContent for gemini). The path defaults to /v1 when omitted (for example https://aicomp.ai resolves the same as https://aicomp.ai/v1), except for the gemini dialect where it defaults to /v1beta.",
+                        "description": "Base URL of the large language model server this client connects to, mirroring the base_url convention of the official SDKs: the whole origin plus a shared path prefix (for example https://aicomp.ai/v1), with the resolved dialect appending only its own fixed operation suffix on top (/chat/completions or /responses for openai, /messages for anthropic, /models/{model}:generateContent or :streamGenerateContent for gemini). The path defaults to /v1 when omitted (for example https://aicomp.ai resolves the same as https://aicomp.ai/v1), except for the gemini dialect where it defaults to /v1beta.",
                         "type": "string",
                         "format": "uri",
                         "pattern": "^https?://"

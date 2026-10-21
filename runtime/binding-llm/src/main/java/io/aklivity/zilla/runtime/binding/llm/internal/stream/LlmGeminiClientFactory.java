@@ -171,6 +171,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final DirectBufferEx ARGUMENTS_SUFFIX = new UnsafeBufferEx("}".getBytes(UTF_8));
     private static final String TOOL_CALL_ID_PREFIX = "call_0_";
 
+    private static final String VENDOR_PREFIX = NAME + ":";
     private static final String KEY_FINISH_REASON = "finishReason";
     private static final String MEMBER_ROLE = "role";
     private static final String MEMBER_TEXT = "text";
@@ -1094,7 +1095,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 case "MAX_TOKENS" -> "length";
                 case "SAFETY", "RECITATION", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII", "IMAGE_SAFETY", "LANGUAGE" ->
                     "content-filter";
-                default -> reported;
+                default -> VENDOR_PREFIX + reported;
                 };
             }
 
@@ -3676,6 +3677,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private final String scheme;
         private final String authority;
         private final String requestPath;
+        private final boolean sameDialect;
 
         private final JsonGeneratorEx generator;
 
@@ -3763,6 +3765,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             this.authority = server.host + ":" + server.port;
             this.requestPath = server.path + PATH_MODELS + stream.model + ':' +
                 (generate ? OPERATION_GENERATE : OPERATION_STREAM + QUERY_ALT_SSE);
+            this.sameDialect = !stream.crossDialect;
             this.generator = JsonEx.createGenerator();
         }
 
@@ -3837,7 +3840,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         {
             if (toolCallPipeline == null)
             {
-                toolCallTransform = new LlmGeminiToolCallFromCanonical();
+                toolCallTransform = new LlmGeminiToolCallFromCanonical(sameDialect);
                 toolCallPipeline = new LlmSectionPipeline(toolCallTransform, transformBuffer);
             }
 
@@ -3887,10 +3890,10 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             {
                 final LlmGeminiMediaFromCanonical transform = switch (kind)
                 {
-                case KIND_USER_IMAGE -> LlmGeminiMediaFromCanonical.image();
-                case KIND_USER_AUDIO -> LlmGeminiMediaFromCanonical.audio();
-                case KIND_USER_VIDEO -> LlmGeminiMediaFromCanonical.video();
-                default -> LlmGeminiMediaFromCanonical.document();
+                case KIND_USER_IMAGE -> LlmGeminiMediaFromCanonical.image(sameDialect);
+                case KIND_USER_AUDIO -> LlmGeminiMediaFromCanonical.audio(sameDialect);
+                case KIND_USER_VIDEO -> LlmGeminiMediaFromCanonical.video(sameDialect);
+                default -> LlmGeminiMediaFromCanonical.document(sameDialect);
                 };
 
                 mediaPipelines[index] = new LlmSectionPipeline(transform, transformBuffer);
@@ -3903,7 +3906,8 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         {
             if (serverToolCallPipeline == null)
             {
-                serverToolCallPipeline = new LlmSectionPipeline(new LlmGeminiServerToolCallFromCanonical(), transformBuffer);
+                serverToolCallPipeline = new LlmSectionPipeline(new LlmGeminiServerToolCallFromCanonical(sameDialect),
+                    transformBuffer);
             }
 
             return serverToolCallPipeline;
@@ -3923,7 +3927,8 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         {
             if (toolDefinitionPipeline == null)
             {
-                toolDefinitionPipeline = new LlmSectionPipeline(new LlmGeminiToolDefinitionFromCanonical(), transformBuffer);
+                toolDefinitionPipeline = new LlmSectionPipeline(new LlmGeminiToolDefinitionFromCanonical(sameDialect),
+                    transformBuffer);
             }
 
             return toolDefinitionPipeline;
@@ -3933,7 +3938,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         {
             if (controlPipeline == null)
             {
-                controlTransform = new LlmGeminiControlFromCanonical();
+                controlTransform = new LlmGeminiControlFromCanonical(sameDialect);
                 controlPipeline = new LlmSectionPipeline(controlTransform, transformBuffer);
             }
 
@@ -3963,16 +3968,9 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             int message,
             String toolCallId)
         {
-            if (kind == KIND_DROPPED || stream.crossDialect && serverPart(kind))
+            if (kind == KIND_DROPPED || stream.crossDialect && (serverPart(kind) || kind == KIND_SERVER_TOOL_DEFINITION))
             {
                 doEncodeDialectDropped();
-                return;
-            }
-
-            if (kind == KIND_SERVER_TOOL_DEFINITION && stream.crossDialect)
-            {
-                sectionKind = KIND_UNSUPPORTED;
-                encodeFailed = true;
                 return;
             }
 

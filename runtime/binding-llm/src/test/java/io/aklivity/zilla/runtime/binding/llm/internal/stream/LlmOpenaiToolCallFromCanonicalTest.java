@@ -28,7 +28,8 @@ public class LlmOpenaiToolCallFromCanonicalTest
 {
     private static final String HUGE = "x".repeat(5000);
 
-    private final LlmOpenaiToolCallFromCanonical transform = new LlmOpenaiToolCallFromCanonical();
+    private final LlmOpenaiToolCallFromCanonical transform = new LlmOpenaiToolCallFromCanonical(true);
+    private final LlmOpenaiToolCallFromCanonical foreign = new LlmOpenaiToolCallFromCanonical(false);
 
     private final Consumer<LlmSectionAttributes> id = attributes -> attributes.toolCallId("call_1");
     private final Consumer<LlmSectionAttributes> name = attributes -> attributes.toolName("get_weather");
@@ -159,5 +160,23 @@ public class LlmOpenaiToolCallFromCanonicalTest
         assertRejects(transform, both, null, json("[1]"));
         assertRejects(transform, both, null, json("5"));
         assertRejects(transform, both, null, " ");
+    }
+
+    @Test
+    public void shouldDropOwnPrefixedMemberAcrossDialects()
+    {
+        assertTransforms(foreign, both, null,
+            json("{'openai:index':0,'arguments':{'a':1}}"),
+            json("{'id':'call_1','type':'function','function':{'name':'get_weather','arguments':") +
+                quote(json("{'a':1}")) + "}}");
+    }
+
+    @Test
+    public void shouldPassUnprefixedMemberAcrossDialects()
+    {
+        assertTransforms(foreign, both, null,
+            json("{'arguments':{'a':1},'kept':true}"),
+            json("{'id':'call_1','type':'function','function':{'name':'get_weather','arguments':") +
+                quote(json("{'a':1}")) + json("},'kept':true}"));
     }
 }
