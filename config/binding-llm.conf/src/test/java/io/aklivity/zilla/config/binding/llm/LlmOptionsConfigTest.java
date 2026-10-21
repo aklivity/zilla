@@ -233,4 +233,56 @@ public class LlmOptionsConfigTest
 
         assertThat(options.models.get(0).tiers, nullValue());
     }
+
+    @Test
+    public void shouldBuildModelWithUnsupportedAndExclusive()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .model()
+                .name("gpt-5")
+                .unsupported(List.of("seed", "response_format"))
+                .exclusive(List.of(List.of("reasoning_effort", "thinking_budget_tokens")))
+                .build()
+            .build();
+
+        assertThat(options.models.get(0).unsupported, equalTo(List.of("seed", "response_format")));
+        assertThat(options.models.get(0).exclusive, equalTo(List.of(List.of("reasoning_effort", "thinking_budget_tokens"))));
+    }
+
+    @Test
+    public void shouldBuildModelWithoutUnsupportedAndExclusive()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .model()
+                .name("gpt-5")
+                .build()
+            .build();
+
+        assertThat(options.models.get(0).unsupported, nullValue());
+        assertThat(options.models.get(0).exclusive, nullValue());
+    }
+
+    @Test
+    public void shouldBuildOptionsWithUnsupportedAndExclusive()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .dialect("openai")
+            .unsupported(List.of("parallel_tool_calls"))
+            .exclusive(List.of(List.of("thinking_budget_tokens", "reasoning_effort")))
+            .build();
+
+        assertThat(options.unsupported, equalTo(List.of("parallel_tool_calls")));
+        assertThat(options.exclusive, equalTo(List.of(List.of("thinking_budget_tokens", "reasoning_effort"))));
+    }
+
+    @Test
+    public void shouldBuildOptionsWithoutUnsupportedAndExclusive()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .dialect("openai")
+            .build();
+
+        assertThat(options.unsupported, nullValue());
+        assertThat(options.exclusive, nullValue());
+    }
 }

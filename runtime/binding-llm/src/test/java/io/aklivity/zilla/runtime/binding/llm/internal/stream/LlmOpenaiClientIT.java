@@ -2561,4 +2561,285 @@ public class LlmOpenaiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.unsupported.yaml")
+    @ScriptProperty({
+        "source \"anthropic\"",
+        "target \"openai\"",
+        "model \"strict-model\"",
+        "member \"parallel_tool_calls\"",
+        "value \"false\""})
+    @Specification({
+        "${app}/transform.rejected.member/client",
+        "${net}/openai.transform.rejected.member/server"})
+    public void shouldRejectUnsupportedParallelToolCallsFalseAsOpenaiNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.unsupported.yaml")
+    @ScriptProperty({
+        "source \"anthropic\"",
+        "target \"openai\"",
+        "model \"strict-model\"",
+        "member \"response_format\"",
+        "value \"{\\\"type\\\":\\\"json_object\\\"}\""})
+    @Specification({
+        "${app}/transform.rejected.member/client",
+        "${net}/openai.transform.rejected.member/server"})
+    public void shouldRejectUnsupportedResponseFormatJsonObjectAsOpenaiNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.unsupported.yaml")
+    @ScriptProperty({
+        "source \"anthropic\"",
+        "target \"openai\"",
+        "model \"strict-model\"",
+        "member \"response_format\"",
+        "value \"{\\\"type\\\":\\\"json_schema\\\",\\\"json_schema\\\":{\\\"name\\\":\\\"n\\\",\\\"schema\\\":{}}}\""})
+    @Specification({
+        "${app}/transform.rejected.member/client",
+        "${net}/openai.transform.rejected.member/server"})
+    public void shouldRejectUnsupportedResponseFormatJsonSchemaAsOpenaiNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.unsupported.yaml")
+    @ScriptProperty({
+        "source \"anthropic\"",
+        "target \"openai\"",
+        "model \"strict-model\"",
+        "member \"tool_choice\"",
+        "value \"\\\"required\\\"\""})
+    @Specification({
+        "${app}/transform.rejected.member/client",
+        "${net}/openai.transform.rejected.member/server"})
+    public void shouldRejectUnsupportedToolChoiceRequiredAsOpenaiNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.unsupported.yaml")
+    @ScriptProperty({
+        "source \"anthropic\"",
+        "target \"openai\"",
+        "model \"strict-model\"",
+        "member \"stop\"",
+        "value \"[\\\"END\\\"]\""})
+    @Specification({
+        "${app}/transform.rejected.member/client",
+        "${net}/openai.transform.rejected.member/server"})
+    public void shouldRejectUnsupportedStopAsOpenaiNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.unsupported.yaml")
+    @ScriptProperty({
+        "source \"anthropic\"",
+        "target \"openai\"",
+        "model \"strict-model\"",
+        "member \"parallel_tool_calls\"",
+        "value \"true\""})
+    @Specification({
+        "${app}/transform.request.member/client",
+        "${net}/openai.transform.request.dropped/server"})
+    public void shouldDropUnsupportedParallelToolCallsTrueAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.unsupported.yaml")
+    @ScriptProperty({
+        "source \"anthropic\"",
+        "target \"openai\"",
+        "model \"strict-model\"",
+        "member \"response_format\"",
+        "value \"{\\\"type\\\":\\\"text\\\"}\""})
+    @Specification({
+        "${app}/transform.request.member/client",
+        "${net}/openai.transform.request.dropped/server"})
+    public void shouldDropUnsupportedResponseFormatTextAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.unsupported.yaml")
+    @ScriptProperty({
+        "source \"anthropic\"",
+        "target \"openai\"",
+        "model \"strict-model\"",
+        "member \"tool_choice\"",
+        "value \"\\\"auto\\\"\""})
+    @Specification({
+        "${app}/transform.request.member/client",
+        "${net}/openai.transform.request.dropped/server"})
+    public void shouldDropUnsupportedToolChoiceAutoAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.unsupported.yaml")
+    @ScriptProperty({
+        "source \"anthropic\"",
+        "target \"openai\"",
+        "model \"strict-model\"",
+        "member \"stop\"",
+        "value \"null\""})
+    @Specification({
+        "${app}/transform.request.member/client",
+        "${net}/openai.transform.request.dropped/server"})
+    public void shouldDropUnsupportedStopNullAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.unsupported.yaml")
+    @ScriptProperty({
+        "source \"anthropic\"",
+        "target \"openai\"",
+        "model \"strict-model\"",
+        "member \"parallel_tool_calls\"",
+        "value \"null\""})
+    @Specification({
+        "${app}/transform.request.member/client",
+        "${net}/openai.transform.request.dropped/server"})
+    public void shouldDropUnsupportedParallelToolCallsNullAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.unsupported.yaml")
+    @ScriptProperty({
+        "source \"anthropic\"",
+        "target \"openai\"",
+        "model \"strict-model\"",
+        "member \"user\"",
+        "value \"\\\"user-1\\\"\""})
+    @Specification({
+        "${app}/transform.request.member/client",
+        "${net}/openai.transform.request.dropped/server"})
+    public void shouldDropUnsupportedUserAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.unsupported.yaml")
+    @ScriptProperty({
+        "source \"anthropic\"",
+        "target \"openai\"",
+        "model \"strict-model\"",
+        "member \"reasoning_effort\"",
+        "value \"\\\"high\\\"\""})
+    @Specification({
+        "${app}/transform.request.member/client",
+        "${net}/openai.transform.request.dropped/server"})
+    public void shouldDropUnsupportedReasoningEffortAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.unsupported.yaml")
+    @ScriptProperty({
+        "source \"anthropic\"",
+        "target \"openai\"",
+        "member \"seed\"",
+        "value \"42\""})
+    @Specification({
+        "${app}/transform.request.member/client",
+        "${net}/openai.transform.request.dropped/server"})
+    public void shouldDropUnsupportedSeedByDefaultAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.unsupported.yaml")
+    @ScriptProperty({
+        "source \"anthropic\"",
+        "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.parallel/client",
+        "${net}/openai.transform.request.tool.choice.parallel/server"})
+    public void shouldTransformParallelToolCallsFalseWhenNotUnsupportedAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.unsupported.yaml")
+    @ScriptProperty({
+        "source \"anthropic\"",
+        "target \"openai\"",
+        "model \"lenient-model\""})
+    @Specification({
+        "${app}/transform.request.sampling.seed/client",
+        "${net}/openai.transform.request.sampling.seed/server"})
+    public void shouldTransformSeedWhenModelEntryClearsUnsupportedAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.unsupported.yaml")
+    @ScriptProperty({
+        "source \"anthropic\"",
+        "target \"openai\"",
+        "model \"strict-model\""})
+    @Specification({
+        "${app}/transform.request.sampling.seed/client",
+        "${net}/openai.transform.request.sampling.seed/server"})
+    public void shouldTransformSeedWhenModelEntryReplacesUnsupportedAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.exclusive.yaml")
+    @ScriptProperty({
+        "source \"anthropic\"",
+        "target \"openai\"",
+        "effort \"high\"",
+        "budget \"8192\"",
+        "wire \"medium\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort.budget/client",
+        "${net}/openai.transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortAndBudgetBudgetFirstByDefaultAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.exclusive.yaml")
+    @ScriptProperty({
+        "source \"anthropic\"",
+        "target \"openai\"",
+        "model \"effort-first\"",
+        "effort \"high\"",
+        "budget \"8192\"",
+        "wire \"high\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort.budget/client",
+        "${net}/openai.transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortAndBudgetEffortFirstAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
 }

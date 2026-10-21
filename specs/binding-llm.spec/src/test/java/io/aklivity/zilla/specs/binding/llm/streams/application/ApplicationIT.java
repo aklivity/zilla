@@ -8612,4 +8612,22 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.member/client",
+        "${app}/transform.request.member/server"})
+    public void shouldTransformRequestMember() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.member/client",
+        "${app}/transform.rejected.member/server"})
+    public void shouldTransformRejectedMember() throws Exception
+    {
+        k3po.finish();
+    }
 }

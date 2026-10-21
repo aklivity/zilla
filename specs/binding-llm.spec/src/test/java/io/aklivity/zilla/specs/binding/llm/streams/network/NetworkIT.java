@@ -8639,4 +8639,40 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.rejected.member/client",
+        "${net}/openai.transform.rejected.member/server"})
+    public void shouldOpenaiTransformRejectedMember() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.rejected.member/client",
+        "${net}/openai.responses.transform.rejected.member/server"})
+    public void shouldOpenaiResponsesTransformRejectedMember() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.rejected.member/client",
+        "${net}/anthropic.transform.rejected.member/server"})
+    public void shouldAnthropicTransformRejectedMember() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.rejected.member/client",
+        "${net}/gemini.transform.rejected.member/server"})
+    public void shouldGeminiTransformRejectedMember() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -266,6 +266,129 @@ public class LlmModelCatalogTest
         assertThat(catalog.resolve("m-1").supports(LlmServiceTier.AUTO), equalTo(false));
     }
 
+    @Test
+    public void shouldListNoMemberWithoutUnsupportedEntry()
+    {
+        final LlmModelCatalog catalog = new LlmModelCatalog(List.of(model("m").sampling(false).build()), List.of());
+
+        assertThat(catalog.resolve("m").unsupported, equalTo(0));
+        assertThat(catalog.resolve("m").excluded(0b110000000000), equalTo(0));
+    }
+
+    @Test
+    public void shouldResolveUnsupportedAndExclusive()
+    {
+        final LlmModelCatalog catalog = new LlmModelCatalog(
+            List.of(model("m")
+                .unsupported(List.of("parallel_tool_calls", "seed"))
+                .exclusive(List.of(List.of("thinking_budget_tokens", "reasoning_effort")))
+                .build()),
+            List.of());
+
+        final LlmModelCapability capability = catalog.resolve("m");
+
+        assertThat(capability.unsupported(LlmMember.PARALLEL_TOOL_CALLS), equalTo(true));
+        assertThat(capability.unsupported(LlmMember.SEED), equalTo(true));
+        assertThat(capability.unsupported(LlmMember.STOP), equalTo(false));
+        assertThat(capability.excluded(1 << LlmMember.REASONING_EFFORT | 1 << LlmMember.THINKING_BUDGET_TOKENS),
+            equalTo(1 << LlmMember.REASONING_EFFORT));
+    }
+
+    @Test
+    public void shouldApplyDialectLevelUnsupportedToEveryModel()
+    {
+        final LlmModelCatalog catalog = new LlmModelCatalog(
+            List.of(),
+            model("*").unsupported(List.of("seed")).build(),
+            List.of());
+
+        assertThat(catalog.resolve("any").unsupported(LlmMember.SEED), equalTo(true));
+        assertThat(catalog.resolve("other").unsupported(LlmMember.SEED), equalTo(true));
+    }
+
+    @Test
+    public void shouldReplaceDialectLevelUnsupportedWithModelEntry()
+    {
+        final LlmModelCatalog catalog = new LlmModelCatalog(
+            List.of(model("strict-*").unsupported(List.of("stop")).build()),
+            model("*").unsupported(List.of("seed")).build(),
+            List.of());
+
+        assertThat(catalog.resolve("strict-1").unsupported(LlmMember.STOP), equalTo(true));
+        assertThat(catalog.resolve("strict-1").unsupported(LlmMember.SEED), equalTo(false));
+        assertThat(catalog.resolve("other").unsupported(LlmMember.STOP), equalTo(false));
+        assertThat(catalog.resolve("other").unsupported(LlmMember.SEED), equalTo(true));
+    }
+
+    @Test
+    public void shouldClearDialectLevelUnsupportedWithEmptyModelEntry()
+    {
+        final LlmModelCatalog catalog = new LlmModelCatalog(
+            List.of(model("lenient-*").unsupported(List.of()).build()),
+            model("*").unsupported(List.of("seed")).build(),
+            List.of());
+
+        assertThat(catalog.resolve("lenient-1").unsupported, equalTo(0));
+        assertThat(catalog.resolve("other").unsupported(LlmMember.SEED), equalTo(true));
+    }
+
+    @Test
+    public void shouldMergeDialectLevelPerField()
+    {
+        final LlmModelCatalog catalog = new LlmModelCatalog(
+            List.of(model("m").sampling(false).unsupported(List.of("stop")).build()),
+            model("*")
+                .unsupported(List.of("seed"))
+                .exclusive(List.of(List.of("reasoning_effort", "thinking_budget_tokens")))
+                .build(),
+            List.of());
+
+        final LlmModelCapability capability = catalog.resolve("m");
+
+        assertThat(capability.sampling, equalTo(false));
+        assertThat(capability.unsupported(LlmMember.STOP), equalTo(true));
+        assertThat(capability.unsupported(LlmMember.SEED), equalTo(false));
+        assertThat(capability.excluded(1 << LlmMember.REASONING_EFFORT | 1 << LlmMember.THINKING_BUDGET_TOKENS),
+            equalTo(1 << LlmMember.THINKING_BUDGET_TOKENS));
+    }
+
+    @Test
+    public void shouldPreferConfiguredEntryOverDialectLevel()
+    {
+        final LlmModelCatalog catalog = new LlmModelCatalog(
+            List.of(model("*").unsupported(List.of("stop")).build()),
+            model("*").unsupported(List.of("seed")).build(),
+            List.of());
+
+        assertThat(catalog.resolve("m").unsupported(LlmMember.STOP), equalTo(true));
+        assertThat(catalog.resolve("m").unsupported(LlmMember.SEED), equalTo(false));
+    }
+
+    @Test
+    public void shouldPreferDialectLevelOverDefault()
+    {
+        final LlmModelCatalog catalog = new LlmModelCatalog(
+            List.of(),
+            model("*").unsupported(List.of("seed")).build(),
+            List.of(model("m").unsupported(List.of("stop")).build()));
+
+        assertThat(catalog.resolve("m").unsupported(LlmMember.SEED), equalTo(true));
+        assertThat(catalog.resolve("m").unsupported(LlmMember.STOP), equalTo(false));
+    }
+
+    @Test
+    public void shouldResolveExclusiveFromDialectLevelOnly()
+    {
+        final LlmModelCatalog catalog = new LlmModelCatalog(
+            List.of(),
+            model("*").exclusive(List.of(List.of("thinking_budget_tokens", "reasoning_effort"))).build(),
+            List.of());
+
+        assertThat(catalog.resolve("any").excluded(1 << LlmMember.REASONING_EFFORT | 1 << LlmMember.THINKING_BUDGET_TOKENS),
+            equalTo(1 << LlmMember.REASONING_EFFORT));
+        assertThat(catalog.resolve("any").unsupported, equalTo(0));
+    }
+
     private static LlmModelConfigBuilder<LlmModelConfig> model(
         String name)
     {

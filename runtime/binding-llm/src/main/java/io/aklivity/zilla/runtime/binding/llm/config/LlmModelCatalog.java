@@ -25,14 +25,30 @@ import io.aklivity.zilla.runtime.common.lang.Matchers;
 
 final class LlmModelCatalog
 {
+    private static final int[][] NO_GROUPS = new int[0][];
+
     private final List<Entry> entries;
 
     LlmModelCatalog(
         List<LlmModelConfig> configured,
         List<LlmModelConfig> defaults)
     {
-        this.entries = new ArrayList<>(configured.size() + defaults.size());
+        this(configured, null, defaults);
+    }
+
+    LlmModelCatalog(
+        List<LlmModelConfig> configured,
+        LlmModelConfig dialect,
+        List<LlmModelConfig> defaults)
+    {
+        this.entries = new ArrayList<>(configured.size() + defaults.size() + 1);
         addAll(configured);
+
+        if (dialect != null)
+        {
+            add(dialect);
+        }
+
         addAll(defaults);
     }
 
@@ -49,6 +65,8 @@ final class LlmModelCatalog
             Integer budgetMaximum = null;
             Map<String, Integer> ladder = null;
             List<String> tiers = null;
+            List<String> unsupported = null;
+            List<List<String>> exclusive = null;
 
             for (Entry entry : entries)
             {
@@ -62,11 +80,13 @@ final class LlmModelCatalog
                     budgetMaximum = budgetMaximum != null ? budgetMaximum : config.budgetMaximum;
                     ladder = ladder != null ? ladder : config.ladder.isEmpty() ? null : config.ladder;
                     tiers = tiers != null ? tiers : config.tiers;
+                    unsupported = unsupported != null ? unsupported : config.unsupported;
+                    exclusive = exclusive != null ? exclusive : config.exclusive;
                 }
             }
 
             capability = sampling == null && thinking == null && budgetMinimum == null && budgetMaximum == null &&
-                ladder == null && tiers == null
+                ladder == null && tiers == null && unsupported == null && exclusive == null
                 ? LlmModelCapability.UNSPECIFIED
                 : new LlmModelCapability(
                     sampling == null || sampling,
@@ -74,7 +94,9 @@ final class LlmModelCatalog
                     budgetMinimum != null ? budgetMinimum : LlmModelCapability.UNSET,
                     budgetMaximum != null ? budgetMaximum : LlmModelCapability.UNSET,
                     ladder != null ? ladderOf(ladder) : null,
-                    tiers != null ? LlmServiceTier.maskOf(tiers) : LlmServiceTier.ALL);
+                    tiers != null ? LlmServiceTier.maskOf(tiers) : LlmServiceTier.ALL,
+                    unsupported != null ? LlmMember.maskOf(unsupported) : 0,
+                    exclusive != null ? groupsOf(exclusive) : NO_GROUPS);
         }
 
         return capability;
@@ -95,6 +117,14 @@ final class LlmModelCatalog
         LlmModelConfig model)
     {
         entries.add(new Entry(Matchers.glob(model.name), model));
+    }
+
+    private static int[][] groupsOf(
+        List<List<String>> exclusive)
+    {
+        return exclusive.stream()
+            .map(LlmMember::groupOf)
+            .toArray(int[][]::new);
     }
 
     private static int[] ladderOf(

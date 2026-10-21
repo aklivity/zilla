@@ -2153,4 +2153,455 @@ public class LlmSchemaValidationTest
 
         reader.read(text);
     }
+
+    @Test
+    public void shouldAcceptClientOpenaiModelUnsupportedAndExclusive()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                  models:
+                    m-1:
+                      unsupported:
+                        - parallel_tool_calls
+                        - response_format
+                      exclusive:
+                        - - reasoning_effort
+                          - thinking_budget_tokens
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptClientOpenaiUnsupportedAndExclusive()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                  unsupported:
+                    - temperature
+                    - top_p
+                    - top_k
+                    - stop
+                    - seed
+                    - frequency_penalty
+                    - presence_penalty
+                    - tool_choice
+                    - parallel_tool_calls
+                    - response_format
+                    - reasoning_effort
+                    - thinking_budget_tokens
+                    - user
+                    - service_tier
+                  exclusive:
+                    - - thinking_budget_tokens
+                      - reasoning_effort
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptClientAnthropicModelUnsupportedAndExclusive()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: anthropic
+                  server: http://example.com:8080
+                  models:
+                    m-1:
+                      unsupported:
+                        - parallel_tool_calls
+                        - response_format
+                      exclusive:
+                        - - reasoning_effort
+                          - thinking_budget_tokens
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptClientAnthropicUnsupportedAndExclusive()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: anthropic
+                  server: http://example.com:8080
+                  unsupported:
+                    - temperature
+                    - top_p
+                    - top_k
+                    - stop
+                    - seed
+                    - frequency_penalty
+                    - presence_penalty
+                    - tool_choice
+                    - parallel_tool_calls
+                    - response_format
+                    - reasoning_effort
+                    - thinking_budget_tokens
+                    - user
+                    - service_tier
+                  exclusive:
+                    - - thinking_budget_tokens
+                      - reasoning_effort
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptClientGeminiModelUnsupportedAndExclusive()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: gemini
+                  server: http://example.com:8080
+                  models:
+                    m-1:
+                      unsupported:
+                        - parallel_tool_calls
+                        - response_format
+                      exclusive:
+                        - - reasoning_effort
+                          - thinking_budget_tokens
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptClientGeminiUnsupportedAndExclusive()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: gemini
+                  server: http://example.com:8080
+                  unsupported:
+                    - temperature
+                    - top_p
+                    - top_k
+                    - stop
+                    - seed
+                    - frequency_penalty
+                    - presence_penalty
+                    - tool_choice
+                    - parallel_tool_calls
+                    - response_format
+                    - reasoning_effort
+                    - thinking_budget_tokens
+                    - user
+                    - service_tier
+                  exclusive:
+                    - - thinking_budget_tokens
+                      - reasoning_effort
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptClientModelNoUnsupportedAndNoExclusive()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                  unsupported:
+                    - seed
+                  models:
+                    gpt-5:
+                      unsupported: []
+                      exclusive: []
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientUnsupportedUnknown()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                  unsupported:
+                    - logit_bias
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientUnsupportedDuplicate()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: anthropic
+                  server: http://example.com:8080
+                  unsupported:
+                    - seed
+                    - seed
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientUnsupportedNotArray()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: gemini
+                  server: http://example.com:8080
+                  unsupported: seed
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientModelUnsupportedUnknown()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                  models:
+                    gpt-5:
+                      unsupported:
+                        - logit_bias
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientModelUnsupportedDuplicate()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: gemini
+                  server: http://example.com:8080
+                  models:
+                    gemini-3-flash:
+                      unsupported:
+                        - stop
+                        - stop
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientExclusiveUnknownMember()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                  exclusive:
+                    - - reasoning_effort
+                      - logit_bias
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientExclusiveGroupTooSmall()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: anthropic
+                  server: http://example.com:8080
+                  exclusive:
+                    - - reasoning_effort
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientExclusiveGroupNotArray()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: gemini
+                  server: http://example.com:8080
+                  exclusive:
+                    - reasoning_effort
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientExclusiveNotRecorded()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                  exclusive:
+                    - - stop
+                      - seed
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientModelExclusiveDuplicateMember()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                  models:
+                    gpt-5:
+                      exclusive:
+                        - - reasoning_effort
+                          - reasoning_effort
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
 }

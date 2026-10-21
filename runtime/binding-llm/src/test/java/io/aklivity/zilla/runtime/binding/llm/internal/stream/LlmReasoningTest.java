@@ -21,6 +21,9 @@ import static org.hamcrest.Matchers.equalTo;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.llm.config.LlmEffort;
+import io.aklivity.zilla.runtime.binding.llm.config.LlmMember;
+import io.aklivity.zilla.runtime.binding.llm.config.LlmModelCapability;
+import io.aklivity.zilla.runtime.binding.llm.config.LlmServiceTier;
 
 public class LlmReasoningTest
 {
@@ -96,5 +99,58 @@ public class LlmReasoningTest
 
         assertThat(LlmReasoning.effortFor(4096, empty), equalTo(LlmEffort.ABSENT));
         assertThat(LlmReasoning.effortFor(0, empty), equalTo(LlmEffort.NONE));
+    }
+
+    @Test
+    public void shouldKeepBothWhenNotExclusive()
+    {
+        final LlmModelCapability capability = LlmModelCapability.UNSPECIFIED;
+
+        assertThat(LlmReasoning.exclusiveEffort(capability, LlmEffort.HIGH, 2048), equalTo(LlmEffort.HIGH));
+        assertThat(LlmReasoning.exclusiveBudget(capability, LlmEffort.HIGH, 2048), equalTo(2048));
+    }
+
+    @Test
+    public void shouldDropBudgetWhenEffortIsFirst()
+    {
+        final LlmModelCapability capability = exclusive(LlmMember.REASONING_EFFORT, LlmMember.THINKING_BUDGET_TOKENS);
+
+        assertThat(LlmReasoning.exclusiveEffort(capability, LlmEffort.HIGH, 2048), equalTo(LlmEffort.HIGH));
+        assertThat(LlmReasoning.exclusiveBudget(capability, LlmEffort.HIGH, 2048), equalTo(LlmEffort.ABSENT));
+    }
+
+    @Test
+    public void shouldDropEffortWhenBudgetIsFirst()
+    {
+        final LlmModelCapability capability = exclusive(LlmMember.THINKING_BUDGET_TOKENS, LlmMember.REASONING_EFFORT);
+
+        assertThat(LlmReasoning.exclusiveEffort(capability, LlmEffort.HIGH, 2048), equalTo(LlmEffort.ABSENT));
+        assertThat(LlmReasoning.exclusiveBudget(capability, LlmEffort.HIGH, 2048), equalTo(2048));
+    }
+
+    @Test
+    public void shouldKeepEffortOfZeroBudgetWhenExclusive()
+    {
+        final LlmModelCapability capability = exclusive(LlmMember.THINKING_BUDGET_TOKENS, LlmMember.REASONING_EFFORT);
+
+        assertThat(LlmReasoning.exclusiveEffort(capability, LlmEffort.NONE, 0), equalTo(LlmEffort.ABSENT));
+        assertThat(LlmReasoning.exclusiveBudget(capability, LlmEffort.NONE, 0), equalTo(0));
+    }
+
+    @Test
+    public void shouldKeepTheOnlyMemberPresent()
+    {
+        final LlmModelCapability capability = exclusive(LlmMember.THINKING_BUDGET_TOKENS, LlmMember.REASONING_EFFORT);
+
+        assertThat(LlmReasoning.exclusiveEffort(capability, LlmEffort.HIGH, LlmEffort.ABSENT), equalTo(LlmEffort.HIGH));
+        assertThat(LlmReasoning.exclusiveBudget(capability, LlmEffort.ABSENT, 2048), equalTo(2048));
+        assertThat(LlmReasoning.exclusiveEffort(capability, LlmEffort.ABSENT, LlmEffort.ABSENT), equalTo(LlmEffort.ABSENT));
+        assertThat(LlmReasoning.exclusiveBudget(capability, LlmEffort.ABSENT, LlmEffort.ABSENT), equalTo(LlmEffort.ABSENT));
+    }
+
+    private static LlmModelCapability exclusive(
+        int... group)
+    {
+        return new LlmModelCapability(true, null, UNSET, UNSET, null, LlmServiceTier.ALL, 0, new int[][] {group});
     }
 }

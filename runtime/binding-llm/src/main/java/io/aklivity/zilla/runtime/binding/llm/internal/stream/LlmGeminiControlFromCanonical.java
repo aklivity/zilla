@@ -94,6 +94,7 @@ final class LlmGeminiControlFromCanonical extends LlmFormatFromCanonical
         this.choice = new LlmToolChoice();
         this.scanner = new LlmSchemaScanner(LlmSchemaScanner.TARGET_GEMINI);
         this.capability = capability;
+        legality(capability);
         this.effort = LlmEffort.ABSENT;
         this.budget = LlmEffort.ABSENT;
     }

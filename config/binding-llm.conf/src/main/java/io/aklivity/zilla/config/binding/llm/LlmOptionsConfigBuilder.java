@@ -32,6 +32,8 @@ public final class LlmOptionsConfigBuilder<T> extends ConfigBuilder.Extensible<T
     private LlmServerConfig server;
     private List<LlmGuardrailConfig> guardrails;
     private List<LlmModelConfig> models;
+    private List<String> unsupported;
+    private List<List<String>> exclusive;
 
     LlmOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -103,6 +105,20 @@ public final class LlmOptionsConfigBuilder<T> extends ConfigBuilder.Extensible<T
         return LlmModelConfig.builder(this::model);
     }
 
+    public LlmOptionsConfigBuilder<T> unsupported(
+        List<String> unsupported)
+    {
+        this.unsupported = List.copyOf(unsupported);
+        return this;
+    }
+
+    public LlmOptionsConfigBuilder<T> exclusive(
+        List<List<String>> exclusive)
+    {
+        this.exclusive = exclusive.stream().map(List::copyOf).toList();
+        return this;
+    }
+
     @Override
     public T build()
     {
@@ -114,6 +130,6 @@ public final class LlmOptionsConfigBuilder<T> extends ConfigBuilder.Extensible<T
             .toList();
 
         return mapper.apply(new LlmOptionsConfig(dialect, authorization, server, List.copyOf(guardrails),
-            List.copyOf(models), extensions(), refs));
+            List.copyOf(models), unsupported, exclusive, extensions(), refs));
     }
 }

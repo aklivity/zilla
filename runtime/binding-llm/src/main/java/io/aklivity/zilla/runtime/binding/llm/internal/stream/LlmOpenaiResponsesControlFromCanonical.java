@@ -69,6 +69,7 @@ final class LlmOpenaiResponsesControlFromCanonical extends LlmFormatFromCanonica
         this.members = mode == MODE_OBJECT;
         this.choice = new LlmToolChoice();
         this.capability = capability;
+        legality(capability);
         this.effort = LlmEffort.ABSENT;
         this.budget = LlmEffort.ABSENT;
     }
