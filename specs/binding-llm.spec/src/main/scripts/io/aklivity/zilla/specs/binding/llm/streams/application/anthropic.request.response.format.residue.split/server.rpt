@@ -22,7 +22,7 @@ accepted
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("anthropic")
-                           .model("claude-3-opus-20240229")
+                           .model("claude-opus-4-6")
                            .build()}
 
 connected
@@ -39,7 +39,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-read "{\"anthropic:output_config\":{\"effort\":\"low\"},\"x:response_format\":{\"type\":\"json_schema\",\"json_schema\":{\"name\":\"response\",\"schema\":{\"type\":\"object\",\"properties\":{\"answer\":{\"type\":\"string\"}},\"required\":[\"answer\"],\"additionalProperties\":false}}},\"anthropic:output_config\":{\"other\":true}}"
+read "{\"x:reasoning_effort\":\"low\",\"x:response_format\":{\"type\":\"json_schema\",\"json_schema\":{\"name\":\"response\",\"schema\":{\"type\":\"object\",\"properties\":{\"answer\":{\"type\":\"string\"}},\"required\":[\"answer\"],\"additionalProperties\":false}}},\"anthropic:output_config\":{\"other\":true}}"
 
 read advised zilla:flush ${llm:matchDialectFlushEx()
                                  .typeId(zilla:id("llm"))

@@ -30,7 +30,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"x:temperature\":0.5,\"anthropic:container_id\":\"ctr\\u005f1\",\"anthropic:thinking\":{ \"type\" : \"enabled\" , \"budget_tokens\" : 2048 }}"
+write "{\"x:temperature\":0.5,\"anthropic:container_id\":\"ctr\\u005f1\",\"anthropic:metadata\":{ \"user_id\" : \"u1\" }}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()

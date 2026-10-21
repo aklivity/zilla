@@ -31,6 +31,8 @@ import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.config.binding.llm.LlmServerConfig;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmBindingConfig;
+import io.aklivity.zilla.runtime.binding.llm.config.LlmEffort;
+import io.aklivity.zilla.runtime.binding.llm.config.LlmModelCapability;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmRouteConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectHandler;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmBinding;
@@ -130,8 +132,11 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
     private static final String MEMBER_OUTPUT = "output";
     private static final String MEMBER_CONTENT = "content";
     private static final String MEMBER_TEXT = "text";
-    private static final String[] CONTAINERS = {MEMBER_TEXT};
+    private static final String MEMBER_REASONING = "reasoning";
+    private static final String MEMBER_EFFORT = "effort";
+    private static final String[] CONTAINERS = {MEMBER_TEXT, MEMBER_REASONING};
     private static final int CONTAINER_TEXT = 0;
+    private static final int CONTAINER_REASONING = 1;
     private static final String MEMBER_INCOMPLETE_DETAILS = "incomplete_details";
     private static final String MEMBER_REASON = "reason";
     private static final String TYPE_ERROR = "error";
@@ -247,7 +252,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
     private static final int ENCODE_SLACK = 256;
     private static final int ENCODE_STRUCTURE = 128;
     private static final int ENCODE_MAX_OUTPUT_TOKENS = 48;
-    private static final int ENCODE_CONTAINER = 32;
+    private static final int ENCODE_CONTAINER = 64;
     private static final int NO_MAX_OUTPUT_TOKENS = -1;
 
     private static final String MEMBER_MODEL = "model";
@@ -5635,6 +5640,9 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         private LlmSectionPipeline.Output sectionOutput;
         private LlmSectionPipeline controlPipeline;
         private LlmOpenaiResponsesControlFromCanonical controlTransform;
+        private LlmModelCapability capability = LlmModelCapability.UNSPECIFIED;
+        private int effort = LlmEffort.ABSENT;
+        private int budget = LlmEffort.ABSENT;
         private int controlMessage;
         private LlmTextPipeline encodeText;
         private final LlmTextPipeline sectionText = new LlmTextPipeline(this::onSectionText);
@@ -5903,7 +5911,8 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         {
             if (controlPipeline == null)
             {
-                controlTransform = LlmOpenaiResponsesControlFromCanonical.members(sameDialect);
+                capability = stream.binding.capability(stream.model);
+                controlTransform = LlmOpenaiResponsesControlFromCanonical.members(sameDialect, capability);
                 controlPipeline = new LlmSectionPipeline(controlTransform, transformBuffer);
             }
 
@@ -6524,8 +6533,26 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             }
         }
 
+        private void onControlEnd()
+        {
+            if (controlTransform.effort() != LlmEffort.ABSENT)
+            {
+                effort = controlTransform.effort();
+            }
+
+            if (controlTransform.budget() != LlmEffort.ABSENT)
+            {
+                budget = controlTransform.budget();
+            }
+        }
+
         private void doEncodeSectionEnd()
         {
+            if (sectionKind == KIND_CONTROL && sectionStreaming)
+            {
+                onControlEnd();
+            }
+
             encodeText = null;
 
             if (sectionKind != 0 && sectionKind != KIND_DROPPED && beginEncode(ENCODE_STRUCTURE))
@@ -6605,6 +6632,21 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                 {
                     closeMessage();
                     closeRegions();
+
+                    final String reasoning = LlmOpenaiReasoning.effort(capability, effort, budget);
+
+                    if (reasoning != null || collector.holds(CONTAINER_REASONING))
+                    {
+                        generator.writeStartObject(MEMBER_REASONING);
+
+                        if (reasoning != null)
+                        {
+                            generator.write(MEMBER_EFFORT, reasoning);
+                        }
+
+                        collector.drain(CONTAINER_REASONING, containerOutput);
+                        generator.writeEnd();
+                    }
 
                     if (collector.holds(CONTAINER_TEXT))
                     {

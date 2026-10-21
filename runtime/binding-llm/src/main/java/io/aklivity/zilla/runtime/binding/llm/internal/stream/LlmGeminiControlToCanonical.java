@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import io.aklivity.zilla.runtime.binding.llm.config.LlmEffort;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
@@ -54,6 +55,16 @@ final class LlmGeminiControlToCanonical extends LlmToolTransform
     private static final String DEFAULT_NAME = "response";
     private static final String MIME_JSON = "application/json";
     private static final String MIME_JSON_ENUM = "APPLICATION_JSON";
+    private static final String MEMBER_THINKING_CONFIG = "thinkingConfig";
+    private static final String MEMBER_THINKING_CONFIG_SNAKE = "thinking_config";
+    private static final String MEMBER_THINKING_LEVEL = "thinkingLevel";
+    private static final String MEMBER_THINKING_LEVEL_SNAKE = "thinking_level";
+    private static final String MEMBER_THINKING_BUDGET = "thinkingBudget";
+    private static final String MEMBER_THINKING_BUDGET_SNAKE = "thinking_budget";
+    private static final String MEMBER_SHARED_REASONING_EFFORT = "x:reasoning_effort";
+    private static final String MEMBER_SHARED_THINKING_BUDGET = "x:thinking_budget_tokens";
+    private static final String[] LEVELS = {"MINIMAL", "LOW", "MEDIUM", "HIGH"};
+    private static final String[] EFFORTS = {"minimal", "low", "medium", "high"};
 
     private static final int FORMAT_OFF = 0;
     private static final int FORMAT_UNDECIDED = 1;
@@ -64,11 +75,22 @@ final class LlmGeminiControlToCanonical extends LlmToolTransform
     private static final int FORMAT_RESIDUE_TEXT = 6;
     private static final int FORMAT_LIFTED_CLOSED = 7;
 
+    private static final int CONTAINER_NONE = 0;
+    private static final int CONTAINER_FORMAT = 1;
+    private static final int CONTAINER_THINKING = 2;
+
+    private static final int THINKING_NONE = 0;
+    private static final int THINKING_RESIDUE = 1;
+    private static final int THINKING_LIFTED = 2;
+
     private final LlmToolChoice choice;
 
     private String residueKey;
     private String formatKey;
+    private String thinkingKey;
     private int format;
+    private int container;
+    private int thinking;
 
     LlmGeminiControlToCanonical()
     {
@@ -89,6 +111,9 @@ final class LlmGeminiControlToCanonical extends LlmToolTransform
         super.reset();
         format = FORMAT_OFF;
         formatKey = null;
+        thinkingKey = null;
+        container = CONTAINER_NONE;
+        thinking = THINKING_NONE;
     }
 
     @Override
@@ -104,14 +129,22 @@ final class LlmGeminiControlToCanonical extends LlmToolTransform
         }
         else if (depth == 1 && (matches(key, MEMBER_RESPONSE_FORMAT) || matches(key, MEMBER_RESPONSE_FORMAT_SNAKE)))
         {
+            container = CONTAINER_FORMAT;
             formatKey = name(key);
             target = formatKey;
             nest(residueKey);
             action = DESCEND_OR_PASS;
         }
+        else if (depth == 1 && (matches(key, MEMBER_THINKING_CONFIG) || matches(key, MEMBER_THINKING_CONFIG_SNAKE)))
+        {
+            container = CONTAINER_THINKING;
+            prefix(DIALECT, key);
+            thinkingKey = target;
+            action = DESCEND_OR_PASS;
+        }
         else if (depth == 2)
         {
-            action = formatMember(key);
+            action = container == CONTAINER_THINKING ? thinkingMember(key) : formatMember(key);
         }
         else if (depth == 3)
         {
@@ -129,7 +162,14 @@ final class LlmGeminiControlToCanonical extends LlmToolTransform
     protected Status onDescend(
         int depth)
     {
-        format = depth == 2 ? FORMAT_UNDECIDED : FORMAT_TEXT;
+        if (container == CONTAINER_THINKING)
+        {
+            thinking = THINKING_NONE;
+        }
+        else
+        {
+            format = depth == 2 ? FORMAT_UNDECIDED : FORMAT_TEXT;
+        }
 
         return Status.ADVANCED;
     }
@@ -140,7 +180,11 @@ final class LlmGeminiControlToCanonical extends LlmToolTransform
     {
         Status status = Status.ADVANCED;
 
-        if (matches(capturedMember(), MEMBER_MIME_TYPE) || matches(capturedMember(), MEMBER_MIME_TYPE_SNAKE))
+        if (container == CONTAINER_THINKING)
+        {
+            onThinkingCaptured(value);
+        }
+        else if (matches(capturedMember(), MEMBER_MIME_TYPE) || matches(capturedMember(), MEMBER_MIME_TYPE_SNAKE))
         {
             onMimeType(value);
         }
@@ -183,6 +227,10 @@ final class LlmGeminiControlToCanonical extends LlmToolTransform
         {
             onTextClose();
         }
+        else if (depth == 2 && container == CONTAINER_THINKING)
+        {
+            onThinkingClose();
+        }
         else if (depth == 2)
         {
             onFormatClose();
@@ -193,6 +241,112 @@ final class LlmGeminiControlToCanonical extends LlmToolTransform
         }
 
         return Status.ADVANCED;
+    }
+
+    private int thinkingMember(
+        CharSequence key)
+    {
+        int action;
+
+        if (matches(key, MEMBER_THINKING_LEVEL) ||
+            matches(key, MEMBER_THINKING_LEVEL_SNAKE) ||
+            matches(key, MEMBER_THINKING_BUDGET) ||
+            matches(key, MEMBER_THINKING_BUDGET_SNAKE))
+        {
+            action = capture(key);
+        }
+        else
+        {
+            openThinkingResidue();
+            target = name(key);
+            action = PASS_VALUE;
+        }
+
+        return action;
+    }
+
+    private void onThinkingCaptured(
+        LlmCapturedValue value)
+    {
+        final String member = capturedMember();
+        final boolean level = matches(member, MEMBER_THINKING_LEVEL) || matches(member, MEMBER_THINKING_LEVEL_SNAKE);
+        final String effort = level ? effortOf(value.string(0)) : null;
+        final int budget = !level && value.event(0) == JsonEvent.VALUE_NUMBER ? LlmReasoning.budgetOf(value.text(0)) : -1;
+
+        if (effort != null)
+        {
+            closeThinkingResidue();
+            thinking = THINKING_LIFTED;
+            emit(JsonEvent.KEY_NAME, MEMBER_SHARED_REASONING_EFFORT);
+            emit(JsonEvent.VALUE_STRING, effort);
+        }
+        else if (budget == 0)
+        {
+            closeThinkingResidue();
+            thinking = THINKING_LIFTED;
+            emit(JsonEvent.KEY_NAME, MEMBER_SHARED_REASONING_EFFORT);
+            emit(JsonEvent.VALUE_STRING, LlmEffort.nameOf(LlmEffort.NONE));
+        }
+        else if (budget > 0)
+        {
+            closeThinkingResidue();
+            thinking = THINKING_LIFTED;
+            emit(JsonEvent.KEY_NAME, MEMBER_SHARED_THINKING_BUDGET);
+            emit(JsonEvent.VALUE_NUMBER, value.text(0));
+        }
+        else
+        {
+            openThinkingResidue();
+            emit(JsonEvent.KEY_NAME, member);
+            emitCaptured(value, 0);
+        }
+    }
+
+    private void onThinkingClose()
+    {
+        if (thinking == THINKING_RESIDUE)
+        {
+            emit(JsonEvent.END_OBJECT);
+        }
+        else if (thinking == THINKING_NONE)
+        {
+            emit(JsonEvent.KEY_NAME, thinkingKey);
+            emit(JsonEvent.START_OBJECT);
+            emit(JsonEvent.END_OBJECT);
+        }
+
+        thinking = THINKING_NONE;
+    }
+
+    private void openThinkingResidue()
+    {
+        if (thinking != THINKING_RESIDUE)
+        {
+            thinking = THINKING_RESIDUE;
+            emit(JsonEvent.KEY_NAME, thinkingKey);
+            emit(JsonEvent.START_OBJECT);
+        }
+    }
+
+    private void closeThinkingResidue()
+    {
+        if (thinking == THINKING_RESIDUE)
+        {
+            emit(JsonEvent.END_OBJECT);
+        }
+    }
+
+    private static String effortOf(
+        String level)
+    {
+        String effort = null;
+
+        for (int index = 0; effort == null && level != null && index < LEVELS.length; index++)
+        {
+            effort = LEVELS[index].equalsIgnoreCase(level) ? EFFORTS[index] : null;
+        }
+
+        return effort;
     }
 
     private int formatMember(

@@ -23,6 +23,9 @@ import static org.hamcrest.Matchers.nullValue;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.llm.config.LlmEffort;
+import io.aklivity.zilla.runtime.binding.llm.config.LlmModelCapability;
+
 public class LlmOpenaiResponsesControlFromCanonicalTest
 {
     private static final String LONG = "x".repeat(300);
@@ -328,5 +331,112 @@ public class LlmOpenaiResponsesControlFromCanonicalTest
     {
         assertRejects(foreignMembers, json("{'x:response_format':{'type':'json_object','json_schema':{'name':'a'}}}"));
         assertRejects(foreignMembers, json("{'x:response_format':{'json_schema':{'name':'a'},'type':'text'}}"));
+    }
+
+    @Test
+    public void shouldRecordReasoningEffort()
+    {
+        for (String effort : new String[] {"none", "minimal", "low", "medium", "high", "xhigh", "max"})
+        {
+            assertTransforms(foreignMembers, json("{'x:reasoning_effort':'" + effort + "'}"), json("{}"));
+
+            assertThat(foreignMembers.effort(), equalTo(LlmEffort.of(effort)));
+        }
+    }
+
+    @Test
+    public void shouldIgnoreNullReasoningEffort()
+    {
+        assertTransforms(foreignMembers, json("{'x:reasoning_effort':null}"), json("{}"));
+
+        assertThat(foreignMembers.effort(), equalTo(LlmEffort.ABSENT));
+    }
+
+    @Test
+    public void shouldRejectUnknownReasoningEffort()
+    {
+        assertRejects(foreignMembers, json("{'x:reasoning_effort':'turbo'}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("reasoning_effort"));
+    }
+
+    @Test
+    public void shouldRejectReasoningEffortThatIsNotAString()
+    {
+        assertRejects(foreignMembers, json("{'x:reasoning_effort':3}"));
+    }
+
+    @Test
+    public void shouldRecordThinkingBudget()
+    {
+        assertTransforms(foreignMembers, json("{'x:thinking_budget_tokens':4096}"), json("{}"));
+
+        assertThat(foreignMembers.budget(), equalTo(4096));
+    }
+
+    @Test
+    public void shouldRecordZeroThinkingBudget()
+    {
+        assertTransforms(foreignMembers, json("{'x:thinking_budget_tokens':0}"), json("{}"));
+
+        assertThat(foreignMembers.budget(), equalTo(0));
+    }
+
+    @Test
+    public void shouldIgnoreNullThinkingBudget()
+    {
+        assertTransforms(foreignMembers, json("{'x:thinking_budget_tokens':null}"), json("{}"));
+
+        assertThat(foreignMembers.budget(), equalTo(LlmEffort.ABSENT));
+    }
+
+    @Test
+    public void shouldRejectNegativeThinkingBudget()
+    {
+        assertRejects(foreignMembers, json("{'x:thinking_budget_tokens':-1}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("thinking_budget_tokens"));
+    }
+
+    @Test
+    public void shouldRejectFractionalThinkingBudget()
+    {
+        assertRejects(foreignMembers, json("{'x:thinking_budget_tokens':1.5}"));
+    }
+
+    @Test
+    public void shouldRejectThinkingBudgetThatIsNotANumber()
+    {
+        assertRejects(foreignMembers, json("{'x:thinking_budget_tokens':'high'}"));
+    }
+
+    @Test
+    public void shouldDropReasoningMembersWhenExtracting()
+    {
+        final LlmOpenaiResponsesControlFromCanonical extracting = new LlmOpenaiResponsesControlFromCanonical(false);
+
+        assertTransforms(extracting, json("{'x:reasoning_effort':'low','x:thinking_budget_tokens':2048}"), "null");
+    }
+
+    @Test
+    public void shouldDropSamplingWhenModelRejectsSampling()
+    {
+        final LlmOpenaiResponsesControlFromCanonical rejecting = LlmOpenaiResponsesControlFromCanonical.members(false,
+            new LlmModelCapability(false, null, -1, -1, null));
+
+        assertTransforms(rejecting,
+            json("{'x:temperature':0.7,'x:top_p':0.9,'x:parallel_tool_calls':true}"),
+            json("{'parallel_tool_calls':true}"));
+    }
+
+    @Test
+    public void shouldKeepSamplingWhenModelAcceptsSampling()
+    {
+        final LlmOpenaiResponsesControlFromCanonical accepting = LlmOpenaiResponsesControlFromCanonical.members(false,
+            new LlmModelCapability(true, null, -1, -1, null));
+
+        assertTransforms(accepting,
+            json("{'x:temperature':0.7,'x:top_p':0.9,'x:parallel_tool_calls':true}"),
+            json("{'temperature':0.7,'top_p':0.9,'parallel_tool_calls':true}"));
     }
 }

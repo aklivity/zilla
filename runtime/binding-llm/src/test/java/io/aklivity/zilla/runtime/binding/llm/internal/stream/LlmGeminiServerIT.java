@@ -1564,4 +1564,94 @@ public class LlmGeminiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.reasoning.level/client",
+        "${app}/gemini.request.reasoning.level/server"})
+    public void shouldDecodeGeminiRequestReasoningLevel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.reasoning.budget/client",
+        "${app}/gemini.request.reasoning.budget/server"})
+    public void shouldDecodeGeminiRequestReasoningBudget() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.reasoning.budget.automatic/client",
+        "${app}/gemini.request.reasoning.budget.automatic/server"})
+    public void shouldDecodeGeminiRequestReasoningBudgetAutomatic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.reasoning.residue.only/client",
+        "${app}/gemini.request.reasoning.residue.only/server"})
+    public void shouldDecodeGeminiRequestReasoningResidueOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.reasoning.empty/client",
+        "${app}/gemini.request.reasoning.empty/server"})
+    public void shouldDecodeGeminiRequestReasoningEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.reasoning.level.residue.first/client",
+        "${app}/gemini.request.reasoning.level.residue.first/server"})
+    public void shouldDecodeGeminiRequestReasoningLevelResidueFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.reasoning.budget.zero/client",
+        "${app}/gemini.request.reasoning.budget.zero/server"})
+    public void shouldDecodeGeminiRequestReasoningBudgetZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.reasoning.snake/client",
+        "${app}/gemini.request.reasoning.snake/server"})
+    public void shouldDecodeGeminiRequestReasoningSnake() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.reasoning.sampling/client",
+        "${app}/gemini.request.reasoning.sampling/server"})
+    public void shouldDecodeGeminiRequestReasoningSampling() throws Exception
+    {
+        k3po.finish();
+    }
 }

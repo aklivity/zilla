@@ -288,4 +288,144 @@ public class LlmGeminiControlToCanonicalTest
             json("{'responseFormat':{'text':{'mimeType':'APPLICATION_JSON','other':1,'schema':{}}}}"),
             json("{'x:response_format':{'type':'json_schema','json_schema':{'name':'response','schema':{}}}}"));
     }
+
+    @Test
+    public void shouldLiftThinkingLevel()
+    {
+        for (String level : new String[] {"MINIMAL", "LOW", "MEDIUM", "HIGH"})
+        {
+            assertTransforms(transform,
+                json("{'thinkingConfig':{'thinkingLevel':'" + level + "'}}"),
+                json("{'x:reasoning_effort':'" + level.toLowerCase() + "'}"));
+        }
+    }
+
+    @Test
+    public void shouldLiftLowercaseThinkingLevel()
+    {
+        assertTransforms(transform,
+            json("{'thinkingConfig':{'thinkingLevel':'medium'}}"),
+            json("{'x:reasoning_effort':'medium'}"));
+    }
+
+    @Test
+    public void shouldLiftSnakeCaseThinkingLevel()
+    {
+        assertTransforms(transform,
+            json("{'thinking_config':{'thinking_level':'LOW'}}"),
+            json("{'x:reasoning_effort':'low'}"));
+    }
+
+    @Test
+    public void shouldLiftZeroThinkingBudgetAsNone()
+    {
+        assertTransforms(transform,
+            json("{'thinkingConfig':{'thinkingBudget':0}}"),
+            json("{'x:reasoning_effort':'none'}"));
+    }
+
+    @Test
+    public void shouldLiftThinkingBudget()
+    {
+        assertTransforms(transform,
+            json("{'thinkingConfig':{'thinkingBudget':4096}}"),
+            json("{'x:thinking_budget_tokens':4096}"));
+    }
+
+    @Test
+    public void shouldLiftSnakeCaseThinkingBudget()
+    {
+        assertTransforms(transform,
+            json("{'thinking_config':{'thinking_budget':4096}}"),
+            json("{'x:thinking_budget_tokens':4096}"));
+    }
+
+    @Test
+    public void shouldKeepAutomaticThinkingBudgetAsResidue()
+    {
+        assertTransforms(transform,
+            json("{'thinkingConfig':{'thinkingBudget':-1}}"),
+            json("{'gemini:thinkingConfig':{'thinkingBudget':-1}}"));
+    }
+
+    @Test
+    public void shouldKeepFractionalThinkingBudgetAsResidue()
+    {
+        assertTransforms(transform,
+            json("{'thinkingConfig':{'thinkingBudget':1.5}}"),
+            json("{'gemini:thinkingConfig':{'thinkingBudget':1.5}}"));
+    }
+
+    @Test
+    public void shouldKeepUnknownThinkingLevelAsResidue()
+    {
+        assertTransforms(transform,
+            json("{'thinkingConfig':{'thinkingLevel':'THINKING_LEVEL_UNSPECIFIED'}}"),
+            json("{'gemini:thinkingConfig':{'thinkingLevel':'THINKING_LEVEL_UNSPECIFIED'}}"));
+    }
+
+    @Test
+    public void shouldKeepThinkingLevelThatIsNotAStringAsResidue()
+    {
+        assertTransforms(transform,
+            json("{'thinkingConfig':{'thinkingLevel':3}}"),
+            json("{'gemini:thinkingConfig':{'thinkingLevel':3}}"));
+    }
+
+    @Test
+    public void shouldKeepOtherThinkingMembersAsResidueAfterLevel()
+    {
+        assertTransforms(transform,
+            json("{'thinkingConfig':{'thinkingLevel':'HIGH','includeThoughts':true}}"),
+            json("{'x:reasoning_effort':'high','gemini:thinkingConfig':{'includeThoughts':true}}"));
+    }
+
+    @Test
+    public void shouldKeepOtherThinkingMembersAsResidueBeforeLevel()
+    {
+        assertTransforms(transform,
+            json("{'thinkingConfig':{'includeThoughts':true,'thinkingLevel':'HIGH'}}"),
+            json("{'gemini:thinkingConfig':{'includeThoughts':true},'x:reasoning_effort':'high'}"));
+    }
+
+    @Test
+    public void shouldSplitThinkingResidueAroundLiftedMembers()
+    {
+        assertTransforms(transform,
+            json("{'thinkingConfig':{'a':1,'thinkingLevel':'LOW','b':2,'thinkingBudget':-1}}"),
+            json("{'gemini:thinkingConfig':{'a':1},'x:reasoning_effort':'low','gemini:thinkingConfig':{'b':2," +
+                "'thinkingBudget':-1}}"));
+    }
+
+    @Test
+    public void shouldKeepResidueOnlyThinkingConfig()
+    {
+        assertTransforms(transform,
+            json("{'thinkingConfig':{'includeThoughts':true}}"),
+            json("{'gemini:thinkingConfig':{'includeThoughts':true}}"));
+    }
+
+    @Test
+    public void shouldKeepEmptyThinkingConfigAsResidue()
+    {
+        assertTransforms(transform,
+            json("{'thinkingConfig':{}}"),
+            json("{'gemini:thinkingConfig':{}}"));
+    }
+
+    @Test
+    public void shouldKeepEmptySnakeCaseThinkingConfigInSourceSpelling()
+    {
+        assertTransforms(transform,
+            json("{'thinking_config':{}}"),
+            json("{'gemini:thinking_config':{}}"));
+    }
+
+    @Test
+    public void shouldKeepNullThinkingConfigAsResidue()
+    {
+        assertTransforms(transform,
+            json("{'thinkingConfig':null}"),
+            json("{'gemini:thinkingConfig':null}"));
+    }
 }

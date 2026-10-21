@@ -36,6 +36,8 @@ import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.config.binding.llm.LlmServerConfig;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmBindingConfig;
+import io.aklivity.zilla.runtime.binding.llm.config.LlmEffort;
+import io.aklivity.zilla.runtime.binding.llm.config.LlmModelCapability;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmRouteConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectHandler;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmBinding;
@@ -151,9 +153,10 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
     private static final int NO_MESSAGE = -2;
     private static final int ESCAPE_EXPANSION = 6;
-    private static final int ENCODE_SLACK = 256;
+    private static final int ENCODE_SLACK = 320;
     private static final int ENCODE_STRUCTURE = 128;
     private static final int ENCODE_MAX_TOKENS = 64;
+    private static final int ENCODE_THINKING = 96;
     private static final int NO_MAX_OUTPUT_TOKENS = -1;
 
     private static final int NONE = -1;
@@ -221,8 +224,12 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final String MEMBER_SYSTEM_INSTRUCTION = "systemInstruction";
     private static final String MEMBER_GENERATION_CONFIG = "generationConfig";
     private static final String MEMBER_TOOL_CONFIG = "toolConfig";
-    private static final String[] CONTAINERS = {MEMBER_GENERATION_CONFIG, MEMBER_TOOL_CONFIG};
+    private static final String MEMBER_THINKING_CONFIG = "thinkingConfig";
+    private static final String MEMBER_THINKING_LEVEL = "thinkingLevel";
+    private static final String MEMBER_THINKING_BUDGET = "thinkingBudget";
+    private static final String[] CONTAINERS = {MEMBER_GENERATION_CONFIG, MEMBER_TOOL_CONFIG, MEMBER_THINKING_CONFIG};
     private static final int CONTAINER_GENERATION_CONFIG = 0;
+    private static final int CONTAINER_THINKING_CONFIG = 2;
     private static final String SHARED_PREFIX = "x:";
     private static final String MEMBER_MAX_OUTPUT_TOKENS = "maxOutputTokens";
     private static final String ROLE_NAME_USER = "user";
@@ -3751,6 +3758,10 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private int callCount;
         private LlmSectionPipeline controlPipeline;
         private LlmGeminiControlFromCanonical controlTransform;
+        private LlmModelCapability capability = LlmModelCapability.UNSPECIFIED;
+        private final LlmGeminiThinking thinking = new LlmGeminiThinking();
+        private int effort = LlmEffort.ABSENT;
+        private int budget = LlmEffort.ABSENT;
         private int heldSlot = NO_SLOT;
         private int controlMessage;
         private int controlMode;
@@ -3963,7 +3974,8 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         {
             if (controlPipeline == null)
             {
-                controlTransform = LlmGeminiControlFromCanonical.members(sameDialect);
+                capability = stream.binding.capability(stream.model);
+                controlTransform = LlmGeminiControlFromCanonical.members(sameDialect, capability);
                 controlPipeline = new LlmSectionPipeline(controlTransform, transformBuffer);
             }
 
@@ -4435,6 +4447,11 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private void doEncodeSectionEnd(
             boolean isError)
         {
+            if (sectionKind == KIND_CONTROL && sectionStreaming)
+            {
+                onControlEnd();
+            }
+
             final String signature = encodeText != null && signing(sectionKind) ? signatureTransform.signature() : null;
             final int signed = signature != null ? signature.length() + SIGNATURE_RESERVE - LlmToolTransform.HELD_MAX : 0;
 
@@ -4485,24 +4502,46 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             sectionKind = 0;
         }
 
+        private void onControlEnd()
+        {
+            if (controlTransform.effort() != LlmEffort.ABSENT)
+            {
+                effort = controlTransform.effort();
+            }
+
+            if (controlTransform.budget() != LlmEffort.ABSENT)
+            {
+                budget = controlTransform.budget();
+            }
+        }
+
         private void doEncodeRequestEnd(
             int maxOutputTokens)
         {
             if (!LlmState.initialClosing(state) && !LlmState.initialClosed(state))
             {
-                if (beginEncode(ENCODE_STRUCTURE + ENCODE_MAX_TOKENS + collector.held()))
+                if (beginEncode(ENCODE_STRUCTURE + ENCODE_MAX_TOKENS + ENCODE_THINKING + collector.held()))
                 {
                     closeRegion();
+                    thinking.resolve(capability, effort, budget);
 
-                    for (int container = 0; container < CONTAINERS.length; container++)
+                    for (int container = 0; container < CONTAINER_THINKING_CONFIG; container++)
                     {
                         final boolean tokens = container == CONTAINER_GENERATION_CONFIG &&
                             stream.crossDialect && maxOutputTokens != NO_MAX_OUTPUT_TOKENS;
+                        final boolean reasoning = container == CONTAINER_GENERATION_CONFIG &&
+                            (thinking.level() != null || thinking.budget() != LlmModelCapability.UNSET ||
+                            collector.holds(CONTAINER_THINKING_CONFIG));
 
-                        if (collector.holds(container) || tokens)
+                        if (collector.holds(container) || tokens || reasoning)
                         {
                             generator.writeStartObject(CONTAINERS[container]);
                             collector.drain(container, heldOutput);
+
+                            if (reasoning)
+                            {
+                                writeThinkingConfig();
+                            }
 
                             if (tokens)
                             {
@@ -4521,6 +4560,23 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
                 state = LlmState.closingInitial(state);
             }
+        }
+
+        private void writeThinkingConfig()
+        {
+            generator.writeStartObject(MEMBER_THINKING_CONFIG);
+
+            if (thinking.level() != null)
+            {
+                generator.write(MEMBER_THINKING_LEVEL, thinking.level());
+            }
+            else if (thinking.budget() != LlmModelCapability.UNSET)
+            {
+                generator.write(MEMBER_THINKING_BUDGET, thinking.budget());
+            }
+
+            collector.drain(CONTAINER_THINKING_CONFIG, heldOutput);
+            generator.writeEnd();
         }
 
         private void putHeld(

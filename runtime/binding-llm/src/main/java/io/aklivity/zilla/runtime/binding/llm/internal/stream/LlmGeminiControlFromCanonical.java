@@ -17,14 +17,18 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.FREQUENCY_PENALTY;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.PARALLEL_TOOL_CALLS;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.PRESENCE_PENALTY;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.REASONING_EFFORT;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.RESPONSE_FORMAT;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.SEED;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.STOP;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TEMPERATURE;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.THINKING_BUDGET_TOKENS;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TOOL_CHOICE;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TOP_K;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TOP_P;
 
+import io.aklivity.zilla.runtime.binding.llm.config.LlmEffort;
+import io.aklivity.zilla.runtime.binding.llm.config.LlmModelCapability;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
@@ -37,6 +41,8 @@ final class LlmGeminiControlFromCanonical extends LlmFormatFromCanonical
     private static final String MEMBER_GENERATION_CONFIG_SNAKE = "generation_config";
     private static final String MEMBER_TOOL_CONFIG = "toolConfig";
     private static final String MEMBER_TOOL_CONFIG_SNAKE = "tool_config";
+    private static final String MEMBER_THINKING_CONFIG = "thinkingConfig";
+    private static final String MEMBER_THINKING_CONFIG_SNAKE = "thinking_config";
     private static final String MEMBER_FUNCTION_CALLING_CONFIG = "functionCallingConfig";
     private static final String MEMBER_MODE = "mode";
     private static final String MEMBER_ALLOWED_FUNCTION_NAMES = "allowedFunctionNames";
@@ -61,36 +67,60 @@ final class LlmGeminiControlFromCanonical extends LlmFormatFromCanonical
     private final boolean foreign;
     private final LlmToolChoice choice;
     private final LlmSchemaScanner scanner;
+    private final LlmModelCapability capability;
 
     private String member;
     private int stopEntries;
+    private int effort;
+    private int budget;
 
     LlmGeminiControlFromCanonical(
         boolean sameDialect)
     {
-        this(MODE_EXTRACT, sameDialect);
+        this(MODE_EXTRACT, sameDialect, LlmModelCapability.UNSPECIFIED);
     }
 
     private LlmGeminiControlFromCanonical(
         int mode,
-        boolean sameDialect)
+        boolean sameDialect,
+        LlmModelCapability capability)
     {
         super(mode, sameDialect);
         this.members = mode == MODE_OBJECT;
         this.foreign = !sameDialect;
         this.choice = new LlmToolChoice();
         this.scanner = new LlmSchemaScanner(LlmSchemaScanner.TARGET_GEMINI);
+        this.capability = capability;
+        this.effort = LlmEffort.ABSENT;
+        this.budget = LlmEffort.ABSENT;
     }
 
     static LlmGeminiControlFromCanonical members(
         boolean sameDialect)
     {
-        return new LlmGeminiControlFromCanonical(MODE_OBJECT, sameDialect);
+        return members(sameDialect, LlmModelCapability.UNSPECIFIED);
+    }
+
+    static LlmGeminiControlFromCanonical members(
+        boolean sameDialect,
+        LlmModelCapability capability)
+    {
+        return new LlmGeminiControlFromCanonical(MODE_OBJECT, sameDialect, capability);
     }
 
     String member()
     {
         return member;
+    }
+
+    int effort()
+    {
+        return effort;
+    }
+
+    int budget()
+    {
+        return budget;
     }
 
     @Override
@@ -99,6 +129,8 @@ final class LlmGeminiControlFromCanonical extends LlmFormatFromCanonical
         super.reset();
         member = null;
         stopEntries = 0;
+        effort = LlmEffort.ABSENT;
+        budget = LlmEffort.ABSENT;
     }
 
     @Override
@@ -130,6 +162,10 @@ final class LlmGeminiControlFromCanonical extends LlmFormatFromCanonical
                 {
                     target = MEMBER_TOOL_CONFIG;
                 }
+                else if (target != null && matches(target, MEMBER_THINKING_CONFIG_SNAKE))
+                {
+                    target = MEMBER_THINKING_CONFIG;
+                }
 
                 member = target;
             }
@@ -154,24 +190,38 @@ final class LlmGeminiControlFromCanonical extends LlmFormatFromCanonical
             target = MEMBER_GENERATION_CONFIG;
             action = formatShared();
         }
+        else if (members && (matches(key, REASONING_EFFORT) || matches(key, THINKING_BUDGET_TOKENS)))
+        {
+            target = null;
+            action = capture(key);
+        }
         else if (members)
         {
             nest(MEMBER_GENERATION_CONFIG);
 
             if (matches(key, TEMPERATURE))
             {
-                target = TEMPERATURE;
-                action = PASS_VALUE;
+                if (capability.sampling)
+                {
+                    target = TEMPERATURE;
+                    action = PASS_VALUE;
+                }
             }
             else if (matches(key, TOP_P))
             {
-                target = MEMBER_TOP_P;
-                action = PASS_VALUE;
+                if (capability.sampling)
+                {
+                    target = MEMBER_TOP_P;
+                    action = PASS_VALUE;
+                }
             }
             else if (matches(key, TOP_K))
             {
-                target = MEMBER_TOP_K;
-                action = PASS_VALUE;
+                if (capability.sampling)
+                {
+                    target = MEMBER_TOP_K;
+                    action = PASS_VALUE;
+                }
             }
             else if (matches(key, FREQUENCY_PENALTY))
             {
@@ -260,10 +310,26 @@ final class LlmGeminiControlFromCanonical extends LlmFormatFromCanonical
         LlmCapturedValue value)
     {
         final String captured = capturedMember();
+        Status status;
 
-        return matches(captured, MEMBER_TYPE)
-            ? formatCaptured(value)
-            : matches(captured, PARALLEL_TOOL_CALLS) ? onParallelCalls(value) : onToolChoice(value);
+        if (matches(captured, REASONING_EFFORT))
+        {
+            effort = LlmReasoning.effortOf(value);
+            status = effort != LlmEffort.INVALID ? Status.ADVANCED : rejected(REASONING_EFFORT);
+        }
+        else if (matches(captured, THINKING_BUDGET_TOKENS))
+        {
+            budget = LlmReasoning.budgetOf(value);
+            status = budget != LlmEffort.INVALID ? Status.ADVANCED : rejected(THINKING_BUDGET_TOKENS);
+        }
+        else
+        {
+            status = matches(captured, MEMBER_TYPE)
+                ? formatCaptured(value)
+                : matches(captured, PARALLEL_TOOL_CALLS) ? onParallelCalls(value) : onToolChoice(value);
+        }
+
+        return status;
     }
 
     @Override

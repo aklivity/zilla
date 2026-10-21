@@ -25,6 +25,10 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
     private static final String MEMBER_NATIVE_TOOL_CHOICE = "openai:tool_choice";
     private static final String MEMBER_SHARED_TOOL_CHOICE = "x:tool_choice";
     private static final String MEMBER_NATIVE_TEXT = "openai:text";
+    private static final String MEMBER_REASONING = "reasoning";
+    private static final String MEMBER_NATIVE_REASONING = "openai:reasoning";
+    private static final String MEMBER_EFFORT = "effort";
+    private static final String MEMBER_SHARED_REASONING_EFFORT = "x:reasoning_effort";
     private static final String MEMBER_SHARED_RESPONSE_FORMAT = "x:response_format";
     private static final String MEMBER_TEXT = "text";
     private static final String MEMBER_FORMAT = "format";
@@ -40,6 +44,9 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
     private static final int TEXT_RESIDUE = 1;
     private static final int TEXT_LIFTED = 2;
 
+    private static final int CONTAINER_TEXT = 0;
+    private static final int CONTAINER_REASONING = 1;
+
     private static final int FORMAT_AWAITING = 0;
     private static final int FORMAT_FLATTENING = 1;
     private static final int FORMAT_PLAIN = 2;
@@ -48,6 +55,7 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
     private final LlmCapturedValue preceding;
 
     private int text;
+    private int container;
     private int format;
     private int precedingSize;
 
@@ -64,6 +72,7 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
         super.reset();
         preceding.clear();
         text = TEXT_NONE;
+        container = CONTAINER_TEXT;
         format = FORMAT_AWAITING;
         precedingSize = 0;
     }
@@ -81,12 +90,19 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
         }
         else if (depth == 1 && matches(key, MEMBER_TEXT))
         {
+            container = CONTAINER_TEXT;
             target = MEMBER_NATIVE_TEXT;
+            action = DESCEND_OR_PASS;
+        }
+        else if (depth == 1 && matches(key, MEMBER_REASONING))
+        {
+            container = CONTAINER_REASONING;
+            target = MEMBER_NATIVE_REASONING;
             action = DESCEND_OR_PASS;
         }
         else if (depth == 2)
         {
-            action = textMember(key);
+            action = container == CONTAINER_REASONING ? reasoningMember(key) : textMember(key);
         }
         else if (depth == 3)
         {
@@ -176,6 +192,28 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
         }
 
         return status;
+    }
+
+    private int reasoningMember(
+        CharSequence key)
+    {
+        int action;
+
+        if (matches(key, MEMBER_EFFORT))
+        {
+            closeResidue();
+            text = TEXT_LIFTED;
+            target = MEMBER_SHARED_REASONING_EFFORT;
+            action = PASS_STRING_OR_DROP;
+        }
+        else
+        {
+            openResidue();
+            target = name(key);
+            action = PASS_VALUE;
+        }
+
+        return action;
     }
 
     private int textMember(
@@ -325,7 +363,7 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
         }
         else if (text == TEXT_NONE)
         {
-            emit(JsonEvent.KEY_NAME, MEMBER_NATIVE_TEXT);
+            emit(JsonEvent.KEY_NAME, residueKey());
             emit(JsonEvent.START_OBJECT);
             emit(JsonEvent.END_OBJECT);
         }
@@ -333,12 +371,17 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
         text = TEXT_NONE;
     }
 
+    private String residueKey()
+    {
+        return container == CONTAINER_REASONING ? MEMBER_NATIVE_REASONING : MEMBER_NATIVE_TEXT;
+    }
+
     private void openResidue()
     {
         if (text != TEXT_RESIDUE)
         {
             text = TEXT_RESIDUE;
-            emit(JsonEvent.KEY_NAME, MEMBER_NATIVE_TEXT);
+            emit(JsonEvent.KEY_NAME, residueKey());
             emit(JsonEvent.START_OBJECT);
         }
     }

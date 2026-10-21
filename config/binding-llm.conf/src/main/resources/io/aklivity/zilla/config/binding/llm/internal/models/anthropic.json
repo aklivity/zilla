@@ -1,0 +1,31 @@
+{
+    "claude-opus-4-7*":
+    {
+        "sampling": false,
+        "thinking": "adaptive"
+    },
+    "claude-opus-4-6*":
+    {
+        "thinking": "adaptive-enabled"
+    },
+    "claude-sonnet-4-6*":
+    {
+        "thinking": "adaptive-enabled"
+    },
+    "claude-sonnet-4-5*":
+    {
+        "thinking": "enabled"
+    },
+    "claude-haiku-4-5*":
+    {
+        "thinking": "enabled"
+    },
+    "claude-opus-4-1*":
+    {
+        "thinking": "enabled"
+    },
+    "claude-3-*":
+    {
+        "thinking": "enabled"
+    }
+}

@@ -23,6 +23,9 @@ import static org.hamcrest.Matchers.nullValue;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.llm.config.LlmEffort;
+import io.aklivity.zilla.runtime.binding.llm.config.LlmModelCapability;
+
 public class LlmAnthropicControlFromCanonicalTest
 {
     private static final String LONG = "x".repeat(300);
@@ -415,5 +418,112 @@ public class LlmAnthropicControlFromCanonicalTest
         assertTransforms(foreignMembers,
             json("{'x:response_format':{'type':'json_schema','json_schema':{'schema':{'type':'string'}}}}"),
             json("{'output_config':{'format':{'type':'json_schema','schema':{'type':'string'}}}}"));
+    }
+
+    @Test
+    public void shouldRecordReasoningEffort()
+    {
+        for (String effort : new String[] {"none", "minimal", "low", "medium", "high", "xhigh", "max"})
+        {
+            assertTransforms(foreignMembers, json("{'x:reasoning_effort':'" + effort + "'}"), json("{}"));
+
+            assertThat(foreignMembers.effort(), equalTo(LlmEffort.of(effort)));
+        }
+    }
+
+    @Test
+    public void shouldIgnoreNullReasoningEffort()
+    {
+        assertTransforms(foreignMembers, json("{'x:reasoning_effort':null}"), json("{}"));
+
+        assertThat(foreignMembers.effort(), equalTo(LlmEffort.ABSENT));
+    }
+
+    @Test
+    public void shouldRejectUnknownReasoningEffort()
+    {
+        assertRejects(foreignMembers, json("{'x:reasoning_effort':'turbo'}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("reasoning_effort"));
+    }
+
+    @Test
+    public void shouldRejectReasoningEffortThatIsNotAString()
+    {
+        assertRejects(foreignMembers, json("{'x:reasoning_effort':3}"));
+    }
+
+    @Test
+    public void shouldRecordThinkingBudget()
+    {
+        assertTransforms(foreignMembers, json("{'x:thinking_budget_tokens':4096}"), json("{}"));
+
+        assertThat(foreignMembers.budget(), equalTo(4096));
+    }
+
+    @Test
+    public void shouldRecordZeroThinkingBudget()
+    {
+        assertTransforms(foreignMembers, json("{'x:thinking_budget_tokens':0}"), json("{}"));
+
+        assertThat(foreignMembers.budget(), equalTo(0));
+    }
+
+    @Test
+    public void shouldIgnoreNullThinkingBudget()
+    {
+        assertTransforms(foreignMembers, json("{'x:thinking_budget_tokens':null}"), json("{}"));
+
+        assertThat(foreignMembers.budget(), equalTo(LlmEffort.ABSENT));
+    }
+
+    @Test
+    public void shouldRejectNegativeThinkingBudget()
+    {
+        assertRejects(foreignMembers, json("{'x:thinking_budget_tokens':-1}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("thinking_budget_tokens"));
+    }
+
+    @Test
+    public void shouldRejectFractionalThinkingBudget()
+    {
+        assertRejects(foreignMembers, json("{'x:thinking_budget_tokens':1.5}"));
+    }
+
+    @Test
+    public void shouldRejectThinkingBudgetThatIsNotANumber()
+    {
+        assertRejects(foreignMembers, json("{'x:thinking_budget_tokens':'high'}"));
+    }
+
+    @Test
+    public void shouldDropReasoningMembersWhenExtracting()
+    {
+        final LlmAnthropicControlFromCanonical extracting = new LlmAnthropicControlFromCanonical(false);
+
+        assertTransforms(extracting, json("{'x:reasoning_effort':'low','x:thinking_budget_tokens':2048}"), "null");
+    }
+
+    @Test
+    public void shouldDropSamplingWhenModelRejectsSampling()
+    {
+        final LlmAnthropicControlFromCanonical rejecting = LlmAnthropicControlFromCanonical.members(false,
+            new LlmModelCapability(false, null, -1, -1, null));
+
+        assertTransforms(rejecting,
+            json("{'x:temperature':0.7,'x:top_p':0.9,'x:top_k':40,'x:stop':['END']}"),
+            json("{'stop_sequences':['END']}"));
+    }
+
+    @Test
+    public void shouldKeepSamplingWhenModelAcceptsSampling()
+    {
+        final LlmAnthropicControlFromCanonical accepting = LlmAnthropicControlFromCanonical.members(false,
+            new LlmModelCapability(true, null, -1, -1, null));
+
+        assertTransforms(accepting,
+            json("{'x:temperature':0.7,'x:top_p':0.9,'x:top_k':40,'x:stop':['END']}"),
+            json("{'temperature':0.7,'top_p':0.9,'top_k':40,'stop_sequences':['END']}"));
     }
 }

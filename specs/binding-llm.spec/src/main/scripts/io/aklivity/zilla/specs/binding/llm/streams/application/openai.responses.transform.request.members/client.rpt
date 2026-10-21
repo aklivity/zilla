@@ -40,7 +40,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"x:temperature\":0.2,\"openai:store\":false,\"openai:metadata\":{\"k\":\"v\"},\"x:tool_choice\":\"auto\",\"openai:include\":[\"reasoning.encrypted_content\"],\"openai:reasoning\":{\"effort\":\"low\"},\"x:parallel_tool_calls\":true,\"openai:truncation\":\"auto\",\"x:response_format\":{\"type\":\"text\"}}"
+write "{\"x:temperature\":0.2,\"openai:store\":false,\"openai:metadata\":{\"k\":\"v\"},\"x:tool_choice\":\"auto\",\"openai:include\":[\"reasoning.encrypted_content\"],\"x:parallel_tool_calls\":true,\"openai:truncation\":\"auto\",\"x:reasoning_effort\":\"low\",\"x:response_format\":{\"type\":\"text\"}}"
 write flush
 
 write advise zilla:flush

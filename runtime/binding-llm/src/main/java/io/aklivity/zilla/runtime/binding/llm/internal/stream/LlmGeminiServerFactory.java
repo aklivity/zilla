@@ -171,6 +171,8 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private static final String SHARED_PREFIX = "x:";
 
     private static final String MEMBER_GENERATION_CONFIG = "generationConfig";
+    private static final String MEMBER_THINKING_CONFIG = "thinkingConfig";
+    private static final String MEMBER_THINKING_CONFIG_SNAKE = "thinking_config";
     private static final String MEMBER_TOOL_CONFIG = "toolConfig";
     private static final String MEMBER_TOOL_CONFIG_SNAKE = "tool_config";
     private static final String MEMBER_GENERATION_CONFIG_SNAKE = "generation_config";
@@ -700,6 +702,12 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         CharSequence key)
     {
         return matches(key, MEMBER_RESPONSE_FORMAT) || matches(key, MEMBER_RESPONSE_FORMAT_SNAKE);
+    }
+
+    private boolean isThinkingConfig(
+        CharSequence key)
+    {
+        return matches(key, MEMBER_THINKING_CONFIG) || matches(key, MEMBER_THINKING_CONFIG_SNAKE);
     }
 
     private boolean isResponseMimeType(
@@ -2888,7 +2896,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 onDecodeSharedKey(shared, controlOpen());
                 decoder = decodeConfigLeaf;
             }
-            else if (isResponseFormat(key))
+            else if (isResponseFormat(key) || isThinkingConfig(key))
             {
                 if (residueOpen)
                 {

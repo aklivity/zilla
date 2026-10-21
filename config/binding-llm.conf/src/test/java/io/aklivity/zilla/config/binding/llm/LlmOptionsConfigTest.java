@@ -165,4 +165,46 @@ public class LlmOptionsConfigTest
 
         assertThat(injected, sameInstance(builder));
     }
+
+    @Test
+    public void shouldBuildModelViaNestedBuilder()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .model()
+                .name("gemini-2.5-pro")
+                .sampling(false)
+                .thinking("budget")
+                .budgetMinimum(128)
+                .budgetMaximum(32768)
+                .ladder("low", 1024)
+                .build()
+            .build();
+
+        LlmModelConfig model = options.models.get(0);
+
+        assertThat(model.name, equalTo("gemini-2.5-pro"));
+        assertThat(model.sampling, equalTo(false));
+        assertThat(model.thinking, equalTo("budget"));
+        assertThat(model.budgetMinimum, equalTo(128));
+        assertThat(model.budgetMaximum, equalTo(32768));
+        assertThat(model.ladder.get("low"), equalTo(1024));
+    }
+
+    @Test
+    public void shouldBuildModelViaCustomMapper()
+    {
+        String name = LlmModelConfig.builder(model -> model.name).name("o3-mini").build();
+
+        assertThat(name, equalTo("o3-mini"));
+    }
+
+    @Test
+    public void shouldInjectModelBuilder()
+    {
+        LlmModelConfigBuilder<LlmModelConfig> builder = LlmModelConfig.builder();
+
+        LlmModelConfigBuilder<LlmModelConfig> injected = builder.inject(identity -> identity);
+
+        assertThat(injected, sameInstance(builder));
+    }
 }

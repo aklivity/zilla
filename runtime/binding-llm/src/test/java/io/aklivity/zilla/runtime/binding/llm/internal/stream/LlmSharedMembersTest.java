@@ -32,6 +32,24 @@ public class LlmSharedMembersTest
     }
 
     @Test
+    public void shouldPromoteOpenaiReasoningEffort()
+    {
+        assertThat(LlmSharedMembers.openai("reasoning_effort"), equalTo("reasoning_effort"));
+        assertThat(LlmSharedMembers.openai("reasoning"), nullValue());
+        assertThat(LlmSharedMembers.openai("thinking_budget_tokens"), nullValue());
+    }
+
+    @Test
+    public void shouldKeepReasoningMembersOfNativeContainersUnpromoted()
+    {
+        assertThat(LlmSharedMembers.openaiResponses("reasoning"), nullValue());
+        assertThat(LlmSharedMembers.openaiResponses("reasoning_effort"), nullValue());
+        assertThat(LlmSharedMembers.anthropic("thinking"), nullValue());
+        assertThat(LlmSharedMembers.anthropic("output_config"), nullValue());
+        assertThat(LlmSharedMembers.gemini("thinkingConfig"), nullValue());
+    }
+
+    @Test
     public void shouldKeepOpenaiMembersThatAreNotShared()
     {
         for (String member : new String[] {"top_k", "n", "logprobs", "top_logprobs", "logit_bias", "store", "temperatures"})

@@ -36,8 +36,8 @@ Status key: **implemented** is in the IDL, spec functions and runtime today;
 A member carried as `<dialect>:<member>` is restored only by a client of that dialect and dropped by every
 other client. A member that two or more dialects have with the same meaning is carried as `x:<member>`
 instead. (**implemented** as the `x:` namespace in `LlmToolTransform`: `shared()`, `share()` and `reject()`;
-the sampling, tool choice and response format members below are promoted for every dialect, the `gemini`, `anthropic` and
-`openai/responses` ones lifted out of their native containers)
+the sampling, tool choice, response format and reasoning members below are promoted for every dialect, the `gemini`,
+`anthropic` and `openai/responses` ones lifted out of their native containers)
 
 - `x` is reserved as a dialect name. `LlmDialectFactory` refuses to register a dialect named `x`.
 - A decoder emits `x:<member>` in place of `<dialect>:<member>` for each member it understands, including a
@@ -212,10 +212,97 @@ Only function entries have a canonical form. (**implemented** for `openai`, `ope
   Recursion is detected only as the plain `"$ref":"#"` (a reference to the schema root); a recursive reference through
   `$defs` or `definitions` is not detected while streaming and is left to the provider.
 
+### Promoted reasoning members
+
+`x:reasoning_effort` is one of `none`, `minimal`, `low`, `medium`, `high`, `xhigh` and `max`; `x:thinking_budget_tokens` is
+an integer of 0 or more. A decoder emits a member only when the source carries it. A `null` value is the absence of the
+member: the nested decoders drop it, the flat `openai` rename passes it through and every client reads it as absent. A value
+that is not one of the above rejects at the client (class B,
+`x:reasoning_effort cannot be converted from <dialect> to <dialect>`, and likewise for `x:thinking_budget_tokens`).
+(**implemented** for `openai`, `openai/responses`, `anthropic` and `gemini`)
+
+| Native member | Decoded as |
+|---|---|
+| `openai` `reasoning_effort` | `x:reasoning_effort`, value unchanged |
+| `openai/responses` `reasoning.effort` | `x:reasoning_effort`; the rest of `reasoning` (`summary`, `generate_summary`) stays `openai:reasoning` |
+| `anthropic` `output_config.effort` | `x:reasoning_effort`; the rest of `output_config` stays `anthropic:output_config` |
+| `anthropic` `thinking.type` `disabled` | `x:reasoning_effort` `none` |
+| `anthropic` `thinking.budget_tokens` | `x:thinking_budget_tokens`; the `enabled` type is consumed with it |
+| `gemini` `generationConfig.thinkingConfig.thinkingLevel` | `x:reasoning_effort`, `MINIMAL`, `LOW`, `MEDIUM` and `HIGH` in lower case |
+| `gemini` `thinkingConfig.thinkingBudget` | `0` is `x:reasoning_effort` `none`, a positive value is `x:thinking_budget_tokens`, `-1` (automatic) stays residue |
+
+| `x:` value | `openai`, `openai/responses` | `anthropic` | `gemini` |
+|---|---|---|---|
+| `x:reasoning_effort` `none` | `none` | per thinking form (below) | `MINIMAL`, or `thinkingBudget` 0 on a model that takes a budget |
+| `minimal` | `minimal` | `output_config.effort` `low` | `MINIMAL` |
+| `low`, `medium`, `high` | same | same | `LOW`, `MEDIUM`, `HIGH` |
+| `xhigh` | `xhigh` | `xhigh` | `HIGH` |
+| `max` | `xhigh` | `max` | `HIGH` |
+| `x:thinking_budget_tokens` | derives an effort from the ladder when no effort is present | `thinking` `enabled` with `budget_tokens`, clamped | `thinkingBudget`, clamped into the model range |
+
+- **Class C.** Each client clamps the effort to the nearest value it offers: `openai` and `openai/responses` offer `none` to
+  `xhigh`, `anthropic` offers `low` to `max` and `gemini` offers `MINIMAL` to `HIGH`. `anthropic` budgets are clamped to at
+  least the model minimum (1024 by default) and below `max_tokens`; `gemini` budgets are clamped into the model range.
+- **Decoding.** The leaves are lifted out of their native containers without holding, like the response format members, so
+  one control section may hold the same residue key several times. `anthropic` `thinking` and `output_config`,
+  `openai/responses` `reasoning` and `gemini` `thinkingConfig` are the containers; the `gemini` residue is carried as
+  `gemini:thinkingConfig` (or `gemini:thinking_config`, in the source spelling), a container of its own inside
+  `generationConfig`. An `anthropic` `thinking.type` of `enabled` is held as a flag until the container ends and is kept
+  as residue only when no `budget_tokens` came; any other `type` (`adaptive`) is residue at once. When `thinking.type` is
+  `disabled` and `output_config.effort` are both present, both are emitted and the client keeps the last to arrive.
+- **Encoding.** A client records the effort and the budget while the control sections stream, the last one to arrive
+  winning, and writes the native form once at the end of the request, where the output token limit is known. `openai`
+  writes `reasoning_effort` before `max_completion_tokens`; `openai/responses` merges `effort` into the `reasoning`
+  container (before the residue fragments); `anthropic` writes `output_config`, `tool_choice`, `thinking` and
+  `max_tokens`, with `effort` first in `output_config` and `type` and `budget_tokens` first in `thinking`; `gemini` writes
+  `thinkingConfig` inside `generationConfig`, after the other fragments and before `maxOutputTokens`, with
+  `thinkingLevel` or `thinkingBudget` first. A same-dialect hop restores every member in content, with the effort and the
+  thinking members moving to the end of the request.
+- **Level versus budget.** `gemini` never writes both. A model that takes a level writes `thinkingLevel` for an effort,
+  whatever the budget; a model that takes a budget writes `thinkingBudget`, the explicit budget when one arrived and the
+  ladder value of the effort otherwise. A budget on a model that takes a level, with no effort, is written as
+  `thinkingBudget`. A budget of 0 is `none`.
+- **Anthropic thinking forms.** `adaptive` accepts adaptive thinking only, `adaptive-disabled` adds an explicit
+  `disabled`, `adaptive-enabled` adds the deprecated `enabled` form and `enabled` accepts `enabled` with a budget only.
+  `none` becomes `thinking` `disabled` on `adaptive-disabled` and `adaptive-enabled`, the lowest effort (`low`) on
+  `adaptive`, and plain omission on `enabled`, because some models turn adaptive thinking on when `thinking` is omitted and
+  only an explicit `disabled` turns it off. `x:thinking_budget_tokens` is honoured only on `adaptive-enabled` and `enabled`
+  and is dropped (class A) elsewhere. An `enabled`-only model takes no `output_config.effort`, so its effort becomes a
+  budget from the ladder. Neither effort nor budget writes `thinking` `adaptive`; the form only decides `none` and the
+  budget. A model with no entry takes `adaptive-disabled`, the form of the current Claude models.
+- **Ladder.** A target that takes a budget instead of an effort turns an effort into tokens through a ladder, clamping to
+  the nearest entry present. `gemini` and the inverse used by `openai` and `openai/responses` (a budget with no effort
+  becomes the highest effort whose entry fits, `minimal` below the first and `none` for 0) default to the documented
+  ladder `low` 1024, `medium` 8192, `high` 24576. `anthropic` derives its default ladder from the model minimum and the
+  request's own limit: `minimal` and `low` take the minimum, `medium` the midpoint and `high` and above the largest budget
+  that fits below `max_tokens`. A ladder with no entry that fits drops the effort (class A); an effort is never guessed.
+
+#### Model capability options
+
+The options of a client carry a `models` map of capabilities, keyed by model identifier or `*` glob pattern and matched
+against the model of each request. The schema of each dialect admits only the properties that dialect uses. A setting
+that an entry does not give falls back to the next matching entry: configured entries first (exact names before globs, in
+declaration order), then the built-in defaults of the dialect, which are data
+(`config/binding-llm.conf/src/main/resources/.../models/<dialect>.json`) and are overridden entry by entry.
+
+| Property | Dialects | Meaning |
+|---|---|---|
+| `sampling` | all | `false` for a model that rejects sampling: it receives no `x:temperature`, `x:top_p` or `x:top_k` (class A). A model with no entry receives them unchanged. |
+| `thinking` | `anthropic`: `adaptive`, `adaptive-disabled`, `adaptive-enabled`, `enabled`; `gemini`: `level`, `budget` | The thinking form the model takes. Defaults: `adaptive-disabled`, `level`. |
+| `budget` | `anthropic`, `gemini` | `minimum` and `maximum` thinking budget tokens the model accepts. A `minimum` of 0 admits a budget of 0 for `none`. The `anthropic` minimum defaults to 1024, and its maximum is always below `max_tokens`. |
+| `ladder` | all | Budget tokens by `minimal`, `low`, `medium`, `high`, `xhigh` and `max`, overriding the default ladder. |
+
+The built-in defaults mark `claude-opus-4-7*` as `adaptive` and rejecting sampling, `claude-opus-4-6*` and
+`claude-sonnet-4-6*` as `adaptive-enabled`, `claude-3-*`, `claude-sonnet-4-5*`, `claude-haiku-4-5*` and `claude-opus-4-1*`
+as `enabled`, `gemini-2.5-pro*` as a budget of 128 to 32768, `gemini-2.5-flash*` as a budget of 0 to 24576, and the `o1*`,
+`o3*` and `o4-mini*` models as rejecting sampling. They are best-effort data: override an entry whose provider documentation
+has moved. An `anthropic` model with no entry takes `adaptive-disabled`, so its `thinking.budget_tokens` is dropped until an
+entry gives it a form that accepts `enabled`.
+
 ### Native containers
 
-A dialect whose promoted members live inside a native object (`gemini` `generationConfig`, `anthropic` `output_config`,
-`openai/responses` `text`) carries the container in two forms. Containers are never `x:`-prefixed.
+A dialect whose promoted members live inside a native object (`gemini` `generationConfig` and `thinkingConfig`, `anthropic`
+`output_config` and `thinking`, `openai/responses` `text` and `reasoning`) carries the container in two forms. Containers are never `x:`-prefixed.
 
 - **Decoding.** Each promoted leaf is lifted out of the container and emitted as `x:<member>` at depth 1 of the
   control section the container belongs to, without holding anything. The residue stays under

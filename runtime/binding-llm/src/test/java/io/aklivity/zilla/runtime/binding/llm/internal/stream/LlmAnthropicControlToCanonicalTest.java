@@ -276,38 +276,148 @@ public class LlmAnthropicControlToCanonicalTest
     }
 
     @Test
-    public void shouldKeepEffortAsResidueBeforeFormat()
+    public void shouldLiftEffortBeforeFormat()
     {
         assertTransforms(transform,
             json("{'output_config':{'effort':'low','format':{'type':'json_schema','schema':{}}}}"),
-            json("{'anthropic:output_config':{'effort':'low'},'x:response_format':{'type':'json_schema'," +
+            json("{'x:reasoning_effort':'low','x:response_format':{'type':'json_schema'," +
                 "'json_schema':{'name':'response','schema':{}}}}"));
     }
 
     @Test
-    public void shouldKeepEffortAsResidueAfterFormat()
+    public void shouldLiftEffortAfterFormat()
     {
         assertTransforms(transform,
             json("{'output_config':{'format':{'type':'json_schema','schema':{}},'effort':'low'}}"),
             json("{'x:response_format':{'type':'json_schema','json_schema':{'name':'response','schema':{}}}," +
-                "'anthropic:output_config':{'effort':'low'}}"));
+                "'x:reasoning_effort':'low'}"));
     }
 
     @Test
-    public void shouldSplitOutputConfigResidueAroundFormat()
+    public void shouldSplitOutputConfigResidueAroundFormatAndEffort()
     {
         assertTransforms(transform,
-            json("{'output_config':{'effort':'low','format':{'type':'json_schema','schema':{}},'other':true}}"),
-            json("{'anthropic:output_config':{'effort':'low'},'x:response_format':{'type':'json_schema'," +
-                "'json_schema':{'name':'response','schema':{}}},'anthropic:output_config':{'other':true}}"));
+            json("{'output_config':{'first':1,'effort':'high','format':{'type':'json_schema','schema':{}},'other':true}}"),
+            json("{'anthropic:output_config':{'first':1},'x:reasoning_effort':'high','x:response_format':" +
+                "{'type':'json_schema','json_schema':{'name':'response','schema':{}}}," +
+                "'anthropic:output_config':{'other':true}}"));
     }
 
     @Test
-    public void shouldKeepOutputConfigWithoutFormatAsResidue()
+    public void shouldLiftEveryEffort()
+    {
+        for (String effort : new String[] {"low", "medium", "high", "xhigh", "max"})
+        {
+            assertTransforms(transform,
+                json("{'output_config':{'effort':'" + effort + "'}}"),
+                json("{'x:reasoning_effort':'" + effort + "'}"));
+        }
+    }
+
+    @Test
+    public void shouldDropNullEffort()
     {
         assertTransforms(transform,
-            json("{'output_config':{'effort':'low'}}"),
-            json("{'anthropic:output_config':{'effort':'low'}}"));
+            json("{'output_config':{'effort':null,'other':true}}"),
+            json("{'anthropic:output_config':{'other':true}}"));
+    }
+
+    @Test
+    public void shouldKeepOutputConfigWithoutFormatOrEffortAsResidue()
+    {
+        assertTransforms(transform,
+            json("{'output_config':{'other':true}}"),
+            json("{'anthropic:output_config':{'other':true}}"));
+    }
+
+    @Test
+    public void shouldLiftDisabledThinkingAsNone()
+    {
+        assertTransforms(transform,
+            json("{'thinking':{'type':'disabled'}}"),
+            json("{'x:reasoning_effort':'none'}"));
+    }
+
+    @Test
+    public void shouldLiftDisabledThinkingAndKeepOtherMembersAsResidue()
+    {
+        assertTransforms(transform,
+            json("{'thinking':{'display':'omitted','type':'disabled','other':1}}"),
+            json("{'anthropic:thinking':{'display':'omitted'},'x:reasoning_effort':'none','anthropic:thinking':{'other':1}}"));
+    }
+
+    @Test
+    public void shouldLiftThinkingBudgetAndConsumeEnabledType()
+    {
+        assertTransforms(transform,
+            json("{'thinking':{'type':'enabled','budget_tokens':2048}}"),
+            json("{'x:thinking_budget_tokens':2048}"));
+    }
+
+    @Test
+    public void shouldLiftThinkingBudgetBeforeEnabledType()
+    {
+        assertTransforms(transform,
+            json("{'thinking':{'budget_tokens':2048,'type':'enabled'}}"),
+            json("{'x:thinking_budget_tokens':2048}"));
+    }
+
+    @Test
+    public void shouldKeepThinkingResidueAroundBudget()
+    {
+        assertTransforms(transform,
+            json("{'thinking':{'type':'enabled','budget_tokens':2048,'display':'omitted'}}"),
+            json("{'x:thinking_budget_tokens':2048,'anthropic:thinking':{'display':'omitted'}}"));
+    }
+
+    @Test
+    public void shouldKeepEnabledThinkingWithoutBudgetAsResidue()
+    {
+        assertTransforms(transform,
+            json("{'thinking':{'type':'enabled'}}"),
+            json("{'anthropic:thinking':{'type':'enabled'}}"));
+    }
+
+    @Test
+    public void shouldKeepEnabledThinkingAfterOtherMembersWithoutBudgetAsResidue()
+    {
+        assertTransforms(transform,
+            json("{'thinking':{'type':'enabled','display':'omitted'}}"),
+            json("{'anthropic:thinking':{'display':'omitted','type':'enabled'}}"));
+    }
+
+    @Test
+    public void shouldKeepAdaptiveThinkingAsResidue()
+    {
+        assertTransforms(transform,
+            json("{'thinking':{'type':'adaptive','display':'summarized'}}"),
+            json("{'anthropic:thinking':{'type':'adaptive','display':'summarized'}}"));
+    }
+
+    @Test
+    public void shouldDropNullThinkingBudget()
+    {
+        assertTransforms(transform,
+            json("{'thinking':{'type':'enabled','budget_tokens':null}}"),
+            json("{}"));
+    }
+
+    @Test
+    public void shouldKeepEmptyThinkingAsResidue()
+    {
+        assertTransforms(transform, json("{'thinking':{}}"), json("{'anthropic:thinking':{}}"));
+    }
+
+    @Test
+    public void shouldKeepNullThinkingAsResidue()
+    {
+        assertTransforms(transform, json("{'thinking':null}"), json("{'anthropic:thinking':null}"));
+    }
+
+    @Test
+    public void shouldRejectThinkingBudgetThatIsNotANumber()
+    {
+        assertRejects(transform, json("{'thinking':{'budget_tokens':'high'}}"));
     }
 
     @Test
