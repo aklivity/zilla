@@ -7208,4 +7208,76 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.sampling/client",
+        "${app}/transform.request.sampling/server"})
+    public void shouldTransformRequestSampling() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.sampling.top.k/client",
+        "${app}/transform.request.sampling.top.k/server"})
+    public void shouldTransformRequestSamplingTopK() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.sampling.seed/client",
+        "${app}/transform.request.sampling.seed/server"})
+    public void shouldTransformRequestSamplingSeed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.sampling.penalties/client",
+        "${app}/transform.request.sampling.penalties/server"})
+    public void shouldTransformRequestSamplingPenalties() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.sampling.stop/client",
+        "${app}/transform.request.sampling.stop/server"})
+    public void shouldTransformRequestSamplingStop() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.sampling.clamp/client",
+        "${app}/transform.request.sampling.clamp/server"})
+    public void shouldTransformRequestSamplingClamp() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.sampling.stop/client",
+        "${app}/transform.rejected.sampling.stop/server"})
+    public void shouldTransformRejectedSamplingStop() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.sampling.stop.excess/client",
+        "${app}/transform.rejected.sampling.stop.excess/server"})
+    public void shouldTransformRejectedSamplingStopExcess() throws Exception
+    {
+        k3po.finish();
+    }
 }

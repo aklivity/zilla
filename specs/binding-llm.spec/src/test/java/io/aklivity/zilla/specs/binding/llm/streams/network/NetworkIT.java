@@ -6605,4 +6605,139 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.request.sampling/client",
+        "${net}/openai.transform.request.sampling/server"})
+    public void shouldOpenaiTransformRequestSampling() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.request.sampling/client",
+        "${net}/openai.responses.transform.request.sampling/server"})
+    public void shouldOpenaiResponsesTransformRequestSampling() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.request.sampling/client",
+        "${net}/anthropic.transform.request.sampling/server"})
+    public void shouldAnthropicTransformRequestSampling() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.request.sampling.top.k/client",
+        "${net}/anthropic.transform.request.sampling.top.k/server"})
+    public void shouldAnthropicTransformRequestSamplingTopK() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.request.sampling.seed/client",
+        "${net}/openai.transform.request.sampling.seed/server"})
+    public void shouldOpenaiTransformRequestSamplingSeed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.request.sampling.penalties/client",
+        "${net}/openai.transform.request.sampling.penalties/server"})
+    public void shouldOpenaiTransformRequestSamplingPenalties() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.request.sampling.stop/client",
+        "${net}/openai.transform.request.sampling.stop/server"})
+    public void shouldOpenaiTransformRequestSamplingStop() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.request.sampling.stop/client",
+        "${net}/anthropic.transform.request.sampling.stop/server"})
+    public void shouldAnthropicTransformRequestSamplingStop() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.request.sampling.stop.string/client",
+        "${net}/openai.transform.request.sampling.stop.string/server"})
+    public void shouldOpenaiTransformRequestSamplingStopString() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.request.sampling.clamp/client",
+        "${net}/openai.transform.request.sampling.clamp/server"})
+    public void shouldOpenaiTransformRequestSamplingClamp() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.request.sampling.clamp/client",
+        "${net}/openai.responses.transform.request.sampling.clamp/server"})
+    public void shouldOpenaiResponsesTransformRequestSamplingClamp() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.request.sampling.clamp/client",
+        "${net}/anthropic.transform.request.sampling.clamp/server"})
+    public void shouldAnthropicTransformRequestSamplingClamp() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.rejected.sampling.stop/client",
+        "${net}/openai.responses.transform.rejected.sampling.stop/server"})
+    public void shouldOpenaiResponsesTransformRejectedSamplingStop() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.rejected.sampling.stop.excess/client",
+        "${net}/openai.transform.rejected.sampling.stop.excess/server"})
+    public void shouldOpenaiTransformRejectedSamplingStopExcess() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.request.members/client",
+        "${net}/anthropic.transform.request.members/server"})
+    public void shouldAnthropicTransformRequestMembers() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -30,7 +30,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"anthropic:temperature\":0.5}"
+write "{\"x:temperature\":0.5}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()

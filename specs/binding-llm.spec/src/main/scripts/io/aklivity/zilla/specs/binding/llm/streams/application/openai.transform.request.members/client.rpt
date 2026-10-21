@@ -42,7 +42,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:temperature\":0.7,\"openai:top_p\":0.9}"
+write "{\"x:temperature\":0.7,\"x:top_p\":0.9}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -50,7 +50,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:seed\":42,\"openai:stop\":[\"END\"],\"openai:store\":true,\"openai:service_tier\":\"auto\",\"openai:logprobs\":true,\"openai:top_logprobs\":3,\"openai:n\":2,\"openai:audio\":{\"voice\":\"alloy\",\"format\":\"wav\"}}"
+write "{\"x:seed\":42,\"x:stop\":[\"END\"],\"openai:store\":true,\"openai:service_tier\":\"auto\",\"openai:logprobs\":true,\"openai:top_logprobs\":3,\"openai:n\":2,\"openai:audio\":{\"voice\":\"alloy\",\"format\":\"wav\"}}"
 write flush
 
 write advise zilla:flush

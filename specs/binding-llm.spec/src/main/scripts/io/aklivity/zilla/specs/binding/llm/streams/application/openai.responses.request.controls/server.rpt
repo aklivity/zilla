@@ -39,7 +39,7 @@ read zilla:data.ext ${llm:matchDataEx()
                          .type("CONTROL")
                          .message(-1)
                          .build()}
-read "{\"openai:temperature\":0.2,\"openai:store\":false,\"openai:metadata\":{\"k\":\"v\"},\"openai:previous_response_id\":\"resp_0\"}"
+read "{\"x:temperature\":0.2,\"openai:store\":false,\"openai:metadata\":{\"k\":\"v\"},\"openai:previous_response_id\":\"resp_0\"}"
 
 read advised zilla:flush
 
