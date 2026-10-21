@@ -55,6 +55,7 @@ abstract class LlmToolTransform implements JsonTransform
     protected static final int CAPTURE_VALUE = 21;
     protected static final int DESCEND_OR_REPLACE = 22;
     protected static final int DESCEND_OR_PASS = 23;
+    protected static final int LIMIT_STRING = 24;
 
     protected static final int MODE_OBJECT = 0;
     protected static final int MODE_EXTRACT = 1;
@@ -101,6 +102,10 @@ abstract class LlmToolTransform implements JsonTransform
     private int skipDepth;
     private boolean holding;
     private boolean converting;
+    private boolean limiting;
+    private boolean overflowing;
+    private int limitLength;
+    private int limitUnits;
     private boolean wrapping;
     private boolean clamping;
     private boolean ranging;
@@ -191,6 +196,12 @@ abstract class LlmToolTransform implements JsonTransform
     }
 
     protected String converted(
+        String value)
+    {
+        return value;
+    }
+
+    protected String adapted(
         String value)
     {
         return value;
@@ -331,6 +342,15 @@ abstract class LlmToolTransform implements JsonTransform
         target = name(SHARED_DIALECT, member);
 
         return PASS_VALUE;
+    }
+
+    protected final int limitString(
+        int length)
+    {
+        limitLength = length;
+        limitUnits = length << 1;
+
+        return LIMIT_STRING;
     }
 
     protected final int clamp(
@@ -547,6 +567,8 @@ abstract class LlmToolTransform implements JsonTransform
         skipping = false;
         holding = false;
         converting = false;
+        limiting = false;
+        overflowing = false;
         wrapping = false;
         clamping = false;
         ranging = false;
@@ -889,6 +911,10 @@ abstract class LlmToolTransform implements JsonTransform
         case HOLD_STRING:
             status = event == JsonEvent.VALUE_STRING ? hold() : Status.REJECTED;
             break;
+        case LIMIT_STRING:
+            limiting = event == JsonEvent.VALUE_STRING;
+            status = limiting ? hold() : beginSkip(event);
+            break;
         case CONVERT_STRING:
             if (event == JsonEvent.START_ARRAY)
             {
@@ -1160,6 +1186,26 @@ abstract class LlmToolTransform implements JsonTransform
         {
             nesting = false;
             emit(JsonEvent.END_OBJECT);
+        }
+    }
+
+    private String limited()
+    {
+        return !overflowing && heldBuilder.codePointCount(0, heldBuilder.length()) <= limitLength
+            ? heldBuilder.toString()
+            : null;
+    }
+
+    private void emitAdapted(
+        String value)
+    {
+        final String adapted = value != null ? adapted(value) : null;
+
+        if (adapted != null)
+        {
+            emitMember();
+            emit(JsonEvent.VALUE_STRING, adapted);
+            closeNested();
         }
     }
 
@@ -1482,7 +1528,16 @@ abstract class LlmToolTransform implements JsonTransform
     {
         final CharSequence view = source.getStringView();
 
-        heldBuilder.append(view);
+        if (limiting && !overflowing && heldBuilder.length() + view.length() > limitUnits)
+        {
+            overflowing = true;
+            heldBuilder.setLength(0);
+        }
+        else if (!overflowing)
+        {
+            heldBuilder.append(view);
+        }
+
         control.consumed(view.length());
 
         Status status = Status.REJECTED;
@@ -1494,10 +1549,16 @@ abstract class LlmToolTransform implements JsonTransform
 
             if (!holding)
             {
-                final String value = name(heldBuilder);
+                final String value = limiting ? limited() : name(heldBuilder);
                 heldBuilder.setLength(0);
 
-                if (converting)
+                if (limiting)
+                {
+                    limiting = false;
+                    overflowing = false;
+                    emitAdapted(value);
+                }
+                else if (converting)
                 {
                     converting = false;
 

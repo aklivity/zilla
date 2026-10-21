@@ -428,4 +428,63 @@ public class LlmGeminiControlToCanonicalTest
             json("{'thinkingConfig':null}"),
             json("{'gemini:thinkingConfig':null}"));
     }
+
+    @Test
+    public void shouldPromoteServiceTier()
+    {
+        assertTransforms(transform,
+            json("{'serviceTier':'standard'}"),
+            json("{'x:service_tier':'default'}"));
+        assertTransforms(transform,
+            json("{'serviceTier':'STANDARD'}"),
+            json("{'x:service_tier':'default'}"));
+        assertTransforms(transform,
+            json("{'serviceTier':'flex'}"),
+            json("{'x:service_tier':'flex'}"));
+        assertTransforms(transform,
+            json("{'serviceTier':'FLEX'}"),
+            json("{'x:service_tier':'flex'}"));
+        assertTransforms(transform,
+            json("{'serviceTier':'priority'}"),
+            json("{'x:service_tier':'priority'}"));
+        assertTransforms(transform,
+            json("{'serviceTier':'Priority'}"),
+            json("{'x:service_tier':'priority'}"));
+    }
+
+    @Test
+    public void shouldKeepServiceTierOfOtherValuesPrefixed()
+    {
+        assertTransforms(transform,
+            json("{'serviceTier':'unspecified'}"),
+            json("{'gemini:serviceTier':'unspecified'}"));
+        assertTransforms(transform,
+            json("{'serviceTier':'TIER_X'}"),
+            json("{'gemini:serviceTier':'TIER_X'}"));
+        assertTransforms(transform,
+            json("{'serviceTier':7}"),
+            json("{'gemini:serviceTier':7}"));
+        assertTransforms(transform,
+            json("{'serviceTier':null}"),
+            json("{'gemini:serviceTier':null}"));
+    }
+
+    @Test
+    public void shouldPromoteServiceTierWithEscapes()
+    {
+        assertTransforms(transform,
+            "{\"serviceTier\":\"st\\u0061ndard\"}",
+            json("{'x:service_tier':'default'}"));
+    }
+
+    @Test
+    public void shouldKeepSnakeServiceTierPrefixedInSourceSpelling()
+    {
+        assertTransforms(transform,
+            json("{'service_tier':'standard'}"),
+            json("{'x:service_tier':'default'}"));
+        assertTransforms(transform,
+            json("{'service_tier':'TIER_X'}"),
+            json("{'gemini:service_tier':'TIER_X'}"));
+    }
 }

@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.SERVICE_TIER;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TOOL_CHOICE;
 
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
@@ -29,6 +30,8 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
     private static final String MEMBER_NATIVE_REASONING = "openai:reasoning";
     private static final String MEMBER_EFFORT = "effort";
     private static final String MEMBER_SHARED_REASONING_EFFORT = "x:reasoning_effort";
+    private static final String MEMBER_SHARED_SERVICE_TIER = "x:service_tier";
+    private static final String MEMBER_NATIVE_SERVICE_TIER = "openai:service_tier";
     private static final String MEMBER_SHARED_RESPONSE_FORMAT = "x:response_format";
     private static final String MEMBER_TEXT = "text";
     private static final String MEMBER_FORMAT = "format";
@@ -84,7 +87,7 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
     {
         int action;
 
-        if (depth == 1 && matches(key, TOOL_CHOICE))
+        if (depth == 1 && (matches(key, TOOL_CHOICE) || matches(key, SERVICE_TIER)))
         {
             action = capture(key);
         }
@@ -142,7 +145,11 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
         final String member = capturedMember();
         Status status = Status.ADVANCED;
 
-        if (matches(member, TOOL_CHOICE))
+        if (matches(member, SERVICE_TIER))
+        {
+            onServiceTier(value);
+        }
+        else if (matches(member, TOOL_CHOICE))
         {
             if (choice.parseResponses(value))
             {
@@ -192,6 +199,23 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
         }
 
         return status;
+    }
+
+    private void onServiceTier(
+        LlmCapturedValue value)
+    {
+        final String tier = LlmServiceTiers.canonicalOpenai(value.string(0));
+
+        if (tier != null)
+        {
+            emit(JsonEvent.KEY_NAME, MEMBER_SHARED_SERVICE_TIER);
+            emit(JsonEvent.VALUE_STRING, tier);
+        }
+        else
+        {
+            emit(JsonEvent.KEY_NAME, MEMBER_NATIVE_SERVICE_TIER);
+            emitCaptured(value, 0);
+        }
     }
 
     private int reasoningMember(

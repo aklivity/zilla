@@ -1654,4 +1654,59 @@ public class LlmGeminiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"tier \"default\"", "wire \"standard\""})
+    @Specification({
+        "${net}/gemini.request.service.tier/client",
+        "${app}/gemini.request.service.tier/server"})
+    public void shouldDecodeGeminiRequestServiceTierDefault() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"tier \"flex\"", "wire \"flex\""})
+    @Specification({
+        "${net}/gemini.request.service.tier/client",
+        "${app}/gemini.request.service.tier/server"})
+    public void shouldDecodeGeminiRequestServiceTierFlex() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"tier \"priority\"", "wire \"priority\""})
+    @Specification({
+        "${net}/gemini.request.service.tier/client",
+        "${app}/gemini.request.service.tier/server"})
+    public void shouldDecodeGeminiRequestServiceTierPriority() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"wire \"TIER_X\""})
+    @Specification({
+        "${net}/gemini.request.service.tier.residue/client",
+        "${app}/gemini.request.service.tier.residue/server"})
+    public void shouldDecodeGeminiRequestServiceTierResidueUnknown() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"wire \"unspecified\""})
+    @Specification({
+        "${net}/gemini.request.service.tier.residue/client",
+        "${app}/gemini.request.service.tier.residue/server"})
+    public void shouldDecodeGeminiRequestServiceTierResidueUnspecified() throws Exception
+    {
+        k3po.finish();
+    }
 }

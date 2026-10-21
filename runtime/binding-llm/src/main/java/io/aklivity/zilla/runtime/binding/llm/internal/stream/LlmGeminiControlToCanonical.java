@@ -63,6 +63,9 @@ final class LlmGeminiControlToCanonical extends LlmToolTransform
     private static final String MEMBER_THINKING_BUDGET_SNAKE = "thinking_budget";
     private static final String MEMBER_SHARED_REASONING_EFFORT = "x:reasoning_effort";
     private static final String MEMBER_SHARED_THINKING_BUDGET = "x:thinking_budget_tokens";
+    private static final String MEMBER_SERVICE_TIER = "serviceTier";
+    private static final String MEMBER_SERVICE_TIER_SNAKE = "service_tier";
+    private static final String MEMBER_SHARED_SERVICE_TIER = "x:service_tier";
     private static final String[] LEVELS = {"MINIMAL", "LOW", "MEDIUM", "HIGH"};
     private static final String[] EFFORTS = {"minimal", "low", "medium", "high"};
 
@@ -88,6 +91,7 @@ final class LlmGeminiControlToCanonical extends LlmToolTransform
     private String residueKey;
     private String formatKey;
     private String thinkingKey;
+    private String serviceTierKey;
     private int format;
     private int container;
     private int thinking;
@@ -112,6 +116,7 @@ final class LlmGeminiControlToCanonical extends LlmToolTransform
         format = FORMAT_OFF;
         formatKey = null;
         thinkingKey = null;
+        serviceTierKey = null;
         container = CONTAINER_NONE;
         thinking = THINKING_NONE;
     }
@@ -125,6 +130,12 @@ final class LlmGeminiControlToCanonical extends LlmToolTransform
 
         if (depth == 1 && (matches(key, MEMBER_TOOL_CONFIG) || matches(key, MEMBER_TOOL_CONFIG_SNAKE)))
         {
+            action = capture(key);
+        }
+        else if (depth == 1 && (matches(key, MEMBER_SERVICE_TIER) || matches(key, MEMBER_SERVICE_TIER_SNAKE)))
+        {
+            prefix(DIALECT, key);
+            serviceTierKey = target;
             action = capture(key);
         }
         else if (depth == 1 && (matches(key, MEMBER_RESPONSE_FORMAT) || matches(key, MEMBER_RESPONSE_FORMAT_SNAKE)))
@@ -180,7 +191,11 @@ final class LlmGeminiControlToCanonical extends LlmToolTransform
     {
         Status status = Status.ADVANCED;
 
-        if (container == CONTAINER_THINKING)
+        if (serviceTierKey != null)
+        {
+            onServiceTier(value);
+        }
+        else if (container == CONTAINER_THINKING)
         {
             onThinkingCaptured(value);
         }
@@ -194,6 +209,23 @@ final class LlmGeminiControlToCanonical extends LlmToolTransform
         }
 
         return status;
+    }
+
+    private void onServiceTier(
+        LlmCapturedValue value)
+    {
+        final String tier = LlmServiceTiers.canonicalGemini(value.string(0));
+
+        if (tier != null)
+        {
+            emit(JsonEvent.KEY_NAME, MEMBER_SHARED_SERVICE_TIER);
+            emit(JsonEvent.VALUE_STRING, tier);
+        }
+        else
+        {
+            emit(JsonEvent.KEY_NAME, serviceTierKey);
+            emitCaptured(value, 0);
+        }
     }
 
     private void onToolConfig(

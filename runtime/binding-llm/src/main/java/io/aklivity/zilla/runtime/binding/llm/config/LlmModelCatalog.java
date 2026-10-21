@@ -48,6 +48,7 @@ final class LlmModelCatalog
             Integer budgetMinimum = null;
             Integer budgetMaximum = null;
             Map<String, Integer> ladder = null;
+            List<String> tiers = null;
 
             for (Entry entry : entries)
             {
@@ -60,18 +61,20 @@ final class LlmModelCatalog
                     budgetMinimum = budgetMinimum != null ? budgetMinimum : config.budgetMinimum;
                     budgetMaximum = budgetMaximum != null ? budgetMaximum : config.budgetMaximum;
                     ladder = ladder != null ? ladder : config.ladder.isEmpty() ? null : config.ladder;
+                    tiers = tiers != null ? tiers : config.tiers;
                 }
             }
 
             capability = sampling == null && thinking == null && budgetMinimum == null && budgetMaximum == null &&
-                ladder == null
+                ladder == null && tiers == null
                 ? LlmModelCapability.UNSPECIFIED
                 : new LlmModelCapability(
                     sampling == null || sampling,
                     LlmThinking.of(thinking),
                     budgetMinimum != null ? budgetMinimum : LlmModelCapability.UNSET,
                     budgetMaximum != null ? budgetMaximum : LlmModelCapability.UNSET,
-                    ladder != null ? ladderOf(ladder) : null);
+                    ladder != null ? ladderOf(ladder) : null,
+                    tiers != null ? LlmServiceTier.maskOf(tiers) : LlmServiceTier.ALL);
         }
 
         return capability;

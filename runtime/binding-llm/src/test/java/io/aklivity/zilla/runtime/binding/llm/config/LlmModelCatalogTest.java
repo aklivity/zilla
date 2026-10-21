@@ -213,6 +213,59 @@ public class LlmModelCatalogTest
         assertThat(catalog.resolve("gpt-4o"), sameInstance(LlmModelCapability.UNSPECIFIED));
     }
 
+    @Test
+    public void shouldSupportEveryTierWithoutTiersEntry()
+    {
+        final LlmModelCatalog catalog = new LlmModelCatalog(List.of(model("m").sampling(false).build()), List.of());
+
+        assertThat(catalog.resolve("m").tiers, equalTo(LlmServiceTier.ALL));
+        assertThat(catalog.resolve("m").supports(LlmServiceTier.FLEX), equalTo(true));
+    }
+
+    @Test
+    public void shouldResolveTiers()
+    {
+        final LlmModelCatalog catalog = new LlmModelCatalog(
+            List.of(model("m").tiers(List.of("auto", "default")).build()), List.of());
+
+        final LlmModelCapability capability = catalog.resolve("m");
+
+        assertThat(capability.supports(LlmServiceTier.AUTO), equalTo(true));
+        assertThat(capability.supports(LlmServiceTier.DEFAULT), equalTo(true));
+        assertThat(capability.supports(LlmServiceTier.FLEX), equalTo(false));
+        assertThat(capability.supports(LlmServiceTier.PRIORITY), equalTo(false));
+    }
+
+    @Test
+    public void shouldResolveEmptyTiersAsSupportingNone()
+    {
+        final LlmModelCatalog catalog = new LlmModelCatalog(List.of(model("m").tiers(List.of()).build()), List.of());
+
+        assertThat(catalog.resolve("m").tiers, equalTo(0));
+    }
+
+    @Test
+    public void shouldPreferConfiguredTiersOverDefault()
+    {
+        final LlmModelCatalog catalog = new LlmModelCatalog(
+            List.of(model("m").tiers(List.of("flex")).build()),
+            List.of(model("m").tiers(List.of("auto")).build()));
+
+        assertThat(catalog.resolve("m").supports(LlmServiceTier.FLEX), equalTo(true));
+        assertThat(catalog.resolve("m").supports(LlmServiceTier.AUTO), equalTo(false));
+    }
+
+    @Test
+    public void shouldFallBackToGlobTiers()
+    {
+        final LlmModelCatalog catalog = new LlmModelCatalog(
+            List.of(model("m-1").sampling(false).build(), model("m-*").tiers(List.of("priority")).build()), List.of());
+
+        assertThat(catalog.resolve("m-1").sampling, equalTo(false));
+        assertThat(catalog.resolve("m-1").supports(LlmServiceTier.PRIORITY), equalTo(true));
+        assertThat(catalog.resolve("m-1").supports(LlmServiceTier.AUTO), equalTo(false));
+    }
+
     private static LlmModelConfigBuilder<LlmModelConfig> model(
         String name)
     {

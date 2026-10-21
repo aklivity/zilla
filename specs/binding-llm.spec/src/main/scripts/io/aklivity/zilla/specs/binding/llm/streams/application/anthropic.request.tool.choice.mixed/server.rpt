@@ -39,7 +39,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-read "{\"x:temperature\":0.5,\"x:tool_choice\":\"auto\",\"x:parallel_tool_calls\":false,\"anthropic:metadata\":{\"user_id\":\"u\"},\"x:top_p\":0.9}"
+read "{\"x:temperature\":0.5,\"x:tool_choice\":\"auto\",\"x:parallel_tool_calls\":false,\"x:user\":\"u\",\"x:top_p\":0.9}"
 
 read advised zilla:flush ${llm:matchDialectFlushEx()
                                  .typeId(zilla:id("llm"))

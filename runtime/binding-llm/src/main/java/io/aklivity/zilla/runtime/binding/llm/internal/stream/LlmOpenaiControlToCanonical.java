@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.SERVICE_TIER;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.STOP;
 
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
@@ -26,6 +27,8 @@ final class LlmOpenaiControlToCanonical extends LlmToolTransform
     private static final String MEMBER_STREAM_OPTIONS = "stream_options";
     private static final String MEMBER_INCLUDE_USAGE = "include_usage";
     private static final String MEMBER_INCLUDE_OBFUSCATION = "include_obfuscation";
+    private static final String MEMBER_SHARED_SERVICE_TIER = "x:service_tier";
+    private static final String MEMBER_NATIVE_SERVICE_TIER = "openai:service_tier";
 
     private static final int REPLACING_NONE = 0;
     private static final int REPLACING_STREAM = 1;
@@ -115,12 +118,36 @@ final class LlmOpenaiControlToCanonical extends LlmToolTransform
             share(key);
             action = WRAP_STRING_AS_ELEMENT;
         }
+        else if (depth == 1 && matches(key, SERVICE_TIER))
+        {
+            action = capture(key);
+        }
         else
         {
             action = prefix(DIALECT, key);
         }
 
         return action;
+    }
+
+    @Override
+    protected Status onCaptured(
+        LlmCapturedValue value)
+    {
+        final String tier = LlmServiceTiers.canonicalOpenai(value.string(0));
+
+        if (tier != null)
+        {
+            emit(JsonEvent.KEY_NAME, MEMBER_SHARED_SERVICE_TIER);
+            emit(JsonEvent.VALUE_STRING, tier);
+        }
+        else
+        {
+            emit(JsonEvent.KEY_NAME, MEMBER_NATIVE_SERVICE_TIER);
+            emitCaptured(value, 0);
+        }
+
+        return Status.ADVANCED;
     }
 
     @Override

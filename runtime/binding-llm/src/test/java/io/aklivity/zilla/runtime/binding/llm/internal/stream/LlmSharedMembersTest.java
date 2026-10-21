@@ -142,4 +142,27 @@ public class LlmSharedMembersTest
         assertThat(LlmSharedMembers.anthropic("response_format"), nullValue());
         assertThat(LlmSharedMembers.gemini("response_format"), nullValue());
     }
+
+    @Test
+    public void shouldPromoteSafetyIdentifierAsUser()
+    {
+        assertThat(LlmSharedMembers.openai("safety_identifier"), equalTo("user"));
+        assertThat(LlmSharedMembers.openaiResponses("safety_identifier"), equalTo("user"));
+    }
+
+    @Test
+    public void shouldKeepNativeUserMembersUnpromoted()
+    {
+        for (String member : new String[] {"user", "prompt_cache_key", "service_tier", "metadata"})
+        {
+            assertThat(member, LlmSharedMembers.openai(member), nullValue());
+            assertThat(member, LlmSharedMembers.openaiResponses(member), nullValue());
+            assertThat(member, LlmSharedMembers.anthropic(member), nullValue());
+            assertThat(member, LlmSharedMembers.gemini(member), nullValue());
+        }
+
+        assertThat(LlmSharedMembers.gemini("serviceTier"), nullValue());
+        assertThat(LlmSharedMembers.anthropic("safety_identifier"), nullValue());
+        assertThat(LlmSharedMembers.gemini("safety_identifier"), nullValue());
+    }
 }

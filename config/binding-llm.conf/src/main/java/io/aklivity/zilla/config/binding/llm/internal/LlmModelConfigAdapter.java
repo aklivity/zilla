@@ -14,10 +14,14 @@
  */
 package io.aklivity.zilla.config.binding.llm.internal;
 
+import java.util.List;
+
 import jakarta.json.Json;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonNumber;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonString;
 
 import io.aklivity.zilla.config.binding.llm.LlmModelConfig;
 import io.aklivity.zilla.config.binding.llm.LlmModelConfigBuilder;
@@ -31,6 +35,7 @@ public final class LlmModelConfigAdapter extends ConfigAdapter<LlmModelConfig, J
     private static final String BUDGET_MINIMUM_NAME = "minimum";
     private static final String BUDGET_MAXIMUM_NAME = "maximum";
     private static final String LADDER_NAME = "ladder";
+    private static final String TIERS_NAME = "tiers";
 
     @Override
     public JsonObject adaptToJson(
@@ -70,6 +75,13 @@ public final class LlmModelConfigAdapter extends ConfigAdapter<LlmModelConfig, J
             JsonObjectBuilder ladder = Json.createObjectBuilder();
             model.ladder.forEach(ladder::add);
             object.add(LADDER_NAME, ladder);
+        }
+
+        if (model.tiers != null)
+        {
+            JsonArrayBuilder tiers = Json.createArrayBuilder();
+            model.tiers.forEach(tiers::add);
+            object.add(TIERS_NAME, tiers);
         }
 
         return object.build();
@@ -117,6 +129,14 @@ public final class LlmModelConfigAdapter extends ConfigAdapter<LlmModelConfig, J
         {
             object.getJsonObject(LADDER_NAME).forEach((effort, budget) ->
                 model.ladder(effort, ((JsonNumber) budget).intValue()));
+        }
+
+        if (object.containsKey(TIERS_NAME))
+        {
+            List<String> tiers = object.getJsonArray(TIERS_NAME).getValuesAs(JsonString.class).stream()
+                .map(JsonString::getString)
+                .toList();
+            model.tiers(tiers);
         }
 
         return model.build();

@@ -31,6 +31,7 @@ public final class LlmModelConfig extends Config
     public final Integer budgetMinimum;
     public final Integer budgetMaximum;
     public final Map<String, Integer> ladder;
+    public final List<String> tiers;
 
     public static LlmModelConfigBuilder<LlmModelConfig> builder()
     {
@@ -55,7 +56,8 @@ public final class LlmModelConfig extends Config
         String thinking,
         Integer budgetMinimum,
         Integer budgetMaximum,
-        Map<String, Integer> ladder)
+        Map<String, Integer> ladder,
+        List<String> tiers)
     {
         this.name = name;
         this.sampling = sampling;
@@ -63,5 +65,6 @@ public final class LlmModelConfig extends Config
         this.budgetMinimum = budgetMinimum;
         this.budgetMaximum = budgetMaximum;
         this.ladder = ladder;
+        this.tiers = tiers;
     }
 }

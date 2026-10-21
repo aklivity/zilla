@@ -38,7 +38,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"x:temperature\":0.5,\"x:tool_choice\":\"auto\",\"x:parallel_tool_calls\":false,\"anthropic:metadata\":{\"user_id\":\"u\"},\"x:top_p\":0.9}"
+write "{\"x:temperature\":0.5,\"x:tool_choice\":\"auto\",\"x:parallel_tool_calls\":false,\"x:user\":\"u\",\"x:top_p\":0.9}"
 write flush
 
 write advise zilla:flush ${llm:dialectFlushEx()

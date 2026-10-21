@@ -2087,4 +2087,102 @@ public class LlmOpenaiResponsesServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "user \"user-123\"", "wire \"user-123\""})
+    @Specification({
+        "${net}/openai.responses.transform.request.user/client",
+        "${app}/transform.request.user/server"})
+    public void shouldTransformUserFromOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "tier \"auto\"", "wire \"auto\""})
+    @Specification({
+        "${net}/openai.responses.transform.request.service.tier/client",
+        "${app}/transform.request.service.tier/server"})
+    public void shouldTransformServiceTierAutoFromOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "tier \"default\"", "wire \"default\""})
+    @Specification({
+        "${net}/openai.responses.transform.request.service.tier/client",
+        "${app}/transform.request.service.tier/server"})
+    public void shouldTransformServiceTierDefaultFromOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "tier \"flex\"", "wire \"flex\""})
+    @Specification({
+        "${net}/openai.responses.transform.request.service.tier/client",
+        "${app}/transform.request.service.tier/server"})
+    public void shouldTransformServiceTierFlexFromOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "tier \"priority\"", "wire \"priority\""})
+    @Specification({
+        "${net}/openai.responses.transform.request.service.tier/client",
+        "${app}/transform.request.service.tier/server"})
+    public void shouldTransformServiceTierPriorityFromOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.request.user/client",
+        "${app}/openai.responses.request.user/server"})
+    public void shouldDecodeOpenaiResponsesRequestUser() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"tier \"default\"", "wire \"default\""})
+    @Specification({
+        "${net}/openai.responses.request.service.tier/client",
+        "${app}/openai.responses.request.service.tier/server"})
+    public void shouldDecodeOpenaiResponsesRequestServiceTierDefault() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"tier \"priority\"", "wire \"priority\""})
+    @Specification({
+        "${net}/openai.responses.request.service.tier/client",
+        "${app}/openai.responses.request.service.tier/server"})
+    public void shouldDecodeOpenaiResponsesRequestServiceTierPriority() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"wire \"fast\""})
+    @Specification({
+        "${net}/openai.responses.request.service.tier.residue/client",
+        "${app}/openai.responses.request.service.tier.residue/server"})
+    public void shouldDecodeOpenaiResponsesRequestServiceTierResidueFast() throws Exception
+    {
+        k3po.finish();
+    }
 }

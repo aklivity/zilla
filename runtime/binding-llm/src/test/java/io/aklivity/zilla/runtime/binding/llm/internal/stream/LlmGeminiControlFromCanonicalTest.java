@@ -21,10 +21,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 
+import java.util.List;
+
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.llm.config.LlmEffort;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmModelCapability;
+import io.aklivity.zilla.runtime.binding.llm.config.LlmServiceTier;
 
 public class LlmGeminiControlFromCanonicalTest
 {
@@ -498,5 +501,72 @@ public class LlmGeminiControlFromCanonicalTest
             json("{'x:temperature':0.7,'x:top_p':0.9,'x:top_k':40,'x:seed':42}"),
             json("{'generationConfig':{'temperature':0.7},'generationConfig':{'topP':0.9},'generationConfig':{'topK':40}," +
                 "'generationConfig':{'seed':42}}"));
+    }
+
+    @Test
+    public void shouldDropUser()
+    {
+        assertTransforms(foreignMembers, json("{'x:user':'u-1','x:top_p':0.5}"), json("{'generationConfig':{'topP':0.5}}"));
+    }
+
+    @Test
+    public void shouldRestoreServiceTier()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:service_tier':'default'}"),
+            json("{'serviceTier':'standard'}"));
+        assertTransforms(foreignMembers,
+            json("{'x:service_tier':'flex'}"),
+            json("{'serviceTier':'flex'}"));
+        assertTransforms(foreignMembers,
+            json("{'x:service_tier':'priority'}"),
+            json("{'serviceTier':'priority'}"));
+        assertTransforms(foreignMembers,
+            json("{'x:service_tier':'auto'}"),
+            json("{}"));
+    }
+
+    @Test
+    public void shouldDropServiceTierThatIsNotCanonical()
+    {
+        assertTransforms(foreignMembers, json("{'x:service_tier':'scale'}"), json("{}"));
+        assertTransforms(foreignMembers, json("{'x:service_tier':'" + HUGE + "'}"), json("{}"));
+        assertTransforms(foreignMembers, json("{'x:service_tier':3}"), json("{}"));
+        assertTransforms(foreignMembers, json("{'x:service_tier':null}"), json("{}"));
+    }
+
+    @Test
+    public void shouldDropServiceTierTheModelDoesNotSupport()
+    {
+        final LlmGeminiControlFromCanonical restricted = LlmGeminiControlFromCanonical.members(false,
+            tiers(List.of("default", "flex")));
+
+        assertTransforms(restricted,
+            json("{'x:service_tier':'priority'}"),
+            json("{}"));
+        assertTransforms(restricted,
+            json("{'x:service_tier':'flex'}"),
+            json("{'serviceTier':'flex'}"));
+    }
+
+    @Test
+    public void shouldDropServiceTierWhenExtracting()
+    {
+        final LlmGeminiControlFromCanonical extracting = new LlmGeminiControlFromCanonical(false);
+
+        assertTransforms(extracting, json("{'x:service_tier':'default'}"), "null");
+    }
+
+    @Test
+    public void shouldRestoreOwnPrefixedServiceTier()
+    {
+        assertTransforms(transform, json("{'gemini:serviceTier':'TIER_X'}"), json("'TIER_X'"));
+        assertTransforms(sameMembers, json("{'gemini:service_tier':'TIER_X'}"), json("{'serviceTier':'TIER_X'}"));
+    }
+
+    private static LlmModelCapability tiers(
+        List<String> names)
+    {
+        return new LlmModelCapability(true, null, -1, -1, null, LlmServiceTier.maskOf(names));
     }
 }

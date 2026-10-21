@@ -175,6 +175,8 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private static final String MEMBER_THINKING_CONFIG_SNAKE = "thinking_config";
     private static final String MEMBER_TOOL_CONFIG = "toolConfig";
     private static final String MEMBER_TOOL_CONFIG_SNAKE = "tool_config";
+    private static final String MEMBER_SERVICE_TIER = "serviceTier";
+    private static final String MEMBER_SERVICE_TIER_SNAKE = "service_tier";
     private static final String MEMBER_GENERATION_CONFIG_SNAKE = "generation_config";
     private static final String MEMBER_MAX_OUTPUT_TOKENS = "maxOutputTokens";
     private static final String MEMBER_MAX_OUTPUT_TOKENS_SNAKE = "max_output_tokens";
@@ -696,6 +698,12 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         CharSequence key)
     {
         return matches(key, MEMBER_TOOL_CONFIG) || matches(key, MEMBER_TOOL_CONFIG_SNAKE);
+    }
+
+    private boolean isConverted(
+        CharSequence key)
+    {
+        return isToolConfig(key) || matches(key, MEMBER_SERVICE_TIER) || matches(key, MEMBER_SERVICE_TIER_SNAKE);
     }
 
     private boolean isResponseFormat(
@@ -2820,7 +2828,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         {
             captureThen = then;
 
-            if (isToolConfig(key))
+            if (isConverted(key))
             {
                 controlConverted(key);
             }
@@ -3071,7 +3079,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
             captureThen = then;
 
-            if (isToolConfig(key))
+            if (isConverted(key))
             {
                 controlConverted(key);
             }

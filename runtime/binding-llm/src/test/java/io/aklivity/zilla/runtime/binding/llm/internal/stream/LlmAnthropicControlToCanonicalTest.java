@@ -57,8 +57,8 @@ public class LlmAnthropicControlToCanonicalTest
     public void shouldMoveObjectValueUnchanged()
     {
         assertTransforms(transform,
-            json("{'metadata':{'user_id':'u','a':[1,{'b':'" + LONG + "'}],'anthropic:c':true}}"),
-            json("{'anthropic:metadata':{'user_id':'u','a':[1,{'b':'" + LONG + "'}],'anthropic:c':true}}"));
+            json("{'context_management':{'user_id':'u','a':[1,{'b':'" + LONG + "'}],'anthropic:c':true}}"),
+            json("{'anthropic:context_management':{'user_id':'u','a':[1,{'b':'" + LONG + "'}],'anthropic:c':true}}"));
     }
 
     @Test
@@ -442,5 +442,116 @@ public class LlmAnthropicControlToCanonicalTest
     public void shouldRejectFormatThatIsNotAnObject()
     {
         assertRejects(transform, json("{'output_config':{'format':'json_schema'}}"));
+    }
+
+    @Test
+    public void shouldPromoteServiceTier()
+    {
+        assertTransforms(transform,
+            json("{'service_tier':'auto'}"),
+            json("{'x:service_tier':'auto'}"));
+        assertTransforms(transform,
+            json("{'service_tier':'standard_only'}"),
+            json("{'x:service_tier':'default'}"));
+    }
+
+    @Test
+    public void shouldKeepServiceTierOfOtherValuesPrefixed()
+    {
+        assertTransforms(transform,
+            json("{'service_tier':'other'}"),
+            json("{'anthropic:service_tier':'other'}"));
+        assertTransforms(transform,
+            json("{'service_tier':'priority'}"),
+            json("{'anthropic:service_tier':'priority'}"));
+        assertTransforms(transform,
+            json("{'service_tier':7}"),
+            json("{'anthropic:service_tier':7}"));
+        assertTransforms(transform,
+            json("{'service_tier':null}"),
+            json("{'anthropic:service_tier':null}"));
+    }
+
+    @Test
+    public void shouldPromoteServiceTierWithEscapes()
+    {
+        assertTransforms(transform,
+            "{\"service_tier\":\"au\\u0074o\"}",
+            json("{'x:service_tier':'auto'}"));
+    }
+
+    @Test
+    public void shouldLiftMetadataUser()
+    {
+        assertTransforms(transform,
+            json("{'metadata':{'user_id':'u-1'}}"),
+            json("{'x:user':'u-1'}"));
+    }
+
+    @Test
+    public void shouldLiftMetadataUserBetweenResidue()
+    {
+        assertTransforms(transform,
+            json("{'metadata':{'a':1,'user_id':'u-1','b':{'c':[2]}}}"),
+            json("{'anthropic:metadata':{'a':1},'x:user':'u-1','anthropic:metadata':{'b':{'c':[2]}}}"));
+    }
+
+    @Test
+    public void shouldLiftMetadataUserFirstWithResidue()
+    {
+        assertTransforms(transform,
+            json("{'metadata':{'user_id':'u-1','a':1}}"),
+            json("{'x:user':'u-1','anthropic:metadata':{'a':1}}"));
+    }
+
+    @Test
+    public void shouldLiftMetadataUserLastWithResidue()
+    {
+        assertTransforms(transform,
+            json("{'metadata':{'a':1,'user_id':'u-1'}}"),
+            json("{'anthropic:metadata':{'a':1},'x:user':'u-1'}"));
+    }
+
+    @Test
+    public void shouldLiftMetadataUserWithEscapes()
+    {
+        assertTransforms(transform,
+            "{\"metadata\":{\"user_id\":\"a\\\"b\\u00e9\"}}",
+            "{\"x:user\":\"a\\\"bé\"}");
+    }
+
+    @Test
+    public void shouldDropMetadataUserThatIsNotString()
+    {
+        assertTransforms(transform,
+            json("{'metadata':{'user_id':null,'a':1}}"),
+            json("{'anthropic:metadata':{'a':1}}"));
+        assertTransforms(transform,
+            json("{'metadata':{'user_id':7}}"),
+            json("{}"));
+    }
+
+    @Test
+    public void shouldKeepMetadataWithoutUserAsResidue()
+    {
+        assertTransforms(transform,
+            json("{'metadata':{'a':1}}"),
+            json("{'anthropic:metadata':{'a':1}}"));
+    }
+
+    @Test
+    public void shouldKeepEmptyMetadataAsResidue()
+    {
+        assertTransforms(transform,
+            json("{'metadata':{}}"),
+            json("{'anthropic:metadata':{}}"));
+    }
+
+    @Test
+    public void shouldKeepNullMetadataAsResidue()
+    {
+        assertTransforms(transform,
+            json("{'metadata':null}"),
+            json("{'anthropic:metadata':null}"));
     }
 }

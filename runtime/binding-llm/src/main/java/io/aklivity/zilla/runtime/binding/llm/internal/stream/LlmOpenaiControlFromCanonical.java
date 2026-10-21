@@ -20,11 +20,13 @@ import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMem
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.REASONING_EFFORT;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.RESPONSE_FORMAT;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.SEED;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.SERVICE_TIER;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.STOP;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TEMPERATURE;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.THINKING_BUDGET_TOKENS;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TOOL_CHOICE;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TOP_P;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.USER;
 
 import io.aklivity.zilla.runtime.binding.llm.config.LlmEffort;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmModelCapability;
@@ -36,6 +38,9 @@ final class LlmOpenaiControlFromCanonical extends LlmToolTransform
     private static final String DIALECT = "openai";
     private static final String MEMBER_STREAM_OPTIONS = "stream_options";
     private static final String MEMBER_INCLUDE_USAGE = "include_usage";
+    private static final String MEMBER_SAFETY_IDENTIFIER = "safety_identifier";
+    private static final String MEMBER_SERVICE_TIER = "service_tier";
+    private static final int SAFETY_IDENTIFIER_MAX = 128;
     private static final int STOP_ENTRIES_MAX = 4;
 
     private final boolean members;
@@ -172,6 +177,16 @@ final class LlmOpenaiControlFromCanonical extends LlmToolTransform
                 stopEntries = 0;
                 action = DESCEND_ELEMENTS;
             }
+            else if (matches(key, USER))
+            {
+                target = MEMBER_SAFETY_IDENTIFIER;
+                action = limitString(SAFETY_IDENTIFIER_MAX);
+            }
+            else if (matches(key, SERVICE_TIER))
+            {
+                target = MEMBER_SERVICE_TIER;
+                action = limitString(LlmServiceTiers.NAME_MAX);
+            }
         }
 
         return action;
@@ -182,6 +197,13 @@ final class LlmOpenaiControlFromCanonical extends LlmToolTransform
         int depth)
     {
         return foreign && ++stopEntries > STOP_ENTRIES_MAX ? reject(STOP) : PASS_VALUE;
+    }
+
+    @Override
+    protected String adapted(
+        String value)
+    {
+        return matches(target, MEMBER_SERVICE_TIER) ? LlmServiceTiers.openai(capability, value) : value;
     }
 
     @Override
