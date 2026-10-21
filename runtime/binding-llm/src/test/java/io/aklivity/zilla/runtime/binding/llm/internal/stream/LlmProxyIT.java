@@ -28,6 +28,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class LlmProxyIT
 {
@@ -604,6 +605,42 @@ public class LlmProxyIT
         "${app}/openai.proxy.guardrail.response.accepted.streaming.exit/server"})
     @ScriptProperty("clientAddress \"zilla://streams/net0\"")
     public void shouldRelayGuardedResponseSectionStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.classify.yaml")
+    @Configure(name = "zilla.model.classify.overlap", value = "4")
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.classified.streaming.exit/client",
+        "${app}/openai.proxy.guardrail.response.classified.streaming.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayClassifiedResponseSectionBeforeFin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.classify.yaml")
+    @Configure(name = "zilla.model.classify.overlap", value = "4")
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.classified.paused.exit/client",
+        "${app}/openai.proxy.guardrail.response.classified.paused.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayClassifiedResponseSectionWhileStreamPaused() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.classify.yaml")
+    @Configure(name = "zilla.model.classify.overlap", value = "4")
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.classified.tool.call.paused.exit/client",
+        "${app}/openai.proxy.guardrail.response.classified.tool.call.paused.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayClassifiedResponseToolCallWhileStreamPaused() throws Exception
     {
         k3po.finish();
     }

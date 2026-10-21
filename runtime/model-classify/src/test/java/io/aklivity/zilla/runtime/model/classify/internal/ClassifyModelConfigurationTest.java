@@ -25,12 +25,13 @@ import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class ClassifyModelConfigurationTest
 {
+    public static final String CLASSIFY_MAX_LENGTH_NAME = "zilla.model.classify.max.length";
     public static final String CLASSIFY_OVERLAP_NAME = "zilla.model.classify.overlap";
 
     @Test
     public void shouldVerifyConstants()
     {
-        assertThat(MAX_LENGTH.name(), equalTo("zilla.model.classify.max.length"));
+        assertThat(MAX_LENGTH.name(), equalTo(CLASSIFY_MAX_LENGTH_NAME));
         assertThat(OVERLAP.name(), equalTo(CLASSIFY_OVERLAP_NAME));
     }
 
