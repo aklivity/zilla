@@ -1615,4 +1615,104 @@ public class LlmAnthropicServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.request.tool.choice.auto/client",
+        "${app}/anthropic.request.tool.choice.auto/server"})
+    public void shouldForwardAnthropicRequestToolChoiceAuto() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.request.tool.choice.any/client",
+        "${app}/anthropic.request.tool.choice.any/server"})
+    public void shouldForwardAnthropicRequestToolChoiceAny() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.request.tool.choice.none/client",
+        "${app}/anthropic.request.tool.choice.none/server"})
+    public void shouldForwardAnthropicRequestToolChoiceNone() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.request.tool.choice.tool/client",
+        "${app}/anthropic.request.tool.choice.tool/server"})
+    public void shouldForwardAnthropicRequestToolChoiceTool() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.request.tool.choice.parallel.disabled/client",
+        "${app}/anthropic.request.tool.choice.parallel.disabled/server"})
+    public void shouldForwardAnthropicRequestToolChoiceParallelDisabled() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.request.tool.choice.parallel.enabled/client",
+        "${app}/anthropic.request.tool.choice.parallel.enabled/server"})
+    public void shouldForwardAnthropicRequestToolChoiceParallelEnabled() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.request.tool.choice.parallel.only/client",
+        "${app}/anthropic.request.tool.choice.parallel.only/server"})
+    public void shouldForwardAnthropicRequestToolChoiceParallelOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.request.tool.choice.residue/client",
+        "${app}/anthropic.request.tool.choice.residue/server"})
+    public void shouldForwardAnthropicRequestToolChoiceResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.request.tool.choice.unknown/client",
+        "${app}/anthropic.request.tool.choice.unknown/server"})
+    public void shouldForwardAnthropicRequestToolChoiceUnknown() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.request.tool.choice.mixed/client",
+        "${app}/anthropic.request.tool.choice.mixed/server"})
+    public void shouldForwardAnthropicRequestToolChoiceMixed() throws Exception
+    {
+        k3po.finish();
+    }
 }

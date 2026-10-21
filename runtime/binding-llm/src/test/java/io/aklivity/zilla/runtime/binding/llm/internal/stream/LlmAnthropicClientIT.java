@@ -1863,4 +1863,326 @@ public class LlmAnthropicClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.auto/client",
+        "${net}/anthropic.transform.request.tool.choice.auto/server"})
+    public void shouldTransformRequestToolChoiceAutoAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.auto/client",
+        "${net}/anthropic.transform.request.tool.choice.auto/server"})
+    public void shouldTransformRequestToolChoiceAutoFromAnthropicAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.required/client",
+        "${net}/anthropic.transform.request.tool.choice.required/server"})
+    public void shouldTransformRequestToolChoiceRequiredAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.required/client",
+        "${net}/anthropic.transform.request.tool.choice.required/server"})
+    public void shouldTransformRequestToolChoiceRequiredFromAnthropicAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.none/client",
+        "${net}/anthropic.transform.request.tool.choice.none/server"})
+    public void shouldTransformRequestToolChoiceNoneAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.none/client",
+        "${net}/anthropic.transform.request.tool.choice.none/server"})
+    public void shouldTransformRequestToolChoiceNoneFromAnthropicAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.function/client",
+        "${net}/anthropic.transform.request.tool.choice.function/server"})
+    public void shouldTransformRequestToolChoiceFunctionAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.function/client",
+        "${net}/anthropic.transform.request.tool.choice.function/server"})
+    public void shouldTransformRequestToolChoiceFunctionFromAnthropicAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.parallel/client",
+        "${net}/anthropic.transform.request.tool.choice.parallel/server"})
+    public void shouldTransformRequestToolChoiceParallelAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.parallel/client",
+        "${net}/anthropic.transform.request.tool.choice.parallel/server"})
+    public void shouldTransformRequestToolChoiceParallelFromAnthropicAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.parallel.true/client",
+        "${net}/anthropic.transform.request.tool.choice.parallel.true/server"})
+    public void shouldTransformRequestToolChoiceParallelTrueAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.parallel.true/client",
+        "${net}/anthropic.transform.request.tool.choice.parallel.true/server"})
+    public void shouldTransformRequestToolChoiceParallelTrueFromAnthropicAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.choice.parallel/client",
+        "${net}/anthropic.transform.request.tool.choice.choice.parallel/server"})
+    public void shouldTransformRequestToolChoiceChoiceParallelAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.choice.parallel/client",
+        "${net}/anthropic.transform.request.tool.choice.choice.parallel/server"})
+    public void shouldTransformRequestToolChoiceChoiceParallelFromAnthropicAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.parallel.first/client",
+        "${net}/anthropic.transform.request.tool.choice.parallel.first/server"})
+    public void shouldTransformRequestToolChoiceParallelFirstAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.parallel.first/client",
+        "${net}/anthropic.transform.request.tool.choice.parallel.first/server"})
+    public void shouldTransformRequestToolChoiceParallelFirstFromAnthropicAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.none.parallel/client",
+        "${net}/anthropic.transform.request.tool.choice.none.parallel/server"})
+    public void shouldTransformRequestToolChoiceNoneParallelAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.none.parallel/client",
+        "${net}/anthropic.transform.request.tool.choice.none.parallel/server"})
+    public void shouldTransformRequestToolChoiceNoneParallelFromAnthropicAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.rejected.tool.choice.allowed/client",
+        "${net}/anthropic.transform.rejected.tool.choice/server"})
+    public void shouldRejectRequestToolChoiceAllowedFromOpenaiAsAnthropicNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.rejected.tool.choice.allowed/client",
+        "${net}/anthropic.transform.rejected.tool.choice/server"})
+    public void shouldRejectRequestToolChoiceAllowedFromAnthropicAsAnthropicNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.rejected.tool.choice.value/client",
+        "${net}/anthropic.transform.rejected.tool.choice/server"})
+    public void shouldRejectRequestToolChoiceValueFromOpenaiAsAnthropicNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.rejected.tool.choice.value/client",
+        "${net}/anthropic.transform.rejected.tool.choice/server"})
+    public void shouldRejectRequestToolChoiceValueFromAnthropicAsAnthropicNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.tool.choice.auto/client",
+        "${net}/anthropic.request.tool.choice.auto/server"})
+    public void shouldRestoreAnthropicRequestToolChoiceAuto() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.tool.choice.any/client",
+        "${net}/anthropic.request.tool.choice.any/server"})
+    public void shouldRestoreAnthropicRequestToolChoiceAny() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.tool.choice.none/client",
+        "${net}/anthropic.request.tool.choice.none/server"})
+    public void shouldRestoreAnthropicRequestToolChoiceNone() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.tool.choice.tool/client",
+        "${net}/anthropic.request.tool.choice.tool/server"})
+    public void shouldRestoreAnthropicRequestToolChoiceTool() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.tool.choice.parallel.disabled/client",
+        "${net}/anthropic.request.tool.choice.parallel.disabled/server"})
+    public void shouldRestoreAnthropicRequestToolChoiceParallelDisabled() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.tool.choice.parallel.enabled/client",
+        "${net}/anthropic.request.tool.choice.parallel.enabled/server"})
+    public void shouldRestoreAnthropicRequestToolChoiceParallelEnabled() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.tool.choice.residue/client",
+        "${net}/anthropic.request.tool.choice.residue/server"})
+    public void shouldRestoreAnthropicRequestToolChoiceResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.tool.choice.unknown/client",
+        "${net}/anthropic.request.tool.choice.unknown/server"})
+    public void shouldRestoreAnthropicRequestToolChoiceUnknown() throws Exception
+    {
+        k3po.finish();
+    }
 }

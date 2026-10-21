@@ -86,4 +86,32 @@ public class LlmSharedMembersTest
             assertThat(member, LlmSharedMembers.gemini(member), nullValue());
         }
     }
+
+    @Test
+    public void shouldPromoteOpenaiToolMembers()
+    {
+        assertThat(LlmSharedMembers.openai("tool_choice"), equalTo("tool_choice"));
+        assertThat(LlmSharedMembers.openai("parallel_tool_calls"), equalTo("parallel_tool_calls"));
+    }
+
+    @Test
+    public void shouldPromoteOpenaiResponsesParallelToolCallsOnly()
+    {
+        assertThat(LlmSharedMembers.openaiResponses("parallel_tool_calls"), equalTo("parallel_tool_calls"));
+        assertThat(LlmSharedMembers.openaiResponses("tool_choice"), nullValue());
+    }
+
+    @Test
+    public void shouldConvertAnthropicToolChoiceInsteadOfRenamingIt()
+    {
+        assertThat(LlmSharedMembers.anthropic("tool_choice"), nullValue());
+        assertThat(LlmSharedMembers.anthropic("parallel_tool_calls"), nullValue());
+    }
+
+    @Test
+    public void shouldConvertGeminiToolConfigInsteadOfRenamingIt()
+    {
+        assertThat(LlmSharedMembers.gemini("toolConfig"), nullValue());
+        assertThat(LlmSharedMembers.gemini("tool_config"), nullValue());
+    }
 }

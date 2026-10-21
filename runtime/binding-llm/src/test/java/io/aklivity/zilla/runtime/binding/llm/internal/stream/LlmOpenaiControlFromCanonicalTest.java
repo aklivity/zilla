@@ -209,4 +209,32 @@ public class LlmOpenaiControlFromCanonicalTest
     {
         assertTransforms(foreignMembers, json("{'x:temperature':99}"), json("{'temperature':99}"));
     }
+
+    @Test
+    public void shouldRestoreToolChoiceAndParallelToolCallsUnchanged()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:tool_choice':'auto','x:parallel_tool_calls':false}"),
+            json("{'tool_choice':'auto','parallel_tool_calls':false}"));
+    }
+
+    @Test
+    public void shouldRestoreToolChoiceObjectUnchanged()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:tool_choice':{'type':'function','function':{'name':'get_weather'}}}"),
+            json("{'tool_choice':{'type':'function','function':{'name':'get_weather'}}}"));
+    }
+
+    @Test
+    public void shouldRestoreAllowedToolsUnchanged()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:tool_choice':{'type':'allowed_tools','allowed_tools':{'mode':'auto'," +
+                "'tools':[{'type':'function','function':{'name':'a'}},{'type':'function'," +
+                "'function':{'name':'b'}}]}}}"),
+            json("{'tool_choice':{'type':'allowed_tools','allowed_tools':{'mode':'auto'," +
+                "'tools':[{'type':'function','function':{'name':'a'}},{'type':'function'," +
+                "'function':{'name':'b'}}]}}}"));
+    }
 }

@@ -168,4 +168,87 @@ public class LlmOpenaiResponsesControlFromCanonicalTest
 
         assertThat(foreign.member(), nullValue());
     }
+
+    @Test
+    public void shouldRestoreToolChoiceAuto()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:tool_choice':'auto'}"),
+            json("{'tool_choice':'auto'}"));
+    }
+
+    @Test
+    public void shouldRestoreToolChoiceRequired()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:tool_choice':'required'}"),
+            json("{'tool_choice':'required'}"));
+    }
+
+    @Test
+    public void shouldRestoreToolChoiceNone()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:tool_choice':'none'}"),
+            json("{'tool_choice':'none'}"));
+    }
+
+    @Test
+    public void shouldFlattenFunctionToolChoice()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:tool_choice':{'type':'function','function':{'name':'get_weather'}}}"),
+            json("{'tool_choice':{'type':'function','name':'get_weather'}}"));
+    }
+
+    @Test
+    public void shouldFlattenAllowedToolsToolChoice()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:tool_choice':{'type':'allowed_tools','allowed_tools':{'mode':'required'," +
+                "'tools':[{'type':'function','function':{'name':'a'}},{'type':'function'," +
+                "'function':{'name':'b'}}]}}}"),
+            json("{'tool_choice':{'type':'allowed_tools','mode':'required'," +
+                "'tools':[{'type':'function','name':'a'},{'type':'function','name':'b'}]}}"));
+    }
+
+    @Test
+    public void shouldFlattenToolChoiceWhenMembersArriveInAnyOrder()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:tool_choice':{'function':{'name':'f'},'type':'function'}}"),
+            json("{'tool_choice':{'type':'function','name':'f'}}"));
+    }
+
+    @Test
+    public void shouldRestoreParallelToolCallsUnchanged()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:parallel_tool_calls':false,'x:tool_choice':'auto'}"),
+            json("{'parallel_tool_calls':false,'tool_choice':'auto'}"));
+    }
+
+    @Test
+    public void shouldRejectUnrecognizedToolChoice()
+    {
+        assertRejects(foreignMembers, json("{'x:tool_choice':'bogus'}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("tool_choice"));
+    }
+
+    @Test
+    public void shouldRejectToolChoiceWithExtraMember()
+    {
+        assertRejects(foreignMembers, json("{'x:tool_choice':{'type':'function','function':{'name':'f','strict':true}}}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("tool_choice"));
+    }
+
+    @Test
+    public void shouldRejectCustomToolChoice()
+    {
+        assertRejects(foreignMembers, json("{'x:tool_choice':{'type':'custom','custom':{'name':'f'}}}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("tool_choice"));
+    }
 }

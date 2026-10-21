@@ -132,6 +132,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private static final DirectBufferEx STREAM_OPTIONS_SECTION =
         new UnsafeBufferEx("{\"stream_options\":{\"include_usage\":true}}".getBytes(UTF_8));
     private static final DirectBufferEx CONTROL_CLOSE = new UnsafeBufferEx("}".getBytes(UTF_8));
+    private static final DirectBufferEx CONTROL_BEGIN = new UnsafeBufferEx("{".getBytes(UTF_8));
+    private static final DirectBufferEx CONTROL_CONTINUE = new UnsafeBufferEx(",".getBytes(UTF_8));
     private static final String SHARED_PREFIX = "x:";
 
     private static final int MIN_WINDOW = 64;
@@ -143,6 +145,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
     private static final String MEMBER_TEXT = "text";
     private static final String MEMBER_STREAM = "stream";
+    private static final String MEMBER_TOOL_CHOICE = "tool_choice";
     private static final byte[] TEXT_PREFIX = "{\"text\":\"".getBytes(UTF_8);
     private static final byte[] TEXT_SUFFIX = "\"}".getBytes(UTF_8);
     private static final int TEXT_ESCAPE_EXPANSION = 6;
@@ -2386,6 +2389,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private LlmAnthropicControlToCanonical controlTransform;
         private final LlmSectionPipeline.Output blockOutput = (buffer, offset, length, last) ->
             onDecodeSectionData(decodeTraceId, decodeAuthorization, buffer, offset, length, last);
+        private final LlmMembersOutput memberOutput = new LlmMembersOutput((buffer, offset, length) ->
+            onDecodeSectionData(decodeTraceId, decodeAuthorization, buffer, offset, length, false));
 
         private LlmAnthropicServer(
             MessageConsumer network,
@@ -2887,13 +2892,34 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             CharSequence key,
             LlmAnthropicServerDecoder then)
         {
-            onDecodeControlKey(key, true, ',');
-
             captureThen = then;
+
+            if (matches(key, MEMBER_TOOL_CHOICE))
+            {
+                controlConverted(key, CONTROL_CONTINUE);
+            }
+            else
+            {
+                onDecodeControlKey(key, true, ',');
+            }
+
             captureOpen = true;
             captureDepth = 0;
             captureFrom = position();
             decoder = decodeControlValue;
+        }
+
+        private void controlConverted(
+            CharSequence key,
+            DirectBufferEx separator)
+        {
+            onDecodeSectionData(decodeTraceId, decodeAuthorization, separator, 0, separator.capacity(), false);
+
+            blockPipeline = controlPipeline();
+            blockPipeline.begin(blockAttributes);
+            memberOutput.begin();
+
+            onDecodeControlKey(key, false, '{');
         }
 
         private void closeControl(
@@ -2910,18 +2936,23 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         {
             onDecodeBlock(LlmSectionType.CONTROL, message, null);
 
+            captureThen = then;
+
             if (matches(key, MEMBER_STREAM))
             {
                 blockPipeline = controlPipeline();
                 blockPipeline.begin(blockAttributes);
                 onDecodeControlKey(key, false, '{');
             }
+            else if (matches(key, MEMBER_TOOL_CHOICE))
+            {
+                controlConverted(key, CONTROL_BEGIN);
+            }
             else
             {
                 onDecodeControlKey(key, true, '{');
             }
 
-            captureThen = then;
             captureOpen = true;
             captureDepth = 0;
             captureFrom = position();
@@ -2936,6 +2967,12 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
             if (blockSection == LlmSectionType.CONTROL && blockPipeline != null)
             {
+                if (captureThen == decodeRootControl &&
+                    !onDecodeBlockData(traceId, authorization, CONTROL_CLOSE, 0, CONTROL_CLOSE.capacity(), true))
+                {
+                    onDecodeInvalidRequest(traceId, MESSAGE_BLOCK_INVALID);
+                }
+
                 onDecodeControl();
             }
 
@@ -3036,7 +3073,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             }
             else
             {
-                accepted = blockPipeline.feed(buffer, offset, length, last, blockOutput);
+                accepted = blockPipeline.feed(buffer, offset, length, last,
+                    captureThen == decodeRootControl ? memberOutput : blockOutput);
             }
 
             return accepted;

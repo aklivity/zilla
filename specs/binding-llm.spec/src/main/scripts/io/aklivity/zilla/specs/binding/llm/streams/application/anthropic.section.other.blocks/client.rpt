@@ -56,7 +56,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"anthropic:tool_choice\":{\"type\":\"auto\"}}"
+write "{\"x:tool_choice\":\"auto\"}"
 write flush
 
 write advise zilla:flush

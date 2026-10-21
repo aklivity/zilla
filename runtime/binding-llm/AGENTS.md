@@ -36,7 +36,8 @@ Status key: **implemented** is in the IDL, spec functions and runtime today;
 A member carried as `<dialect>:<member>` is restored only by a client of that dialect and dropped by every
 other client. A member that two or more dialects have with the same meaning is carried as `x:<member>`
 instead. (**implemented** as the `x:` namespace in `LlmToolTransform`: `shared()`, `share()` and `reject()`;
-the sampling members below are promoted for every dialect, the `gemini` ones lifted out of its native container)
+the sampling and tool choice members below are promoted for every dialect, the `gemini` ones lifted out of its native
+containers)
 
 - `x` is reserved as a dialect name. `LlmDialectFactory` refuses to register a dialect named `x`.
 - A decoder emits `x:<member>` in place of `<dialect>:<member>` for each member it understands, including a
@@ -93,6 +94,59 @@ and `gemini`)
   `{"x:temperature":0.7,"openai:store":false}` stays one section.
 - `seed` is an integer; the `gemini` client drops a value that is not an integral number within int32 (A) and
   passes a `null` seed as absent.
+
+### Promoted tool choice members
+
+`x:tool_choice` carries the OpenAI Chat value, `x:parallel_tool_calls` a boolean. A choice is one of `"none"`, `"auto"`,
+`"required"`, a named function `{"type":"function","function":{"name":N}}`, or
+`{"type":"allowed_tools","allowed_tools":{"mode":"auto"|"required","tools":[{"type":"function","function":{"name":N}}]}}`.
+Only function entries have a canonical form. (**implemented** for `openai`, `openai/responses`, `anthropic` and `gemini`)
+
+| `x:` value | `openai` | `openai/responses` | `anthropic` | `gemini` (`toolConfig.functionCallingConfig`) |
+|---|---|---|---|---|
+| `"auto"` | `tool_choice` `"auto"` | `"auto"` | `{"type":"auto"}` | `mode` `AUTO` |
+| `"required"` | `"required"` | `"required"` | `{"type":"any"}` | `mode` `ANY` |
+| `"none"` | `"none"` | `"none"` | `{"type":"none"}` | `mode` `NONE` |
+| named function | unchanged | `{"type":"function","name":N}` | `{"type":"tool","name":N}` | `mode` `ANY`, `allowedFunctionNames` `[N]` |
+| `allowed_tools` | unchanged | flat `{"type":"allowed_tools","mode":M,"tools":[{"type":"function","name":N}]}` | rejects | `mode` `ANY` (required) or `AUTO`, `allowedFunctionNames` |
+| `x:parallel_tool_calls` | `parallel_tool_calls` | `parallel_tool_calls` | `tool_choice.disable_parallel_tool_use`, negated | `true` dropped, `false` rejects |
+
+- **Decoding.** `openai` renames both members and keeps the value. `openai/responses` renames `parallel_tool_calls` and
+  nests the flat function and `allowed_tools` forms into the canonical value; a hosted tool choice
+  (`file_search`, `mcp`, ...) or any other shape stays `openai:tool_choice` unchanged. `anthropic` splits the native
+  choice into `x:tool_choice` and `x:parallel_tool_calls` (the negation of `disable_parallel_tool_use`, which is
+  consumed); a member it does not know stays under `anthropic:tool_choice` as residue, which is also where a choice
+  with an unknown `type` or a `tool` without a `name` stays. `gemini` lifts `functionCallingConfig` out of
+  `toolConfig` (camel or snake case): `AUTO` is `"auto"`, `ANY` is `"required"`, a single name is the function form,
+  several names are `allowed_tools` with mode `required`, `AUTO` with names is `allowed_tools` with mode `auto`,
+  `NONE` is `"none"`. `VALIDATED`, a `NONE` with names, a missing mode or a member this table does not know keep the
+  whole `functionCallingConfig` in the residue `gemini:toolConfig`, which also holds every other `toolConfig`
+  member and keeps the source spelling.
+- **Holding.** The forms that convert are held by the decoder (`LlmToolTransform` `CAPTURE_VALUE`) and rewritten
+  once the value is complete, because the target form depends on members that arrive in any order. The hold is
+  bounded so the canonical form always fits the encode slot: 4096 units for `anthropic`, 2048 for `openai/responses`
+  and 768 for `gemini` (a unit is a captured event plus the length of its text), and a value beyond the bound rejects
+  the request. Each held value runs through its own pipeline and is appended to the control section like the
+  `openai` `stop` conversion.
+- **Encoding.** `openai` and the `openai/responses` parallel member pass through. `openai/responses` flattens the
+  canonical value. `anthropic` and `gemini` write the choice as a one-member native container fragment
+  (`tool_choice`, `toolConfig`) that `LlmMemberCollector` holds and writes once at the end of the request; the
+  `anthropic` client also holds `x:parallel_tool_calls` and writes `disable_parallel_tool_use` (negated, and
+  `true` as `false`) into the same `tool_choice` at the end, with `{"type":"auto"}` when no choice arrived, and
+  omits it for `none`, which has no such field. A same-dialect `anthropic` hop restores
+  `{"type":"auto","disable_parallel_tool_use":true}` exactly; the `gemini` container is written after
+  `generationConfig`.
+- **Legality.** Both members are behavioural (B). A canonical value that is not one of the four forms, an
+  `allowed_tools` or an entry that is not a function rejects for `openai/responses`, `anthropic` and `gemini`
+  (`x:tool_choice cannot be converted from <dialect> to <dialect>`); `allowed_tools` always rejects for `anthropic`;
+  `x:parallel_tool_calls` false rejects for `gemini`
+  (`x:parallel_tool_calls cannot be converted from <dialect> to gemini`) and a value that is not a boolean rejects
+  for `anthropic` and `gemini`. Models that refuse a forced choice are model capability data, not part of this
+  contract.
+- Function names are matched against the tool definitions unchanged: no client maps tool names, so the name in
+  `x:tool_choice` is the name the definitions carry. A same-dialect hop restores the choice, with the exception that
+  `ANY` with several names comes back as `ANY` with the same names and `allowed_tools` with mode `required` and one
+  name comes back as the function form.
 
 ### Native containers
 

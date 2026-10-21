@@ -6875,4 +6875,688 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.tool.choice.auto/client",
+        "${net}/openai.request.tool.choice.auto/server"})
+    public void shouldForwardOpenaiRequestToolChoiceAuto() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.tool.choice.required/client",
+        "${net}/openai.request.tool.choice.required/server"})
+    public void shouldForwardOpenaiRequestToolChoiceRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.tool.choice.none/client",
+        "${net}/openai.request.tool.choice.none/server"})
+    public void shouldForwardOpenaiRequestToolChoiceNone() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.tool.choice.function/client",
+        "${net}/openai.request.tool.choice.function/server"})
+    public void shouldForwardOpenaiRequestToolChoiceFunction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.tool.choice.allowed/client",
+        "${net}/openai.request.tool.choice.allowed/server"})
+    public void shouldForwardOpenaiRequestToolChoiceAllowed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.tool.choice.parallel/client",
+        "${net}/openai.request.tool.choice.parallel/server"})
+    public void shouldForwardOpenaiRequestToolChoiceParallel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.request.tool.choice.auto/client",
+        "${net}/openai.responses.request.tool.choice.auto/server"})
+    public void shouldForwardOpenaiResponsesRequestToolChoiceAuto() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.request.tool.choice.required/client",
+        "${net}/openai.responses.request.tool.choice.required/server"})
+    public void shouldForwardOpenaiResponsesRequestToolChoiceRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.request.tool.choice.none/client",
+        "${net}/openai.responses.request.tool.choice.none/server"})
+    public void shouldForwardOpenaiResponsesRequestToolChoiceNone() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.request.tool.choice.function/client",
+        "${net}/openai.responses.request.tool.choice.function/server"})
+    public void shouldForwardOpenaiResponsesRequestToolChoiceFunction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.request.tool.choice.allowed/client",
+        "${net}/openai.responses.request.tool.choice.allowed/server"})
+    public void shouldForwardOpenaiResponsesRequestToolChoiceAllowed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.request.tool.choice.hosted/client",
+        "${net}/openai.responses.request.tool.choice.hosted/server"})
+    public void shouldForwardOpenaiResponsesRequestToolChoiceHosted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.request.tool.choice.parallel/client",
+        "${net}/openai.responses.request.tool.choice.parallel/server"})
+    public void shouldForwardOpenaiResponsesRequestToolChoiceParallel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.tool.choice.auto/client",
+        "${net}/anthropic.request.tool.choice.auto/server"})
+    public void shouldForwardAnthropicRequestToolChoiceAuto() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.tool.choice.any/client",
+        "${net}/anthropic.request.tool.choice.any/server"})
+    public void shouldForwardAnthropicRequestToolChoiceAny() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.tool.choice.none/client",
+        "${net}/anthropic.request.tool.choice.none/server"})
+    public void shouldForwardAnthropicRequestToolChoiceNone() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.tool.choice.tool/client",
+        "${net}/anthropic.request.tool.choice.tool/server"})
+    public void shouldForwardAnthropicRequestToolChoiceTool() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.tool.choice.parallel.disabled/client",
+        "${net}/anthropic.request.tool.choice.parallel.disabled/server"})
+    public void shouldForwardAnthropicRequestToolChoiceParallelDisabled() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.tool.choice.parallel.enabled/client",
+        "${net}/anthropic.request.tool.choice.parallel.enabled/server"})
+    public void shouldForwardAnthropicRequestToolChoiceParallelEnabled() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.tool.choice.parallel.only/client",
+        "${net}/anthropic.request.tool.choice.parallel.only/server"})
+    public void shouldForwardAnthropicRequestToolChoiceParallelOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.tool.choice.residue/client",
+        "${net}/anthropic.request.tool.choice.residue/server"})
+    public void shouldForwardAnthropicRequestToolChoiceResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.tool.choice.unknown/client",
+        "${net}/anthropic.request.tool.choice.unknown/server"})
+    public void shouldForwardAnthropicRequestToolChoiceUnknown() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.tool.choice.auto/client",
+        "${net}/gemini.request.tool.choice.auto/server"})
+    public void shouldForwardGeminiRequestToolChoiceAuto() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.tool.choice.any/client",
+        "${net}/gemini.request.tool.choice.any/server"})
+    public void shouldForwardGeminiRequestToolChoiceAny() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.tool.choice.none/client",
+        "${net}/gemini.request.tool.choice.none/server"})
+    public void shouldForwardGeminiRequestToolChoiceNone() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.tool.choice.function/client",
+        "${net}/gemini.request.tool.choice.function/server"})
+    public void shouldForwardGeminiRequestToolChoiceFunction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.tool.choice.allowed.required/client",
+        "${net}/gemini.request.tool.choice.allowed.required/server"})
+    public void shouldForwardGeminiRequestToolChoiceAllowedRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.tool.choice.allowed.auto/client",
+        "${net}/gemini.request.tool.choice.allowed.auto/server"})
+    public void shouldForwardGeminiRequestToolChoiceAllowedAuto() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.tool.choice.validated/client",
+        "${net}/gemini.request.tool.choice.validated/server"})
+    public void shouldForwardGeminiRequestToolChoiceValidated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.tool.choice.residue/client",
+        "${net}/gemini.request.tool.choice.residue/server"})
+    public void shouldForwardGeminiRequestToolChoiceResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.tool.choice.snake/client",
+        "${net}/gemini.request.tool.choice.snake/server"})
+    public void shouldForwardGeminiRequestToolChoiceSnake() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.request.tool.choice.auto/client",
+        "${net}/openai.transform.request.tool.choice.auto/server"})
+    public void shouldOpenaiTransformRequestToolChoiceAuto() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.request.tool.choice.auto/client",
+        "${net}/openai.responses.transform.request.tool.choice.auto/server"})
+    public void shouldOpenaiResponsesTransformRequestToolChoiceAuto() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.request.tool.choice.auto/client",
+        "${net}/anthropic.transform.request.tool.choice.auto/server"})
+    public void shouldAnthropicTransformRequestToolChoiceAuto() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.request.tool.choice.auto/client",
+        "${net}/gemini.transform.request.tool.choice.auto/server"})
+    public void shouldGeminiTransformRequestToolChoiceAuto() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.request.tool.choice.required/client",
+        "${net}/openai.transform.request.tool.choice.required/server"})
+    public void shouldOpenaiTransformRequestToolChoiceRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.request.tool.choice.required/client",
+        "${net}/openai.responses.transform.request.tool.choice.required/server"})
+    public void shouldOpenaiResponsesTransformRequestToolChoiceRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.request.tool.choice.required/client",
+        "${net}/anthropic.transform.request.tool.choice.required/server"})
+    public void shouldAnthropicTransformRequestToolChoiceRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.request.tool.choice.required/client",
+        "${net}/gemini.transform.request.tool.choice.required/server"})
+    public void shouldGeminiTransformRequestToolChoiceRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.request.tool.choice.none/client",
+        "${net}/openai.transform.request.tool.choice.none/server"})
+    public void shouldOpenaiTransformRequestToolChoiceNone() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.request.tool.choice.none/client",
+        "${net}/openai.responses.transform.request.tool.choice.none/server"})
+    public void shouldOpenaiResponsesTransformRequestToolChoiceNone() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.request.tool.choice.none/client",
+        "${net}/anthropic.transform.request.tool.choice.none/server"})
+    public void shouldAnthropicTransformRequestToolChoiceNone() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.request.tool.choice.none/client",
+        "${net}/gemini.transform.request.tool.choice.none/server"})
+    public void shouldGeminiTransformRequestToolChoiceNone() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.request.tool.choice.function/client",
+        "${net}/openai.transform.request.tool.choice.function/server"})
+    public void shouldOpenaiTransformRequestToolChoiceFunction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.request.tool.choice.function/client",
+        "${net}/openai.responses.transform.request.tool.choice.function/server"})
+    public void shouldOpenaiResponsesTransformRequestToolChoiceFunction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.request.tool.choice.function/client",
+        "${net}/anthropic.transform.request.tool.choice.function/server"})
+    public void shouldAnthropicTransformRequestToolChoiceFunction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.request.tool.choice.function/client",
+        "${net}/gemini.transform.request.tool.choice.function/server"})
+    public void shouldGeminiTransformRequestToolChoiceFunction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.request.tool.choice.allowed/client",
+        "${net}/openai.transform.request.tool.choice.allowed/server"})
+    public void shouldOpenaiTransformRequestToolChoiceAllowed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.request.tool.choice.allowed/client",
+        "${net}/openai.responses.transform.request.tool.choice.allowed/server"})
+    public void shouldOpenaiResponsesTransformRequestToolChoiceAllowed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.request.tool.choice.allowed/client",
+        "${net}/gemini.transform.request.tool.choice.allowed/server"})
+    public void shouldGeminiTransformRequestToolChoiceAllowed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.request.tool.choice.allowed.required/client",
+        "${net}/openai.transform.request.tool.choice.allowed.required/server"})
+    public void shouldOpenaiTransformRequestToolChoiceAllowedRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.request.tool.choice.allowed.required/client",
+        "${net}/openai.responses.transform.request.tool.choice.allowed.required/server"})
+    public void shouldOpenaiResponsesTransformRequestToolChoiceAllowedRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.request.tool.choice.allowed.required/client",
+        "${net}/gemini.transform.request.tool.choice.allowed.required/server"})
+    public void shouldGeminiTransformRequestToolChoiceAllowedRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.request.tool.choice.parallel/client",
+        "${net}/openai.transform.request.tool.choice.parallel/server"})
+    public void shouldOpenaiTransformRequestToolChoiceParallel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.request.tool.choice.parallel/client",
+        "${net}/openai.responses.transform.request.tool.choice.parallel/server"})
+    public void shouldOpenaiResponsesTransformRequestToolChoiceParallel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.request.tool.choice.parallel/client",
+        "${net}/anthropic.transform.request.tool.choice.parallel/server"})
+    public void shouldAnthropicTransformRequestToolChoiceParallel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.request.tool.choice.parallel.true/client",
+        "${net}/openai.transform.request.tool.choice.parallel.true/server"})
+    public void shouldOpenaiTransformRequestToolChoiceParallelTrue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.request.tool.choice.parallel.true/client",
+        "${net}/openai.responses.transform.request.tool.choice.parallel.true/server"})
+    public void shouldOpenaiResponsesTransformRequestToolChoiceParallelTrue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.request.tool.choice.parallel.true/client",
+        "${net}/anthropic.transform.request.tool.choice.parallel.true/server"})
+    public void shouldAnthropicTransformRequestToolChoiceParallelTrue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.request.tool.choice.parallel.true/client",
+        "${net}/gemini.transform.request.tool.choice.parallel.true/server"})
+    public void shouldGeminiTransformRequestToolChoiceParallelTrue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.request.tool.choice.choice.parallel/client",
+        "${net}/openai.transform.request.tool.choice.choice.parallel/server"})
+    public void shouldOpenaiTransformRequestToolChoiceChoiceParallel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.request.tool.choice.choice.parallel/client",
+        "${net}/openai.responses.transform.request.tool.choice.choice.parallel/server"})
+    public void shouldOpenaiResponsesTransformRequestToolChoiceChoiceParallel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.request.tool.choice.choice.parallel/client",
+        "${net}/anthropic.transform.request.tool.choice.choice.parallel/server"})
+    public void shouldAnthropicTransformRequestToolChoiceChoiceParallel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.request.tool.choice.parallel.first/client",
+        "${net}/openai.transform.request.tool.choice.parallel.first/server"})
+    public void shouldOpenaiTransformRequestToolChoiceParallelFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.request.tool.choice.parallel.first/client",
+        "${net}/openai.responses.transform.request.tool.choice.parallel.first/server"})
+    public void shouldOpenaiResponsesTransformRequestToolChoiceParallelFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.request.tool.choice.parallel.first/client",
+        "${net}/anthropic.transform.request.tool.choice.parallel.first/server"})
+    public void shouldAnthropicTransformRequestToolChoiceParallelFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.request.tool.choice.none.parallel/client",
+        "${net}/openai.transform.request.tool.choice.none.parallel/server"})
+    public void shouldOpenaiTransformRequestToolChoiceNoneParallel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.request.tool.choice.none.parallel/client",
+        "${net}/openai.responses.transform.request.tool.choice.none.parallel/server"})
+    public void shouldOpenaiResponsesTransformRequestToolChoiceNoneParallel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.request.tool.choice.none.parallel/client",
+        "${net}/anthropic.transform.request.tool.choice.none.parallel/server"})
+    public void shouldAnthropicTransformRequestToolChoiceNoneParallel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.rejected.tool.choice/client",
+        "${net}/anthropic.transform.rejected.tool.choice/server"})
+    public void shouldAnthropicTransformRejectedToolChoice() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.rejected.tool.choice/client",
+        "${net}/openai.responses.transform.rejected.tool.choice/server"})
+    public void shouldOpenaiResponsesTransformRejectedToolChoice() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.rejected.tool.choice/client",
+        "${net}/gemini.transform.rejected.tool.choice/server"})
+    public void shouldGeminiTransformRejectedToolChoice() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.tool.choice.mixed/client",
+        "${net}/openai.request.tool.choice.mixed/server"})
+    public void shouldForwardOpenaiRequestToolChoiceMixed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.request.tool.choice.mixed/client",
+        "${net}/openai.responses.request.tool.choice.mixed/server"})
+    public void shouldForwardOpenaiResponsesRequestToolChoiceMixed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.tool.choice.mixed/client",
+        "${net}/anthropic.request.tool.choice.mixed/server"})
+    public void shouldForwardAnthropicRequestToolChoiceMixed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.tool.choice.mixed/client",
+        "${net}/gemini.request.tool.choice.mixed/server"})
+    public void shouldForwardGeminiRequestToolChoiceMixed() throws Exception
+    {
+        k3po.finish();
+    }
 }

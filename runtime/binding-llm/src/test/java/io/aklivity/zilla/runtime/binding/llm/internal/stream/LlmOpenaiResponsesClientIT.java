@@ -1905,4 +1905,216 @@ public class LlmOpenaiResponsesClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.auto/client",
+        "${net}/openai.responses.transform.request.tool.choice.auto/server"})
+    public void shouldTransformRequestToolChoiceAutoAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.required/client",
+        "${net}/openai.responses.transform.request.tool.choice.required/server"})
+    public void shouldTransformRequestToolChoiceRequiredAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.none/client",
+        "${net}/openai.responses.transform.request.tool.choice.none/server"})
+    public void shouldTransformRequestToolChoiceNoneAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.function/client",
+        "${net}/openai.responses.transform.request.tool.choice.function/server"})
+    public void shouldTransformRequestToolChoiceFunctionAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.allowed/client",
+        "${net}/openai.responses.transform.request.tool.choice.allowed/server"})
+    public void shouldTransformRequestToolChoiceAllowedAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.allowed.required/client",
+        "${net}/openai.responses.transform.request.tool.choice.allowed.required/server"})
+    public void shouldTransformRequestToolChoiceAllowedRequiredAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.parallel/client",
+        "${net}/openai.responses.transform.request.tool.choice.parallel/server"})
+    public void shouldTransformRequestToolChoiceParallelAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.parallel.true/client",
+        "${net}/openai.responses.transform.request.tool.choice.parallel.true/server"})
+    public void shouldTransformRequestToolChoiceParallelTrueAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.choice.parallel/client",
+        "${net}/openai.responses.transform.request.tool.choice.choice.parallel/server"})
+    public void shouldTransformRequestToolChoiceChoiceParallelAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.parallel.first/client",
+        "${net}/openai.responses.transform.request.tool.choice.parallel.first/server"})
+    public void shouldTransformRequestToolChoiceParallelFirstAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.none.parallel/client",
+        "${net}/openai.responses.transform.request.tool.choice.none.parallel/server"})
+    public void shouldTransformRequestToolChoiceNoneParallelAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.rejected.tool.choice.value/client",
+        "${net}/openai.responses.transform.rejected.tool.choice/server"})
+    public void shouldRejectRequestToolChoiceValueAsOpenaiResponsesNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.tool.choice.auto/client",
+        "${net}/openai.responses.request.tool.choice.auto/server"})
+    public void shouldRestoreOpenaiResponsesRequestToolChoiceAuto() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.tool.choice.required/client",
+        "${net}/openai.responses.request.tool.choice.required/server"})
+    public void shouldRestoreOpenaiResponsesRequestToolChoiceRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.tool.choice.none/client",
+        "${net}/openai.responses.request.tool.choice.none/server"})
+    public void shouldRestoreOpenaiResponsesRequestToolChoiceNone() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.tool.choice.function/client",
+        "${net}/openai.responses.request.tool.choice.function/server"})
+    public void shouldRestoreOpenaiResponsesRequestToolChoiceFunction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.tool.choice.allowed/client",
+        "${net}/openai.responses.request.tool.choice.allowed/server"})
+    public void shouldRestoreOpenaiResponsesRequestToolChoiceAllowed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.tool.choice.hosted/client",
+        "${net}/openai.responses.request.tool.choice.hosted/server"})
+    public void shouldRestoreOpenaiResponsesRequestToolChoiceHosted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.tool.choice.parallel/client",
+        "${net}/openai.responses.request.tool.choice.parallel/server"})
+    public void shouldRestoreOpenaiResponsesRequestToolChoiceParallel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.tool.choice.mixed/client",
+        "${net}/openai.responses.request.tool.choice.mixed/server"})
+    public void shouldRestoreOpenaiResponsesRequestToolChoiceMixed() throws Exception
+    {
+        k3po.finish();
+    }
 }
