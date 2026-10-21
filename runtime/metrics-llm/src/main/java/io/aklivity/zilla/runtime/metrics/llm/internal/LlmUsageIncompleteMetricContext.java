@@ -89,7 +89,7 @@ public final class LlmUsageIncompleteMetricContext implements MetricContext
         List<AttributeConfig> attributes,
         ToLongFunction<String> resolveId)
     {
-        return new LlmUsageIncompleteHandler(recorder, new LlmAttributes(attributes, context, resolveId));
+        return new LlmUsageIncompleteHandler(recorder, new LlmAttributes(attributes, context, resolveId, llmTypeId));
     }
 
     private final class LlmUsageIncompleteHandler implements MessageConsumer
@@ -135,11 +135,12 @@ public final class LlmUsageIncompleteMetricContext implements MetricContext
                 if (direction == RECEIVED && beginEx != null && beginEx.typeId() == llmTypeId)
                 {
                     exchanges.put(exchangeId, 0L);
-                    attributes.request(exchangeId, frame.authorization());
+                    attributes.request(exchangeId, frame.authorization(), begin);
                 }
                 else if (direction == SENT && exchanges.get(exchangeId) != NOT_TRACKED)
                 {
                     exchanges.put(exchangeId, REPLY_OPENED);
+                    attributes.response(exchangeId, begin);
                 }
                 break;
             case EndFW.TYPE_ID:

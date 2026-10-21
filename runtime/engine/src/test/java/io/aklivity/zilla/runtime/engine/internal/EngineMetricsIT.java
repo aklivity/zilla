@@ -19,8 +19,11 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItems;
 import static org.junit.rules.RuleChain.outerRule;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 
@@ -184,5 +187,59 @@ public class EngineMetricsIT
 
         // THEN
         assertThat(histogram[63].getAsLong(), equalTo(51L));
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    public void shouldFetchCounterIdsDistinctByAttributes()
+    {
+        // GIVEN
+        LongConsumer writer0 = engine.counterWriter(3L, 7, 1, 0);
+        LongConsumer writer1 = engine.counterWriter(2L, 7, 0, 1);
+        writer0.accept(42L);
+        writer1.accept(21L);
+
+        // WHEN
+        long[][] ids = engine.counterIds();
+
+        // THEN
+        List<String> fetched = Arrays.stream(ids).map(Arrays::toString).toList();
+        assertThat(fetched, hasItems("[3, 7, 1, -1]", "[2, 7, 0, -1]"));
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    public void shouldFetchGaugeIdsDistinctByAttributes()
+    {
+        // GIVEN
+        LongConsumer writer0 = engine.gaugeWriter(3L, 7, 1, 0);
+        LongConsumer writer1 = engine.gaugeWriter(2L, 7, 0, 1);
+        writer0.accept(42L);
+        writer1.accept(21L);
+
+        // WHEN
+        long[][] ids = engine.gaugeIds();
+
+        // THEN
+        List<String> fetched = Arrays.stream(ids).map(Arrays::toString).toList();
+        assertThat(fetched, hasItems("[3, 7, 1, -1]", "[2, 7, 0, -1]"));
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    public void shouldFetchHistogramIdsDistinctByAttributes()
+    {
+        // GIVEN
+        LongConsumer writer0 = engine.histogramWriter(3L, 7, 1, 0);
+        LongConsumer writer1 = engine.histogramWriter(2L, 7, 0, 1);
+        writer0.accept(42L);
+        writer1.accept(21L);
+
+        // WHEN
+        long[][] ids = engine.histogramIds();
+
+        // THEN
+        List<String> fetched = Arrays.stream(ids).map(Arrays::toString).toList();
+        assertThat(fetched, hasItems("[3, 7, 1, -1]", "[2, 7, 0, -1]"));
     }
 }

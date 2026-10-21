@@ -51,6 +51,10 @@ interface LlmGuardPipeline
 
     int values();
 
+    int matched();
+
+    boolean diverged();
+
     int closeWidth();
 
     int close(

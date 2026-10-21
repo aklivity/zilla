@@ -80,6 +80,8 @@ bindings:
     type: http
     kind: server
     exit: north_llm_server_openai
+  # dialect: openai names the vendor, so this server serves both of its APIs,
+  # told apart by path: POST /v1/chat/completions and POST /v1/responses.
   north_llm_server_openai:
     type: llm
     kind: server
@@ -91,6 +93,9 @@ bindings:
     telemetry:
       metrics:
         - llm.*
+      attributes:
+        requested: ${llm.request.model}
+        served: ${llm.response.model}
     exit: north_llm_proxy
 
   north_tcp_server_anthropic:
@@ -115,6 +120,9 @@ bindings:
     telemetry:
       metrics:
         - llm.*
+      attributes:
+        requested: ${llm.request.model}
+        served: ${llm.response.model}
     exit: north_llm_proxy
 
   north_tcp_server_gemini:
@@ -139,25 +147,63 @@ bindings:
     telemetry:
       metrics:
         - llm.*
+      attributes:
+        requested: ${llm.request.model}
+        served: ${llm.response.model}
     exit: north_llm_proxy
 
-  # Shared by the frontends: routes purely on LlmBeginEx.dialect/model, never on
-  # request content. The model names the backend, so a request reaches the
+  # Shared by all three frontends: routes purely on LlmBeginEx.dialect/model, never
+  # on request content. The model names the backend, so a request reaches the
   # provider that serves its model whichever dialect the client speaks: a
   # claude-* model reaches Anthropic and a gpt-* model reaches OpenAI. A client
-  # speaking the other dialect is translated across dialects on the way (an
-  # OpenAI SDK client asking for a Claude model, an Anthropic SDK client asking
-  # for a GPT model), and a client already speaking the backend's dialect is
-  # not. Two specific models are picked off first and sent, same-dialect, to a
-  # second deployment instead -- the intra-dialect failover/multi-backend
-  # routing this binding kind exists for. Any other model is served by the
-  # provider of the client's own dialect, with no translation.
+  # speaking another dialect is translated across dialects on the way (an OpenAI
+  # SDK client asking for a Claude model, an Anthropic SDK client asking for a
+  # GPT model), and a client already speaking the backend's dialect is not.
+  #
+  # OpenAI is one dialect name, openai, with two APIs: Chat Completions (POST
+  # /v1/chat/completions) and Responses (POST /v1/responses). The frontend
+  # serves both, and the south client follows the request: a Responses request
+  # reaches the OpenAI deployment same-dialect on /v1/responses, and a request in
+  # any other dialect is translated to /v1/chat/completions. gpt-4o goes first to
+  # a second deployment, and any other gpt-* model is served by the first.
+  #
+  # Two specific models are picked off first and sent, same-dialect, to a second
+  # deployment instead -- the intra-dialect failover/multi-backend routing this
+  # binding kind exists for. Any other model is served by the provider of the
+  # client's own dialect, with no translation.
   north_llm_proxy:
     type: llm
     kind: proxy
     options:
       guardrails:
         gpt-4o:
+          request:
+            - section: user-text
+              value:
+                model: string
+                maxLength: 2000
+            - section: user-text
+              value:
+                model: classify
+                reject:
+                  moderator0:
+                    - jailbreak
+                  secrets0:
+                    - secret.aws_key
+                    - secret.github_token
+                  presidio0:
+                    - email
+                    - person
+          response:
+            - section: assistant-text
+              value:
+                model: classify
+                reject:
+                  secrets0:
+                    - secret.private_key
+                  presidio0:
+                    - email
+        gpt-5:
           request:
             - section: user-text
               value:
@@ -193,6 +239,9 @@ bindings:
     telemetry:
       metrics:
         - llm.*
+      attributes:
+        requested: ${llm.request.model}
+        served: ${llm.response.model}
     routes:
       - when:
           - dialect: openai
@@ -240,6 +289,9 @@ bindings:
     telemetry:
       metrics:
         - llm.*
+      attributes:
+        requested: ${llm.request.model}
+        served: ${llm.response.model}
     exit: sys:http_client
   # Nothing listens on this port, so the connection is refused before the llm
   # client grants any credit and north_llm_proxy falls back to the next model
@@ -256,6 +308,9 @@ bindings:
     telemetry:
       metrics:
         - llm.*
+      attributes:
+        requested: ${llm.request.model}
+        served: ${llm.response.model}
     exit: sys:http_client
   south_llm_client_openai:
     type: llm
@@ -269,6 +324,9 @@ bindings:
     telemetry:
       metrics:
         - llm.*
+      attributes:
+        requested: ${llm.request.model}
+        served: ${llm.response.model}
     exit: sys:http_client
   # Second same-dialect (openai) deployment: north_llm_proxy routes gpt-4o here
   # instead of translating to mock-anthropic -- no dialect translation happens
@@ -285,6 +343,9 @@ bindings:
     telemetry:
       metrics:
         - llm.*
+      attributes:
+        requested: ${llm.request.model}
+        served: ${llm.response.model}
     exit: sys:http_client
   # Second same-dialect (anthropic) deployment: north_llm_proxy routes
   # claude-3-5-haiku-20241022 here instead of translating to mock-openai.
@@ -300,6 +361,9 @@ bindings:
     telemetry:
       metrics:
         - llm.*
+      attributes:
+        requested: ${llm.request.model}
+        served: ${llm.response.model}
     exit: sys:http_client
   south_llm_client_gemini:
     type: llm
@@ -313,4 +377,7 @@ bindings:
     telemetry:
       metrics:
         - llm.*
+      attributes:
+        requested: ${llm.request.model}
+        served: ${llm.response.model}
     exit: sys:http_client

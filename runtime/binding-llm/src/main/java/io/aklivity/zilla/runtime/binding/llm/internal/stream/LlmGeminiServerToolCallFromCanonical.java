@@ -25,6 +25,12 @@ final class LlmGeminiServerToolCallFromCanonical extends LlmToolTransform
     private boolean opened;
     private boolean called;
 
+    LlmGeminiServerToolCallFromCanonical(
+        boolean sameDialect)
+    {
+        super(MODE_OBJECT, sameDialect);
+    }
+
     @Override
     public void reset()
     {

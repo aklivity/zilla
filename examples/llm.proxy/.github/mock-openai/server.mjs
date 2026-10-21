@@ -1,8 +1,9 @@
-// Minimal mock OpenAI Chat Completions API. Backs south_llm_client_openai,
-// the upstream for the anthropic-facing frontend (north_llm_server_anthropic)
-// -- so every request this receives already started life as an
-// Anthropic-shaped /v1/messages call that the llm binding translated into
-// this OpenAI shape before forwarding it here.
+// Minimal mock OpenAI API, serving both Chat Completions and Responses. Backs
+// south_llm_client_openai (/v1/chat/completions), the upstream for the
+// anthropic-facing frontend (north_llm_server_anthropic) -- so every request
+// this receives there already started life as an Anthropic-shaped /v1/messages
+// call that the llm binding translated into this OpenAI shape before
+// forwarding it here -- and south_llm_client_openai (/v1/responses).
 
 import express from "express";
 
@@ -18,6 +19,21 @@ function promptText(messages)
     return (messages ?? [])
         .map(m => typeof m.content === "string" ? m.content : (m.content ?? []).map(part => part.text ?? "").join(""))
         .join("\n");
+}
+
+function logReceived(path, req, prompt, roles)
+{
+    console.log(`authorization: ${req.headers["authorization"] ?? "(none)"}`);
+    console.log(
+        `received ${path} members=${Object.keys(req.body ?? {}).join(",")} roles=${roles.join(",")} ` +
+        `prompt=${JSON.stringify(prompt)}`);
+}
+
+const SERVED_MODELS = { "gpt-4": "gpt-4-0613" };
+
+function servedModel(model)
+{
+    return SERVED_MODELS[model] ?? model;
 }
 
 function streamChatCompletion(res, model, message, includeUsage)
@@ -80,9 +96,11 @@ app.post("/v1/chat/completions", (req, res) =>
     // Zilla's south_llm_client_openai forwards the caller's own credential
     // here via options.authorization pass-through; logged so verify.py can
     // confirm it arrived unchanged.
-    console.log(`authorization: ${req.headers["authorization"] ?? "(none)"}`);
-
     const { model, tools, messages, stream_options: streamOptions } = req.body ?? {};
+    const lastUser = [...(messages ?? [])].reverse().find(m => m.role === "user");
+
+    logReceived(
+        "/v1/chat/completions", req, lastUser === undefined ? "" : promptText([lastUser]), (messages ?? []).map(m => m.role));
 
     const message = Array.isArray(tools) && tools.length > 0
         ? {
@@ -109,7 +127,7 @@ app.post("/v1/chat/completions", (req, res) =>
     // response's content type rather than the request
     if (promptText(messages).includes(STREAM_MARKER))
     {
-        streamChatCompletion(res, model, message, streamOptions?.include_usage);
+        streamChatCompletion(res, servedModel(model), message, streamOptions?.include_usage);
         return;
     }
 
@@ -121,7 +139,7 @@ app.post("/v1/chat/completions", (req, res) =>
     res.send(JSON.stringify({
         object: "chat.completion",
         id: "chatcmpl_1",
-        model,
+        model: servedModel(model),
         choices: [
             {
                 index: 0,
@@ -131,6 +149,205 @@ app.post("/v1/chat/completions", (req, res) =>
         ],
         usage: { prompt_tokens: 25, completion_tokens: 15 }
     }));
+});
+
+const RESPONSES_USAGE = {
+    input_tokens: 25,
+    input_tokens_details: { cache_write_tokens: 0, cached_tokens: 0 },
+    output_tokens: 15,
+    output_tokens_details: { reasoning_tokens: 0 },
+    total_tokens: 40
+};
+
+const OBFUSCATION_ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+function inputItems(input)
+{
+    return typeof input === "string" ? [{ role: "user", content: input }] : (input ?? []);
+}
+
+function itemText(item)
+{
+    const content = item.content ?? item.output ?? "";
+
+    return typeof content === "string" ? content : content.map(part => part.text ?? "").join("");
+}
+
+function responsesPrompt(request, items)
+{
+    return [request.instructions ?? "", ...items.map(itemText)].join("\n");
+}
+
+function responsesOutput(request, items)
+{
+    const toolResult = items.find(item => item.type === "function_call_output");
+    const lastUser = [...items].reverse().find(item => item.role === "user");
+    const askedForKey = lastUser !== undefined && itemText(lastUser).includes("private key");
+    let output;
+
+    if (Array.isArray(request.tools) && request.tools.length > 0 && toolResult === undefined)
+    {
+        output = {
+            id: "fc_1",
+            type: "function_call",
+            status: "completed",
+            arguments: "{\"city\":\"Paris\"}",
+            call_id: "call_1",
+            name: "get_weather"
+        };
+    }
+    else
+    {
+        const text = toolResult !== undefined
+            ? `The tool returned: ${itemText(toolResult)}`
+            : askedForKey
+                ? "-----BEGIN PRIVATE KEY-----"
+                : "Hello! How can I help you today?";
+
+        const content = request.instructions ? `[${request.instructions}] ${text}` : text;
+
+        output = {
+            id: "msg_1",
+            type: "message",
+            status: "completed",
+            content: [{ type: "output_text", annotations: [], logprobs: [], text: content }],
+            role: "assistant"
+        };
+    }
+
+    return [output];
+}
+
+// echoes the request members a caller can observe in the response, as the real
+// API does, so a member that crossed the llm binding intact shows up here and
+// one the binding did not carry to this deployment does not
+function responseObject(request, status, output, usage)
+{
+    return {
+        id: "resp_1",
+        object: "response",
+        created_at: 1792445323,
+        status,
+        background: false,
+        error: null,
+        incomplete_details: null,
+        instructions: request.instructions ?? null,
+        max_output_tokens: request.max_output_tokens ?? null,
+        metadata: request.metadata ?? {},
+        model: request.model,
+        output,
+        parallel_tool_calls: true,
+        previous_response_id: null,
+        store: request.store ?? true,
+        temperature: request.temperature ?? 1.0,
+        tool_choice: "auto",
+        tools: request.tools ?? [],
+        top_p: 1.0,
+        truncation: "disabled",
+        usage,
+        user: request.user ?? null
+    };
+}
+
+function streamResponse(res, request, output, obfuscate)
+{
+    res.set("Content-Type", "text/event-stream");
+    res.set("Cache-Control", "no-cache");
+    res.set("Connection", "keep-alive");
+
+    let sequenceNumber = 0;
+    const send = (type, data) => res.write(
+        `event: ${type}\ndata: ${JSON.stringify({ type, ...data, sequence_number: sequenceNumber++ })}\n\n`);
+    const noise = () => obfuscate
+        ? {
+            obfuscation: Array.from(
+                { length: 4 + Math.floor(Math.random() * 28) },
+                () => OBFUSCATION_ALPHABET[Math.floor(Math.random() * OBFUSCATION_ALPHABET.length)]).join("")
+        }
+        : {};
+    const pieces = text =>
+    {
+        const cut1 = Math.floor(text.length / 3);
+        const cut2 = Math.floor(2 * text.length / 3);
+
+        return [text.slice(0, cut1), text.slice(cut1, cut2), text.slice(cut2)];
+    };
+
+    const [item] = output;
+
+    send("response.created", { response: responseObject(request, "in_progress", [], null) });
+    send("response.in_progress", { response: responseObject(request, "in_progress", [], null) });
+
+    if (item.type === "function_call")
+    {
+        send("response.output_item.added", { item: { ...item, status: "in_progress", arguments: "" }, output_index: 0 });
+        pieces(item.arguments).forEach(piece => send("response.function_call_arguments.delta", {
+            delta: piece, item_id: item.id, ...noise(), output_index: 0
+        }));
+        send("response.function_call_arguments.done", { arguments: item.arguments, item_id: item.id, output_index: 0 });
+    }
+    else
+    {
+        const { text } = item.content[0];
+
+        send("response.output_item.added", { item: { ...item, status: "in_progress", content: [] }, output_index: 0 });
+        send("response.content_part.added", {
+            content_index: 0, item_id: item.id, output_index: 0,
+            part: { type: "output_text", annotations: [], logprobs: [], text: "" }
+        });
+        pieces(text).forEach(piece => send("response.output_text.delta", {
+            content_index: 0, delta: piece, item_id: item.id, logprobs: [], ...noise(), output_index: 0
+        }));
+        send("response.output_text.done", { content_index: 0, item_id: item.id, logprobs: [], output_index: 0, text });
+        send("response.content_part.done", {
+            content_index: 0, item_id: item.id, output_index: 0, part: item.content[0]
+        });
+    }
+
+    send("response.output_item.done", { item, output_index: 0 });
+    send("response.completed", { response: responseObject(request, "completed", output, RESPONSES_USAGE) });
+    res.end();
+}
+
+app.post("/v1/responses", (req, res) =>
+{
+    const request = req.body ?? {};
+    const items = inputItems(request.input);
+    const lastUser = [...items].reverse().find(item => item.role === "user");
+
+    // Zilla's south_llm_client_openai forwards the caller's own
+    // credential here via options.authorization pass-through; logged so
+    // verify.py can confirm it arrived unchanged.
+    logReceived("/v1/responses", req, lastUser === undefined ? "" : itemText(lastUser),
+        [request.instructions ? "system" : null, ...items.map(item => item.role ?? item.type)].filter(Boolean));
+
+    if (String(request.model).startsWith("no-such-model"))
+    {
+        res.status(404).set("Content-Type", "application/json");
+        res.send(JSON.stringify({
+            error: {
+                message: `The model \`${request.model}\` does not exist or you do not have access to it.`,
+                type: "invalid_request_error",
+                param: null,
+                code: "model_not_found"
+            }
+        }));
+        return;
+    }
+
+    const output = responsesOutput(request, items);
+
+    // the response is streamed when the request says so or the prompt asks for
+    // it, whatever the request's own `stream` setting says, so the llm binding
+    // is shown to follow the response's content type rather than the request
+    if (request.stream === true || responsesPrompt(request, items).includes(STREAM_MARKER))
+    {
+        streamResponse(res, request, output, request.stream_options?.include_obfuscation !== false);
+        return;
+    }
+
+    res.set("Content-Type", "application/json");
+    res.send(JSON.stringify(responseObject(request, "completed", output, RESPONSES_USAGE)));
 });
 
 app.listen(PORT, () => console.log(`mock-openai listening on ${PORT}`));

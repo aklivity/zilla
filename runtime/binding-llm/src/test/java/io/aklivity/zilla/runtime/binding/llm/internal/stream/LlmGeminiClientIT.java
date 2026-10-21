@@ -431,6 +431,17 @@ public class LlmGeminiClientIT
 
     @Test
     @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"gemini\"", "target \"gemini\"", "reason \"gemini:MALFORMED_FUNCTION_CALL\""})
+    @Specification({
+        "${app}/gemini.transform.response.finish.reason/client",
+        "${net}/gemini.transform.response.finish.reason.unknown/server"})
+    public void shouldPrefixUnknownFinishReasonAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
     @Specification({
         "${app}/gemini.section.tool.definition/client",
         "${net}/gemini.section.tool.definition/server"})
@@ -1152,9 +1163,9 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.yaml")
     @Specification({
-        "${app}/gemini.transform.rejected.server.tool.definition/client",
-        "${net}/gemini.transform.rejected.server.tool.definition/server"})
-    public void shouldForwardGeminiTransformRejectedServerToolDefinition() throws Exception
+        "${app}/transform.server.tool.definition/client",
+        "${net}/gemini.transform.server.tool.definition/server"})
+    public void shouldDropServerToolDefinitionAsGemini() throws Exception
     {
         k3po.finish();
     }

@@ -89,6 +89,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_SOURCE, 0, 0);
     private static final int STATUS_BAD_REQUEST = 400;
     private static final int NO_USAGE = -1;
+    private static final String ARGUMENTS_MEMBER = "arguments";
     private static final String ERROR_TYPE_INVALID_REQUEST = "invalid_request_error";
 
     private final BeginFW beginRO = new BeginFW();
@@ -1314,6 +1315,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
         private int sectionAttributesLength;
         private int sectionOctetsLength;
         private int outputValues;
+        private int outputMatched;
         private int heldSlot;
         private int heldLimit;
         private boolean outputStarted;
@@ -1355,9 +1357,31 @@ public final class LlmProxyFactory implements LlmStreamFactory
             }
 
             this.pipelines = new EnumMap<>(LlmSectionType.class);
-            chains.forEach((section, chain) -> pipelines.put(section, LlmTextModelPipeline.objectShaped(section)
-                ? new LlmTextModelPipeline(chain, runPool, streamId, transformBuffer)
-                : new LlmRawGuardPipeline(chain)));
+            chains.forEach((section, chain) -> pipelines.put(section, guardPipeline(section, chain)));
+        }
+
+        private LlmGuardPipeline guardPipeline(
+            LlmSectionType section,
+            ModelPipeline chain)
+        {
+            return switch (section)
+            {
+            case SYSTEM_INSTRUCTION, USER_TEXT, ASSISTANT_TEXT, ASSISTANT_REFUSAL, ASSISTANT_REASONING, TOOL_RESULT ->
+                new LlmTextModelPipeline(chain, runPool, streamId, transformBuffer,
+                    section == LlmSectionType.ASSISTANT_REASONING);
+            case TOOL_CALL, SERVER_TOOL_CALL ->
+                new LlmMemberModelPipeline(chain, ARGUMENTS_MEMBER);
+            case USER_IMAGE ->
+                new LlmMediaGuardPipeline(chain, "image_url", "url", true);
+            case USER_DOCUMENT ->
+                new LlmMediaGuardPipeline(chain, "file", "file_data", true);
+            case USER_AUDIO ->
+                new LlmMediaGuardPipeline(chain, "input_audio", "data", false);
+            case USER_VIDEO ->
+                new LlmMediaGuardPipeline(chain, "input_video", "data", false);
+            default ->
+                new LlmRawGuardPipeline(chain);
+            };
         }
 
         abstract void doForwardData(
@@ -1535,7 +1559,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             }
             else
             {
-                if (initial && sectionPipeline.identity())
+                if (initial)
                 {
                     acceptRanges(extension);
                 }
@@ -1631,7 +1655,8 @@ public final class LlmProxyFactory implements LlmStreamFactory
 
                 if (produced > 0 || closing)
                 {
-                    doForwardOutput(traceId, authorization, budgetId, produced, sectionPipeline.values(), closing);
+                    doForwardOutput(traceId, authorization, budgetId, produced, sectionPipeline.values(),
+                        sectionPipeline.matched(), closing);
                 }
 
                 if (closing)
@@ -1714,7 +1739,8 @@ public final class LlmProxyFactory implements LlmStreamFactory
                 {
                     final boolean closing = complete && outputPending && sectionPipeline.closeWidth() == 0;
 
-                    doForwardOutput(traceId, authorization, budgetId, produced, sectionPipeline.values(), closing);
+                    doForwardOutput(traceId, authorization, budgetId, produced, sectionPipeline.values(),
+                        sectionPipeline.matched(), closing);
                     outputPending &= !closing;
                 }
 
@@ -1755,7 +1781,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             {
                 final int length = sectionPipeline.close(guardrailBuffer, 0);
 
-                doForwardOutput(traceId, authorization, budgetId, length, 0, true);
+                doForwardOutput(traceId, authorization, budgetId, length, 0, 0, true);
                 outputPending = false;
                 verdict = LlmGuardVerdict.ACCEPTED;
             }
@@ -1769,11 +1795,13 @@ public final class LlmProxyFactory implements LlmStreamFactory
             long budgetId,
             int produced,
             int values,
+            int matched,
             boolean closing)
         {
             final int flags = (outputStarted ? 0 : Flags.INIT) | (closing ? Flags.FIN : 0);
 
             this.outputValues = values;
+            this.outputMatched = matched;
 
             final LlmDataExFW llmDataEx = guardDataExRW.wrap(guardExtBuffer, 0, guardExtBuffer.capacity())
                 .typeId(llmTypeId)
@@ -1801,7 +1829,12 @@ public final class LlmProxyFactory implements LlmStreamFactory
                     .extension(sectionExtensionBuffer, sectionAttributesLength, sectionOctetsLength);
             }
 
-            if (sectionPipeline.identity())
+            if (sectionPipeline.diverged())
+            {
+                ranges.emitComplete(section, outputMatched);
+                ranges.drop();
+            }
+            else
             {
                 ranges.emit(section, outputValues);
             }

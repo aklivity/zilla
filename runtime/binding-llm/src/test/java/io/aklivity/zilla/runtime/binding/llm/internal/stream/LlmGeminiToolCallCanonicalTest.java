@@ -28,7 +28,7 @@ public class LlmGeminiToolCallCanonicalTest
     private static final String HUGE = "x".repeat(5000);
 
     private final LlmGeminiToolCallToCanonical to = new LlmGeminiToolCallToCanonical();
-    private final LlmGeminiToolCallFromCanonical from = new LlmGeminiToolCallFromCanonical();
+    private final LlmGeminiToolCallFromCanonical from = new LlmGeminiToolCallFromCanonical(true);
 
     private final Consumer<LlmSectionAttributes> id = attributes -> attributes.toolCallId("call_1");
     private final Consumer<LlmSectionAttributes> name = attributes -> attributes.toolName("get_weather");

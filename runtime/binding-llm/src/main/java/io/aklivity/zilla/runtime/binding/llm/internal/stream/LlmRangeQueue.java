@@ -86,12 +86,46 @@ final class LlmRangeQueue
 
             if (pending > budget)
             {
-                head = 0;
-                tail = 0;
-                storageLimit = 0;
-                pending = 0;
-                dropped = true;
+                drop();
             }
+        }
+    }
+
+    void drop()
+    {
+        head = 0;
+        tail = 0;
+        storageLimit = 0;
+        pending = 0;
+        dropped = true;
+    }
+
+    void emitComplete(
+        LlmSectionDataExFW.Builder section,
+        int values)
+    {
+        int unwritten = values;
+        int carry = 0;
+
+        while (head < tail && remaining[head] <= unwritten)
+        {
+            unwritten -= remaining[head];
+
+            if (closing[head])
+            {
+                writeLength = carry + remaining[head];
+                writeClosing = true;
+                writeEntry = head;
+                section.rangesItem(writer);
+                carry = 0;
+            }
+            else
+            {
+                carry += remaining[head];
+            }
+
+            remaining[head] = 0;
+            release();
         }
     }
 

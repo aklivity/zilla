@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.agrona.collections.Long2ObjectHashMap;
@@ -23,7 +24,9 @@ import io.aklivity.zilla.runtime.binding.llm.config.LlmBindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectContext;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectHandler;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmBinding;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.BeginFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBeginExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -33,10 +36,11 @@ public final class LlmClientFactory implements LlmStreamFactory
     private static final String HTTP_TYPE_NAME = "http";
 
     private final BeginFW beginRO = new BeginFW();
+    private final LlmBeginExFW llmBeginExRO = new LlmBeginExFW();
 
     private final EngineContext context;
     private final Map<String, LlmDialectContext> dialects;
-    private final Long2ObjectHashMap<LlmDialectHandler> bindings;
+    private final Long2ObjectHashMap<LlmClientBinding> bindings;
     private final int httpTypeId;
     private final int llmTypeId;
 
@@ -68,13 +72,20 @@ public final class LlmClientFactory implements LlmStreamFactory
         BindingConfig binding)
     {
         final LlmBindingConfig config = new LlmBindingConfig(binding, context);
-        final String fixed = config.options.dialect;
-        final LlmDialectContext dialect = fixed != null ? dialects.get(fixed) : null;
-        final LlmDialectHandler handler = dialect != null ? dialect.attach(config) : null;
+        final Map<String, LlmDialectHandler> handlers = new LinkedHashMap<>();
 
-        if (handler != null)
+        for (Map.Entry<String, LlmDialectContext> entry : dialects.entrySet())
         {
-            bindings.put(binding.id, handler);
+            final LlmDialectHandler handler = entry.getValue().attach(config);
+            if (handler != null)
+            {
+                handlers.put(entry.getKey(), handler);
+            }
+        }
+
+        if (!handlers.isEmpty())
+        {
+            bindings.put(binding.id, new LlmClientBinding(config.options.dialect, handlers));
         }
     }
 
@@ -95,10 +106,39 @@ public final class LlmClientFactory implements LlmStreamFactory
         MessageConsumer sender)
     {
         final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-        final LlmDialectHandler handler = bindings.get(begin.routedId());
+        final LlmClientBinding binding = bindings.get(begin.routedId());
 
-        return handler != null
-            ? handler.newStream(msgTypeId, buffer, index, length, sender)
-            : null;
+        MessageConsumer newStream = null;
+
+        if (binding != null)
+        {
+            final OctetsFW extension = begin.extension();
+            final LlmBeginExFW llmBeginEx = extension.get(llmBeginExRO::tryWrap);
+            final LlmDialectHandler handler = binding.resolve(llmBeginEx != null ? llmBeginEx.dialect().asString() : null);
+
+            newStream = handler.newStream(msgTypeId, buffer, index, length, sender);
+        }
+
+        return newStream;
+    }
+
+    private static final class LlmClientBinding
+    {
+        private final Map<String, LlmDialectHandler> handlers;
+        private final LlmDialectHandler fallback;
+
+        private LlmClientBinding(
+            String dialect,
+            Map<String, LlmDialectHandler> handlers)
+        {
+            this.handlers = handlers;
+            this.fallback = handlers.getOrDefault(dialect, handlers.values().iterator().next());
+        }
+
+        private LlmDialectHandler resolve(
+            String inbound)
+        {
+            return handlers.getOrDefault(inbound, fallback);
+        }
     }
 }

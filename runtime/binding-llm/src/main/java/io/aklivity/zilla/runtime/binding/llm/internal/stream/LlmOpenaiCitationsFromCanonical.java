@@ -24,9 +24,10 @@ final class LlmOpenaiCitationsFromCanonical extends LlmToolTransform
 
     private boolean typed;
 
-    LlmOpenaiCitationsFromCanonical()
+    LlmOpenaiCitationsFromCanonical(
+        boolean sameDialect)
     {
-        super(MODE_ARRAY);
+        super(MODE_ARRAY, sameDialect);
     }
 
     @Override

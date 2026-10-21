@@ -117,6 +117,17 @@ public class LlmConditionConfigAdapterTest
     }
 
     @Test
+    public void shouldReadConditionWithOpenaiResponsesDialect()
+    {
+        String text = "{\"dialect\": \"openai/responses\"}";
+
+        LlmConditionConfig condition = jsonb.fromJson(text, LlmConditionConfig.class);
+
+        assertThat(condition, not(nullValue()));
+        assertThat(condition.dialect, equalTo("openai/responses"));
+    }
+
+    @Test
     public void shouldBuildConditionViaMapper()
     {
         LlmConditionConfig condition = LlmConditionConfig.builder(LlmConditionConfig.class::cast)

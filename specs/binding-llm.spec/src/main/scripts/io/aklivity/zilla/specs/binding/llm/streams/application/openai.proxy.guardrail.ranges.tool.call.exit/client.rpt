@@ -51,9 +51,9 @@ read zilla:data.ext ${llm:matchDataEx()
                           .message(0)
                           .attribute("tool-name", "get_weather")
                           .attribute("tool-call-id", "call_1")
-                          .range(13)
+                          .range(8)
                           .rangeAttribute("test:a", "1")
-                          .range(11)
+                          .range(3)
                           .rangeOpen()
                           .build()}
 read "{\"arguments\":{\"city\":\"Pa"
@@ -61,7 +61,7 @@ read "{\"arguments\":{\"city\":\"Pa"
 read option zilla:flags "fin"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .range(6)
+                          .range(5)
                           .rangeAttribute("test:b", "2")
                           .build()}
 read "ris\"}}"

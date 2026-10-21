@@ -2099,15 +2099,6 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.transform.rejected.tool.definition.server/client",
-        "${net}/openai.transform.rejected.tool.definition.server/server"})
-    public void shouldOpenaiTransformAnthropicRejectedToolDefinitionServer() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/openai.transform.tool.definition.100k/client",
         "${net}/openai.transform.tool.definition.100k/server"})
     public void shouldOpenaiTransformAnthropicToolDefinition100k() throws Exception
@@ -3917,6 +3908,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/gemini.transform.response.finish.reason.unknown/client",
+        "${net}/gemini.transform.response.finish.reason.unknown/server"})
+    public void shouldEncodeGeminiTransformResponseFinishReasonUnknown() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/gemini.section.tool.definition/client",
         "${net}/gemini.section.tool.definition/server"})
     public void shouldEncodeGeminiSectionToolDefinition() throws Exception
@@ -4682,9 +4682,9 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/gemini.transform.rejected.server.tool.definition/client",
-        "${net}/gemini.transform.rejected.server.tool.definition/server"})
-    public void shouldEncodeGeminiTransformRejectedServerToolDefinition() throws Exception
+        "${net}/gemini.transform.server.tool.definition/client",
+        "${net}/gemini.transform.server.tool.definition/server"})
+    public void shouldGeminiTransformServerToolDefinition() throws Exception
     {
         k3po.finish();
     }
@@ -4775,6 +4775,1833 @@ public class NetworkIT
         "${net}/gemini.transform.request.extension/client",
         "${net}/gemini.transform.request.extension/server"})
     public void shouldEncodeGeminiTransformRequestExtension() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.server.tool.definition/client",
+        "${net}/openai.transform.server.tool.definition/server"})
+    public void shouldOpenaiTransformServerToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.server.tool.definition/client",
+        "${net}/anthropic.transform.server.tool.definition/server"})
+    public void shouldAnthropicTransformServerToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.finish.reason.stop.sequence/client",
+        "${net}/anthropic.transform.response.finish.reason.stop.sequence/server"})
+    public void shouldAnthropicTransformResponseFinishReasonStopSequence() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.response.finish.reason.pause.turn/client",
+        "${net}/anthropic.transform.response.finish.reason.pause.turn/server"})
+    public void shouldAnthropicTransformResponseFinishReasonPauseTurn() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.response.finish.reason.unknown/client",
+        "${net}/openai.transform.response.finish.reason.unknown/server"})
+    public void shouldOpenaiTransformResponseFinishReasonUnknown() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.text/client",
+        "${net}/openai.responses.text/server"})
+    public void shouldOpenaiResponsesText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.text.stream/client",
+        "${net}/openai.responses.text.stream/server"})
+    public void shouldOpenaiResponsesTextStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.text.stream.no.obfuscation/client",
+        "${net}/openai.responses.text.stream.no.obfuscation/server"})
+    public void shouldOpenaiResponsesTextStreamNoObfuscation() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.incomplete.max.output.tokens/client",
+        "${net}/openai.responses.incomplete.max.output.tokens/server"})
+    public void shouldOpenaiResponsesIncompleteMaxOutputTokens() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.incomplete.max.output.tokens.stream/client",
+        "${net}/openai.responses.incomplete.max.output.tokens.stream/server"})
+    public void shouldOpenaiResponsesIncompleteMaxOutputTokensStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.incomplete.content.filter/client",
+        "${net}/openai.responses.incomplete.content.filter/server"})
+    public void shouldOpenaiResponsesIncompleteContentFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.incomplete.max.messages/client",
+        "${net}/openai.responses.incomplete.max.messages/server"})
+    public void shouldOpenaiResponsesIncompleteMaxMessages() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.usage.cache/client",
+        "${net}/openai.responses.usage.cache/server"})
+    public void shouldOpenaiResponsesUsageCache() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.usage.cache.stream/client",
+        "${net}/openai.responses.usage.cache.stream/server"})
+    public void shouldOpenaiResponsesUsageCacheStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.system.instruction/client",
+        "${net}/openai.responses.section.system.instruction/server"})
+    public void shouldOpenaiResponsesSectionSystemInstruction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.user.text.parts/client",
+        "${net}/openai.responses.section.user.text.parts/server"})
+    public void shouldOpenaiResponsesSectionUserTextParts() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.assistant.text/client",
+        "${net}/openai.responses.section.assistant.text/server"})
+    public void shouldOpenaiResponsesSectionAssistantText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.conversation/client",
+        "${net}/openai.responses.section.conversation/server"})
+    public void shouldOpenaiResponsesSectionConversation() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.request.controls/client",
+        "${net}/openai.responses.request.controls/server"})
+    public void shouldOpenaiResponsesRequestControls() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.response.controls/client",
+        "${net}/openai.responses.response.controls/server"})
+    public void shouldOpenaiResponsesResponseControls() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.response.controls.stream/client",
+        "${net}/openai.responses.response.controls.stream/server"})
+    public void shouldOpenaiResponsesResponseControlsStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.rejected.error.code/client",
+        "${net}/openai.responses.rejected.error.code/server"})
+    public void shouldOpenaiResponsesRejectedErrorCode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.rejected.error.code.streaming/client",
+        "${net}/openai.responses.rejected.error.code.streaming/server"})
+    public void shouldOpenaiResponsesRejectedErrorCodeStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.rejected.error.param/client",
+        "${net}/openai.responses.rejected.error.param/server"})
+    public void shouldOpenaiResponsesRejectedErrorParam() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.rejected.rate.limit/client",
+        "${net}/openai.responses.rejected.rate.limit/server"})
+    public void shouldOpenaiResponsesRejectedRateLimit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.rejected.section/client",
+        "${net}/openai.responses.rejected.section/server"})
+    public void shouldOpenaiResponsesRejectedSection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.rejected.bad.gateway/client",
+        "${net}/openai.responses.rejected.bad.gateway/server"})
+    public void shouldOpenaiResponsesRejectedBadGateway() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.rejected.unreachable/client",
+        "${net}/openai.responses.rejected.unreachable/server"})
+    public void shouldOpenaiResponsesRejectedUnreachable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.rejected.reset/client",
+        "${net}/openai.responses.rejected.reset/server"})
+    public void shouldOpenaiResponsesRejectedReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.rejected.streaming/client",
+        "${net}/openai.responses.rejected.streaming/server"})
+    public void shouldOpenaiResponsesRejectedStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.rejected.streaming.failed/client",
+        "${net}/openai.responses.rejected.streaming.failed/server"})
+    public void shouldOpenaiResponsesRejectedStreamingFailed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.input.string/client",
+        "${net}/openai.responses.section.input.string/server"})
+    public void shouldOpenaiResponsesSectionInputString() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.developer.instruction/client",
+        "${net}/openai.responses.section.developer.instruction/server"})
+    public void shouldOpenaiResponsesSectionDeveloperInstruction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.instructions.input.items/client",
+        "${net}/openai.responses.section.instructions.input.items/server"})
+    public void shouldOpenaiResponsesSectionInstructionsInputItems() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.instructions.last/client",
+        "${net}/openai.responses.section.instructions.last/server"})
+    public void shouldOpenaiResponsesSectionInstructionsLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.rejected.input.item.type/client",
+        "${net}/openai.responses.rejected.input.item.type/server"})
+    public void shouldOpenaiResponsesRejectedInputItemType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.rejected.content.part.type/client",
+        "${net}/openai.responses.rejected.content.part.type/server"})
+    public void shouldOpenaiResponsesRejectedContentPartType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.user.text/client",
+        "${net}/openai.responses.transform.user.text/server"})
+    public void shouldOpenaiResponsesTransformUserText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.system.instruction/client",
+        "${net}/openai.responses.transform.system.instruction/server"})
+    public void shouldOpenaiResponsesTransformSystemInstruction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.system.instruction.last/client",
+        "${net}/openai.responses.transform.system.instruction.last/server"})
+    public void shouldOpenaiResponsesTransformSystemInstructionLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.assistant.text/client",
+        "${net}/openai.responses.transform.assistant.text/server"})
+    public void shouldOpenaiResponsesTransformAssistantText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.request.max.output.tokens/client",
+        "${net}/openai.responses.transform.request.max.output.tokens/server"})
+    public void shouldOpenaiResponsesTransformRequestMaxOutputTokens() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.response.text/client",
+        "${net}/openai.responses.transform.response.text/server"})
+    public void shouldOpenaiResponsesTransformResponseText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.response.text.sse/client",
+        "${net}/openai.responses.transform.response.text.sse/server"})
+    public void shouldOpenaiResponsesTransformResponseTextSse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.response.finish.reason.unknown/client",
+        "${net}/openai.responses.transform.response.finish.reason.unknown/server"})
+    public void shouldOpenaiResponsesTransformResponseFinishReasonUnknown() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.response.usage/client",
+        "${net}/openai.responses.transform.response.usage/server"})
+    public void shouldOpenaiResponsesTransformResponseUsage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.text.captured/client",
+        "${net}/openai.responses.text.captured/server"})
+    public void shouldOpenaiResponsesTextCaptured() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.text.stream.captured/client",
+        "${net}/openai.responses.text.stream.captured/server"})
+    public void shouldOpenaiResponsesTextStreamCaptured() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.text.stream.unknown.event/client",
+        "${net}/openai.responses.text.stream.unknown.event/server"})
+    public void shouldOpenaiResponsesTextStreamUnknownEvent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.rejected.output.item.type/client",
+        "${net}/openai.responses.rejected.output.item.type/server"})
+    public void shouldOpenaiResponsesRejectedOutputItemType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.rejected.output.item.type.stream/client",
+        "${net}/openai.responses.rejected.output.item.type.stream/server"})
+    public void shouldOpenaiResponsesRejectedOutputItemTypeStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.rejected.authorization/client",
+        "${net}/openai.responses.rejected.authorization/server"})
+    public void shouldOpenaiResponsesRejectedAuthorization() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.function.call/client",
+        "${net}/openai.responses.function.call/server"})
+    public void shouldOpenaiResponsesFunctionCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.function.call.stream/client",
+        "${net}/openai.responses.function.call.stream/server"})
+    public void shouldOpenaiResponsesFunctionCallStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.function.call.text/client",
+        "${net}/openai.responses.function.call.text/server"})
+    public void shouldOpenaiResponsesFunctionCallText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.function.call.text.stream/client",
+        "${net}/openai.responses.function.call.text.stream/server"})
+    public void shouldOpenaiResponsesFunctionCallTextStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.function.calls/client",
+        "${net}/openai.responses.function.calls/server"})
+    public void shouldOpenaiResponsesFunctionCalls() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.function.calls.stream/client",
+        "${net}/openai.responses.function.calls.stream/server"})
+    public void shouldOpenaiResponsesFunctionCallsStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.function.calls.interleaved.stream/client",
+        "${net}/openai.responses.function.calls.interleaved.stream/server"})
+    public void shouldOpenaiResponsesFunctionCallsInterleavedStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.function.calls.interleaved.overflow.stream/client",
+        "${net}/openai.responses.function.calls.interleaved.overflow.stream/server"})
+    public void shouldOpenaiResponsesFunctionCallsInterleavedOverflowStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.custom.tool.call/client",
+        "${net}/openai.responses.custom.tool.call/server"})
+    public void shouldOpenaiResponsesCustomToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.custom.tool.call.stream/client",
+        "${net}/openai.responses.custom.tool.call.stream/server"})
+    public void shouldOpenaiResponsesCustomToolCallStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.web.search/client",
+        "${net}/openai.responses.web.search/server"})
+    public void shouldOpenaiResponsesWebSearch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.web.search.stream/client",
+        "${net}/openai.responses.web.search.stream/server"})
+    public void shouldOpenaiResponsesWebSearchStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.code.interpreter/client",
+        "${net}/openai.responses.code.interpreter/server"})
+    public void shouldOpenaiResponsesCodeInterpreter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.code.interpreter.stream/client",
+        "${net}/openai.responses.code.interpreter.stream/server"})
+    public void shouldOpenaiResponsesCodeInterpreterStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.mcp/client",
+        "${net}/openai.responses.mcp/server"})
+    public void shouldOpenaiResponsesMcp() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.mcp.stream/client",
+        "${net}/openai.responses.mcp.stream/server"})
+    public void shouldOpenaiResponsesMcpStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.image.generation/client",
+        "${net}/openai.responses.image.generation/server"})
+    public void shouldOpenaiResponsesImageGeneration() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.image.generation.stream/client",
+        "${net}/openai.responses.image.generation.stream/server"})
+    public void shouldOpenaiResponsesImageGenerationStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.image.generation.partial.stream/client",
+        "${net}/openai.responses.image.generation.partial.stream/server"})
+    public void shouldOpenaiResponsesImageGenerationPartialStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.tool.definition/client",
+        "${net}/openai.responses.section.tool.definition/server"})
+    public void shouldOpenaiResponsesSectionToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.tool.definition.members/client",
+        "${net}/openai.responses.section.tool.definition.members/server"})
+    public void shouldOpenaiResponsesSectionToolDefinitionMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.tool.definition.100k/client",
+        "${net}/openai.responses.section.tool.definition.100k/server"})
+    public void shouldOpenaiResponsesSectionToolDefinition100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.server.tool.definition/client",
+        "${net}/openai.responses.section.server.tool.definition/server"})
+    public void shouldOpenaiResponsesSectionServerToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.tool.call/client",
+        "${net}/openai.responses.section.tool.call/server"})
+    public void shouldOpenaiResponsesSectionToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.tool.calls/client",
+        "${net}/openai.responses.section.tool.calls/server"})
+    public void shouldOpenaiResponsesSectionToolCalls() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.assistant.text.and.tool.call/client",
+        "${net}/openai.responses.section.assistant.text.and.tool.call/server"})
+    public void shouldOpenaiResponsesSectionAssistantTextAndToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.tool.call.members/client",
+        "${net}/openai.responses.section.tool.call.members/server"})
+    public void shouldOpenaiResponsesSectionToolCallMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.tool.call.ignored/client",
+        "${net}/openai.responses.section.tool.call.ignored/server"})
+    public void shouldOpenaiResponsesSectionToolCallIgnored() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.tool.call.escaped/client",
+        "${net}/openai.responses.section.tool.call.escaped/server"})
+    public void shouldOpenaiResponsesSectionToolCallEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.tool.result/client",
+        "${net}/openai.responses.section.tool.result/server"})
+    public void shouldOpenaiResponsesSectionToolResult() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.tool.result.parts/client",
+        "${net}/openai.responses.section.tool.result.parts/server"})
+    public void shouldOpenaiResponsesSectionToolResultParts() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.server.tool.call/client",
+        "${net}/openai.responses.section.server.tool.call/server"})
+    public void shouldOpenaiResponsesSectionServerToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.tool.definition/client",
+        "${net}/openai.responses.transform.tool.definition/server"})
+    public void shouldOpenaiResponsesTransformToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.server.tool.definition/client",
+        "${net}/openai.responses.transform.server.tool.definition/server"})
+    public void shouldOpenaiResponsesTransformServerToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.tool.result/client",
+        "${net}/openai.responses.transform.tool.result/server"})
+    public void shouldOpenaiResponsesTransformToolResult() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.tool.result.blocks/client",
+        "${net}/openai.responses.transform.tool.result.blocks/server"})
+    public void shouldOpenaiResponsesTransformToolResultBlocks() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.assistant.tool.call/client",
+        "${net}/openai.responses.transform.assistant.tool.call/server"})
+    public void shouldOpenaiResponsesTransformAssistantToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.assistant.tool.call.escaped/client",
+        "${net}/openai.responses.transform.assistant.tool.call.escaped/server"})
+    public void shouldOpenaiResponsesTransformAssistantToolCallEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.response.tool.call/client",
+        "${net}/openai.responses.transform.response.tool.call/server"})
+    public void shouldOpenaiResponsesTransformResponseToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.response.tool.call.sse/client",
+        "${net}/openai.responses.transform.response.tool.call.sse/server"})
+    public void shouldOpenaiResponsesTransformResponseToolCallSse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.response.tool.call.empty/client",
+        "${net}/openai.responses.transform.response.tool.call.empty/server"})
+    public void shouldOpenaiResponsesTransformResponseToolCallEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.response.tool.call.empty.sse/client",
+        "${net}/openai.responses.transform.response.tool.call.empty.sse/server"})
+    public void shouldOpenaiResponsesTransformResponseToolCallEmptySse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.response.tool.calls/client",
+        "${net}/openai.responses.transform.response.tool.calls/server"})
+    public void shouldOpenaiResponsesTransformResponseToolCalls() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.response.tool.calls.sse/client",
+        "${net}/openai.responses.transform.response.tool.calls.sse/server"})
+    public void shouldOpenaiResponsesTransformResponseToolCallsSse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.response.text.and.tool.call/client",
+        "${net}/openai.responses.transform.response.text.and.tool.call/server"})
+    public void shouldOpenaiResponsesTransformResponseTextAndToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.response.text.and.tool.call.sse/client",
+        "${net}/openai.responses.transform.response.text.and.tool.call.sse/server"})
+    public void shouldOpenaiResponsesTransformResponseTextAndToolCallSse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.response.streaming.tool.call/client",
+        "${net}/openai.responses.transform.response.streaming.tool.call/server"})
+    public void shouldOpenaiResponsesTransformResponseStreamingToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.function.call.large/client",
+        "${net}/openai.responses.function.call.large/server"})
+    public void shouldOpenaiResponsesFunctionCallLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.function.call.large.stream/client",
+        "${net}/openai.responses.function.call.large.stream/server"})
+    public void shouldOpenaiResponsesFunctionCallLargeStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.function.call.huge/client",
+        "${net}/openai.responses.function.call.huge/server"})
+    public void shouldOpenaiResponsesFunctionCallHuge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.function.call.huge.stream/client",
+        "${net}/openai.responses.function.call.huge.stream/server"})
+    public void shouldOpenaiResponsesFunctionCallHugeStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.text.stream.large/client",
+        "${net}/openai.responses.text.stream.large/server"})
+    public void shouldOpenaiResponsesTextStreamLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.text.stream.huge/client",
+        "${net}/openai.responses.text.stream.huge/server"})
+    public void shouldOpenaiResponsesTextStreamHuge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.tool.call.attributes.last/client",
+        "${net}/openai.responses.section.tool.call.attributes.last/server"})
+    public void shouldOpenaiResponsesSectionToolCallAttributesLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.reasoning/client",
+        "${net}/openai.responses.reasoning/server"})
+    public void shouldOpenaiResponsesReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.reasoning.stream/client",
+        "${net}/openai.responses.reasoning.stream/server"})
+    public void shouldOpenaiResponsesReasoningStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.reasoning.no.summary/client",
+        "${net}/openai.responses.reasoning.no.summary/server"})
+    public void shouldOpenaiResponsesReasoningNoSummary() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.reasoning.no.summary.stream/client",
+        "${net}/openai.responses.reasoning.no.summary.stream/server"})
+    public void shouldOpenaiResponsesReasoningNoSummaryStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.reasoning.tool.call/client",
+        "${net}/openai.responses.reasoning.tool.call/server"})
+    public void shouldOpenaiResponsesReasoningToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.reasoning.tool.call.stream/client",
+        "${net}/openai.responses.reasoning.tool.call.stream/server"})
+    public void shouldOpenaiResponsesReasoningToolCallStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.reasoning.id/client",
+        "${net}/openai.responses.reasoning.id/server"})
+    public void shouldOpenaiResponsesReasoningId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.reasoning.id.stream/client",
+        "${net}/openai.responses.reasoning.id.stream/server"})
+    public void shouldOpenaiResponsesReasoningIdStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.reasoning.large/client",
+        "${net}/openai.responses.reasoning.large/server"})
+    public void shouldOpenaiResponsesReasoningLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.reasoning.large.stream/client",
+        "${net}/openai.responses.reasoning.large.stream/server"})
+    public void shouldOpenaiResponsesReasoningLargeStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.reasoning.real/client",
+        "${net}/openai.responses.reasoning.real/server"})
+    public void shouldOpenaiResponsesReasoningReal() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.reasoning.real.stream/client",
+        "${net}/openai.responses.reasoning.real.stream/server"})
+    public void shouldOpenaiResponsesReasoningRealStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.reasoning.real.no.summary/client",
+        "${net}/openai.responses.reasoning.real.no.summary/server"})
+    public void shouldOpenaiResponsesReasoningRealNoSummary() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.reasoning.real.no.summary.stream/client",
+        "${net}/openai.responses.reasoning.real.no.summary.stream/server"})
+    public void shouldOpenaiResponsesReasoningRealNoSummaryStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.reasoning.real.huge/client",
+        "${net}/openai.responses.reasoning.real.huge/server"})
+    public void shouldOpenaiResponsesReasoningRealHuge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.refusal/client",
+        "${net}/openai.responses.refusal/server"})
+    public void shouldOpenaiResponsesRefusal() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.refusal.stream/client",
+        "${net}/openai.responses.refusal.stream/server"})
+    public void shouldOpenaiResponsesRefusalStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.text.citations/client",
+        "${net}/openai.responses.text.citations/server"})
+    public void shouldOpenaiResponsesTextCitations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.text.citations.stream/client",
+        "${net}/openai.responses.text.citations.stream/server"})
+    public void shouldOpenaiResponsesTextCitationsStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.text.citations.between.stream/client",
+        "${net}/openai.responses.text.citations.between.stream/server"})
+    public void shouldOpenaiResponsesTextCitationsBetweenStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.text.citations.done.stream/client",
+        "${net}/openai.responses.text.citations.done.stream/server"})
+    public void shouldOpenaiResponsesTextCitationsDoneStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.text.citations.api/client",
+        "${net}/openai.responses.text.citations.api/server"})
+    public void shouldOpenaiResponsesTextCitationsApi() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.text.citations.members/client",
+        "${net}/openai.responses.text.citations.members/server"})
+    public void shouldOpenaiResponsesTextCitationsMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.text.citations.members.stream/client",
+        "${net}/openai.responses.text.citations.members.stream/server"})
+    public void shouldOpenaiResponsesTextCitationsMembersStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.reasoning/client",
+        "${net}/openai.responses.section.reasoning/server"})
+    public void shouldOpenaiResponsesSectionReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.reasoning.no.summary/client",
+        "${net}/openai.responses.section.reasoning.no.summary/server"})
+    public void shouldOpenaiResponsesSectionReasoningNoSummary() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.reasoning.parts/client",
+        "${net}/openai.responses.section.reasoning.parts/server"})
+    public void shouldOpenaiResponsesSectionReasoningParts() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.reasoning.items/client",
+        "${net}/openai.responses.section.reasoning.items/server"})
+    public void shouldOpenaiResponsesSectionReasoningItems() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.reasoning.large/client",
+        "${net}/openai.responses.section.reasoning.large/server"})
+    public void shouldOpenaiResponsesSectionReasoningLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.reasoning.encrypted.first/client",
+        "${net}/openai.responses.section.reasoning.encrypted.first/server"})
+    public void shouldOpenaiResponsesSectionReasoningEncryptedFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.reasoning.encrypted.first.10k/client",
+        "${net}/openai.responses.section.reasoning.encrypted.first.10k/server"})
+    public void shouldOpenaiResponsesSectionReasoningEncryptedFirst10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.reasoning.content/client",
+        "${net}/openai.responses.section.reasoning.content/server"})
+    public void shouldOpenaiResponsesSectionReasoningContent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.assistant.refusal/client",
+        "${net}/openai.responses.section.assistant.refusal/server"})
+    public void shouldOpenaiResponsesSectionAssistantRefusal() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.assistant.text.citations/client",
+        "${net}/openai.responses.section.assistant.text.citations/server"})
+    public void shouldOpenaiResponsesSectionAssistantTextCitations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.assistant.text.citations.annotations.first/client",
+        "${net}/openai.responses.section.assistant.text.citations.annotations.first/server"})
+    public void shouldOpenaiResponsesSectionAssistantTextCitationsAnnotationsFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.assistant.text.citations.members/client",
+        "${net}/openai.responses.section.assistant.text.citations.members/server"})
+    public void shouldOpenaiResponsesSectionAssistantTextCitationsMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.assistant.text.citations.extra/client",
+        "${net}/openai.responses.section.assistant.text.citations.extra/server"})
+    public void shouldOpenaiResponsesSectionAssistantTextCitationsExtra() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.assistant.text.parts/client",
+        "${net}/openai.responses.section.assistant.text.parts/server"})
+    public void shouldOpenaiResponsesSectionAssistantTextParts() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.user.image/client",
+        "${net}/openai.responses.section.user.image/server"})
+    public void shouldOpenaiResponsesSectionUserImage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.user.image.inline/client",
+        "${net}/openai.responses.section.user.image.inline/server"})
+    public void shouldOpenaiResponsesSectionUserImageInline() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.user.image.reference/client",
+        "${net}/openai.responses.section.user.image.reference/server"})
+    public void shouldOpenaiResponsesSectionUserImageReference() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.user.image.detail.first/client",
+        "${net}/openai.responses.section.user.image.detail.first/server"})
+    public void shouldOpenaiResponsesSectionUserImageDetailFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.user.image.10k/client",
+        "${net}/openai.responses.section.user.image.10k/server"})
+    public void shouldOpenaiResponsesSectionUserImage10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.user.image.url.10k/client",
+        "${net}/openai.responses.section.user.image.url.10k/server"})
+    public void shouldOpenaiResponsesSectionUserImageUrl10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.user.image.url.100k/client",
+        "${net}/openai.responses.section.user.image.url.100k/server"})
+    public void shouldOpenaiResponsesSectionUserImageUrl100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.user.document/client",
+        "${net}/openai.responses.section.user.document/server"})
+    public void shouldOpenaiResponsesSectionUserDocument() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.user.document.inline/client",
+        "${net}/openai.responses.section.user.document.inline/server"})
+    public void shouldOpenaiResponsesSectionUserDocumentInline() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.user.document.reference/client",
+        "${net}/openai.responses.section.user.document.reference/server"})
+    public void shouldOpenaiResponsesSectionUserDocumentReference() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.user.document.detail/client",
+        "${net}/openai.responses.section.user.document.detail/server"})
+    public void shouldOpenaiResponsesSectionUserDocumentDetail() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.user.audio/client",
+        "${net}/openai.responses.section.user.audio/server"})
+    public void shouldOpenaiResponsesSectionUserAudio() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.user.image/client",
+        "${net}/openai.responses.transform.user.image/server"})
+    public void shouldOpenaiResponsesTransformUserImage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.user.image.inline/client",
+        "${net}/openai.responses.transform.user.image.inline/server"})
+    public void shouldOpenaiResponsesTransformUserImageInline() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.user.image.10k/client",
+        "${net}/openai.responses.transform.user.image.10k/server"})
+    public void shouldOpenaiResponsesTransformUserImage10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.user.image.url.10k/client",
+        "${net}/openai.responses.transform.user.image.url.10k/server"})
+    public void shouldOpenaiResponsesTransformUserImageUrl10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.user.image.url.100k/client",
+        "${net}/openai.responses.transform.user.image.url.100k/server"})
+    public void shouldOpenaiResponsesTransformUserImageUrl100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.user.document.inline/client",
+        "${net}/openai.responses.transform.user.document.inline/server"})
+    public void shouldOpenaiResponsesTransformUserDocumentInline() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.user.document.reference/client",
+        "${net}/openai.responses.transform.user.document.reference/server"})
+    public void shouldOpenaiResponsesTransformUserDocumentReference() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.assistant.refusal/client",
+        "${net}/openai.responses.transform.assistant.refusal/server"})
+    public void shouldOpenaiResponsesTransformAssistantRefusal() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.response.reasoning/client",
+        "${net}/openai.responses.transform.response.reasoning/server"})
+    public void shouldOpenaiResponsesTransformResponseReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.response.reasoning.sse/client",
+        "${net}/openai.responses.transform.response.reasoning.sse/server"})
+    public void shouldOpenaiResponsesTransformResponseReasoningSse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.assistant.text.and.tool.call/client",
+        "${net}/openai.responses.transform.assistant.text.and.tool.call/server"})
+    public void shouldOpenaiResponsesTransformAssistantTextAndToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.assistant.tool.call.100k/client",
+        "${net}/openai.responses.transform.assistant.tool.call.100k/server"})
+    public void shouldOpenaiResponsesTransformAssistantToolCall100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.assistant.tool.call.10k/client",
+        "${net}/openai.responses.transform.assistant.tool.call.10k/server"})
+    public void shouldOpenaiResponsesTransformAssistantToolCall10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.assistant.tool.call.id.last/client",
+        "${net}/openai.responses.transform.assistant.tool.call.id.last/server"})
+    public void shouldOpenaiResponsesTransformAssistantToolCallIdLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.assistant.tool.call.name.last/client",
+        "${net}/openai.responses.transform.assistant.tool.call.name.last/server"})
+    public void shouldOpenaiResponsesTransformAssistantToolCallNameLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.mixed.content/client",
+        "${net}/openai.responses.transform.mixed.content/server"})
+    public void shouldOpenaiResponsesTransformMixedContent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.system.instruction.last.100k/client",
+        "${net}/openai.responses.transform.system.instruction.last.100k/server"})
+    public void shouldOpenaiResponsesTransformSystemInstructionLast100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.tool.definition.100k/client",
+        "${net}/openai.responses.transform.tool.definition.100k/server"})
+    public void shouldOpenaiResponsesTransformToolDefinition100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.tool.definition.parameters.100k/client",
+        "${net}/openai.responses.transform.tool.definition.parameters.100k/server"})
+    public void shouldOpenaiResponsesTransformToolDefinitionParameters100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.tool.definition.10k/client",
+        "${net}/openai.responses.transform.tool.definition.10k/server"})
+    public void shouldOpenaiResponsesTransformToolDefinition10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.tool.definition.parameters.10k/client",
+        "${net}/openai.responses.transform.tool.definition.parameters.10k/server"})
+    public void shouldOpenaiResponsesTransformToolDefinitionParameters10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.tool.definition.name.last/client",
+        "${net}/openai.responses.transform.tool.definition.name.last/server"})
+    public void shouldOpenaiResponsesTransformToolDefinitionNameLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.tool.result.error/client",
+        "${net}/openai.responses.transform.tool.result.error/server"})
+    public void shouldOpenaiResponsesTransformToolResultError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.request.members/client",
+        "${net}/openai.responses.transform.request.members/server"})
+    public void shouldOpenaiResponsesTransformRequestMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.conversation/client",
+        "${net}/openai.responses.transform.conversation/server"})
+    public void shouldOpenaiResponsesTransformConversation() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.response.text.100k/client",
+        "${net}/openai.responses.transform.response.text.100k/server"})
+    public void shouldOpenaiResponsesTransformResponseText100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.response.text.escaped/client",
+        "${net}/openai.responses.transform.response.text.escaped/server"})
+    public void shouldOpenaiResponsesTransformResponseTextEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.response.text.multibyte/client",
+        "${net}/openai.responses.transform.response.text.multibyte/server"})
+    public void shouldOpenaiResponsesTransformResponseTextMultibyte() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.response.refusal/client",
+        "${net}/openai.responses.transform.response.refusal/server"})
+    public void shouldOpenaiResponsesTransformResponseRefusal() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.response.refusal.sse/client",
+        "${net}/openai.responses.transform.response.refusal.sse/server"})
+    public void shouldOpenaiResponsesTransformResponseRefusalSse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.response.streaming/client",
+        "${net}/openai.responses.transform.response.streaming/server"})
+    public void shouldOpenaiResponsesTransformResponseStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.response.streaming.error/client",
+        "${net}/openai.responses.transform.response.streaming.error/server"})
+    public void shouldOpenaiResponsesTransformResponseStreamingError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.response.text.error.sse/client",
+        "${net}/openai.responses.transform.response.text.error.sse/server"})
+    public void shouldOpenaiResponsesTransformResponseTextErrorSse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.response.tool.call.error.sse/client",
+        "${net}/openai.responses.transform.response.tool.call.error.sse/server"})
+    public void shouldOpenaiResponsesTransformResponseToolCallErrorSse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.response.usage.cache.write/client",
+        "${net}/openai.responses.transform.response.usage.cache.write/server"})
+    public void shouldOpenaiResponsesTransformResponseUsageCacheWrite() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.response.usage.cache.write.sse/client",
+        "${net}/openai.responses.transform.response.usage.cache.write.sse/server"})
+    public void shouldOpenaiResponsesTransformResponseUsageCacheWriteSse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.assistant.tool.call.100k.identity.first/client",
+        "${net}/openai.responses.transform.assistant.tool.call.100k.identity.first/server"})
+    public void shouldOpenaiResponsesTransformAssistantToolCall100kIdentityFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.assistant.tool.call.10k.identity.first/client",
+        "${net}/openai.responses.transform.assistant.tool.call.10k.identity.first/server"})
+    public void shouldOpenaiResponsesTransformAssistantToolCall10kIdentityFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/proxy.route.unmatched.dialect/client",
+        "${net}/proxy.route.unmatched.dialect/server"})
+    public void shouldProxyRouteUnmatchedDialect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.assistant.reasoning.unsigned/client",
+        "${net}/anthropic.transform.assistant.reasoning.unsigned/server"})
+    public void shouldAnthropicTransformAssistantReasoningUnsigned() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.proxy.guardrail.rejected/client",
+        "${net}/openai.responses.proxy.guardrail.rejected/server"})
+    public void shouldOpenaiResponsesProxyGuardrailRejected() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.proxy.guardrail.transformed/client",
+        "${net}/openai.responses.proxy.guardrail.transformed/server"})
+    public void shouldOpenaiResponsesProxyGuardrailTransformed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.text.citations.members.api/client",
+        "${net}/openai.responses.text.citations.members.api/server"})
+    public void shouldOpenaiResponsesTextCitationsMembersApi() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.text.citations.long/client",
+        "${net}/openai.responses.text.citations.long/server"})
+    public void shouldOpenaiResponsesTextCitationsLong() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.response.controls.inline/client",
+        "${net}/openai.responses.response.controls.inline/server"})
+    public void shouldOpenaiResponsesResponseControlsInline() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.response.controls.held.large/client",
+        "${net}/openai.responses.response.controls.held.large/server"})
+    public void shouldOpenaiResponsesResponseControlsHeldLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.response.controls.held.small.slot/client",
+        "${net}/openai.responses.response.controls.held.small.slot/server"})
+    public void shouldOpenaiResponsesResponseControlsHeldSmallSlot() throws Exception
     {
         k3po.finish();
     }

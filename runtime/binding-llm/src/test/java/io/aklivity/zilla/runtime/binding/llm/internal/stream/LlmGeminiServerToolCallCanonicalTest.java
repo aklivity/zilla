@@ -25,7 +25,7 @@ public class LlmGeminiServerToolCallCanonicalTest
     private static final String CODE = "print(1)\\n".repeat(600);
 
     private final LlmGeminiServerToolCallToCanonical toCanonical = new LlmGeminiServerToolCallToCanonical();
-    private final LlmGeminiServerToolCallFromCanonical fromCanonical = new LlmGeminiServerToolCallFromCanonical();
+    private final LlmGeminiServerToolCallFromCanonical fromCanonical = new LlmGeminiServerToolCallFromCanonical(true);
 
     @Test
     public void shouldCanonicalizeExecutableCodeAsArguments()

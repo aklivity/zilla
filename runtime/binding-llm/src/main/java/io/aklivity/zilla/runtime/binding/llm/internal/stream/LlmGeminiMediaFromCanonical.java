@@ -26,32 +26,38 @@ final class LlmGeminiMediaFromCanonical extends LlmToolTransform
     private final String urlMember;
     private final boolean formatted;
 
-    static LlmGeminiMediaFromCanonical image()
+    static LlmGeminiMediaFromCanonical image(
+        boolean sameDialect)
     {
-        return new LlmGeminiMediaFromCanonical("image_url", "url", "url", false);
+        return new LlmGeminiMediaFromCanonical("image_url", "url", "url", false, sameDialect);
     }
 
-    static LlmGeminiMediaFromCanonical document()
+    static LlmGeminiMediaFromCanonical document(
+        boolean sameDialect)
     {
-        return new LlmGeminiMediaFromCanonical("file", "file_data", "file_url", false);
+        return new LlmGeminiMediaFromCanonical("file", "file_data", "file_url", false, sameDialect);
     }
 
-    static LlmGeminiMediaFromCanonical audio()
+    static LlmGeminiMediaFromCanonical audio(
+        boolean sameDialect)
     {
-        return new LlmGeminiMediaFromCanonical("input_audio", "data", "url", true);
+        return new LlmGeminiMediaFromCanonical("input_audio", "data", "url", true, sameDialect);
     }
 
-    static LlmGeminiMediaFromCanonical video()
+    static LlmGeminiMediaFromCanonical video(
+        boolean sameDialect)
     {
-        return new LlmGeminiMediaFromCanonical("input_video", "data", "url", true);
+        return new LlmGeminiMediaFromCanonical("input_video", "data", "url", true, sameDialect);
     }
 
     private LlmGeminiMediaFromCanonical(
         String container,
         String dataMember,
         String urlMember,
-        boolean formatted)
+        boolean formatted,
+        boolean sameDialect)
     {
+        super(MODE_OBJECT, sameDialect);
         this.container = container;
         this.dataMember = dataMember;
         this.urlMember = urlMember;

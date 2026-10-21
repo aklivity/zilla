@@ -23,6 +23,7 @@ import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 
+import io.aklivity.k3po.runtime.junit.annotation.ScriptProperty;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
@@ -52,6 +53,17 @@ public class LlmGeminiServerIT
         "${net}/gemini/client",
         "${app}/gemini/server"})
     public void shouldForwardGeminiNonstreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"gemini\"", "target \"gemini\"", "reason \"gemini:MALFORMED_FUNCTION_CALL\""})
+    @Specification({
+        "${net}/gemini.transform.response.finish.reason.unknown/client",
+        "${app}/transform.response.finish.reason/server"})
+    public void shouldRestoreUnknownFinishReasonFromGemini() throws Exception
     {
         k3po.finish();
     }
