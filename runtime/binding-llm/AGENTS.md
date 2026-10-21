@@ -36,8 +36,8 @@ Status key: **implemented** is in the IDL, spec functions and runtime today;
 A member carried as `<dialect>:<member>` is restored only by a client of that dialect and dropped by every
 other client. A member that two or more dialects have with the same meaning is carried as `x:<member>`
 instead. (**implemented** as the `x:` namespace in `LlmToolTransform`: `shared()`, `share()` and `reject()`;
-the sampling, tool choice, response format and reasoning members below are promoted for every dialect, the `gemini`,
-`anthropic` and `openai/responses` ones lifted out of their native containers)
+the sampling, tool choice, response format, reasoning, user and service tier members below are promoted for every
+dialect, the `gemini`, `anthropic` and `openai/responses` ones lifted out of their native containers)
 
 - `x` is reserved as a dialect name. `LlmDialectFactory` refuses to register a dialect named `x`.
 - A decoder emits `x:<member>` in place of `<dialect>:<member>` for each member it understands, including a
@@ -291,6 +291,7 @@ declaration order), then the built-in defaults of the dialect, which are data
 | `thinking` | `anthropic`: `adaptive`, `adaptive-disabled`, `adaptive-enabled`, `enabled`; `gemini`: `level`, `budget` | The thinking form the model takes. Defaults: `adaptive-disabled`, `level`. |
 | `budget` | `anthropic`, `gemini` | `minimum` and `maximum` thinking budget tokens the model accepts. A `minimum` of 0 admits a budget of 0 for `none`. The `anthropic` minimum defaults to 1024, and its maximum is always below `max_tokens`. |
 | `ladder` | all | Budget tokens by `minimal`, `low`, `medium`, `high`, `xhigh` and `max`, overriding the default ladder. |
+| `tiers` | all | The canonical service tiers (`auto`, `default`, `flex`, `priority`) the model supports. A request that carries another tier has it dropped (class A). A model with no entry, or an entry that does not list `tiers`, receives the tier unchanged; an empty list supports none. No built-in default lists tiers. |
 
 The built-in defaults mark `claude-opus-4-7*` as `adaptive` and rejecting sampling, `claude-opus-4-6*` and
 `claude-sonnet-4-6*` as `adaptive-enabled`, `claude-3-*`, `claude-sonnet-4-5*`, `claude-haiku-4-5*` and `claude-opus-4-1*`
@@ -299,10 +300,59 @@ as `enabled`, `gemini-2.5-pro*` as a budget of 128 to 32768, `gemini-2.5-flash*`
 has moved. An `anthropic` model with no entry takes `adaptive-disabled`, so its `thinking.budget_tokens` is dropped until an
 entry gives it a form that accepts `enabled`.
 
+### Promoted user and service tier members
+
+`x:user` is an opaque string that identifies the end user of the request. `x:service_tier` is one of `auto`, `default`,
+`flex` and `priority`. Both are class A: a client drops a value its target cannot honour, silently, and never rejects
+for them. A `x:user` that is not a string, an `x:service_tier` that is not one of the four tiers, and a `null` are all
+the absence of the member. (**implemented** for `openai`, `openai/responses`, `anthropic` and `gemini`)
+
+| Native member | Decoded as |
+|---|---|
+| `openai`, `openai/responses` `safety_identifier` | `x:user`, value unchanged; native `user` and `prompt_cache_key` stay `openai:user` and `openai:prompt_cache_key`, which keeps a same-dialect hop exact |
+| `anthropic` `metadata.user_id` | `x:user`; the rest of `metadata` stays `anthropic:metadata`; a `user_id` that is not a string is dropped |
+| `gemini` | no equivalent |
+| `openai`, `openai/responses` `service_tier` | `x:service_tier` for `auto`, `default`, `flex` and `priority`; any other value (`scale`, `fast`) stays `openai:service_tier` |
+| `anthropic` `service_tier` | `auto` is `auto`, `standard_only` is `default`; any other value stays `anthropic:service_tier` |
+| `gemini` `serviceTier` (or `service_tier`) | `standard` is `default`, `flex` and `priority` are the same, matched ignoring case; `unspecified` and any other value stay `gemini:serviceTier` in the source spelling |
+
+| `x:` member | `openai`, `openai/responses` | `anthropic` | `gemini` |
+|---|---|---|---|
+| `x:user` | `safety_identifier`, at most 128 characters | `metadata.user_id`, at most 256 characters | dropped |
+| `x:service_tier` `auto` | `service_tier` `auto` | `service_tier` `auto` | omitted |
+| `default` | `default` | `standard_only` | `serviceTier` `standard` |
+| `flex` | `flex` | dropped | `flex` |
+| `priority` | `priority` | dropped | `priority` |
+
+- **Why `safety_identifier`.** `openai` deprecates `user` in favour of `safety_identifier` (abuse detection) and
+  `prompt_cache_key`. `safety_identifier` is the counterpart of `anthropic` `metadata.user_id`, so it is the one promoted.
+  The other two keep their prefix and so travel only to a client of the same dialect.
+- **Length.** A value longer than the target's limit is dropped (class A), counted in Unicode code points of the
+  decoded string. The member name is written before the value, so a streamed prefix cannot be taken back once it is
+  emitted; the check is therefore a bounded capture, not a pure streaming one. The client captures at most twice the
+  limit in UTF-16 units (the worst case of one code point per surrogate pair) and discards the rest of the value as it
+  streams, so a value of any size is dropped without growing the hold. The `anthropic` limit of 256 is the documented
+  maximum of `metadata.user_id`, and the 128 of `openai` and `openai/responses` that of `safety_identifier`.
+- **Decoding.** `safety_identifier` is renamed without holding the value. A tier value has to be known before the member
+  name is chosen, so `service_tier` and `serviceTier` run through the control pipeline and are captured (bounded by the
+  usual 4096 units). `metadata` is an `anthropic` container lifted like `output_config`, so one control section may hold
+  `anthropic:metadata` several times.
+- **Encoding.** `openai`, `openai/responses` and `gemini` write the member where it arrives; `gemini` writes the
+  root `serviceTier`, not a `generationConfig` member. `anthropic` writes `metadata.user_id` as a one-member container
+  fragment held by `LlmMemberCollector` and merged, with any `anthropic:metadata` residue in arrival order, into one
+  `metadata` object that follows `tool_choice` and `thinking` at the end of the request. A same-dialect hop restores
+  `metadata` in content, and `service_tier` exactly.
+- **Models.** The `tiers` model option lists the canonical tiers a model supports; the client drops the others.
+- **Response side.** The tier a provider echoes back stays `<dialect>:service_tier` in the response; the decode of
+  response members is unchanged.
+- **Unconfirmed.** On one `gemini` surface the valid wire syntax of the tier enum is not confirmed: an enum-style
+  spelling such as `STANDARD` may be required there. The client writes the documented lowercase values (`standard`,
+  `flex`, `priority`) and the decoder reads either case, so the written form is unconfirmed on that surface.
+
 ### Native containers
 
 A dialect whose promoted members live inside a native object (`gemini` `generationConfig` and `thinkingConfig`, `anthropic`
-`output_config` and `thinking`, `openai/responses` `text` and `reasoning`) carries the container in two forms. Containers are never `x:`-prefixed.
+`output_config`, `thinking` and `metadata`, `openai/responses` `text` and `reasoning`) carries the container in two forms. Containers are never `x:`-prefixed.
 
 - **Decoding.** Each promoted leaf is lifted out of the container and emitted as `x:<member>` at depth 1 of the
   control section the container belongs to, without holding anything. The residue stays under
