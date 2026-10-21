@@ -16,19 +16,20 @@ scope llm
 {
     scope stream
     {
+        struct LlmAttribute
+        {
+            string8 name;
+            string16 value;
+        }
+
         struct LlmBeginEx extends core::stream::Extension
         {
             string16 dialect;
             string16 contentType = null;
             string16 model = null;
             string16 id = null;
+            LlmAttribute[] attributes;
             octets extension;
-        }
-
-        struct LlmAttribute
-        {
-            string8 name;
-            string16 value;
         }
 
         enum LlmSectionType (uint8)
@@ -53,11 +54,19 @@ scope llm
             CONTROL(17)
         }
 
+        struct LlmRange
+        {
+            int32 length;
+            uint8 closing = 1;
+            LlmAttribute[] attributes;
+        }
+
         struct LlmSectionDataEx
         {
             LlmSectionType type = NONE;
             int32 message = -1;
             LlmAttribute[] attributes;
+            LlmRange[] ranges;
             octets extension;
         }
 

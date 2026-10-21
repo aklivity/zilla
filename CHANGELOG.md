@@ -21,6 +21,9 @@
 - fix\(binding-llm\): decode gemini role after parts [\#2755](https://github.com/aklivity/zilla/pull/2755) ([jfallows](https://github.com/jfallows))
 - fix\(binding-llm\): route gemini model identifiers containing a colon [\#2757](https://github.com/aklivity/zilla/pull/2757) ([jfallows](https://github.com/jfallows))
 - fix\(binding-llm\): lowercase type names in every nested gemini tool schema [\#2758](https://github.com/aklivity/zilla/pull/2758) ([jfallows](https://github.com/jfallows))
+- fix\(binding-llm\): lowercase gemini tool schema types independent of the default locale [\#2759](https://github.com/aklivity/zilla/pull/2759) ([jfallows](https://github.com/jfallows))
+- feat\(binding-llm\): dialect-scoped client options and request-level attributes [\#2760](https://github.com/aklivity/zilla/pull/2760) ([jfallows](https://github.com/jfallows))
+- feat\(probes\): llm compatibility probes for the openai dialect [\#2763](https://github.com/aklivity/zilla/pull/2763) ([jfallows](https://github.com/jfallows))
 
 ## [2.5.0](https://github.com/aklivity/zilla/tree/2.5.0) (2026-10-19)
 

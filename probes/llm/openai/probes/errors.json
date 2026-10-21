@@ -1,0 +1,144 @@
+{
+  "area": "Errors",
+  "area_id": "errors",
+  "probes": [
+    {
+      "id": "error-shape",
+      "requires": [],
+      "steps": [
+        {
+          "id": "a",
+          "method": "POST",
+          "path": "/chat/completions",
+          "body": {
+            "model": "no-such-model-llm-probe",
+            "messages": [
+              {
+                "role": "user",
+                "content": "Say hello."
+              }
+            ]
+          },
+          "expect_model_error": true
+        }
+      ],
+      "derive": [
+        {
+          "id": "e",
+          "fn": "error_shape",
+          "args": {
+            "from": "a"
+          }
+        }
+      ],
+      "classify": [
+        {
+          "when": {
+            "all": [
+              {
+                "path": "a.status",
+                "op": "status_class",
+                "value": 4
+              },
+              {
+                "path": "e.shape",
+                "op": "eq",
+                "value": "openai"
+              }
+            ]
+          },
+          "outcome": "compliant",
+          "observed": "HTTP {a.status} with error.message body"
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "status_class",
+            "value": 4
+          },
+          "outcome": "adjustment-needed",
+          "observed": "HTTP {a.status} error body shape {e.shape} (keys {e.keys})",
+          "adjustment": "rename-reshape"
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "eq",
+            "value": 200
+          },
+          "outcome": "unsupported",
+          "observed": "nonexistent model accepted: HTTP 200, response model {a.json.model}",
+          "silent": true
+        }
+      ]
+    },
+    {
+      "id": "rate-limit-headers",
+      "requires": [],
+      "steps": [
+        {
+          "id": "a",
+          "method": "POST",
+          "path": "/chat/completions",
+          "body": {
+            "model": {
+              "$model": "model"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": "Say hi."
+              }
+            ],
+            "$cap": 8
+          }
+        }
+      ],
+      "derive": [
+        {
+          "id": "h",
+          "fn": "rate_limit_headers"
+        }
+      ],
+      "classify": [
+        {
+          "when": {
+            "path": "h.standard",
+            "op": "eq",
+            "value": true
+          },
+          "outcome": "compliant",
+          "observed": "x-ratelimit headers seen: {h.names}"
+        },
+        {
+          "when": {
+            "path": "h.names",
+            "op": "len_ge",
+            "value": 1
+          },
+          "outcome": "adjustment-needed",
+          "observed": "vendor rate-limit headers seen: {h.names}",
+          "adjustment": "normalise-telemetry"
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "status_class",
+            "value": 2
+          },
+          "outcome": "unsupported",
+          "observed": "no rate-limit headers in any response"
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "status_class",
+            "value": 4
+          },
+          "outcome": "unsupported",
+          "observed": "request rejected (HTTP {a.status}); no rate-limit headers seen"
+        }
+      ]
+    }
+  ]
+}

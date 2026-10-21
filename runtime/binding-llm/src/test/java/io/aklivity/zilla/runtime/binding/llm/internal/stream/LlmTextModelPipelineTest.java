@@ -16,20 +16,16 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.nio.ByteBuffer;
 
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
@@ -37,450 +33,102 @@ import io.aklivity.zilla.runtime.engine.util.Flags;
 
 public class LlmTextModelPipelineTest
 {
-    private static final int SLOT_CAPACITY = 32 * 1024;
-    private static final int ROOM = 8 * 1024;
-    private static final int FRAME = 1000;
-
-    private final LlmTestBufferPool pool = new LlmTestBufferPool(SLOT_CAPACITY, 1);
-    private final MutableDirectBufferEx transformBuffer = new UnsafeBufferEx(new byte[16 * 1024]);
-    private final MutableDirectBufferEx output = new UnsafeBufferEx(new byte[64 * 1024]);
-
     @Test
-    public void shouldRelayText()
+    public void shouldTransformTextOnly()
     {
-        final Delivery delivery = deliver(frames("{\"text\":\"abc\"}"), ROOM);
-
-        assertThat(delivery.rejected, is(false));
-        assertThat(delivery.text(), equalTo("{\"text\":\"abc\"}"));
+        assertTransformed("{\"text\":\"hello\"}", "{\"text\":\"HELLO\"}");
     }
 
     @Test
-    public void shouldRelayEmptyText()
+    public void shouldRelayLeadingMemberBeforeText()
     {
-        final Delivery delivery = deliver(frames("{\"text\":\"\"}"), ROOM);
-
-        assertThat(delivery.rejected, is(false));
-        assertThat(delivery.text(), equalTo("{\"text\":\"\"}"));
+        assertTransformed("{\"anthropic:cache_control\":{\"type\":\"ephemeral\"},\"text\":\"my secret\"}",
+            "{\"anthropic:cache_control\":{\"type\":\"ephemeral\"},\"text\":\"MY SECRET\"}");
     }
 
     @Test
-    public void shouldTransformText()
+    public void shouldRelayTrailingMembersAfterText()
     {
-        final Delivery delivery = deliver(new MaskChain("secret", "******"), frames("{\"text\":\"my secret plan\"}"), ROOM);
-
-        assertThat(delivery.rejected, is(false));
-        assertThat(delivery.text(), equalTo("{\"text\":\"my ****** plan\"}"));
+        assertTransformed("{\"text\":\"my secret\",\"anthropic:cache_control\":{\"type\":\"ephemeral\"},\"x\":[1,2]}",
+            "{\"text\":\"MY SECRET\",\"anthropic:cache_control\":{\"type\":\"ephemeral\"},\"x\":[1,2]}");
     }
 
     @Test
-    public void shouldCarryMembersAfterText()
+    public void shouldRelayMembersAroundTextVerbatim()
     {
-        final String section = "{\"text\":\"abc\",\"openai:id\":\"rs_1\",\"openai:encrypted_content\":\"gAAAA\"}";
-
-        final Delivery delivery = deliver(frames(section), ROOM);
-
-        assertThat(delivery.rejected, is(false));
-        assertThat(delivery.text(), equalTo(section));
+        assertTransformed("{ \"a\" : 1 , \"text\" :  \"hi\" , \"b\" : 2 }",
+            "{ \"a\" : 1 , \"text\" :  \"HI\" , \"b\" : 2 }");
     }
 
     @Test
-    public void shouldCarryMembersAfterEmptyText()
+    public void shouldEscapeTransformedText()
     {
-        final String section = "{\"text\":\"\",\"openai:id\":\"rs_1\"}";
-
-        final Delivery delivery = deliver(frames(section), ROOM);
-
-        assertThat(delivery.rejected, is(false));
-        assertThat(delivery.text(), equalTo(section));
+        assertTransformed("{\"text\":\"say \\\"hi\\\"\"}", "{\"text\":\"SAY \\\"HI\\\"\"}");
     }
 
-    @Test
-    public void shouldMoveMembersBeforeTextAfterText()
+    private void assertTransformed(
+        String json,
+        String expected)
     {
-        final Delivery delivery = deliver(frames("{\"openai:id\":\"rs_1\",\"text\":\"abc\"}"), ROOM);
+        final byte[] bytes = json.getBytes(UTF_8);
 
-        assertThat(delivery.rejected, is(false));
-        assertThat(delivery.text(), equalTo("{\"text\":\"abc\",\"openai:id\":\"rs_1\"}"));
-    }
-
-    @Test
-    public void shouldCarryMembersAroundText()
-    {
-        final Delivery delivery = deliver(frames("{\"openai:id\":\"rs_1\",\"text\":\"abc\",\"openai:note\":\"x\"}"), ROOM);
-
-        assertThat(delivery.rejected, is(false));
-        assertThat(delivery.text(), equalTo("{\"text\":\"abc\",\"openai:id\":\"rs_1\",\"openai:note\":\"x\"}"));
-    }
-
-    @Test
-    public void shouldCloseSectionWithMembersInClosingFrame()
-    {
-        final Delivery delivery = deliver(new MaskChain("secret", "******"),
-            frames("{\"text\":\"my secret\",\"openai:id\":\"rs_1\"}"), ROOM);
-
-        assertThat(delivery.rejected, is(false));
-        assertThat(delivery.pieces, contains("{\"text\":\"my ******", "\",\"openai:id\":\"rs_1\"}"));
-    }
-
-    @Test
-    public void shouldStreamMembersAfterTextWhileSectionContinues()
-    {
-        final String prefix = "{\"text\":\"abc\",\"openai:id\":\"rs_1\",\"openai:encrypted_content\":\"";
-        final String content = "A".repeat(3000);
-
-        final Delivery delivery = deliver(frames(prefix + content + "\"}", FRAME), ROOM);
-
-        assertThat(delivery.rejected, is(false));
-        assertThat(delivery.text(), equalTo(prefix + content + "\"}"));
-        assertThat(delivery.beforeClosing(), containsString("\"openai:encrypted_content\":\"AAAA"));
-    }
-
-    @Test
-    public void shouldRelaySectionInTinyFrames()
-    {
-        final String text = "\"text\":\"caf\u00e9 \\\"quoted\\\" \\u0001 text\"";
-        final String members = "\"openai:id\":\"rs_1\",\"openai:note\":{\"a\":[1,2,{\"b\":\"c\"}]}";
-        final String section = "{" + text + "," + members + ",\"openai:encrypted_content\":\"" + base64(300) + "\"}";
-
-        for (int size : new int[] {1, 2, 3, 7, 13, 64, 100})
+        for (int dstSize = 16; dstSize <= 256; dstSize *= 4)
         {
-            final Delivery delivery = deliver(frames(section, size), ROOM);
-
-            assertThat("frame size " + size, delivery.rejected, is(false));
-            assertThat("frame size " + size, delivery.text(), equalTo(section));
+            for (int chunk = 1; chunk <= bytes.length; chunk++)
+            {
+                assertThat("dst " + dstSize + " chunk " + chunk, run(bytes, chunk, dstSize), equalTo(expected));
+            }
         }
     }
 
-    @Test
-    public void shouldRelayLargeMembersAfterText()
+    private String run(
+        byte[] bytes,
+        int chunk,
+        int dstSize)
     {
-        final String prefix = "{\"text\":\"Let me think\",\"openai:id\":\"rs_1\",\"openai:encrypted_content\":\"";
-        final String content = base64(40000);
-        final String section = prefix + content + "\"}";
+        final LlmTextModelPipeline pipeline = new LlmTextModelPipeline(new UppercasePipeline(), new TestBufferPool(), 1L,
+            new UnsafeBufferEx(new byte[dstSize]), false);
+        final UnsafeBufferEx dst = new UnsafeBufferEx(new byte[dstSize]);
+        final StringBuilder output = new StringBuilder();
 
-        final Delivery delivery = deliver(frames(section, FRAME), ROOM);
-
-        assertThat(delivery.rejected, is(false));
-        assertThat(delivery.text(), equalTo(section));
-        assertThat(delivery.largestPiece(), lessThanOrEqualTo(ROOM));
-    }
-
-    @Test
-    public void shouldRelayLargeMembersAfterTransformedText()
-    {
-        final String content = base64(40000);
-
-        final Delivery delivery = deliver(new MaskChain("secret", "******"),
-            frames("{\"text\":\"my secret plan\",\"openai:encrypted_content\":\"" + content + "\"}", FRAME), ROOM);
-
-        assertThat(delivery.rejected, is(false));
-        assertThat(delivery.text(), equalTo("{\"text\":\"my ****** plan\",\"openai:encrypted_content\":\"" + content + "\"}"));
-    }
-
-    @Test
-    public void shouldRelayLargeMembersWithinSmallRoom()
-    {
-        final String prefix = "{\"text\":\"abc\",\"openai:encrypted_content\":\"";
-        final String content = base64(20000);
-        final String section = prefix + content + "\"}";
-
-        final Delivery delivery = deliver(frames(section, FRAME), 300);
-
-        assertThat(delivery.rejected, is(false));
-        assertThat(delivery.text(), equalTo(section));
-        assertThat(delivery.largestPiece(), lessThanOrEqualTo(300));
-    }
-
-    @Test
-    public void shouldRelayLargeMembersInFinalFrameWithinSmallRoom()
-    {
-        final String prefix = "{\"text\":\"abc\",\"openai:encrypted_content\":\"";
-        final String content = base64(5000);
-        final String section = prefix + content + "\"}";
-
-        final Delivery delivery = deliver(frames(section), 400);
-
-        assertThat(delivery.rejected, is(false));
-        assertThat(delivery.text(), equalTo(section));
-        assertThat(delivery.largestPiece(), lessThanOrEqualTo(400));
-    }
-
-    @Test
-    public void shouldRelayMembersBeforeTextWithinBound()
-    {
-        final String content = base64(10000);
-
-        final String section = "{\"openai:encrypted_content\":\"" + content + "\",\"text\":\"abc\"}";
-
-        final Delivery delivery = deliver(frames(section, FRAME), ROOM);
-
-        assertThat(delivery.rejected, is(false));
-        assertThat(delivery.text(), equalTo("{\"text\":\"abc\",\"openai:encrypted_content\":\"" + content + "\"}"));
-    }
-
-    @Test
-    public void shouldRejectMembersBeforeTextBeyondBound()
-    {
-        final String content = base64(20000);
-
-        final String section = "{\"openai:encrypted_content\":\"" + content + "\",\"text\":\"abc\"}";
-
-        final Delivery delivery = deliver(frames(section, FRAME), ROOM);
-
-        assertThat(delivery.rejected, is(true));
-    }
-
-    @Test
-    public void shouldRejectMissingText()
-    {
-        final Delivery delivery = deliver(frames("{\"openai:id\":\"rs_1\"}"), ROOM);
-
-        assertThat(delivery.rejected, is(true));
-    }
-
-    @Test
-    public void shouldRejectTextRejectedByChain()
-    {
-        final Delivery delivery = deliver(new RejectChain("bad"),
-            frames("{\"text\":\"a bad word\",\"openai:id\":\"rs_1\"}"), ROOM);
-
-        assertThat(delivery.rejected, is(true));
-    }
-
-    @Test
-    public void shouldRelayMembersWithoutTextWhenTextIsOptional()
-    {
-        final String section = "{\"openai:id\":\"rs_1\",\"openai:encrypted_content\":\"gAAAA\"}";
-
-        final Delivery delivery = drive(optional(), frames(section), ROOM);
-
-        assertThat(delivery.rejected, is(false));
-        assertThat(delivery.text(), equalTo(section));
-    }
-
-    @Test
-    public void shouldRelayMembersWithoutTextInFramesWhenTextIsOptional()
-    {
-        final String section = "{\"openai:id\":\"rs_1\",\"openai:encrypted_content\":\"" + base64(3000) + "\"}";
-
-        final Delivery delivery = drive(optional(), frames(section, FRAME), ROOM);
-
-        assertThat(delivery.rejected, is(false));
-        assertThat(delivery.text(), equalTo(section));
-    }
-
-    @Test
-    public void shouldRelayMembersWithoutTextWithinSmallRoomWhenTextIsOptional()
-    {
-        final String section = "{\"openai:id\":\"rs_1\",\"openai:encrypted_content\":\"" + base64(3000) + "\"}";
-
-        final Delivery delivery = drive(optional(), frames(section, FRAME), 200);
-
-        assertThat(delivery.rejected, is(false));
-        assertThat(delivery.text(), equalTo(section));
-        assertThat(delivery.largestPiece(), lessThanOrEqualTo(200));
-    }
-
-    @Test
-    public void shouldRelayEmptyObjectWhenTextIsOptional()
-    {
-        final Delivery delivery = drive(optional(), frames("{}"), ROOM);
-
-        assertThat(delivery.rejected, is(false));
-        assertThat(delivery.text(), equalTo("{}"));
-    }
-
-    @Test
-    public void shouldRelayTextAndMembersWhenTextIsOptional()
-    {
-        final String section = "{\"text\":\"abc\",\"openai:id\":\"rs_1\"}";
-
-        final Delivery delivery = drive(optional(), frames(section), ROOM);
-
-        assertThat(delivery.rejected, is(false));
-        assertThat(delivery.text(), equalTo(section));
-    }
-
-    @Test
-    public void shouldRejectMembersWithoutTextBeyondBoundWhenTextIsOptional()
-    {
-        final String section = "{\"openai:encrypted_content\":\"" + base64(20000) + "\"}";
-
-        final Delivery delivery = drive(optional(), frames(section, FRAME), ROOM);
-
-        assertThat(delivery.rejected, is(true));
-    }
-
-    @Test
-    public void shouldRelayConsecutiveSections()
-    {
-        final LlmTextModelPipeline pipeline = pipeline(new EchoChain());
-
-        final Delivery first = drive(pipeline, frames("{\"text\":\"one\",\"openai:id\":\"rs_1\"}"), ROOM);
-        pipeline.reset();
-        final Delivery second = drive(pipeline, frames("{\"text\":\"two\"}"), ROOM);
-
-        assertThat(first.text(), equalTo("{\"text\":\"one\",\"openai:id\":\"rs_1\"}"));
-        assertThat(second.text(), equalTo("{\"text\":\"two\"}"));
-    }
-
-    private Delivery deliver(
-        String[] frames,
-        int room)
-    {
-        return deliver(new EchoChain(), frames, room);
-    }
-
-    private Delivery deliver(
-        ModelPipeline chain,
-        String[] frames,
-        int room)
-    {
-        return drive(pipeline(chain), frames, room);
-    }
-
-    private LlmTextModelPipeline pipeline(
-        ModelPipeline chain)
-    {
-        return new LlmTextModelPipeline(chain, pool, 1L, transformBuffer, false);
-    }
-
-    private LlmTextModelPipeline optional()
-    {
-        return new LlmTextModelPipeline(new EchoChain(), pool, 1L, transformBuffer, true);
-    }
-
-    private Delivery drive(
-        LlmTextModelPipeline pipeline,
-        String[] frames,
-        int room)
-    {
-        final Delivery delivery = new Delivery();
-
-        for (int index = 0; index < frames.length && !delivery.rejected; index++)
+        boolean init = true;
+        for (int from = 0; from < bytes.length; from += chunk)
         {
-            final byte[] bytes = frames[index].getBytes(UTF_8);
-            final DirectBufferEx source = new UnsafeBufferEx(bytes);
+            final int limit = Math.min(from + chunk, bytes.length);
+            final UnsafeBufferEx src = new UnsafeBufferEx(bytes, 0, limit);
 
-            int position = 0;
-            boolean init = index == 0;
-            boolean progressed = true;
-
-            while (progressed)
+            int position = from;
+            ModelStatus status;
+            do
             {
-                final ModelPipelineResult result = pipeline.accept(1L, 2L, 3L, init, index == frames.length - 1, source,
-                    position, bytes.length, output, 0, room);
+                final ModelPipelineResult result = pipeline.accept(0L, 0L, 0L, init, limit == bytes.length, src, position,
+                    limit, dst, 0, dstSize);
 
+                output.append(dst.getStringWithoutLengthUtf8(0, result.produced()));
                 position += result.consumed();
                 init = false;
-                delivery.add(output, result.produced());
-                delivery.rejected = result.status() == ModelStatus.REJECTED;
-                progressed = result.status() == ModelStatus.OVERFLOW && (result.consumed() > 0 || result.produced() > 0);
+                status = result.status();
             }
-
-            if (!delivery.rejected)
-            {
-                assertThat(position, is(bytes.length));
-            }
+            while (status == ModelStatus.OVERFLOW);
         }
 
-        boolean finishing = !delivery.rejected;
-
-        while (finishing)
+        ModelStatus status;
+        do
         {
-            final ModelPipelineResult result = pipeline.finish(1L, 2L, 3L, output, 0, room);
+            final ModelPipelineResult result = pipeline.finish(0L, 0L, 0L, dst, 0, dstSize);
 
-            delivery.add(output, result.produced());
-            delivery.rejected = result.status() == ModelStatus.REJECTED;
-            finishing = result.status() == ModelStatus.OVERFLOW && result.produced() > 0;
+            output.append(dst.getStringWithoutLengthUtf8(0, result.produced()));
+            status = result.status();
         }
+        while (status == ModelStatus.OVERFLOW);
 
-        if (!delivery.rejected)
-        {
-            final int width = pipeline.closeWidth();
+        final int length = pipeline.close(dst, 0);
+        output.append(dst.getStringWithoutLengthUtf8(0, length));
 
-            assertThat("closing frame fits", width, lessThanOrEqualTo(room));
-
-            final int length = pipeline.close(output, 0);
-
-            assertThat(length, lessThanOrEqualTo(width));
-            delivery.closing = delivery.pieces.size();
-            delivery.add(output, length);
-        }
-
-        pipeline.reset();
-
-        return delivery;
+        return output.toString();
     }
 
-    private static String[] frames(
-        String section)
-    {
-        return new String[] {section};
-    }
-
-    private static String[] frames(
-        String section,
-        int size)
-    {
-        final List<String> frames = new ArrayList<>();
-
-        for (int offset = 0; offset < section.length(); offset += size)
-        {
-            frames.add(section.substring(offset, Math.min(offset + size, section.length())));
-        }
-
-        return frames.toArray(new String[0]);
-    }
-
-    private static String base64(
-        int length)
-    {
-        final String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-        final StringBuilder builder = new StringBuilder(length);
-
-        for (int index = 0; index < length; index++)
-        {
-            builder.append(alphabet.charAt((index * 7 + index / 64) % alphabet.length()));
-        }
-
-        return builder.toString();
-    }
-
-    private static final class Delivery
-    {
-        private final List<String> pieces = new ArrayList<>();
-
-        private boolean rejected;
-        private int closing;
-
-        private void add(
-            DirectBufferEx buffer,
-            int length)
-        {
-            if (length > 0)
-            {
-                pieces.add(buffer.getStringWithoutLengthUtf8(0, length));
-            }
-        }
-
-        private String text()
-        {
-            return String.join("", pieces);
-        }
-
-        private int largestPiece()
-        {
-            return pieces.stream().mapToInt(String::length).max().orElse(0);
-        }
-
-        private String beforeClosing()
-        {
-            return String.join("", pieces.subList(0, closing));
-        }
-    }
-
-    private static class EchoChain implements ModelPipeline
+    private static final class UppercasePipeline implements ModelPipeline
     {
         private final ModelPipelineResult result = new ModelPipelineResult();
 
@@ -499,12 +147,13 @@ public class LlmTextModelPipelineTest
         {
             final int length = Math.min(srcLimit - srcIndex, dstLimit - dstIndex);
 
-            dst.putBytes(dstIndex, src, srcIndex, length);
+            for (int index = 0; index < length; index++)
+            {
+                dst.putByte(dstIndex + index, (byte) Character.toUpperCase((char) src.getByte(srcIndex + index)));
+            }
 
-            final boolean drained = length == srcLimit - srcIndex;
-
-            final ModelStatus status = !drained ? ModelStatus.OVERFLOW
-                : Flags.hasFin(flags) ? ModelStatus.COMPLETE : ModelStatus.UNDERFLOW;
+            final ModelStatus status = length < srcLimit - srcIndex ? ModelStatus.OVERFLOW :
+                Flags.hasFin(flags) ? ModelStatus.COMPLETE : ModelStatus.UNDERFLOW;
 
             return result.set(status, length, length);
         }
@@ -527,105 +176,61 @@ public class LlmTextModelPipelineTest
         }
     }
 
-    private static final class MaskChain extends EchoChain
+    private static final class TestBufferPool implements BufferPool
     {
-        private final byte[] word;
-        private final byte[] mask;
-        private final MutableDirectBufferEx pending = new UnsafeBufferEx(new byte[64 * 1024]);
-        private final ModelPipelineResult result = new ModelPipelineResult();
+        private final MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
 
-        private int pendingLength;
-        private int pendingDrained;
-
-        private MaskChain(
-            String word,
-            String mask)
+        @Override
+        public int slotCapacity()
         {
-            this.word = word.getBytes(UTF_8);
-            this.mask = mask.getBytes(UTF_8);
+            return buffer.capacity();
         }
 
         @Override
-        public ModelPipelineResult transform(
-            long traceId,
-            long bindingId,
-            long authorization,
-            int flags,
-            DirectBufferEx src,
-            int srcIndex,
-            int srcLimit,
-            MutableDirectBufferEx dst,
-            int dstIndex,
-            int dstLimit)
+        public int acquire(
+            long streamId)
         {
-            final int consumed = srcLimit - srcIndex;
-
-            for (int index = srcIndex; index < srcLimit; index++)
-            {
-                pending.putByte(pendingLength++, src.getByte(index));
-            }
-
-            if (Flags.hasFin(flags) && pendingDrained == 0)
-            {
-                final String text = pending.getStringWithoutLengthUtf8(0, pendingLength);
-                final String masked = text.replace(new String(word, UTF_8), new String(mask, UTF_8));
-
-                pendingLength = masked.length();
-                pending.putBytes(0, masked.getBytes(UTF_8));
-            }
-
-            int produced = 0;
-
-            if (Flags.hasFin(flags))
-            {
-                produced = Math.min(pendingLength - pendingDrained, dstLimit - dstIndex);
-                dst.putBytes(dstIndex, pending, pendingDrained, produced);
-                pendingDrained += produced;
-            }
-
-            final boolean drained = pendingDrained == pendingLength;
-
-            return result.set(Flags.hasFin(flags) && !drained ? ModelStatus.OVERFLOW
-                : Flags.hasFin(flags) ? ModelStatus.COMPLETE : ModelStatus.UNDERFLOW, consumed, produced);
+            return 0;
         }
 
         @Override
-        public void reset()
+        public MutableDirectBufferEx buffer(
+            int slot)
         {
-            pendingLength = 0;
-            pendingDrained = 0;
-        }
-    }
-
-    private static final class RejectChain extends EchoChain
-    {
-        private final byte[] word;
-        private final ModelPipelineResult result = new ModelPipelineResult();
-
-        private RejectChain(
-            String word)
-        {
-            this.word = word.getBytes(UTF_8);
+            return buffer;
         }
 
         @Override
-        public ModelPipelineResult transform(
-            long traceId,
-            long bindingId,
-            long authorization,
-            int flags,
-            DirectBufferEx src,
-            int srcIndex,
-            int srcLimit,
-            MutableDirectBufferEx dst,
-            int dstIndex,
-            int dstLimit)
+        public ByteBuffer byteBuffer(
+            int slot)
         {
-            final String text = src.getStringWithoutLengthUtf8(srcIndex, srcLimit - srcIndex);
+            return buffer.byteBuffer();
+        }
 
-            return text.contains(new String(word, UTF_8))
-                ? result.set(ModelStatus.REJECTED, srcLimit - srcIndex, 0)
-                : super.transform(traceId, bindingId, authorization, flags, src, srcIndex, srcLimit, dst, dstIndex, dstLimit);
+        @Override
+        public MutableDirectBufferEx buffer(
+            int slot,
+            int offset)
+        {
+            return buffer;
+        }
+
+        @Override
+        public void release(
+            int slot)
+        {
+        }
+
+        @Override
+        public BufferPool duplicate()
+        {
+            return this;
+        }
+
+        @Override
+        public int acquiredSlots()
+        {
+            return 1;
         }
     }
 }

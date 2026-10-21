@@ -1,0 +1,336 @@
+name: llm-probes
+
+# Manual runs, plus a minimal smoke run on pull requests from this repository that change this workflow file.
+# There is no pull_request_target, push or schedule trigger, and jobs refuse pull requests from forks.
+on:
+  pull_request:
+    paths:
+      - .github/workflows/llm-probes.yml
+  workflow_dispatch:
+    inputs:
+      dialect:
+        description: Dialect to probe
+        type: choice
+        options: [ openai ]
+        default: openai
+      providers:
+        description: Comma list of provider ids, all, or a priority tier (p1, p2, p3)
+        type: string
+        default: all
+      probes:
+        description: Comma list of probe ids or areas (for example roles,ranges.n-2), or all
+        type: string
+        default: all
+      via:
+        description: Where to send the probes
+        type: choice
+        options: [ both, direct, zilla ]
+        default: both
+      zilla_ref:
+        description: Published image tag, or git ref to build the image from
+        type: string
+        default: develop
+      budget_usd:
+        description: Spend cap for the whole run, shared equally between hosted providers
+        type: string
+        default: '5'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: llm-probes
+  cancel-in-progress: false
+
+env:
+  INPUT_DIALECT: ${{ inputs.dialect || 'openai' }}
+  INPUT_PROVIDERS: ${{ inputs.providers || 'openai' }}
+  INPUT_PROBES: ${{ inputs.probes || 'model-identity' }}
+  INPUT_VIA: ${{ inputs.via || 'direct' }}
+  INPUT_ZILLA_REF: ${{ inputs.zilla_ref || 'develop' }}
+  INPUT_BUDGET_USD: ${{ inputs.budget_usd || '0.25' }}
+
+jobs:
+  setup:
+    name: Setup
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    outputs:
+      matrix: ${{ steps.expand.outputs.matrix }}
+      count: ${{ steps.expand.outputs.count }}
+      build: ${{ steps.image.outputs.build }}
+      image: ${{ steps.built.outputs.image || steps.image.outputs.image }}
+    steps:
+      - name: Checkout probes
+        uses: actions/checkout@v7
+
+      - name: Validate inputs and expand the provider matrix
+        id: expand
+        env:
+          DIALECT: ${{ env.INPUT_DIALECT }}
+          PROVIDERS: ${{ env.INPUT_PROVIDERS }}
+          PROBES: ${{ env.INPUT_PROBES }}
+          VIA: ${{ env.INPUT_VIA }}
+          BUDGET_USD: ${{ env.INPUT_BUDGET_USD }}
+          ZILLA_REF: ${{ env.INPUT_ZILLA_REF }}
+        run: |
+          echo "$ZILLA_REF" | grep -Eq '^[A-Za-z0-9._/-]{1,100}$' || { echo "invalid zilla_ref"; exit 1; }
+          mkdir -p results
+          PYTHONPATH=probes/llm python3 -m common.setup --results results
+
+      - name: Upload results for providers skipped by the catalogue
+        uses: actions/upload-artifact@v7
+        with:
+          name: results-catalogue-skipped
+          path: results/*.json
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Resolve the Zilla image
+        id: image
+        env:
+          ZILLA_REF: ${{ env.INPUT_ZILLA_REF }}
+          VIA: ${{ env.INPUT_VIA }}
+        run: |
+          if [ "$VIA" = "direct" ]; then
+            echo "build=false" >> "$GITHUB_OUTPUT"
+            echo "image=" >> "$GITHUB_OUTPUT"
+          elif docker manifest inspect "ghcr.io/aklivity/zilla:$ZILLA_REF" > /dev/null 2>&1; then
+            echo "build=false" >> "$GITHUB_OUTPUT"
+            echo "image=ghcr.io/aklivity/zilla:$ZILLA_REF" >> "$GITHUB_OUTPUT"
+          else
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout Zilla sources
+        if: steps.image.outputs.build == 'true'
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.INPUT_ZILLA_REF }}
+          path: zilla-src
+
+      - name: Route Docker Hub pulls through mirror.gcr.io
+        if: steps.image.outputs.build == 'true'
+        run: |
+          sudo mkdir -p /etc/docker
+          if [ -f /etc/docker/daemon.json ]; then
+            sudo jq '. + {"registry-mirrors": ["https://mirror.gcr.io"]}' /etc/docker/daemon.json > /tmp/daemon.json
+          else
+            echo '{"registry-mirrors": ["https://mirror.gcr.io"]}' > /tmp/daemon.json
+          fi
+          sudo mv /tmp/daemon.json /etc/docker/daemon.json
+          sudo systemctl restart docker
+          timeout 30 sh -c 'until docker info >/dev/null 2>&1; do sleep 1; done'
+
+      - name: Setup JDK 25
+        if: steps.image.outputs.build == 'true'
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - name: Cache Maven packages
+        if: steps.image.outputs.build == 'true'
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.m2/repository
+            !~/.m2/repository/io/aklivity/zilla
+          key: ${{ runner.os }}-m2-${{ hashFiles('zilla-src/**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Build the Zilla image from the ref
+        id: built
+        if: steps.image.outputs.build == 'true'
+        working-directory: zilla-src
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          ./mvnw -B -nsu -ntp clean install -DskipTests
+          image=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep '^ghcr.io/aklivity/zilla:' | grep -v -- '-alpine$' | head -n 1)
+          test -n "$image"
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+          mkdir -p ~/docker-cache
+          docker save -o ~/docker-cache/docker.tar "$image"
+
+      - name: Upload the Zilla image
+        if: steps.image.outputs.build == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: zilla-image
+          path: ~/docker-cache/docker.tar
+          retention-days: 1
+
+  probe:
+    name: Probe ${{ matrix.name }}
+    needs: setup
+    if: needs.setup.result == 'success' && needs.setup.outputs.count != '0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: llm-probes
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
+    steps:
+      - name: Checkout probes
+        uses: actions/checkout@v7
+
+      - name: Route Docker Hub pulls through mirror.gcr.io
+        run: |
+          sudo mkdir -p /etc/docker
+          if [ -f /etc/docker/daemon.json ]; then
+            sudo jq '. + {"registry-mirrors": ["https://mirror.gcr.io"]}' /etc/docker/daemon.json > /tmp/daemon.json
+          else
+            echo '{"registry-mirrors": ["https://mirror.gcr.io"]}' > /tmp/daemon.json
+          fi
+          sudo mv /tmp/daemon.json /etc/docker/daemon.json
+          sudo systemctl restart docker
+          timeout 30 sh -c 'until docker info >/dev/null 2>&1; do sleep 1; done'
+
+      - name: Start the local host
+        id: host
+        if: matrix.local != ''
+        continue-on-error: true
+        env:
+          HOST: ${{ matrix.local }}
+        run: probes/llm/common/local_host.sh "$HOST" >> "$GITHUB_ENV"
+
+      - name: Load the built Zilla image
+        if: env.INPUT_VIA != 'direct' && needs.setup.outputs.build == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: zilla-image
+          path: ~/docker-cache
+
+      - name: Prepare the Zilla image
+        if: env.INPUT_VIA != 'direct'
+        env:
+          BUILD: ${{ needs.setup.outputs.build }}
+          IMAGE: ${{ needs.setup.outputs.image }}
+        run: |
+          if [ "$BUILD" = "true" ]; then
+            docker load -i ~/docker-cache/docker.tar
+          else
+            docker pull "$IMAGE"
+          fi
+
+      - name: Start Zilla with the generated llm(server) to llm(client) config
+        if: env.INPUT_VIA != 'direct'
+        env:
+          DIALECT: ${{ env.INPUT_DIALECT }}
+          PROVIDER: ${{ matrix.id }}
+          IMAGE: ${{ needs.setup.outputs.image }}
+          PROBE_ENV_NAME_2: ${{ matrix.extra_secret_1 }}
+          PROBE_ENV_VALUE_2: ${{ secrets[matrix.extra_secret_1] }}
+          PROBE_ENV_NAME_3: ${{ matrix.extra_secret_2 }}
+          PROBE_ENV_VALUE_3: ${{ secrets[matrix.extra_secret_2] }}
+        run: |
+          mkdir -p zilla-etc
+          if PYTHONPATH=probes/llm python3 -m common.zilla_config --dialect "$DIALECT" --provider "$PROVIDER" > zilla-etc/zilla.yaml; then
+            docker run -d --name zilla --network host -v "$PWD/zilla-etc:/etc/zilla" "$IMAGE" start -v -e
+            timeout 90 sh -c 'until docker exec zilla test -f /var/run/zilla/ready; do sleep 1; done' || {
+              docker logs --tail 50 zilla
+              exit 1
+            }
+          else
+            rm -f zilla-etc/zilla.yaml
+            echo "no Zilla config for this provider; the run below records why"
+          fi
+
+      - name: Run probes
+        env:
+          DIALECT: ${{ env.INPUT_DIALECT }}
+          PROVIDER: ${{ matrix.id }}
+          PROBES: ${{ env.INPUT_PROBES }}
+          VIA: ${{ env.INPUT_VIA }}
+          ZILLA_REF: ${{ env.INPUT_ZILLA_REF }}
+          BUDGET_USD: ${{ matrix.budget_usd }}
+          HOST_OUTCOME: ${{ steps.host.outcome }}
+          PROBE_ENV_NAME_1: ${{ matrix.secret }}
+          PROBE_ENV_VALUE_1: ${{ secrets[matrix.secret] }}
+          PROBE_ENV_NAME_2: ${{ matrix.extra_secret_1 }}
+          PROBE_ENV_VALUE_2: ${{ secrets[matrix.extra_secret_1] }}
+          PROBE_ENV_NAME_3: ${{ matrix.extra_secret_2 }}
+          PROBE_ENV_VALUE_3: ${{ secrets[matrix.extra_secret_2] }}
+        run: |
+          skip=""
+          if [ "$HOST_OUTCOME" = "failure" ]; then
+            skip="local host failed to start"
+          fi
+          PYTHONPATH=probes/llm python3 -m common.runner \
+            --dialect "$DIALECT" --provider "$PROVIDER" --probes "$PROBES" --via "$VIA" \
+            --zilla-ref "$ZILLA_REF" --budget-usd "$BUDGET_USD" --timeout 120 \
+            ${skip:+--skip-reason "$skip"} --out "results/$PROVIDER.json"
+
+      - name: Scan results for credentials
+        env:
+          PROBE_ENV_NAME_1: ${{ matrix.secret }}
+          PROBE_ENV_VALUE_1: ${{ secrets[matrix.secret] }}
+          PROBE_ENV_NAME_2: ${{ matrix.extra_secret_1 }}
+          PROBE_ENV_VALUE_2: ${{ secrets[matrix.extra_secret_1] }}
+          PROBE_ENV_NAME_3: ${{ matrix.extra_secret_2 }}
+          PROBE_ENV_VALUE_3: ${{ secrets[matrix.extra_secret_2] }}
+        run: PYTHONPATH=probes/llm python3 -m common.scan_secrets results
+
+      - name: Upload results
+        uses: actions/upload-artifact@v7
+        with:
+          name: results-${{ matrix.id }}
+          path: results/${{ matrix.id }}.json
+          retention-days: 30
+
+  aggregate:
+    name: Aggregate
+    needs: [ setup, probe ]
+    if: always() && needs.setup.result != 'skipped'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout probes
+        uses: actions/checkout@v7
+
+      - name: Download results
+        uses: actions/download-artifact@v8
+        with:
+          pattern: results-*
+          path: results
+          merge-multiple: true
+
+      - name: Download the previous successful run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CURRENT_RUN: ${{ github.run_id }}
+        run: |
+          mkdir -p previous
+          for run in $(gh run list --workflow llm-probes.yml --event workflow_dispatch --status success --limit 10 --json databaseId --jq '.[].databaseId'); do
+            if [ "$run" != "$CURRENT_RUN" ] && gh run download "$run" --name llm-probes-merged --dir previous 2> /dev/null; then
+              echo "compared against run $run"
+              break
+            fi
+          done
+
+      - name: Render COMPATIBILITY.md
+        env:
+          ZILLA_REF: ${{ env.INPUT_ZILLA_REF }}
+          DIALECT: ${{ env.INPUT_DIALECT }}
+        run: |
+          mkdir -p chart
+          PYTHONPATH=probes/llm python3 -m common.chart \
+            --results results --previous previous/merged.json --dialect-dir "probes/llm/$DIALECT" \
+            --zilla-ref "$ZILLA_REF" --out chart/COMPATIBILITY.md --merged chart/merged.json
+          cat chart/COMPATIBILITY.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Scan the chart and merged results for credentials
+        run: PYTHONPATH=probes/llm python3 -m common.scan_secrets chart
+
+      - name: Upload the chart and merged results
+        uses: actions/upload-artifact@v7
+        with:
+          name: llm-probes-merged
+          path: chart/
+          retention-days: 90

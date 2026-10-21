@@ -56,6 +56,24 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/begin.attributes/client",
+        "${app}/begin.attributes/server"})
+    public void shouldReceiveBeginAttributes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/begin.attributes.unconstrained/client",
+        "${app}/begin.attributes.unconstrained/server"})
+    public void shouldReceiveBeginWithAttributesUnconstrained() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.echo/client",
         "${app}/openai.echo/server"})
     public void shouldForwardOpenaiRequest() throws Exception
@@ -371,6 +389,78 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.proxy.guardrail.ranges.unguarded/client",
+        "${app}/openai.proxy.guardrail.ranges.unguarded/server"})
+    public void shouldGuardOpenaiRangesUnguardedNet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.ranges.unguarded.exit/client",
+        "${app}/openai.proxy.guardrail.ranges.unguarded.exit/server"})
+    public void shouldGuardOpenaiRangesUnguardedExit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.ranges.identity/client",
+        "${app}/openai.proxy.guardrail.ranges.identity/server"})
+    public void shouldGuardOpenaiRangesIdentityNet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.ranges.identity.exit/client",
+        "${app}/openai.proxy.guardrail.ranges.identity.exit/server"})
+    public void shouldGuardOpenaiRangesIdentityExit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.ranges.transformed/client",
+        "${app}/openai.proxy.guardrail.ranges.transformed/server"})
+    public void shouldGuardOpenaiRangesTransformedNet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.ranges.transformed.exit/client",
+        "${app}/openai.proxy.guardrail.ranges.transformed.exit/server"})
+    public void shouldGuardOpenaiRangesTransformedExit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.ranges.tool.call/client",
+        "${app}/openai.proxy.guardrail.ranges.tool.call/server"})
+    public void shouldGuardOpenaiRangesToolCallNet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.ranges.tool.call.exit/client",
+        "${app}/openai.proxy.guardrail.ranges.tool.call.exit/server"})
+    public void shouldGuardOpenaiRangesToolCallExit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.proxy.guardrail.transform.streaming/client",
         "${app}/openai.proxy.guardrail.transform.streaming/server"})
     public void shouldGuardOpenaiTransformStreamingNet() throws Exception
@@ -401,6 +491,24 @@ public class ApplicationIT
         "${app}/openai.proxy.guardrail.transform.members.exit/client",
         "${app}/openai.proxy.guardrail.transform.members.exit/server"})
     public void shouldGuardOpenaiTransformMembersExit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.transform.members.leading/client",
+        "${app}/openai.proxy.guardrail.transform.members.leading/server"})
+    public void shouldGuardOpenaiTransformMembersLeadingNet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.transform.members.leading.exit/client",
+        "${app}/openai.proxy.guardrail.transform.members.leading.exit/server"})
+    public void shouldGuardOpenaiTransformMembersLeadingExit() throws Exception
     {
         k3po.finish();
     }
@@ -2786,6 +2894,33 @@ public class ApplicationIT
         "${app}/openai.proxy.fallback.accepted/client",
         "${app}/openai.proxy.fallback.accepted/server"})
     public void shouldAcceptOpenaiProxyFallbackAttempt() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.attributes/client",
+        "${app}/openai.proxy.attributes/server"})
+    public void shouldRouteOpenaiWithAttributes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.fallback.attributes/client",
+        "${app}/openai.proxy.fallback.attributes/server"})
+    public void shouldTellCallerTheFallbackModelOpenaiWithAttributes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.fallback.attributes.accepted/client",
+        "${app}/openai.proxy.fallback.attributes.accepted/server"})
+    public void shouldAcceptOpenaiProxyFallbackAttemptWithAttributes() throws Exception
     {
         k3po.finish();
     }
