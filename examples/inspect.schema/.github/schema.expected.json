@@ -8043,6 +8043,21 @@
                     },
                     "additionalProperties": false
                 },
+                "service-tiers": {
+                    "title": "Tiers",
+                    "description": "Service tiers the model supports, from auto, default, flex and priority. A request that carries a tier the model does not support has the tier dropped. A model with no entry, or an entry that lists no tiers property, receives the tier unchanged.",
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "auto",
+                            "default",
+                            "flex",
+                            "priority"
+                        ]
+                    },
+                    "uniqueItems": true
+                },
                 "openai-models": {
                     "title": "Models",
                     "description": "Capabilities of the models this client speaks to, keyed by model identifier or by a * glob pattern, matched against the model of each request. Settings given here override the built-in defaults of the dialect, which apply to a model that has no entry or that an entry does not set.",
@@ -8057,6 +8072,9 @@
                             },
                             "ladder": {
                                 "$ref": "#/$defs/binding-ext/llm/budget-ladder"
+                            },
+                            "tiers": {
+                                "$ref": "#/$defs/binding-ext/llm/service-tiers"
                             }
                         },
                         "additionalProperties": false
@@ -8090,6 +8108,9 @@
                             },
                             "ladder": {
                                 "$ref": "#/$defs/binding-ext/llm/budget-ladder"
+                            },
+                            "tiers": {
+                                "$ref": "#/$defs/binding-ext/llm/service-tiers"
                             }
                         },
                         "additionalProperties": false
@@ -8121,6 +8142,9 @@
                             },
                             "ladder": {
                                 "$ref": "#/$defs/binding-ext/llm/budget-ladder"
+                            },
+                            "tiers": {
+                                "$ref": "#/$defs/binding-ext/llm/service-tiers"
                             }
                         },
                         "additionalProperties": false

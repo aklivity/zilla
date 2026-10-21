@@ -18,6 +18,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
 
 import java.util.List;
@@ -206,5 +207,30 @@ public class LlmOptionsConfigTest
         LlmModelConfigBuilder<LlmModelConfig> injected = builder.inject(identity -> identity);
 
         assertThat(injected, sameInstance(builder));
+    }
+
+    @Test
+    public void shouldBuildModelWithTiers()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .model()
+                .name("gpt-5")
+                .tiers(List.of("auto", "default"))
+                .build()
+            .build();
+
+        assertThat(options.models.get(0).tiers, equalTo(List.of("auto", "default")));
+    }
+
+    @Test
+    public void shouldBuildModelWithoutTiers()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .model()
+                .name("gpt-5")
+                .build()
+            .build();
+
+        assertThat(options.models.get(0).tiers, nullValue());
     }
 }

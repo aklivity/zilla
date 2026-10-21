@@ -1976,4 +1976,181 @@ public class LlmSchemaValidationTest
 
         reader.read(text);
     }
+
+    @Test
+    public void shouldAcceptClientOpenaiModelTiers()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                  models:
+                    gpt-5:
+                      tiers:
+                        - auto
+                        - default
+                        - flex
+                        - priority
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptClientAnthropicModelTiers()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: anthropic
+                  server: http://example.com:8080
+                  models:
+                    claude-opus-4-7:
+                      tiers:
+                        - auto
+                        - default
+                        - flex
+                        - priority
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptClientGeminiModelTiers()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: gemini
+                  server: http://example.com:8080
+                  models:
+                    gemini-3-flash:
+                      tiers:
+                        - auto
+                        - default
+                        - flex
+                        - priority
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptClientModelNoTiers()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                  models:
+                    gpt-5:
+                      tiers: []
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientModelTiersUnknown()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                  models:
+                    gpt-5:
+                      tiers:
+                        - scale
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientModelTiersNotArray()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: anthropic
+                  server: http://example.com:8080
+                  models:
+                    claude-opus-4-7:
+                      tiers: auto
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientModelTiersDuplicate()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: gemini
+                  server: http://example.com:8080
+                  models:
+                    gemini-3-flash:
+                      tiers:
+                        - flex
+                        - flex
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
 }

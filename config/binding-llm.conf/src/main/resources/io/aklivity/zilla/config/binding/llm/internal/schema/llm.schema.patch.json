@@ -387,6 +387,18 @@
                 },
                 "additionalProperties": false
             },
+            "service-tiers":
+            {
+                "title": "Tiers",
+                "description": "Service tiers the model supports, from auto, default, flex and priority. A request that carries a tier the model does not support has the tier dropped. A model with no entry, or an entry that lists no tiers property, receives the tier unchanged.",
+                "type": "array",
+                "items":
+                {
+                    "type": "string",
+                    "enum": [ "auto", "default", "flex", "priority" ]
+                },
+                "uniqueItems": true
+            },
             "openai-models":
             {
                 "title": "Models",
@@ -406,6 +418,10 @@
                         "ladder":
                         {
                             "$ref": "#/$defs/binding-ext/llm/budget-ladder"
+                        },
+                        "tiers":
+                        {
+                            "$ref": "#/$defs/binding-ext/llm/service-tiers"
                         }
                     },
                     "additionalProperties": false
@@ -441,6 +457,10 @@
                         "ladder":
                         {
                             "$ref": "#/$defs/binding-ext/llm/budget-ladder"
+                        },
+                        "tiers":
+                        {
+                            "$ref": "#/$defs/binding-ext/llm/service-tiers"
                         }
                     },
                     "additionalProperties": false
@@ -476,6 +496,10 @@
                         "ladder":
                         {
                             "$ref": "#/$defs/binding-ext/llm/budget-ladder"
+                        },
+                        "tiers":
+                        {
+                            "$ref": "#/$defs/binding-ext/llm/service-tiers"
                         }
                     },
                     "additionalProperties": false

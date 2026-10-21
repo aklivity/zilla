@@ -92,4 +92,16 @@ public class LlmModelDefaultsTest
             .findFirst()
             .orElse(null);
     }
+
+    @Test
+    public void shouldDefaultNoTiers()
+    {
+        for (String dialect : List.of("openai", "anthropic", "gemini"))
+        {
+            for (LlmModelConfig model : LlmModelConfig.defaults(dialect))
+            {
+                assertThat(model.tiers, nullValue());
+            }
+        }
+    }
 }

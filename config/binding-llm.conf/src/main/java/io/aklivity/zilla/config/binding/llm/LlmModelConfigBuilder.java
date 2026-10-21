@@ -17,6 +17,7 @@ package io.aklivity.zilla.config.binding.llm;
 import static java.util.Collections.unmodifiableMap;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -32,6 +33,7 @@ public final class LlmModelConfigBuilder<T> extends ConfigBuilder<T, LlmModelCon
     private String thinking;
     private Integer budgetMinimum;
     private Integer budgetMaximum;
+    private List<String> tiers;
 
     LlmModelConfigBuilder(
         Function<LlmModelConfig, T> mapper)
@@ -90,10 +92,17 @@ public final class LlmModelConfigBuilder<T> extends ConfigBuilder<T, LlmModelCon
         return this;
     }
 
+    public LlmModelConfigBuilder<T> tiers(
+        List<String> tiers)
+    {
+        this.tiers = List.copyOf(tiers);
+        return this;
+    }
+
     @Override
     public T build()
     {
         return mapper.apply(new LlmModelConfig(name, sampling, thinking, budgetMinimum, budgetMaximum,
-            unmodifiableMap(new LinkedHashMap<>(ladder))));
+            unmodifiableMap(new LinkedHashMap<>(ladder)), tiers));
     }
 }

@@ -677,4 +677,27 @@ public class LlmOptionsConfigAdapterTest
         assertThat(model.name, nullValue());
         assertThat(model.sampling, equalTo(false));
     }
+
+    @Test
+    public void shouldReadModelTiers()
+    {
+        String text = "{\"dialect\":\"openai\",\"models\":{\"gpt-5\":{\"tiers\":[\"auto\",\"flex\"]},\"o3*\":{\"tiers\":[]}}}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.models.get(0).tiers, equalTo(List.of("auto", "flex")));
+        assertThat(options.models.get(1).tiers, equalTo(List.of()));
+        assertThat(jsonb.toJson(options), equalTo(text));
+    }
+
+    @Test
+    public void shouldReadModelWithoutTiers()
+    {
+        String text = "{\"dialect\":\"openai\",\"models\":{\"gpt-5\":{\"sampling\":false}}}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.models.get(0).tiers, nullValue());
+        assertThat(jsonb.toJson(options), equalTo(text));
+    }
 }
