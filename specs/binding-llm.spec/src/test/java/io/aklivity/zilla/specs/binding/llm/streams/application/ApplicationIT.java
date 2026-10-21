@@ -425,18 +425,36 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/openai.proxy.guardrail.ranges.transformed/client",
-        "${app}/openai.proxy.guardrail.ranges.transformed/server"})
-    public void shouldGuardOpenaiRangesTransformedNet() throws Exception
+        "${app}/openai.proxy.guardrail.ranges.mask.unchanged/client",
+        "${app}/openai.proxy.guardrail.ranges.mask.unchanged/server"})
+    public void shouldGuardOpenaiRangesMaskUnchangedNet() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/openai.proxy.guardrail.ranges.transformed.exit/client",
-        "${app}/openai.proxy.guardrail.ranges.transformed.exit/server"})
-    public void shouldGuardOpenaiRangesTransformedExit() throws Exception
+        "${app}/openai.proxy.guardrail.ranges.mask.changed/client",
+        "${app}/openai.proxy.guardrail.ranges.mask.changed/server"})
+    public void shouldGuardOpenaiRangesMaskChangedNet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.ranges.mask.unchanged.exit/client",
+        "${app}/openai.proxy.guardrail.ranges.mask.unchanged.exit/server"})
+    public void shouldGuardOpenaiRangesMaskUnchangedExit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.ranges.mask.changed.exit/client",
+        "${app}/openai.proxy.guardrail.ranges.mask.changed.exit/server"})
+    public void shouldGuardOpenaiRangesMaskChangedExit() throws Exception
     {
         k3po.finish();
     }

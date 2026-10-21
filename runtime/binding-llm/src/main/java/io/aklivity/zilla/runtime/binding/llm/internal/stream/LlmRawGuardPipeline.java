@@ -25,21 +25,30 @@ final class LlmRawGuardPipeline implements LlmGuardPipeline
 {
     private static final DirectBufferEx EMPTY = new UnsafeBufferEx(new byte[0]);
 
+    private static final int LAG_CAPACITY = 1 << 16;
+
     private final ModelPipeline pipeline;
+    private final boolean identity;
+    private final LlmLockstep lockstep;
 
     private boolean started;
     private int values;
+    private int matched;
 
     LlmRawGuardPipeline(
         ModelPipeline pipeline)
     {
         this.pipeline = pipeline;
+        this.identity = pipeline.identity();
+        this.lockstep = new LlmLockstep(LAG_CAPACITY);
+        this.lockstep.begin();
     }
 
     @Override
     public void reset()
     {
         pipeline.reset();
+        lockstep.begin();
         started = false;
     }
 
@@ -61,7 +70,7 @@ final class LlmRawGuardPipeline implements LlmGuardPipeline
             srcLimit, dst, dstIndex, dstLimit);
 
         started = true;
-        values = result.produced();
+        follow(src, srcIndex, result.consumed(), dst, dstIndex, result.produced());
 
         return result;
     }
@@ -79,7 +88,7 @@ final class LlmRawGuardPipeline implements LlmGuardPipeline
             dst, dstIndex, dstLimit);
 
         started = true;
-        values = result.produced();
+        follow(EMPTY, 0, 0, dst, dstIndex, result.produced());
 
         return result;
     }
@@ -103,6 +112,18 @@ final class LlmRawGuardPipeline implements LlmGuardPipeline
     }
 
     @Override
+    public int matched()
+    {
+        return matched;
+    }
+
+    @Override
+    public boolean diverged()
+    {
+        return !identity && lockstep.diverged();
+    }
+
+    @Override
     public int closeWidth()
     {
         return 0;
@@ -114,6 +135,27 @@ final class LlmRawGuardPipeline implements LlmGuardPipeline
         int dstIndex)
     {
         return 0;
+    }
+
+    private void follow(
+        DirectBufferEx src,
+        int srcIndex,
+        int consumed,
+        MutableDirectBufferEx dst,
+        int dstIndex,
+        int produced)
+    {
+        values = produced;
+
+        if (identity)
+        {
+            matched = produced;
+        }
+        else
+        {
+            lockstep.consumed(src, srcIndex, consumed);
+            matched = lockstep.produced(dst, dstIndex, produced);
+        }
     }
 
     private int flags(

@@ -13,52 +13,55 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property serverAddress "zilla://streams/app0"
+property clientAddress "zilla://streams/app0"
 property model "gpt-a"
 
-accept ${serverAddress}
-       option zilla:window 8192
-       option zilla:transmission "half-duplex"
-
-accepted
-
-read zilla:begin.ext ${llm:matchBeginEx()
-                          .typeId(zilla:id("llm"))
-                          .dialect("openai")
-                          .model(model)
-                          .build()}
-
-connected
-
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("USER_TEXT")
-                          .message(0)
-                          .build()}
-read "{\"text\":\"Hello\"}"
-
-read advised zilla:flush
+connect ${clientAddress}
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("openai")
                            .model(model)
                            .build()}
+
+connected
+
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("USER_TEXT")
+                          .message(0)
+                          .build()}
+write "{\"text\":\"Hello\"}"
 write flush
 
-write option zilla:flags "init"
-write zilla:data.ext ${llm:dataEx()
+write advise zilla:flush
+
+read zilla:begin.ext ${llm:matchBeginEx()
+                           .typeId(zilla:id("llm"))
+                           .dialect("openai")
+                           .model(model)
+                           .build()}
+
+read option zilla:flags "init"
+read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
                           .message(0)
+                          .range(7)
+                          .rangeOpen()
                           .build()}
-write "{\"text\":\"Hell"
-write flush
+read "{\"text\":\"Hi ther"
 
-write option zilla:flags "fin"
-write "o, world\"}"
-write flush
-
-write close
+read option zilla:flags "fin"
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .range(2)
+                          .rangeAttribute("test:a", "1")
+                          .build()}
+read "e ****** key\"}"
 
 read closed
+
+write close

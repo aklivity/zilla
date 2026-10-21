@@ -1314,6 +1314,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
         private int sectionAttributesLength;
         private int sectionOctetsLength;
         private int outputValues;
+        private int outputMatched;
         private int heldSlot;
         private int heldLimit;
         private boolean outputStarted;
@@ -1535,7 +1536,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             }
             else
             {
-                if (initial && sectionPipeline.identity())
+                if (initial)
                 {
                     acceptRanges(extension);
                 }
@@ -1631,7 +1632,8 @@ public final class LlmProxyFactory implements LlmStreamFactory
 
                 if (produced > 0 || closing)
                 {
-                    doForwardOutput(traceId, authorization, budgetId, produced, sectionPipeline.values(), closing);
+                    doForwardOutput(traceId, authorization, budgetId, produced, sectionPipeline.values(),
+                        sectionPipeline.matched(), closing);
                 }
 
                 if (closing)
@@ -1714,7 +1716,8 @@ public final class LlmProxyFactory implements LlmStreamFactory
                 {
                     final boolean closing = complete && outputPending && sectionPipeline.closeWidth() == 0;
 
-                    doForwardOutput(traceId, authorization, budgetId, produced, sectionPipeline.values(), closing);
+                    doForwardOutput(traceId, authorization, budgetId, produced, sectionPipeline.values(),
+                        sectionPipeline.matched(), closing);
                     outputPending &= !closing;
                 }
 
@@ -1755,7 +1758,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             {
                 final int length = sectionPipeline.close(guardrailBuffer, 0);
 
-                doForwardOutput(traceId, authorization, budgetId, length, 0, true);
+                doForwardOutput(traceId, authorization, budgetId, length, 0, 0, true);
                 outputPending = false;
                 verdict = LlmGuardVerdict.ACCEPTED;
             }
@@ -1769,11 +1772,13 @@ public final class LlmProxyFactory implements LlmStreamFactory
             long budgetId,
             int produced,
             int values,
+            int matched,
             boolean closing)
         {
             final int flags = (outputStarted ? 0 : Flags.INIT) | (closing ? Flags.FIN : 0);
 
             this.outputValues = values;
+            this.outputMatched = matched;
 
             final LlmDataExFW llmDataEx = guardDataExRW.wrap(guardExtBuffer, 0, guardExtBuffer.capacity())
                 .typeId(llmTypeId)
@@ -1801,7 +1806,12 @@ public final class LlmProxyFactory implements LlmStreamFactory
                     .extension(sectionExtensionBuffer, sectionAttributesLength, sectionOctetsLength);
             }
 
-            if (sectionPipeline.identity())
+            if (sectionPipeline.diverged())
+            {
+                ranges.emitComplete(section, outputMatched);
+                ranges.drop();
+            }
+            else
             {
                 ranges.emit(section, outputValues);
             }

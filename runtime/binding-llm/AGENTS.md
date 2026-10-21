@@ -52,8 +52,14 @@ later frame's extension carries only ranges, and is omitted when it has none.
 |---|---|
 | none | relayed with the frames |
 | `identity()` | **implemented**: relayed, re-cut to the output frames by cumulative byte count; parts of one range that leave in the same frame are merged |
-| not identity | **implemented**: dropped for the section |
-| not identity, bytes unchanged up to the first edit | planned: kept until the first byte that differs from the input, verified in lockstep, then dropped for the rest of the section |
+| not identity | **implemented**: kept until the first byte that differs from the input, then dropped for the rest of the section |
+
+A chain that is not identity is followed in lockstep: what it produces is compared, byte
+for byte, with what it consumed at the same position, however far its output lags its
+input. Ranges are kept while they match. A range that contains the first differing byte,
+and every range after it, is dropped, so a frame that holds that byte carries ranges only
+for the bytes before the range that contains it. A range that was left open by an earlier
+frame carries no attributes.
 
 Attributes that a stage could have changed are dropped, never forwarded. A later
 refinement may let a stage report omitted, injected and retained bytes per range so

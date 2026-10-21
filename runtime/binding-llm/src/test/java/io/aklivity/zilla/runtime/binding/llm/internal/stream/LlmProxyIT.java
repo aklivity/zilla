@@ -246,10 +246,21 @@ public class LlmProxyIT
     @Test
     @Configuration("proxy.guardrail.mask.yaml")
     @Specification({
-        "${app}/openai.proxy.guardrail.ranges.transformed/client",
-        "${app}/openai.proxy.guardrail.ranges.transformed.exit/server"})
+        "${app}/openai.proxy.guardrail.ranges.mask.unchanged/client",
+        "${app}/openai.proxy.guardrail.ranges.mask.unchanged.exit/server"})
     @ScriptProperty("clientAddress \"zilla://streams/net0\"")
-    public void shouldDropRangesThroughTransformingGuard() throws Exception
+    public void shouldRelayRangesThroughUnchangingMaskGuard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.mask.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.ranges.mask.changed/client",
+        "${app}/openai.proxy.guardrail.ranges.mask.changed.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldKeepRangesBeforeFirstEditOfMaskGuard() throws Exception
     {
         k3po.finish();
     }
