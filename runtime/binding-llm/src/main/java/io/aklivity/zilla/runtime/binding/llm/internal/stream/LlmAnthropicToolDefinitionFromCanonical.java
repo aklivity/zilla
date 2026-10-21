@@ -24,6 +24,12 @@ final class LlmAnthropicToolDefinitionFromCanonical extends LlmToolTransform
     private boolean named;
     private boolean parametrized;
 
+    LlmAnthropicToolDefinitionFromCanonical(
+        boolean sameDialect)
+    {
+        super(MODE_OBJECT, sameDialect);
+    }
+
     @Override
     public void reset()
     {

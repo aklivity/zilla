@@ -1367,7 +1367,8 @@ public final class LlmProxyFactory implements LlmStreamFactory
             return switch (section)
             {
             case SYSTEM_INSTRUCTION, USER_TEXT, ASSISTANT_TEXT, ASSISTANT_REFUSAL, ASSISTANT_REASONING, TOOL_RESULT ->
-                new LlmTextModelPipeline(chain, runPool, streamId, transformBuffer);
+                new LlmTextModelPipeline(chain, runPool, streamId, transformBuffer,
+                    section == LlmSectionType.ASSISTANT_REASONING);
             case TOOL_CALL, SERVER_TOOL_CALL ->
                 new LlmMemberModelPipeline(chain, ARGUMENTS_MEMBER);
             case USER_IMAGE ->

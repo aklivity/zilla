@@ -27,7 +27,8 @@ public class LlmAnthropicToolCallFromCanonicalTest
 {
     private static final String HUGE = "x".repeat(5000);
 
-    private final LlmAnthropicToolCallFromCanonical transform = new LlmAnthropicToolCallFromCanonical("tool_use");
+    private final LlmAnthropicToolCallFromCanonical transform = new LlmAnthropicToolCallFromCanonical("tool_use", true);
+    private final LlmAnthropicToolCallFromCanonical foreign = new LlmAnthropicToolCallFromCanonical("tool_use", false);
 
     private final Consumer<LlmSectionAttributes> id = attributes -> attributes.toolCallId("toolu_1");
     private final Consumer<LlmSectionAttributes> name = attributes -> attributes.toolName("get_weather");
@@ -44,7 +45,7 @@ public class LlmAnthropicToolCallFromCanonicalTest
     @Test
     public void shouldWriteInputAsServerToolUse()
     {
-        assertTransforms(new LlmAnthropicToolCallFromCanonical("server_tool_use"), both, null,
+        assertTransforms(new LlmAnthropicToolCallFromCanonical("server_tool_use", true), both, null,
             json("{'arguments':{'query':'zilla'}}"),
             json("{'type':'server_tool_use','id':'toolu_1','name':'get_weather','input':{'query':'zilla'}}"));
     }
@@ -148,5 +149,21 @@ public class LlmAnthropicToolCallFromCanonicalTest
         assertRejects(transform, both, null, json("[1]"));
         assertRejects(transform, both, null, json("5"));
         assertRejects(transform, both, null, " ");
+    }
+
+    @Test
+    public void shouldDropOwnPrefixedMemberAcrossDialects()
+    {
+        assertTransforms(foreign, both, null,
+            json("{'anthropic:cache_control':{'type':'ephemeral'},'arguments':{'a':1}}"),
+            json("{'type':'tool_use','id':'toolu_1','name':'get_weather','input':{'a':1}}"));
+    }
+
+    @Test
+    public void shouldPassUnprefixedMemberAcrossDialects()
+    {
+        assertTransforms(foreign, both, null,
+            json("{'arguments':{'a':1},'kept':true}"),
+            json("{'type':'tool_use','id':'toolu_1','name':'get_weather','input':{'a':1},'kept':true}"));
     }
 }

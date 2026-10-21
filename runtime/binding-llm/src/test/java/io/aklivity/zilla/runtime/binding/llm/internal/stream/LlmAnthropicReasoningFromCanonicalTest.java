@@ -25,8 +25,9 @@ public class LlmAnthropicReasoningFromCanonicalTest
 {
     private static final String TEXT = "Let me think. ".repeat(400);
 
-    private final LlmAnthropicReasoningFromCanonical reasoning = new LlmAnthropicReasoningFromCanonical();
-    private final LlmAnthropicReasoningFromCanonical unsigned = new LlmAnthropicReasoningFromCanonical(true);
+    private final LlmAnthropicReasoningFromCanonical reasoning = new LlmAnthropicReasoningFromCanonical(false, true);
+    private final LlmAnthropicReasoningFromCanonical unsigned = new LlmAnthropicReasoningFromCanonical(true, true);
+    private final LlmAnthropicReasoningFromCanonical foreign = new LlmAnthropicReasoningFromCanonical(false, false);
     private final LlmAnthropicReasoningToCanonical canonical = new LlmAnthropicReasoningToCanonical();
 
     @Test
@@ -131,5 +132,21 @@ public class LlmAnthropicReasoningFromCanonicalTest
     public void shouldRejectTextThatIsNotAString()
     {
         assertRejects(reasoning, json("{'text':{'a':1}}"));
+    }
+
+    @Test
+    public void shouldDropOwnPrefixedMembersAcrossDialects()
+    {
+        assertTransforms(foreign,
+            json("{'text':'Let me think.','anthropic:signature':'sig-1'}"),
+            json("{'type':'thinking','thinking':'Let me think.'}"));
+    }
+
+    @Test
+    public void shouldPassUnprefixedMembersAcrossDialects()
+    {
+        assertTransforms(foreign,
+            json("{'text':'Let me think.'}"),
+            json("{'type':'thinking','thinking':'Let me think.'}"));
     }
 }

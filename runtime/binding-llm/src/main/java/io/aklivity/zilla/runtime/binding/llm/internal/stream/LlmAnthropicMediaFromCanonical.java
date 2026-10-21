@@ -26,22 +26,26 @@ final class LlmAnthropicMediaFromCanonical extends LlmToolTransform
     private final String dataMember;
     private final String urlMember;
 
-    static LlmAnthropicMediaFromCanonical image()
+    static LlmAnthropicMediaFromCanonical image(
+        boolean sameDialect)
     {
-        return new LlmAnthropicMediaFromCanonical("image", "image_url", "url", "url");
+        return new LlmAnthropicMediaFromCanonical("image", "image_url", "url", "url", sameDialect);
     }
 
-    static LlmAnthropicMediaFromCanonical document()
+    static LlmAnthropicMediaFromCanonical document(
+        boolean sameDialect)
     {
-        return new LlmAnthropicMediaFromCanonical("document", "file", "file_data", "file_url");
+        return new LlmAnthropicMediaFromCanonical("document", "file", "file_data", "file_url", sameDialect);
     }
 
     private LlmAnthropicMediaFromCanonical(
         String part,
         String container,
         String dataMember,
-        String urlMember)
+        String urlMember,
+        boolean sameDialect)
     {
+        super(MODE_OBJECT, sameDialect);
         this.part = part;
         this.container = container;
         this.dataMember = dataMember;

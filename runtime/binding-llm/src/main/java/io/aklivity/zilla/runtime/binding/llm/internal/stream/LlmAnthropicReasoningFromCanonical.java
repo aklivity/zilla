@@ -28,14 +28,17 @@ final class LlmAnthropicReasoningFromCanonical extends LlmToolTransform
     private String type;
     private boolean signed;
 
-    LlmAnthropicReasoningFromCanonical()
+    LlmAnthropicReasoningFromCanonical(
+        boolean sameDialect)
     {
-        this(false);
+        this(false, sameDialect);
     }
 
     LlmAnthropicReasoningFromCanonical(
-        boolean unsigned)
+        boolean unsigned,
+        boolean sameDialect)
     {
+        super(MODE_OBJECT, sameDialect);
         this.unsigned = unsigned;
     }
 

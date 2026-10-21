@@ -87,7 +87,7 @@ public class LlmTextModelPipelineTest
         int dstSize)
     {
         final LlmTextModelPipeline pipeline = new LlmTextModelPipeline(new UppercasePipeline(), new TestBufferPool(), 1L,
-            new UnsafeBufferEx(new byte[dstSize]));
+            new UnsafeBufferEx(new byte[dstSize]), false);
         final UnsafeBufferEx dst = new UnsafeBufferEx(new byte[dstSize]);
         final StringBuilder output = new StringBuilder();
 

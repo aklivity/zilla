@@ -63,6 +63,33 @@ public class LlmOptionsConfigAdapterTest
     }
 
     @Test
+    public void shouldReadOptionsWithOpenaiResponsesDialect()
+    {
+        String text =
+                "{" +
+                    "\"dialect\": \"openai/responses\"" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.dialect, equalTo("openai/responses"));
+    }
+
+    @Test
+    public void shouldWriteOptionsWithOpenaiResponsesDialect()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .dialect("openai/responses")
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"dialect\":\"openai/responses\"}"));
+    }
+
+    @Test
     public void shouldWriteOptions()
     {
         LlmOptionsConfig options = LlmOptionsConfig.builder()

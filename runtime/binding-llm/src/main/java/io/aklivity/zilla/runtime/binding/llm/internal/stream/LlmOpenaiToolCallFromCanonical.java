@@ -27,6 +27,12 @@ final class LlmOpenaiToolCallFromCanonical extends LlmToolTransform
     private boolean functioned;
     private boolean argumented;
 
+    LlmOpenaiToolCallFromCanonical(
+        boolean sameDialect)
+    {
+        super(MODE_OBJECT, sameDialect);
+    }
+
     @Override
     public void reset()
     {

@@ -25,7 +25,8 @@ public class LlmOpenaiToolDefinitionFromCanonicalTest
     private static final String LONG = "x".repeat(300);
     private static final String HUGE = "x".repeat(5000);
 
-    private final LlmOpenaiToolDefinitionFromCanonical transform = new LlmOpenaiToolDefinitionFromCanonical();
+    private final LlmOpenaiToolDefinitionFromCanonical transform = new LlmOpenaiToolDefinitionFromCanonical(true);
+    private final LlmOpenaiToolDefinitionFromCanonical foreign = new LlmOpenaiToolDefinitionFromCanonical(false);
 
     @Test
     public void shouldPassCanonicalToolDefinition()
@@ -84,5 +85,21 @@ public class LlmOpenaiToolDefinitionFromCanonicalTest
     public void shouldRejectToolThatIsNotAnObject()
     {
         assertRejects(transform, json("[1]"));
+    }
+
+    @Test
+    public void shouldDropOwnPrefixedMemberAcrossDialects()
+    {
+        assertTransforms(foreign,
+            json("{'type':'function','function':{'openai:note':'x','name':'ping'}}"),
+            json("{'type':'function','function':{'name':'ping'}}"));
+    }
+
+    @Test
+    public void shouldPassUnprefixedMemberAcrossDialects()
+    {
+        assertTransforms(foreign,
+            json("{'type':'function','function':{'strict':true,'name':'ping'}}"),
+            json("{'type':'function','function':{'strict':true,'name':'ping'}}"));
     }
 }

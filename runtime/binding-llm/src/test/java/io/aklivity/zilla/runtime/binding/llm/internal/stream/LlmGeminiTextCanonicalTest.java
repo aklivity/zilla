@@ -26,7 +26,7 @@ public class LlmGeminiTextCanonicalTest
     private static final String TEXT = "Hello, how are you today? ".repeat(400);
 
     private final LlmGeminiTextToCanonical toCanonical = new LlmGeminiTextToCanonical();
-    private final LlmGeminiTextFromCanonical fromCanonical = new LlmGeminiTextFromCanonical();
+    private final LlmGeminiTextFromCanonical fromCanonical = new LlmGeminiTextFromCanonical(true);
 
     @Test
     public void shouldConvertText()

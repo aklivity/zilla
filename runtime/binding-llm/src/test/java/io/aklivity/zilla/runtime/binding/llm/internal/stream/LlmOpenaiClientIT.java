@@ -973,9 +973,9 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai\""})
     @Specification({
-        "${app}/anthropic.transform.rejected.tool.definition.server/client",
-        "${net}/openai.transform.rejected.tool.definition.server/server"})
-    public void shouldRejectAnthropicSectionToolDefinitionServerAsOpenai() throws Exception
+        "${app}/anthropic.transform.server.tool.definition/client",
+        "${net}/openai.transform.server.tool.definition/server"})
+    public void shouldDropAnthropicServerToolDefinitionAsOpenai() throws Exception
     {
         k3po.finish();
     }
@@ -1628,6 +1628,17 @@ public class LlmOpenaiClientIT
         "${app}/transform.response.tool.calls.overflow/client",
         "${net}/openai.transform.response.tool.calls.overflow.sse/server"})
     public void shouldTransformResponseToolCallsOverflowSseAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai\"", "reason \"openai:insufficient_system_resource\""})
+    @Specification({
+        "${app}/openai.transform.response.finish.reason/client",
+        "${net}/openai.transform.response.finish.reason.unknown/server"})
+    public void shouldPrefixUnknownFinishReasonAsOpenai() throws Exception
     {
         k3po.finish();
     }

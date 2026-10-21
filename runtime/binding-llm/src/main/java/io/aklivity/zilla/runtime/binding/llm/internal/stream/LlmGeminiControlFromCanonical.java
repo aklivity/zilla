@@ -25,9 +25,10 @@ final class LlmGeminiControlFromCanonical extends LlmToolTransform
 
     private String member;
 
-    LlmGeminiControlFromCanonical()
+    LlmGeminiControlFromCanonical(
+        boolean sameDialect)
     {
-        super(MODE_EXTRACT);
+        super(MODE_EXTRACT, sameDialect);
     }
 
     String member()

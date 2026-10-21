@@ -65,7 +65,8 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
         ModelPipeline pipeline,
         BufferPool pool,
         long streamId,
-        MutableDirectBufferEx transformBuffer)
+        MutableDirectBufferEx transformBuffer,
+        boolean optional)
     {
         this.pipeline = pipeline;
         this.identity = pipeline.identity();
@@ -74,7 +75,7 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
         this.streamId = streamId;
         this.transformBuffer = transformBuffer;
         this.slot = NO_SLOT;
-        this.decoder = new LlmTextPipeline(this::onText);
+        this.decoder = new LlmTextPipeline(this::onText, optional);
         this.scanner = LlmObjectScanner.text();
         this.generator = JsonEx.createGenerator();
         this.primerBuffer = new UnsafeBufferEx(new byte[16]);

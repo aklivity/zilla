@@ -29,7 +29,7 @@ public class LlmGeminiToolDefinitionCanonicalTest
     private static final int NESTED_LEVELS = 30;
 
     private final LlmGeminiToolDefinitionToCanonical to = new LlmGeminiToolDefinitionToCanonical();
-    private final LlmGeminiToolDefinitionFromCanonical from = new LlmGeminiToolDefinitionFromCanonical();
+    private final LlmGeminiToolDefinitionFromCanonical from = new LlmGeminiToolDefinitionFromCanonical(true);
 
     @Test
     public void shouldWrapDeclarationAsFunction()

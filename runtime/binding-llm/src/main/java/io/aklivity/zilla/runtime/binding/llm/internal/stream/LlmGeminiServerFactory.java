@@ -80,6 +80,7 @@ import io.aklivity.zilla.runtime.engine.util.Flags;
 
 public final class LlmGeminiServerFactory implements LlmDialectHandler
 {
+    private static final String VENDOR_PREFIX = NAME + ":";
     private static final String HTTP_TYPE_NAME = "http";
     private static final int QUEUE_ENTRY_OVERHEAD = 5 * Integer.BYTES + 3 * Long.BYTES + Byte.BYTES;
     private static final String HEADER_METHOD = ":method";
@@ -3374,6 +3375,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
         private String responseId;
         private String responseModel;
+        private String responseDialect;
 
         private int[] eventOffsets;
         private int[] eventLengths;
@@ -3550,6 +3552,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
             responseId = llmBeginEx != null ? llmBeginEx.id().asString() : null;
             responseModel = llmBeginEx != null ? llmBeginEx.model().asString() : null;
+            responseDialect = llmBeginEx != null ? llmBeginEx.dialect().asString() : null;
             replyBegun = true;
 
             server.doNetBegin(traceId, authorization, affinity, STATUS_OK,
@@ -4089,7 +4092,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         {
             kind = type == LlmSectionType.CONTROL
                 ? KIND_CONTROL
-                : message == MESSAGE_FIRST ? kindOf(type) : KIND_SKIPPED;
+                : message == MESSAGE_FIRST ? kindOf(type, NAME.equals(responseDialect)) : KIND_SKIPPED;
 
             if (kind == KIND_CONTROL)
             {
@@ -4181,7 +4184,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         {
             if (toolCallPipeline == null)
             {
-                toolCallPipeline = new LlmSectionPipeline(new LlmGeminiToolCallFromCanonical(),
+                toolCallPipeline = new LlmSectionPipeline(new LlmGeminiToolCallFromCanonical(NAME.equals(responseDialect)),
                     new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
             }
 
@@ -4192,7 +4195,8 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         {
             if (serverToolCallPipeline == null)
             {
-                serverToolCallPipeline = new LlmSectionPipeline(new LlmGeminiServerToolCallFromCanonical(),
+                serverToolCallPipeline = new LlmSectionPipeline(
+                    new LlmGeminiServerToolCallFromCanonical(NAME.equals(responseDialect)),
                     new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
             }
 
@@ -4491,7 +4495,9 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 case "stop", "tool-call" -> "STOP";
                 case "length" -> "MAX_TOKENS";
                 case "content-filter" -> "SAFETY";
-                default -> "OTHER";
+                default -> NAME.equals(responseDialect) && finishReason.startsWith(VENDOR_PREFIX)
+                    ? finishReason.substring(VENDOR_PREFIX.length())
+                    : "OTHER";
                 };
             }
 
@@ -4499,15 +4505,16 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         }
 
         private static int kindOf(
-            LlmSectionType type)
+            LlmSectionType type,
+            boolean sameDialect)
         {
             return switch (type)
             {
             case ASSISTANT_TEXT, ASSISTANT_REFUSAL -> KIND_TEXT;
             case ASSISTANT_REASONING -> KIND_REASONING;
             case TOOL_CALL -> KIND_TOOL_CALL;
-            case SERVER_TOOL_CALL -> KIND_SERVER_TOOL_CALL;
-            case SERVER_TOOL_RESULT -> KIND_SERVER_TOOL_RESULT;
+            case SERVER_TOOL_CALL -> sameDialect ? KIND_SERVER_TOOL_CALL : KIND_SKIPPED;
+            case SERVER_TOOL_RESULT -> sameDialect ? KIND_SERVER_TOOL_RESULT : KIND_SKIPPED;
             default -> KIND_SKIPPED;
             };
         }
@@ -4516,7 +4523,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         {
             if (controlPipeline == null)
             {
-                controlTransform = new LlmGeminiControlFromCanonical();
+                controlTransform = new LlmGeminiControlFromCanonical(NAME.equals(responseDialect));
                 controlPipeline = new LlmSectionPipeline(controlTransform, new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
             }
 

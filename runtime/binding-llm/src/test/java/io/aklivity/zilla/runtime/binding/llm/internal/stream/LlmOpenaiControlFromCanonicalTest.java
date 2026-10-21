@@ -28,7 +28,8 @@ public class LlmOpenaiControlFromCanonicalTest
     private static final String LONG = "x".repeat(300);
     private static final String HUGE = "x".repeat(5000);
 
-    private final LlmOpenaiControlFromCanonical transform = new LlmOpenaiControlFromCanonical();
+    private final LlmOpenaiControlFromCanonical transform = new LlmOpenaiControlFromCanonical(true);
+    private final LlmOpenaiControlFromCanonical foreign = new LlmOpenaiControlFromCanonical(false);
 
     @Test
     public void shouldRestoreOwnPrefixedMember()
@@ -58,6 +59,30 @@ public class LlmOpenaiControlFromCanonicalTest
             json("{'note':'" + HUGE + "'}"));
 
         assertThat(transform.member(), equalTo("metadata"));
+    }
+
+    @Test
+    public void shouldDropOwnPrefixedMemberAcrossDialects()
+    {
+        assertTransforms(foreign, json("{'openai:temperature':0.7}"), "null");
+
+        assertThat(foreign.member(), nullValue());
+    }
+
+    @Test
+    public void shouldDropOwnPrefixedObjectMemberAcrossDialects()
+    {
+        assertTransforms(foreign, json("{'openai:metadata':{'a':[1,{'b':'" + LONG + "'}]}}"), "null");
+
+        assertThat(foreign.member(), nullValue());
+    }
+
+    @Test
+    public void shouldPassUnprefixedMemberAcrossDialects()
+    {
+        assertTransforms(foreign, json("{'temperature':0.2}"), "0.2");
+
+        assertThat(foreign.member(), equalTo("temperature"));
     }
 
     @Test
