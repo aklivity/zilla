@@ -40,7 +40,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"gemini:generationConfig\":{\"candidateCount\":1},\"x:temperature\":0.2,\"gemini:generationConfig\":{\"maxOutputTokens\":256},\"x:top_p\":0.9,\"x:top_k\":40,\"x:stop\":[\"END\"],\"x:seed\":42,\"x:frequency_penalty\":0.5,\"x:presence_penalty\":-0.5,\"gemini:generationConfig\":{\"responseMimeType\":\"application/json\"}}"
+write "{\"gemini:generationConfig\":{\"candidateCount\":1},\"x:temperature\":0.2,\"gemini:generationConfig\":{\"maxOutputTokens\":256},\"x:top_p\":0.9,\"x:top_k\":40,\"x:stop\":[\"END\"],\"x:seed\":42,\"x:frequency_penalty\":0.5,\"x:presence_penalty\":-0.5,\"gemini:generationConfig\":{\"responseLogprobs\":true}}"
 write flush
 
 write advise zilla:flush ${llm:dialectFlushEx()

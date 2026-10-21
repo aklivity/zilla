@@ -1891,4 +1891,74 @@ public class LlmOpenaiResponsesServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.request.response.format.text/client",
+        "${app}/openai.responses.request.response.format.text/server"})
+    public void shouldForwardOpenaiResponsesRequestResponseFormatText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.request.response.format.json.object/client",
+        "${app}/openai.responses.request.response.format.json.object/server"})
+    public void shouldForwardOpenaiResponsesRequestResponseFormatJsonObject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.request.response.format.json.schema/client",
+        "${app}/openai.responses.request.response.format.json.schema/server"})
+    public void shouldForwardOpenaiResponsesRequestResponseFormatJsonSchema() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.request.response.format.residue/client",
+        "${app}/openai.responses.request.response.format.residue/server"})
+    public void shouldForwardOpenaiResponsesRequestResponseFormatResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.request.response.format.residue.split/client",
+        "${app}/openai.responses.request.response.format.residue.split/server"})
+    public void shouldForwardOpenaiResponsesRequestResponseFormatResidueSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.request.response.format.residue.only/client",
+        "${app}/openai.responses.request.response.format.residue.only/server"})
+    public void shouldForwardOpenaiResponsesRequestResponseFormatResidueOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.request.response.format.json.schema.type.last/client",
+        "${app}/openai.responses.request.response.format.json.schema/server"})
+    public void shouldForwardOpenaiResponsesRequestResponseFormatJsonSchemaTypeLast() throws Exception
+    {
+        k3po.finish();
+    }
 }

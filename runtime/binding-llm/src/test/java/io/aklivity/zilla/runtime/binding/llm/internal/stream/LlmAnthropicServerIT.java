@@ -1715,4 +1715,54 @@ public class LlmAnthropicServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.request.response.format.json.schema/client",
+        "${app}/anthropic.request.response.format.json.schema/server"})
+    public void shouldForwardAnthropicRequestResponseFormatJsonSchema() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.request.response.format.residue/client",
+        "${app}/anthropic.request.response.format.residue/server"})
+    public void shouldForwardAnthropicRequestResponseFormatResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.request.response.format.residue.split/client",
+        "${app}/anthropic.request.response.format.residue.split/server"})
+    public void shouldForwardAnthropicRequestResponseFormatResidueSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.request.response.format.residue.only/client",
+        "${app}/anthropic.request.response.format.residue.only/server"})
+    public void shouldForwardAnthropicRequestResponseFormatResidueOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.request.response.format.json.schema.type.last/client",
+        "${app}/anthropic.request.response.format.json.schema/server"})
+    public void shouldForwardAnthropicRequestResponseFormatJsonSchemaTypeLast() throws Exception
+    {
+        k3po.finish();
+    }
 }

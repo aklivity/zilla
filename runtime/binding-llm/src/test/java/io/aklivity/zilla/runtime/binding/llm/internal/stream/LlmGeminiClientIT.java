@@ -1589,4 +1589,163 @@ public class LlmGeminiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.request.response.format.json.object/client",
+        "${net}/gemini.request.response.format.json.object/server"})
+    public void shouldRestoreGeminiRequestResponseFormatJsonObject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.request.response.format.json.schema/client",
+        "${net}/gemini.request.response.format.json.schema/server"})
+    public void shouldRestoreGeminiRequestResponseFormatJsonSchema() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.request.response.format.residue/client",
+        "${net}/gemini.request.response.format.residue/server"})
+    public void shouldRestoreGeminiRequestResponseFormatResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.request.response.format.enum/client",
+        "${net}/gemini.request.response.format.enum/server"})
+    public void shouldRestoreGeminiRequestResponseFormatEnum() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.request.response.format.schema.first/client",
+        "${net}/gemini.request.response.format.schema.first/server"})
+    public void shouldRestoreGeminiRequestResponseFormatSchemaFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.request.response.format.deprecated.schema.first/client",
+        "${net}/gemini.request.response.format.deprecated.schema.first/server"})
+    public void shouldRestoreGeminiRequestResponseFormatDeprecatedSchemaFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.request.response.format.text/client",
+        "${net}/gemini.transform.request.response.format.text/server"})
+    public void shouldTransformRequestResponseFormatTextAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.request.response.format.json.object/client",
+        "${net}/gemini.transform.request.response.format.json.object/server"})
+    public void shouldTransformRequestResponseFormatJsonObjectAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.request.response.format.json.schema/client",
+        "${net}/gemini.transform.request.response.format.json.schema/server"})
+    public void shouldTransformRequestResponseFormatJsonSchemaAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.request.response.format.json.schema.names/client",
+        "${net}/gemini.transform.request.response.format.json.schema.names/server"})
+    public void shouldTransformRequestResponseFormatJsonSchemaNamesAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.request.response.format.json.schema.type.last/client",
+        "${net}/gemini.transform.request.response.format.json.schema/server"})
+    public void shouldTransformRequestResponseFormatJsonSchemaTypeLastAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.rejected.response.format.type/client",
+        "${net}/gemini.transform.rejected.tool.choice/server"})
+    public void shouldRejectResponseFormatTypeAsGeminiNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.rejected.response.format.keyword.pattern.properties/client",
+        "${net}/gemini.transform.rejected.tool.choice/server"})
+    public void shouldRejectResponseFormatKeywordPatternPropertiesAsGeminiNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.rejected.response.format.keyword.not/client",
+        "${net}/gemini.transform.rejected.tool.choice/server"})
+    public void shouldRejectResponseFormatKeywordNotAsGeminiNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.rejected.response.format.keyword.external.ref/client",
+        "${net}/gemini.transform.rejected.tool.choice/server"})
+    public void shouldRejectResponseFormatKeywordExternalRefAsGeminiNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -7802,4 +7802,301 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.response.format.text/client",
+        "${app}/openai.request.response.format.text/server"})
+    public void shouldForwardOpenaiRequestResponseFormatText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.response.format.json.object/client",
+        "${app}/openai.request.response.format.json.object/server"})
+    public void shouldForwardOpenaiRequestResponseFormatJsonObject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.response.format.text/client",
+        "${app}/openai.responses.request.response.format.text/server"})
+    public void shouldForwardOpenaiResponsesRequestResponseFormatText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.response.format.json.object/client",
+        "${app}/openai.responses.request.response.format.json.object/server"})
+    public void shouldForwardOpenaiResponsesRequestResponseFormatJsonObject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.response.format.json.schema/client",
+        "${app}/openai.responses.request.response.format.json.schema/server"})
+    public void shouldForwardOpenaiResponsesRequestResponseFormatJsonSchema() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.response.format.residue/client",
+        "${app}/openai.responses.request.response.format.residue/server"})
+    public void shouldForwardOpenaiResponsesRequestResponseFormatResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.response.format.residue.split/client",
+        "${app}/openai.responses.request.response.format.residue.split/server"})
+    public void shouldForwardOpenaiResponsesRequestResponseFormatResidueSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.response.format.residue.only/client",
+        "${app}/openai.responses.request.response.format.residue.only/server"})
+    public void shouldForwardOpenaiResponsesRequestResponseFormatResidueOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.response.format.json.schema/client",
+        "${app}/anthropic.request.response.format.json.schema/server"})
+    public void shouldForwardAnthropicRequestResponseFormatJsonSchema() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.response.format.residue/client",
+        "${app}/anthropic.request.response.format.residue/server"})
+    public void shouldForwardAnthropicRequestResponseFormatResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.response.format.residue.split/client",
+        "${app}/anthropic.request.response.format.residue.split/server"})
+    public void shouldForwardAnthropicRequestResponseFormatResidueSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.response.format.residue.only/client",
+        "${app}/anthropic.request.response.format.residue.only/server"})
+    public void shouldForwardAnthropicRequestResponseFormatResidueOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.response.format.json.object/client",
+        "${app}/gemini.request.response.format.json.object/server"})
+    public void shouldForwardGeminiRequestResponseFormatJsonObject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.response.format.json.schema/client",
+        "${app}/gemini.request.response.format.json.schema/server"})
+    public void shouldForwardGeminiRequestResponseFormatJsonSchema() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.response.format.residue/client",
+        "${app}/gemini.request.response.format.residue/server"})
+    public void shouldForwardGeminiRequestResponseFormatResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.response.format.enum/client",
+        "${app}/gemini.request.response.format.enum/server"})
+    public void shouldForwardGeminiRequestResponseFormatEnum() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.response.format.schema.first/client",
+        "${app}/gemini.request.response.format.schema.first/server"})
+    public void shouldForwardGeminiRequestResponseFormatSchemaFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.response.format.deprecated.schema.first/client",
+        "${app}/gemini.request.response.format.deprecated.schema.first/server"})
+    public void shouldForwardGeminiRequestResponseFormatDeprecatedSchemaFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.response.format.text/client",
+        "${app}/transform.request.response.format.text/server"})
+    public void shouldTransformRequestResponseFormatText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.response.format.json.object/client",
+        "${app}/transform.request.response.format.json.object/server"})
+    public void shouldTransformRequestResponseFormatJsonObject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.response.format.json.schema/client",
+        "${app}/transform.request.response.format.json.schema/server"})
+    public void shouldTransformRequestResponseFormatJsonSchema() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.response.format.json.schema.type.last/client",
+        "${app}/transform.request.response.format.json.schema.type.last/server"})
+    public void shouldTransformRequestResponseFormatJsonSchemaTypeLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.response.format.json.schema.names/client",
+        "${app}/transform.request.response.format.json.schema.names/server"})
+    public void shouldTransformRequestResponseFormatJsonSchemaNames() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.response.format.json.object/client",
+        "${app}/transform.rejected.response.format.json.object/server"})
+    public void shouldTransformRejectedResponseFormatJsonObject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.response.format.type/client",
+        "${app}/transform.rejected.response.format.type/server"})
+    public void shouldTransformRejectedResponseFormatType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.response.format.keyword.minimum/client",
+        "${app}/transform.rejected.response.format.keyword.minimum/server"})
+    public void shouldTransformRejectedResponseFormatKeywordMinimum() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.response.format.keyword.min.length/client",
+        "${app}/transform.rejected.response.format.keyword.min.length/server"})
+    public void shouldTransformRejectedResponseFormatKeywordMinLength() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.response.format.keyword.max.items/client",
+        "${app}/transform.rejected.response.format.keyword.max.items/server"})
+    public void shouldTransformRejectedResponseFormatKeywordMaxItems() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.response.format.keyword.min.items/client",
+        "${app}/transform.rejected.response.format.keyword.min.items/server"})
+    public void shouldTransformRejectedResponseFormatKeywordMinItems() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.response.format.keyword.external.ref/client",
+        "${app}/transform.rejected.response.format.keyword.external.ref/server"})
+    public void shouldTransformRejectedResponseFormatKeywordExternalRef() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.response.format.keyword.recursive.ref/client",
+        "${app}/transform.rejected.response.format.keyword.recursive.ref/server"})
+    public void shouldTransformRejectedResponseFormatKeywordRecursiveRef() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.response.format.keyword.pattern.properties/client",
+        "${app}/transform.rejected.response.format.keyword.pattern.properties/server"})
+    public void shouldTransformRejectedResponseFormatKeywordPatternProperties() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.response.format.keyword.not/client",
+        "${app}/transform.rejected.response.format.keyword.not/server"})
+    public void shouldTransformRejectedResponseFormatKeywordNot() throws Exception
+    {
+        k3po.finish();
+    }
 }

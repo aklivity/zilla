@@ -2117,4 +2117,119 @@ public class LlmOpenaiResponsesClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.response.format.text/client",
+        "${net}/openai.responses.request.response.format.text/server"})
+    public void shouldRestoreOpenaiResponsesRequestResponseFormatText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.response.format.json.object/client",
+        "${net}/openai.responses.request.response.format.json.object/server"})
+    public void shouldRestoreOpenaiResponsesRequestResponseFormatJsonObject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.response.format.json.schema/client",
+        "${net}/openai.responses.request.response.format.json.schema/server"})
+    public void shouldRestoreOpenaiResponsesRequestResponseFormatJsonSchema() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.response.format.residue/client",
+        "${net}/openai.responses.request.response.format.residue/server"})
+    public void shouldRestoreOpenaiResponsesRequestResponseFormatResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.response.format.residue.split/client",
+        "${net}/openai.responses.request.response.format.residue.split/server"})
+    public void shouldRestoreOpenaiResponsesRequestResponseFormatResidueSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.response.format.residue.only/client",
+        "${net}/openai.responses.request.response.format.residue.only/server"})
+    public void shouldRestoreOpenaiResponsesRequestResponseFormatResidueOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.response.format.text/client",
+        "${net}/openai.responses.transform.request.response.format.text/server"})
+    public void shouldTransformRequestResponseFormatTextFromOpenaiResponsesAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.response.format.json.object/client",
+        "${net}/openai.responses.transform.request.response.format.json.object/server"})
+    public void shouldTransformRequestResponseFormatJsonObjectFromOpenaiResponsesAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.response.format.json.schema/client",
+        "${net}/openai.responses.transform.request.response.format.json.schema/server"})
+    public void shouldTransformRequestResponseFormatJsonSchemaFromOpenaiResponsesAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.response.format.json.schema.type.last/client",
+        "${net}/openai.responses.transform.request.response.format.json.schema/server"})
+    public void shouldTransformRequestResponseFormatJsonSchemaTypeLastFromOpenaiResponsesAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.rejected.response.format.type/client",
+        "${net}/openai.responses.transform.rejected.tool.choice/server"})
+    public void shouldRejectResponseFormatTypeAsOpenaiResponsesNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
 }

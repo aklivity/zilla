@@ -2020,4 +2020,90 @@ public class LlmOpenaiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.response.format.text/client",
+        "${net}/openai.request.response.format.text/server"})
+    public void shouldRestoreOpenaiRequestResponseFormatText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.response.format.json.object/client",
+        "${net}/openai.request.response.format.json.object/server"})
+    public void shouldRestoreOpenaiRequestResponseFormatJsonObject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.response.format.text/client",
+        "${net}/openai.transform.request.response.format.text/server"})
+    public void shouldTransformRequestResponseFormatTextAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.response.format.text/client",
+        "${net}/openai.transform.request.response.format.text/server"})
+    public void shouldTransformRequestResponseFormatTextFromOpenaiAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.response.format.json.object/client",
+        "${net}/openai.transform.request.response.format.json.object/server"})
+    public void shouldTransformRequestResponseFormatJsonObjectAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.response.format.json.object/client",
+        "${net}/openai.transform.request.response.format.json.object/server"})
+    public void shouldTransformRequestResponseFormatJsonObjectFromOpenaiAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.response.format.json.schema/client",
+        "${net}/openai.transform.request.response.format.json.schema/server"})
+    public void shouldTransformRequestResponseFormatJsonSchemaAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.response.format.json.schema/client",
+        "${net}/openai.transform.request.response.format.json.schema/server"})
+    public void shouldTransformRequestResponseFormatJsonSchemaFromOpenaiAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
 }

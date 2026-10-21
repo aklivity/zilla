@@ -29,7 +29,7 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-write "{\"contents\":[{\"role\":\"user\",\"parts\":[{\"text\":\"Hello\"}]}],\"generationConfig\":{\"candidateCount\":1,\"temperature\":0.2,\"maxOutputTokens\":256,\"topP\":0.9,\"topK\":40,\"stopSequences\":[\"END\"],\"seed\":42,\"frequencyPenalty\":0.5,\"presencePenalty\":-0.5,\"responseMimeType\":\"application/json\"}}"
+write "{\"contents\":[{\"role\":\"user\",\"parts\":[{\"text\":\"Hello\"}]}],\"generationConfig\":{\"candidateCount\":1,\"temperature\":0.2,\"maxOutputTokens\":256,\"topP\":0.9,\"topK\":40,\"stopSequences\":[\"END\"],\"seed\":42,\"frequencyPenalty\":0.5,\"presencePenalty\":-0.5,\"responseLogprobs\":true}}"
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()

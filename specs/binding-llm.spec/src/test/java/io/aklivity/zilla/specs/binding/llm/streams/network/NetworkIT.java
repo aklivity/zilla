@@ -7559,4 +7559,346 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.response.format.text/client",
+        "${net}/openai.request.response.format.text/server"})
+    public void shouldForwardOpenaiRequestResponseFormatText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.response.format.json.object/client",
+        "${net}/openai.request.response.format.json.object/server"})
+    public void shouldForwardOpenaiRequestResponseFormatJsonObject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.request.response.format.text/client",
+        "${net}/openai.responses.request.response.format.text/server"})
+    public void shouldForwardOpenaiResponsesRequestResponseFormatText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.request.response.format.json.object/client",
+        "${net}/openai.responses.request.response.format.json.object/server"})
+    public void shouldForwardOpenaiResponsesRequestResponseFormatJsonObject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.request.response.format.json.schema/client",
+        "${net}/openai.responses.request.response.format.json.schema/server"})
+    public void shouldForwardOpenaiResponsesRequestResponseFormatJsonSchema() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.request.response.format.residue/client",
+        "${net}/openai.responses.request.response.format.residue/server"})
+    public void shouldForwardOpenaiResponsesRequestResponseFormatResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.request.response.format.residue.split/client",
+        "${net}/openai.responses.request.response.format.residue.split/server"})
+    public void shouldForwardOpenaiResponsesRequestResponseFormatResidueSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.request.response.format.residue.only/client",
+        "${net}/openai.responses.request.response.format.residue.only/server"})
+    public void shouldForwardOpenaiResponsesRequestResponseFormatResidueOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.request.response.format.json.schema.type.last/client",
+        "${net}/openai.responses.request.response.format.json.schema.type.last/server"})
+    public void shouldForwardOpenaiResponsesRequestResponseFormatJsonSchemaTypeLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.response.format.json.schema/client",
+        "${net}/anthropic.request.response.format.json.schema/server"})
+    public void shouldForwardAnthropicRequestResponseFormatJsonSchema() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.response.format.residue/client",
+        "${net}/anthropic.request.response.format.residue/server"})
+    public void shouldForwardAnthropicRequestResponseFormatResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.response.format.residue.split/client",
+        "${net}/anthropic.request.response.format.residue.split/server"})
+    public void shouldForwardAnthropicRequestResponseFormatResidueSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.response.format.residue.only/client",
+        "${net}/anthropic.request.response.format.residue.only/server"})
+    public void shouldForwardAnthropicRequestResponseFormatResidueOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.response.format.json.schema.type.last/client",
+        "${net}/anthropic.request.response.format.json.schema.type.last/server"})
+    public void shouldForwardAnthropicRequestResponseFormatJsonSchemaTypeLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.response.format.json.object/client",
+        "${net}/gemini.request.response.format.json.object/server"})
+    public void shouldForwardGeminiRequestResponseFormatJsonObject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.response.format.json.schema/client",
+        "${net}/gemini.request.response.format.json.schema/server"})
+    public void shouldForwardGeminiRequestResponseFormatJsonSchema() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.response.format.residue/client",
+        "${net}/gemini.request.response.format.residue/server"})
+    public void shouldForwardGeminiRequestResponseFormatResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.response.format.enum/client",
+        "${net}/gemini.request.response.format.enum/server"})
+    public void shouldForwardGeminiRequestResponseFormatEnum() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.response.format.schema.first/client",
+        "${net}/gemini.request.response.format.schema.first/server"})
+    public void shouldForwardGeminiRequestResponseFormatSchemaFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.response.format.deprecated.schema.first/client",
+        "${net}/gemini.request.response.format.deprecated.schema.first/server"})
+    public void shouldForwardGeminiRequestResponseFormatDeprecatedSchemaFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.response.format.json.schema.lowercase/client",
+        "${net}/gemini.request.response.format.json.schema.lowercase/server"})
+    public void shouldForwardGeminiRequestResponseFormatJsonSchemaLowercase() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.response.format.deprecated.json.object/client",
+        "${net}/gemini.request.response.format.deprecated.json.object/server"})
+    public void shouldForwardGeminiRequestResponseFormatDeprecatedJsonObject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.response.format.deprecated.json.schema/client",
+        "${net}/gemini.request.response.format.deprecated.json.schema/server"})
+    public void shouldForwardGeminiRequestResponseFormatDeprecatedJsonSchema() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.response.format.deprecated.json.schema.json/client",
+        "${net}/gemini.request.response.format.deprecated.json.schema.json/server"})
+    public void shouldForwardGeminiRequestResponseFormatDeprecatedJsonSchemaJson() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.response.format.snake/client",
+        "${net}/gemini.request.response.format.snake/server"})
+    public void shouldForwardGeminiRequestResponseFormatSnake() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.request.response.format.text/client",
+        "${net}/openai.transform.request.response.format.text/server"})
+    public void shouldOpenaiTransformRequestResponseFormatText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.request.response.format.json.object/client",
+        "${net}/openai.transform.request.response.format.json.object/server"})
+    public void shouldOpenaiTransformRequestResponseFormatJsonObject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.request.response.format.json.schema/client",
+        "${net}/openai.transform.request.response.format.json.schema/server"})
+    public void shouldOpenaiTransformRequestResponseFormatJsonSchema() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.request.response.format.text/client",
+        "${net}/openai.responses.transform.request.response.format.text/server"})
+    public void shouldOpenaiResponsesTransformRequestResponseFormatText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.request.response.format.json.object/client",
+        "${net}/openai.responses.transform.request.response.format.json.object/server"})
+    public void shouldOpenaiResponsesTransformRequestResponseFormatJsonObject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.request.response.format.json.schema/client",
+        "${net}/openai.responses.transform.request.response.format.json.schema/server"})
+    public void shouldOpenaiResponsesTransformRequestResponseFormatJsonSchema() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.request.response.format.text/client",
+        "${net}/anthropic.transform.request.response.format.text/server"})
+    public void shouldAnthropicTransformRequestResponseFormatText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.request.response.format.json.schema/client",
+        "${net}/anthropic.transform.request.response.format.json.schema/server"})
+    public void shouldAnthropicTransformRequestResponseFormatJsonSchema() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.request.response.format.json.schema.names/client",
+        "${net}/anthropic.transform.request.response.format.json.schema.names/server"})
+    public void shouldAnthropicTransformRequestResponseFormatJsonSchemaNames() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.request.response.format.text/client",
+        "${net}/gemini.transform.request.response.format.text/server"})
+    public void shouldGeminiTransformRequestResponseFormatText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.request.response.format.json.object/client",
+        "${net}/gemini.transform.request.response.format.json.object/server"})
+    public void shouldGeminiTransformRequestResponseFormatJsonObject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.request.response.format.json.schema/client",
+        "${net}/gemini.transform.request.response.format.json.schema/server"})
+    public void shouldGeminiTransformRequestResponseFormatJsonSchema() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.request.response.format.json.schema.names/client",
+        "${net}/gemini.transform.request.response.format.json.schema.names/server"})
+    public void shouldGeminiTransformRequestResponseFormatJsonSchemaNames() throws Exception
+    {
+        k3po.finish();
+    }
 }

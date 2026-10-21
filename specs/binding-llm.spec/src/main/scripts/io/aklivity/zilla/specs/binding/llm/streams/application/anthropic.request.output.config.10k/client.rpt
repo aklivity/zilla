@@ -38,7 +38,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"anthropic:output_config\":{\"format\":{\"type\":\"json_schema\",\"schema\":{\"type\":\"object\",\"description\":\""
+write "{\"x:response_format\":{\"type\":\"json_schema\",\"json_schema\":{\"name\":\"response\",\"schema\":{\"type\":\"object\",\"description\":\""
       ${core:randomBase64(10000)}
       "\"}}}}"
 write flush
