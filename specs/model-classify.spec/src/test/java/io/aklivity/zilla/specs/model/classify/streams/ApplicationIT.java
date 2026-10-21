@@ -95,4 +95,44 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/client.sent.text.rejected.max.length/client",
+        "${app}/client.sent.text.rejected.max.length/server"
+    })
+    public void shouldRejectTextExceedingMaxLength() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.sent.text.accepted.max.length/client",
+        "${app}/client.sent.text.accepted.max.length/server"
+    })
+    public void shouldForwardTextAtMaxLength() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/streaming.text.accepted.max.length/client",
+        "${app}/streaming.text.accepted.max.length/server"
+    })
+    public void shouldRelayTextLongerThanMaxLength() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/streaming.text.accepted.multibyte/client",
+        "${app}/streaming.text.accepted.multibyte/server"
+    })
+    public void shouldRelayMultibyteTextWithoutSplittingCharacter() throws Exception
+    {
+        k3po.finish();
+    }
 }
