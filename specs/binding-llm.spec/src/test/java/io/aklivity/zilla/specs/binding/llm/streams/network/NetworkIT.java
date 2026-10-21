@@ -7901,4 +7901,49 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.request.response.format.rejected.bound/client",
+        "${net}/openai.responses.request.response.format.rejected.bound/server"})
+    public void shouldForwardOpenaiResponsesRequestResponseFormatRejectedBound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.request.response.format.json.schema.split/client",
+        "${net}/openai.responses.request.response.format.json.schema.split/server"})
+    public void shouldForwardOpenaiResponsesRequestResponseFormatJsonSchemaSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.response.format.json.schema.split/client",
+        "${net}/anthropic.request.response.format.json.schema.split/server"})
+    public void shouldForwardAnthropicRequestResponseFormatJsonSchemaSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.response.format.json.schema.split/client",
+        "${net}/gemini.request.response.format.json.schema.split/server"})
+    public void shouldForwardGeminiRequestResponseFormatJsonSchemaSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.response.format.deprecated.json.schema.split/client",
+        "${net}/gemini.request.response.format.deprecated.json.schema.split/server"})
+    public void shouldForwardGeminiRequestResponseFormatDeprecatedJsonSchemaSplit() throws Exception
+    {
+        k3po.finish();
+    }
 }

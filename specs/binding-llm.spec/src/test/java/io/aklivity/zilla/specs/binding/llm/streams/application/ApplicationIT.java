@@ -8099,4 +8099,13 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.response.format.rejected.bound/client",
+        "${app}/openai.responses.request.response.format.rejected.bound/server"})
+    public void shouldForwardOpenaiResponsesRequestResponseFormatRejectedBound() throws Exception
+    {
+        k3po.finish();
+    }
 }

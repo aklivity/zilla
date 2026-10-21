@@ -1961,4 +1961,24 @@ public class LlmOpenaiResponsesServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.request.response.format.rejected.bound/client",
+        "${app}/openai.responses.request.response.format.rejected.bound/server"})
+    public void shouldDecodeOpenaiResponsesRequestResponseFormatRejectedBound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.request.response.format.json.schema.split/client",
+        "${app}/openai.responses.request.response.format.json.schema/server"})
+    public void shouldForwardOpenaiResponsesRequestResponseFormatJsonSchemaSplit() throws Exception
+    {
+        k3po.finish();
+    }
 }

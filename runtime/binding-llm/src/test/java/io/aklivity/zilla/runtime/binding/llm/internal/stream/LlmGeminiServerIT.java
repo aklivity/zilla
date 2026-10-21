@@ -1544,4 +1544,24 @@ public class LlmGeminiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.response.format.json.schema.split/client",
+        "${app}/gemini.request.response.format.json.schema/server"})
+    public void shouldForwardGeminiRequestResponseFormatJsonSchemaSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.response.format.deprecated.json.schema.split/client",
+        "${app}/gemini.request.response.format.json.schema/server"})
+    public void shouldForwardGeminiRequestResponseFormatDeprecatedJsonSchemaSplit() throws Exception
+    {
+        k3po.finish();
+    }
 }

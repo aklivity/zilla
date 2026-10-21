@@ -1765,4 +1765,14 @@ public class LlmAnthropicServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.request.response.format.json.schema.split/client",
+        "${app}/anthropic.request.response.format.json.schema/server"})
+    public void shouldForwardAnthropicRequestResponseFormatJsonSchemaSplit() throws Exception
+    {
+        k3po.finish();
+    }
 }
