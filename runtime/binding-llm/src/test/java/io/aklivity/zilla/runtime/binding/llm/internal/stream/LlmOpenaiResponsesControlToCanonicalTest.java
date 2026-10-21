@@ -228,4 +228,68 @@ public class LlmOpenaiResponsesControlToCanonicalTest
     {
         assertRejects(transform, json("{'text':{'format':'text'}}"));
     }
+
+    @Test
+    public void shouldLiftReasoningEffort()
+    {
+        for (String effort : new String[] {"none", "minimal", "low", "medium", "high", "xhigh"})
+        {
+            assertTransforms(transform,
+                json("{'reasoning':{'effort':'" + effort + "'}}"),
+                json("{'x:reasoning_effort':'" + effort + "'}"));
+        }
+    }
+
+    @Test
+    public void shouldKeepReasoningSummaryAsResidueAfterEffort()
+    {
+        assertTransforms(transform,
+            json("{'reasoning':{'effort':'low','summary':'auto'}}"),
+            json("{'x:reasoning_effort':'low','openai:reasoning':{'summary':'auto'}}"));
+    }
+
+    @Test
+    public void shouldKeepReasoningSummaryAsResidueBeforeEffort()
+    {
+        assertTransforms(transform,
+            json("{'reasoning':{'summary':'auto','effort':'low'}}"),
+            json("{'openai:reasoning':{'summary':'auto'},'x:reasoning_effort':'low'}"));
+    }
+
+    @Test
+    public void shouldSplitReasoningResidueAroundEffort()
+    {
+        assertTransforms(transform,
+            json("{'reasoning':{'summary':'auto','effort':'low','generate_summary':'concise'}}"),
+            json("{'openai:reasoning':{'summary':'auto'},'x:reasoning_effort':'low'," +
+                "'openai:reasoning':{'generate_summary':'concise'}}"));
+    }
+
+    @Test
+    public void shouldKeepReasoningWithoutEffortAsResidue()
+    {
+        assertTransforms(transform,
+            json("{'reasoning':{'summary':'auto'}}"),
+            json("{'openai:reasoning':{'summary':'auto'}}"));
+    }
+
+    @Test
+    public void shouldDropNullReasoningEffort()
+    {
+        assertTransforms(transform,
+            json("{'reasoning':{'effort':null,'summary':'auto'}}"),
+            json("{'openai:reasoning':{'summary':'auto'}}"));
+    }
+
+    @Test
+    public void shouldKeepEmptyReasoningAsResidue()
+    {
+        assertTransforms(transform, json("{'reasoning':{}}"), json("{'openai:reasoning':{}}"));
+    }
+
+    @Test
+    public void shouldKeepNullReasoningAsResidue()
+    {
+        assertTransforms(transform, json("{'reasoning':null}"), json("{'openai:reasoning':null}"));
+    }
 }

@@ -15,13 +15,17 @@
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.PARALLEL_TOOL_CALLS;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.REASONING_EFFORT;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.RESPONSE_FORMAT;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.STOP;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TEMPERATURE;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.THINKING_BUDGET_TOKENS;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TOOL_CHOICE;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TOP_K;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TOP_P;
 
+import io.aklivity.zilla.runtime.binding.llm.config.LlmEffort;
+import io.aklivity.zilla.runtime.binding.llm.config.LlmModelCapability;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
@@ -49,32 +53,46 @@ final class LlmAnthropicControlFromCanonical extends LlmFormatFromCanonical
     private final boolean members;
     private final LlmToolChoice choice;
     private final LlmSchemaScanner scanner;
+    private final LlmModelCapability capability;
 
     private String member;
     private String choiceType;
     private int parallelCalls;
+    private int effort;
+    private int budget;
 
     LlmAnthropicControlFromCanonical(
         boolean sameDialect)
     {
-        this(MODE_EXTRACT, sameDialect);
+        this(MODE_EXTRACT, sameDialect, LlmModelCapability.UNSPECIFIED);
     }
 
     private LlmAnthropicControlFromCanonical(
         int mode,
-        boolean sameDialect)
+        boolean sameDialect,
+        LlmModelCapability capability)
     {
         super(mode, sameDialect);
         this.members = mode == MODE_OBJECT;
         this.choice = new LlmToolChoice();
         this.scanner = new LlmSchemaScanner(LlmSchemaScanner.TARGET_ANTHROPIC);
+        this.capability = capability;
         this.parallelCalls = PARALLEL_UNSET;
+        this.effort = LlmEffort.ABSENT;
+        this.budget = LlmEffort.ABSENT;
     }
 
     static LlmAnthropicControlFromCanonical members(
         boolean sameDialect)
     {
-        return new LlmAnthropicControlFromCanonical(MODE_OBJECT, sameDialect);
+        return members(sameDialect, LlmModelCapability.UNSPECIFIED);
+    }
+
+    static LlmAnthropicControlFromCanonical members(
+        boolean sameDialect,
+        LlmModelCapability capability)
+    {
+        return new LlmAnthropicControlFromCanonical(MODE_OBJECT, sameDialect, capability);
     }
 
     String member()
@@ -92,6 +110,16 @@ final class LlmAnthropicControlFromCanonical extends LlmFormatFromCanonical
         return parallelCalls;
     }
 
+    int effort()
+    {
+        return effort;
+    }
+
+    int budget()
+    {
+        return budget;
+    }
+
     @Override
     public void reset()
     {
@@ -99,6 +127,8 @@ final class LlmAnthropicControlFromCanonical extends LlmFormatFromCanonical
         member = null;
         choiceType = null;
         parallelCalls = PARALLEL_UNSET;
+        effort = LlmEffort.ABSENT;
+        budget = LlmEffort.ABSENT;
     }
 
     @Override
@@ -139,12 +169,20 @@ final class LlmAnthropicControlFromCanonical extends LlmFormatFromCanonical
         {
             if (matches(key, TEMPERATURE))
             {
-                action = clamp(TEMPERATURE, TEMPERATURE_MINIMUM, TEMPERATURE_MAXIMUM);
+                action = capability.sampling ? clamp(TEMPERATURE, TEMPERATURE_MINIMUM, TEMPERATURE_MAXIMUM) : DROP;
             }
             else if (matches(key, TOP_P) || matches(key, TOP_K))
             {
-                target = name(key);
-                action = PASS_VALUE;
+                if (capability.sampling)
+                {
+                    target = name(key);
+                    action = PASS_VALUE;
+                }
+            }
+            else if (matches(key, REASONING_EFFORT) || matches(key, THINKING_BUDGET_TOKENS))
+            {
+                target = null;
+                action = capture(key);
             }
             else if (matches(key, STOP))
             {
@@ -218,10 +256,26 @@ final class LlmAnthropicControlFromCanonical extends LlmFormatFromCanonical
         LlmCapturedValue value)
     {
         final String member = capturedMember();
+        Status status;
 
-        return matches(member, MEMBER_TYPE)
-            ? formatCaptured(value)
-            : matches(member, PARALLEL_TOOL_CALLS) ? onParallelCalls(value) : onToolChoice(value);
+        if (matches(member, REASONING_EFFORT))
+        {
+            effort = LlmReasoning.effortOf(value);
+            status = effort != LlmEffort.INVALID ? Status.ADVANCED : rejected(REASONING_EFFORT);
+        }
+        else if (matches(member, THINKING_BUDGET_TOKENS))
+        {
+            budget = LlmReasoning.budgetOf(value);
+            status = budget != LlmEffort.INVALID ? Status.ADVANCED : rejected(THINKING_BUDGET_TOKENS);
+        }
+        else
+        {
+            status = matches(member, MEMBER_TYPE)
+                ? formatCaptured(value)
+                : matches(member, PARALLEL_TOOL_CALLS) ? onParallelCalls(value) : onToolChoice(value);
+        }
+
+        return status;
     }
 
     @Override

@@ -135,6 +135,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private static final int ESCAPE_EXPANSION = 6;
     private static final int MIN_TEXT_INPUT = "\"content\":\"\"".length();
     private static final String MEMBER_TEXT = "text";
+    private static final String MEMBER_REASONING = "reasoning";
     private static final String MEMBER_REFUSAL = "refusal";
     private static final String MEMBER_SUMMARY = "summary";
     private static final String MEMBER_ENCRYPTED = "encrypted_content";
@@ -3629,7 +3630,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             captureThen = then;
 
-            if (matches(key, MEMBER_TOOL_CHOICE) || matches(key, MEMBER_TEXT))
+            if (matches(key, MEMBER_TOOL_CHOICE) || matches(key, MEMBER_TEXT) || matches(key, MEMBER_REASONING))
             {
                 controlConverted(key, CONTROL_CONTINUE);
             }
@@ -3650,7 +3651,9 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             onDecodeSectionData(decodeTraceId, decodeAuthorization, separator, 0, separator.capacity(), false);
 
-            choiceMember = matches(key, MEMBER_TEXT) ? MEMBER_TEXT : MEMBER_TOOL_CHOICE;
+            choiceMember = matches(key, MEMBER_TEXT)
+                ? MEMBER_TEXT
+                : matches(key, MEMBER_REASONING) ? MEMBER_REASONING : MEMBER_TOOL_CHOICE;
             blockPipeline = choicePipeline();
             blockPipeline.begin(blockAttributes);
             memberOutput.begin();
@@ -3680,7 +3683,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 blockPipeline.begin(blockAttributes);
                 onDecodeControlKey(key, false, '{');
             }
-            else if (matches(key, MEMBER_TOOL_CHOICE) || matches(key, MEMBER_TEXT))
+            else if (matches(key, MEMBER_TOOL_CHOICE) || matches(key, MEMBER_TEXT) || matches(key, MEMBER_REASONING))
             {
                 controlConverted(key, CONTROL_BEGIN);
             }

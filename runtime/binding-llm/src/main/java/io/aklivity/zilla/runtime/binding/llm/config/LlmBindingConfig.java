@@ -30,6 +30,7 @@ import java.util.regex.Pattern;
 
 import io.aklivity.zilla.config.binding.llm.LlmGuardrailConfig;
 import io.aklivity.zilla.config.binding.llm.LlmGuardrailStageConfig;
+import io.aklivity.zilla.config.binding.llm.LlmModelConfig;
 import io.aklivity.zilla.config.binding.llm.LlmOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.ConfigException;
@@ -65,6 +66,7 @@ public class LlmBindingConfig
     public final GuardHandler guard;
     public final String credentials;
     private final Map<String, LlmGuardrail> guardrails;
+    private final LlmModelCatalog models;
 
     private final Pattern credentialsPattern;
 
@@ -91,6 +93,7 @@ public class LlmBindingConfig
             : null;
         this.guardrails = new LinkedHashMap<>();
         this.options.guardrails.forEach(guardrail -> guardrails.put(guardrail.name, supplyGuardrail(context, guardrail)));
+        this.models = new LlmModelCatalog(this.options.models, LlmModelConfig.defaults(this.options.dialect));
     }
 
     protected LlmBindingConfig(
@@ -105,6 +108,7 @@ public class LlmBindingConfig
         this.credentials = binding.credentials;
         this.credentialsPattern = binding.credentialsPattern;
         this.guardrails = binding.guardrails;
+        this.models = binding.models;
     }
 
     public LlmAuthorizationResult authorize(
@@ -174,6 +178,12 @@ public class LlmBindingConfig
         String model)
     {
         return guardrails.getOrDefault(model, LlmGuardrail.NONE);
+    }
+
+    public LlmModelCapability capability(
+        String model)
+    {
+        return models.resolve(model);
     }
 
     private static Pattern supplyCredentialsPattern(

@@ -31,6 +31,8 @@ import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.config.binding.llm.LlmServerConfig;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmBindingConfig;
+import io.aklivity.zilla.runtime.binding.llm.config.LlmEffort;
+import io.aklivity.zilla.runtime.binding.llm.config.LlmModelCapability;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmRouteConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectHandler;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmBinding;
@@ -179,12 +181,14 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private static final int ENCODE_SLACK = 256;
     private static final int ENCODE_STRUCTURE = 128;
     private static final int ENCODE_MAX_COMPLETION_TOKENS = 48;
+    private static final int ENCODE_REASONING_EFFORT = 48;
     private static final int NO_MAX_OUTPUT_TOKENS = -1;
 
     private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx(new byte[0]);
 
     private static final String MEMBER_MODEL = "model";
     private static final String MEMBER_MAX_COMPLETION_TOKENS = "max_completion_tokens";
+    private static final String MEMBER_REASONING_EFFORT = "reasoning_effort";
     private static final String MEMBER_MESSAGES = "messages";
     private static final String MEMBER_TOOLS = "tools";
     private static final String MEMBER_TOOL_CALL_ID = "tool_call_id";
@@ -4099,6 +4103,9 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private LlmSectionPipeline toolDefinitionPipeline;
         private LlmSectionPipeline controlPipeline;
         private LlmOpenaiControlFromCanonical controlTransform;
+        private LlmModelCapability capability = LlmModelCapability.UNSPECIFIED;
+        private int effort = LlmEffort.ABSENT;
+        private int budget = LlmEffort.ABSENT;
         private int controlMessage;
         private LlmSectionPipeline citationsPipeline;
         private LlmTextPipeline encodeText;
@@ -4288,7 +4295,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             if (controlPipeline == null)
             {
-                controlTransform = LlmOpenaiControlFromCanonical.members(sameDialect);
+                capability = stream.binding.capability(stream.model);
+                controlTransform = LlmOpenaiControlFromCanonical.members(sameDialect, capability);
                 controlPipeline = new LlmSectionPipeline(controlTransform, transformBuffer);
             }
 
@@ -4667,8 +4675,26 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             }
         }
 
+        private void onControlEnd()
+        {
+            if (controlTransform.effort() != LlmEffort.ABSENT)
+            {
+                effort = controlTransform.effort();
+            }
+
+            if (controlTransform.budget() != LlmEffort.ABSENT)
+            {
+                budget = controlTransform.budget();
+            }
+        }
+
         private void doEncodeSectionEnd()
         {
+            if (sectionKind == KIND_CONTROL && sectionStreaming)
+            {
+                onControlEnd();
+            }
+
             encodeText = null;
 
             if (sectionKind != 0 && sectionKind != KIND_DROPPED && beginEncode(ENCODE_STRUCTURE))
@@ -4708,7 +4734,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             if (!LlmState.initialClosing(state) && !LlmState.initialClosed(state))
             {
-                if (beginEncode(ENCODE_STRUCTURE + ENCODE_MAX_COMPLETION_TOKENS))
+                if (beginEncode(ENCODE_STRUCTURE + ENCODE_MAX_COMPLETION_TOKENS + ENCODE_REASONING_EFFORT))
                 {
                     closeMessage();
                     closeRegions();
@@ -4716,6 +4742,13 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                     if (!messagesOpened)
                     {
                         generator.writeStartArray(MEMBER_MESSAGES).writeEnd();
+                    }
+
+                    final String reasoning = LlmOpenaiReasoning.effort(capability, effort, budget);
+
+                    if (reasoning != null)
+                    {
+                        generator.write(MEMBER_REASONING_EFFORT, reasoning);
                     }
 
                     if (maxOutputTokens != NO_MAX_OUTPUT_TOKENS)
