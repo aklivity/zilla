@@ -10,6 +10,7 @@
 - binding-llm: gemini dialect [\#2742](https://github.com/aklivity/zilla/issues/2742) ([jfallows](https://github.com/jfallows))
 - binding-llm: gemini dialect rejects role "model" after parts in a contents entry [\#2754](https://github.com/aklivity/zilla/issues/2754) ([jfallows](https://github.com/jfallows))
 - binding-llm: gemini dialect cannot route a model identifier containing a colon [\#2756](https://github.com/aklivity/zilla/issues/2756) ([jfallows](https://github.com/jfallows))
+- binding-llm: dialect-scoped server options through binding extensions [\#2767](https://github.com/aklivity/zilla/issues/2767) ([jfallows](https://github.com/jfallows))
 
 **Merged pull requests:**
 
@@ -24,6 +25,8 @@
 - fix\(binding-llm\): lowercase gemini tool schema types independent of the default locale [\#2759](https://github.com/aklivity/zilla/pull/2759) ([jfallows](https://github.com/jfallows))
 - feat\(binding-llm\): dialect-scoped client options and request-level attributes [\#2760](https://github.com/aklivity/zilla/pull/2760) ([jfallows](https://github.com/jfallows))
 - feat\(probes\): llm compatibility probes for the openai dialect [\#2763](https://github.com/aklivity/zilla/pull/2763) ([jfallows](https://github.com/jfallows))
+- feat\(binding-llm\): section ranges and in-place text guardrails [\#2766](https://github.com/aklivity/zilla/pull/2766) ([jfallows](https://github.com/jfallows))
+- feat\(binding-llm\): dialect-scoped server options through binding extensions [\#2768](https://github.com/aklivity/zilla/pull/2768) ([jfallows](https://github.com/jfallows))
 
 ## [2.5.0](https://github.com/aklivity/zilla/tree/2.5.0) (2026-10-19)
 

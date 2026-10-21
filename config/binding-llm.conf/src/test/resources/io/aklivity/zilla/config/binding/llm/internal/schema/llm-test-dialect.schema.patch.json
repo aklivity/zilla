@@ -44,5 +44,46 @@
                 "additionalProperties": false
             }
         }
+    },
+    {
+        "op": "add",
+        "path": "/$defs/binding-ext/llm/server-options/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "dialect":
+                    {
+                        "const": "test-dialect"
+                    }
+                },
+                "required": [ "dialect" ]
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "dialect": true,
+                    "authorization": true,
+                    "test-settings":
+                    {
+                        "title": "Test Settings",
+                        "type": "object",
+                        "properties":
+                        {
+                            "region":
+                            {
+                                "type": "string"
+                            }
+                        },
+                        "required": [ "region" ],
+                        "additionalProperties": false
+                    }
+                },
+                "additionalProperties": false
+            }
+        }
     }
 ]

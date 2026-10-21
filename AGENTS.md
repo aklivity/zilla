@@ -40,6 +40,7 @@ its `AGENTS.md` is loaded automatically with more detail:
 | [runtime/AGENTS.md](runtime/AGENTS.md) | Java module system, stream model, binding kinds, EngineWorker threading, factory + flyweight pattern, server/client/proxy patterns, per-stream field naming, buffer slots, decode strategy, unit tests |
 | [runtime/engine/AGENTS.md](runtime/engine/AGENTS.md) | Engine SPI conventions (Javadoc neutrality, null defaults), `EngineContext` implementer fan-out, test implementations for engine concepts |
 | [runtime/binding-kafka/AGENTS.md](runtime/binding-kafka/AGENTS.md) | Kafka local cache (mmap segments, `IoUtil.unmap()`, retention timestamps) |
+| [runtime/binding-llm/AGENTS.md](runtime/binding-llm/AGENTS.md) | llm section contract: body members and attributes, ranges, guardrail pass-through, model-visible value per section, streaming vs non-streaming |
 | [specs/AGENTS.md](specs/AGENTS.md) | `.rpt` script structure, folder layout, IT method naming, `XxxFunctions` builders/matchers, JUEL typed variants, k3po + JUnit 4 migration, JSON schema patches, required spec coverage |
 
 ---

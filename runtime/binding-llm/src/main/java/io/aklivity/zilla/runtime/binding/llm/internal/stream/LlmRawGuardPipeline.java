@@ -28,6 +28,7 @@ final class LlmRawGuardPipeline implements LlmGuardPipeline
     private final ModelPipeline pipeline;
 
     private boolean started;
+    private int values;
 
     LlmRawGuardPipeline(
         ModelPipeline pipeline)
@@ -60,6 +61,7 @@ final class LlmRawGuardPipeline implements LlmGuardPipeline
             srcLimit, dst, dstIndex, dstLimit);
 
         started = true;
+        values = result.produced();
 
         return result;
     }
@@ -77,8 +79,27 @@ final class LlmRawGuardPipeline implements LlmGuardPipeline
             dst, dstIndex, dstLimit);
 
         started = true;
+        values = result.produced();
 
         return result;
+    }
+
+    @Override
+    public boolean finishes()
+    {
+        return false;
+    }
+
+    @Override
+    public boolean identity()
+    {
+        return pipeline.identity();
+    }
+
+    @Override
+    public int values()
+    {
+        return values;
     }
 
     @Override

@@ -222,6 +222,50 @@ public class LlmProxyIT
     }
 
     @Test
+    @Configuration("proxy.guardrail.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.ranges.unguarded/client",
+        "${app}/openai.proxy.guardrail.ranges.unguarded.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayRangesOfUnguardedSection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.ranges.identity/client",
+        "${app}/openai.proxy.guardrail.ranges.identity.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayRangesThroughIdentityGuard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.mask.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.ranges.transformed/client",
+        "${app}/openai.proxy.guardrail.ranges.transformed.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldDropRangesThroughTransformingGuard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.ranges.tool.call/client",
+        "${app}/openai.proxy.guardrail.ranges.tool.call.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayRangesThroughIdentityGuardedToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.guardrail.mask.yaml")
     @Specification({
         "${app}/openai.proxy.guardrail.transform.streaming/client",
@@ -239,6 +283,17 @@ public class LlmProxyIT
         "${app}/openai.proxy.guardrail.transform.members.exit/server"})
     @ScriptProperty("clientAddress \"zilla://streams/net0\"")
     public void shouldRelayTransformedSectionsKeepingMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.mask.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.transform.members.leading/client",
+        "${app}/openai.proxy.guardrail.transform.members.leading.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayTransformedSectionsKeepingLeadingMembersInOrder() throws Exception
     {
         k3po.finish();
     }
