@@ -35,29 +35,26 @@ API (`POST /v1/responses`), told apart by path on the one openai-facing frontend
 openai client ────────►│ tcp(7161) → http(server) → llm(server, openai)             ──┐│
 anthropic client ─────►│ tcp(7162) → http(server) → llm(server, anthropic)          ──┤│
 gemini client ────────►│ tcp(7163) → http(server) → llm(server, gemini)             ──┼┼──► llm(proxy)
-responses client ─────►│ tcp(7164) → http(server) → llm(server, openai/responses)   ──┘│
                        └──────────────────────────────────────────────────────────────┘
 ```
 
 `north_llm_proxy` then picks one of six `llm(client)` legs, purely from the stream's `dialect`/`model`. Each
 leg exits to the system `sys:http_client`, which does the HTTP framing, and the TLS and TCP connection for the
-`server` the leg names. A condition's `dialect` is the dialect the request was received in (`openai` = Chat
-Completions, `openai/responses` = Responses); `openai` as a condition also matches `openai/responses`:
+`server` the leg names. A condition's `dialect` is the dialect the request was received in; `openai` stands
+for both OpenAI APIs, Chat Completions and Responses, which the openai-facing frontend tells apart by path.
+`south_llm_client_openai` follows the inbound request: a Responses request is same-dialect on `/v1/responses`,
+a request in any other dialect is translated to `/v1/chat/completions`:
 
 | Inbound dialect | Model | Routed to | Translated? |
 | --- | --- | --- | --- |
-| `openai`, `openai/responses` | `gpt-4o` | `south_llm_client_openai_secondary` → `api.openai.com` (`/v1/chat/completions`) | `openai`: no -- same dialect; `openai/responses`: **yes -- responses to chat completions** |
+| `openai` | `gpt-4o` | `south_llm_client_openai_secondary` → `api.openai.com` (`/v1/chat/completions`, or `/v1/responses` for a Responses request) | no -- same dialect |
 | `anthropic` | `claude-3-5-haiku-20241022` | `south_llm_client_anthropic_secondary` → `api.anthropic.com` | no -- same dialect |
-| `openai`, `openai/responses` | `claude-*`, e.g. `claude-haiku-5-5` | `south_llm_client_anthropic` → `api.anthropic.com` | **yes -- openai or responses to anthropic** |
+| `openai` | `claude-*`, e.g. `claude-haiku-5-5` | `south_llm_client_anthropic` → `api.anthropic.com` | **yes -- openai (Chat Completions or Responses) to anthropic** |
 | `anthropic` | `claude-*`, e.g. `claude-haiku-5-5` | `south_llm_client_anthropic` → `api.anthropic.com` | no -- same dialect |
-| `openai/responses` | `gpt-5*`, e.g. `gpt-5` | `south_llm_client_openai_responses` → `api.openai.com` (`/v1/responses`) | no -- same dialect |
-| `openai`, `anthropic` | `gpt-5*`, e.g. `gpt-5` | `south_llm_client_openai_responses` → `api.openai.com` (`/v1/responses`) | **yes -- chat completions or anthropic to responses** |
-| `openai` | `gpt-*`, e.g. `gpt-4o-mini` | `south_llm_client_openai` → `api.openai.com` (`/v1/chat/completions`) | no -- same dialect |
-| `openai/responses`, `anthropic` | `gpt-*`, e.g. `gpt-4o-mini` | `south_llm_client_openai` → `api.openai.com` (`/v1/chat/completions`) | **yes -- responses or anthropic to chat completions** |
-| any | `gemini-*`, e.g. `gemini-3.8-flash` | `south_llm_client_gemini` → `generativelanguage.googleapis.com` | no for `gemini`; **yes -- openai, responses or anthropic to gemini** |
+| `openai` | `gpt-*`, e.g. `gpt-5`, `gpt-4o-mini` | `south_llm_client_openai` → `api.openai.com` (`/v1/chat/completions`, or `/v1/responses` for a Responses request) | no -- same dialect |
+| `anthropic`, `gemini` | `gpt-*`, e.g. `gpt-4o-mini` | `south_llm_client_openai` → `api.openai.com` (`/v1/chat/completions`) | **yes -- anthropic or gemini to openai** |
+| any | `gemini-*`, e.g. `gemini-3.8-flash` | `south_llm_client_gemini` → `generativelanguage.googleapis.com` | no for `gemini`; **yes -- openai (Chat Completions or Responses) or anthropic to gemini** |
 | `gemini` | `claude-*`, e.g. `claude-haiku-5-5` | `south_llm_client_anthropic` → `api.anthropic.com` | **yes -- gemini to anthropic** |
-| `gemini` | `gpt-*`, e.g. `gpt-4o-mini` | `south_llm_client_openai` → `api.openai.com` | **yes -- gemini to openai** |
-| `openai/responses` | *(any other model)* | `south_llm_client_openai_responses` → `api.openai.com` (`/v1/responses`) | no -- same dialect |
 | `openai` | *(any other model)* | `south_llm_client_openai` → `api.openai.com` | no -- same dialect |
 | `anthropic` | *(any other model)* | `south_llm_client_anthropic` → `api.anthropic.com` | no -- same dialect |
 | `gemini` | *(any other model)* | `south_llm_client_gemini` → `generativelanguage.googleapis.com` | no -- same dialect |
@@ -72,16 +69,14 @@ decoded request/response (or, for the proxy, on the stream's own metadata).
 
 | Binding | Kind | Role in this example |
 | --- | --- | --- |
-| `llm` | `server` (`north_llm_server_openai`) | Terminates OpenAI-dialect `/v1/chat/completions` requests on port 7161; `dialect: openai` names the vendor, so it also serves `/v1/responses`, told apart by path |
+| `llm` | `server` (`north_llm_server_openai`) | Terminates OpenAI-dialect requests on port 7161: `dialect: openai` stands for both of OpenAI's APIs, `/v1/chat/completions` and `/v1/responses`, told apart by path |
 | `llm` | `server` (`north_llm_server_anthropic`) | Terminates Anthropic-dialect `/v1/messages` requests on port 7162 |
 | `llm` | `server` (`north_llm_server_gemini`) | Terminates Gemini-dialect `/v1beta/models/{model}:generateContent` and `:streamGenerateContent` requests on port 7163; the model comes from the path and a caller's `x-goog-api-key` is the credential |
-| `llm` | `server` (`north_llm_server_responses`) | Terminates `openai/responses` dialect `/v1/responses` requests on port 7164, the Responses API the OpenAI SDK's `client.responses.create` calls |
 | `llm` | `proxy` (`north_llm_proxy`) | Routes on `dialect`/`model` to one of the six `llm(client)` legs below |
 | `llm` | `client` (`south_llm_client_anthropic`) | Exit for `claude-*` models: for an openai-dialect request, re-encodes for Anthropic's Messages API and translates its response back; an anthropic-dialect request passes straight through |
-| `llm` | `client` (`south_llm_client_openai`) | Exit for `gpt-*` models: for an anthropic-dialect or `openai/responses` request, re-encodes for OpenAI's Chat Completions API and translates its response back; an openai-dialect request passes straight through |
-| `llm` | `client` (`south_llm_client_openai_responses`) | Exit for `gpt-5*` models and any other model a Responses request names: speaks `openai/responses` (`POST /v1/responses`, the `/v1` base path plus `/responses`) to OpenAI; a Responses request passes straight through, an openai or anthropic-dialect request is translated |
+| `llm` | `client` (`south_llm_client_openai`) | Exit for `gpt-*` models: follows the inbound request -- an openai-dialect request passes straight through, a Responses request on `POST /v1/responses` (the `/v1` base path plus `/responses`) and a Chat Completions request on `POST /v1/chat/completions`; an anthropic- or gemini-dialect request is re-encoded for Chat Completions and its response translated back |
 | `llm` | `client` (`south_llm_client_gemini`) | Exit for `gemini-*` models: for an openai- or anthropic-dialect request, re-encodes for Gemini's `streamGenerateContent` API and translates its response back; a gemini-dialect request passes straight through, on the operation the caller used |
-| `llm` | `client` (`south_llm_client_openai_secondary`) | `model: gpt-4o` exit: for an openai-dialect request same dialect, no translation, straight to OpenAI on a second leg of its own; a Responses request is translated to its Chat Completions API |
+| `llm` | `client` (`south_llm_client_openai_secondary`) | `model: gpt-4o` exit: for an openai-dialect request same dialect, no translation, straight to OpenAI on a second leg of its own, a Responses request on its `/v1/responses` |
 | `llm` | `client` (`south_llm_client_anthropic_secondary`) | `model: claude-3-5-haiku-20241022` exit: same dialect (anthropic) as the request, no translation, straight to Anthropic on a second leg of its own |
 
 Each cross-dialect direction also demonstrates a tool-call round trip: an
@@ -91,10 +86,10 @@ OpenAI request for a Claude model carrying a `tools` definition gets an OpenAI
 `function_call` output item in the same way, and a same-dialect Responses
 round trip sends the call back with its `function_call_output`.
 
-Members only the Responses dialect has a place for (`metadata`, `temperature`,
-`user`, `store`, ...) are carried through a hop to a Responses backend and echoed
-into the response it returns, and left behind on a hop to Chat Completions or
-Anthropic, which have no place for them.
+Members only the Responses API has a place for (`metadata`, `temperature`,
+`user`, `store`, ...) are carried through a same-dialect hop to OpenAI's
+`/v1/responses` and echoed into the response it returns, and left behind on a
+hop to Anthropic or Gemini, which have no place for them.
 
 ## Routing
 
@@ -122,17 +117,11 @@ bindings:
         with:
           fallback: [ claude-3-5-haiku-20241022 ]
       - when:
-          - model: [ "gpt-5*" ]
-        exit: south_llm_client_openai_responses
-      - when:
           - model: [ "gpt-*" ]
         exit: south_llm_client_openai
       - when:
           - model: [ "gemini-*" ]
         exit: south_llm_client_gemini
-      - when:
-          - dialect: openai/responses
-        exit: south_llm_client_openai_responses
       - when:
           - dialect: openai
         exit: south_llm_client_openai
@@ -147,18 +136,17 @@ bindings:
 Routes are evaluated top to bottom; the first matching one wins. The two
 `dialect`+`model` routes only match one specific model each. `dialect: openai`
 names the vendor, so the `gpt-4o` route matches a Chat Completions request and
-a Responses request alike (the latter is translated to Chat Completions on the
-way), while `dialect: openai/responses` matches the Responses API alone. The `model`-only
+a Responses request alike; the latter reaches the secondary deployment
+same-dialect on its `/v1/responses`. The `model`-only
 routes beneath them match any dialect and send each model to the provider that
 serves it, so the same route is a straight pass-through for a client speaking
 that provider's dialect and a cross-dialect translation for a client speaking
 the other one -- the dialect translation is a consequence of the model chosen,
-not something the route configures. The `gpt-5*` route sits ahead of `gpt-*` and names the Responses
-backend, which a Responses request reaches same-dialect and a Chat Completions
-or Anthropic request reaches translated. The four `dialect`-only routes last
-catch any other model and keep it on the provider of the client's own dialect;
-the `openai/responses` one precedes `openai` so a Responses request is not left
-to the vendor-wide match.
+not something the route configures. The `gpt-*` route names
+`south_llm_client_openai`, which follows the inbound request: a Responses request
+(`gpt-5`, say) reaches OpenAI same-dialect on `/v1/responses`, and a request in any
+other dialect is translated to Chat Completions. The three `dialect`-only routes last
+catch any other model and keep it on the provider of the client's own dialect.
 
 ### Fallback
 
@@ -222,12 +210,11 @@ north_llm_proxy:
               maxLength: 200
 ```
 
-`gpt-5`, the model the Responses backend serves, carries the same stages as `gpt-4o`.
+`gpt-5` carries the same stages as `gpt-4o`.
 Guardrails are keyed by model and apply to canonical sections, so they guard a
 request whichever dialect it arrived in and whichever backend serves it: a
-Responses request for `gpt-4o` is checked and then translated to Chat
-Completions, and a Responses request for `gpt-5` is checked and passed straight
-through.
+Responses request for `gpt-4o` or `gpt-5` is checked and then passed straight
+through to OpenAI's `/v1/responses`.
 
 The [`classify`](../../runtime/model-classify) model rejects a value that any of its classifiers labels with
 one of the labels listed under `reject`. The classifiers are declared at the top of
@@ -315,9 +302,9 @@ API key is forwarded upstream exactly as presented -- Zilla never needs a
 separate secret of its own configured in `zilla.yaml`, for the cross-dialect
 routes or the secondary, same-dialect ones. The reverse route mirrors this: an
 inbound `x-api-key` is captured with the `"{credentials}"` template and
-forwarded upstream as `Authorization: Bearer {credentials}`. The Responses
-frontend and `south_llm_client_openai_responses` use the same `Bearer`
-templates as the Chat Completions pair.
+forwarded upstream as `Authorization: Bearer {credentials}`. A Responses
+request uses the same `Bearer` templates, since it enters the same openai-facing
+frontend and leaves through the same `south_llm_client_openai`.
 
 ## Requirements
 
@@ -341,7 +328,7 @@ TEI_VERSION=cpu-arm64-1.9 docker compose up -d
 
 ## Try it
 
-Point the official `openai`/`anthropic`/`google-genai` Python SDKs at the four frontends --
+Point the official `openai`/`anthropic`/`google-genai` Python SDKs at the three frontends --
 `base_url` is the only override, exactly as a caller would repoint an
 existing integration at a self-hosted gateway:
 
@@ -398,36 +385,37 @@ stream still gets a complete response when the upstream answers with
 server-sent events. Text and tool calls alike are delivered by the upstream in
 fragments and reach the SDK in the other dialect's own streamed shape.
 
-Send a Responses API request to the responses-facing frontend (port 7164) --
+Send a Responses API request to the same openai-facing frontend (port 7161) --
 the same `OpenAI` client class, `client.responses.create` instead of
-`client.chat.completions.create`. `gpt-5` is served by the Responses backend,
-so the request passes straight through to OpenAI's `POST /v1/responses`;
-`gpt-4o-mini` is served by Chat Completions and a `claude-*` model by
-Anthropic, so the request is translated to either, and the reply comes back as a
-Response object. The key is the one of the provider that serves the model, as above:
+`client.chat.completions.create`; its `dialect: openai` stands for both OpenAI
+APIs, told apart by path. `gpt-5` and `gpt-4o` are both served same-dialect, so
+the request passes straight through to OpenAI's `POST /v1/responses`, `gpt-4o`
+on the secondary leg. A `claude-*` model is translated to Anthropic and a
+`gemini-*` model to Gemini, and the reply comes back as a Response object. The
+key is the one of the provider that serves the model, as above:
 
 ```python
-client = OpenAI(base_url="http://localhost:7164/v1", api_key="your-openai-key")
+client = OpenAI(base_url="http://localhost:7161/v1", api_key="your-openai-key")
 
 resp = client.responses.create(model="gpt-5", input="Hello")
 print(resp.output_text)
 
-for model in ["gpt-4o-mini", "gpt-4o"]:
-    print(client.responses.create(model=model, input="Hello").output_text)
+print(client.responses.create(model="gpt-4o", input="Hello").output_text)
 
 for event in client.responses.create(model="gpt-5", input="Hello", stream=True):
     if event.type == "response.output_text.delta":
         print(event.delta, end="")
+
+client = OpenAI(base_url="http://localhost:7161/v1", api_key="your-anthropic-key")
+print(client.responses.create(model="claude-haiku-5-5", input="Hello").output_text)
 ```
 
-`gpt-4o` shows `dialect: openai` matching both OpenAI dialects: the Responses
-request is translated to Chat Completions and answered by
-`south_llm_client_openai_secondary`. Members that only the Responses API has,
-such as `metadata` or `temperature`, are carried through to a Responses backend
-and left behind on a hop to the other two. A Chat Completions or Anthropic
-client asking for `gpt-5` is translated to the Responses backend the other way;
-port 7161 also serves `POST /v1/responses`, since its `dialect: openai` names the
-vendor.
+Members that only the Responses API has, such as `metadata` or `temperature`, are
+carried through to OpenAI's `/v1/responses` and left behind on a hop to
+Anthropic or Gemini. Translating between Chat Completions and Responses, in
+either direction, is not offered yet, and neither is translating an Anthropic or
+Gemini request to Responses: a Chat Completions, Anthropic or Gemini client
+asking for `gpt-5` reaches `/v1/chat/completions`.
 
 Send an Anthropic-shaped request for a GPT model to the anthropic-facing
 frontend, using your OpenAI key; the request is translated to OpenAI, and the reply comes back
@@ -520,10 +508,10 @@ curl -s http://localhost:7190/metrics | grep '^llm_tokens_input_count'
 
 A token count the upstream dialect does not report is left unrecorded rather
 than recorded as zero, so `llm_tokens_total_count` stays at `0` when the
-upstream is Anthropic, which never reports a total, while a Responses backend
+upstream is Anthropic, which never reports a total, while the Responses API
 always reports one, recorded at every binding of the exchange. `llm_interactions_total`
-counts one interaction per binding an exchange passes through, so a request that
-reaches `north_llm_server_responses` increments it at the server, the proxy and
+counts one interaction per binding an exchange passes through, so a Responses request that
+reaches `north_llm_server_openai` increments it at the server, the proxy and
 the client that served it.
 
 ### Metric attributes
@@ -576,8 +564,9 @@ south_llm_client_gemini:
 ```
 
 OpenAI and Anthropic follow the same shape with `https://api.openai.com:443` and `https://api.anthropic.com:443`;
-`south_llm_client_openai_responses` takes `dialect: openai/responses` and the same `https://api.openai.com:443`, and
-appends `/responses` to its `/v1` base path.
+`south_llm_client_openai` takes `dialect: openai` and serves both of OpenAI's APIs from the same
+`https://api.openai.com:443`: a Responses request is sent to its `/v1` base path plus `/responses`, any other
+dialect's request to `/chat/completions`.
 The Gemini client's default path is `/v1beta`; set `options.server` to
 `https://generativelanguage.googleapis.com:443/v1` for the stable API instead. The system TLS client trusts the CA
 bundle shipped in the Zilla image. To trust an additional CA, such as a TLS-intercepting proxy's, or to present a
@@ -613,15 +602,15 @@ binding an exchange passes through. The mocks answer with server-sent events whe
 combination of a streamed or non-streamed request and upstream response.
 
 The Responses API is covered through `client.responses.create` against port
-7164: text and streamed events (obfuscation on, and off with
+7161: text and streamed events (obfuscation on, and off with
 `stream_options.include_obfuscation`), `instructions`, a function-call round
-trip, the same-dialect hop to `mock-openai` and the translated hops to Chat
-Completions (`gpt-4`, `gpt-4o`) and Anthropic (`claude-*`), the Chat Completions
-and Anthropic SDKs reaching the Responses backend through `gpt-5`, `openai`
-members echoed back by the mock on the same-dialect hop and absent from what the
-other two mocks log, each model's route and credential pass-through (read from
-the mock's own log), the guardrails, the fallback of `claude-unreachable`, an
-unknown model, and the `llm.tokens.*` and `llm.interactions` metrics.
+trip, the same-dialect hops to `mock-openai` (`gpt-5` and other `gpt-*` models) and
+`mock-openai-secondary` (`gpt-4o`) on `/v1/responses`, the translated hops to Anthropic
+(`claude-*`) and Gemini (`gemini-*`), members echoed back by the mock on the
+same-dialect hop and absent from what the Anthropic mock logs, each model's route
+and credential pass-through (read from the mock's own log), the guardrails of
+`gpt-4o` and `gpt-5`, the fallback of `claude-unreachable`, an unknown model, and
+the `llm.tokens.*` and `llm.interactions` metrics.
 
 ## Teardown
 
