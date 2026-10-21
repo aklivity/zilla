@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.model.classify.internal;
 
 import static io.aklivity.zilla.runtime.model.classify.internal.ClassifyModelConfigurationTest.CLASSIFY_MAX_LENGTH_NAME;
-import static io.aklivity.zilla.runtime.model.classify.internal.ClassifyModelConfigurationTest.CLASSIFY_OVERLAP_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -62,7 +61,6 @@ public class ClassifyModelIT
 
     @Test
     @Configuration("reject.yaml")
-    @Configure(name = CLASSIFY_OVERLAP_NAME, value = "4")
     @Specification({
         "${net}/client.sent.text.fragmented.accepted/client",
         "${app}/client.sent.text.fragmented.accepted/server"
@@ -74,7 +72,6 @@ public class ClassifyModelIT
 
     @Test
     @Configuration("reject.request.yaml")
-    @Configure(name = CLASSIFY_OVERLAP_NAME, value = "4")
     @Specification({
         "${net}/client.sent.text.fragmented.accepted/client",
         "${app}/client.sent.text.fragmented.accepted/server"
@@ -108,7 +105,6 @@ public class ClassifyModelIT
 
     @Test
     @Configuration("reject.response.yaml")
-    @Configure(name = CLASSIFY_OVERLAP_NAME, value = "4")
     @Specification({
         "${net}/streaming.text.accepted/client",
         "${app}/streaming.text.accepted/server"
@@ -120,7 +116,17 @@ public class ClassifyModelIT
 
     @Test
     @Configuration("reject.response.yaml")
-    @Configure(name = CLASSIFY_OVERLAP_NAME, value = "16")
+    @Specification({
+        "${net}/streaming.text.accepted.retained/client",
+        "${app}/streaming.text.accepted.retained/server"
+    })
+    public void shouldHoldBackPartialLabelUntilRuledOut() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("reject.response.yaml")
     @Specification({
         "${net}/streaming.text.rejected.straddling/client",
         "${app}/streaming.text.rejected.straddling/server"
@@ -156,7 +162,6 @@ public class ClassifyModelIT
 
     @Test
     @Configuration("reject.response.yaml")
-    @Configure(name = CLASSIFY_OVERLAP_NAME, value = "4")
     @Configure(name = CLASSIFY_MAX_LENGTH_NAME, value = "16")
     @Specification({
         "${net}/streaming.text.accepted.max.length/client",
@@ -168,8 +173,7 @@ public class ClassifyModelIT
     }
 
     @Test
-    @Configuration("reject.response.yaml")
-    @Configure(name = CLASSIFY_OVERLAP_NAME, value = "5")
+    @Configuration("reject.multibyte.response.yaml")
     @Specification({
         "${net}/streaming.text.accepted.multibyte/client",
         "${app}/streaming.text.accepted.multibyte/server"

@@ -135,4 +135,14 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/streaming.text.accepted.retained/client",
+        "${net}/streaming.text.accepted.retained/server"
+    })
+    public void shouldHoldBackPartialLabelUntilRuledOut() throws Exception
+    {
+        k3po.finish();
+    }
 }

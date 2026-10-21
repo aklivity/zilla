@@ -153,4 +153,28 @@ public class PresidioClassifierIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("reject.response.yaml")
+    @Specification({
+        "${net}/streaming.text.rejected.straddling/client",
+        "${analyzer}/streaming.text.rejected.straddling/server",
+        "${app}/streaming.text.rejected.straddling/server"
+    })
+    public void shouldAbortEmailStraddlingFragmentsWithoutReleasingItsPrefix() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("reject.response.yaml")
+    @Specification({
+        "${net}/streaming.text.accepted.retained/client",
+        "${analyzer}/streaming.text.accepted.retained/server",
+        "${app}/streaming.text.accepted.retained/server"
+    })
+    public void shouldReleaseTrailingTokenOnceRuledOut() throws Exception
+    {
+        k3po.finish();
+    }
 }

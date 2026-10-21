@@ -21,13 +21,14 @@ accepted
 connected
 
 read option zilla:flags "init"
-read "0123"
+read "01234567"
 read notify FIRST_RELAYED
 
 read option zilla:flags "none"
-read "456789ab"
+read "89abcdef"
 read notify SECOND_RELAYED
 
 read option zilla:flags "fin"
-read "cdefghijklmn"
+read "ghijklmn"
+
 read closed
