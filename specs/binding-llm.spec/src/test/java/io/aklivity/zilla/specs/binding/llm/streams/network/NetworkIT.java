@@ -8288,4 +8288,211 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.request.user/client",
+        "${net}/openai.transform.request.user/server"})
+    public void shouldOpenaiTransformRequestUser() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.request.user/client",
+        "${net}/openai.responses.transform.request.user/server"})
+    public void shouldOpenaiResponsesTransformRequestUser() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.request.user/client",
+        "${net}/anthropic.transform.request.user/server"})
+    public void shouldAnthropicTransformRequestUser() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.request.service.tier/client",
+        "${net}/openai.transform.request.service.tier/server"})
+    public void shouldOpenaiTransformRequestServiceTier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.request.dropped/client",
+        "${net}/openai.transform.request.dropped/server"})
+    public void shouldOpenaiTransformRequestDropped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.request.service.tier/client",
+        "${net}/openai.responses.transform.request.service.tier/server"})
+    public void shouldOpenaiResponsesTransformRequestServiceTier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.request.dropped/client",
+        "${net}/openai.responses.transform.request.dropped/server"})
+    public void shouldOpenaiResponsesTransformRequestDropped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.request.service.tier/client",
+        "${net}/anthropic.transform.request.service.tier/server"})
+    public void shouldAnthropicTransformRequestServiceTier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.request.dropped/client",
+        "${net}/anthropic.transform.request.dropped/server"})
+    public void shouldAnthropicTransformRequestDropped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.request.service.tier/client",
+        "${net}/gemini.transform.request.service.tier/server"})
+    public void shouldGeminiTransformRequestServiceTier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.request.dropped/client",
+        "${net}/gemini.transform.request.dropped/server"})
+    public void shouldGeminiTransformRequestDropped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.user/client",
+        "${net}/openai.request.user/server"})
+    public void shouldForwardOpenaiRequestUser() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.service.tier/client",
+        "${net}/openai.request.service.tier/server"})
+    public void shouldForwardOpenaiRequestServiceTier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.service.tier.residue/client",
+        "${net}/openai.request.service.tier.residue/server"})
+    public void shouldForwardOpenaiRequestServiceTierResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.request.user/client",
+        "${net}/openai.responses.request.user/server"})
+    public void shouldForwardOpenaiResponsesRequestUser() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.request.service.tier/client",
+        "${net}/openai.responses.request.service.tier/server"})
+    public void shouldForwardOpenaiResponsesRequestServiceTier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.request.service.tier.residue/client",
+        "${net}/openai.responses.request.service.tier.residue/server"})
+    public void shouldForwardOpenaiResponsesRequestServiceTierResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.user/client",
+        "${net}/anthropic.request.user/server"})
+    public void shouldForwardAnthropicRequestUser() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.user.residue/client",
+        "${net}/anthropic.request.user.residue/server"})
+    public void shouldForwardAnthropicRequestUserResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.service.tier/client",
+        "${net}/anthropic.request.service.tier/server"})
+    public void shouldForwardAnthropicRequestServiceTier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.service.tier.residue/client",
+        "${net}/anthropic.request.service.tier.residue/server"})
+    public void shouldForwardAnthropicRequestServiceTierResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.service.tier/client",
+        "${net}/gemini.request.service.tier/server"})
+    public void shouldForwardGeminiRequestServiceTier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.service.tier.residue/client",
+        "${net}/gemini.request.service.tier.residue/server"})
+    public void shouldForwardGeminiRequestServiceTierResidue() throws Exception
+    {
+        k3po.finish();
+    }
 }

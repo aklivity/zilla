@@ -1892,4 +1892,90 @@ public class LlmAnthropicServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\"", "user \"user-123\"", "wire \"user-123\""})
+    @Specification({
+        "${net}/anthropic.transform.request.user/client",
+        "${app}/transform.request.user/server"})
+    public void shouldTransformUserFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\"", "tier \"auto\"", "wire \"auto\""})
+    @Specification({
+        "${net}/anthropic.transform.request.service.tier/client",
+        "${app}/transform.request.service.tier/server"})
+    public void shouldTransformServiceTierAutoFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\"", "tier \"default\"", "wire \"standard_only\""})
+    @Specification({
+        "${net}/anthropic.transform.request.service.tier/client",
+        "${app}/transform.request.service.tier/server"})
+    public void shouldTransformServiceTierDefaultFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.request.user/client",
+        "${app}/anthropic.request.user/server"})
+    public void shouldDecodeAnthropicRequestUser() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.request.user.residue/client",
+        "${app}/anthropic.request.user.residue/server"})
+    public void shouldDecodeAnthropicRequestUserResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"tier \"default\"", "wire \"standard_only\""})
+    @Specification({
+        "${net}/anthropic.request.service.tier/client",
+        "${app}/anthropic.request.service.tier/server"})
+    public void shouldDecodeAnthropicRequestServiceTierDefault() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"tier \"auto\"", "wire \"auto\""})
+    @Specification({
+        "${net}/anthropic.request.service.tier/client",
+        "${app}/anthropic.request.service.tier/server"})
+    public void shouldDecodeAnthropicRequestServiceTierAuto() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"wire \"other\""})
+    @Specification({
+        "${net}/anthropic.request.service.tier.residue/client",
+        "${app}/anthropic.request.service.tier.residue/server"})
+    public void shouldDecodeAnthropicRequestServiceTierResidueOther() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -31,6 +31,12 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
 public class LlmOpenaiClientIT
 {
+    private static final String USER_128 = "0123456789abcdef0123456789abcdef" +
+        "0123456789abcdef0123456789abcdef" +
+        "0123456789abcdef0123456789abcdef" +
+        "0123456789abcdef0123456789abcdef";
+    private static final String USER_129 = USER_128 + "x";
+
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("net", "io/aklivity/zilla/specs/binding/llm/streams/network")
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/llm/streams/application");
@@ -2339,6 +2345,164 @@ public class LlmOpenaiClientIT
         "${app}/transform.request.sampling.members/client",
         "${net}/openai.transform.request.sampling.supported/server"})
     public void shouldTransformSamplingAsOpenaiModelWithoutEntry() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\"", "user \"user-123\"", "wire \"user-123\""})
+    @Specification({
+        "${app}/transform.request.user/client",
+        "${net}/openai.transform.request.user/server"})
+    public void shouldTransformUserAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\"", "user \"" + USER_128 + "\"", "wire \"" + USER_128 + "\""})
+    @Specification({
+        "${app}/transform.request.user/client",
+        "${net}/openai.transform.request.user/server"})
+    public void shouldTransformUserAtLimitAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\"", "user \"" + USER_129 + "\""})
+    @Specification({
+        "${app}/transform.request.user/client",
+        "${net}/openai.transform.request.dropped/server"})
+    public void shouldDropUserOverLimitAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\"", "tier \"auto\"", "wire \"auto\""})
+    @Specification({
+        "${app}/transform.request.service.tier/client",
+        "${net}/openai.transform.request.service.tier/server"})
+    public void shouldTransformServiceTierAutoAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\"", "tier \"default\"", "wire \"default\""})
+    @Specification({
+        "${app}/transform.request.service.tier/client",
+        "${net}/openai.transform.request.service.tier/server"})
+    public void shouldTransformServiceTierDefaultAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\"", "tier \"flex\"", "wire \"flex\""})
+    @Specification({
+        "${app}/transform.request.service.tier/client",
+        "${net}/openai.transform.request.service.tier/server"})
+    public void shouldTransformServiceTierFlexAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\"", "tier \"priority\"", "wire \"priority\""})
+    @Specification({
+        "${app}/transform.request.service.tier/client",
+        "${net}/openai.transform.request.service.tier/server"})
+    public void shouldTransformServiceTierPriorityAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.tiers.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\"", "model \"no-flex\"", "tier \"flex\""})
+    @Specification({
+        "${app}/transform.request.service.tier/client",
+        "${net}/openai.transform.request.dropped/server"})
+    public void shouldDropServiceTierNotConfiguredAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.tiers.yaml")
+    @ScriptProperty({
+        "source \"anthropic\"",
+        "target \"openai\"",
+        "model \"no-flex\"",
+        "tier \"priority\"",
+        "wire \"priority\""})
+    @Specification({
+        "${app}/transform.request.service.tier/client",
+        "${net}/openai.transform.request.service.tier/server"})
+    public void shouldTransformServiceTierConfiguredAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.tiers.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\"", "model \"other-model\"", "tier \"flex\"", "wire \"flex\""})
+    @Specification({
+        "${app}/transform.request.service.tier/client",
+        "${net}/openai.transform.request.service.tier/server"})
+    public void shouldTransformServiceTierWithoutModelEntryAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.user/client",
+        "${net}/openai.request.user/server"})
+    public void shouldEncodeOpenaiRequestUser() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"tier \"auto\"", "wire \"auto\""})
+    @Specification({
+        "${app}/openai.request.service.tier/client",
+        "${net}/openai.request.service.tier/server"})
+    public void shouldEncodeOpenaiRequestServiceTierAuto() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"tier \"flex\"", "wire \"flex\""})
+    @Specification({
+        "${app}/openai.request.service.tier/client",
+        "${net}/openai.request.service.tier/server"})
+    public void shouldEncodeOpenaiRequestServiceTierFlex() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"wire \"scale\""})
+    @Specification({
+        "${app}/openai.request.service.tier.residue/client",
+        "${net}/openai.request.service.tier.residue/server"})
+    public void shouldEncodeOpenaiRequestServiceTierResidueScale() throws Exception
     {
         k3po.finish();
     }

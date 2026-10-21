@@ -52,7 +52,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-read "{\"x:seed\":42,\"x:stop\":[\"END\"],\"openai:store\":true,\"openai:service_tier\":\"auto\",\"openai:logprobs\":true,\"openai:top_logprobs\":3,\"openai:n\":2,\"openai:audio\":{\"voice\":\"alloy\",\"format\":\"wav\"}}"
+read "{\"x:seed\":42,\"x:stop\":[\"END\"],\"openai:store\":true,\"x:service_tier\":\"auto\",\"openai:logprobs\":true,\"openai:top_logprobs\":3,\"openai:n\":2,\"openai:audio\":{\"voice\":\"alloy\",\"format\":\"wav\"}}"
 
 read advised zilla:flush
 

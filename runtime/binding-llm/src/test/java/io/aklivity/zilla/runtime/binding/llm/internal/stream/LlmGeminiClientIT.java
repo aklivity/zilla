@@ -2248,4 +2248,179 @@ public class LlmGeminiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "user \"user-123\"", "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.request.user/client",
+        "${net}/gemini.transform.request.dropped/server"})
+    public void shouldDropUserAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "tier \"auto\"", "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.request.service.tier/client",
+        "${net}/gemini.transform.request.dropped/server"})
+    public void shouldDropServiceTierAutoAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "tier \"default\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "wire \"standard\""})
+    @Specification({
+        "${app}/transform.request.service.tier/client",
+        "${net}/gemini.transform.request.service.tier/server"})
+    public void shouldTransformServiceTierDefaultAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "tier \"flex\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "wire \"flex\""})
+    @Specification({
+        "${app}/transform.request.service.tier/client",
+        "${net}/gemini.transform.request.service.tier/server"})
+    public void shouldTransformServiceTierFlexAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "tier \"priority\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "wire \"priority\""})
+    @Specification({
+        "${app}/transform.request.service.tier/client",
+        "${net}/gemini.transform.request.service.tier/server"})
+    public void shouldTransformServiceTierPriorityAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.tiers.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "model \"no-priority\"",
+        "tier \"priority\"",
+        "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.request.service.tier/client",
+        "${net}/gemini.transform.request.dropped/server"})
+    public void shouldDropServiceTierNotConfiguredAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.tiers.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "model \"no-priority\"",
+        "tier \"flex\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "wire \"flex\""})
+    @Specification({
+        "${app}/transform.request.service.tier/client",
+        "${net}/gemini.transform.request.service.tier/server"})
+    public void shouldTransformServiceTierConfiguredAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.tiers.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "model \"other-model\"",
+        "tier \"priority\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "wire \"priority\""})
+    @Specification({
+        "${app}/transform.request.service.tier/client",
+        "${net}/gemini.transform.request.service.tier/server"})
+    public void shouldTransformServiceTierWithoutModelEntryAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"tier \"default\"", "wire \"standard\""})
+    @Specification({
+        "${app}/gemini.request.service.tier/client",
+        "${net}/gemini.request.service.tier/server"})
+    public void shouldEncodeGeminiRequestServiceTierDefault() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"tier \"flex\"", "wire \"flex\""})
+    @Specification({
+        "${app}/gemini.request.service.tier/client",
+        "${net}/gemini.request.service.tier/server"})
+    public void shouldEncodeGeminiRequestServiceTierFlex() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"tier \"priority\"", "wire \"priority\""})
+    @Specification({
+        "${app}/gemini.request.service.tier/client",
+        "${net}/gemini.request.service.tier/server"})
+    public void shouldEncodeGeminiRequestServiceTierPriority() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"wire \"TIER_X\""})
+    @Specification({
+        "${app}/gemini.request.service.tier.residue/client",
+        "${net}/gemini.request.service.tier.residue/server"})
+    public void shouldEncodeGeminiRequestServiceTierResidueUnknown() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"wire \"unspecified\""})
+    @Specification({
+        "${app}/gemini.request.service.tier.residue/client",
+        "${net}/gemini.request.service.tier.residue/server"})
+    public void shouldEncodeGeminiRequestServiceTierResidueUnspecified() throws Exception
+    {
+        k3po.finish();
+    }
 }
