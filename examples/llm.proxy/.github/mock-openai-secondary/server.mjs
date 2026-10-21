@@ -315,7 +315,7 @@ app.post("/v1/responses", (req, res) =>
     const items = inputItems(request.input);
     const lastUser = [...items].reverse().find(item => item.role === "user");
 
-    // Zilla's south_llm_client_openai_responses forwards the caller's own
+    // Zilla's south_llm_client_openai forwards the caller's own
     // credential here via options.authorization pass-through; logged so
     // verify.py can confirm it arrived unchanged.
     logReceived("/v1/responses", req, lastUser === undefined ? "" : itemText(lastUser),

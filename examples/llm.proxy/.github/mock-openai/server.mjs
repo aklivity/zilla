@@ -3,7 +3,7 @@
 // anthropic-facing frontend (north_llm_server_anthropic) -- so every request
 // this receives there already started life as an Anthropic-shaped /v1/messages
 // call that the llm binding translated into this OpenAI shape before
-// forwarding it here -- and south_llm_client_openai_responses (/v1/responses).
+// forwarding it here -- and south_llm_client_openai (/v1/responses).
 
 import express from "express";
 
@@ -308,7 +308,7 @@ app.post("/v1/responses", (req, res) =>
     const items = inputItems(request.input);
     const lastUser = [...items].reverse().find(item => item.role === "user");
 
-    // Zilla's south_llm_client_openai_responses forwards the caller's own
+    // Zilla's south_llm_client_openai forwards the caller's own
     // credential here via options.authorization pass-through; logged so
     // verify.py can confirm it arrived unchanged.
     logReceived("/v1/responses", req, lastUser === undefined ? "" : itemText(lastUser),

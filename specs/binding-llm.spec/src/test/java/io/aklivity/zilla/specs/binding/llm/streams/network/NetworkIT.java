@@ -5555,15 +5555,6 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.responses.transform.server.tool.definition.dropped/client",
-        "${net}/openai.responses.transform.server.tool.definition.dropped/server"})
-    public void shouldOpenaiResponsesTransformServerToolDefinitionDropped() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/openai.responses.transform.tool.result/client",
         "${net}/openai.responses.transform.tool.result/server"})
     public void shouldOpenaiResponsesTransformToolResult() throws Exception
@@ -5594,15 +5585,6 @@ public class NetworkIT
         "${net}/openai.responses.transform.assistant.tool.call.escaped/client",
         "${net}/openai.responses.transform.assistant.tool.call.escaped/server"})
     public void shouldOpenaiResponsesTransformAssistantToolCallEscaped() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/openai.responses.transform.assistant.tool.call.members/client",
-        "${net}/openai.responses.transform.assistant.tool.call.members/server"})
-    public void shouldOpenaiResponsesTransformAssistantToolCallMembers() throws Exception
     {
         k3po.finish();
     }
@@ -6266,45 +6248,9 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.responses.transform.rejected.user.video/client",
-        "${net}/openai.responses.transform.rejected.user.video/server"})
-    public void shouldOpenaiResponsesTransformRejectedUserVideo() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/openai.responses.transform.assistant.reasoning/client",
-        "${net}/openai.responses.transform.assistant.reasoning/server"})
-    public void shouldOpenaiResponsesTransformAssistantReasoning() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/openai.responses.transform.assistant.refusal/client",
         "${net}/openai.responses.transform.assistant.refusal/server"})
     public void shouldOpenaiResponsesTransformAssistantRefusal() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/openai.responses.transform.assistant.text.citations/client",
-        "${net}/openai.responses.transform.assistant.text.citations/server"})
-    public void shouldOpenaiResponsesTransformAssistantTextCitations() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/openai.responses.transform.assistant.text.citations.anthropic/client",
-        "${net}/openai.responses.transform.assistant.text.citations.anthropic/server"})
-    public void shouldOpenaiResponsesTransformAssistantTextCitationsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -6377,33 +6323,6 @@ public class NetworkIT
         "${net}/openai.responses.transform.mixed.content/client",
         "${net}/openai.responses.transform.mixed.content/server"})
     public void shouldOpenaiResponsesTransformMixedContent() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/openai.responses.transform.rejected.tool.call.name/client",
-        "${net}/openai.responses.transform.rejected.tool.call.name/server"})
-    public void shouldOpenaiResponsesTransformRejectedToolCallName() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/openai.responses.transform.rejected.tool.call.arguments/client",
-        "${net}/openai.responses.transform.rejected.tool.call.arguments/server"})
-    public void shouldOpenaiResponsesTransformRejectedToolCallArguments() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/openai.responses.transform.rejected.tool.definition.name/client",
-        "${net}/openai.responses.transform.rejected.tool.definition.name/server"})
-    public void shouldOpenaiResponsesTransformRejectedToolDefinitionName() throws Exception
     {
         k3po.finish();
     }
@@ -6491,15 +6410,6 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.transform.conversation/client",
-        "${net}/openai.transform.conversation/server"})
-    public void shouldOpenaiTransformConversation() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/openai.responses.transform.response.text.100k/client",
         "${net}/openai.responses.transform.response.text.100k/server"})
     public void shouldOpenaiResponsesTransformResponseText100k() throws Exception
@@ -6548,15 +6458,6 @@ public class NetworkIT
         "${net}/openai.responses.transform.response.streaming/client",
         "${net}/openai.responses.transform.response.streaming/server"})
     public void shouldOpenaiResponsesTransformResponseStreaming() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/openai.responses.transform.response.streaming.foreign/client",
-        "${net}/openai.responses.transform.response.streaming.foreign/server"})
-    public void shouldOpenaiResponsesTransformResponseStreamingForeign() throws Exception
     {
         k3po.finish();
     }

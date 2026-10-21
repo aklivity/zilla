@@ -2,11 +2,11 @@
 
 Demonstrates `llm(proxy)`: a hop that routes purely on `LlmBeginEx.dialect`/
 `model` -- both already resolved and populated by the `llm(server)` that
-produced the stream -- never on request content. All four frontends' `llm(server)`
+produced the stream -- never on request content. All three frontends' `llm(server)`
 bindings exit into one shared `north_llm_proxy`, which picks the backend from
-the model alone. OpenAI has two dialects, which are two frontends here:
-`openai` (Chat Completions, `POST /v1/chat/completions`) and `openai/responses`
-(the Responses API, `POST /v1/responses`):
+the model alone. The config knows one OpenAI dialect name, `openai`, which stands for
+OpenAI's two APIs: Chat Completions (`POST /v1/chat/completions`) and the Responses
+API (`POST /v1/responses`), told apart by path on the one openai-facing frontend:
 
 - **Cross-dialect translation, chosen by model**: the model names the provider
   that serves it, whichever dialect the client speaks. An OpenAI SDK client
@@ -15,14 +15,15 @@ the model alone. OpenAI has two dialects, which are two frontends here:
   way out; an Anthropic SDK client asking for a GPT model is translated the
   other way. A client already speaking the backend's dialect is not
   translated at all.
-- **Two OpenAI dialects**: an OpenAI SDK client calling `client.responses.create`
-  speaks `openai/responses`. A `gpt-5*` model is served by the Responses
-  backend, so a Responses request reaches it same-dialect while a Chat
-  Completions request for it, or an Anthropic one, is translated; any other
-  `gpt-*` model is served by the Chat Completions backend, so a Responses
-  request for it is translated to Chat Completions. A route condition
-  `dialect: openai` names the vendor and matches both OpenAI dialects, while
-  `dialect: openai/responses` pins the Responses API alone.
+- **Two OpenAI APIs, one dialect**: an OpenAI SDK client calling
+  `client.responses.create` reaches the same frontend as one calling
+  `client.chat.completions.create`. `south_llm_client_openai` follows the inbound
+  request: a Responses request reaches OpenAI same-dialect on `POST /v1/responses`,
+  while a request in any other dialect (Chat Completions, Anthropic, Gemini) is
+  translated to `POST /v1/chat/completions`. A route condition `dialect: openai`
+  matches both APIs. Translating between Chat Completions and Responses, and
+  Anthropic or Gemini to Responses, is not offered yet; a Responses request is
+  translated across dialects to Anthropic or Gemini, by model.
 - **Intra-dialect, model-based routing**: a specific model name is routed to
   a *second* deployment of the *same* dialect instead -- no translation on
   that leg at all. This is the routing this binding kind exists for --

@@ -5429,15 +5429,6 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/openai.responses.transform.response.finish.reason/client",
-        "${app}/openai.responses.transform.response.finish.reason/server"})
-    public void shouldOpenaiResponsesTransformResponseFinishReason() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/openai.responses.transform.response.usage/client",
         "${app}/openai.responses.transform.response.usage/server"})
     public void shouldOpenaiResponsesTransformResponseUsage() throws Exception

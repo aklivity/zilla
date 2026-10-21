@@ -104,50 +104,43 @@
 #  27. north_llm_server_gemini, north_llm_proxy and south_llm_client_gemini
 #      record the llm.* metrics of a Gemini exchange, token total included
 #  28. an OpenAI SDK client calling client.responses.create against the
-#      responses-facing frontend (north_llm_server_responses, port 7164, dialect
-#      openai/responses) and asking for gpt-5 is served by mock-openai's
-#      POST /v1/responses through south_llm_client_openai_responses, the same
-#      dialect in as out: a Response object with its output_text and usage,
+#      openai-facing frontend (north_llm_server_openai, port 7161, dialect
+#      openai, which admits both OpenAI APIs and tells them apart by path) and
+#      asking for gpt-5 is served by mock-openai's POST /v1/responses through
+#      south_llm_client_openai, which follows the request's dialect: the same
+#      dialect in as out, a Response object with its output_text and usage,
 #      and, streamed, the Responses event sequence ending in response.completed,
 #      obfuscation on every text delta unless stream_options.include_obfuscation
 #      is false, a text response delivered as server-sent events although the
 #      request did not stream, `instructions`, and a function-call round trip
 #      (the function_call in the output, then a function_call_output input)
-#  29. members of the openai/responses request with no counterpart in another
-#      dialect (metadata, temperature, user, max_output_tokens) are carried to a
+#  29. members of the Responses request with no counterpart in another dialect
+#      (metadata, temperature, user, max_output_tokens) are carried to a
 #      same-dialect deployment, which echoes them back into the Response, and
-#      are left behind on a hop to Chat Completions or Anthropic, confirmed
-#      against the request members each mock logs
-#  30. a Responses request is translated across dialects by model: gpt-4 to
-#      mock-openai's Chat Completions, gpt-4o to mock-openai-secondary's Chat
-#      Completions (`dialect: openai` matches both OpenAI dialects) and
-#      claude-3-opus-20240229 to mock-anthropic, each coming back as a valid
+#      are left behind on a hop to Anthropic, confirmed against the request
+#      members each mock logs
+#  30. a Responses request is served by the deployment its model routes to,
+#      same-dialect, gpt-4o on mock-openai-secondary and any other gpt-* model
+#      on mock-openai, and is translated across dialects for a Claude model,
+#      claude-3-opus-20240229 on mock-anthropic, each coming back as a valid
 #      Response object, as text, as a tool call, streamed and with `instructions`
-#  31. the other dialects reach the Responses backend: a Chat Completions SDK
-#      client and an Anthropic SDK client asking for gpt-5 are served by
-#      mock-openai's POST /v1/responses, text and tool calls, streamed or not
-#  32. the route that serves each model, confirmed by the caller's own token in
-#      the mock that received it: gpt-5* and the dialect-only openai/responses
-#      route (llama-3) reach the Responses backend, a vendor-level
-#      `dialect: openai` server (port 7161) also serves POST /v1/responses, and
-#      each south_llm_client forwards the token it was called with
-#  33. the guardrails of the model apply to a Responses request whichever
-#      backend serves it: gpt-4o (a Chat Completions backend) and gpt-5 (the
-#      Responses backend) reject an injection phrase or an over-long prompt in a
-#      user-text section and withhold an assistant-text section carrying a
-#      private key
-#  34. a Responses request for claude-unreachable falls back to
+#  31. the route that serves each model, confirmed by the caller's own token in
+#      the mock that received it, and each south_llm_client forwards the token it
+#      was called with
+#  32. the guardrails of the model apply to a Responses request whichever
+#      deployment serves it: gpt-4o and gpt-5 reject an injection phrase or an
+#      over-long prompt in a user-text section and withhold an assistant-text
+#      section carrying a private key
+#  33. a Responses request for claude-unreachable falls back to
 #      claude-3-5-haiku-20241022 as an Anthropic request does, and a model the
 #      backend does not know is reported as an error the SDK raises, streamed or not
-#  35. the llm.* metrics of every binding a Responses exchange passes through,
+#  34. the llm.* metrics of every binding a Responses exchange passes through,
 #      including llm.interactions: the same-dialect hop records the total token
 #      count the Responses API always reports, a hop to Anthropic leaves it
 #      unrecorded
-#  36. Gemini and Responses reach each other: a Gemini SDK client asking for
-#      gpt-5 is served by the Responses backend and parses a Gemini-shaped
-#      response, and a Responses SDK client asking for a gemini-* model is
-#      served by mock-gemini and parses a Response object, text and tool calls,
-#      streamed or not
+#  35. a Responses SDK client asking for a gemini-* model is served by
+#      mock-gemini and parses a Response object translated from the native Gemini
+#      response, text and function calls, streamed or not
 
 import json
 import os
@@ -169,7 +162,7 @@ FAIL_FAST = os.environ.get("FAIL_FAST", "0") == "1"
 GITHUB_ACTIONS = os.environ.get("GITHUB_ACTIONS")
 
 OPENAI_BASE_URL = "http://zilla:7161/v1"
-RESPONSES_BASE_URL = "http://zilla:7164/v1"
+RESPONSES_BASE_URL = "http://zilla:7161/v1"
 ANTHROPIC_BASE_URL = "http://zilla:7162"
 GEMINI_BASE_URL = "http://zilla:7163"
 METRICS_URL = "http://zilla:7190/metrics"
@@ -971,9 +964,9 @@ def warm_up_classifiers():
 
 
 # ---------------------------------------------------------------------------
-# openai/responses: the Responses API (POST /v1/responses) through the official
-# OpenAI SDK's client.responses.create, against the responses-facing frontend
-# (north_llm_server_responses, port 7164) that pins dialect openai/responses.
+# The Responses API (POST /v1/responses) through the official OpenAI SDK's
+# client.responses.create, against the openai-facing frontend
+# (north_llm_server_openai, port 7161) whose dialect openai admits both OpenAI APIs.
 # ---------------------------------------------------------------------------
 
 RESPONSES_TOOLS = [{
@@ -1100,7 +1093,7 @@ def received_by(service, token, path=None):
 
 
 # WHEN: an OpenAI SDK client calls responses.create for gpt-5 on the
-#       responses-facing frontend, which north_llm_proxy routes to the
+#       openai-facing frontend, which north_llm_proxy routes to the
 #       Responses backend
 # THEN: the SDK parses a Response object -- same dialect in as out
 def check_responses_text():
@@ -1166,7 +1159,7 @@ def check_responses_instructions():
     assert resp.output_text == f"[Answer briefly] {HELLO}", resp
 
 
-# WHEN: a request carries members only the openai/responses dialect has a place
+# WHEN: a request carries members only the Responses API has a place
 #       for, and the model is served by a Responses backend
 # THEN: the backend receives them and echoes them into the Response the SDK
 #       parses, and a hop to Chat Completions or Anthropic leaves them behind,
@@ -1192,16 +1185,6 @@ def assert_controls_left_behind(resp):
     assert getattr(resp, "user", None) != "caller-1", resp
 
 
-def check_responses_controls_dropped_to_chat():
-    token = tagged("responses-controls-chat")
-    resp = openai_response(
-        "gpt-4", streaming=False, client=responses_client(api_key=token),
-        metadata={"suite": token}, temperature=0.2, user="caller-1")
-    assert_controls_left_behind(resp)
-    members = received_by("mock-openai", token, "/v1/chat/completions").members
-    assert not {"metadata", "temperature", "user"} & set(members), members
-
-
 def check_responses_controls_dropped_to_anthropic():
     token = tagged("responses-controls-anthropic")
     resp = openai_response(
@@ -1212,62 +1195,21 @@ def check_responses_controls_dropped_to_anthropic():
     assert "metadata" not in members and "user" not in members, members
 
 
-# WHEN: a Responses SDK client asks for gpt-4, which the Chat Completions
-#       backend serves
-# THEN: the SDK parses a Response object translated from the Chat Completions reply
-def check_responses_to_chat_text():
-    token = tagged("responses-to-chat-text")
-    assert_response_text(openai_response("gpt-4", streaming=False, client=responses_client(api_key=token)))
-    received_by("mock-openai", token, "/v1/chat/completions")
-
-
-def check_responses_to_chat_text_streaming():
-    assert_streamed_text(openai_response("gpt-4", streaming=True))
-
-
-def check_responses_to_chat_text_upstream_sse():
-    assert_response_text(openai_response("gpt-4", streaming=False, upstream_sse=True), usage=False)
-
-
-def check_responses_to_chat_text_streaming_upstream_json():
-    assert_streamed_text(openai_response("gpt-4", streaming=True, upstream_sse=False))
-
-
-def check_responses_to_chat_function_call():
-    assert_response_function_call(openai_response("gpt-4", streaming=False, tools=RESPONSES_TOOLS))
-
-
-def check_responses_to_chat_function_call_streaming():
-    assert_streamed_function_call(openai_response("gpt-4", streaming=True, tools=RESPONSES_TOOLS))
-
-
-# WHEN: the request carries `instructions`
-# THEN: the Chat Completions backend receives them as a system message
-def check_responses_to_chat_instructions():
-    token = tagged("responses-to-chat-instructions")
-    resp = openai_response(
-        "gpt-4", streaming=False, client=responses_client(api_key=token), instructions="Answer briefly")
-    assert_response_object(resp)
-    assert sorted(received_by("mock-openai", token, "/v1/chat/completions").roles) == ["system", "user"]
-
-
 # WHEN: a Responses SDK client asks for gpt-4o, which route one sends to the
-#       second deployment, whose Chat Completions API serves it
-# THEN: `dialect: openai` matched this Responses request, so it was translated
-#       there like a Chat Completions request would have been -- and answered by
-#       the secondary deployment
-def check_responses_to_chat_secondary():
-    token = tagged("responses-to-chat-secondary")
+#       second deployment
+# THEN: the request is served same-dialect on that deployment's /v1/responses
+def check_responses_secondary():
+    token = tagged("responses-secondary")
     resp = openai_response("gpt-4o", streaming=False, client=responses_client(api_key=token))
     assert_response_object(resp)
-    assert "secondary openai-dialect deployment" in resp.output_text, resp
-    received_by("mock-openai-secondary", token, "/v1/chat/completions")
+    received_by("mock-openai-secondary", token, "/v1/responses")
 
 
-def check_responses_to_chat_secondary_streaming():
-    streamed = openai_response("gpt-4o", streaming=True)
-    assert "secondary openai-dialect deployment" in streamed.text, streamed
+def check_responses_secondary_streaming():
+    token = tagged("responses-secondary-streaming")
+    streamed = openai_response("gpt-4o", streaming=True, client=responses_client(api_key=token))
     assert streamed.completed.status == "completed", streamed
+    received_by("mock-openai-secondary", token, "/v1/responses")
 
 
 # WHEN: a Responses SDK client asks for a Claude model
@@ -1292,92 +1234,6 @@ def check_responses_to_anthropic_function_call():
 
 def check_responses_to_anthropic_function_call_streaming():
     assert_streamed_function_call(openai_response("claude-3-opus-20240229", streaming=True, tools=RESPONSES_TOOLS))
-
-
-# WHEN: a Chat Completions SDK client asks for gpt-5, which only the Responses
-#       backend serves
-# THEN: the SDK parses a chat completion translated from the Response, and the
-#       mock received it on POST /v1/responses
-def check_chat_to_responses_text():
-    token = tagged("chat-to-responses-text")
-    resp = openai_client(api_key=token).chat.completions.create(
-        model="gpt-5", messages=[{"role": "user", "content": "Hello"}])
-    assert resp.choices[0].message.content == HELLO, resp
-    assert resp.choices[0].finish_reason == "stop", resp
-    received_by("mock-openai", token, "/v1/responses")
-
-
-def check_chat_to_responses_text_streaming():
-    streamed = openai_chat("gpt-5", streaming=True)
-    assert streamed.content == HELLO, streamed
-    assert streamed.finish_reason == "stop", streamed
-
-
-def check_chat_to_responses_text_upstream_sse():
-    resp = openai_chat("gpt-5", streaming=False, upstream_sse=True)
-    assert resp.choices[0].message.content == HELLO, resp
-
-
-def check_chat_to_responses_tools():
-    resp = openai_chat("gpt-5", streaming=False, tools=OPENAI_TOOLS)
-    assert resp.choices[0].finish_reason == "tool_calls", resp
-    assert resp.choices[0].message.tool_calls[0].function.name == "get_weather", resp
-    assert json.loads(resp.choices[0].message.tool_calls[0].function.arguments) == {"city": "Paris"}, resp
-
-
-def check_chat_to_responses_tools_streaming():
-    assert_openai_streamed_tool_call(openai_chat("gpt-5", streaming=True, tools=OPENAI_TOOLS))
-
-
-# WHEN: a request controls the Chat Completions backend would take
-# THEN: they are left behind on the hop to the Responses backend
-def check_chat_to_responses_controls_dropped():
-    token = tagged("chat-to-responses-controls")
-    resp = openai_client(api_key=token).chat.completions.create(
-        model="gpt-5", messages=[{"role": "user", "content": "Hello"}], temperature=0.2, user="caller-1")
-    assert resp.choices[0].message.content == HELLO, resp
-    members = received_by("mock-openai", token, "/v1/responses").members
-    assert not {"temperature", "user", "messages"} & set(members), members
-
-
-# WHEN: an Anthropic SDK client asks for gpt-5
-# THEN: the SDK parses an Anthropic-shaped message translated from the Response
-def check_anthropic_to_responses_text():
-    token = tagged("anthropic-to-responses-text")
-    resp = anthropic_client(api_key=token).messages.create(
-        model="gpt-5", max_tokens=1024, messages=[{"role": "user", "content": "Hello"}])
-    assert resp.content[0].text == HELLO, resp
-    assert resp.stop_reason == "end_turn", resp
-    received_by("mock-openai", token, "/v1/responses")
-
-
-def check_anthropic_to_responses_text_streaming():
-    streamed = anthropic_message("gpt-5", streaming=True)
-    assert streamed.text == HELLO, streamed
-    assert streamed.stop_reason == "end_turn", streamed
-
-
-def check_anthropic_to_responses_tools_streaming():
-    assert_anthropic_streamed_tool_call(anthropic_message("gpt-5", streaming=True, tools=ANTHROPIC_TOOLS))
-
-
-# WHEN: a Gemini SDK client asks for gpt-5, which only the Responses backend serves
-# THEN: the SDK parses a Gemini-shaped response translated from the Response,
-#       text and tool calls
-def check_gemini_to_responses_text():
-    assert_gemini_text(gemini_generate("gpt-5", streaming=False))
-
-
-def check_gemini_to_responses_text_streaming():
-    assert_gemini_text(gemini_generate("gpt-5", streaming=True))
-
-
-def check_gemini_to_responses_tools():
-    assert_gemini_tool_call(gemini_generate("gpt-5", streaming=False, tools=GEMINI_TOOLS))
-
-
-def check_gemini_to_responses_tools_streaming():
-    assert_gemini_tool_call(gemini_generate("gpt-5", streaming=True, tools=GEMINI_TOOLS))
 
 
 # WHEN: a Responses SDK client asks for a gemini-* model
@@ -1409,18 +1265,8 @@ def check_responses_route(model, service, path):
     received_by(service, token, path)
 
 
-# WHEN: a Chat Completions SDK client calls POST /v1/responses on the openai-facing
-#       frontend, whose dialect `openai` names the vendor
-# THEN: that server serves the Responses API as well, told apart by path
-def check_vendor_server_serves_responses():
-    token = tagged("vendor-server-responses")
-    resp = openai_response("gpt-5", streaming=False, client=openai_client(api_key=token))
-    assert_response_text(resp)
-    received_by("mock-openai", token, "/v1/responses")
-
-
-# WHEN: a caller presents its own bearer token to the responses-facing frontend
-# THEN: south_llm_client_openai_responses forwards it unchanged as
+# WHEN: a caller presents its own bearer token to the openai-facing frontend
+# THEN: south_llm_client_openai forwards it unchanged as
 #       Authorization: Bearer ..., and south_llm_client_anthropic forwards it as
 #       x-api-key -- the caller's own credential, not a secret configured in zilla.yaml
 def check_credential_pass_through_responses_to_responses():
@@ -1435,17 +1281,6 @@ def check_credential_pass_through_responses_to_anthropic():
     received_by("mock-anthropic", token)
 
 
-# WHEN: a caller presents its own x-api-key to the anthropic-facing frontend and
-#       asks for gpt-5
-# THEN: south_llm_client_openai_responses forwards that exact token upstream as
-#       Authorization: Bearer ...
-def check_credential_pass_through_anthropic_to_responses():
-    token = f"caller-anthropic-responses-token-{os.getpid()}"
-    anthropic_client(api_key=token).messages.create(
-        model="gpt-5", max_tokens=1024, messages=[{"role": "user", "content": "Hello"}])
-    received_by("mock-openai", token, "/v1/responses")
-
-
 def rejected_responses_input(model, content):
     try:
         responses_client().responses.create(model=model, input=content)
@@ -1457,7 +1292,7 @@ def rejected_responses_input(model, content):
         raise AssertionError(f"the request was not rejected: {content}")
 
 
-# WHEN: a caller asks the responses-facing frontend for gpt-4o or gpt-5 with a
+# WHEN: a caller asks the openai-facing frontend for gpt-4o or gpt-5 with a
 #       prompt that carries an injection phrase, or is longer than the length stage allows
 # THEN: the guardrail the model has rejects the user-text section, whichever
 #       dialect the backend that would have served it speaks
@@ -1473,7 +1308,7 @@ def check_responses_guardrail_rejects_pii(model):
     rejected_responses_input(model, "My email is jane.doe@example.com, can you summarize my account?")
 
 
-# WHEN: a caller asks the responses-facing frontend for a private key, which the
+# WHEN: a caller asks the openai-facing frontend for a private key, which the
 #       backend of that model answers with one
 # THEN: the guardrail rejects the assistant-text section and aborts the
 #       response, so the SDK reports a failed connection and the caller never
@@ -1515,13 +1350,13 @@ def check_responses_model_not_found(streaming):
         raise AssertionError("the request for a model the backend does not know was not rejected")
 
 
-RESPONSES_SAME_DIALECT = ["north_llm_server_responses", "north_llm_proxy", "south_llm_client_openai_responses"]
+RESPONSES_SAME_DIALECT = ["north_llm_server_openai", "north_llm_proxy", "south_llm_client_openai"]
 
 
 # WHEN: a Responses SDK client asks for gpt-5, served same-dialect, whose
 #       Responses API always reports a total
-# THEN: north_llm_server_responses, north_llm_proxy and
-#       south_llm_client_openai_responses record the reported tokens including
+# THEN: north_llm_server_openai, north_llm_proxy and
+#       south_llm_client_openai record the reported tokens including
 #       the total, one duration sample and one interaction, with no request left active
 def check_responses_llm_metrics():
     assert_llm_metrics(
@@ -1540,22 +1375,7 @@ def check_responses_llm_metrics_streaming():
 def check_responses_to_anthropic_llm_metrics():
     assert_llm_metrics(
         lambda: openai_response("claude-3-opus-20240229", streaming=False),
-        ["north_llm_server_responses", "north_llm_proxy", "south_llm_client_anthropic"], interactions=True)
-
-
-def check_responses_to_chat_llm_metrics():
-    assert_llm_metrics(
-        lambda: openai_response("gpt-4", streaming=False),
-        ["north_llm_server_responses", "north_llm_proxy", "south_llm_client_openai"], interactions=True)
-
-
-# WHEN: a Chat Completions SDK client asks for gpt-5, translated to the Responses backend
-# THEN: the Responses API's total is recorded at the openai-facing server too
-def check_chat_to_responses_llm_metrics():
-    assert_llm_metrics(
-        lambda: openai_chat("gpt-5", streaming=False),
-        ["north_llm_server_openai", "north_llm_proxy", "south_llm_client_openai_responses"],
-        total=True, interactions=True)
+        ["north_llm_server_openai", "north_llm_proxy", "south_llm_client_anthropic"], interactions=True)
 
 
 PROJECT = compose_project()
@@ -1634,57 +1454,32 @@ run_check("responses_function_call_streaming", check_responses_function_call_str
 run_check("responses_function_call_round_trip", check_responses_function_call_round_trip)
 run_check("responses_instructions", check_responses_instructions)
 run_check("responses_controls_same_dialect", check_responses_controls_same_dialect)
-run_check("responses_controls_dropped_to_chat", check_responses_controls_dropped_to_chat)
 run_check("responses_controls_dropped_to_anthropic", check_responses_controls_dropped_to_anthropic)
-run_check("responses_to_chat_text", check_responses_to_chat_text)
-run_check("responses_to_chat_text_streaming", check_responses_to_chat_text_streaming)
-run_check("responses_to_chat_text_upstream_sse", check_responses_to_chat_text_upstream_sse)
-run_check("responses_to_chat_text_streaming_upstream_json", check_responses_to_chat_text_streaming_upstream_json)
-run_check("responses_to_chat_function_call", check_responses_to_chat_function_call)
-run_check("responses_to_chat_function_call_streaming", check_responses_to_chat_function_call_streaming)
-run_check("responses_to_chat_instructions", check_responses_to_chat_instructions)
-run_check("responses_to_chat_secondary", check_responses_to_chat_secondary)
-run_check("responses_to_chat_secondary_streaming", check_responses_to_chat_secondary_streaming)
+run_check("responses_secondary", check_responses_secondary)
+run_check("responses_secondary_streaming", check_responses_secondary_streaming)
 run_check("responses_to_anthropic_text", check_responses_to_anthropic_text)
 run_check("responses_to_anthropic_text_streaming", check_responses_to_anthropic_text_streaming)
 run_check("responses_to_anthropic_text_upstream_sse", check_responses_to_anthropic_text_upstream_sse)
 run_check("responses_to_anthropic_function_call", check_responses_to_anthropic_function_call)
 run_check("responses_to_anthropic_function_call_streaming", check_responses_to_anthropic_function_call_streaming)
-run_check("chat_to_responses_text", check_chat_to_responses_text)
-run_check("chat_to_responses_text_streaming", check_chat_to_responses_text_streaming)
-run_check("chat_to_responses_text_upstream_sse", check_chat_to_responses_text_upstream_sse)
-run_check("chat_to_responses_tools", check_chat_to_responses_tools)
-run_check("chat_to_responses_tools_streaming", check_chat_to_responses_tools_streaming)
-run_check("chat_to_responses_controls_dropped", check_chat_to_responses_controls_dropped)
-run_check("anthropic_to_responses_text", check_anthropic_to_responses_text)
-run_check("anthropic_to_responses_text_streaming", check_anthropic_to_responses_text_streaming)
-run_check("anthropic_to_responses_tools_streaming", check_anthropic_to_responses_tools_streaming)
-run_check("gemini_to_responses_text", check_gemini_to_responses_text)
-run_check("gemini_to_responses_text_streaming", check_gemini_to_responses_text_streaming)
-run_check("gemini_to_responses_tools", check_gemini_to_responses_tools)
-run_check("gemini_to_responses_tools_streaming", check_gemini_to_responses_tools_streaming)
 run_check("responses_to_gemini_text", check_responses_to_gemini_text)
 run_check("responses_to_gemini_text_streaming", check_responses_to_gemini_text_streaming)
 run_check("responses_to_gemini_function_call", check_responses_to_gemini_function_call)
 run_check("responses_to_gemini_function_call_streaming", check_responses_to_gemini_function_call_streaming)
 run_check("responses_route_gpt_5", partial(check_responses_route, "gpt-5", "mock-openai", "/v1/responses"))
 run_check("responses_route_other_model", partial(check_responses_route, "llama-3", "mock-openai", "/v1/responses"))
-run_check("responses_route_gpt_4", partial(check_responses_route, "gpt-4", "mock-openai", "/v1/chat/completions"))
+run_check("responses_route_gpt_4", partial(check_responses_route, "gpt-4", "mock-openai", "/v1/responses"))
 run_check(
-    "responses_route_gpt_4o", partial(check_responses_route, "gpt-4o", "mock-openai-secondary", "/v1/chat/completions"))
+    "responses_route_gpt_4o", partial(check_responses_route, "gpt-4o", "mock-openai-secondary", "/v1/responses"))
 run_check("responses_route_claude", partial(check_responses_route, "claude-3-opus-20240229", "mock-anthropic", None))
-run_check("vendor_server_serves_responses", check_vendor_server_serves_responses)
 run_check("credential_pass_through_responses_to_responses", check_credential_pass_through_responses_to_responses)
 run_check("credential_pass_through_responses_to_anthropic", check_credential_pass_through_responses_to_anthropic)
-run_check("credential_pass_through_anthropic_to_responses", check_credential_pass_through_anthropic_to_responses)
 run_check("responses_fallback_unreachable", check_responses_fallback_unreachable)
 run_check("responses_model_not_found", partial(check_responses_model_not_found, False))
 run_check("responses_model_not_found_streaming", partial(check_responses_model_not_found, True))
 run_check("responses_llm_metrics", check_responses_llm_metrics)
 run_check("responses_llm_metrics_streaming", check_responses_llm_metrics_streaming)
 run_check("responses_to_anthropic_llm_metrics", check_responses_to_anthropic_llm_metrics)
-run_check("responses_to_chat_llm_metrics", check_responses_to_chat_llm_metrics)
-run_check("chat_to_responses_llm_metrics", check_chat_to_responses_llm_metrics)
 run_check(
     "responses_guardrail_rejects_section_gpt_4o", partial(check_responses_guardrail_rejects_section, "gpt-4o"))
 run_check(
