@@ -4092,14 +4092,12 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private LlmSectionPipeline toolCallPipeline;
         private LlmSectionPipeline toolDefinitionPipeline;
         private LlmSectionPipeline controlPipeline;
-        private LlmOpenaiControlFromCanonical controlTransform;
         private int controlMessage;
         private LlmSectionPipeline citationsPipeline;
         private LlmTextPipeline encodeText;
         private final LlmTextPipeline sectionText = new LlmTextPipeline(this::onSectionText);
         private final LlmSectionPipeline.Output rawOutput = (buffer, offset, length, last) -> putRaw(buffer, offset, length);
-        private final LlmSectionPipeline.Output controlOutput =
-            (buffer, offset, length, last) -> putControl(buffer, offset, length);
+        private final LlmMembersOutput controlOutput = new LlmMembersOutput(this::putControl);
         private String messageRole;
         private String messageToolId;
         private boolean toolCallsOpened;
@@ -4278,8 +4276,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             if (controlPipeline == null)
             {
-                controlTransform = new LlmOpenaiControlFromCanonical(sameDialect);
-                controlPipeline = new LlmSectionPipeline(controlTransform, transformBuffer);
+                controlPipeline = new LlmSectionPipeline(LlmOpenaiControlFromCanonical.members(sameDialect), transformBuffer);
             }
 
             return controlPipeline;
@@ -4395,6 +4392,11 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private void beginTranslated(
             int kind)
         {
+            if (kind == KIND_CONTROL)
+            {
+                controlOutput.begin();
+            }
+
             beginSectionStreaming(pipelineFor(kind), kind == KIND_CONTROL ? controlOutput : rawOutput);
         }
 
@@ -4429,21 +4431,23 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int length)
         {
-            final String member = controlTransform.member();
-
-            if (member != null)
+            if (!rawOpen)
             {
-                if (!rawOpen)
-                {
-                    openControl(member);
-                }
+                openControl();
+            }
 
-                putRaw(buffer, offset, length);
+            if (fits(length))
+            {
+                generator.writeMembers(buffer, offset, length, Completion.INCOMPLETE);
+                rawOpen = true;
+            }
+            else
+            {
+                encodeFailed = true;
             }
         }
 
-        private void openControl(
-            String member)
+        private void openControl()
         {
             if (controlMessage == NONE)
             {
@@ -4454,8 +4458,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             {
                 openControlMessage(controlMessage);
             }
-
-            generator.writeKey(member);
         }
 
         private void openControlMessage(
