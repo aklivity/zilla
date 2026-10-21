@@ -36,7 +36,7 @@ Status key: **implemented** is in the IDL, spec functions and runtime today;
 A member carried as `<dialect>:<member>` is restored only by a client of that dialect and dropped by every
 other client. A member that two or more dialects have with the same meaning is carried as `x:<member>`
 instead. (**implemented** as the `x:` namespace in `LlmToolTransform`: `shared()`, `share()` and `reject()`;
-no member is promoted yet)
+the sampling and length members below are promoted for the flat dialects)
 
 - `x` is reserved as a dialect name. `LlmDialectFactory` refuses to register a dialect named `x`.
 - A decoder emits `x:<member>` in place of `<dialect>:<member>` for each member it understands, including a
@@ -60,6 +60,36 @@ no member is promoted yet)
   across two minor releases; and the decision is recorded in an issue.
 - Members that carry content or grant a capability are sections, not `x:` members, and a guardrail stage
   never sees an `x:` member.
+
+### Promoted sampling members
+
+The canonical value follows OpenAI: numbers for `temperature`, `top_p`, `top_k`, `frequency_penalty` and
+`presence_penalty`, an integer for `seed` and `top_k`, an array of strings for `stop`. Each decoder converts
+the members it understands and leaves every other member prefixed. The maximum output tokens limit is not an
+`x:` member; it stays on the dialect flush. A native value that does not parse as the canonical value is
+passed through and left to the client to reject. (**implemented** for `openai`, `openai/responses` and
+`anthropic`; the `gemini` container members are not promoted yet)
+
+| `x:` member | Range | Class | `openai` | `openai/responses` | `anthropic` |
+|---|---|---|---|---|---|
+| `temperature` | 0..2 | A, C | `temperature` | `temperature` | `temperature`, clamped into 0..1 |
+| `top_p` | 0..1 | A | `top_p` | `top_p` | `top_p` |
+| `top_k` | integer | A | dropped | dropped | `top_k` |
+| `stop` | array of strings | B | `stop`; a decoded string becomes a one-entry array | rejects | `stop_sequences` |
+| `seed` | integer | A | `seed` | dropped | dropped |
+| `frequency_penalty`, `presence_penalty` | -2..2 | A | same names | dropped | dropped |
+
+- `temperature` and the penalties are advisory (A), `temperature` is clamped (C) only where the target range is
+  narrower than the canonical one. A value outside the canonical range is not clamped by a target that shares
+  that range; the upstream provider judges it.
+- `stop` is behavioural (B). A client without a stop on the wire rejects with
+  `x:stop cannot be converted from <dialect> to <dialect>`. The `openai` client also rejects more than four
+  entries on a cross-dialect hop, and writes a same-dialect hop as received. A `null` `stop` is the absence of
+  the member and is dropped.
+- A same-dialect hop restores every native member exactly. The one normalisation is the `openai` `stop` string,
+  which comes back as a one-entry array; `anthropic` `stop_sequences` round-trips unchanged through `x:stop`.
+- A decoder emits the member at its source position inside the control section it belongs to, so a run such as
+  `{"x:temperature":0.7,"openai:store":false}` stays one section.
 
 ## Ranges (`LlmSectionDataEx.ranges`)
 
