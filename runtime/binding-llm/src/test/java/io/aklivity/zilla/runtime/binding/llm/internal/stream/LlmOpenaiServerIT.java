@@ -1756,4 +1756,14 @@ public class LlmOpenaiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.request.controls.split/client",
+        "${app}/openai.request.controls.split/server"})
+    public void shouldDecodeOpenaiRequestControlsSplitUnderBackPressure() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -2048,4 +2048,14 @@ public class LlmAnthropicServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.request.controls.split/client",
+        "${app}/anthropic.request.controls.split/server"})
+    public void shouldDecodeAnthropicRequestControlsSplitUnderBackPressure() throws Exception
+    {
+        k3po.finish();
+    }
 }

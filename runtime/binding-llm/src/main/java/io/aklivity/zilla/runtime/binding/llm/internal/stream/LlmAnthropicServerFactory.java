@@ -249,6 +249,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private final LlmAnthropicServerDecoder decodeText = this::decodeText;
     private final LlmAnthropicServerDecoder decodeSkip = this::decodeSkip;
     private final LlmAnthropicServerDecoder decodeControlValue = this::decodeControlValue;
+    private final LlmAnthropicServerDecoder decodeControlSeparator = this::decodeControlSeparator;
     private final LlmAnthropicServerDecoder decodeBreakpointValue = this::decodeBreakpointValue;
     private final LlmAnthropicServerDecoder decodeMaxOutputTokensValue = this::decodeMaxOutputTokensValue;
     private final LlmAnthropicServerDecoder decodeEnd = this::decodeEnd;
@@ -1861,6 +1862,22 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         return server.decoder == decodeIgnore ? limit : server.position();
     }
 
+    private int decodeControlSeparator(
+        LlmAnthropicServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        server.onDecodeControlSeparator();
+
+        return server.position();
+    }
+
     private int decodeControlValue(
         LlmAnthropicServer server,
         long traceId,
@@ -1877,7 +1894,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         while (server.decoder == decodeControlValue && parser.hasNextEvent())
         {
             final JsonEvent event = parser.nextEvent();
-            final boolean deferred = event == JsonEvent.VALUE_STRING && parser.deferredBytes();
+            final boolean deferred = (event == JsonEvent.VALUE_STRING || event == JsonEvent.VALUE_NUMBER) &&
+                parser.deferredBytes();
 
             switch (event)
             {
@@ -1889,7 +1907,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             case END_ARRAY:
                 server.captureDepth--;
                 break;
-            case VALUE_STRING:
+            case VALUE_STRING, VALUE_NUMBER:
                 if (deferred)
                 {
                     parser.consumed(parser.getStringView().length());
@@ -3091,6 +3109,17 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             }
         }
 
+        private void onDecodeControlSeparator()
+        {
+            final int start = LlmValueStart.of(decodedInput, captureFrom, decodedWindowLimit);
+
+            if (start < decodedWindowLimit)
+            {
+                captureFrom = start;
+                decoder = decodeControlValue;
+            }
+        }
+
         private void controlMore(
             CharSequence key,
             LlmAnthropicServerDecoder then)
@@ -3109,7 +3138,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             captureOpen = true;
             captureDepth = 0;
             captureFrom = position();
-            decoder = decodeControlValue;
+            decoder = decodeControlSeparator;
         }
 
         private void controlConverted(
@@ -3159,7 +3188,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             captureOpen = true;
             captureDepth = 0;
             captureFrom = position();
-            decoder = decodeControlValue;
+            decoder = decodeControlSeparator;
         }
 
         private void endCapture(

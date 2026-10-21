@@ -8711,4 +8711,40 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.controls.split/client",
+        "${net}/openai.request.controls.split/server"})
+    public void shouldForwardOpenaiRequestControlsSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.request.controls.split/client",
+        "${net}/openai.responses.request.controls.split/server"})
+    public void shouldForwardOpenaiResponsesRequestControlsSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.controls.split/client",
+        "${net}/anthropic.request.controls.split/server"})
+    public void shouldForwardAnthropicRequestControlsSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.controls.split/client",
+        "${net}/gemini.request.controls.split/server"})
+    public void shouldForwardGeminiRequestControlsSplit() throws Exception
+    {
+        k3po.finish();
+    }
 }

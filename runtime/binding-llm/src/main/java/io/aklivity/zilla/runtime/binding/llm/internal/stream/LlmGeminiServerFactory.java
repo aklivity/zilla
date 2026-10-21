@@ -278,6 +278,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private final LlmGeminiServerDecoder decodeAttributes = this::decodeAttributes;
     private final LlmGeminiServerDecoder decodeTool = this::decodeTool;
     private final LlmGeminiServerDecoder decodeControlValue = this::decodeControlValue;
+    private final LlmGeminiServerDecoder decodeControlSeparator = this::decodeControlSeparator;
     private final LlmGeminiServerDecoder decodeConfigStart = this::decodeConfigStart;
     private final LlmGeminiServerDecoder decodeConfigFirst = this::decodeConfigFirst;
     private final LlmGeminiServerDecoder decodeConfigOpen = this::decodeConfigOpen;
@@ -662,7 +663,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 }
                 else if (isRootControl(key))
                 {
-                    server.controlMore(key, decodeRootControl, decodeControlValue);
+                    server.controlMore(key, decodeRootControl);
                 }
                 else
                 {
@@ -1684,6 +1685,22 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         return server.position();
     }
 
+    private int decodeControlSeparator(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        server.onDecodeControlSeparator();
+
+        return server.position();
+    }
+
     private int decodeControlValue(
         LlmGeminiServer server,
         long traceId,
@@ -2058,7 +2075,8 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         JsonEvent event)
     {
         final JsonParserEx parser = server.parser;
-        final boolean deferred = event == JsonEvent.VALUE_STRING && parser.deferredBytes();
+        final boolean deferred = (event == JsonEvent.VALUE_STRING || event == JsonEvent.VALUE_NUMBER) &&
+            parser.deferredBytes();
 
         switch (event)
         {
@@ -2070,7 +2088,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         case END_ARRAY:
             server.captureDepth--;
             break;
-        case VALUE_STRING:
+        case VALUE_STRING, VALUE_NUMBER:
             if (deferred)
             {
                 parser.consumed(parser.getStringView().length());
@@ -2322,6 +2340,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         private boolean captureOpen;
         private int captureDepth;
         private int captureFrom;
+        private LlmGeminiServerDecoder separatorThen;
 
         private boolean holding;
         private int holdFrom;
@@ -2817,14 +2836,34 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             }
             else
             {
-                control(key, -1, decodeRootControl, decodeControlValue);
+                control(key, -1, decodeRootControl);
+            }
+        }
+
+        private void onDecodeControlValue(
+            LlmGeminiServerDecoder then)
+        {
+            captureOpen = true;
+            captureDepth = 0;
+            captureFrom = position();
+            separatorThen = then;
+            decoder = decodeControlSeparator;
+        }
+
+        private void onDecodeControlSeparator()
+        {
+            final int start = LlmValueStart.of(decodedInput, captureFrom, decodedWindowLimit);
+
+            if (start < decodedWindowLimit)
+            {
+                captureFrom = start;
+                decoder = separatorThen;
             }
         }
 
         private void controlMore(
             CharSequence key,
-            LlmGeminiServerDecoder then,
-            LlmGeminiServerDecoder value)
+            LlmGeminiServerDecoder then)
         {
             captureThen = then;
 
@@ -2837,10 +2876,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 onDecodeControlKey(key, true, controlOpen());
             }
 
-            captureOpen = true;
-            captureDepth = 0;
-            captureFrom = position();
-            decoder = value;
+            onDecodeControlValue(decodeControlValue);
         }
 
         private void controlConverted(
@@ -2952,9 +2988,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                     : decodeConfigResidue;
             }
 
-            captureOpen = true;
-            captureDepth = 0;
-            captureFrom = position();
+            onDecodeControlValue(decoder);
         }
 
         private void onDecodeConfigResidueClose()
@@ -3072,8 +3106,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         private void control(
             CharSequence key,
             int message,
-            LlmGeminiServerDecoder then,
-            LlmGeminiServerDecoder value)
+            LlmGeminiServerDecoder then)
         {
             onDecodeBlock(LlmSectionType.CONTROL, message);
 
@@ -3088,10 +3121,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 onDecodeControlKey(key, true, '{');
             }
 
-            captureOpen = true;
-            captureDepth = 0;
-            captureFrom = position();
-            decoder = value;
+            onDecodeControlValue(decodeControlValue);
         }
 
         private void endCapture(

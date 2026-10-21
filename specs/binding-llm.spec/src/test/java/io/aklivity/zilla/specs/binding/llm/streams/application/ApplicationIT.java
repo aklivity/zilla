@@ -8639,4 +8639,40 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.controls.split/client",
+        "${app}/openai.request.controls.split/server"})
+    public void shouldForwardOpenaiRequestControlsSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.controls.split/client",
+        "${app}/openai.responses.request.controls.split/server"})
+    public void shouldForwardOpenaiResponsesRequestControlsSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.controls.split/client",
+        "${app}/anthropic.request.controls.split/server"})
+    public void shouldForwardAnthropicRequestControlsSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.controls.split/client",
+        "${app}/gemini.request.controls.split/server"})
+    public void shouldForwardGeminiRequestControlsSplit() throws Exception
+    {
+        k3po.finish();
+    }
 }

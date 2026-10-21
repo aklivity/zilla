@@ -228,6 +228,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final LlmOpenaiServerDecoder decodeText = this::decodeText;
     private final LlmOpenaiServerDecoder decodeSkip = this::decodeSkip;
     private final LlmOpenaiServerDecoder decodeControlValue = this::decodeControlValue;
+    private final LlmOpenaiServerDecoder decodeControlSeparator = this::decodeControlSeparator;
     private final LlmOpenaiServerDecoder decodeMaxOutputTokensValue = this::decodeMaxOutputTokensValue;
     private final LlmOpenaiServerDecoder decodeEnd = this::decodeEnd;
     private final LlmOpenaiServerDecoder decodeIgnore = this::decodeIgnore;
@@ -1728,6 +1729,22 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         return server.position();
     }
 
+    private int decodeControlSeparator(
+        LlmOpenaiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        server.onDecodeControlSeparator();
+
+        return server.position();
+    }
+
     private int decodeControlValue(
         LlmOpenaiServer server,
         long traceId,
@@ -1744,7 +1761,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         while (server.decoder == decodeControlValue && parser.hasNextEvent())
         {
             final JsonEvent event = parser.nextEvent();
-            final boolean deferred = event == JsonEvent.VALUE_STRING && parser.deferredBytes();
+            final boolean deferred = (event == JsonEvent.VALUE_STRING || event == JsonEvent.VALUE_NUMBER) &&
+                parser.deferredBytes();
 
             switch (event)
             {
@@ -1756,7 +1774,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             case END_ARRAY:
                 server.captureDepth--;
                 break;
-            case VALUE_STRING:
+            case VALUE_STRING, VALUE_NUMBER:
                 if (deferred)
                 {
                     parser.consumed(parser.getStringView().length());
@@ -2584,6 +2602,17 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             }
         }
 
+        private void onDecodeControlSeparator()
+        {
+            final int start = LlmValueStart.of(decodedInput, captureFrom, decodedWindowLimit);
+
+            if (start < decodedWindowLimit)
+            {
+                captureFrom = start;
+                decoder = decodeControlValue;
+            }
+        }
+
         private void controlMore(
             CharSequence key,
             LlmOpenaiServerDecoder then)
@@ -2602,7 +2631,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             captureOpen = true;
             captureDepth = 0;
             captureFrom = position();
-            decoder = decodeControlValue;
+            decoder = decodeControlSeparator;
         }
 
         private void controlConverted(
@@ -2652,7 +2681,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             captureOpen = true;
             captureDepth = 0;
             captureFrom = position();
-            decoder = decodeControlValue;
+            decoder = decodeControlSeparator;
         }
 
         private void endCapture(

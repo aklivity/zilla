@@ -1709,4 +1709,14 @@ public class LlmGeminiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.controls.split/client",
+        "${app}/gemini.request.controls.split/server"})
+    public void shouldDecodeGeminiRequestControlsSplitUnderBackPressure() throws Exception
+    {
+        k3po.finish();
+    }
 }

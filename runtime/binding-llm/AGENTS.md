@@ -29,7 +29,9 @@ Status key: **implemented** is in the IDL, spec functions and runtime today;
   streamed key by key in source order with no holding. A decoder closes the section
   when a section-bearing member or the end of the body intervenes, or when a member
   that is not request-level control (the model, the output token limit, `stream`,
-  `stream_options`) does. A client keeps or drops each key on its own and writes the
+  `stream_options`) does. A key or an escape sequence split across DATA frames never makes a decoder buffer the
+  section: it streams each key as it completes, and skips the separator that a key delivered in fragments leaves
+  unconsumed (`LlmValueStart`). A client keeps or drops each key on its own and writes the
   members it keeps into the request in order. (**implemented** for the request path
   of every dialect; the response path still carries one member per section)
 
