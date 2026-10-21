@@ -254,7 +254,7 @@
                             {
                                 "dialect":
                                 {
-                                    "enum": [ "openai", "anthropic", "gemini" ]
+                                    "const": "openai"
                                 }
                             }
                         },
@@ -264,12 +264,222 @@
                             {
                                 "dialect": true,
                                 "server": true,
-                                "authorization": true
+                                "authorization": true,
+                                "models":
+                                {
+                                    "$ref": "#/$defs/binding-ext/llm/openai-models"
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    {
+                        "if":
+                        {
+                            "properties":
+                            {
+                                "dialect":
+                                {
+                                    "const": "anthropic"
+                                }
+                            }
+                        },
+                        "then":
+                        {
+                            "properties":
+                            {
+                                "dialect": true,
+                                "server": true,
+                                "authorization": true,
+                                "models":
+                                {
+                                    "$ref": "#/$defs/binding-ext/llm/anthropic-models"
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    {
+                        "if":
+                        {
+                            "properties":
+                            {
+                                "dialect":
+                                {
+                                    "const": "gemini"
+                                }
+                            }
+                        },
+                        "then":
+                        {
+                            "properties":
+                            {
+                                "dialect": true,
+                                "server": true,
+                                "authorization": true,
+                                "models":
+                                {
+                                    "$ref": "#/$defs/binding-ext/llm/gemini-models"
+                                }
                             },
                             "additionalProperties": false
                         }
                     }
                 ]
+            },
+            "budget-ladder":
+            {
+                "title": "Ladder",
+                "description": "Thinking budget tokens by reasoning effort, for a model that takes a thinking budget instead of an effort. An effort without an entry takes the nearest entry that is present, and a ladder with no entries drops the effort. The built-in ladder of a dialect applies when a model gives none.",
+                "type": "object",
+                "properties":
+                {
+                    "minimal":
+                    {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "low":
+                    {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "medium":
+                    {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "high":
+                    {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "xhigh":
+                    {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "max":
+                    {
+                        "type": "integer",
+                        "minimum": 0
+                    }
+                },
+                "additionalProperties": false
+            },
+            "thinking-budget":
+            {
+                "title": "Budget",
+                "description": "Range of thinking budget tokens the model accepts. A request that carries a budget outside the range is clamped into it, and a minimum of 0 admits a budget of 0 to turn thinking off.",
+                "type": "object",
+                "properties":
+                {
+                    "minimum":
+                    {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "maximum":
+                    {
+                        "type": "integer",
+                        "minimum": 1
+                    }
+                },
+                "additionalProperties": false
+            },
+            "openai-models":
+            {
+                "title": "Models",
+                "description": "Capabilities of the models this client speaks to, keyed by model identifier or by a * glob pattern, matched against the model of each request. Settings given here override the built-in defaults of the dialect, which apply to a model that has no entry or that an entry does not set.",
+                "type": "object",
+                "additionalProperties":
+                {
+                    "type": "object",
+                    "properties":
+                    {
+                        "sampling":
+                        {
+                            "title": "Sampling",
+                            "description": "Whether the model accepts temperature, top_p and top_k. A model that rejects sampling does not receive them, and a model with no entry receives them unchanged.",
+                            "type": "boolean"
+                        },
+                        "ladder":
+                        {
+                            "$ref": "#/$defs/binding-ext/llm/budget-ladder"
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "anthropic-models":
+            {
+                "title": "Models",
+                "description": "Capabilities of the models this client speaks to, keyed by model identifier or by a * glob pattern, matched against the model of each request. Settings given here override the built-in defaults of the dialect, which apply to a model that has no entry or that an entry does not set.",
+                "type": "object",
+                "additionalProperties":
+                {
+                    "type": "object",
+                    "properties":
+                    {
+                        "sampling":
+                        {
+                            "title": "Sampling",
+                            "description": "Whether the model accepts temperature, top_p and top_k. A model that rejects sampling does not receive them, and a model with no entry receives them unchanged.",
+                            "type": "boolean"
+                        },
+                        "thinking":
+                        {
+                            "title": "Thinking",
+                            "description": "The thinking forms the model accepts. adaptive accepts adaptive thinking only, adaptive-disabled adds an explicit disabled, adaptive-enabled adds the deprecated enabled form, and enabled accepts enabled with a budget only. A model with no entry takes adaptive-disabled, the form of the current Claude models.",
+                            "type": "string",
+                            "enum": [ "adaptive", "adaptive-disabled", "adaptive-enabled", "enabled" ]
+                        },
+                        "budget":
+                        {
+                            "$ref": "#/$defs/binding-ext/llm/thinking-budget"
+                        },
+                        "ladder":
+                        {
+                            "$ref": "#/$defs/binding-ext/llm/budget-ladder"
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "gemini-models":
+            {
+                "title": "Models",
+                "description": "Capabilities of the models this client speaks to, keyed by model identifier or by a * glob pattern, matched against the model of each request. Settings given here override the built-in defaults of the dialect, which apply to a model that has no entry or that an entry does not set.",
+                "type": "object",
+                "additionalProperties":
+                {
+                    "type": "object",
+                    "properties":
+                    {
+                        "sampling":
+                        {
+                            "title": "Sampling",
+                            "description": "Whether the model accepts temperature, top_p and top_k. A model that rejects sampling does not receive them, and a model with no entry receives them unchanged.",
+                            "type": "boolean"
+                        },
+                        "thinking":
+                        {
+                            "title": "Thinking",
+                            "description": "Whether the model takes a thinking level or a thinking budget. A model with no entry takes level, the form of the current Gemini models.",
+                            "type": "string",
+                            "enum": [ "level", "budget" ]
+                        },
+                        "budget":
+                        {
+                            "$ref": "#/$defs/binding-ext/llm/thinking-budget"
+                        },
+                        "ladder":
+                        {
+                            "$ref": "#/$defs/binding-ext/llm/budget-ladder"
+                        }
+                    },
+                    "additionalProperties": false
+                }
             },
             "server-options":
             {

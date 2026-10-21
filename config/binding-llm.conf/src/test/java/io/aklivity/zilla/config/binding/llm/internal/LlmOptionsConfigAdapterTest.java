@@ -15,6 +15,7 @@
 package io.aklivity.zilla.config.binding.llm.internal;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.anEmptyMap;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
@@ -25,6 +26,7 @@ import static org.hamcrest.Matchers.nullValue;
 
 import java.util.List;
 
+import jakarta.json.Json;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
@@ -32,6 +34,7 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.config.binding.llm.LlmModelConfig;
 import io.aklivity.zilla.config.binding.llm.LlmOptionsConfig;
 import io.aklivity.zilla.config.binding.llm.LlmTestDialectConfig;
 import io.aklivity.zilla.config.engine.test.internal.model.config.TestModelConfig;
@@ -556,5 +559,122 @@ public class LlmOptionsConfigAdapterTest
         LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
 
         assertThat(jsonb.toJson(options), equalTo(text));
+    }
+
+    @Test
+    public void shouldReadModels()
+    {
+        String text =
+                "{" +
+                    "\"dialect\": \"anthropic\"," +
+                    "\"models\": {" +
+                        "\"claude-opus-4-7\": { \"sampling\": false, \"thinking\": \"adaptive\" }," +
+                        "\"claude-3-*\": {" +
+                            "\"thinking\": \"enabled\"," +
+                            "\"budget\": { \"minimum\": 1024, \"maximum\": 32768 }," +
+                            "\"ladder\": { \"low\": 2048, \"high\": 16384 }" +
+                        "}" +
+                    "}" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.models, hasSize(2));
+
+        LlmModelConfig opus = options.models.get(0);
+        assertThat(opus.name, equalTo("claude-opus-4-7"));
+        assertThat(opus.sampling, equalTo(false));
+        assertThat(opus.thinking, equalTo("adaptive"));
+        assertThat(opus.budgetMinimum, nullValue());
+        assertThat(opus.budgetMaximum, nullValue());
+        assertThat(opus.ladder, anEmptyMap());
+
+        LlmModelConfig legacy = options.models.get(1);
+        assertThat(legacy.name, equalTo("claude-3-*"));
+        assertThat(legacy.sampling, nullValue());
+        assertThat(legacy.thinking, equalTo("enabled"));
+        assertThat(legacy.budgetMinimum, equalTo(1024));
+        assertThat(legacy.budgetMaximum, equalTo(32768));
+        assertThat(legacy.ladder.get("low"), equalTo(2048));
+        assertThat(legacy.ladder.get("high"), equalTo(16384));
+    }
+
+    @Test
+    public void shouldReadOptionsWithoutModels()
+    {
+        String text = "{\"dialect\": \"anthropic\"}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.models, empty());
+    }
+
+    @Test
+    public void shouldWriteModels()
+    {
+        String text =
+                "{" +
+                    "\"dialect\":\"gemini\"," +
+                    "\"models\":{" +
+                        "\"gemini-2.5-pro\":{" +
+                            "\"sampling\":false," +
+                            "\"thinking\":\"budget\"," +
+                            "\"budget\":{\"minimum\":128,\"maximum\":32768}," +
+                            "\"ladder\":{\"low\":1024,\"medium\":8192,\"high\":24576}" +
+                        "}" +
+                    "}" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(jsonb.toJson(options), equalTo(text));
+    }
+
+    @Test
+    public void shouldBuildModel()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .dialect("anthropic")
+            .model()
+                .name("claude-sonnet-4-6")
+                .thinking("adaptive-enabled")
+                .build()
+            .build();
+
+        assertThat(options.models, hasSize(1));
+        assertThat(options.models.get(0).name, equalTo("claude-sonnet-4-6"));
+        assertThat(options.models.get(0).thinking, equalTo("adaptive-enabled"));
+    }
+
+    @Test
+    public void shouldWriteModelBudgetMaximumOnly()
+    {
+        String text = "{\"dialect\":\"gemini\",\"models\":{\"m\":{\"budget\":{\"maximum\":24576}}}}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.models.get(0).budgetMinimum, nullValue());
+        assertThat(options.models.get(0).budgetMaximum, equalTo(24576));
+        assertThat(jsonb.toJson(options), equalTo(text));
+    }
+
+    @Test
+    public void shouldWriteModelBudgetMinimumOnly()
+    {
+        String text = "{\"dialect\":\"gemini\",\"models\":{\"m\":{\"budget\":{\"minimum\":128}}}}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(jsonb.toJson(options), equalTo(text));
+    }
+
+    @Test
+    public void shouldAdaptModelWithoutName()
+    {
+        LlmModelConfig model = new LlmModelConfigAdapter()
+            .adaptFromJson(Json.createObjectBuilder().add("sampling", false).build());
+
+        assertThat(model.name, nullValue());
+        assertThat(model.sampling, equalTo(false));
     }
 }

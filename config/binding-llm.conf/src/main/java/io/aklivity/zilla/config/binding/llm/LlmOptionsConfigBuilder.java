@@ -31,12 +31,14 @@ public final class LlmOptionsConfigBuilder<T> extends ConfigBuilder.Extensible<T
     private LlmAuthorizationConfig authorization;
     private LlmServerConfig server;
     private List<LlmGuardrailConfig> guardrails;
+    private List<LlmModelConfig> models;
 
     LlmOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
     {
         this.mapper = mapper;
         this.guardrails = new ArrayList<>();
+        this.models = new ArrayList<>();
     }
 
     @Override
@@ -89,6 +91,18 @@ public final class LlmOptionsConfigBuilder<T> extends ConfigBuilder.Extensible<T
         return LlmGuardrailConfig.builder(this::guardrail);
     }
 
+    public LlmOptionsConfigBuilder<T> model(
+        LlmModelConfig model)
+    {
+        this.models.add(model);
+        return this;
+    }
+
+    public LlmModelConfigBuilder<LlmOptionsConfigBuilder<T>> model()
+    {
+        return LlmModelConfig.builder(this::model);
+    }
+
     @Override
     public T build()
     {
@@ -99,6 +113,7 @@ public final class LlmOptionsConfigBuilder<T> extends ConfigBuilder.Extensible<T
                 refs().stream())
             .toList();
 
-        return mapper.apply(new LlmOptionsConfig(dialect, authorization, server, List.copyOf(guardrails), extensions(), refs));
+        return mapper.apply(new LlmOptionsConfig(dialect, authorization, server, List.copyOf(guardrails),
+            List.copyOf(models), extensions(), refs));
     }
 }
