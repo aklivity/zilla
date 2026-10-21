@@ -4122,19 +4122,7 @@
                                 "then": {
                                     "properties": {
                                         "options": {
-                                            "properties": {
-                                                "dialect": {
-                                                    "title": "Dialect",
-                                                    "description": "Fixes the dialect assumed for inbound requests instead of detecting it automatically. Accepts the name of any dialect registered with the binding, for example openai, anthropic or gemini.",
-                                                    "$ref": "#/$defs/binding-ext/llm/dialect"
-                                                },
-                                                "authorization": {
-                                                    "title": "Authorization",
-                                                    "description": "Guard used to validate inbound request credentials, keyed by guard name. Credentials is a template matched against the request header the resolved dialect expects credentials in (for example Authorization for openai, x-api-key for anthropic, x-goog-api-key for gemini), with {credentials} standing in for the extracted token.",
-                                                    "$ref": "#/$defs/binding-ext/llm/authorization"
-                                                }
-                                            },
-                                            "additionalProperties": false
+                                            "$ref": "#/$defs/binding-ext/llm/server-options"
                                         },
                                         "routes": {
                                             "title": "Routes",
@@ -7961,6 +7949,44 @@
                                 "properties": {
                                     "dialect": true,
                                     "server": true,
+                                    "authorization": true
+                                },
+                                "additionalProperties": false
+                            }
+                        }
+                    ]
+                },
+                "server-options": {
+                    "title": "Server Options",
+                    "type": "object",
+                    "properties": {
+                        "dialect": {
+                            "title": "Dialect",
+                            "description": "Fixes the dialect assumed for inbound requests instead of detecting it automatically. Accepts the name of any dialect registered with the binding, for example openai, anthropic or gemini.",
+                            "$ref": "#/$defs/binding-ext/llm/dialect"
+                        },
+                        "authorization": {
+                            "title": "Authorization",
+                            "description": "Guard used to validate inbound request credentials, keyed by guard name. Credentials is a template matched against the request header the resolved dialect expects credentials in (for example Authorization for openai, x-api-key for anthropic, x-goog-api-key for gemini), with {credentials} standing in for the extracted token.",
+                            "$ref": "#/$defs/binding-ext/llm/authorization"
+                        }
+                    },
+                    "allOf": [
+                        {
+                            "if": {
+                                "properties": {
+                                    "dialect": {
+                                        "enum": [
+                                            "openai",
+                                            "anthropic",
+                                            "gemini"
+                                        ]
+                                    }
+                                }
+                            },
+                            "then": {
+                                "properties": {
+                                    "dialect": true,
                                     "authorization": true
                                 },
                                 "additionalProperties": false
