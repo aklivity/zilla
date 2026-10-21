@@ -2351,6 +2351,28 @@ public class LlmOpenaiClientIT
 
     @Test
     @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.shared.members/client",
+        "${net}/openai.transform.request.shared.members/server"})
+    public void shouldTransformSharedMembersAsOpenaiAndDropForeignMember() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.shared.members/client",
+        "${net}/openai.request.shared.members/server"})
+    public void shouldRestoreSharedMembersAsOpenaiWithoutLimit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"source \"anthropic\"", "target \"openai\"", "user \"user-123\"", "wire \"user-123\""})
     @Specification({
         "${app}/transform.request.user/client",

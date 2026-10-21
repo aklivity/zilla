@@ -2926,6 +2926,17 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.shared.members/client",
+        "${net}/anthropic.transform.request.shared.members/server"})
+    public void shouldTransformSharedMembersAsAnthropicAndDropForeignMember() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
     @Specification({
         "${app}/anthropic.request.reasoning.thinking.residue/client",
         "${net}/anthropic.request.reasoning.thinking.residue/server"})

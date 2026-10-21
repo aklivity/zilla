@@ -8675,4 +8675,40 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.request.shared.members/client",
+        "${net}/openai.transform.request.shared.members/server"})
+    public void shouldOpenaiTransformRequestSharedMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.shared.members/client",
+        "${net}/openai.request.shared.members/server"})
+    public void shouldOpenaiRequestSharedMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.request.shared.members/client",
+        "${net}/anthropic.transform.request.shared.members/server"})
+    public void shouldAnthropicTransformRequestSharedMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.request.shared.members/client",
+        "${net}/gemini.transform.request.shared.members/server"})
+    public void shouldGeminiTransformRequestSharedMembers() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -2201,6 +2201,17 @@ public class LlmGeminiClientIT
 
     @Test
     @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.request.shared.members/client",
+        "${net}/gemini.transform.request.shared.members/server"})
+    public void shouldTransformSharedMembersAsGeminiAndDropForeignMember() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
     @Specification({
         "${app}/gemini.request.reasoning.level/client",
         "${net}/gemini.request.reasoning.level/server"})

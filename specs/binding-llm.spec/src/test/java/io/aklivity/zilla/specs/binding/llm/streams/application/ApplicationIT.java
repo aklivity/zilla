@@ -8630,4 +8630,13 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.shared.members/client",
+        "${app}/transform.request.shared.members/server"})
+    public void shouldTransformRequestSharedMembers() throws Exception
+    {
+        k3po.finish();
+    }
 }
