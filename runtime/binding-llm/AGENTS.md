@@ -58,6 +58,9 @@ members have their own section)
     (`x:<member> cannot be converted from <dialect> to <dialect>`).
   - **C**, advisory numeric with a narrower range on the target: clamped into the target's range, never
     rescaled.
+- A client decides the class itself and does not take a successful response as proof that the upstream honoured a
+  member. The members an upstream does not honour are listed in the client options, and the client drops or rejects
+  them before it writes the request ([Upstream support](#upstream-support)).
 - **Graduation.** An `x:` member becomes an unprefixed canonical member when all hold: every registered
   dialect either supports it natively or documents the provider as lacking it; one value domain and one
   clamp table across dialects; one legality class with no pair-specific exceptions; per-pair scripts pass
@@ -295,6 +298,8 @@ declaration order), then the built-in defaults of the dialect, which are data
 | `budget` | `anthropic`, `gemini` | `minimum` and `maximum` thinking budget tokens the model accepts. A `minimum` of 0 admits a budget of 0 for `none`. The `anthropic` minimum defaults to 1024, and its maximum is always below `max_tokens`. |
 | `ladder` | all | Budget tokens by `minimal`, `low`, `medium`, `high`, `xhigh` and `max`, overriding the default ladder. |
 | `tiers` | all | The canonical service tiers (`auto`, `default`, `flex`, `priority`) the model supports. A request that carries another tier has it dropped (class A). A model with no entry, or an entry that does not list `tiers`, receives the tier unchanged; an empty list supports none. No built-in default lists tiers. |
+| `unsupported` | all | The `x:` members the upstream does not honour, applied by the client before it writes the request ([Upstream support](#upstream-support)). A listed list replaces the dialect-level list for the model, and an empty list lists nothing. |
+| `exclusive` | all | Groups of members the upstream refuses together ([Upstream support](#upstream-support)). A listed list replaces the dialect-level list for the model, and an empty list lists nothing. |
 
 The built-in defaults mark `claude-opus-4-7*` as `adaptive` and rejecting sampling, `claude-opus-4-6*` and
 `claude-sonnet-4-6*` as `adaptive-enabled`, `claude-3-*`, `claude-sonnet-4-5*`, `claude-haiku-4-5*` and `claude-opus-4-1*`
@@ -302,6 +307,83 @@ as `enabled`, `gemini-2.5-pro*` as a budget of 128 to 32768, `gemini-2.5-flash*`
 `o3*` and `o4-mini*` models as rejecting sampling. They are best-effort data: override an entry whose provider documentation
 has moved. An `anthropic` model with no entry takes `adaptive-disabled`, so its `thinking.budget_tokens` is dropped until an
 entry gives it a form that accepts `enabled`.
+
+#### Upstream support
+
+A client applies the legality rule itself, from the capability data of its dialect, before it writes the request. A
+successful response is never proof that a member was honoured: some upstreams ignore a parameter they do not support and
+return a normal response, which would silently change what the caller gets for a behavioural member. The `unsupported` and
+`exclusive` options say what the upstream does not honour, so the contract does not depend on how a particular upstream
+reacts. Both are dialect-scoped client options, given once on the options of the client, where they apply to every model,
+and optionally per entry of the `models` map. (**implemented** for `openai`, `openai/responses`, `anthropic` and `gemini`)
+
+```yaml
+options:
+  dialect: openai
+  server: https://upstream.example.com/v1
+  unsupported:
+    - seed
+  exclusive:
+    - - thinking_budget_tokens
+      - reasoning_effort
+  models:
+    strict-*:
+      unsupported:
+        - parallel_tool_calls
+        - response_format
+    lenient-*:
+      unsupported: []
+```
+
+- **Defaults.** Both lists are empty by default and a model with no entry is unaffected, so nothing changes for an upstream
+  that honours every member: with the options empty, every `x:` member is translated exactly as in the sections above.
+- **Merge.** The options are resolved like the other model capability options: configured `models` entries first (exact names
+  before globs, in declaration order), then the dialect-level lists, then the built-in defaults of the dialect (which list
+  nothing). The first match that gives a list wins, field by field, so an entry that lists `unsupported` replaces the
+  dialect-level list for the models it matches without touching `exclusive`, and an entry with an empty list lists nothing.
+  A member listed per model pattern applies only to models that match the pattern.
+- **Names.** `unsupported` names the canonical `x:` member: `temperature`, `top_p`, `top_k`, `stop`, `seed`,
+  `frequency_penalty`, `presence_penalty`, `tool_choice`, `parallel_tool_calls`, `response_format`, `reasoning_effort`,
+  `thinking_budget_tokens`, `user` and `service_tier`. The config schema rejects any other name and a duplicate.
+- **Evaluation.** The client evaluates the list when the `x:` member arrives, before the dialect translation, so the list
+  wins over what the dialect could write natively. A member the dialect already cannot write is dropped or rejected the same
+  way.
+
+| Class | Members | Listed in `unsupported` |
+|---|---|---|
+| A, advisory | `temperature`, `top_p`, `top_k`, `seed`, `frequency_penalty`, `presence_penalty`, `reasoning_effort`, `thinking_budget_tokens`, `user`, `service_tier` | dropped silently, whatever the value |
+| B, behavioural | `stop`, `tool_choice`, `parallel_tool_calls`, `response_format` | rejected naming the member and the dialect pair, unless the value is harmless, which is dropped |
+
+- **Rejection.** The message is the one every other class B rejection carries,
+  `x:<member> cannot be converted from <source dialect> to <target dialect>`, for example
+  `x:parallel_tool_calls cannot be converted from anthropic to openai`. The request is rejected before anything of the
+  rejected member is written.
+- **Harmless values.** A class B value is harmless when dropping it cannot change what the caller gets. It is defined for
+  each member, from the values of the legality classes above, and a value that is not understood is never harmless:
+
+  | Member | Harmless (dropped) | Rejected |
+  |---|---|---|
+  | `parallel_tool_calls` | `true` | `false`, and any value that is not a boolean |
+  | `tool_choice` | `"auto"` | `"none"`, `"required"`, a named function, `allowed_tools`, any other value |
+  | `response_format` | `{"type":"text"}` and no other member | `json_object`, `json_schema`, any other value |
+  | `stop` | none | any value |
+
+  A `null` is the absence of the member for every member, and is dropped.
+- **Bound.** A value of a listed class B member is captured to be judged, bounded by the usual 4096 units; a value beyond the
+  bound is rejected naming the member, because no harmless value is that large.
+- **Class A.** A listed class A member is dropped without being inspected, so `x:user` or `x:service_tier` of any value, and a
+  value that would otherwise be clamped or rejected as invalid, is dropped.
+- **Exclusive.** `exclusive` lists groups of members the upstream refuses together, so the client sends exactly one of
+  each group. The first member of the group that is present wins and the others are dropped (class A). A group has at least
+  two members and a member appears once in it. The members a group can name are `reasoning_effort` and
+  `thinking_budget_tokens`, which a client records until the end of the request, so the winner is known whatever the order
+  in which the members arrived. Every other member streams through to the wire where it arrives and cannot be taken back,
+  so the schema does not admit it in a group. `[reasoning_effort, thinking_budget_tokens]` sends the effort (an
+  `anthropic` request with both carries only `output_config.effort`, a `gemini` model that takes a budget derives it from
+  the effort) and `[thinking_budget_tokens, reasoning_effort]` sends the budget (an `openai` request with both carries the
+  effort the budget derives from the ladder, a `gemini` model that takes a level writes `thinkingBudget`).
+- **Not honoured is not a model capability.** The member lists say what an upstream refuses, not what a model can do: a
+  model that rejects sampling or restricts tiers keeps using `sampling` and `tiers`.
 
 ### Promoted user and service tier members
 
