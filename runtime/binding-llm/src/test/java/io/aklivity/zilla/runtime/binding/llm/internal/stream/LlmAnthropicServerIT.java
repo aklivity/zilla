@@ -1775,4 +1775,121 @@ public class LlmAnthropicServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\"", "effort \"low\"", "wire \"low\""})
+    @Specification({
+        "${net}/anthropic.transform.request.reasoning.effort/client",
+        "${app}/transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortLowFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\"", "effort \"medium\"", "wire \"medium\""})
+    @Specification({
+        "${net}/anthropic.transform.request.reasoning.effort/client",
+        "${app}/transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortMediumFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\"", "effort \"high\"", "wire \"high\""})
+    @Specification({
+        "${net}/anthropic.transform.request.reasoning.effort/client",
+        "${app}/transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortHighFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\"", "effort \"xhigh\"", "wire \"xhigh\""})
+    @Specification({
+        "${net}/anthropic.transform.request.reasoning.effort/client",
+        "${app}/transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortXhighFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\"", "effort \"max\"", "wire \"max\""})
+    @Specification({
+        "${net}/anthropic.transform.request.reasoning.effort/client",
+        "${app}/transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortMaxFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\"", "effort \"none\""})
+    @Specification({
+        "${net}/anthropic.transform.request.reasoning.disabled/client",
+        "${app}/transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningNoneFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\"", "budget \"1536\"", "wire \"1536\""})
+    @Specification({
+        "${net}/anthropic.transform.request.reasoning.budget/client",
+        "${app}/transform.request.reasoning.budget/server"})
+    public void shouldTransformReasoningBudgetFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.request.reasoning.thinking.residue/client",
+        "${app}/anthropic.request.reasoning.thinking.residue/server"})
+    public void shouldDecodeAnthropicRequestReasoningThinkingResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.request.reasoning.budget.residue/client",
+        "${app}/anthropic.request.reasoning.budget.residue/server"})
+    public void shouldDecodeAnthropicRequestReasoningBudgetResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.request.reasoning.enabled.only/client",
+        "${app}/anthropic.request.reasoning.enabled.only/server"})
+    public void shouldDecodeAnthropicRequestReasoningEnabledOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.request.reasoning.disabled.effort/client",
+        "${app}/anthropic.request.reasoning.disabled.effort/server"})
+    public void shouldDecodeAnthropicRequestReasoningDisabledEffort() throws Exception
+    {
+        k3po.finish();
+    }
 }

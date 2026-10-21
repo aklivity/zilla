@@ -2106,4 +2106,240 @@ public class LlmOpenaiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\"", "effort \"none\"", "wire \"none\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort/client",
+        "${net}/openai.transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortNoneAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\"", "effort \"minimal\"", "wire \"minimal\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort/client",
+        "${net}/openai.transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortMinimalAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\"", "effort \"low\"", "wire \"low\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort/client",
+        "${net}/openai.transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortLowAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\"", "effort \"medium\"", "wire \"medium\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort/client",
+        "${net}/openai.transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortMediumAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"openai\"", "effort \"high\"", "wire \"high\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort/client",
+        "${net}/openai.transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortHighAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\"", "effort \"xhigh\"", "wire \"xhigh\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort/client",
+        "${net}/openai.transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortXhighAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\"", "effort \"max\"", "wire \"xhigh\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort/client",
+        "${net}/openai.transform.request.reasoning.effort/server"})
+    public void shouldClampReasoningEffortMaxAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"gemini\"", "target \"openai\"", "budget \"0\"", "wire \"none\""})
+    @Specification({
+        "${app}/transform.request.reasoning.budget/client",
+        "${net}/openai.transform.request.reasoning.effort/server"})
+    public void shouldDeriveReasoningEffortNoneFromBudget0AsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"gemini\"", "target \"openai\"", "budget \"512\"", "wire \"minimal\""})
+    @Specification({
+        "${app}/transform.request.reasoning.budget/client",
+        "${net}/openai.transform.request.reasoning.effort/server"})
+    public void shouldDeriveReasoningEffortMinimalFromBudget512AsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"gemini\"", "target \"openai\"", "budget \"1024\"", "wire \"low\""})
+    @Specification({
+        "${app}/transform.request.reasoning.budget/client",
+        "${net}/openai.transform.request.reasoning.effort/server"})
+    public void shouldDeriveReasoningEffortLowFromBudget1024AsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"gemini\"", "target \"openai\"", "budget \"2048\"", "wire \"low\""})
+    @Specification({
+        "${app}/transform.request.reasoning.budget/client",
+        "${net}/openai.transform.request.reasoning.effort/server"})
+    public void shouldDeriveReasoningEffortLowFromBudget2048AsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"gemini\"", "target \"openai\"", "budget \"10000\"", "wire \"medium\""})
+    @Specification({
+        "${app}/transform.request.reasoning.budget/client",
+        "${net}/openai.transform.request.reasoning.effort/server"})
+    public void shouldDeriveReasoningEffortMediumFromBudget10000AsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"gemini\"", "target \"openai\"", "budget \"30000\"", "wire \"high\""})
+    @Specification({
+        "${app}/transform.request.reasoning.budget/client",
+        "${net}/openai.transform.request.reasoning.effort/server"})
+    public void shouldDeriveReasoningEffortHighFromBudget30000AsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\"", "effort \"low\"", "budget \"30000\"", "wire \"low\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort.budget/client",
+        "${net}/openai.transform.request.reasoning.effort/server"})
+    public void shouldPreferReasoningEffortOverBudgetAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.models.yaml")
+    @ScriptProperty({"source \"gemini\"", "target \"openai\"", "model \"ladder-model\"", "budget \"3500\"", "wire \"medium\""})
+    @Specification({
+        "${app}/transform.request.reasoning.budget/client",
+        "${net}/openai.transform.request.reasoning.effort/server"})
+    public void shouldDeriveReasoningEffortFromBudgetWithConfiguredLadderAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.models.yaml")
+    @ScriptProperty({
+        "source \"gemini\"",
+        "target \"openai\"",
+        "model \"ladder-model\"",
+        "budget \"1000\"",
+        "wire \"minimal\""})
+    @Specification({
+        "${app}/transform.request.reasoning.budget/client",
+        "${net}/openai.transform.request.reasoning.effort/server"})
+    public void shouldDeriveReasoningEffortFromBudgetBelowConfiguredLadderAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.rejected.reasoning.effort/client",
+        "${net}/openai.transform.rejected.reasoning/server"})
+    public void shouldRejectReasoningEffortAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.rejected.reasoning.budget/client",
+        "${net}/openai.transform.rejected.reasoning/server"})
+    public void shouldRejectReasoningBudgetAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\"", "model \"o3-mini\""})
+    @Specification({
+        "${app}/transform.request.sampling.members/client",
+        "${net}/openai.transform.request.sampling.unsupported/server"})
+    public void shouldDropSamplingAsOpenaiModelRejectingSampling() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.models.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\"", "model \"o3-mini\""})
+    @Specification({
+        "${app}/transform.request.sampling.members/client",
+        "${net}/openai.transform.request.sampling.supported/server"})
+    public void shouldTransformSamplingAsOpenaiModelOverridingSampling() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.sampling.members/client",
+        "${net}/openai.transform.request.sampling.supported/server"})
+    public void shouldTransformSamplingAsOpenaiModelWithoutEntry() throws Exception
+    {
+        k3po.finish();
+    }
 }

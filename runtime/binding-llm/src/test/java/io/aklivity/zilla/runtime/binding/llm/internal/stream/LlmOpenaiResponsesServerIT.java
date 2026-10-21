@@ -1981,4 +1981,110 @@ public class LlmOpenaiResponsesServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "effort \"none\"", "wire \"none\""})
+    @Specification({
+        "${net}/openai.responses.transform.request.reasoning.effort/client",
+        "${app}/transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortNoneFromOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "effort \"minimal\"", "wire \"minimal\""})
+    @Specification({
+        "${net}/openai.responses.transform.request.reasoning.effort/client",
+        "${app}/transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortMinimalFromOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "effort \"low\"", "wire \"low\""})
+    @Specification({
+        "${net}/openai.responses.transform.request.reasoning.effort/client",
+        "${app}/transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortLowFromOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "effort \"medium\"", "wire \"medium\""})
+    @Specification({
+        "${net}/openai.responses.transform.request.reasoning.effort/client",
+        "${app}/transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortMediumFromOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "effort \"high\"", "wire \"high\""})
+    @Specification({
+        "${net}/openai.responses.transform.request.reasoning.effort/client",
+        "${app}/transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortHighFromOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "effort \"xhigh\"", "wire \"xhigh\""})
+    @Specification({
+        "${net}/openai.responses.transform.request.reasoning.effort/client",
+        "${app}/transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortXhighFromOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.request.reasoning.residue/client",
+        "${app}/openai.responses.request.reasoning.residue/server"})
+    public void shouldDecodeOpenaiResponsesRequestReasoningResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.request.reasoning.residue.only/client",
+        "${app}/openai.responses.request.reasoning.residue.only/server"})
+    public void shouldDecodeOpenaiResponsesRequestReasoningResidueOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.request.reasoning.residue.split/client",
+        "${app}/openai.responses.request.reasoning.residue.split/server"})
+    public void shouldDecodeOpenaiResponsesRequestReasoningResidueSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.request.reasoning.absent/client",
+        "${app}/openai.responses.request.reasoning.absent/server"})
+    public void shouldDecodeOpenaiResponsesRequestReasoningAbsent() throws Exception
+    {
+        k3po.finish();
+    }
 }

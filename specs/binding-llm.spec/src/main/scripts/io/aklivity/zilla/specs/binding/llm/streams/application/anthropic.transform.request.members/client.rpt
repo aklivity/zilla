@@ -50,7 +50,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"x:stop\":[\"END\"],\"anthropic:thinking\":{\"type\":\"enabled\",\"budget_tokens\":2048},\"anthropic:container_id\":\"ctr_1\",\"anthropic:mcp_servers\":[{\"type\":\"url\",\"url\":\"https://mcp.example.com\",\"name\":\"example\"}]}"
+write "{\"x:stop\":[\"END\"],\"x:thinking_budget_tokens\":2048,\"anthropic:container_id\":\"ctr_1\",\"anthropic:mcp_servers\":[{\"type\":\"url\",\"url\":\"https://mcp.example.com\",\"name\":\"example\"}]}"
 write flush
 
 write advise zilla:flush

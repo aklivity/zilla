@@ -1748,4 +1748,504 @@ public class LlmGeminiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "effort \"minimal\"",
+        "wire \"MINIMAL\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort/client",
+        "${net}/gemini.transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortMinimalAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "effort \"low\"",
+        "wire \"LOW\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort/client",
+        "${net}/gemini.transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortLowAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "effort \"medium\"",
+        "wire \"MEDIUM\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort/client",
+        "${net}/gemini.transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortMediumAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "effort \"high\"",
+        "wire \"HIGH\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort/client",
+        "${net}/gemini.transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortHighAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "effort \"xhigh\"",
+        "wire \"HIGH\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort/client",
+        "${net}/gemini.transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortXhighAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "effort \"max\"",
+        "wire \"HIGH\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort/client",
+        "${net}/gemini.transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortMaxAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "effort \"none\"",
+        "wire \"MINIMAL\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort/client",
+        "${net}/gemini.transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortNoneAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.models.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "effort \"high\"",
+        "model \"budget-model\"",
+        "wire \"24576\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort/client",
+        "${net}/gemini.transform.request.reasoning.budget/server"})
+    public void shouldDeriveReasoningBudget24576FromEffortHighAsGeminiBudgetModel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.models.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "effort \"medium\"",
+        "model \"budget-model\"",
+        "wire \"8192\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort/client",
+        "${net}/gemini.transform.request.reasoning.budget/server"})
+    public void shouldDeriveReasoningBudget8192FromEffortMediumAsGeminiBudgetModel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.models.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "effort \"low\"",
+        "model \"budget-model\"",
+        "wire \"1024\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort/client",
+        "${net}/gemini.transform.request.reasoning.budget/server"})
+    public void shouldDeriveReasoningBudget1024FromEffortLowAsGeminiBudgetModel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.models.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "effort \"minimal\"",
+        "model \"budget-model\"",
+        "wire \"1024\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort/client",
+        "${net}/gemini.transform.request.reasoning.budget/server"})
+    public void shouldDeriveReasoningBudget1024FromEffortMinimalAsGeminiBudgetModel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.models.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "effort \"xhigh\"",
+        "model \"budget-model\"",
+        "wire \"24576\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort/client",
+        "${net}/gemini.transform.request.reasoning.budget/server"})
+    public void shouldDeriveReasoningBudget24576FromEffortXhighAsGeminiBudgetModel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.models.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "effort \"max\"",
+        "model \"budget-model\"",
+        "wire \"24576\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort/client",
+        "${net}/gemini.transform.request.reasoning.budget/server"})
+    public void shouldDeriveReasoningBudget24576FromEffortMaxAsGeminiBudgetModel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.models.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "effort \"none\"",
+        "model \"gemini-2.5-flash\"",
+        "wire \"0\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort/client",
+        "${net}/gemini.transform.request.reasoning.budget/server"})
+    public void shouldDeriveReasoningBudget0FromEffortNoneAsGeminiGemini25Flash() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.models.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "effort \"none\"",
+        "model \"gemini-2.5-pro\"",
+        "wire \"128\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort/client",
+        "${net}/gemini.transform.request.reasoning.budget/server"})
+    public void shouldDeriveReasoningBudget128FromEffortNoneAsGeminiGemini25Pro() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.models.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "effort \"high\"",
+        "model \"gemini-2.5-pro\"",
+        "wire \"24576\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort/client",
+        "${net}/gemini.transform.request.reasoning.budget/server"})
+    public void shouldDeriveReasoningBudget24576FromEffortHighAsGeminiGemini25Pro() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.models.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "effort \"high\"",
+        "model \"ladder-model\"",
+        "wire \"700\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort/client",
+        "${net}/gemini.transform.request.reasoning.budget/server"})
+    public void shouldDeriveReasoningBudgetFromEffortAsGeminiConfiguredLadder() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.models.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "budget \"4096\"",
+        "model \"budget-model\"",
+        "wire \"4096\""})
+    @Specification({
+        "${app}/transform.request.reasoning.budget/client",
+        "${net}/gemini.transform.request.reasoning.budget/server"})
+    public void shouldTransformReasoningBudget4096AsGeminiBudgetModel4096() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.models.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "budget \"100000\"",
+        "model \"budget-model\"",
+        "wire \"24576\""})
+    @Specification({
+        "${app}/transform.request.reasoning.budget/client",
+        "${net}/gemini.transform.request.reasoning.budget/server"})
+    public void shouldTransformReasoningBudget100000AsGeminiBudgetModel24576() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.models.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "budget \"64\"",
+        "model \"gemini-2.5-pro\"",
+        "wire \"128\""})
+    @Specification({
+        "${app}/transform.request.reasoning.budget/client",
+        "${net}/gemini.transform.request.reasoning.budget/server"})
+    public void shouldTransformReasoningBudget64AsGeminiGemini25Pro128() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.models.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "budget \"4096\"",
+        "model \"gemini-3.6-flash\"",
+        "wire \"4096\""})
+    @Specification({
+        "${app}/transform.request.reasoning.budget/client",
+        "${net}/gemini.transform.request.reasoning.budget/server"})
+    public void shouldTransformReasoningBudget4096AsGeminiGemini36Flash4096() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.models.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "budget \"0\"",
+        "model \"gemini-2.5-flash\"",
+        "wire \"0\""})
+    @Specification({
+        "${app}/transform.request.reasoning.budget/client",
+        "${net}/gemini.transform.request.reasoning.budget/server"})
+    public void shouldTransformReasoningBudgetZeroAsGeminiNone() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "effort \"low\"",
+        "budget \"4096\"",
+        "wire \"LOW\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort.budget/client",
+        "${net}/gemini.transform.request.reasoning.effort/server"})
+    public void shouldPreferReasoningLevelOverBudgetAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.models.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "effort \"low\"",
+        "budget \"4096\"",
+        "model \"budget-model\"",
+        "wire \"4096\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort.budget/client",
+        "${net}/gemini.transform.request.reasoning.budget/server"})
+    public void shouldPreferReasoningBudgetOverLevelAsGeminiBudgetModel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.rejected.reasoning.effort/client",
+        "${net}/gemini.transform.rejected.reasoning/server"})
+    public void shouldRejectReasoningEffortAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.rejected.reasoning.budget/client",
+        "${net}/gemini.transform.rejected.reasoning/server"})
+    public void shouldRejectReasoningBudgetAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.models.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "model \"sampling-rejected\""})
+    @Specification({
+        "${app}/transform.request.sampling.members/client",
+        "${net}/gemini.transform.request.sampling.unsupported/server"})
+    public void shouldDropSamplingAsGeminiModelConfiguredToRejectSampling() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.request.sampling.members/client",
+        "${net}/gemini.transform.request.sampling.supported/server"})
+    public void shouldTransformSamplingAsGeminiModelWithoutEntry() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.request.reasoning.level/client",
+        "${net}/gemini.request.reasoning.level/server"})
+    public void shouldEncodeGeminiRequestReasoningLevel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.request.reasoning.budget/client",
+        "${net}/gemini.request.reasoning.budget/server"})
+    public void shouldEncodeGeminiRequestReasoningBudget() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.request.reasoning.budget.automatic/client",
+        "${net}/gemini.request.reasoning.budget.automatic/server"})
+    public void shouldEncodeGeminiRequestReasoningBudgetAutomatic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.request.reasoning.residue.only/client",
+        "${net}/gemini.request.reasoning.residue.only/server"})
+    public void shouldEncodeGeminiRequestReasoningResidueOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.request.reasoning.empty/client",
+        "${net}/gemini.request.reasoning.empty/server"})
+    public void shouldEncodeGeminiRequestReasoningEmpty() throws Exception
+    {
+        k3po.finish();
+    }
 }

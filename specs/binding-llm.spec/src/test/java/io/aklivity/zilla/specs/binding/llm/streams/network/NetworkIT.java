@@ -7946,4 +7946,346 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.request.reasoning.effort/client",
+        "${net}/openai.transform.request.reasoning.effort/server"})
+    public void shouldOpenaiTransformRequestReasoningEffort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.request.sampling.supported/client",
+        "${net}/openai.transform.request.sampling.supported/server"})
+    public void shouldOpenaiTransformRequestSamplingSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.request.sampling.unsupported/client",
+        "${net}/openai.transform.request.sampling.unsupported/server"})
+    public void shouldOpenaiTransformRequestSamplingUnsupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.rejected.reasoning/client",
+        "${net}/openai.transform.rejected.reasoning/server"})
+    public void shouldOpenaiTransformRejectedReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.request.reasoning.effort/client",
+        "${net}/openai.responses.transform.request.reasoning.effort/server"})
+    public void shouldOpenaiResponsesTransformRequestReasoningEffort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.request.sampling.supported/client",
+        "${net}/openai.responses.transform.request.sampling.supported/server"})
+    public void shouldOpenaiResponsesTransformRequestSamplingSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.request.sampling.unsupported/client",
+        "${net}/openai.responses.transform.request.sampling.unsupported/server"})
+    public void shouldOpenaiResponsesTransformRequestSamplingUnsupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.rejected.reasoning/client",
+        "${net}/openai.responses.transform.rejected.reasoning/server"})
+    public void shouldOpenaiResponsesTransformRejectedReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.request.reasoning.effort/client",
+        "${net}/anthropic.transform.request.reasoning.effort/server"})
+    public void shouldAnthropicTransformRequestReasoningEffort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.request.sampling.supported/client",
+        "${net}/anthropic.transform.request.sampling.supported/server"})
+    public void shouldAnthropicTransformRequestSamplingSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.request.sampling.unsupported/client",
+        "${net}/anthropic.transform.request.sampling.unsupported/server"})
+    public void shouldAnthropicTransformRequestSamplingUnsupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.rejected.reasoning/client",
+        "${net}/anthropic.transform.rejected.reasoning/server"})
+    public void shouldAnthropicTransformRejectedReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.request.reasoning.effort/client",
+        "${net}/gemini.transform.request.reasoning.effort/server"})
+    public void shouldGeminiTransformRequestReasoningEffort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.request.sampling.supported/client",
+        "${net}/gemini.transform.request.sampling.supported/server"})
+    public void shouldGeminiTransformRequestSamplingSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.request.sampling.unsupported/client",
+        "${net}/gemini.transform.request.sampling.unsupported/server"})
+    public void shouldGeminiTransformRequestSamplingUnsupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.rejected.reasoning/client",
+        "${net}/gemini.transform.rejected.reasoning/server"})
+    public void shouldGeminiTransformRejectedReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.request.reasoning.effort.budget/client",
+        "${net}/anthropic.transform.request.reasoning.effort.budget/server"})
+    public void shouldAnthropicTransformRequestReasoningEffortBudget() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.request.reasoning.budget/client",
+        "${net}/anthropic.transform.request.reasoning.budget/server"})
+    public void shouldAnthropicTransformRequestReasoningBudget() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.request.reasoning.disabled/client",
+        "${net}/anthropic.transform.request.reasoning.disabled/server"})
+    public void shouldAnthropicTransformRequestReasoningDisabled() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.request.reasoning.omitted/client",
+        "${net}/anthropic.transform.request.reasoning.omitted/server"})
+    public void shouldAnthropicTransformRequestReasoningOmitted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.request.reasoning.budget/client",
+        "${net}/gemini.transform.request.reasoning.budget/server"})
+    public void shouldGeminiTransformReasoningBudget() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.request.reasoning.residue/client",
+        "${net}/openai.responses.request.reasoning.residue/server"})
+    public void shouldForwardOpenaiResponsesRequestReasoningResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.request.reasoning.residue.only/client",
+        "${net}/openai.responses.request.reasoning.residue.only/server"})
+    public void shouldForwardOpenaiResponsesRequestReasoningResidueOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.request.reasoning.residue.split/client",
+        "${net}/openai.responses.request.reasoning.residue.split/server"})
+    public void shouldForwardOpenaiResponsesRequestReasoningResidueSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.request.reasoning.absent/client",
+        "${net}/openai.responses.request.reasoning.absent/server"})
+    public void shouldForwardOpenaiResponsesRequestReasoningAbsent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.reasoning.thinking.residue/client",
+        "${net}/anthropic.request.reasoning.thinking.residue/server"})
+    public void shouldForwardAnthropicRequestReasoningThinkingResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.reasoning.budget.residue/client",
+        "${net}/anthropic.request.reasoning.budget.residue/server"})
+    public void shouldForwardAnthropicRequestReasoningBudgetResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.reasoning.enabled.only/client",
+        "${net}/anthropic.request.reasoning.enabled.only/server"})
+    public void shouldForwardAnthropicRequestReasoningEnabledOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.reasoning.disabled.effort/client",
+        "${net}/anthropic.request.reasoning.disabled.effort/server"})
+    public void shouldForwardAnthropicRequestReasoningDisabledEffort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.reasoning.level/client",
+        "${net}/gemini.request.reasoning.level/server"})
+    public void shouldForwardGeminiRequestReasoningLevel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.reasoning.budget/client",
+        "${net}/gemini.request.reasoning.budget/server"})
+    public void shouldForwardGeminiRequestReasoningBudget() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.reasoning.budget.automatic/client",
+        "${net}/gemini.request.reasoning.budget.automatic/server"})
+    public void shouldForwardGeminiRequestReasoningBudgetAutomatic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.reasoning.residue.only/client",
+        "${net}/gemini.request.reasoning.residue.only/server"})
+    public void shouldForwardGeminiRequestReasoningResidueOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.reasoning.empty/client",
+        "${net}/gemini.request.reasoning.empty/server"})
+    public void shouldForwardGeminiRequestReasoningEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.reasoning.level.residue.first/client",
+        "${net}/gemini.request.reasoning.level.residue.first/server"})
+    public void shouldForwardGeminiRequestReasoningLevelResidueFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.reasoning.budget.zero/client",
+        "${net}/gemini.request.reasoning.budget.zero/server"})
+    public void shouldForwardGeminiRequestReasoningBudgetZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.reasoning.snake/client",
+        "${net}/gemini.request.reasoning.snake/server"})
+    public void shouldForwardGeminiRequestReasoningSnake() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.reasoning.sampling/client",
+        "${net}/gemini.request.reasoning.sampling/server"})
+    public void shouldForwardGeminiRequestReasoningSampling() throws Exception
+    {
+        k3po.finish();
+    }
 }
