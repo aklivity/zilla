@@ -21,13 +21,23 @@ final class LlmAnthropicToolDefinitionFromCanonical extends LlmToolTransform
 {
     private static final String DIALECT = "anthropic";
 
+    private final LlmCacheBreakpoint breakpoints;
+
     private boolean named;
     private boolean parametrized;
 
     LlmAnthropicToolDefinitionFromCanonical(
         boolean sameDialect)
     {
+        this(sameDialect, null);
+    }
+
+    LlmAnthropicToolDefinitionFromCanonical(
+        boolean sameDialect,
+        LlmCacheBreakpoint breakpoints)
+    {
         super(MODE_OBJECT, sameDialect);
+        this.breakpoints = breakpoints;
     }
 
     @Override
@@ -76,6 +86,22 @@ final class LlmAnthropicToolDefinitionFromCanonical extends LlmToolTransform
         }
 
         return action;
+    }
+
+    @Override
+    protected int breakpoint(
+        CharSequence member)
+    {
+        return breakpoints != null ? capture(member) : DROP;
+    }
+
+    @Override
+    protected Status onCaptured(
+        LlmCapturedValue value)
+    {
+        breakpoints.fromCanonical(this, value);
+
+        return Status.ADVANCED;
     }
 
     @Override

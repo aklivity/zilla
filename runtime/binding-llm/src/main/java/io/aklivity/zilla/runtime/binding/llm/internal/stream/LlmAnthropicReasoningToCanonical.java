@@ -37,6 +37,14 @@ final class LlmAnthropicReasoningToCanonical extends LlmToolTransform
             target = "text";
             action = PASS_STRING;
         }
+        else if (matches(key, "signature"))
+        {
+            action = share(LlmSharedMembers.SIGNATURE);
+        }
+        else if (matches(key, "data"))
+        {
+            action = share(LlmSharedMembers.REDACTED_DATA);
+        }
         else
         {
             action = prefix(DIALECT, key);
