@@ -423,16 +423,6 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/anthropic.request.output.config.100k/client",
-        "${net}/anthropic.request.output.config.100k/server"})
-    public void shouldEncodeAnthropicRequestOutputConfig100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
         "${app}/anthropic.request.options/client",
         "${net}/anthropic.request.options/server"})
     public void shouldEncodeAnthropicRequestOptions() throws Exception

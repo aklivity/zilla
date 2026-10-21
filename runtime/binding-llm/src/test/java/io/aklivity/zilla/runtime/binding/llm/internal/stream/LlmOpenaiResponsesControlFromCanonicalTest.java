@@ -251,4 +251,82 @@ public class LlmOpenaiResponsesControlFromCanonicalTest
 
         assertThat(foreignMembers.rejectedMember(), equalTo("tool_choice"));
     }
+
+
+    @Test
+    public void shouldFlattenJsonSchemaFormat()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'name':'answer','description':'d'," +
+                "'schema':{'a':[1,{'b':'" + LONG + "'}]},'strict':true}}}"),
+            json("{'text':{'format':{'type':'json_schema','name':'answer','description':'d'," +
+                "'schema':{'a':[1,{'b':'" + LONG + "'}]},'strict':true}}}"));
+
+        assertThat(foreignMembers.member(), equalTo("text"));
+    }
+
+    @Test
+    public void shouldFlattenJsonSchemaFormatWithTypeLast()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:response_format':{'json_schema':{'name':'answer','schema':{'a':1}},'type':'json_schema'}}"),
+            json("{'text':{'format':{'type':'json_schema','name':'answer','schema':{'a':1}}}}"));
+    }
+
+    @Test
+    public void shouldFlattenJsonSchemaFormatLargerThanWindow()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'name':'a','schema':{'d':'" + HUGE + "'}}}}"),
+            json("{'text':{'format':{'type':'json_schema','name':'a','schema':{'d':'" + HUGE + "'}}}}"));
+    }
+
+    @Test
+    public void shouldWriteTextFormat()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:response_format':{'type':'text'}}"),
+            json("{'text':{'format':{'type':'text'}}}"));
+    }
+
+    @Test
+    public void shouldWriteJsonObjectFormat()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:response_format':{'type':'json_object'}}"),
+            json("{'text':{'format':{'type':'json_object'}}}"));
+    }
+
+    @Test
+    public void shouldDropNullFormat()
+    {
+        assertTransforms(foreignMembers, json("{'x:response_format':null}"), json("{}"));
+    }
+
+    @Test
+    public void shouldRejectUnknownFormatType()
+    {
+        assertRejects(foreignMembers, json("{'x:response_format':{'type':'grammar'}}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("response_format"));
+    }
+
+    @Test
+    public void shouldRejectFormatThatIsNotAnObject()
+    {
+        assertRejects(foreignMembers, json("{'x:response_format':'text'}"));
+    }
+
+    @Test
+    public void shouldRejectFormatWithoutType()
+    {
+        assertRejects(foreignMembers, json("{'x:response_format':{}}"));
+    }
+
+    @Test
+    public void shouldRejectInconsistentFormat()
+    {
+        assertRejects(foreignMembers, json("{'x:response_format':{'type':'json_object','json_schema':{'name':'a'}}}"));
+        assertRejects(foreignMembers, json("{'x:response_format':{'json_schema':{'name':'a'},'type':'text'}}"));
+    }
 }

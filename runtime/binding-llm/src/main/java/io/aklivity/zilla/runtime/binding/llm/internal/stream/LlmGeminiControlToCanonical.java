@@ -38,13 +38,57 @@ final class LlmGeminiControlToCanonical extends LlmToolTransform
     private static final String MODE_ANY = "ANY";
     private static final String MODE_NONE = "NONE";
     private static final int CAPTURE_MAX = 768;
+    private static final String MEMBER_RESPONSE_FORMAT = "responseFormat";
+    private static final String MEMBER_RESPONSE_FORMAT_SNAKE = "response_format";
+    private static final String MEMBER_TEXT = "text";
+    private static final String MEMBER_MIME_TYPE = "mimeType";
+    private static final String MEMBER_MIME_TYPE_SNAKE = "mime_type";
+    private static final String MEMBER_SCHEMA = "schema";
+    private static final String MEMBER_SHARED_RESPONSE_FORMAT = "x:response_format";
+    private static final String MEMBER_NATIVE_GENERATION_CONFIG = "gemini:generationConfig";
+    private static final String MEMBER_TYPE = "type";
+    private static final String MEMBER_JSON_SCHEMA = "json_schema";
+    private static final String MEMBER_NAME = "name";
+    private static final String TYPE_JSON_SCHEMA = "json_schema";
+    private static final String TYPE_JSON_OBJECT = "json_object";
+    private static final String DEFAULT_NAME = "response";
+    private static final String MIME_JSON = "application/json";
+    private static final String MIME_JSON_ENUM = "APPLICATION_JSON";
+
+    private static final int FORMAT_OFF = 0;
+    private static final int FORMAT_UNDECIDED = 1;
+    private static final int FORMAT_RESIDUE = 2;
+    private static final int FORMAT_TEXT = 3;
+    private static final int FORMAT_LIFTED = 4;
+    private static final int FORMAT_SCHEMA = 5;
+    private static final int FORMAT_RESIDUE_TEXT = 6;
+    private static final int FORMAT_LIFTED_CLOSED = 7;
 
     private final LlmToolChoice choice;
+
+    private String residueKey;
+    private String formatKey;
+    private int format;
 
     LlmGeminiControlToCanonical()
     {
         this.choice = new LlmToolChoice();
+        this.residueKey = MEMBER_NATIVE_GENERATION_CONFIG;
         captureLimit(CAPTURE_MAX);
+    }
+
+    void residueKey(
+        String key)
+    {
+        residueKey = key;
+    }
+
+    @Override
+    public void reset()
+    {
+        super.reset();
+        format = FORMAT_OFF;
+        formatKey = null;
     }
 
     @Override
@@ -52,13 +96,63 @@ final class LlmGeminiControlToCanonical extends LlmToolTransform
         int depth,
         CharSequence key)
     {
-        return depth == 1 && (matches(key, MEMBER_TOOL_CONFIG) || matches(key, MEMBER_TOOL_CONFIG_SNAKE))
-            ? capture(key)
-            : prefix(DIALECT, key);
+        int action;
+
+        if (depth == 1 && (matches(key, MEMBER_TOOL_CONFIG) || matches(key, MEMBER_TOOL_CONFIG_SNAKE)))
+        {
+            action = capture(key);
+        }
+        else if (depth == 1 && (matches(key, MEMBER_RESPONSE_FORMAT) || matches(key, MEMBER_RESPONSE_FORMAT_SNAKE)))
+        {
+            formatKey = name(key);
+            target = formatKey;
+            nest(residueKey);
+            action = DESCEND_OR_PASS;
+        }
+        else if (depth == 2)
+        {
+            action = formatMember(key);
+        }
+        else if (depth == 3)
+        {
+            action = textMember(key);
+        }
+        else
+        {
+            action = prefix(DIALECT, key);
+        }
+
+        return action;
+    }
+
+    @Override
+    protected Status onDescend(
+        int depth)
+    {
+        format = depth == 2 ? FORMAT_UNDECIDED : FORMAT_TEXT;
+
+        return Status.ADVANCED;
     }
 
     @Override
     protected Status onCaptured(
+        LlmCapturedValue value)
+    {
+        Status status = Status.ADVANCED;
+
+        if (matches(capturedMember(), MEMBER_MIME_TYPE) || matches(capturedMember(), MEMBER_MIME_TYPE_SNAKE))
+        {
+            onMimeType(value);
+        }
+        else
+        {
+            onToolConfig(value);
+        }
+
+        return status;
+    }
+
+    private void onToolConfig(
         LlmCapturedValue value)
     {
         final String residueKey = matches(capturedMember(), MEMBER_TOOL_CONFIG_SNAKE)
@@ -74,8 +168,6 @@ final class LlmGeminiControlToCanonical extends LlmToolTransform
             emit(JsonEvent.KEY_NAME, residueKey);
             emitCaptured(value, 0);
         }
-
-        return Status.ADVANCED;
     }
 
     @Override
@@ -87,9 +179,158 @@ final class LlmGeminiControlToCanonical extends LlmToolTransform
     protected Status onClose(
         int depth)
     {
-        pass(JsonEvent.END_OBJECT);
+        if (depth == 3)
+        {
+            onTextClose();
+        }
+        else if (depth == 2)
+        {
+            onFormatClose();
+        }
+        else
+        {
+            pass(JsonEvent.END_OBJECT);
+        }
 
         return Status.ADVANCED;
+    }
+
+    private int formatMember(
+        CharSequence key)
+    {
+        int action;
+
+        if (format == FORMAT_UNDECIDED && matches(key, MEMBER_TEXT))
+        {
+            action = DESCEND_OR_REPLACE;
+        }
+        else if (format == FORMAT_UNDECIDED || format == FORMAT_RESIDUE)
+        {
+            openWrapper(false);
+            format = FORMAT_RESIDUE;
+            target = name(key);
+            action = PASS_VALUE;
+        }
+        else
+        {
+            action = DROP;
+        }
+
+        return action;
+    }
+
+    private int textMember(
+        CharSequence key)
+    {
+        int action = DROP;
+
+        if (format == FORMAT_TEXT && (matches(key, MEMBER_MIME_TYPE) || matches(key, MEMBER_MIME_TYPE_SNAKE)))
+        {
+            action = capture(key);
+        }
+        else if (format == FORMAT_TEXT || format == FORMAT_RESIDUE_TEXT)
+        {
+            openWrapper(true);
+            format = FORMAT_RESIDUE_TEXT;
+            target = name(key);
+            action = PASS_VALUE;
+        }
+        else if (format == FORMAT_LIFTED && matches(key, MEMBER_SCHEMA))
+        {
+            emit(JsonEvent.KEY_NAME, MEMBER_TYPE);
+            emit(JsonEvent.VALUE_STRING, TYPE_JSON_SCHEMA);
+            emit(JsonEvent.KEY_NAME, MEMBER_JSON_SCHEMA);
+            emit(JsonEvent.START_OBJECT);
+            emit(JsonEvent.KEY_NAME, MEMBER_NAME);
+            emit(JsonEvent.VALUE_STRING, DEFAULT_NAME);
+            format = FORMAT_SCHEMA;
+            target = MEMBER_SCHEMA;
+            action = PASS_VALUE;
+        }
+
+        return action;
+    }
+
+    private void onMimeType(
+        LlmCapturedValue value)
+    {
+        final String mime = value.string(0);
+
+        if (MIME_JSON.equalsIgnoreCase(mime) || MIME_JSON_ENUM.equals(mime))
+        {
+            emit(JsonEvent.KEY_NAME, MEMBER_SHARED_RESPONSE_FORMAT);
+            emit(JsonEvent.START_OBJECT);
+            format = FORMAT_LIFTED;
+        }
+        else
+        {
+            openWrapper(true);
+            format = FORMAT_RESIDUE_TEXT;
+            emit(JsonEvent.KEY_NAME, capturedMember());
+            emitCaptured(value, 0);
+        }
+    }
+
+    private void onTextClose()
+    {
+        switch (format)
+        {
+        case FORMAT_TEXT:
+            openWrapper(true);
+            emit(JsonEvent.END_OBJECT);
+            format = FORMAT_RESIDUE;
+            break;
+        case FORMAT_LIFTED:
+            emit(JsonEvent.KEY_NAME, MEMBER_TYPE);
+            emit(JsonEvent.VALUE_STRING, TYPE_JSON_OBJECT);
+            emit(JsonEvent.END_OBJECT);
+            format = FORMAT_LIFTED_CLOSED;
+            break;
+        case FORMAT_SCHEMA:
+            emit(JsonEvent.END_OBJECT);
+            emit(JsonEvent.END_OBJECT);
+            format = FORMAT_LIFTED_CLOSED;
+            break;
+        default:
+            emit(JsonEvent.END_OBJECT);
+            format = FORMAT_RESIDUE;
+            break;
+        }
+    }
+
+    private void onFormatClose()
+    {
+        if (format == FORMAT_UNDECIDED)
+        {
+            openWrapper(false);
+            emit(JsonEvent.END_OBJECT);
+            emit(JsonEvent.END_OBJECT);
+        }
+        else if (format == FORMAT_RESIDUE)
+        {
+            emit(JsonEvent.END_OBJECT);
+            emit(JsonEvent.END_OBJECT);
+        }
+
+        format = FORMAT_OFF;
+    }
+
+    private void openWrapper(
+        boolean text)
+    {
+        if (format == FORMAT_UNDECIDED || format == FORMAT_TEXT)
+        {
+            emit(JsonEvent.KEY_NAME, residueKey);
+            emit(JsonEvent.START_OBJECT);
+            emit(JsonEvent.KEY_NAME, formatKey);
+            emit(JsonEvent.START_OBJECT);
+        }
+
+        if (text && format != FORMAT_RESIDUE_TEXT)
+        {
+            emit(JsonEvent.KEY_NAME, MEMBER_TEXT);
+            emit(JsonEvent.START_OBJECT);
+        }
     }
 
     private void splitToolConfig(

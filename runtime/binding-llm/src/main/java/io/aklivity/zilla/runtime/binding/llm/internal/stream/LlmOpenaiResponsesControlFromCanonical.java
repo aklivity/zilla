@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.PARALLEL_TOOL_CALLS;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.RESPONSE_FORMAT;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.STOP;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TEMPERATURE;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TOOL_CHOICE;
@@ -23,11 +24,17 @@ import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMem
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
-final class LlmOpenaiResponsesControlFromCanonical extends LlmToolTransform
+final class LlmOpenaiResponsesControlFromCanonical extends LlmFormatFromCanonical
 {
     private static final String DIALECT = "openai";
     private static final String MEMBER_STREAM_OPTIONS = "stream_options";
     private static final String MEMBER_INCLUDE_USAGE = "include_usage";
+    private static final String MEMBER_TEXT = "text";
+    private static final String MEMBER_FORMAT = "format";
+    private static final String MEMBER_TYPE = "type";
+    private static final String TYPE_JSON_SCHEMA = "json_schema";
+    private static final String TYPE_JSON_OBJECT = "json_object";
+    private static final String TYPE_TEXT = "text";
 
     private final boolean members;
     private final LlmToolChoice choice;
@@ -76,7 +83,11 @@ final class LlmOpenaiResponsesControlFromCanonical extends LlmToolTransform
     {
         int action;
 
-        if (depth == 1 && matches(key, MEMBER_STREAM_OPTIONS))
+        if (formatActive(depth))
+        {
+            action = formatMember(depth, key);
+        }
+        else if (depth == 1 && matches(key, MEMBER_STREAM_OPTIONS))
         {
             action = DESCEND;
         }
@@ -131,9 +142,54 @@ final class LlmOpenaiResponsesControlFromCanonical extends LlmToolTransform
             {
                 action = reject(key);
             }
+            else if (matches(key, RESPONSE_FORMAT))
+            {
+                target = MEMBER_TEXT;
+                action = formatShared();
+            }
         }
 
         return action;
+    }
+
+    @Override
+    protected boolean formatObject()
+    {
+        return true;
+    }
+
+    @Override
+    protected boolean formatText()
+    {
+        return true;
+    }
+
+    @Override
+    protected void openFormat(
+        int kind)
+    {
+        emit(JsonEvent.KEY_NAME, MEMBER_TEXT);
+        emit(JsonEvent.START_OBJECT);
+        emit(JsonEvent.KEY_NAME, MEMBER_FORMAT);
+        emit(JsonEvent.START_OBJECT);
+        emit(JsonEvent.KEY_NAME, MEMBER_TYPE);
+        emit(JsonEvent.VALUE_STRING, typeOf(kind));
+    }
+
+    @Override
+    protected void closeFormat()
+    {
+        emit(JsonEvent.END_OBJECT);
+        emit(JsonEvent.END_OBJECT);
+    }
+
+    @Override
+    protected int schemaMember(
+        CharSequence key)
+    {
+        target = name(key);
+
+        return PASS_VALUE;
     }
 
     @Override
@@ -142,7 +198,11 @@ final class LlmOpenaiResponsesControlFromCanonical extends LlmToolTransform
     {
         Status status = Status.ADVANCED;
 
-        if (choice.parseCanonical(value))
+        if (matches(capturedMember(), MEMBER_TYPE))
+        {
+            status = formatCaptured(value);
+        }
+        else if (choice.parseCanonical(value))
         {
             emit(JsonEvent.KEY_NAME, TOOL_CHOICE);
             choice.emitResponses(this);
@@ -164,7 +224,13 @@ final class LlmOpenaiResponsesControlFromCanonical extends LlmToolTransform
     protected Status onClose(
         int depth)
     {
-        if (depth == 2)
+        Status status = Status.ADVANCED;
+
+        if (formatActive(depth))
+        {
+            status = formatClosed(depth);
+        }
+        else if (depth == 2)
         {
             if (optionsOpen)
             {
@@ -180,6 +246,17 @@ final class LlmOpenaiResponsesControlFromCanonical extends LlmToolTransform
             emit(JsonEvent.VALUE_NULL);
         }
 
-        return Status.ADVANCED;
+        return status;
+    }
+
+    private static String typeOf(
+        int kind)
+    {
+        return switch (kind)
+        {
+        case FORMAT_SCHEMA -> TYPE_JSON_SCHEMA;
+        case FORMAT_OBJECT -> TYPE_JSON_OBJECT;
+        default -> TYPE_TEXT;
+        };
     }
 }

@@ -115,6 +115,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private static final String MESSAGE_ROLE_MISSING = "Missing required parameter: 'role'.";
     private static final String MESSAGE_ROLE_ORDER = "The 'role' parameter must precede 'content' in each input item.";
     private static final String MESSAGE_PART_TYPE_ORDER = "The 'type' parameter must be the first member of each content part.";
+    private static final String MESSAGE_FORMAT_INVALID =
+        "The 'text.format' parameter is invalid, or its 'type' follows members that are too large.";
     private static final String MESSAGE_ITEM_UNSUPPORTED = "Unsupported input item type: '%s'.";
     private static final String MESSAGE_PART_UNSUPPORTED = "Unsupported content part type: '%s'.";
     private static final String MESSAGE_CALL_ID_ORDER =
@@ -2717,6 +2719,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private LlmSectionPipeline controlPipeline;
         private LlmOpenaiControlToCanonical controlTransform;
         private LlmSectionPipeline choicePipeline;
+        private String choiceMember;
         private byte[] pieceBytes;
         private UnsafeBufferEx pieceBuffer;
         private final JsonGeneratorEx generator;
@@ -3626,7 +3629,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             captureThen = then;
 
-            if (matches(key, MEMBER_TOOL_CHOICE))
+            if (matches(key, MEMBER_TOOL_CHOICE) || matches(key, MEMBER_TEXT))
             {
                 controlConverted(key, CONTROL_CONTINUE);
             }
@@ -3647,6 +3650,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             onDecodeSectionData(decodeTraceId, decodeAuthorization, separator, 0, separator.capacity(), false);
 
+            choiceMember = matches(key, MEMBER_TEXT) ? MEMBER_TEXT : MEMBER_TOOL_CHOICE;
             blockPipeline = choicePipeline();
             blockPipeline.begin(blockAttributes);
             memberOutput.begin();
@@ -3676,7 +3680,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 blockPipeline.begin(blockAttributes);
                 onDecodeControlKey(key, false, '{');
             }
-            else if (matches(key, MEMBER_TOOL_CHOICE))
+            else if (matches(key, MEMBER_TOOL_CHOICE) || matches(key, MEMBER_TEXT))
             {
                 controlConverted(key, CONTROL_BEGIN);
             }
@@ -3702,7 +3706,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 if (captureThen == decodeRootControl &&
                     !onDecodeBlockData(traceId, authorization, CONTROL_CLOSE, 0, CONTROL_CLOSE.capacity(), true))
                 {
-                    onDecodeParseError(traceId);
+                    onDecodeBlockRejected(traceId);
                 }
 
                 if (blockPipeline == controlPipeline)
@@ -4018,7 +4022,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 if (!onDecodeBlockData(traceId, authorization, buffer, offset, length, last && !closing) ||
                     closing && !onDecodeBlockData(traceId, authorization, CONTROL_CLOSE, 0, CONTROL_CLOSE.capacity(), true))
                 {
-                    onDecodeParseError(traceId);
+                    onDecodeBlockRejected(traceId);
                 }
             }
         }
@@ -4202,6 +4206,14 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             long traceId)
         {
             onDecodeInvalidRequest(traceId, MESSAGE_PARSE_ERROR);
+        }
+
+        private void onDecodeBlockRejected(
+            long traceId)
+        {
+            final boolean format = blockPipeline == choicePipeline && MEMBER_TEXT.equals(choiceMember);
+
+            onDecodeInvalidRequest(traceId, format ? MESSAGE_FORMAT_INVALID : MESSAGE_PARSE_ERROR);
         }
 
         private void onDecodeInvalidRequest(

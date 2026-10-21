@@ -302,4 +302,90 @@ public class LlmGeminiControlFromCanonicalTest
             json("{'gemini:tool_config':{'retrieval_config':{'k':1}}}"),
             json("{'toolConfig':{'retrieval_config':{'k':1}}}"));
     }
+
+
+    @Test
+    public void shouldWriteJsonSchemaFormatAsResponseFormat()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'name':'answer','description':'d'," +
+                "'schema':{'type':'object','a':[1,'" + LONG + "']},'strict':true}}}"),
+            json("{'generationConfig':{'responseFormat':{'text':{'mimeType':'APPLICATION_JSON'," +
+                "'schema':{'type':'object','a':[1,'" + LONG + "']}}}}}"));
+
+        assertThat(foreignMembers.member(), equalTo("generationConfig"));
+    }
+
+    @Test
+    public void shouldWriteJsonSchemaFormatWithTypeLast()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:response_format':{'json_schema':{'name':'a','schema':{'x':1}},'type':'json_schema'}}"),
+            json("{'generationConfig':{'responseFormat':{'text':{'mimeType':'APPLICATION_JSON','schema':{'x':1}}}}}"));
+    }
+
+    @Test
+    public void shouldWriteSchemaLargerThanWindow()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'name':'a','schema':{'d':'" + HUGE + "'}}}}"),
+            json("{'generationConfig':{'responseFormat':{'text':{'mimeType':'APPLICATION_JSON','schema':{'d':'" + HUGE +
+                "'}}}}}"));
+    }
+
+    @Test
+    public void shouldWriteJsonObjectFormat()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:response_format':{'type':'json_object'}}"),
+            json("{'generationConfig':{'responseFormat':{'text':{'mimeType':'APPLICATION_JSON'}}}}"));
+    }
+
+    @Test
+    public void shouldOmitTextFormat()
+    {
+        assertTransforms(foreignMembers, json("{'x:response_format':{'type':'text'}}"), json("{}"));
+    }
+
+    @Test
+    public void shouldDropNullFormat()
+    {
+        assertTransforms(foreignMembers, json("{'x:response_format':null}"), json("{}"));
+    }
+
+    @Test
+    public void shouldRejectUnknownFormatType()
+    {
+        assertRejects(foreignMembers, json("{'x:response_format':{'type':'grammar'}}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("response_format"));
+    }
+
+    @Test
+    public void shouldRejectDeniedSchemaKeyword()
+    {
+        assertRejects(foreignMembers,
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'schema':{'patternProperties':{}}}}}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("response_format keyword patternProperties"));
+    }
+
+    @Test
+    public void shouldRejectExternalReference()
+    {
+        assertRejects(foreignMembers,
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'schema':{'$ref':'https://e.com/s'}}}}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("response_format keyword $ref"));
+    }
+
+    @Test
+    public void shouldAcceptConstraintsThatGeminiSupports()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'schema':{'properties':{'not':{}," +
+                "'a':{'minimum':1,'maxItems':2}}}}}}"),
+            json("{'generationConfig':{'responseFormat':{'text':{'mimeType':'APPLICATION_JSON'," +
+                "'schema':{'properties':{'not':{},'a':{'minimum':1,'maxItems':2}}}}}}}"));
+    }
 }

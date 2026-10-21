@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.FREQUENCY_PENALTY;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.PARALLEL_TOOL_CALLS;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.PRESENCE_PENALTY;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.RESPONSE_FORMAT;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.SEED;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.STOP;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TEMPERATURE;
@@ -27,7 +28,7 @@ import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMem
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
-final class LlmGeminiControlFromCanonical extends LlmToolTransform
+final class LlmGeminiControlFromCanonical extends LlmFormatFromCanonical
 {
     private static final String DIALECT = "gemini";
     private static final String MEMBER_STREAM = "stream";
@@ -47,6 +48,11 @@ final class LlmGeminiControlFromCanonical extends LlmToolTransform
     private static final String MEMBER_STOP_SEQUENCES = "stopSequences";
     private static final String MEMBER_FREQUENCY_PENALTY = "frequencyPenalty";
     private static final String MEMBER_PRESENCE_PENALTY = "presencePenalty";
+    private static final String MEMBER_RESPONSE_FORMAT = "responseFormat";
+    private static final String MEMBER_TEXT = "text";
+    private static final String MEMBER_MIME_TYPE = "mimeType";
+    private static final String MEMBER_TYPE = "type";
+    private static final String MIME_JSON = "APPLICATION_JSON";
     private static final int STOP_ENTRIES_MAX = 5;
     private static final double SEED_MINIMUM = Integer.MIN_VALUE;
     private static final double SEED_MAXIMUM = Integer.MAX_VALUE;
@@ -54,6 +60,7 @@ final class LlmGeminiControlFromCanonical extends LlmToolTransform
     private final boolean members;
     private final boolean foreign;
     private final LlmToolChoice choice;
+    private final LlmSchemaScanner scanner;
 
     private String member;
     private int stopEntries;
@@ -72,6 +79,7 @@ final class LlmGeminiControlFromCanonical extends LlmToolTransform
         this.members = mode == MODE_OBJECT;
         this.foreign = !sameDialect;
         this.choice = new LlmToolChoice();
+        this.scanner = new LlmSchemaScanner(LlmSchemaScanner.TARGET_GEMINI);
     }
 
     static LlmGeminiControlFromCanonical members(
@@ -100,7 +108,11 @@ final class LlmGeminiControlFromCanonical extends LlmToolTransform
     {
         int action;
 
-        if (depth == 1 && (matches(key, MEMBER_STREAM) || matches(key, MEMBER_STREAM_OPTIONS)))
+        if (formatActive(depth))
+        {
+            action = formatMember(depth, key);
+        }
+        else if (depth == 1 && (matches(key, MEMBER_STREAM) || matches(key, MEMBER_STREAM_OPTIONS)))
         {
             action = DROP;
         }
@@ -136,6 +148,11 @@ final class LlmGeminiControlFromCanonical extends LlmToolTransform
         {
             target = MEMBER_TOOL_CONFIG;
             action = capture(key);
+        }
+        else if (members && matches(key, RESPONSE_FORMAT))
+        {
+            target = MEMBER_GENERATION_CONFIG;
+            action = formatShared();
         }
         else if (members)
         {
@@ -189,10 +206,64 @@ final class LlmGeminiControlFromCanonical extends LlmToolTransform
     }
 
     @Override
+    protected boolean formatObject()
+    {
+        return true;
+    }
+
+    @Override
+    protected boolean formatText()
+    {
+        return false;
+    }
+
+    @Override
+    protected void openFormat(
+        int kind)
+    {
+        emit(JsonEvent.KEY_NAME, MEMBER_GENERATION_CONFIG);
+        emit(JsonEvent.START_OBJECT);
+        emit(JsonEvent.KEY_NAME, MEMBER_RESPONSE_FORMAT);
+        emit(JsonEvent.START_OBJECT);
+        emit(JsonEvent.KEY_NAME, MEMBER_TEXT);
+        emit(JsonEvent.START_OBJECT);
+        emit(JsonEvent.KEY_NAME, MEMBER_MIME_TYPE);
+        emit(JsonEvent.VALUE_STRING, MIME_JSON);
+    }
+
+    @Override
+    protected void closeFormat()
+    {
+        emit(JsonEvent.END_OBJECT);
+        emit(JsonEvent.END_OBJECT);
+        emit(JsonEvent.END_OBJECT);
+    }
+
+    @Override
+    protected int schemaMember(
+        CharSequence key)
+    {
+        int action = DROP;
+
+        if (matches(key, MEMBER_SCHEMA))
+        {
+            target = MEMBER_SCHEMA;
+            scan(scanner, RESPONSE_FORMAT);
+            action = PASS_VALUE;
+        }
+
+        return action;
+    }
+
+    @Override
     protected Status onCaptured(
         LlmCapturedValue value)
     {
-        return matches(capturedMember(), PARALLEL_TOOL_CALLS) ? onParallelCalls(value) : onToolChoice(value);
+        final String captured = capturedMember();
+
+        return matches(captured, MEMBER_TYPE)
+            ? formatCaptured(value)
+            : matches(captured, PARALLEL_TOOL_CALLS) ? onParallelCalls(value) : onToolChoice(value);
     }
 
     @Override
@@ -204,7 +275,13 @@ final class LlmGeminiControlFromCanonical extends LlmToolTransform
     protected Status onClose(
         int depth)
     {
-        if (members)
+        Status status = Status.ADVANCED;
+
+        if (formatActive(depth))
+        {
+            status = formatClosed(depth);
+        }
+        else if (members)
         {
             pass(JsonEvent.END_OBJECT);
         }
@@ -213,7 +290,7 @@ final class LlmGeminiControlFromCanonical extends LlmToolTransform
             emit(JsonEvent.VALUE_NULL);
         }
 
-        return Status.ADVANCED;
+        return status;
     }
 
     private Status onToolChoice(

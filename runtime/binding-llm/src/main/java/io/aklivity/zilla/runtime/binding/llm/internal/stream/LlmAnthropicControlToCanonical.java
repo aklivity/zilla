@@ -33,11 +33,28 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
     private static final String TYPE_ANY = "any";
     private static final String TYPE_NONE = "none";
     private static final String TYPE_TOOL = "tool";
+    private static final String MEMBER_OUTPUT_CONFIG = "output_config";
+    private static final String MEMBER_NATIVE_OUTPUT_CONFIG = "anthropic:output_config";
+    private static final String MEMBER_SHARED_RESPONSE_FORMAT = "x:response_format";
+    private static final String MEMBER_FORMAT = "format";
+    private static final String MEMBER_SCHEMA = "schema";
+    private static final String MEMBER_JSON_SCHEMA = "json_schema";
+    private static final String TYPE_JSON_SCHEMA = "json_schema";
+    private static final String DEFAULT_NAME = "response";
+
+    private static final int REPLACING_STREAM = 0;
+    private static final int REPLACING_FORMAT = 1;
+
+    private static final int OUTPUT_NONE = 0;
+    private static final int OUTPUT_RESIDUE = 1;
+    private static final int OUTPUT_LIFTED = 2;
 
     private final LlmToolChoice choice;
 
     private boolean streamSeen;
     private boolean streaming;
+    private int replacing;
+    private int output;
 
     LlmAnthropicControlToCanonical()
     {
@@ -60,6 +77,7 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
         super.reset();
         streamSeen = false;
         streaming = false;
+        output = OUTPUT_NONE;
     }
 
     @Override
@@ -72,11 +90,25 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
         if (depth == 1 && matches(key, MEMBER_STREAM))
         {
             target = MEMBER_STREAM;
+            replacing = REPLACING_STREAM;
             action = REPLACE_VALUE;
         }
         else if (depth == 1 && matches(key, TOOL_CHOICE))
         {
             action = capture(key);
+        }
+        else if (depth == 1 && matches(key, MEMBER_OUTPUT_CONFIG))
+        {
+            target = MEMBER_NATIVE_OUTPUT_CONFIG;
+            action = DESCEND_OR_PASS;
+        }
+        else if (depth == 2)
+        {
+            action = outputConfigMember(key);
+        }
+        else if (depth == 3)
+        {
+            action = formatMember(key);
         }
         else
         {
@@ -87,7 +119,46 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
     }
 
     @Override
+    protected Status onDescend(
+        int depth)
+    {
+        if (depth == 2)
+        {
+            output = OUTPUT_NONE;
+        }
+        else
+        {
+            emit(JsonEvent.START_OBJECT);
+            emit(JsonEvent.KEY_NAME, MEMBER_TYPE);
+            emit(JsonEvent.VALUE_STRING, TYPE_JSON_SCHEMA);
+            emit(JsonEvent.KEY_NAME, MEMBER_JSON_SCHEMA);
+            emit(JsonEvent.START_OBJECT);
+            emit(JsonEvent.KEY_NAME, MEMBER_NAME);
+            emit(JsonEvent.VALUE_STRING, DEFAULT_NAME);
+        }
+
+        return Status.ADVANCED;
+    }
+
+    @Override
     protected Status onCaptured(
+        LlmCapturedValue value)
+    {
+        Status status = Status.ADVANCED;
+
+        if (matches(capturedMember(), MEMBER_TYPE))
+        {
+            status = TYPE_JSON_SCHEMA.equals(value.string(0)) ? Status.ADVANCED : Status.REJECTED;
+        }
+        else
+        {
+            onToolChoiceCaptured(value);
+        }
+
+        return status;
+    }
+
+    private void onToolChoiceCaptured(
         LlmCapturedValue value)
     {
         if (value.isObject(0))
@@ -99,8 +170,6 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
             emit(JsonEvent.KEY_NAME, MEMBER_NATIVE_TOOL_CHOICE);
             emitCaptured(value, 0);
         }
-
-        return Status.ADVANCED;
     }
 
     @Override
@@ -115,7 +184,7 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
         final boolean flag = event == JsonEvent.VALUE_TRUE || event == JsonEvent.VALUE_FALSE || event == JsonEvent.VALUE_NULL;
         Status status = Status.REJECTED;
 
-        if (flag)
+        if (replacing == REPLACING_STREAM && flag)
         {
             streamSeen = true;
             streaming = event == JsonEvent.VALUE_TRUE;
@@ -131,9 +200,96 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
     protected Status onClose(
         int depth)
     {
-        pass(JsonEvent.END_OBJECT);
+        if (depth == 3)
+        {
+            emit(JsonEvent.END_OBJECT);
+            emit(JsonEvent.END_OBJECT);
+        }
+        else if (depth == 2)
+        {
+            onOutputConfigClose();
+        }
+        else
+        {
+            pass(JsonEvent.END_OBJECT);
+        }
 
         return Status.ADVANCED;
+    }
+
+    private int outputConfigMember(
+        CharSequence key)
+    {
+        int action;
+
+        if (matches(key, MEMBER_FORMAT))
+        {
+            closeResidue();
+            output = OUTPUT_LIFTED;
+            replacing = REPLACING_FORMAT;
+            emit(JsonEvent.KEY_NAME, MEMBER_SHARED_RESPONSE_FORMAT);
+            action = DESCEND_OR_REPLACE;
+        }
+        else
+        {
+            openResidue();
+            target = name(key);
+            action = PASS_VALUE;
+        }
+
+        return action;
+    }
+
+    private int formatMember(
+        CharSequence key)
+    {
+        int action = DROP;
+
+        if (matches(key, MEMBER_SCHEMA))
+        {
+            target = MEMBER_SCHEMA;
+            action = PASS_VALUE;
+        }
+        else if (matches(key, MEMBER_TYPE))
+        {
+            action = capture(key);
+        }
+
+        return action;
+    }
+
+    private void onOutputConfigClose()
+    {
+        if (output == OUTPUT_RESIDUE)
+        {
+            emit(JsonEvent.END_OBJECT);
+        }
+        else if (output == OUTPUT_NONE)
+        {
+            emit(JsonEvent.KEY_NAME, MEMBER_NATIVE_OUTPUT_CONFIG);
+            emit(JsonEvent.START_OBJECT);
+            emit(JsonEvent.END_OBJECT);
+        }
+
+        output = OUTPUT_NONE;
+    }
+
+    private void openResidue()
+    {
+        if (output != OUTPUT_RESIDUE)
+        {
+            output = OUTPUT_RESIDUE;
+            emit(JsonEvent.KEY_NAME, MEMBER_NATIVE_OUTPUT_CONFIG);
+            emit(JsonEvent.START_OBJECT);
+        }
+    }
+
+    private void closeResidue()
+    {
+        if (output == OUTPUT_RESIDUE)
+        {
+            emit(JsonEvent.END_OBJECT);
+        }
     }
 
     private void splitToolChoice(

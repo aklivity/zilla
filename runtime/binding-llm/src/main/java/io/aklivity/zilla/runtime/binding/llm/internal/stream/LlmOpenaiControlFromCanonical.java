@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.FREQUENCY_PENALTY;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.PARALLEL_TOOL_CALLS;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.PRESENCE_PENALTY;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.RESPONSE_FORMAT;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.SEED;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.STOP;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TEMPERATURE;
@@ -118,7 +119,8 @@ final class LlmOpenaiControlFromCanonical extends LlmToolTransform
                 matches(key, FREQUENCY_PENALTY) ||
                 matches(key, PRESENCE_PENALTY) ||
                 matches(key, TOOL_CHOICE) ||
-                matches(key, PARALLEL_TOOL_CALLS))
+                matches(key, PARALLEL_TOOL_CALLS) ||
+                matches(key, RESPONSE_FORMAT))
             {
                 target = name(key);
                 action = PASS_VALUE;

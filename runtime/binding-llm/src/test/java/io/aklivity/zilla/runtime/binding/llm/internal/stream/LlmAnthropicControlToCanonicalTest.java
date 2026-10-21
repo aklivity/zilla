@@ -248,4 +248,89 @@ public class LlmAnthropicControlToCanonicalTest
     {
         assertRejects(transform, json("{'tool_choice':{'type':'future','name':'" + HUGE + "'}}"));
     }
+
+
+    @Test
+    public void shouldLiftOutputConfigFormat()
+    {
+        assertTransforms(transform,
+            json("{'output_config':{'format':{'type':'json_schema','schema':{'type':'object'}}}}"),
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'name':'response','schema':{'type':'object'}}}}"));
+    }
+
+    @Test
+    public void shouldLiftOutputConfigFormatWithTypeLast()
+    {
+        assertTransforms(transform,
+            json("{'output_config':{'format':{'schema':{'type':'object'},'type':'json_schema'}}}"),
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'name':'response','schema':{'type':'object'}}}}"));
+    }
+
+    @Test
+    public void shouldStreamSchemaLargerThanWindow()
+    {
+        assertTransforms(transform,
+            json("{'output_config':{'format':{'type':'json_schema','schema':{'description':'" + HUGE + "'}}}}"),
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'name':'response','schema':{'description':'" +
+                HUGE + "'}}}}"));
+    }
+
+    @Test
+    public void shouldKeepEffortAsResidueBeforeFormat()
+    {
+        assertTransforms(transform,
+            json("{'output_config':{'effort':'low','format':{'type':'json_schema','schema':{}}}}"),
+            json("{'anthropic:output_config':{'effort':'low'},'x:response_format':{'type':'json_schema'," +
+                "'json_schema':{'name':'response','schema':{}}}}"));
+    }
+
+    @Test
+    public void shouldKeepEffortAsResidueAfterFormat()
+    {
+        assertTransforms(transform,
+            json("{'output_config':{'format':{'type':'json_schema','schema':{}},'effort':'low'}}"),
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'name':'response','schema':{}}}," +
+                "'anthropic:output_config':{'effort':'low'}}"));
+    }
+
+    @Test
+    public void shouldSplitOutputConfigResidueAroundFormat()
+    {
+        assertTransforms(transform,
+            json("{'output_config':{'effort':'low','format':{'type':'json_schema','schema':{}},'other':true}}"),
+            json("{'anthropic:output_config':{'effort':'low'},'x:response_format':{'type':'json_schema'," +
+                "'json_schema':{'name':'response','schema':{}}},'anthropic:output_config':{'other':true}}"));
+    }
+
+    @Test
+    public void shouldKeepOutputConfigWithoutFormatAsResidue()
+    {
+        assertTransforms(transform,
+            json("{'output_config':{'effort':'low'}}"),
+            json("{'anthropic:output_config':{'effort':'low'}}"));
+    }
+
+    @Test
+    public void shouldKeepEmptyOutputConfigAsResidue()
+    {
+        assertTransforms(transform, json("{'output_config':{}}"), json("{'anthropic:output_config':{}}"));
+    }
+
+    @Test
+    public void shouldKeepNullOutputConfigAsResidue()
+    {
+        assertTransforms(transform, json("{'output_config':null}"), json("{'anthropic:output_config':null}"));
+    }
+
+    @Test
+    public void shouldRejectFormatTypeThatIsNotJsonSchema()
+    {
+        assertRejects(transform, json("{'output_config':{'format':{'type':'text'}}}"));
+    }
+
+    @Test
+    public void shouldRejectFormatThatIsNotAnObject()
+    {
+        assertRejects(transform, json("{'output_config':{'format':'json_schema'}}"));
+    }
 }
