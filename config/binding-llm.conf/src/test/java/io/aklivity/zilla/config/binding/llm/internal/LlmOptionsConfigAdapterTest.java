@@ -700,4 +700,57 @@ public class LlmOptionsConfigAdapterTest
         assertThat(options.models.get(0).tiers, nullValue());
         assertThat(jsonb.toJson(options), equalTo(text));
     }
+
+    @Test
+    public void shouldReadModelUnsupportedAndExclusive()
+    {
+        String text = "{\"dialect\":\"openai\",\"models\":{\"gpt-5\":{\"unsupported\":[\"seed\",\"stop\"]," +
+            "\"exclusive\":[[\"reasoning_effort\",\"thinking_budget_tokens\"]]},\"o3*\":{\"unsupported\":[]," +
+            "\"exclusive\":[]}}}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.models.get(0).unsupported, equalTo(List.of("seed", "stop")));
+        assertThat(options.models.get(0).exclusive, equalTo(List.of(List.of("reasoning_effort", "thinking_budget_tokens"))));
+        assertThat(options.models.get(1).unsupported, equalTo(List.of()));
+        assertThat(options.models.get(1).exclusive, equalTo(List.of()));
+        assertThat(jsonb.toJson(options), equalTo(text));
+    }
+
+    @Test
+    public void shouldReadModelWithoutUnsupportedAndExclusive()
+    {
+        String text = "{\"dialect\":\"openai\",\"models\":{\"gpt-5\":{\"sampling\":false}}}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.models.get(0).unsupported, nullValue());
+        assertThat(options.models.get(0).exclusive, nullValue());
+        assertThat(jsonb.toJson(options), equalTo(text));
+    }
+
+    @Test
+    public void shouldReadOptionsUnsupportedAndExclusive()
+    {
+        String text = "{\"dialect\":\"openai\",\"unsupported\":[\"parallel_tool_calls\",\"response_format\"]," +
+            "\"exclusive\":[[\"thinking_budget_tokens\",\"reasoning_effort\"]]}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.unsupported, equalTo(List.of("parallel_tool_calls", "response_format")));
+        assertThat(options.exclusive, equalTo(List.of(List.of("thinking_budget_tokens", "reasoning_effort"))));
+        assertThat(jsonb.toJson(options), equalTo(text));
+    }
+
+    @Test
+    public void shouldReadOptionsWithoutUnsupportedAndExclusive()
+    {
+        String text = "{\"dialect\":\"openai\"}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.unsupported, nullValue());
+        assertThat(options.exclusive, nullValue());
+        assertThat(jsonb.toJson(options), equalTo(text));
+    }
 }

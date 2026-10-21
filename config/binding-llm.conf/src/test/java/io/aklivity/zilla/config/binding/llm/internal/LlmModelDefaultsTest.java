@@ -104,4 +104,17 @@ public class LlmModelDefaultsTest
             }
         }
     }
+
+    @Test
+    public void shouldDefaultNoUnsupportedAndNoExclusive()
+    {
+        for (String dialect : List.of("openai", "anthropic", "gemini"))
+        {
+            for (LlmModelConfig model : LlmModelConfig.defaults(dialect))
+            {
+                assertThat(model.unsupported, nullValue());
+                assertThat(model.exclusive, nullValue());
+            }
+        }
+    }
 }

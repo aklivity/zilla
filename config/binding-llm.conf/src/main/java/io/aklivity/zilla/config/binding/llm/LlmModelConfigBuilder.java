@@ -34,6 +34,8 @@ public final class LlmModelConfigBuilder<T> extends ConfigBuilder<T, LlmModelCon
     private Integer budgetMinimum;
     private Integer budgetMaximum;
     private List<String> tiers;
+    private List<String> unsupported;
+    private List<List<String>> exclusive;
 
     LlmModelConfigBuilder(
         Function<LlmModelConfig, T> mapper)
@@ -99,10 +101,24 @@ public final class LlmModelConfigBuilder<T> extends ConfigBuilder<T, LlmModelCon
         return this;
     }
 
+    public LlmModelConfigBuilder<T> unsupported(
+        List<String> unsupported)
+    {
+        this.unsupported = List.copyOf(unsupported);
+        return this;
+    }
+
+    public LlmModelConfigBuilder<T> exclusive(
+        List<List<String>> exclusive)
+    {
+        this.exclusive = exclusive.stream().map(List::copyOf).toList();
+        return this;
+    }
+
     @Override
     public T build()
     {
         return mapper.apply(new LlmModelConfig(name, sampling, thinking, budgetMinimum, budgetMaximum,
-            unmodifiableMap(new LinkedHashMap<>(ladder)), tiers));
+            unmodifiableMap(new LinkedHashMap<>(ladder)), tiers, unsupported, exclusive));
     }
 }

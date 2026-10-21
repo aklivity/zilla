@@ -36,6 +36,8 @@ public final class LlmModelConfigAdapter extends ConfigAdapter<LlmModelConfig, J
     private static final String BUDGET_MAXIMUM_NAME = "maximum";
     private static final String LADDER_NAME = "ladder";
     private static final String TIERS_NAME = "tiers";
+    private static final String UNSUPPORTED_NAME = "unsupported";
+    private static final String EXCLUSIVE_NAME = "exclusive";
 
     @Override
     public JsonObject adaptToJson(
@@ -82,6 +84,16 @@ public final class LlmModelConfigAdapter extends ConfigAdapter<LlmModelConfig, J
             JsonArrayBuilder tiers = Json.createArrayBuilder();
             model.tiers.forEach(tiers::add);
             object.add(TIERS_NAME, tiers);
+        }
+
+        if (model.unsupported != null)
+        {
+            object.add(UNSUPPORTED_NAME, LlmMemberLists.unsupportedToJson(model.unsupported));
+        }
+
+        if (model.exclusive != null)
+        {
+            object.add(EXCLUSIVE_NAME, LlmMemberLists.exclusiveToJson(model.exclusive));
         }
 
         return object.build();
@@ -137,6 +149,16 @@ public final class LlmModelConfigAdapter extends ConfigAdapter<LlmModelConfig, J
                 .map(JsonString::getString)
                 .toList();
             model.tiers(tiers);
+        }
+
+        if (object.containsKey(UNSUPPORTED_NAME))
+        {
+            model.unsupported(LlmMemberLists.unsupportedFromJson(object.getJsonArray(UNSUPPORTED_NAME)));
+        }
+
+        if (object.containsKey(EXCLUSIVE_NAME))
+        {
+            model.exclusive(LlmMemberLists.exclusiveFromJson(object.getJsonArray(EXCLUSIVE_NAME)));
         }
 
         return model.build();

@@ -7948,6 +7948,12 @@
                                     "authorization": true,
                                     "models": {
                                         "$ref": "#/$defs/binding-ext/llm/openai-models"
+                                    },
+                                    "unsupported": {
+                                        "$ref": "#/$defs/binding-ext/llm/unsupported-members"
+                                    },
+                                    "exclusive": {
+                                        "$ref": "#/$defs/binding-ext/llm/exclusive-members"
                                     }
                                 },
                                 "additionalProperties": false
@@ -7968,6 +7974,12 @@
                                     "authorization": true,
                                     "models": {
                                         "$ref": "#/$defs/binding-ext/llm/anthropic-models"
+                                    },
+                                    "unsupported": {
+                                        "$ref": "#/$defs/binding-ext/llm/unsupported-members"
+                                    },
+                                    "exclusive": {
+                                        "$ref": "#/$defs/binding-ext/llm/exclusive-members"
                                     }
                                 },
                                 "additionalProperties": false
@@ -7988,6 +8000,12 @@
                                     "authorization": true,
                                     "models": {
                                         "$ref": "#/$defs/binding-ext/llm/gemini-models"
+                                    },
+                                    "unsupported": {
+                                        "$ref": "#/$defs/binding-ext/llm/unsupported-members"
+                                    },
+                                    "exclusive": {
+                                        "$ref": "#/$defs/binding-ext/llm/exclusive-members"
                                     }
                                 },
                                 "additionalProperties": false
@@ -8058,6 +8076,48 @@
                     },
                     "uniqueItems": true
                 },
+                "unsupported-members": {
+                    "title": "Unsupported",
+                    "description": "Request members the upstream does not honour, named by their canonical x: member name. The client decides before writing the request, without relying on the upstream to answer: an advisory member listed here is dropped, and a behavioural member (stop, tool_choice, parallel_tool_calls, response_format) rejects the request naming the member and the dialect pair, unless its value is harmless (null, parallel_tool_calls true, tool_choice auto, response_format text), in which case it is dropped. A model entry that lists unsupported replaces the dialect-level list for that model, and an empty list lists nothing. The default is an empty list.",
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "temperature",
+                            "top_p",
+                            "top_k",
+                            "stop",
+                            "seed",
+                            "frequency_penalty",
+                            "presence_penalty",
+                            "tool_choice",
+                            "parallel_tool_calls",
+                            "response_format",
+                            "reasoning_effort",
+                            "thinking_budget_tokens",
+                            "user",
+                            "service_tier"
+                        ]
+                    },
+                    "uniqueItems": true
+                },
+                "exclusive-members": {
+                    "title": "Exclusive",
+                    "description": "Groups of request members the upstream refuses together, so the client sends exactly one of each group: the first member of the group that is present wins and the others are dropped. A group lists reasoning_effort and thinking_budget_tokens, the members a client records until the end of the request. A model entry that lists exclusive replaces the dialect-level list for that model, and an empty list lists nothing. The default is an empty list.",
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "minItems": 2,
+                        "items": {
+                            "type": "string",
+                            "enum": [
+                                "reasoning_effort",
+                                "thinking_budget_tokens"
+                            ]
+                        },
+                        "uniqueItems": true
+                    }
+                },
                 "openai-models": {
                     "title": "Models",
                     "description": "Capabilities of the models this client speaks to, keyed by model identifier or by a * glob pattern, matched against the model of each request. Settings given here override the built-in defaults of the dialect, which apply to a model that has no entry or that an entry does not set.",
@@ -8075,6 +8135,12 @@
                             },
                             "tiers": {
                                 "$ref": "#/$defs/binding-ext/llm/service-tiers"
+                            },
+                            "unsupported": {
+                                "$ref": "#/$defs/binding-ext/llm/unsupported-members"
+                            },
+                            "exclusive": {
+                                "$ref": "#/$defs/binding-ext/llm/exclusive-members"
                             }
                         },
                         "additionalProperties": false
@@ -8111,6 +8177,12 @@
                             },
                             "tiers": {
                                 "$ref": "#/$defs/binding-ext/llm/service-tiers"
+                            },
+                            "unsupported": {
+                                "$ref": "#/$defs/binding-ext/llm/unsupported-members"
+                            },
+                            "exclusive": {
+                                "$ref": "#/$defs/binding-ext/llm/exclusive-members"
                             }
                         },
                         "additionalProperties": false
@@ -8145,6 +8217,12 @@
                             },
                             "tiers": {
                                 "$ref": "#/$defs/binding-ext/llm/service-tiers"
+                            },
+                            "unsupported": {
+                                "$ref": "#/$defs/binding-ext/llm/unsupported-members"
+                            },
+                            "exclusive": {
+                                "$ref": "#/$defs/binding-ext/llm/exclusive-members"
                             }
                         },
                         "additionalProperties": false
