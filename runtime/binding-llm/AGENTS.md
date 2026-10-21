@@ -36,8 +36,8 @@ Status key: **implemented** is in the IDL, spec functions and runtime today;
 A member carried as `<dialect>:<member>` is restored only by a client of that dialect and dropped by every
 other client. A member that two or more dialects have with the same meaning is carried as `x:<member>`
 instead. (**implemented** as the `x:` namespace in `LlmToolTransform`: `shared()`, `share()` and `reject()`;
-the sampling and tool choice members below are promoted for every dialect, the `gemini` ones lifted out of its native
-containers)
+the sampling, tool choice and response format members below are promoted for every dialect, the `gemini`, `anthropic` and
+`openai/responses` ones lifted out of their native containers)
 
 - `x` is reserved as a dialect name. `LlmDialectFactory` refuses to register a dialect named `x`.
 - A decoder emits `x:<member>` in place of `<dialect>:<member>` for each member it understands, including a
@@ -148,17 +148,82 @@ Only function entries have a canonical form. (**implemented** for `openai`, `ope
   `ANY` with several names comes back as `ANY` with the same names and `allowed_tools` with mode `required` and one
   name comes back as the function form.
 
+### Promoted response format member
+
+`x:response_format` carries the OpenAI Chat value: `{"type":"text"}`, `{"type":"json_object"}` or
+`{"type":"json_schema","json_schema":{"name":N,"description":D,"schema":S,"strict":B}}`. (**implemented** for `openai`,
+`openai/responses`, `anthropic` and `gemini`)
+
+| `x:` value | `openai` | `openai/responses` (`text.format`) | `anthropic` (`output_config.format`) | `gemini` (`generationConfig.responseFormat.text`) |
+|---|---|---|---|---|
+| `{"type":"text"}` | `response_format` unchanged | `{"type":"text"}` | omitted | omitted |
+| `{"type":"json_object"}` | unchanged | `{"type":"json_object"}` | rejects | `mimeType` `APPLICATION_JSON` |
+| `json_schema` | unchanged | flat `{"type":"json_schema","name":N,"description":D,"schema":S,"strict":B}` | `{"type":"json_schema","schema":S}`; `name`, `description` and `strict` dropped | `mimeType` `APPLICATION_JSON`, `schema` S; `name`, `description` and `strict` dropped |
+
+- **Decoding.** `openai` renames the member and keeps the value. `openai/responses` nests the flat `text.format` under
+  `json_schema` and keeps the other `text` members (`verbosity`) as `openai:text` residue. `anthropic` lifts
+  `output_config.format` as `json_schema` with the `name` defaulted to `"response"` and keeps every other
+  `output_config` member (`effort`) as `anthropic:output_config` residue; a `type` other than `json_schema` rejects the
+  request. `gemini` lifts `application/json` (or `APPLICATION_JSON`) without a schema as `json_object` and with a schema
+  as `json_schema` with the name `"response"`, from `responseFormat.text` (`mimeType`, `schema`) and from the deprecated
+  `responseMimeType` with `responseSchema` or `responseJsonSchema`; camel and snake spellings are decoded. Other mime
+  types (`text/x.enum`, `text/plain`) and every member this table does not know stay in `gemini:generationConfig`.
+  As for any native container, the residue is split around a lifted member, so one section may hold the same residue key
+  several times, and a container whose every member is lifted emits no residue.
+- **Streaming and bounds.** Values are rewritten key by key and never held, with two exceptions. `openai/responses`
+  needs `type` to open the `json_schema` wrapper, so the members that precede `type` are held until it arrives, bounded by
+  2048 units (a unit is a captured event plus the length of its text); a flat format that exceeds the bound, has an
+  unknown `type` or has no `type` rejects the request (`The 'text.format' parameter is invalid, or its 'type' follows
+  members that are too large.`). `anthropic` always writes `type` first, so its source order is free. `gemini` decides
+  at the first member of `responseFormat.text`, or at the first of `responseMimeType` and the schema leaf: a schema that
+  precedes its mime type is not held, and the whole `responseFormat`, or the schema and the mime type, stay in the
+  residue, so a same-dialect hop restores them and another dialect does not receive them. A second schema leaf stays
+  in the residue, and members of a lifted `responseFormat.text` other than `mimeType` and `schema` are not carried.
+- **Encoding.** `openai` passes the member through. The other clients write the native form as a container fragment
+  (`text`, `output_config`, `generationConfig`) that `LlmMemberCollector` holds and writes once at the end of the request,
+  merged with the residue fragments and, for `gemini`, `maxOutputTokens`, so the held contents are bounded by one pool
+  slot like every other container: a format larger than the slot is flow-controlled to a stop. The members of the
+  canonical value may arrive in any order: `json_schema` before `type` is written as when `type` is first, and a
+  `type` that disagrees with the members rejects.
+- **Gemini form.** The client writes the documented current form, a single object
+  `{"text":{"mimeType":"APPLICATION_JSON","schema":S}}` inside `generationConfig.responseFormat`. The array form used
+  on another surface is not produced, and the deprecated `responseMimeType`, `responseSchema` and `responseJsonSchema`
+  are never written. A same-dialect hop therefore normalises the deprecated shape to the current one and restores the
+  current shape exactly; the `anthropic` format restores exactly, the decoder adds the default name `"response"` to the
+  canonical value and the client drops it.
+- **Legality.** The member is behavioural (B). It rejects naming the member and the pair
+  (`x:response_format cannot be converted from <dialect> to <dialect>`) when the value is not one of the three forms,
+  when the type and the members disagree, and for `json_object` towards `anthropic`. A schema keyword that the target
+  does not support rejects naming the keyword
+  (`x:response_format keyword <keyword> cannot be converted from <dialect> to <dialect>`). `strict` is dropped where the
+  provider always constrains decoding (`anthropic`, `gemini`).
+- **Keyword scan.** The `anthropic` and `gemini` clients scan the schema while it streams through, with no hold
+  (`LlmSchemaScanner`), tracking which objects are schemas, maps of named schemas (`properties`, `patternProperties`,
+  `$defs`, `definitions`, `dependentSchemas`), lists of schemas (`allOf`, `anyOf`, `oneOf`, `prefixItems`) and data
+  (`enum`, `const`, `default`, `examples` and unknown members), so a property named like a denied keyword is not
+  rejected. The checked sets are these lists; extend them by adding keys to the per-target arrays.
+
+  | Target | Rejected keywords |
+  |---|---|
+  | `anthropic` | `minimum`, `maximum`, `exclusiveMinimum`, `exclusiveMaximum`, `multipleOf`, `minLength`, `maxLength`, `maxItems`, `uniqueItems`, `contains`, `minContains`, `maxContains`; `minItems` other than 0 or 1; `$ref` that does not start with `#`; `$ref` that is exactly `#` |
+  | `gemini` | `patternProperties`, `not`, `if`, `then`, `else`, `dependentSchemas`, `unevaluatedProperties`; `$ref` that does not start with `#` |
+  | `openai`, `openai/responses` | none |
+
+  Recursion is detected only as the plain `"$ref":"#"` (a reference to the schema root); a recursive reference through
+  `$defs` or `definitions` is not detected while streaming and is left to the provider.
+
 ### Native containers
 
-A dialect whose sampling members live inside a native object (`gemini` `generationConfig`) carries the container
-in two forms. Containers are never `x:`-prefixed.
+A dialect whose promoted members live inside a native object (`gemini` `generationConfig`, `anthropic` `output_config`,
+`openai/responses` `text`) carries the container in two forms. Containers are never `x:`-prefixed.
 
 - **Decoding.** Each promoted leaf is lifted out of the container and emitted as `x:<member>` at depth 1 of the
   control section the container belongs to, without holding anything. The residue stays under
   `<dialect>:<container>`. A leaf that appears mid-container closes the residue object, emits the `x:` member and
   re-opens `<dialect>:<container>` for the next residue member, so one section may hold the same
   `<dialect>:<container>` key several times (deliberate). A container whose every member is lifted emits no
-  `<dialect>:<container>`; an empty container is kept as `{}`; a `null` container is dropped. Both camel and snake
+  `<dialect>:<container>`; an empty container is kept as `{}`; a `null` container is dropped by `gemini` and kept as
+  residue by `anthropic` and `openai/responses`. Both camel and snake
   spellings of the container and its leaves are decoded, and the residue keeps the container's source spelling.
 - **Encoding.** A client translates each supported `x:` member into a one-member native fragment such as
   `"generationConfig":{"temperature":0.7}`, and passes the same-dialect residue fragments as they come. The
