@@ -3727,7 +3727,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private final String[] callNames = new String[CALLS_MAX];
         private int callCount;
         private LlmSectionPipeline controlPipeline;
-        private LlmGeminiControlFromCanonical controlTransform;
         private int controlMessage;
         private int controlMode;
         private LlmSectionPipeline.Output sectionTarget;
@@ -3735,8 +3734,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         {
         };
         private final LlmSectionPipeline.Output sectionOutput = (buffer, offset, length, last) -> putRaw(buffer, offset, length);
-        private final LlmSectionPipeline.Output controlOutput =
-            (buffer, offset, length, last) -> putControl(buffer, offset, length);
+        private final LlmMembersOutput controlOutput = new LlmMembersOutput(this::putControl);
 
         private int decodeSlot = NO_SLOT;
         private int decodeSlotOffset;
@@ -3938,8 +3936,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         {
             if (controlPipeline == null)
             {
-                controlTransform = new LlmGeminiControlFromCanonical(sameDialect);
-                controlPipeline = new LlmSectionPipeline(controlTransform, transformBuffer);
+                controlPipeline = new LlmSectionPipeline(LlmGeminiControlFromCanonical.members(sameDialect), transformBuffer);
             }
 
             return controlPipeline;
@@ -3989,6 +3986,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 {
                     controlMessage = message;
                     controlMode = CONTROL_PENDING;
+                    controlOutput.begin();
                     beginSectionStreaming(controlPipeline(), controlOutput);
                 }
                 else if (kind == KIND_TOOL_DEFINITION)
@@ -4326,24 +4324,26 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             int offset,
             int length)
         {
-            final String member = controlTransform.member();
-
-            if (member != null)
+            if (controlMode == CONTROL_PENDING)
             {
-                if (controlMode == CONTROL_PENDING)
-                {
-                    controlMode = openControl(member) ? CONTROL_WRITE : CONTROL_DROP;
-                }
+                controlMode = openControl() ? CONTROL_WRITE : CONTROL_DROP;
+            }
 
-                if (controlMode == CONTROL_WRITE)
+            if (controlMode == CONTROL_WRITE)
+            {
+                if (fits(length))
                 {
-                    putRaw(buffer, offset, length);
+                    generator.writeMembers(buffer, offset, length, Completion.INCOMPLETE);
+                    rawOpen = true;
+                }
+                else
+                {
+                    encodeFailed = true;
                 }
             }
         }
 
-        private boolean openControl(
-            String member)
+        private boolean openControl()
         {
             final boolean root = controlMessage == ROOT_CONTROL;
 
@@ -4352,14 +4352,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 closeRegion();
             }
 
-            final boolean writable = root || textBlockOpen;
-
-            if (writable)
-            {
-                generator.writeKey(member);
-            }
-
-            return writable;
+            return root || textBlockOpen;
         }
 
         private void putEscaped(

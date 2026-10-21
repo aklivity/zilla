@@ -23,12 +23,28 @@ final class LlmGeminiControlFromCanonical extends LlmToolTransform
     private static final String MEMBER_STREAM = "stream";
     private static final String MEMBER_STREAM_OPTIONS = "stream_options";
 
+    private final boolean members;
+
     private String member;
 
     LlmGeminiControlFromCanonical(
         boolean sameDialect)
     {
-        super(MODE_EXTRACT, sameDialect);
+        this(MODE_EXTRACT, sameDialect);
+    }
+
+    private LlmGeminiControlFromCanonical(
+        int mode,
+        boolean sameDialect)
+    {
+        super(mode, sameDialect);
+        this.members = mode == MODE_OBJECT;
+    }
+
+    static LlmGeminiControlFromCanonical members(
+        boolean sameDialect)
+    {
+        return new LlmGeminiControlFromCanonical(MODE_OBJECT, sameDialect);
     }
 
     String member()
@@ -76,7 +92,11 @@ final class LlmGeminiControlFromCanonical extends LlmToolTransform
     protected Status onClose(
         int depth)
     {
-        if (member == null)
+        if (members)
+        {
+            pass(JsonEvent.END_OBJECT);
+        }
+        else if (member == null)
         {
             emit(JsonEvent.VALUE_NULL);
         }

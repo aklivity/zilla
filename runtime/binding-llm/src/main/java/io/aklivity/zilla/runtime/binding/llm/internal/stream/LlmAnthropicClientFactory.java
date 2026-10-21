@@ -3960,8 +3960,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private int controlMessage;
         private int controlMode;
         private final LlmSectionPipeline.Output sectionOutput = (buffer, offset, length, last) -> putRaw(buffer, offset, length);
-        private final LlmSectionPipeline.Output controlOutput =
-            (buffer, offset, length, last) -> putControl(buffer, offset, length);
+        private final LlmMembersOutput controlOutput = new LlmMembersOutput(this::putControl);
         private LlmSectionPipeline.Output sectionTarget = sectionOutput;
 
         private int decodeSlot = NO_SLOT;
@@ -4162,7 +4161,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             if (controlPipeline == null)
             {
-                controlTransform = new LlmAnthropicControlFromCanonical(sameDialect);
+                controlTransform = LlmAnthropicControlFromCanonical.members(sameDialect);
                 controlPipeline = new LlmSectionPipeline(controlTransform, transformBuffer);
             }
 
@@ -4287,6 +4286,11 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private void beginTranslated(
             int kind)
         {
+            if (kind == KIND_CONTROL)
+            {
+                controlOutput.begin();
+            }
+
             beginSectionStreaming(pipelineFor(kind), kind == KIND_CONTROL ? controlOutput : sectionOutput);
         }
 
@@ -4516,18 +4520,21 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int offset,
             int length)
         {
-            final String member = controlTransform.member();
-
-            if (member != null)
+            if (controlMode == CONTROL_PENDING)
             {
-                if (controlMode == CONTROL_PENDING)
-                {
-                    controlMode = openControl(member) ? CONTROL_WRITE : CONTROL_DROP;
-                }
+                controlMode = openControl(controlTransform.member()) ? CONTROL_WRITE : CONTROL_DROP;
+            }
 
-                if (controlMode == CONTROL_WRITE)
+            if (controlMode == CONTROL_WRITE)
+            {
+                if (fits(length))
                 {
-                    putRaw(buffer, offset, length);
+                    generator.writeMembers(buffer, offset, length, Completion.INCOMPLETE);
+                    rawOpen = true;
+                }
+                else
+                {
+                    encodeFailed = true;
                 }
             }
         }
@@ -4542,14 +4549,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 closeRegion();
             }
 
-            final boolean writable = root || textBlockOpen;
-
-            if (writable)
-            {
-                generator.writeKey(member);
-            }
-
-            return writable;
+            return root || textBlockOpen;
         }
 
         private void putEscaped(

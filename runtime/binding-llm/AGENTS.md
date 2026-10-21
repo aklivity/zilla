@@ -21,7 +21,15 @@ Status key: **implemented** is in the IDL, spec functions and runtime today;
 - Anything that a transform might need to adjust or exclude rides in **range
   attributes** (below), not in the body.
 - Response-level and request-level members that belong to no section ride in
-  `CONTROL` sections, one member per section. Control sections bypass guardrails.
+  `CONTROL` sections. Control sections bypass guardrails. A run of request-level
+  members adjacent in the source forms one `CONTROL` section whose payload object
+  holds every member of the run (`{"x:temperature":0.7,"openai:store":false}`),
+  streamed key by key in source order with no holding. A decoder closes the section
+  when a section-bearing member or the end of the body intervenes, or when a member
+  that is not request-level control (the model, the output token limit, `stream`,
+  `stream_options`) does. A client keeps or drops each key on its own and writes the
+  members it keeps into the request in order. (**implemented** for the request path
+  of every dialect; the response path still carries one member per section)
 
 ## Shared members (`x:`)
 

@@ -157,6 +157,21 @@ public interface JsonGeneratorEx extends JsonGenerator
         Completion completion);
 
     /**
+     * Appends a run of pre-encoded members of the current object verbatim, owning the member separator so
+     * the caller holds no per-run state. The separator is emitted before the first fragment when the object
+     * already holds a member, and the object is marked as holding members; each fragment appends bounded,
+     * consumption-driven content exactly as {@link #writeSegment(DirectBufferEx, int, int)} (track via
+     * {@link #consumed()}); the run ends on {@link Completion#COMPLETE} once the final fragment is fully
+     * written, so a following {@link #writeKey(String)} emits its own separator. The run holds at least one
+     * member and carries its own interior separators.
+     */
+    JsonGeneratorEx writeMembers(
+        DirectBufferEx source,
+        int index,
+        int length,
+        Completion completion);
+
+    /**
      * Splices a {@link JsonVerbatim} block straight to the output: its {@link JsonVerbatim#getSegment()} bytes are
      * copied 1:1 (they already carry their own braces, commas, colons, and whitespace) while the generator
      * <em>applies</em> every step of {@link JsonVerbatim#getSteps()} (open/close depth, member occupancy) so

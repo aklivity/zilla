@@ -22,12 +22,28 @@ final class LlmAnthropicControlFromCanonical extends LlmToolTransform
     private static final String DIALECT = "anthropic";
     private static final String MEMBER_STREAM_OPTIONS = "stream_options";
 
+    private final boolean members;
+
     private String member;
 
     LlmAnthropicControlFromCanonical(
         boolean sameDialect)
     {
-        super(MODE_EXTRACT, sameDialect);
+        this(MODE_EXTRACT, sameDialect);
+    }
+
+    private LlmAnthropicControlFromCanonical(
+        int mode,
+        boolean sameDialect)
+    {
+        super(mode, sameDialect);
+        this.members = mode == MODE_OBJECT;
+    }
+
+    static LlmAnthropicControlFromCanonical members(
+        boolean sameDialect)
+    {
+        return new LlmAnthropicControlFromCanonical(MODE_OBJECT, sameDialect);
     }
 
     String member()
@@ -57,7 +73,7 @@ final class LlmAnthropicControlFromCanonical extends LlmToolTransform
         {
             action = unprefix(DIALECT, key);
 
-            if (depth == 1 && action != DROP)
+            if (depth == 1 && action != DROP && (!members || member == null))
             {
                 member = target;
             }
@@ -75,7 +91,11 @@ final class LlmAnthropicControlFromCanonical extends LlmToolTransform
     protected Status onClose(
         int depth)
     {
-        if (member == null)
+        if (members)
+        {
+            pass(JsonEvent.END_OBJECT);
+        }
+        else if (member == null)
         {
             emit(JsonEvent.VALUE_NULL);
         }

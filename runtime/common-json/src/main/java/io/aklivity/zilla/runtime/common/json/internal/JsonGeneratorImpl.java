@@ -740,6 +740,30 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     }
 
     @Override
+    public JsonGeneratorImpl writeMembers(
+        DirectBufferEx source,
+        int index,
+        int length,
+        Completion completion)
+    {
+        if (pending != Pending.SEGMENT)
+        {
+            if (hasMembers[depth - 1])
+            {
+                putByte.accept(',');
+            }
+            hasMembers[depth - 1] = true;
+            pending = Pending.SEGMENT;
+        }
+        int written = writeSegment.accept(source, index, length);
+        if (written == length && completion == Completion.COMPLETE)
+        {
+            pending = Pending.NONE;
+        }
+        return this;
+    }
+
+    @Override
     public JsonGeneratorImpl writeVerbatim(
         JsonVerbatim verbatim)
     {
