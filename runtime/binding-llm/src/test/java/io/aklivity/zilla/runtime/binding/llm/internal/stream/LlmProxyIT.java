@@ -1160,10 +1160,10 @@ public class LlmProxyIT
     @Test
     @Configuration("proxy.openai.responses.guardrail.yaml")
     @Specification({
-        "${app}/openai.responses.proxy.guardrail.response.rejected.reasoning.members.first/client",
-        "${app}/openai.responses.proxy.guardrail.response.rejected.reasoning.members.first.exit/server"})
+        "${app}/openai.responses.proxy.guardrail.response.accepted.reasoning.members.first.large/client",
+        "${app}/openai.responses.proxy.guardrail.response.accepted.reasoning.members.first.large.exit/server"})
     @ScriptProperty("clientAddress \"zilla://streams/net0\"")
-    public void shouldRejectGuardedResponseReasoningMembersFirstLargeForOpenaiResponses() throws Exception
+    public void shouldRelayGuardedResponseReasoningMembersFirstLargeForOpenaiResponses() throws Exception
     {
         k3po.finish();
     }

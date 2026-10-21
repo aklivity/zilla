@@ -7004,18 +7004,18 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/openai.responses.proxy.guardrail.response.rejected.reasoning.members.first/client",
-        "${app}/openai.responses.proxy.guardrail.response.rejected.reasoning.members.first/server"})
-    public void shouldOpenaiResponsesProxyGuardrailResponseRejectedReasoningMembersFirst() throws Exception
+        "${app}/openai.responses.proxy.guardrail.response.accepted.reasoning.members.first.large/client",
+        "${app}/openai.responses.proxy.guardrail.response.accepted.reasoning.members.first.large/server"})
+    public void shouldOpenaiResponsesProxyGuardrailResponseAcceptedReasoningMembersFirstLarge() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/openai.responses.proxy.guardrail.response.rejected.reasoning.members.first.exit/client",
-        "${app}/openai.responses.proxy.guardrail.response.rejected.reasoning.members.first.exit/server"})
-    public void shouldOpenaiResponsesProxyGuardrailResponseRejectedReasoningMembersFirstExit() throws Exception
+        "${app}/openai.responses.proxy.guardrail.response.accepted.reasoning.members.first.large.exit/client",
+        "${app}/openai.responses.proxy.guardrail.response.accepted.reasoning.members.first.large.exit/server"})
+    public void shouldOpenaiResponsesProxyGuardrailResponseAcceptedReasoningMembersFirstLargeExit() throws Exception
     {
         k3po.finish();
     }

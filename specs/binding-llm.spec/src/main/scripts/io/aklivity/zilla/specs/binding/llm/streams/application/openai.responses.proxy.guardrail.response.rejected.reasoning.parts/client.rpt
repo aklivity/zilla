@@ -51,6 +51,13 @@ read zilla:data.ext ${llm:matchDataEx()
                          .build()}
 read "{\"text\":\"first part is fine\"}"
 
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("ASSISTANT_REASONING")
+                          .message(0)
+                          .build()}
+read "{\"text\":\""
+
 read zilla:abort.ext ${llm:matchAbortEx()
                           .typeId(zilla:id("llm"))
                           .status(400)

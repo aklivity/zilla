@@ -51,7 +51,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("ASSISTANT_REASONING")
                           .message(0)
                           .build()}
-write "{\"text\":\"Let me think\",\"openai:id\":\"rs_1\",\"openai:encrypted_content\":\"gAAAAABo_ENC1\"}"
+write "{\"openai:id\":\"rs_1\",\"openai:encrypted_content\":\"gAAAAABo_ENC1\",\"text\":\"Let me think\"}"
 write flush
 
 write close

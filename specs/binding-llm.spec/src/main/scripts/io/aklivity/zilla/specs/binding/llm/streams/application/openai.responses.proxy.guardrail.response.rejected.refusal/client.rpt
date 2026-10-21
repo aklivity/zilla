@@ -44,6 +44,13 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .model(model)
                            .build()}
 
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("ASSISTANT_REFUSAL")
+                          .message(0)
+                          .build()}
+read "{\"text\":\""
+
 read zilla:abort.ext ${llm:matchAbortEx()
                             .typeId(zilla:id("llm"))
                             .status(400)

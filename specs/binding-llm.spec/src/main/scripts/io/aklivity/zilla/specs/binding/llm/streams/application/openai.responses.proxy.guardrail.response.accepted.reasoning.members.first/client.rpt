@@ -49,7 +49,7 @@ read zilla:data.ext ${llm:matchDataEx()
                          .type("ASSISTANT_REASONING")
                          .message(0)
                          .build()}
-read "{\"text\":\"Let me think\",\"openai:id\":\"rs_1\",\"openai:encrypted_content\":\"gAAAAABo_ENC1\"}"
+read "{\"openai:id\":\"rs_1\",\"openai:encrypted_content\":\"gAAAAABo_ENC1\",\"text\":\"Let me think\"}"
 
 read closed
 

@@ -46,14 +46,16 @@ write zilla:begin.ext ${llm:beginEx()
                            .build()}
 write flush
 
-write zilla:abort.ext ${llm:abortEx()
-                           .typeId(zilla:id("llm"))
-                           .status(400)
-                           .type("invalid_request_error")
-                           .param("assistant-reasoning[0]")
-                           .message("assistant-reasoning rejected")
-                           .build()}
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("ASSISTANT_REASONING")
+                          .message(0)
+                          .build()}
+write "{\"openai:id\":\"rs_1\",\"openai:encrypted_content\":\""
+      ${core:randomBase64(16500)}
+      "\",\"text\":\"Let me think\"}"
+write flush
 
-write abort
+write close
 
 read closed

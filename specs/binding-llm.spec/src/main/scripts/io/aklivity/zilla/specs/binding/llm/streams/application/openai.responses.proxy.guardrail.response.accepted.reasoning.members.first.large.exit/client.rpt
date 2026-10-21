@@ -13,14 +13,30 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property serverAddress "zilla://streams/app0"
+property clientAddress "zilla://streams/app0"
 property model "gpt-a"
 
-accept ${serverAddress}
-       option zilla:window 8192
-       option zilla:transmission "half-duplex"
+connect ${clientAddress}
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
 
-accepted
+write zilla:begin.ext ${llm:beginEx()
+                           .typeId(zilla:id("llm"))
+                           .dialect("openai/responses")
+                           .model(model)
+                           .build()}
+
+connected
+
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("USER_TEXT")
+                          .message(0)
+                          .build()}
+write "{\"text\":\"Hello\"}"
+write flush
+
+write advise zilla:flush
 
 read zilla:begin.ext ${llm:matchBeginEx()
                           .typeId(zilla:id("llm"))
@@ -28,34 +44,15 @@ read zilla:begin.ext ${llm:matchBeginEx()
                           .model(model)
                           .build()}
 
-connected
-
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
-                         .type("USER_TEXT")
+                         .type("ASSISTANT_REASONING")
                          .message(0)
                          .build()}
-read "{\"text\":\"Hello\"}"
-
-read advised zilla:flush
-
-write zilla:begin.ext ${llm:beginEx()
-                           .typeId(zilla:id("llm"))
-                           .dialect("openai/responses")
-                           .model(model)
-                           .build()}
-write flush
-
-write zilla:data.ext ${llm:dataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("ASSISTANT_REASONING")
-                          .message(0)
-                          .build()}
-write "{\"openai:encrypted_content\":\""
-      ${core:randomBase64(16500)}
-      "\",\"text\":\"Let me think\"}"
-write flush
-
-write close
+read "{\"openai:id\":\"rs_1\",\"openai:encrypted_content\":\""
+     ${core:randomBase64(16500)}
+     "\",\"text\":\"Let me think\"}"
 
 read closed
+
+write close

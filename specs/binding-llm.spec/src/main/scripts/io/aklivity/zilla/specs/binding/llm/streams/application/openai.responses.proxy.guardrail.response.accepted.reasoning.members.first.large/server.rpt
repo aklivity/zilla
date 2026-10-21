@@ -13,30 +13,14 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property clientAddress "zilla://streams/app0"
+property serverAddress "zilla://streams/app0"
 property model "gpt-a"
 
-connect ${clientAddress}
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
+accept ${serverAddress}
+       option zilla:window 8192
+       option zilla:transmission "half-duplex"
 
-write zilla:begin.ext ${llm:beginEx()
-                           .typeId(zilla:id("llm"))
-                           .dialect("openai/responses")
-                           .model(model)
-                           .build()}
-
-connected
-
-write zilla:data.ext ${llm:dataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("USER_TEXT")
-                          .message(0)
-                          .build()}
-write "{\"text\":\"Hello\"}"
-write flush
-
-write advise zilla:flush
+accepted
 
 read zilla:begin.ext ${llm:matchBeginEx()
                           .typeId(zilla:id("llm"))
@@ -44,15 +28,34 @@ read zilla:begin.ext ${llm:matchBeginEx()
                           .model(model)
                           .build()}
 
+connected
+
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
-                         .type("ASSISTANT_REASONING")
+                         .type("USER_TEXT")
                          .message(0)
                          .build()}
-read "{\"openai:encrypted_content\":\""
-     ${core:randomBase64(16500)}
-     "\",\"text\":\"Let me think\"}"
+read "{\"text\":\"Hello\"}"
 
-read closed
+read advised zilla:flush
+
+write zilla:begin.ext ${llm:beginEx()
+                           .typeId(zilla:id("llm"))
+                           .dialect("openai/responses")
+                           .model(model)
+                           .build()}
+write flush
+
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("ASSISTANT_REASONING")
+                          .message(0)
+                          .build()}
+write "{\"openai:id\":\"rs_1\",\"openai:encrypted_content\":\""
+      ${core:randomBase64(16500)}
+      "\",\"text\":\"Let me think\"}"
+write flush
 
 write close
+
+read closed

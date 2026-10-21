@@ -44,14 +44,15 @@ read zilla:begin.ext ${llm:matchBeginEx()
                           .model(model)
                           .build()}
 
-read zilla:abort.ext ${llm:matchAbortEx()
-                          .typeId(zilla:id("llm"))
-                          .status(400)
-                          .type("invalid_request_error")
-                          .param("assistant-reasoning[0]")
-                          .message("assistant-reasoning rejected")
-                          .build()}
+read zilla:data.ext ${llm:matchDataEx()
+                         .typeId(zilla:id("llm"))
+                         .type("ASSISTANT_REASONING")
+                         .message(0)
+                         .build()}
+read "{\"openai:id\":\"rs_1\",\"openai:encrypted_content\":\""
+     ${core:randomBase64(16500)}
+     "\",\"text\":\"Let me think\"}"
 
-read aborted
+read closed
 
 write close
