@@ -321,9 +321,10 @@ final class TestBindingFactory implements BindingHandler
                         @Override
                         public void completed(
                             long contextId,
-                            boolean detected)
+                            boolean detected,
+                            int retained)
                         {
-                            if (Thread.currentThread() != dispatchThread || detected != (contextId == 1L))
+                            if (Thread.currentThread() != dispatchThread || detected != (contextId == 1L) || retained != 0)
                             {
                                 throw new IllegalStateException("classifier contract violation");
                             }

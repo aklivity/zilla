@@ -21,7 +21,7 @@ accepted
 connected
 
 read option zilla:flags "init"
-read "aaaaaaaaaaaaaaaa"
+read "aaaaaaaaaaaaaaaaaaaaaaaa"
 read notify FIRST_RELAYED
 
 read aborted

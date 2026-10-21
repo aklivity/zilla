@@ -33,6 +33,7 @@ final class SemanticClassifierHandler implements ClassifierHandler
     private final EmbeddingHandler embedding;
     private final SemanticReferences references;
     private final double threshold;
+    private final List<String> phrases;
     private final Map<String, int[]> exemplarsByLabel;
 
     SemanticClassifierHandler(
@@ -57,6 +58,7 @@ final class SemanticClassifierHandler implements ClassifierHandler
 
         this.embedding = requireNonNull(context.supplyEmbedding(config.embeddingId), "embedding");
         this.threshold = options.threshold;
+        this.phrases = phrases;
         this.exemplarsByLabel = exemplarsByLabel;
         this.references = new SemanticReferences(
             embedding,
@@ -80,14 +82,20 @@ final class SemanticClassifierHandler implements ClassifierHandler
 
         int[] exemplars = new int[count];
         int offset = 0;
+        int window = 0;
         for (String label : labels)
         {
             int[] indexes = exemplarsFor(label);
             System.arraycopy(indexes, 0, exemplars, offset, indexes.length);
             offset += indexes.length;
+
+            for (int index : indexes)
+            {
+                window = Math.max(window, phrases.get(index).length());
+            }
         }
 
-        return new SemanticDetector(embedding, references, threshold, exemplars);
+        return new SemanticDetector(embedding, references, threshold, exemplars, window);
     }
 
     void close()

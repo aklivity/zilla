@@ -49,10 +49,10 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
-read "{\"text\":\"012345"
+read "{\"text\":\"0123456789"
 
 read notify RELEASED_BEFORE_FIN
-read "6789abcdefghij\"}"
+read "abcdefghij\"}"
 
 read closed
 

@@ -30,4 +30,5 @@ read notify SECOND_RELAYED
 
 read option zilla:flags "fin"
 read "ghijklmn"
+
 read closed

@@ -27,19 +27,18 @@ import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 
 // Presents a value to the classifiers as it arrives. Whenever no classification is in flight, the text that has arrived
-// since the last one is classified together with the trailing overlap of what was classified before, so a pattern
-// straddling two classifications is seen whole; text that arrives meanwhile waits and is classified as one. Nothing is
-// released until the text outgrows the overlap, or the value ends. What passes is relayed, apart from its trailing
-// overlap, which is held until the next classification passes or the value ends. A rejection rejects the value, so the
-// text relayed before it is the only part of the value the caller has seen. An overlap of the full length holds the
-// value until it is complete and classifies it once.
+// since the last one is classified together with the trailing text that the classifiers could not rule out, so a pattern
+// straddling two classifications is seen whole; text that arrives meanwhile waits and is classified as one. What passes
+// is relayed, apart from the trailing text that the classifiers retained, which is held until the next classification
+// passes or the value ends. A rejection rejects the value, so the text relayed before it is the only part of the value
+// the caller has seen. A value that is not streamed is held until it is complete and classified once.
 final class ClassifyModelPipeline implements ModelPipeline
 {
     private static final long NO_FIN = -1L;
 
     private final List<Detector> detectors;
     private final int maxLength;
-    private final int overlap;
+    private final boolean streaming;
     private final Runnable resumed;
     private final ExpandableArrayBufferEx buffer;
     private final ModelPipelineResult result;
@@ -52,6 +51,9 @@ final class ClassifyModelPipeline implements ModelPipeline
     private long verified;
     private long detectEnd;
     private long finLength;
+    private long retained;
+    private String window;
+    private int retainedChars;
     private int detecting;
     private boolean awaiting;
     private ModelStatus resolved;
@@ -60,12 +62,12 @@ final class ClassifyModelPipeline implements ModelPipeline
     ClassifyModelPipeline(
         List<Detector> detectors,
         int maxLength,
-        int overlap,
+        boolean streaming,
         Runnable resumed)
     {
         this.detectors = detectors;
         this.maxLength = maxLength;
-        this.overlap = overlap;
+        this.streaming = streaming;
         this.resumed = resumed;
         this.buffer = new ExpandableArrayBufferEx();
         this.result = new ModelPipelineResult();
@@ -75,9 +77,10 @@ final class ClassifyModelPipeline implements ModelPipeline
             @Override
             public void completed(
                 long contextId,
-                boolean detected)
+                boolean detected,
+                int retained)
             {
-                onDetected(contextId, detected);
+                onDetected(contextId, detected, retained);
             }
 
             @Override
@@ -85,7 +88,7 @@ final class ClassifyModelPipeline implements ModelPipeline
                 long contextId,
                 Throwable ex)
             {
-                onDetected(contextId, true);
+                onDetected(contextId, true, 0);
             }
         };
     }
@@ -135,7 +138,7 @@ final class ClassifyModelPipeline implements ModelPipeline
                     finLength = length;
                 }
 
-                if (length - verified > 0 && (finLength != NO_FIN || length > overlap))
+                if (length - verified > 0 && (finLength != NO_FIN || streaming))
                 {
                     detect(traceId, bindingId);
                     status = ModelStatus.SUSPENDED;
@@ -177,6 +180,9 @@ final class ClassifyModelPipeline implements ModelPipeline
         verified = 0L;
         detectEnd = 0L;
         finLength = NO_FIN;
+        retained = 0L;
+        window = null;
+        retainedChars = 0;
         detecting = 0;
         awaiting = false;
         resolved = null;
@@ -185,7 +191,7 @@ final class ClassifyModelPipeline implements ModelPipeline
 
     private void release()
     {
-        final long bound = finLength != NO_FIN && verified == length ? length : verified - overlap;
+        final long bound = finLength != NO_FIN && verified == length ? length : verified - retained;
 
         released = Math.max(released, boundary(bound));
     }
@@ -252,15 +258,19 @@ final class ClassifyModelPipeline implements ModelPipeline
         detectEnd = length;
 
         final long contextId = ++generation;
-        final int from = (int) (boundary(Math.max(verified - overlap, drained)) - base);
+        final int from = (int) (boundary(Math.max(verified - retained, drained)) - base);
         final String text = buffer.getStringWithoutLengthUtf8(from, (int) (detectEnd - base) - from);
+
+        window = text;
+        retainedChars = 0;
 
         detectors.forEach(detector -> detector.detect(traceId, bindingId, contextId, text, completion));
     }
 
     private void onDetected(
         long contextId,
-        boolean rejected)
+        boolean rejected,
+        int retainedByDetector)
     {
         if (contextId == generation && awaiting)
         {
@@ -268,10 +278,16 @@ final class ClassifyModelPipeline implements ModelPipeline
             {
                 resolved = ModelStatus.REJECTED;
             }
-            else if (--detecting == 0)
+            else
             {
-                verified = detectEnd;
-                release();
+                retainedChars = Math.max(retainedChars, retainedByDetector);
+
+                if (--detecting == 0)
+                {
+                    retained = utf8Length(window, retainedChars);
+                    verified = detectEnd;
+                    release();
+                }
             }
 
             if (resolved != null || detecting == 0)
@@ -280,5 +296,28 @@ final class ClassifyModelPipeline implements ModelPipeline
                 resumed.run();
             }
         }
+    }
+
+    private static int utf8Length(
+        String text,
+        int chars)
+    {
+        int index = Math.max(text.length() - chars, 0);
+
+        if (index > 0 && index < text.length() && Character.isLowSurrogate(text.charAt(index)))
+        {
+            index--;
+        }
+
+        int length = 0;
+
+        for (; index < text.length(); index++)
+        {
+            final char ch = text.charAt(index);
+
+            length += ch < 0x80 ? 1 : ch < 0x800 ? 2 : Character.isHighSurrogate(ch) ? 4 : Character.isLowSurrogate(ch) ? 0 : 3;
+        }
+
+        return length;
     }
 }

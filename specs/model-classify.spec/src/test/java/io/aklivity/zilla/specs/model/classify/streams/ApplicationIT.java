@@ -135,4 +135,14 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/streaming.text.accepted.retained/client",
+        "${app}/streaming.text.accepted.retained/server"
+    })
+    public void shouldHoldBackPartialLabelUntilRuledOut() throws Exception
+    {
+        k3po.finish();
+    }
 }

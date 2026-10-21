@@ -19,13 +19,13 @@ connect "zilla://streams/app0"
 connected
 
 write option zilla:flags "init"
-write "0123"
+write "01234567"
 write await FIRST_RELAYED
 
 write option zilla:flags "none"
-write "456789ab"
+write "89abcdef"
 write await SECOND_RELAYED
 
 write option zilla:flags "fin"
-write "cdefghijklmn"
+write "ghijklmn"
 write close

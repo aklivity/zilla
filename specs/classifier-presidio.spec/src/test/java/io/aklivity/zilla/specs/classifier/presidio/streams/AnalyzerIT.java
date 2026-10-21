@@ -105,4 +105,24 @@ public class AnalyzerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${analyzer}/streaming.text.rejected.straddling/client",
+        "${analyzer}/streaming.text.rejected.straddling/server"
+    })
+    public void shouldAnalyzeTextStraddlingFragments() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${analyzer}/streaming.text.accepted.retained/client",
+        "${analyzer}/streaming.text.accepted.retained/server"
+    })
+    public void shouldAnalyzeTextWithTrailingTokenRetained() throws Exception
+    {
+        k3po.finish();
+    }
 }

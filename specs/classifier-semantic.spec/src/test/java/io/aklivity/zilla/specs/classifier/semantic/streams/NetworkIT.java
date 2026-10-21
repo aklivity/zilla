@@ -65,4 +65,34 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/streaming.text.rejected.straddling/client",
+        "${net}/streaming.text.rejected.straddling/server"
+    })
+    public void shouldAbortExemplarStraddlingFragmentsWithoutReleasingItsStart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/streaming.text.accepted.retained/client",
+        "${net}/streaming.text.accepted.retained/server"
+    })
+    public void shouldReleaseSentenceTailOnceRuledOut() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/streaming.text.accepted.retained.capped/client",
+        "${net}/streaming.text.accepted.retained.capped/server"
+    })
+    public void shouldReleaseUnterminatedSentenceBeyondLongestExemplar() throws Exception
+    {
+        k3po.finish();
+    }
 }

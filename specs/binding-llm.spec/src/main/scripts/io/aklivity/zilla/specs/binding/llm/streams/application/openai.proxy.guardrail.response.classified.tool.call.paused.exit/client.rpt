@@ -51,10 +51,10 @@ read zilla:data.ext ${llm:matchDataEx()
                           .attribute("tool-call-id", "call_1")
                           .attribute("tool-name", "get_weather")
                           .build()}
-read "{\"arguments\":{\"city\":\"012345"
+read "{\"arguments\":{\"city\":\"0123456789"
 
 read notify RELEASED_BEFORE_FIN
-read "6789abcdefghij\"}}"
+read "abcdefghij\"}}"
 
 read closed
 

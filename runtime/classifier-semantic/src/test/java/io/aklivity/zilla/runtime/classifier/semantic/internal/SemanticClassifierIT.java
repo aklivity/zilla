@@ -78,4 +78,37 @@ public class SemanticClassifierIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("reject.response.yaml")
+    @Specification({
+        "${net}/streaming.text.rejected.straddling/client",
+        "${app}/streaming.text.rejected.straddling/server"
+    })
+    public void shouldAbortExemplarStraddlingFragmentsWithoutReleasingItsStart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("reject.response.yaml")
+    @Specification({
+        "${net}/streaming.text.accepted.retained/client",
+        "${app}/streaming.text.accepted.retained/server"
+    })
+    public void shouldReleaseSentenceTailOnceRuledOut() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("reject.response.yaml")
+    @Specification({
+        "${net}/streaming.text.accepted.retained.capped/client",
+        "${app}/streaming.text.accepted.retained.capped/server"
+    })
+    public void shouldReleaseUnterminatedSentenceBeyondLongestExemplar() throws Exception
+    {
+        k3po.finish();
+    }
 }
