@@ -98,7 +98,8 @@ services:
       - |
         set -e
         apk add --no-cache docker-cli > /dev/null
-        pip install --no-cache-dir --quiet openai anthropic google-genai
+        # anthropic 2.x sends Authorization: Bearer and anthropic-version 2026-10-21, which the anthropic frontend does not yet accept
+        pip install --no-cache-dir --quiet openai 'anthropic<2' google-genai
         exec python3 /test/verify.py
 
 volumes:
