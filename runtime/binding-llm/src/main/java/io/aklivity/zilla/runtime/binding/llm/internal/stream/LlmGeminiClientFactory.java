@@ -220,7 +220,8 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final String MEMBER_FUNCTION_DECLARATIONS = "functionDeclarations";
     private static final String MEMBER_SYSTEM_INSTRUCTION = "systemInstruction";
     private static final String MEMBER_GENERATION_CONFIG = "generationConfig";
-    private static final String[] CONTAINERS = {MEMBER_GENERATION_CONFIG};
+    private static final String MEMBER_TOOL_CONFIG = "toolConfig";
+    private static final String[] CONTAINERS = {MEMBER_GENERATION_CONFIG, MEMBER_TOOL_CONFIG};
     private static final int CONTAINER_GENERATION_CONFIG = 0;
     private static final String SHARED_PREFIX = "x:";
     private static final String MEMBER_MAX_OUTPUT_TOKENS = "maxOutputTokens";

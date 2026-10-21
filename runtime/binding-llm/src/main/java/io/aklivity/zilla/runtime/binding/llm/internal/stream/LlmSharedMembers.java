@@ -23,10 +23,14 @@ final class LlmSharedMembers
     static final String SEED = "seed";
     static final String FREQUENCY_PENALTY = "frequency_penalty";
     static final String PRESENCE_PENALTY = "presence_penalty";
+    static final String TOOL_CHOICE = "tool_choice";
+    static final String PARALLEL_TOOL_CALLS = "parallel_tool_calls";
 
     private static final String NATIVE_STOP_SEQUENCES = "stop_sequences";
-    private static final String[] OPENAI = {TEMPERATURE, TOP_P, STOP, SEED, FREQUENCY_PENALTY, PRESENCE_PENALTY};
-    private static final String[] OPENAI_RESPONSES = {TEMPERATURE, TOP_P};
+    private static final String[] OPENAI = {
+        TEMPERATURE, TOP_P, STOP, SEED, FREQUENCY_PENALTY, PRESENCE_PENALTY, TOOL_CHOICE, PARALLEL_TOOL_CALLS
+    };
+    private static final String[] OPENAI_RESPONSES = {TEMPERATURE, TOP_P, PARALLEL_TOOL_CALLS};
     private static final String[] ANTHROPIC = {TEMPERATURE, TOP_P, TOP_K};
     private static final String[][] GEMINI = {
         {TEMPERATURE, TEMPERATURE},

@@ -218,4 +218,88 @@ public class LlmGeminiControlFromCanonicalTest
             json("{'x:temperature':0.7,'x:stop':['" + HUGE + "']}"),
             json("{'generationConfig':{'temperature':0.7},'generationConfig':{'stopSequences':['" + HUGE + "']}}"));
     }
+
+    @Test
+    public void shouldRestoreToolChoiceAuto()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:tool_choice':'auto'}"),
+            json("{'toolConfig':{'functionCallingConfig':{'mode':'AUTO'}}}"));
+    }
+
+    @Test
+    public void shouldRestoreToolChoiceRequiredAsAny()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:tool_choice':'required'}"),
+            json("{'toolConfig':{'functionCallingConfig':{'mode':'ANY'}}}"));
+    }
+
+    @Test
+    public void shouldRestoreToolChoiceNone()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:tool_choice':'none'}"),
+            json("{'toolConfig':{'functionCallingConfig':{'mode':'NONE'}}}"));
+    }
+
+    @Test
+    public void shouldRestoreFunctionToolChoiceAsAnyWithName()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:tool_choice':{'type':'function','function':{'name':'get_weather'}}}"),
+            json("{'toolConfig':{'functionCallingConfig':{'mode':'ANY','allowedFunctionNames':['get_weather']}}}"));
+    }
+
+    @Test
+    public void shouldRestoreAllowedAutoWithNames()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:tool_choice':{'type':'allowed_tools','allowed_tools':{'mode':'auto'," +
+                "'tools':[{'type':'function','function':{'name':'a'}},{'type':'function'," +
+                "'function':{'name':'b'}}]}}}"),
+            json("{'toolConfig':{'functionCallingConfig':{'mode':'AUTO','allowedFunctionNames':['a','b']}}}"));
+    }
+
+    @Test
+    public void shouldRestoreAllowedRequiredAsAnyWithNames()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:tool_choice':{'type':'allowed_tools','allowed_tools':{'mode':'required'," +
+                "'tools':[{'type':'function','function':{'name':'a'}},{'type':'function'," +
+                "'function':{'name':'b'}}]}}}"),
+            json("{'toolConfig':{'functionCallingConfig':{'mode':'ANY','allowedFunctionNames':['a','b']}}}"));
+    }
+
+    @Test
+    public void shouldRejectUnrecognizedToolChoice()
+    {
+        assertRejects(foreignMembers, json("{'x:tool_choice':'bogus'}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("tool_choice"));
+    }
+
+    @Test
+    public void shouldDropParallelToolCallsEnabled()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:parallel_tool_calls':true}"),
+            json("{}"));
+    }
+
+    @Test
+    public void shouldRejectParallelToolCallsDisabled()
+    {
+        assertRejects(foreignMembers, json("{'x:parallel_tool_calls':false}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("parallel_tool_calls"));
+    }
+
+    @Test
+    public void shouldRestoreResidueAndNormalizeSnakeCase()
+    {
+        assertTransforms(sameMembers,
+            json("{'gemini:tool_config':{'retrieval_config':{'k':1}}}"),
+            json("{'toolConfig':{'retrieval_config':{'k':1}}}"));
+    }
 }

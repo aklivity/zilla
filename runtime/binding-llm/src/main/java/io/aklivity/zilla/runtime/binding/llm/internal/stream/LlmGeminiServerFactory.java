@@ -152,6 +152,8 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         new UnsafeBufferEx("{\"stream_options\":{\"include_usage\":true}}".getBytes(UTF_8));
     private static final DirectBufferEx CONTROL_CLOSE = new UnsafeBufferEx("}".getBytes(UTF_8));
     private static final DirectBufferEx OBJECT_EMPTY = new UnsafeBufferEx("{}".getBytes(UTF_8));
+    private static final DirectBufferEx CONTROL_BEGIN = new UnsafeBufferEx("{".getBytes(UTF_8));
+    private static final DirectBufferEx CONTROL_CONTINUE = new UnsafeBufferEx(",".getBytes(UTF_8));
     private static final DirectBufferEx PARTS_PREFIX = new UnsafeBufferEx("{\"contents\":[{\"parts\":[".getBytes(UTF_8));
 
     private static final int MIN_WINDOW = 64;
@@ -164,6 +166,8 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private static final String SHARED_PREFIX = "x:";
 
     private static final String MEMBER_GENERATION_CONFIG = "generationConfig";
+    private static final String MEMBER_TOOL_CONFIG = "toolConfig";
+    private static final String MEMBER_TOOL_CONFIG_SNAKE = "tool_config";
     private static final String MEMBER_GENERATION_CONFIG_SNAKE = "generation_config";
     private static final String MEMBER_MAX_OUTPUT_TOKENS = "maxOutputTokens";
     private static final String MEMBER_MAX_OUTPUT_TOKENS_SNAKE = "max_output_tokens";
@@ -659,6 +663,12 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             !matches(key, MEMBER_SYSTEM_INSTRUCTION) &&
             !matches(key, MEMBER_SYSTEM_INSTRUCTION_SNAKE) &&
             !matches(key, "tools");
+    }
+
+    private boolean isToolConfig(
+        CharSequence key)
+    {
+        return matches(key, MEMBER_TOOL_CONFIG) || matches(key, MEMBER_TOOL_CONFIG_SNAKE);
     }
 
     private boolean isConfig(
@@ -2196,6 +2206,9 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         private final StringBuilder configKey = new StringBuilder();
         private final LlmSectionPipeline.Output blockOutput = (buffer, offset, length, last) ->
             onDecodeSectionData(decodeTraceId, decodeAuthorization, buffer, offset, length, last);
+        private final LlmMembersOutput memberOutput = new LlmMembersOutput((buffer, offset, length) ->
+            onDecodeSectionData(decodeTraceId, decodeAuthorization, buffer, offset, length, false));
+        private LlmSectionPipeline toolConfigPipeline;
 
         private LlmGeminiServer(
             MessageConsumer network,
@@ -2651,13 +2664,46 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             LlmGeminiServerDecoder then,
             LlmGeminiServerDecoder value)
         {
-            onDecodeControlKey(key, true, controlOpen());
-
             captureThen = then;
+
+            if (isToolConfig(key))
+            {
+                controlConverted(key);
+            }
+            else
+            {
+                onDecodeControlKey(key, true, controlOpen());
+            }
+
             captureOpen = true;
             captureDepth = 0;
             captureFrom = position();
             decoder = value;
+        }
+
+        private void controlConverted(
+            CharSequence key)
+        {
+            final DirectBufferEx separator = Flags.hasInit(blockFlags) ? CONTROL_BEGIN : CONTROL_CONTINUE;
+
+            onDecodeSectionData(decodeTraceId, decodeAuthorization, separator, 0, separator.capacity(), false);
+
+            blockPipeline = toolConfigPipeline();
+            blockPipeline.begin(blockAttributes);
+            memberOutput.begin();
+
+            onDecodeControlKey(key, false, '{');
+        }
+
+        private LlmSectionPipeline toolConfigPipeline()
+        {
+            if (toolConfigPipeline == null)
+            {
+                toolConfigPipeline = new LlmSectionPipeline(new LlmGeminiControlToCanonical(),
+                    new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+            }
+
+            return toolConfigPipeline;
         }
 
         private void closeControl(
@@ -2750,9 +2796,18 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             LlmGeminiServerDecoder value)
         {
             onDecodeBlock(LlmSectionType.CONTROL, message);
-            onDecodeControlKey(key, true, '{');
 
             captureThen = then;
+
+            if (isToolConfig(key))
+            {
+                controlConverted(key);
+            }
+            else
+            {
+                onDecodeControlKey(key, true, '{');
+            }
+
             captureOpen = true;
             captureDepth = 0;
             captureFrom = position();
@@ -2764,6 +2819,12 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             long authorization)
         {
             flushCapture(traceId, authorization, captureThen != decodeRootControl);
+
+            if (blockSection == LlmSectionType.CONTROL && blockPipeline != null && captureThen == decodeRootControl &&
+                !onDecodeBlockData(traceId, authorization, CONTROL_CLOSE, 0, CONTROL_CLOSE.capacity(), true))
+            {
+                onDecodeInvalidRequest(traceId, MESSAGE_BLOCK_INVALID);
+            }
 
             blockPipeline = null;
             captureOpen = false;
@@ -2841,7 +2902,8 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             }
             else
             {
-                accepted = blockPipeline.feed(buffer, offset, length, last, blockOutput);
+                accepted = blockPipeline.feed(buffer, offset, length, last,
+                    blockSection == LlmSectionType.CONTROL && captureThen == decodeRootControl ? memberOutput : blockOutput);
             }
 
             return accepted;

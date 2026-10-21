@@ -14,8 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.PARALLEL_TOOL_CALLS;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.STOP;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TEMPERATURE;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TOOL_CHOICE;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TOP_P;
 
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
@@ -28,6 +30,7 @@ final class LlmOpenaiResponsesControlFromCanonical extends LlmToolTransform
     private static final String MEMBER_INCLUDE_USAGE = "include_usage";
 
     private final boolean members;
+    private final LlmToolChoice choice;
 
     private String member;
     private boolean optionsOpen;
@@ -44,6 +47,7 @@ final class LlmOpenaiResponsesControlFromCanonical extends LlmToolTransform
     {
         super(mode, sameDialect);
         this.members = mode == MODE_OBJECT;
+        this.choice = new LlmToolChoice();
     }
 
     static LlmOpenaiResponsesControlFromCanonical members(
@@ -113,10 +117,15 @@ final class LlmOpenaiResponsesControlFromCanonical extends LlmToolTransform
 
         if (members)
         {
-            if (matches(key, TEMPERATURE) || matches(key, TOP_P))
+            if (matches(key, TEMPERATURE) || matches(key, TOP_P) || matches(key, PARALLEL_TOOL_CALLS))
             {
                 target = name(key);
                 action = PASS_VALUE;
+            }
+            else if (matches(key, TOOL_CHOICE))
+            {
+                target = name(key);
+                action = capture(key);
             }
             else if (matches(key, STOP))
             {
@@ -125,6 +134,25 @@ final class LlmOpenaiResponsesControlFromCanonical extends LlmToolTransform
         }
 
         return action;
+    }
+
+    @Override
+    protected Status onCaptured(
+        LlmCapturedValue value)
+    {
+        Status status = Status.ADVANCED;
+
+        if (choice.parseCanonical(value))
+        {
+            emit(JsonEvent.KEY_NAME, TOOL_CHOICE);
+            choice.emitResponses(this);
+        }
+        else
+        {
+            status = rejected(TOOL_CHOICE);
+        }
+
+        return status;
     }
 
     @Override

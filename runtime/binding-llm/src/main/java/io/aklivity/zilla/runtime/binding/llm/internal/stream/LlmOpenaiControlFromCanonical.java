@@ -15,10 +15,12 @@
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.FREQUENCY_PENALTY;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.PARALLEL_TOOL_CALLS;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.PRESENCE_PENALTY;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.SEED;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.STOP;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TEMPERATURE;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TOOL_CHOICE;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TOP_P;
 
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
@@ -114,7 +116,9 @@ final class LlmOpenaiControlFromCanonical extends LlmToolTransform
                 matches(key, TOP_P) ||
                 matches(key, SEED) ||
                 matches(key, FREQUENCY_PENALTY) ||
-                matches(key, PRESENCE_PENALTY))
+                matches(key, PRESENCE_PENALTY) ||
+                matches(key, TOOL_CHOICE) ||
+                matches(key, PARALLEL_TOOL_CALLS))
             {
                 target = name(key);
                 action = PASS_VALUE;

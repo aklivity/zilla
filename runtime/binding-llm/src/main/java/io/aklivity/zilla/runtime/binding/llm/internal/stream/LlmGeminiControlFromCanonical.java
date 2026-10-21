@@ -15,10 +15,12 @@
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.FREQUENCY_PENALTY;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.PARALLEL_TOOL_CALLS;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.PRESENCE_PENALTY;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.SEED;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.STOP;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TEMPERATURE;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TOOL_CHOICE;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TOP_K;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TOP_P;
 
@@ -32,6 +34,14 @@ final class LlmGeminiControlFromCanonical extends LlmToolTransform
     private static final String MEMBER_STREAM_OPTIONS = "stream_options";
     private static final String MEMBER_GENERATION_CONFIG = "generationConfig";
     private static final String MEMBER_GENERATION_CONFIG_SNAKE = "generation_config";
+    private static final String MEMBER_TOOL_CONFIG = "toolConfig";
+    private static final String MEMBER_TOOL_CONFIG_SNAKE = "tool_config";
+    private static final String MEMBER_FUNCTION_CALLING_CONFIG = "functionCallingConfig";
+    private static final String MEMBER_MODE = "mode";
+    private static final String MEMBER_ALLOWED_FUNCTION_NAMES = "allowedFunctionNames";
+    private static final String MODE_AUTO = "AUTO";
+    private static final String MODE_ANY = "ANY";
+    private static final String MODE_NONE = "NONE";
     private static final String MEMBER_TOP_P = "topP";
     private static final String MEMBER_TOP_K = "topK";
     private static final String MEMBER_STOP_SEQUENCES = "stopSequences";
@@ -43,6 +53,7 @@ final class LlmGeminiControlFromCanonical extends LlmToolTransform
 
     private final boolean members;
     private final boolean foreign;
+    private final LlmToolChoice choice;
 
     private String member;
     private int stopEntries;
@@ -60,6 +71,7 @@ final class LlmGeminiControlFromCanonical extends LlmToolTransform
         super(mode, sameDialect);
         this.members = mode == MODE_OBJECT;
         this.foreign = !sameDialect;
+        this.choice = new LlmToolChoice();
     }
 
     static LlmGeminiControlFromCanonical members(
@@ -102,6 +114,10 @@ final class LlmGeminiControlFromCanonical extends LlmToolTransform
                 {
                     target = MEMBER_GENERATION_CONFIG;
                 }
+                else if (target != null && matches(target, MEMBER_TOOL_CONFIG_SNAKE))
+                {
+                    target = MEMBER_TOOL_CONFIG;
+                }
 
                 member = target;
             }
@@ -116,7 +132,12 @@ final class LlmGeminiControlFromCanonical extends LlmToolTransform
     {
         int action = DROP;
 
-        if (members)
+        if (members && (matches(key, TOOL_CHOICE) || matches(key, PARALLEL_TOOL_CALLS)))
+        {
+            target = MEMBER_TOOL_CONFIG;
+            action = capture(key);
+        }
+        else if (members)
         {
             nest(MEMBER_GENERATION_CONFIG);
 
@@ -168,6 +189,13 @@ final class LlmGeminiControlFromCanonical extends LlmToolTransform
     }
 
     @Override
+    protected Status onCaptured(
+        LlmCapturedValue value)
+    {
+        return matches(capturedMember(), PARALLEL_TOOL_CALLS) ? onParallelCalls(value) : onToolChoice(value);
+    }
+
+    @Override
     protected void onOpen()
     {
     }
@@ -186,5 +214,77 @@ final class LlmGeminiControlFromCanonical extends LlmToolTransform
         }
 
         return Status.ADVANCED;
+    }
+
+    private Status onToolChoice(
+        LlmCapturedValue value)
+    {
+        Status status = Status.REJECTED;
+
+        if (choice.parseCanonical(value))
+        {
+            emit(JsonEvent.KEY_NAME, MEMBER_TOOL_CONFIG);
+            emit(JsonEvent.START_OBJECT);
+            emit(JsonEvent.KEY_NAME, MEMBER_FUNCTION_CALLING_CONFIG);
+            emit(JsonEvent.START_OBJECT);
+            emit(JsonEvent.KEY_NAME, MEMBER_MODE);
+            emit(JsonEvent.VALUE_STRING, modeOf(choice));
+
+            if (choice.kind() == LlmToolChoice.FUNCTION || choice.kind() == LlmToolChoice.ALLOWED && !choice.names().isEmpty())
+            {
+                emit(JsonEvent.KEY_NAME, MEMBER_ALLOWED_FUNCTION_NAMES);
+                emit(JsonEvent.START_ARRAY);
+
+                if (choice.kind() == LlmToolChoice.FUNCTION)
+                {
+                    emit(JsonEvent.VALUE_STRING, choice.name());
+                }
+                else
+                {
+                    for (int index = 0; index < choice.names().size(); index++)
+                    {
+                        emit(JsonEvent.VALUE_STRING, choice.names().get(index));
+                    }
+                }
+
+                emit(JsonEvent.END_ARRAY);
+            }
+
+            emit(JsonEvent.END_OBJECT);
+            emit(JsonEvent.END_OBJECT);
+            status = Status.ADVANCED;
+        }
+
+        return status;
+    }
+
+    private Status onParallelCalls(
+        LlmCapturedValue value)
+    {
+        final JsonEvent event = value.event(0);
+
+        return event == JsonEvent.VALUE_TRUE || event == JsonEvent.VALUE_NULL ? Status.ADVANCED : rejected(PARALLEL_TOOL_CALLS);
+    }
+
+    private static String modeOf(
+        LlmToolChoice choice)
+    {
+        final String mode;
+
+        if (choice.kind() == LlmToolChoice.FUNCTION)
+        {
+            mode = MODE_ANY;
+        }
+        else
+        {
+            mode = switch (choice.mode())
+            {
+            case LlmToolChoice.MODE_REQUIRED -> MODE_ANY;
+            case LlmToolChoice.MODE_NONE -> MODE_NONE;
+            default -> MODE_AUTO;
+            };
+        }
+
+        return mode;
     }
 }

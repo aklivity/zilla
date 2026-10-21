@@ -130,4 +130,122 @@ public class LlmAnthropicControlToCanonicalTest
         assertRejects(transform, json("{'stream':'yes'}"));
         assertRejects(transform, json("{'stream':{}}"));
     }
+
+    @Test
+    public void shouldPromoteToolChoiceAuto()
+    {
+        assertTransforms(transform,
+            json("{'tool_choice':{'type':'auto'}}"),
+            json("{'x:tool_choice':'auto'}"));
+    }
+
+    @Test
+    public void shouldPromoteToolChoiceAny()
+    {
+        assertTransforms(transform,
+            json("{'tool_choice':{'type':'any'}}"),
+            json("{'x:tool_choice':'required'}"));
+    }
+
+    @Test
+    public void shouldPromoteToolChoiceNone()
+    {
+        assertTransforms(transform,
+            json("{'tool_choice':{'type':'none'}}"),
+            json("{'x:tool_choice':'none'}"));
+    }
+
+    @Test
+    public void shouldPromoteToolAsFunction()
+    {
+        assertTransforms(transform,
+            json("{'tool_choice':{'type':'tool','name':'get_weather'}}"),
+            json("{'x:tool_choice':{'type':'function','function':{'name':'get_weather'}}}"));
+    }
+
+    @Test
+    public void shouldSplitDisabledParallelUseAsNegatedParallelToolCalls()
+    {
+        assertTransforms(transform,
+            json("{'tool_choice':{'type':'auto','disable_parallel_tool_use':true}}"),
+            json("{'x:tool_choice':'auto','x:parallel_tool_calls':false}"));
+    }
+
+    @Test
+    public void shouldSplitEnabledParallelUseAsParallelToolCalls()
+    {
+        assertTransforms(transform,
+            json("{'tool_choice':{'disable_parallel_tool_use':false,'type':'any'}}"),
+            json("{'x:tool_choice':'required','x:parallel_tool_calls':true}"));
+    }
+
+    @Test
+    public void shouldPromoteParallelUseWithoutType()
+    {
+        assertTransforms(transform,
+            json("{'tool_choice':{'disable_parallel_tool_use':true}}"),
+            json("{'x:parallel_tool_calls':false}"));
+    }
+
+    @Test
+    public void shouldKeepOtherMembersAsResidue()
+    {
+        assertTransforms(transform,
+            json("{'tool_choice':{'type':'auto','extra':[1,{'b':'" + LONG + "'}]}}"),
+            json("{'x:tool_choice':'auto','anthropic:tool_choice':{'extra':[1,{'b':'" + LONG + "'}]}}"));
+    }
+
+    @Test
+    public void shouldKeepUnknownTypeAsResidue()
+    {
+        assertTransforms(transform,
+            json("{'tool_choice':{'type':'future','name':'f','disable_parallel_tool_use':true}}"),
+            json("{'x:parallel_tool_calls':false,'anthropic:tool_choice':{'type':'future','name':'f'}}"));
+    }
+
+    @Test
+    public void shouldKeepToolWithoutNameAsResidue()
+    {
+        assertTransforms(transform,
+            json("{'tool_choice':{'type':'tool'}}"),
+            json("{'anthropic:tool_choice':{'type':'tool'}}"));
+    }
+
+    @Test
+    public void shouldKeepNonBooleanParallelUseAsResidue()
+    {
+        assertTransforms(transform,
+            json("{'tool_choice':{'type':'auto','disable_parallel_tool_use':'yes'}}"),
+            json("{'x:tool_choice':'auto','anthropic:tool_choice':{'disable_parallel_tool_use':'yes'}}"));
+    }
+
+    @Test
+    public void shouldKeepEmptyObjectAsResidue()
+    {
+        assertTransforms(transform,
+            json("{'tool_choice':{}}"),
+            json("{'anthropic:tool_choice':{}}"));
+    }
+
+    @Test
+    public void shouldKeepNonObjectToolChoiceAsNative()
+    {
+        assertTransforms(transform,
+            json("{'tool_choice':'auto'}"),
+            json("{'anthropic:tool_choice':'auto'}"));
+    }
+
+    @Test
+    public void shouldKeepNullToolChoiceAsNative()
+    {
+        assertTransforms(transform,
+            json("{'tool_choice':null}"),
+            json("{'anthropic:tool_choice':null}"));
+    }
+
+    @Test
+    public void shouldRejectToolChoiceLargerThanTheCaptureLimit()
+    {
+        assertRejects(transform, json("{'tool_choice':{'type':'future','name':'" + HUGE + "'}}"));
+    }
 }

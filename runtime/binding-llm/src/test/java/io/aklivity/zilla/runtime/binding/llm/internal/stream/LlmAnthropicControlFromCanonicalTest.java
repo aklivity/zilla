@@ -30,6 +30,7 @@ public class LlmAnthropicControlFromCanonicalTest
 
     private final LlmAnthropicControlFromCanonical transform = new LlmAnthropicControlFromCanonical(true);
     private final LlmAnthropicControlFromCanonical foreign = new LlmAnthropicControlFromCanonical(false);
+    private final LlmAnthropicControlFromCanonical sameMembers = LlmAnthropicControlFromCanonical.members(true);
     private final LlmAnthropicControlFromCanonical foreignMembers = LlmAnthropicControlFromCanonical.members(false);
 
     @Test
@@ -186,5 +187,121 @@ public class LlmAnthropicControlFromCanonicalTest
         assertTransforms(foreign, json("{'x:temperature':0.7}"), "null");
 
         assertThat(foreign.member(), nullValue());
+    }
+
+    @Test
+    public void shouldRestoreToolChoiceAutoAsFragment()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:tool_choice':'auto'}"),
+            json("{'tool_choice':{'type':'auto'}}"));
+
+        assertThat(foreignMembers.choiceType(), equalTo("auto"));
+    }
+
+    @Test
+    public void shouldRestoreToolChoiceRequiredAsFragment()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:tool_choice':'required'}"),
+            json("{'tool_choice':{'type':'any'}}"));
+
+        assertThat(foreignMembers.choiceType(), equalTo("any"));
+    }
+
+    @Test
+    public void shouldRestoreToolChoiceNoneAsFragment()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:tool_choice':'none'}"),
+            json("{'tool_choice':{'type':'none'}}"));
+
+        assertThat(foreignMembers.choiceType(), equalTo("none"));
+    }
+
+    @Test
+    public void shouldRestoreFunctionToolChoiceAsTool()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:tool_choice':{'type':'function','function':{'name':'get_weather'}}}"),
+            json("{'tool_choice':{'type':'tool','name':'get_weather'}}"));
+
+        assertThat(foreignMembers.choiceType(), equalTo("tool"));
+    }
+
+    @Test
+    public void shouldRejectAllowedTools()
+    {
+        assertRejects(foreignMembers, json("{'x:tool_choice':{'type':'allowed_tools','allowed_tools':{'mode':'auto'," +
+            "'tools':[{'type':'function','function':{'name':'a'}},{'type':'function'," +
+            "'function':{'name':'b'}}]}}}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("tool_choice"));
+    }
+
+    @Test
+    public void shouldRejectUnrecognizedToolChoice()
+    {
+        assertRejects(foreignMembers, json("{'x:tool_choice':'bogus'}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("tool_choice"));
+    }
+
+    @Test
+    public void shouldHoldParallelToolCallsDisabled()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:parallel_tool_calls':false}"),
+            json("{}"));
+
+        assertThat(foreignMembers.parallelCalls(), equalTo(LlmAnthropicControlFromCanonical.PARALLEL_DISABLED));
+        assertThat(foreignMembers.choiceType(), nullValue());
+    }
+
+    @Test
+    public void shouldHoldParallelToolCallsEnabled()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:parallel_tool_calls':true}"),
+            json("{}"));
+
+        assertThat(foreignMembers.parallelCalls(), equalTo(LlmAnthropicControlFromCanonical.PARALLEL_ENABLED));
+    }
+
+    @Test
+    public void shouldIgnoreNullParallelToolCalls()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:parallel_tool_calls':null}"),
+            json("{}"));
+
+        assertThat(foreignMembers.parallelCalls(), equalTo(LlmAnthropicControlFromCanonical.PARALLEL_UNSET));
+    }
+
+    @Test
+    public void shouldRejectNonBooleanParallelToolCalls()
+    {
+        assertRejects(foreignMembers, json("{'x:parallel_tool_calls':'yes'}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("parallel_tool_calls"));
+    }
+
+    @Test
+    public void shouldHoldBothToolChoiceAndParallelToolCalls()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:parallel_tool_calls':false,'x:tool_choice':'required'}"),
+            json("{'tool_choice':{'type':'any'}}"));
+
+        assertThat(foreignMembers.parallelCalls(), equalTo(LlmAnthropicControlFromCanonical.PARALLEL_DISABLED));
+        assertThat(foreignMembers.choiceType(), equalTo("any"));
+    }
+
+    @Test
+    public void shouldRestoreResidueAsFragment()
+    {
+        assertTransforms(sameMembers,
+            json("{'anthropic:tool_choice':{'extra':1}}"),
+            json("{'tool_choice':{'extra':1}}"));
     }
 }
