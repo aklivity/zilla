@@ -23,6 +23,36 @@ Status key: **implemented** is in the IDL, spec functions and runtime today;
 - Response-level and request-level members that belong to no section ride in
   `CONTROL` sections, one member per section. Control sections bypass guardrails.
 
+## Shared members (`x:`)
+
+A member carried as `<dialect>:<member>` is restored only by a client of that dialect and dropped by every
+other client. A member that two or more dialects have with the same meaning is carried as `x:<member>`
+instead. (**implemented** as the `x:` namespace in `LlmToolTransform`: `shared()`, `share()` and `reject()`;
+no member is promoted yet)
+
+- `x` is reserved as a dialect name. `LlmDialectFactory` refuses to register a dialect named `x`.
+- A decoder emits `x:<member>` in place of `<dialect>:<member>` for each member it understands, including a
+  leaf lifted out of a native container. The value is canonical (OpenAI-shaped); the decoder converts it. A
+  prefixed member keeps its native value unchanged.
+- A client writes its own `<dialect>:` members, translates the `x:` members it supports into native form,
+  and drops an `x:` member it does not know. Each key of a control section is kept or dropped on its own.
+- `x:` appears only at depth 1 of a control section's object and at depth 1 of a section payload. Native
+  containers are never `x:`-prefixed; their promotable leaves are lifted out.
+- A decoder may emit an `x:` member after the request's sections, so a client treats every `x:` member as
+  possibly arriving up to the end of the request and does not rely on the order of `x:` members.
+- A client applies one **legality class** to an `x:` member the target cannot honour:
+  - **A**, advisory: dropped silently.
+  - **B**, behavioural: the request is rejected, and the message names the member and the dialect pair
+    (`x:<member> cannot be converted from <dialect> to <dialect>`).
+  - **C**, advisory numeric with a narrower range on the target: clamped into the target's range, never
+    rescaled.
+- **Graduation.** An `x:` member becomes an unprefixed canonical member when all hold: every registered
+  dialect either supports it natively or documents the provider as lacking it; one value domain and one
+  clamp table across dialects; one legality class with no pair-specific exceptions; per-pair scripts pass
+  across two minor releases; and the decision is recorded in an issue.
+- Members that carry content or grant a capability are sections, not `x:` members, and a guardrail stage
+  never sees an `x:` member.
+
 ## Ranges (`LlmSectionDataEx.ranges`)
 
 A DATA frame's extension may carry an ordered list of ranges, each with a `length`,

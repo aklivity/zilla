@@ -59,6 +59,8 @@ abstract class LlmToolTransform implements JsonTransform
     private static final int QUEUE_CAPACITY = 16;
     static final int HELD_MAX = 4096;
     private static final int NAMES_CAPACITY = 32;
+    private static final String SHARED_DIALECT = "x";
+    private static final int SHARED_PREFIX_LENGTH = SHARED_DIALECT.length();
 
     protected String target;
 
@@ -73,6 +75,7 @@ abstract class LlmToolTransform implements JsonTransform
     private final LiteralControl literalControl;
     private final StringBuilder heldBuilder;
     private final String[] names;
+    private final MemberView sharedMember;
 
     private JsonController control;
     private JsonSource source;
@@ -94,6 +97,7 @@ abstract class LlmToolTransform implements JsonTransform
     private boolean arrayOpen;
     private boolean elementPending;
     private String held;
+    private String rejectedMember;
 
     protected LlmToolTransform()
     {
@@ -129,6 +133,7 @@ abstract class LlmToolTransform implements JsonTransform
         this.literalControl = new LiteralControl();
         this.heldBuilder = new StringBuilder();
         this.names = new String[NAMES_CAPACITY];
+        this.sharedMember = new MemberView();
         this.pending = NONE;
     }
 
@@ -274,6 +279,10 @@ abstract class LlmToolTransform implements JsonTransform
         {
             target = name(null, key);
         }
+        else if (colon == SHARED_PREFIX_LENGTH && regionMatches(key, 0, colon, SHARED_DIALECT))
+        {
+            action = shared(sharedMember.wrap(key, colon + 1, length));
+        }
         else if (sameDialect && regionMatches(key, 0, colon, dialect))
         {
             target = name(null, key, colon + 1, length);
@@ -284,6 +293,33 @@ abstract class LlmToolTransform implements JsonTransform
         }
 
         return action;
+    }
+
+    protected int shared(
+        CharSequence member)
+    {
+        return DROP;
+    }
+
+    protected final int share(
+        CharSequence member)
+    {
+        target = name(SHARED_DIALECT, member);
+
+        return PASS_VALUE;
+    }
+
+    protected final int reject(
+        CharSequence member)
+    {
+        rejectedMember = member.toString();
+
+        return REJECT;
+    }
+
+    protected final String rejectedMember()
+    {
+        return rejectedMember;
     }
 
     protected final String name(
@@ -398,6 +434,7 @@ abstract class LlmToolTransform implements JsonTransform
         arrayOpen = false;
         elementPending = false;
         held = null;
+        rejectedMember = null;
         heldBuilder.setLength(0);
     }
 
@@ -1273,6 +1310,52 @@ abstract class LlmToolTransform implements JsonTransform
         public String toString()
         {
             return text.substring(offset);
+        }
+    }
+
+    private static final class MemberView implements CharSequence
+    {
+        private CharSequence key;
+        private int from;
+        private int to;
+
+        MemberView wrap(
+            CharSequence key,
+            int from,
+            int to)
+        {
+            this.key = key;
+            this.from = from;
+            this.to = to;
+
+            return this;
+        }
+
+        @Override
+        public int length()
+        {
+            return to - from;
+        }
+
+        @Override
+        public char charAt(
+            int index)
+        {
+            return key.charAt(from + index);
+        }
+
+        @Override
+        public CharSequence subSequence(
+            int start,
+            int end)
+        {
+            return key.subSequence(from + start, from + end);
+        }
+
+        @Override
+        public String toString()
+        {
+            return key.subSequence(from, to).toString();
         }
     }
 }
