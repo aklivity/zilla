@@ -16,8 +16,11 @@ package io.aklivity.zilla.specs.binding.llm.internal;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.el.Function;
@@ -353,6 +356,8 @@ public final class LlmFunctions
         private final LlmDataExFW.Builder dataExRW;
         private final Map<String, String> attributes;
 
+        private final List<LlmRangeSpec> ranges;
+
         private LlmSectionType type;
         private Integer message;
         private String extension;
@@ -362,6 +367,7 @@ public final class LlmFunctions
             this.writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
             this.dataExRW = new LlmDataExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
             this.attributes = new LinkedHashMap<>();
+            this.ranges = new ArrayList<>();
         }
 
         public LlmDataExBuilder typeId(
@@ -393,6 +399,27 @@ public final class LlmFunctions
             return this;
         }
 
+        public LlmDataExBuilder range(
+            int length)
+        {
+            ranges.add(new LlmRangeSpec(length));
+            return this;
+        }
+
+        public LlmDataExBuilder rangeAttribute(
+            String name,
+            String value)
+        {
+            ranges.get(ranges.size() - 1).attributes.put(name, value);
+            return this;
+        }
+
+        public LlmDataExBuilder rangeOpen()
+        {
+            ranges.get(ranges.size() - 1).closing = false;
+            return this;
+        }
+
         public LlmDataExBuilder extension(
             String extension)
         {
@@ -415,6 +442,12 @@ public final class LlmFunctions
                 }
 
                 attributes.forEach((name, value) -> s.attributesItem(a -> a.name(name).value(value)));
+
+                ranges.forEach(range -> s.rangesItem(r ->
+                {
+                    r.length(range.length).closing(range.closing ? 1 : 0);
+                    range.attributes.forEach((name, value) -> r.attributesItem(a -> a.name(name).value(value)));
+                }));
 
                 if (extension != null)
                 {
@@ -442,6 +475,8 @@ public final class LlmFunctions
         private Integer message;
         private Map<String, String> attributes;
         private boolean attributesNull;
+        private List<LlmRangeSpec> ranges;
+        private boolean rangesNull;
         private String extension;
         private boolean extensionNull;
 
@@ -491,6 +526,38 @@ public final class LlmFunctions
             return this;
         }
 
+        public LlmDataExMatcherBuilder range(
+            int length)
+        {
+            if (ranges == null)
+            {
+                ranges = new ArrayList<>();
+            }
+
+            ranges.add(new LlmRangeSpec(length));
+            return this;
+        }
+
+        public LlmDataExMatcherBuilder rangeAttribute(
+            String name,
+            String value)
+        {
+            ranges.get(ranges.size() - 1).attributes.put(name, value);
+            return this;
+        }
+
+        public LlmDataExMatcherBuilder rangeOpen()
+        {
+            ranges.get(ranges.size() - 1).closing = false;
+            return this;
+        }
+
+        public LlmDataExMatcherBuilder rangesNull()
+        {
+            this.rangesNull = true;
+            return this;
+        }
+
         public LlmDataExMatcherBuilder extension(
             String extension)
         {
@@ -526,6 +593,7 @@ public final class LlmFunctions
                 matchType(dataEx) &&
                 matchMessage(dataEx) &&
                 matchAttributes(dataEx) &&
+                matchRanges(dataEx) &&
                 matchExtension(dataEx))
             {
                 byteBuf.position(byteBuf.position() + dataEx.sizeof());
@@ -563,6 +631,21 @@ public final class LlmFunctions
             return attributesNull ? actual.isEmpty() : attributes == null || attributes.equals(actual);
         }
 
+        private boolean matchRanges(
+            LlmDataExFW dataEx)
+        {
+            final List<LlmRangeSpec> actual = new ArrayList<>();
+            dataEx.section().ranges().forEach(r ->
+            {
+                final LlmRangeSpec range = new LlmRangeSpec(r.length());
+                range.closing = r.closing() != 0;
+                r.attributes().forEach(a -> range.attributes.put(a.name().asString(), a.value().asString()));
+                actual.add(range);
+            });
+
+            return rangesNull ? actual.isEmpty() : ranges == null || ranges.equals(actual);
+        }
+
         private boolean matchExtension(
             LlmDataExFW dataEx)
         {
@@ -570,6 +653,38 @@ public final class LlmFunctions
             return extensionNull ? actual == null : extension == null || extension.equals(actual);
         }
 
+    }
+
+    private static final class LlmRangeSpec
+    {
+        private final int length;
+        private final Map<String, String> attributes;
+
+        private boolean closing;
+
+        private LlmRangeSpec(
+            int length)
+        {
+            this.length = length;
+            this.attributes = new LinkedHashMap<>();
+            this.closing = true;
+        }
+
+        @Override
+        public boolean equals(
+            Object obj)
+        {
+            return obj instanceof LlmRangeSpec that &&
+                length == that.length &&
+                closing == that.closing &&
+                attributes.equals(that.attributes);
+        }
+
+        @Override
+        public int hashCode()
+        {
+            return Objects.hash(length, closing, attributes);
+        }
     }
 
     public static final class LlmEndExBuilder

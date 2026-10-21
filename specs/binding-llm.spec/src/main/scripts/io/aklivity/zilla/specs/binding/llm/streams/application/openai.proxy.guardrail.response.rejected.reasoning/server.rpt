@@ -46,6 +46,14 @@ write zilla:begin.ext ${llm:beginEx()
                            .build()}
 write flush
 
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("ASSISTANT_REASONING")
+                          .message(0)
+                          .build()}
+write "{\"text\":\""
+write flush
+
 write zilla:abort.ext ${llm:abortEx()
                             .typeId(zilla:id("llm"))
                             .status(400)
