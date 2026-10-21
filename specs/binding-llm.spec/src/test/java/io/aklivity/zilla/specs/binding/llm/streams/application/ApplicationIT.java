@@ -542,6 +542,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.proxy.guardrail.response.accepted.tool.call.member/client",
+        "${app}/openai.proxy.guardrail.response.accepted.tool.call.member/server"})
+    public void shouldGuardOpenaiResponseAcceptedToolCallMember() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.proxy.guardrail.response.rejected.tool.call/client",
         "${app}/openai.proxy.guardrail.response.rejected.tool.call/server"})
     public void shouldGuardOpenaiResponseRejectedToolCallNet() throws Exception
@@ -3389,6 +3398,24 @@ public class ApplicationIT
         "${app}/openai.proxy.guardrail.response.transformed.tool.call.exit/client",
         "${app}/openai.proxy.guardrail.response.transformed.tool.call.exit/server"})
     public void shouldGuardOpenaiResponseTransformedToolCallExit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.transformed.tool.call.member/client",
+        "${app}/openai.proxy.guardrail.response.transformed.tool.call.member/server"})
+    public void shouldGuardOpenaiResponseTransformedToolCallMemberNet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.transformed.tool.call.member.exit/client",
+        "${app}/openai.proxy.guardrail.response.transformed.tool.call.member.exit/server"})
+    public void shouldGuardOpenaiResponseTransformedToolCallMemberExit() throws Exception
     {
         k3po.finish();
     }

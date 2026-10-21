@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 
-import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionType;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -46,7 +45,7 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
     private final long streamId;
     private final MutableDirectBufferEx transformBuffer;
     private final LlmTextPipeline decoder;
-    private final LlmTextObjectScanner scanner;
+    private final LlmObjectScanner scanner;
     private final JsonGeneratorEx generator;
     private final MutableDirectBufferEx primerBuffer;
     private final ModelPipelineResult result;
@@ -76,19 +75,11 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
         this.transformBuffer = transformBuffer;
         this.slot = NO_SLOT;
         this.decoder = new LlmTextPipeline(this::onText);
-        this.scanner = new LlmTextObjectScanner();
+        this.scanner = LlmObjectScanner.text();
         this.generator = JsonEx.createGenerator();
         this.primerBuffer = new UnsafeBufferEx(new byte[16]);
         this.result = new ModelPipelineResult();
         begin();
-    }
-
-    static boolean objectShaped(
-        LlmSectionType type)
-    {
-        return type == LlmSectionType.SYSTEM_INSTRUCTION || type == LlmSectionType.USER_TEXT ||
-            type == LlmSectionType.ASSISTANT_TEXT || type == LlmSectionType.ASSISTANT_REFUSAL ||
-            type == LlmSectionType.ASSISTANT_REASONING || type == LlmSectionType.TOOL_RESULT;
     }
 
     @Override
@@ -125,7 +116,7 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
         {
             final int region = scanner.region();
 
-            if (region == LlmTextObjectScanner.TEXT)
+            if (region == LlmObjectScanner.VALUE)
             {
                 final int end = scanner.scan(src, position, srcLimit);
 
@@ -137,7 +128,7 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
 
                 position = end;
             }
-            else if (region == LlmTextObjectScanner.SUFFIX)
+            else if (region == LlmObjectScanner.SUFFIX)
             {
                 decoder.feed(src, position, 1, false);
                 finishText(traceId, bindingId, authorization, dst, dstIndex + produced, dstLimit);
@@ -154,7 +145,7 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
                 dst.putBytes(dstIndex + produced, src, position, end - position);
                 produced += end - position;
 
-                if (region == LlmTextObjectScanner.PREFIX && !feed(src, position, end - position))
+                if (region == LlmObjectScanner.PREFIX && !feed(src, position, end - position))
                 {
                     status = ModelStatus.REJECTED;
                     stopped = true;
@@ -165,7 +156,7 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
             }
         }
 
-        if (!stopped && scanner.region() != LlmTextObjectScanner.TAIL && textLength > textProgress)
+        if (!stopped && scanner.region() != LlmObjectScanner.TAIL && textLength > textProgress)
         {
             transformText(traceId, bindingId, authorization, 0, dst, dstIndex + produced, dstLimit);
 
@@ -179,7 +170,7 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
         }
         else if (sectionFin && !stopped && status != ModelStatus.REJECTED && status != ModelStatus.OVERFLOW)
         {
-            if (scanner.region() != LlmTextObjectScanner.TAIL)
+            if (scanner.region() != LlmObjectScanner.TAIL)
             {
                 finishText(traceId, bindingId, authorization, dst, dstIndex + produced, dstLimit);
 
@@ -210,7 +201,7 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
         values = 0;
         matched = 0;
 
-        if (scanner.region() != LlmTextObjectScanner.TAIL)
+        if (scanner.region() != LlmObjectScanner.TAIL)
         {
             finishText(traceId, bindingId, authorization, dst, dstIndex, dstLimit);
 

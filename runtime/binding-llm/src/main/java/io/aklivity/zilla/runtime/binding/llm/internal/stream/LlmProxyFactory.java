@@ -89,6 +89,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_SOURCE, 0, 0);
     private static final int STATUS_BAD_REQUEST = 400;
     private static final int NO_USAGE = -1;
+    private static final String ARGUMENTS_MEMBER = "arguments";
     private static final String ERROR_TYPE_INVALID_REQUEST = "invalid_request_error";
 
     private final BeginFW beginRO = new BeginFW();
@@ -1356,9 +1357,22 @@ public final class LlmProxyFactory implements LlmStreamFactory
             }
 
             this.pipelines = new EnumMap<>(LlmSectionType.class);
-            chains.forEach((section, chain) -> pipelines.put(section, LlmTextModelPipeline.objectShaped(section)
-                ? new LlmTextModelPipeline(chain, runPool, streamId, transformBuffer)
-                : new LlmRawGuardPipeline(chain)));
+            chains.forEach((section, chain) -> pipelines.put(section, guardPipeline(section, chain)));
+        }
+
+        private LlmGuardPipeline guardPipeline(
+            LlmSectionType section,
+            ModelPipeline chain)
+        {
+            return switch (section)
+            {
+            case SYSTEM_INSTRUCTION, USER_TEXT, ASSISTANT_TEXT, ASSISTANT_REFUSAL, ASSISTANT_REASONING, TOOL_RESULT ->
+                new LlmTextModelPipeline(chain, runPool, streamId, transformBuffer);
+            case TOOL_CALL, SERVER_TOOL_CALL ->
+                new LlmMemberModelPipeline(chain, ARGUMENTS_MEMBER);
+            default ->
+                new LlmRawGuardPipeline(chain);
+            };
         }
 
         abstract void doForwardData(

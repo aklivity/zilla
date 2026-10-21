@@ -15,8 +15,9 @@ Status key: **implemented** is in the IDL, spec functions and runtime today;
 
 - Members that sit beside a section's primary value are **opaque**. A proxy relays
   them unmodified and in order. They are never presented to a guardrail stage.
-  Dialect-specific members use the `<dialect>:<name>` prefix. (planned for the text
-  guard, which currently collects them and re-emits them after the text)
+  Dialect-specific members use the `<dialect>:<name>` prefix. (**implemented** for the
+  text sections and for tool calls: the guard relays the bytes before the primary
+  value as they arrive and the bytes after it once the chain has finished the value)
 - Anything that a transform might need to adjust or exclude rides in **range
   attributes** (below), not in the body.
 - Response-level and request-level members that belong to no section ride in
@@ -39,6 +40,9 @@ a `closing` flag (default `1`) and a list of `LlmAttribute` (name, value). (the 
   - the `text` value of the six text sections, `SYSTEM_INSTRUCTION`, `USER_TEXT`,
     `ASSISTANT_TEXT`, `ASSISTANT_REASONING`, `ASSISTANT_REFUSAL` and `TOOL_RESULT`,
     in UTF-8 bytes of the **decoded** text, independent of JSON escaping;
+  - the `arguments` value of `TOOL_CALL` and `SERVER_TOOL_CALL`, in bytes of the JSON
+    value exactly as it is carried, so the bytes of the members around it are not
+    covered by any range;
   - every other section, in payload bytes.
 - A producer should align frames to its source's chunks, so one frame carries one
   range, and split a range only when credit forces it. A consumer must handle both.
@@ -71,8 +75,9 @@ and are dropped for the rest of the section once they exceed it.
 ## Per section type
 
 The **model-visible value** is what a guardrail stage inspects. Everything else in
-the section passes through. (planned; the guard currently passes the whole payload
-of non-text sections to the stage)
+the section passes through. (**implemented** for the text sections and for tool
+calls; the guard currently passes the whole payload of every other section to the
+stage)
 
 | Section | Model-visible value | Streaming | Non-streaming |
 |---|---|---|---|
