@@ -1642,4 +1642,136 @@ public class LlmOpenaiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.sampling/client",
+        "${net}/openai.transform.request.sampling/server"})
+    public void shouldTransformRequestSamplingAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.sampling/client",
+        "${net}/openai.transform.request.sampling/server"})
+    public void shouldTransformRequestSamplingFromOpenaiAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.sampling.seed/client",
+        "${net}/openai.transform.request.sampling.seed/server"})
+    public void shouldTransformRequestSamplingSeedAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.sampling.penalties/client",
+        "${net}/openai.transform.request.sampling.penalties/server"})
+    public void shouldTransformRequestSamplingPenaltiesAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.sampling.stop/client",
+        "${net}/openai.transform.request.sampling.stop/server"})
+    public void shouldTransformRequestSamplingStopAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.sampling.stop/client",
+        "${net}/openai.transform.request.sampling.stop/server"})
+    public void shouldTransformRequestSamplingStopFromOpenaiAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.sampling.top.k/client",
+        "${net}/openai.transform.request.max.output.tokens/server"})
+    public void shouldDropRequestSamplingTopKAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.sampling.clamp/client",
+        "${net}/openai.transform.request.sampling.clamp/server"})
+    public void shouldPassRequestSamplingTemperatureAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.rejected.sampling.stop.excess/client",
+        "${net}/openai.transform.rejected.sampling.stop.excess/server"})
+    public void shouldRejectRequestSamplingStopExcessAsOpenaiNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"gemini\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.sampling/client",
+        "${net}/openai.transform.request.sampling/server"})
+    public void shouldTransformRequestSamplingFromGeminiAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"gemini\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.sampling.stop/client",
+        "${net}/openai.transform.request.sampling.stop/server"})
+    public void shouldTransformRequestSamplingStopFromGeminiAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"gemini\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.sampling.top.k/client",
+        "${net}/openai.transform.request.max.output.tokens/server"})
+    public void shouldDropRequestSamplingTopKFromGeminiAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
 }

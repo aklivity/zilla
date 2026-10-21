@@ -171,7 +171,7 @@ public class LlmGeminiClientIT
     @Configuration("client.gemini.yaml")
     @Specification({
         "${app}/gemini.request.options.leading/client",
-        "${net}/gemini.request.options.leading/server"})
+        "${net}/gemini.request.options/server"})
     public void shouldForwardGeminiRequestOptionsLeading() throws Exception
     {
         k3po.finish();
@@ -1246,6 +1246,167 @@ public class LlmGeminiClientIT
         "${app}/gemini.transform.request.extension/client",
         "${net}/gemini.transform.request.extension/server"})
     public void shouldForwardGeminiTransformRequestExtension() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.request.sampling/client",
+        "${net}/gemini.request.sampling/server"})
+    public void shouldForwardGeminiRequestSampling() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.request.sampling.residue.absent/client",
+        "${net}/gemini.request.sampling.residue.absent/server"})
+    public void shouldForwardGeminiRequestSamplingResidueAbsent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.request.sampling.empty/client",
+        "${net}/gemini.request.sampling.empty/server"})
+    public void shouldForwardGeminiRequestSamplingEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.request.sampling.interleaved/client",
+        "${net}/gemini.request.sampling.interleaved/server"})
+    public void shouldForwardGeminiRequestSamplingInterleaved() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.request.sampling/client",
+        "${net}/gemini.transform.request.sampling/server"})
+    public void shouldTransformRequestSamplingAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.request.sampling.top.k/client",
+        "${net}/gemini.transform.request.sampling.top.k/server"})
+    public void shouldTransformRequestSamplingTopKAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.request.sampling.seed/client",
+        "${net}/gemini.transform.request.sampling.seed/server"})
+    public void shouldTransformRequestSamplingSeedAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.request.sampling.seed.range/client",
+        "${net}/gemini.transform.request.max.output.tokens/server"})
+    public void shouldDropRequestSamplingSeedOutOfRangeAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.request.sampling.penalties/client",
+        "${net}/gemini.transform.request.sampling.penalties/server"})
+    public void shouldTransformRequestSamplingPenaltiesAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.request.sampling.stop/client",
+        "${net}/gemini.transform.request.sampling.stop/server"})
+    public void shouldTransformRequestSamplingStopAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.request.sampling.stop.limit/client",
+        "${net}/gemini.transform.request.sampling.stop.limit/server"})
+    public void shouldTransformRequestSamplingStopLimitAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.request.sampling.clamp/client",
+        "${net}/gemini.transform.request.sampling.clamp/server"})
+    public void shouldPassRequestSamplingTemperatureAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.rejected.sampling.stop.entries/client",
+        "${net}/gemini.transform.rejected.sampling.stop.entries/server"})
+    public void shouldRejectRequestSamplingStopEntriesAsGeminiNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.request.sampling.penalties/client",
+        "${net}/gemini.transform.request.sampling.penalties/server"})
+    public void shouldTransformRequestSamplingFromOpenaiAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.request.sampling.seed.max/client",
+        "${net}/gemini.transform.request.sampling.seed.max/server"})
+    public void shouldTransformRequestSamplingSeedMaxAsGemini() throws Exception
     {
         k3po.finish();
     }

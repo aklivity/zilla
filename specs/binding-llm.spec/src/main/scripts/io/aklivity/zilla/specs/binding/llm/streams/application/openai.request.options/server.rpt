@@ -39,7 +39,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-read "{\"openai:temperature\":0.7,\"openai:top_p\":0.9,\"openai:seed\":42,\"openai:stop\":[\"END\"],\"openai:store\":true,\"openai:service_tier\":\"auto\",\"openai:logprobs\":true,\"openai:top_logprobs\":3,\"openai:n\":2,\"openai:audio\":{\"voice\":\"alloy\",\"format\":\"wav\"}}"
+read "{\"x:temperature\":0.7,\"x:top_p\":0.9,\"x:seed\":42,\"x:stop\":[\"END\"],\"openai:store\":true,\"openai:service_tier\":\"auto\",\"openai:logprobs\":true,\"openai:top_logprobs\":3,\"openai:n\":2,\"openai:audio\":{\"voice\":\"alloy\",\"format\":\"wav\"}}"
 
 read advised zilla:flush ${llm:matchDialectFlushEx()
                                  .typeId(zilla:id("llm"))

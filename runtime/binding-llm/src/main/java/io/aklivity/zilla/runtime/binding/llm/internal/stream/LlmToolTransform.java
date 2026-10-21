@@ -47,6 +47,10 @@ abstract class LlmToolTransform implements JsonTransform
     protected static final int DESCEND_KEPT_OR_REPLACE = 14;
     protected static final int CONVERT_STRING = 15;
     protected static final int DESCEND_KEPT_OR_ELEMENTS = 16;
+    protected static final int DESCEND_ELEMENTS = 17;
+    protected static final int WRAP_STRING_AS_ELEMENT = 18;
+    protected static final int CLAMP_NUMBER = 19;
+    protected static final int INTEGER_RANGE = 20;
 
     protected static final int MODE_OBJECT = 0;
     protected static final int MODE_EXTRACT = 1;
@@ -92,6 +96,14 @@ abstract class LlmToolTransform implements JsonTransform
     private int skipDepth;
     private boolean holding;
     private boolean converting;
+    private boolean wrapping;
+    private boolean clamping;
+    private boolean ranging;
+    private boolean nesting;
+    private int nestDepth;
+    private String nested;
+    private double clampMinimum;
+    private double clampMaximum;
     private boolean awaitingContent;
     private boolean valueStarted;
     private boolean arrayOpen;
@@ -309,6 +321,36 @@ abstract class LlmToolTransform implements JsonTransform
         return PASS_VALUE;
     }
 
+    protected final int clamp(
+        String name,
+        double minimum,
+        double maximum)
+    {
+        target = name;
+        clampMinimum = minimum;
+        clampMaximum = maximum;
+
+        return CLAMP_NUMBER;
+    }
+
+    protected final int rangeInteger(
+        String name,
+        double minimum,
+        double maximum)
+    {
+        target = name;
+        clampMinimum = minimum;
+        clampMaximum = maximum;
+
+        return INTEGER_RANGE;
+    }
+
+    protected final void nest(
+        String container)
+    {
+        nested = container;
+    }
+
     protected final int reject(
         CharSequence member)
     {
@@ -429,6 +471,11 @@ abstract class LlmToolTransform implements JsonTransform
         skipping = false;
         holding = false;
         converting = false;
+        wrapping = false;
+        clamping = false;
+        ranging = false;
+        nesting = false;
+        nested = null;
         awaitingContent = false;
         valueStarted = false;
         arrayOpen = false;
@@ -518,6 +565,7 @@ abstract class LlmToolTransform implements JsonTransform
         }
         else if (!skipping && !source.deferredBytes())
         {
+            nested = null;
             pending = member(depth, source.getStringView());
 
             if (pending == REJECT)
@@ -688,6 +736,11 @@ abstract class LlmToolTransform implements JsonTransform
         pass(event);
         depth--;
 
+        if (nesting && depth == nestDepth)
+        {
+            closeNested();
+        }
+
         return Status.ADVANCED;
     }
 
@@ -755,6 +808,18 @@ abstract class LlmToolTransform implements JsonTransform
         case DESCEND_KEPT_OR_ELEMENTS:
             status = descendKeptOrElements(event);
             break;
+        case DESCEND_ELEMENTS:
+            status = descendOrSkipElements(event);
+            break;
+        case WRAP_STRING_AS_ELEMENT:
+            status = wrapStringAsElement(event);
+            break;
+        case CLAMP_NUMBER:
+            status = event == JsonEvent.VALUE_NUMBER ? holdNumber() : Status.REJECTED;
+            break;
+        case INTEGER_RANGE:
+            status = holdInteger(event);
+            break;
         case ESCAPE_OBJECT:
             if (event == JsonEvent.START_OBJECT)
             {
@@ -781,7 +846,7 @@ abstract class LlmToolTransform implements JsonTransform
     {
         if (mode != MODE_EXTRACT && target != null)
         {
-            emit(JsonEvent.KEY_NAME, target);
+            emitMember();
         }
 
         pass(event);
@@ -795,7 +860,7 @@ abstract class LlmToolTransform implements JsonTransform
     {
         if (mode != MODE_EXTRACT && target != null)
         {
-            emit(JsonEvent.KEY_NAME, target);
+            emitMember();
         }
 
         pass(event);
@@ -823,6 +888,141 @@ abstract class LlmToolTransform implements JsonTransform
         }
 
         return status;
+    }
+
+    private Status descendOrSkipElements(
+        JsonEvent event)
+    {
+        final Status status;
+
+        if (event == JsonEvent.START_ARRAY)
+        {
+            status = descendElements(event);
+        }
+        else if (event == JsonEvent.VALUE_NULL)
+        {
+            status = Status.ADVANCED;
+        }
+        else
+        {
+            status = Status.REJECTED;
+        }
+
+        return status;
+    }
+
+    private Status wrapStringAsElement(
+        JsonEvent event)
+    {
+        final Status status;
+
+        if (event == JsonEvent.VALUE_STRING)
+        {
+            converting = true;
+            wrapping = true;
+            status = hold();
+        }
+        else
+        {
+            status = descendKeptOrElements(event);
+        }
+
+        return status;
+    }
+
+    private Status holdNumber()
+    {
+        clamping = true;
+
+        return hold();
+    }
+
+    private Status holdInteger(
+        JsonEvent event)
+    {
+        final Status status;
+
+        if (event == JsonEvent.VALUE_NUMBER)
+        {
+            ranging = true;
+            status = hold();
+        }
+        else if (event == JsonEvent.VALUE_NULL)
+        {
+            status = Status.ADVANCED;
+        }
+        else
+        {
+            status = Status.REJECTED;
+        }
+
+        return status;
+    }
+
+    private void emitMember()
+    {
+        if (nested != null && !nesting)
+        {
+            emit(JsonEvent.KEY_NAME, nested);
+            emit(JsonEvent.START_OBJECT);
+            nesting = true;
+            nestDepth = depth;
+        }
+
+        emit(JsonEvent.KEY_NAME, target);
+    }
+
+    private void closePassed()
+    {
+        if (passDepth == nestDepth)
+        {
+            closeNested();
+        }
+    }
+
+    private void closeNested()
+    {
+        if (nesting)
+        {
+            nesting = false;
+            emit(JsonEvent.END_OBJECT);
+        }
+    }
+
+    private void emitRanged(
+        String number)
+    {
+        final double value = Double.parseDouble(number);
+
+        if (value >= clampMinimum && value <= clampMaximum && value == Math.rint(value))
+        {
+            emitMember();
+            emit(JsonEvent.VALUE_NUMBER, number);
+            closeNested();
+        }
+    }
+
+    private void emitClamped(
+        String number)
+    {
+        final double value = Double.parseDouble(number);
+
+        emitMember();
+
+        if (value < clampMinimum)
+        {
+            emit(JsonEvent.VALUE_NUMBER, Double.toString(clampMinimum));
+        }
+        else if (value > clampMaximum)
+        {
+            emit(JsonEvent.VALUE_NUMBER, Double.toString(clampMaximum));
+        }
+        else
+        {
+            emit(JsonEvent.VALUE_NUMBER, number);
+        }
+
+        closeNested();
     }
 
     private Status replace(
@@ -919,7 +1119,7 @@ abstract class LlmToolTransform implements JsonTransform
     {
         if ((mode != MODE_EXTRACT || depth > extractDepth) && target != null)
         {
-            emit(JsonEvent.KEY_NAME, target);
+            emitMember();
         }
 
         return startPass(event);
@@ -939,6 +1139,11 @@ abstract class LlmToolTransform implements JsonTransform
         else
         {
             passing = source.deferredBytes();
+
+            if (!passing)
+            {
+                closePassed();
+            }
         }
 
         return Status.ADVANCED;
@@ -987,6 +1192,11 @@ abstract class LlmToolTransform implements JsonTransform
         if (!passing && mode == MODE_VALUE)
         {
             onValueEnd();
+        }
+
+        if (!passing)
+        {
+            closePassed();
         }
     }
 
@@ -1086,10 +1296,32 @@ abstract class LlmToolTransform implements JsonTransform
 
                     if (target != null)
                     {
-                        emit(JsonEvent.KEY_NAME, target);
+                        emitMember();
                     }
 
-                    emit(JsonEvent.VALUE_STRING, converted(value));
+                    if (wrapping)
+                    {
+                        wrapping = false;
+                        emit(JsonEvent.START_ARRAY);
+                        emit(JsonEvent.VALUE_STRING, converted(value));
+                        emit(JsonEvent.END_ARRAY);
+                    }
+                    else
+                    {
+                        emit(JsonEvent.VALUE_STRING, converted(value));
+                    }
+
+                    closeNested();
+                }
+                else if (ranging)
+                {
+                    ranging = false;
+                    emitRanged(value);
+                }
+                else if (clamping)
+                {
+                    clamping = false;
+                    emitClamped(value);
                 }
                 else
                 {

@@ -13,6 +13,8 @@
 # specific language governing permissions and limitations under the License.
 #
 
+# the client writes generationConfig once, after the other request members, so its network peer is gemini.request.options
+
 connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
@@ -31,7 +33,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"gemini:generationConfig\":{\"temperature\":0.2,\"maxOutputTokens\":256}}"
+write "{\"x:temperature\":0.2,\"gemini:generationConfig\":{\"maxOutputTokens\":256}}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()

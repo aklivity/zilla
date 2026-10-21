@@ -30,6 +30,7 @@ public class LlmAnthropicControlFromCanonicalTest
 
     private final LlmAnthropicControlFromCanonical transform = new LlmAnthropicControlFromCanonical(true);
     private final LlmAnthropicControlFromCanonical foreign = new LlmAnthropicControlFromCanonical(false);
+    private final LlmAnthropicControlFromCanonical foreignMembers = LlmAnthropicControlFromCanonical.members(false);
 
     @Test
     public void shouldRestoreOwnPrefixedMember()
@@ -127,5 +128,63 @@ public class LlmAnthropicControlFromCanonicalTest
     public void shouldRejectMemberThatIsNotAnObject()
     {
         assertRejects(transform, json("[1]"));
+    }
+
+
+    @Test
+    public void shouldRestoreSharedSamplingMembers()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:temperature':0.7,'x:top_p':0.9,'x:top_k':40,'x:stop':['END','STOP']}"),
+            json("{'temperature':0.7,'top_p':0.9,'top_k':40,'stop_sequences':['END','STOP']}"));
+
+        assertThat(foreignMembers.member(), equalTo("temperature"));
+    }
+
+    @Test
+    public void shouldClampSharedTemperatureToMaximum()
+    {
+        assertTransforms(foreignMembers, json("{'x:temperature':1.5}"), json("{'temperature':1.0}"));
+    }
+
+    @Test
+    public void shouldClampSharedTemperatureToMinimum()
+    {
+        assertTransforms(foreignMembers, json("{'x:temperature':-0.5}"), json("{'temperature':0.0}"));
+    }
+
+    @Test
+    public void shouldKeepSharedTemperatureWithinRangeVerbatim()
+    {
+        assertTransforms(foreignMembers, json("{'x:temperature':1}"), json("{'temperature':1}"));
+        assertTransforms(foreignMembers, json("{'x:temperature':0.30}"), json("{'temperature':0.30}"));
+    }
+
+    @Test
+    public void shouldRejectSharedTemperatureThatIsNotANumber()
+    {
+        assertRejects(foreignMembers, json("{'x:temperature':'hot'}"));
+    }
+
+    @Test
+    public void shouldDropSharedMemberNotSupported()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:seed':1,'x:frequency_penalty':0.5,'x:presence_penalty':0.5,'x:top_k':3}"),
+            json("{'top_k':3}"));
+    }
+
+    @Test
+    public void shouldDropSharedStopThatIsNull()
+    {
+        assertTransforms(foreignMembers, json("{'x:stop':null,'x:top_k':3}"), json("{'top_k':3}"));
+    }
+
+    @Test
+    public void shouldDropSharedMemberWhenExtracting()
+    {
+        assertTransforms(foreign, json("{'x:temperature':0.7}"), "null");
+
+        assertThat(foreign.member(), nullValue());
     }
 }

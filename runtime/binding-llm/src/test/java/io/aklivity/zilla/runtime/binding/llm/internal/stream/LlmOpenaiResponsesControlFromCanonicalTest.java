@@ -30,6 +30,7 @@ public class LlmOpenaiResponsesControlFromCanonicalTest
 
     private final LlmOpenaiResponsesControlFromCanonical transform = new LlmOpenaiResponsesControlFromCanonical(true);
     private final LlmOpenaiResponsesControlFromCanonical foreign = new LlmOpenaiResponsesControlFromCanonical(false);
+    private final LlmOpenaiResponsesControlFromCanonical foreignMembers = LlmOpenaiResponsesControlFromCanonical.members(false);
 
     @Test
     public void shouldRestoreOwnPrefixedMember()
@@ -134,5 +135,37 @@ public class LlmOpenaiResponsesControlFromCanonicalTest
     public void shouldRejectMemberThatIsNotAnObject()
     {
         assertRejects(transform, json("[1]"));
+    }
+
+    @Test
+    public void shouldRestoreSharedSamplingMembers()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:temperature':0.7,'x:top_p':0.9}"),
+            json("{'temperature':0.7,'top_p':0.9}"));
+    }
+
+    @Test
+    public void shouldDropSharedMemberNotSupported()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:top_k':1,'x:seed':1,'x:frequency_penalty':0.5,'x:presence_penalty':0.5,'x:top_p':0.9}"),
+            json("{'top_p':0.9}"));
+    }
+
+    @Test
+    public void shouldRejectSharedStop()
+    {
+        assertRejects(foreignMembers, json("{'x:temperature':0.7,'x:stop':['END']}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("stop"));
+    }
+
+    @Test
+    public void shouldDropSharedMemberWhenExtracting()
+    {
+        assertTransforms(foreign, json("{'x:temperature':0.7}"), "null");
+
+        assertThat(foreign.member(), nullValue());
     }
 }

@@ -1653,8 +1653,8 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @Specification({
         "${app}/openai.responses.transform.request.members/client",
-        "${net}/anthropic.transform.user.text/server"})
-    public void shouldDropRequestMembersFromOpenaiResponsesAsAnthropic() throws Exception
+        "${net}/anthropic.transform.request.members/server"})
+    public void shouldDropPrefixedRequestMembersFromOpenaiResponsesAsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -1728,6 +1728,138 @@ public class LlmAnthropicClientIT
         "${app}/transform.request.extension/client",
         "${net}/anthropic.transform.request.extension/server"})
     public void shouldIgnoreBeginExtensionFromAnotherDialect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.sampling/client",
+        "${net}/anthropic.transform.request.sampling/server"})
+    public void shouldTransformRequestSamplingAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.sampling/client",
+        "${net}/anthropic.transform.request.sampling/server"})
+    public void shouldTransformRequestSamplingFromAnthropicAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.sampling.top.k/client",
+        "${net}/anthropic.transform.request.sampling.top.k/server"})
+    public void shouldTransformRequestSamplingTopKAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.sampling.top.k/client",
+        "${net}/anthropic.transform.request.sampling.top.k/server"})
+    public void shouldTransformRequestSamplingTopKFromAnthropicAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.sampling.stop/client",
+        "${net}/anthropic.transform.request.sampling.stop/server"})
+    public void shouldTransformRequestSamplingStopAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.sampling.stop/client",
+        "${net}/anthropic.transform.request.sampling.stop/server"})
+    public void shouldTransformRequestSamplingStopFromAnthropicAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.sampling.seed/client",
+        "${net}/anthropic.transform.request.max.output.tokens/server"})
+    public void shouldDropRequestSamplingSeedAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.sampling.penalties/client",
+        "${net}/anthropic.transform.request.max.output.tokens/server"})
+    public void shouldDropRequestSamplingPenaltiesAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.sampling.clamp/client",
+        "${net}/anthropic.transform.request.sampling.clamp/server"})
+    public void shouldClampRequestSamplingTemperatureAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"gemini\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.sampling.top.k/client",
+        "${net}/anthropic.transform.request.sampling.top.k/server"})
+    public void shouldTransformRequestSamplingTopKFromGeminiAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"gemini\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.sampling.stop/client",
+        "${net}/anthropic.transform.request.sampling.stop/server"})
+    public void shouldTransformRequestSamplingStopFromGeminiAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"gemini\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.sampling.clamp/client",
+        "${net}/anthropic.transform.request.sampling.clamp/server"})
+    public void shouldClampRequestSamplingTemperatureFromGeminiAsAnthropic() throws Exception
     {
         k3po.finish();
     }

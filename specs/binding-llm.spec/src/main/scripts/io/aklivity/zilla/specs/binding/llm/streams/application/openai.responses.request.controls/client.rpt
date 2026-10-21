@@ -38,7 +38,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:temperature\":0.2,\"openai:store\":false,\"openai:metadata\":{\"k\":\"v\"},\"openai:previous_response_id\":\"resp_0\"}"
+write "{\"x:temperature\":0.2,\"openai:store\":false,\"openai:metadata\":{\"k\":\"v\"},\"openai:previous_response_id\":\"resp_0\"}"
 write flush
 
 write advise zilla:flush

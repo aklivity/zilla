@@ -1800,4 +1800,15 @@ public class LlmOpenaiResponsesServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/responses\""})
+    @Specification({
+        "${net}/openai.responses.transform.request.sampling/client",
+        "${app}/transform.request.sampling/server"})
+    public void shouldTransformRequestSamplingFromOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
 }

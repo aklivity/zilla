@@ -14,6 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.FREQUENCY_PENALTY;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.PRESENCE_PENALTY;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.SEED;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.STOP;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TEMPERATURE;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TOP_P;
+
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
@@ -22,10 +29,13 @@ final class LlmOpenaiControlFromCanonical extends LlmToolTransform
     private static final String DIALECT = "openai";
     private static final String MEMBER_STREAM_OPTIONS = "stream_options";
     private static final String MEMBER_INCLUDE_USAGE = "include_usage";
+    private static final int STOP_ENTRIES_MAX = 4;
 
     private final boolean members;
+    private final boolean foreign;
 
     private String member;
+    private int stopEntries;
 
     LlmOpenaiControlFromCanonical(
         boolean sameDialect)
@@ -39,6 +49,7 @@ final class LlmOpenaiControlFromCanonical extends LlmToolTransform
     {
         super(mode, sameDialect);
         this.members = mode == MODE_OBJECT;
+        this.foreign = !sameDialect;
     }
 
     static LlmOpenaiControlFromCanonical members(
@@ -57,6 +68,7 @@ final class LlmOpenaiControlFromCanonical extends LlmToolTransform
     {
         super.reset();
         member = null;
+        stopEntries = 0;
     }
 
     @Override
@@ -88,6 +100,41 @@ final class LlmOpenaiControlFromCanonical extends LlmToolTransform
         }
 
         return action;
+    }
+
+    @Override
+    protected int shared(
+        CharSequence key)
+    {
+        int action = DROP;
+
+        if (members)
+        {
+            if (matches(key, TEMPERATURE) ||
+                matches(key, TOP_P) ||
+                matches(key, SEED) ||
+                matches(key, FREQUENCY_PENALTY) ||
+                matches(key, PRESENCE_PENALTY))
+            {
+                target = name(key);
+                action = PASS_VALUE;
+            }
+            else if (matches(key, STOP))
+            {
+                target = name(key);
+                stopEntries = 0;
+                action = DESCEND_ELEMENTS;
+            }
+        }
+
+        return action;
+    }
+
+    @Override
+    protected int element(
+        int depth)
+    {
+        return foreign && ++stopEntries > STOP_ENTRIES_MAX ? reject(STOP) : PASS_VALUE;
     }
 
     @Override

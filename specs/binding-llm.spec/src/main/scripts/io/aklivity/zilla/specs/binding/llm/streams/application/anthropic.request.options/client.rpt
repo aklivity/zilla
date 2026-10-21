@@ -38,7 +38,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"anthropic:temperature\":0.5,\"anthropic:top_p\":0.9,\"anthropic:top_k\":40,\"anthropic:stop_sequences\":[\"END\"],\"anthropic:thinking\":{\"type\":\"enabled\",\"budget_tokens\":2048},\"anthropic:container_id\":\"ctr_1\",\"anthropic:mcp_servers\":[{\"type\":\"url\",\"url\":\"https://mcp.example.com\",\"name\":\"example\"}]}"
+write "{\"x:temperature\":0.5,\"x:top_p\":0.9,\"x:top_k\":40,\"x:stop\":[\"END\"],\"anthropic:thinking\":{\"type\":\"enabled\",\"budget_tokens\":2048},\"anthropic:container_id\":\"ctr_1\",\"anthropic:mcp_servers\":[{\"type\":\"url\",\"url\":\"https://mcp.example.com\",\"name\":\"example\"}]}"
 write flush
 
 write advise zilla:flush ${llm:dialectFlushEx()

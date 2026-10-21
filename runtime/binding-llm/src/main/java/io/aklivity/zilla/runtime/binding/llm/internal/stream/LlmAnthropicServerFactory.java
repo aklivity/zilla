@@ -132,6 +132,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private static final DirectBufferEx STREAM_OPTIONS_SECTION =
         new UnsafeBufferEx("{\"stream_options\":{\"include_usage\":true}}".getBytes(UTF_8));
     private static final DirectBufferEx CONTROL_CLOSE = new UnsafeBufferEx("}".getBytes(UTF_8));
+    private static final String SHARED_PREFIX = "x:";
 
     private static final int MIN_WINDOW = 64;
     private static final int CONTROL_GROWTH = 3;
@@ -3059,12 +3060,21 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         {
             controlKey.setLength(0);
 
-            if (prefixed)
-            {
-                controlKey.append(NAME).append(':');
-            }
+            final String shared = prefixed ? LlmSharedMembers.anthropic(key) : null;
 
-            controlKey.append(key);
+            if (shared != null)
+            {
+                controlKey.append(SHARED_PREFIX).append(shared);
+            }
+            else
+            {
+                if (prefixed)
+                {
+                    controlKey.append(NAME).append(':');
+                }
+
+                controlKey.append(key);
+            }
 
             reservePiece(controlKey.length() * TEXT_ESCAPE_EXPANSION + CONTROL_OPEN_CAPACITY);
 

@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.STOP;
+
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
@@ -107,6 +109,11 @@ final class LlmOpenaiControlToCanonical extends LlmToolTransform
             prefix(DIALECT, key);
             replacing = REPLACING_OBFUSCATION;
             action = REPLACE_VALUE;
+        }
+        else if (depth == 1 && matches(key, STOP))
+        {
+            share(key);
+            action = WRAP_STRING_AS_ELEMENT;
         }
         else
         {

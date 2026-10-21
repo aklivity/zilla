@@ -36,7 +36,7 @@ Status key: **implemented** is in the IDL, spec functions and runtime today;
 A member carried as `<dialect>:<member>` is restored only by a client of that dialect and dropped by every
 other client. A member that two or more dialects have with the same meaning is carried as `x:<member>`
 instead. (**implemented** as the `x:` namespace in `LlmToolTransform`: `shared()`, `share()` and `reject()`;
-no member is promoted yet)
+the sampling members below are promoted for every dialect, the `gemini` ones lifted out of its native container)
 
 - `x` is reserved as a dialect name. `LlmDialectFactory` refuses to register a dialect named `x`.
 - A decoder emits `x:<member>` in place of `<dialect>:<member>` for each member it understands, including a
@@ -60,6 +60,66 @@ no member is promoted yet)
   across two minor releases; and the decision is recorded in an issue.
 - Members that carry content or grant a capability are sections, not `x:` members, and a guardrail stage
   never sees an `x:` member.
+
+### Promoted sampling members
+
+The canonical value follows OpenAI: numbers for `temperature`, `top_p`, `top_k`, `frequency_penalty` and
+`presence_penalty`, an integer for `seed` and `top_k`, an array of strings for `stop`. Each decoder converts
+the members it understands and leaves every other member prefixed. The maximum output tokens limit is not an
+`x:` member; it stays on the dialect flush. A native value that does not parse as the canonical value is
+passed through and left to the client to reject. (**implemented** for `openai`, `openai/responses`, `anthropic`
+and `gemini`)
+
+| `x:` member | Range | Class | `openai` | `openai/responses` | `anthropic` | `gemini` (inside `generationConfig`) |
+|---|---|---|---|---|---|---|
+| `temperature` | 0..2 | A, C | `temperature` | `temperature` | `temperature`, clamped into 0..1 | `temperature` |
+| `top_p` | 0..1 | A | `top_p` | `top_p` | `top_p` | `topP` |
+| `top_k` | integer | A | dropped | dropped | `top_k` | `topK` |
+| `stop` | array of strings | B | `stop`; a decoded string becomes a one-entry array | rejects | `stop_sequences` | `stopSequences` |
+| `seed` | integer | A | `seed` | dropped | dropped | `seed`, dropped outside int32 |
+| `frequency_penalty`, `presence_penalty` | -2..2 | A | same names | dropped | dropped | `frequencyPenalty`, `presencePenalty` |
+
+- `temperature` and the penalties are advisory (A), `temperature` is clamped (C) only where the target range is
+  narrower than the canonical one. A value outside the canonical range is not clamped by a target that shares
+  that range; the upstream provider judges it.
+- `stop` is behavioural (B). A client without a stop on the wire rejects with
+  `x:stop cannot be converted from <dialect> to <dialect>`. The `openai` client also rejects more than four
+  entries and the `gemini` client more than five on a cross-dialect hop, and both write a same-dialect hop as
+  received. A `null` `stop` is the absence of
+  the member and is dropped.
+- A same-dialect hop restores every native member exactly. The one normalisation is the `openai` `stop` string,
+  which comes back as a one-entry array; `anthropic` `stop_sequences` round-trips unchanged through `x:stop`.
+- A decoder emits the member at its source position inside the control section it belongs to, so a run such as
+  `{"x:temperature":0.7,"openai:store":false}` stays one section.
+- `seed` is an integer; the `gemini` client drops a value that is not an integral number within int32 (A) and
+  passes a `null` seed as absent.
+
+### Native containers
+
+A dialect whose sampling members live inside a native object (`gemini` `generationConfig`) carries the container
+in two forms. Containers are never `x:`-prefixed.
+
+- **Decoding.** Each promoted leaf is lifted out of the container and emitted as `x:<member>` at depth 1 of the
+  control section the container belongs to, without holding anything. The residue stays under
+  `<dialect>:<container>`. A leaf that appears mid-container closes the residue object, emits the `x:` member and
+  re-opens `<dialect>:<container>` for the next residue member, so one section may hold the same
+  `<dialect>:<container>` key several times (deliberate). A container whose every member is lifted emits no
+  `<dialect>:<container>`; an empty container is kept as `{}`; a `null` container is dropped. Both camel and snake
+  spellings of the container and its leaves are decoded, and the residue keeps the container's source spelling.
+- **Encoding.** A client translates each supported `x:` member into a one-member native fragment such as
+  `"generationConfig":{"temperature":0.7}`, and passes the same-dialect residue fragments as they come. The
+  fragments of a container are not written where they arrive: `LlmMemberCollector` streams every other member
+  through unchanged, drops the separators it cuts around a container, and holds the object contents of each
+  container fragment in a pool slot. At the end of the request the client writes each container once, in arrival
+  order of its fragments, then appends the members it owns at that point (the cross-dialect `maxOutputTokens`),
+  so the output holds exactly one `generationConfig` key, after the other request members.
+- A same-dialect hop restores the container exactly in content, and in member order inside it; the container moves
+  after the other request members.
+- The held contents count against the client's encode room, so the credit granted to the application shrinks as the
+  hold grows. A container larger than one pool slot is flow-controlled to a stop, and a request that cannot get a
+  hold slot is rejected naming the container (`generationConfig cannot be converted from <dialect> to gemini`).
+- `maxOutputTokens` is not promoted. It stays in the residue (`gemini:generationConfig`) and is also carried on the
+  flush, which is how another dialect's client receives it.
 
 ## Ranges (`LlmSectionDataEx.ranges`)
 
