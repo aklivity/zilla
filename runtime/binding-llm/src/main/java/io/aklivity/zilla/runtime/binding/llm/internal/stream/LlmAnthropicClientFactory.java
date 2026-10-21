@@ -159,6 +159,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final int ENCODE_TOOL_CHOICE = 96;
     private static final int ENCODE_OUTPUT_CONFIG = 64;
     private static final int ENCODE_THINKING = 80;
+    private static final int ENCODE_METADATA = 32;
     private static final int NO_MAX_OUTPUT_TOKENS = -1;
 
     private static final int NONE = -1;
@@ -228,16 +229,18 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final String MEMBER_MAX_TOKENS = "max_tokens";
     private static final String MEMBER_TOOL_CHOICE = "tool_choice";
     private static final String MEMBER_OUTPUT_CONFIG = "output_config";
+    private static final String MEMBER_METADATA = "metadata";
     private static final String MEMBER_EFFORT = "effort";
     private static final String MEMBER_BUDGET_TOKENS = "budget_tokens";
     private static final String MEMBER_TYPE_CHOICE = "type";
     private static final String MEMBER_DISABLE_PARALLEL = "disable_parallel_tool_use";
     private static final String CHOICE_TYPE_AUTO = "auto";
     private static final String CHOICE_TYPE_NONE = "none";
-    private static final String[] CONTAINERS = {MEMBER_TOOL_CHOICE, MEMBER_OUTPUT_CONFIG, MEMBER_THINKING};
+    private static final String[] CONTAINERS = {MEMBER_TOOL_CHOICE, MEMBER_OUTPUT_CONFIG, MEMBER_THINKING, MEMBER_METADATA};
     private static final int CONTAINER_TOOL_CHOICE = 0;
     private static final int CONTAINER_OUTPUT_CONFIG = 1;
     private static final int CONTAINER_THINKING = 2;
+    private static final int CONTAINER_METADATA = 3;
     private static final String SHARED_PREFIX = "x:";
     private static final String MEMBER_TOOLS = "tools";
     private static final String MEMBER_TOOL_USE_ID = "tool_use_id";
@@ -4730,13 +4733,14 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 final int maxTokens = maxOutputTokens != NO_MAX_OUTPUT_TOKENS ? maxOutputTokens : defaultMaxTokens;
 
                 if (beginEncode(ENCODE_STRUCTURE + ENCODE_MAX_TOKENS + ENCODE_TOOL_CHOICE + ENCODE_OUTPUT_CONFIG +
-                    ENCODE_THINKING + collector.held()))
+                    ENCODE_THINKING + ENCODE_METADATA + collector.held()))
                 {
                     closeRegion();
                     thinking.resolve(capability, effort, budget, maxTokens);
                     writeOutputConfig();
                     writeToolChoice();
                     writeThinking();
+                    writeMetadata();
 
                     generator.write(MEMBER_MAX_TOKENS, maxTokens);
                     generator.writeEnd();
@@ -4786,6 +4790,16 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 }
 
                 collector.drain(CONTAINER_THINKING, heldOutput);
+                generator.writeEnd();
+            }
+        }
+
+        private void writeMetadata()
+        {
+            if (collector.holds(CONTAINER_METADATA))
+            {
+                generator.writeStartObject(MEMBER_METADATA);
+                collector.drain(CONTAINER_METADATA, heldOutput);
                 generator.writeEnd();
             }
         }

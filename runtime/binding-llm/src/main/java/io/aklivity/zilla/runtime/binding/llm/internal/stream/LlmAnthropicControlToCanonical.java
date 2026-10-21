@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.SERVICE_TIER;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TOOL_CHOICE;
 
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
@@ -50,6 +51,12 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
     private static final String TYPE_DISABLED = "disabled";
     private static final String TYPE_ENABLED = "enabled";
     private static final String EFFORT_NONE = "none";
+    private static final String MEMBER_METADATA = "metadata";
+    private static final String MEMBER_NATIVE_METADATA = "anthropic:metadata";
+    private static final String MEMBER_USER_ID = "user_id";
+    private static final String MEMBER_SHARED_USER = "x:user";
+    private static final String MEMBER_SHARED_SERVICE_TIER = "x:service_tier";
+    private static final String MEMBER_NATIVE_SERVICE_TIER = "anthropic:service_tier";
 
     private static final int REPLACING_STREAM = 0;
     private static final int REPLACING_FORMAT = 1;
@@ -60,6 +67,7 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
 
     private static final int CONTAINER_OUTPUT_CONFIG = 0;
     private static final int CONTAINER_THINKING = 1;
+    private static final int CONTAINER_METADATA = 2;
 
     private static final int TYPE_UNSET = 0;
     private static final int TYPE_PENDING = 1;
@@ -129,9 +137,24 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
             target = MEMBER_NATIVE_THINKING;
             action = DESCEND_OR_PASS;
         }
+        else if (depth == 1 && matches(key, MEMBER_METADATA))
+        {
+            container = CONTAINER_METADATA;
+            target = MEMBER_NATIVE_METADATA;
+            action = DESCEND_OR_PASS;
+        }
+        else if (depth == 1 && matches(key, SERVICE_TIER))
+        {
+            action = capture(key);
+        }
         else if (depth == 2)
         {
-            action = container == CONTAINER_THINKING ? thinkingMember(key) : outputConfigMember(key);
+            action = switch (container)
+            {
+            case CONTAINER_THINKING -> thinkingMember(key);
+            case CONTAINER_METADATA -> metadataMember(key);
+            default -> outputConfigMember(key);
+            };
         }
         else if (depth == 3)
         {
@@ -174,7 +197,11 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
     {
         Status status = Status.ADVANCED;
 
-        if (matches(capturedMember(), MEMBER_TYPE) && container == CONTAINER_THINKING)
+        if (matches(capturedMember(), SERVICE_TIER))
+        {
+            onServiceTier(value);
+        }
+        else if (matches(capturedMember(), MEMBER_TYPE) && container == CONTAINER_THINKING)
         {
             onThinkingType(value);
         }
@@ -305,6 +332,45 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
         return action;
     }
 
+    private int metadataMember(
+        CharSequence key)
+    {
+        int action;
+
+        if (matches(key, MEMBER_USER_ID))
+        {
+            closeResidue();
+            output = OUTPUT_LIFTED;
+            target = MEMBER_SHARED_USER;
+            action = PASS_STRING_OR_DROP;
+        }
+        else
+        {
+            openResidue();
+            target = name(key);
+            action = PASS_VALUE;
+        }
+
+        return action;
+    }
+
+    private void onServiceTier(
+        LlmCapturedValue value)
+    {
+        final String tier = LlmServiceTiers.canonicalAnthropic(value.string(0));
+
+        if (tier != null)
+        {
+            emit(JsonEvent.KEY_NAME, MEMBER_SHARED_SERVICE_TIER);
+            emit(JsonEvent.VALUE_STRING, tier);
+        }
+        else
+        {
+            emit(JsonEvent.KEY_NAME, MEMBER_NATIVE_SERVICE_TIER);
+            emitCaptured(value, 0);
+        }
+    }
+
     private void onThinkingType(
         LlmCapturedValue value)
     {
@@ -373,7 +439,12 @@ final class LlmAnthropicControlToCanonical extends LlmToolTransform
 
     private String residueKey()
     {
-        return container == CONTAINER_THINKING ? MEMBER_NATIVE_THINKING : MEMBER_NATIVE_OUTPUT_CONFIG;
+        return switch (container)
+        {
+        case CONTAINER_THINKING -> MEMBER_NATIVE_THINKING;
+        case CONTAINER_METADATA -> MEMBER_NATIVE_METADATA;
+        default -> MEMBER_NATIVE_OUTPUT_CONFIG;
+        };
     }
 
     private void openResidue()

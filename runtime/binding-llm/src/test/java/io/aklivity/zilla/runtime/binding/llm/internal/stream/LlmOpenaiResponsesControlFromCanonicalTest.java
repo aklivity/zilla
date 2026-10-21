@@ -21,15 +21,22 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 
+import java.util.List;
+
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.llm.config.LlmEffort;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmModelCapability;
+import io.aklivity.zilla.runtime.binding.llm.config.LlmServiceTier;
 
 public class LlmOpenaiResponsesControlFromCanonicalTest
 {
     private static final String LONG = "x".repeat(300);
     private static final String HUGE = "x".repeat(5000);
+    private static final String AT_LIMIT = "0123456789".repeat(13).substring(0, 128);
+    private static final String OVER_LIMIT = AT_LIMIT + "x";
+    private static final String SUPPLEMENTARY_AT_LIMIT = "\ud83d\ude00".repeat(128);
+    private static final String SUPPLEMENTARY_OVER_LIMIT = SUPPLEMENTARY_AT_LIMIT + "\ud83d\ude00";
 
     private final LlmOpenaiResponsesControlFromCanonical transform = new LlmOpenaiResponsesControlFromCanonical(true);
     private final LlmOpenaiResponsesControlFromCanonical foreign = new LlmOpenaiResponsesControlFromCanonical(false);
@@ -438,5 +445,122 @@ public class LlmOpenaiResponsesControlFromCanonicalTest
         assertTransforms(accepting,
             json("{'x:temperature':0.7,'x:top_p':0.9,'x:parallel_tool_calls':true}"),
             json("{'temperature':0.7,'top_p':0.9,'parallel_tool_calls':true}"));
+    }
+
+    @Test
+    public void shouldRestoreUser()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:user':'u-1'}"),
+            json("{'safety_identifier':'u-1'}"));
+    }
+
+    @Test
+    public void shouldRestoreUserAtLimit()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:user':'" + AT_LIMIT + "'}"),
+            json("{'safety_identifier':'" + AT_LIMIT + "'}"));
+    }
+
+    @Test
+    public void shouldDropUserOverLimit()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:user':'" + OVER_LIMIT + "','x:top_p':0.5}"),
+            json("{'top_p':0.5}"));
+    }
+
+    @Test
+    public void shouldCountUserLimitInCodePoints()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:user':'" + SUPPLEMENTARY_AT_LIMIT + "'}"),
+            json("{'safety_identifier':'" + SUPPLEMENTARY_AT_LIMIT + "'}"));
+        assertTransforms(foreignMembers,
+            json("{'x:user':'" + SUPPLEMENTARY_OVER_LIMIT + "'}"),
+            json("{}"));
+    }
+
+    @Test
+    public void shouldRestoreUserWithEscapes()
+    {
+        assertTransforms(foreignMembers,
+            "{\"x:user\":\"a\\\"b\\\\c\\u00e9\"}",
+            "{\"safety_identifier\":\"a\\\"b\\\\c\u00e9\"}");
+    }
+
+    @Test
+    public void shouldDropUserThatIsNotString()
+    {
+        assertTransforms(foreignMembers, json("{'x:user':7}"), json("{}"));
+        assertTransforms(foreignMembers, json("{'x:user':{'a':[1]}}"), json("{}"));
+        assertTransforms(foreignMembers, json("{'x:user':null}"), json("{}"));
+    }
+
+    @Test
+    public void shouldDropUserLargerThanHeldBound()
+    {
+        assertTransforms(foreignMembers, json("{'x:user':'" + HUGE + "'}"), json("{}"));
+    }
+
+    @Test
+    public void shouldRestoreServiceTier()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:service_tier':'auto'}"),
+            json("{'service_tier':'auto'}"));
+        assertTransforms(foreignMembers,
+            json("{'x:service_tier':'default'}"),
+            json("{'service_tier':'default'}"));
+        assertTransforms(foreignMembers,
+            json("{'x:service_tier':'flex'}"),
+            json("{'service_tier':'flex'}"));
+        assertTransforms(foreignMembers,
+            json("{'x:service_tier':'priority'}"),
+            json("{'service_tier':'priority'}"));
+    }
+
+    @Test
+    public void shouldDropServiceTierThatIsNotCanonical()
+    {
+        assertTransforms(foreignMembers, json("{'x:service_tier':'scale'}"), json("{}"));
+        assertTransforms(foreignMembers, json("{'x:service_tier':'" + HUGE + "'}"), json("{}"));
+        assertTransforms(foreignMembers, json("{'x:service_tier':3}"), json("{}"));
+        assertTransforms(foreignMembers, json("{'x:service_tier':null}"), json("{}"));
+    }
+
+    @Test
+    public void shouldDropServiceTierTheModelDoesNotSupport()
+    {
+        final LlmOpenaiResponsesControlFromCanonical restricted = LlmOpenaiResponsesControlFromCanonical.members(false,
+            tiers(List.of("auto", "default")));
+
+        assertTransforms(restricted,
+            json("{'x:service_tier':'flex'}"),
+            json("{}"));
+        assertTransforms(restricted,
+            json("{'x:service_tier':'auto'}"),
+            json("{'service_tier':'auto'}"));
+    }
+
+    @Test
+    public void shouldDropServiceTierWhenExtracting()
+    {
+        final LlmOpenaiResponsesControlFromCanonical extracting = new LlmOpenaiResponsesControlFromCanonical(false);
+
+        assertTransforms(extracting, json("{'x:service_tier':'auto'}"), "null");
+    }
+
+    @Test
+    public void shouldRestoreOwnPrefixedServiceTier()
+    {
+        assertTransforms(transform, json("{'openai:service_tier':'fast'}"), json("'fast'"));
+    }
+
+    private static LlmModelCapability tiers(
+        List<String> names)
+    {
+        return new LlmModelCapability(true, null, -1, -1, null, LlmServiceTier.maskOf(names));
     }
 }

@@ -20,6 +20,7 @@ import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMem
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.REASONING_EFFORT;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.RESPONSE_FORMAT;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.SEED;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.SERVICE_TIER;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.STOP;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TEMPERATURE;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.THINKING_BUDGET_TOKENS;
@@ -59,6 +60,8 @@ final class LlmGeminiControlFromCanonical extends LlmFormatFromCanonical
     private static final String MEMBER_MIME_TYPE = "mimeType";
     private static final String MEMBER_TYPE = "type";
     private static final String MIME_JSON = "APPLICATION_JSON";
+    private static final String MEMBER_SERVICE_TIER = "serviceTier";
+    private static final String MEMBER_SERVICE_TIER_SNAKE = "service_tier";
     private static final int STOP_ENTRIES_MAX = 5;
     private static final double SEED_MINIMUM = Integer.MIN_VALUE;
     private static final double SEED_MAXIMUM = Integer.MAX_VALUE;
@@ -166,6 +169,10 @@ final class LlmGeminiControlFromCanonical extends LlmFormatFromCanonical
                 {
                     target = MEMBER_THINKING_CONFIG;
                 }
+                else if (target != null && matches(target, MEMBER_SERVICE_TIER_SNAKE))
+                {
+                    target = MEMBER_SERVICE_TIER;
+                }
 
                 member = target;
             }
@@ -194,6 +201,11 @@ final class LlmGeminiControlFromCanonical extends LlmFormatFromCanonical
         {
             target = null;
             action = capture(key);
+        }
+        else if (members && matches(key, SERVICE_TIER))
+        {
+            target = MEMBER_SERVICE_TIER;
+            action = limitString(LlmServiceTiers.NAME_MAX);
         }
         else if (members)
         {
@@ -303,6 +315,13 @@ final class LlmGeminiControlFromCanonical extends LlmFormatFromCanonical
         }
 
         return action;
+    }
+
+    @Override
+    protected String adapted(
+        String value)
+    {
+        return LlmServiceTiers.gemini(capability, value);
     }
 
     @Override

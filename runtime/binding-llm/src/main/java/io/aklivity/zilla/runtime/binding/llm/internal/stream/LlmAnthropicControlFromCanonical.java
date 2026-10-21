@@ -17,12 +17,14 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.PARALLEL_TOOL_CALLS;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.REASONING_EFFORT;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.RESPONSE_FORMAT;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.SERVICE_TIER;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.STOP;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TEMPERATURE;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.THINKING_BUDGET_TOKENS;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TOOL_CHOICE;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TOP_K;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TOP_P;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.USER;
 
 import io.aklivity.zilla.runtime.binding.llm.config.LlmEffort;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmModelCapability;
@@ -45,6 +47,10 @@ final class LlmAnthropicControlFromCanonical extends LlmFormatFromCanonical
     private static final String MEMBER_OUTPUT_CONFIG = "output_config";
     private static final String MEMBER_FORMAT = "format";
     private static final String TYPE_JSON_SCHEMA = "json_schema";
+    private static final String MEMBER_METADATA = "metadata";
+    private static final String MEMBER_USER_ID = "user_id";
+    private static final String MEMBER_SERVICE_TIER = "service_tier";
+    private static final int USER_ID_MAX = 256;
 
     static final int PARALLEL_UNSET = -1;
     static final int PARALLEL_DISABLED = 0;
@@ -199,6 +205,17 @@ final class LlmAnthropicControlFromCanonical extends LlmFormatFromCanonical
                 target = MEMBER_OUTPUT_CONFIG;
                 action = formatShared();
             }
+            else if (matches(key, USER))
+            {
+                nest(MEMBER_METADATA);
+                target = MEMBER_USER_ID;
+                action = limitString(USER_ID_MAX);
+            }
+            else if (matches(key, SERVICE_TIER))
+            {
+                target = MEMBER_SERVICE_TIER;
+                action = limitString(LlmServiceTiers.NAME_MAX);
+            }
         }
 
         return action;
@@ -249,6 +266,13 @@ final class LlmAnthropicControlFromCanonical extends LlmFormatFromCanonical
         }
 
         return action;
+    }
+
+    @Override
+    protected String adapted(
+        String value)
+    {
+        return matches(target, MEMBER_SERVICE_TIER) ? LlmServiceTiers.anthropic(capability, value) : value;
     }
 
     @Override

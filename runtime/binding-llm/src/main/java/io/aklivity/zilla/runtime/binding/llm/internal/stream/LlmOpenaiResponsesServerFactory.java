@@ -170,6 +170,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
     private static final String MEMBER_STREAM = "stream";
     private static final String MEMBER_TOOL_CHOICE = "tool_choice";
+    private static final String MEMBER_SERVICE_TIER = "service_tier";
     private static final String MEMBER_STREAM_OPTIONS = "stream_options";
     private static final String MEMBER_TYPE = "type";
     private static final String MEMBER_ROLE = "role";
@@ -3630,7 +3631,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             captureThen = then;
 
-            if (matches(key, MEMBER_TOOL_CHOICE) || matches(key, MEMBER_TEXT) || matches(key, MEMBER_REASONING))
+            if (matches(key, MEMBER_TOOL_CHOICE) || matches(key, MEMBER_TEXT) || matches(key, MEMBER_REASONING) ||
+                matches(key, MEMBER_SERVICE_TIER))
             {
                 controlConverted(key, CONTROL_CONTINUE);
             }
@@ -3683,7 +3685,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 blockPipeline.begin(blockAttributes);
                 onDecodeControlKey(key, false, '{');
             }
-            else if (matches(key, MEMBER_TOOL_CHOICE) || matches(key, MEMBER_TEXT) || matches(key, MEMBER_REASONING))
+            else if (matches(key, MEMBER_TOOL_CHOICE) || matches(key, MEMBER_TEXT) || matches(key, MEMBER_REASONING) ||
+                matches(key, MEMBER_SERVICE_TIER))
             {
                 controlConverted(key, CONTROL_BEGIN);
             }

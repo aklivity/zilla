@@ -148,6 +148,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private static final String MEMBER_TOOL_CHOICE = "tool_choice";
     private static final String MEMBER_OUTPUT_CONFIG = "output_config";
     private static final String MEMBER_THINKING = "thinking";
+    private static final String MEMBER_METADATA = "metadata";
+    private static final String MEMBER_SERVICE_TIER = "service_tier";
     private static final byte[] TEXT_PREFIX = "{\"text\":\"".getBytes(UTF_8);
     private static final byte[] TEXT_SUFFIX = "\"}".getBytes(UTF_8);
     private static final int TEXT_ESCAPE_EXPANSION = 6;
@@ -682,6 +684,16 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         }
 
         return server.position();
+    }
+
+    private boolean isConverted(
+        CharSequence key)
+    {
+        return matches(key, MEMBER_TOOL_CHOICE) ||
+            matches(key, MEMBER_OUTPUT_CONFIG) ||
+            matches(key, MEMBER_THINKING) ||
+            matches(key, MEMBER_METADATA) ||
+            matches(key, MEMBER_SERVICE_TIER);
     }
 
     private boolean isRootControl(
@@ -2896,7 +2908,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         {
             captureThen = then;
 
-            if (matches(key, MEMBER_TOOL_CHOICE) || matches(key, MEMBER_OUTPUT_CONFIG) || matches(key, MEMBER_THINKING))
+            if (isConverted(key))
             {
                 controlConverted(key, CONTROL_CONTINUE);
             }
@@ -2946,7 +2958,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 blockPipeline.begin(blockAttributes);
                 onDecodeControlKey(key, false, '{');
             }
-            else if (matches(key, MEMBER_TOOL_CHOICE) || matches(key, MEMBER_OUTPUT_CONFIG) || matches(key, MEMBER_THINKING))
+            else if (isConverted(key))
             {
                 controlConverted(key, CONTROL_BEGIN);
             }

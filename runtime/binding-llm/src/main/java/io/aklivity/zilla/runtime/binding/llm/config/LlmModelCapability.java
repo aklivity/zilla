@@ -25,6 +25,7 @@ public final class LlmModelCapability
     public final int budgetMinimum;
     public final int budgetMaximum;
     public final int[] ladder;
+    public final int tiers;
 
     public LlmModelCapability(
         boolean sampling,
@@ -33,10 +34,28 @@ public final class LlmModelCapability
         int budgetMaximum,
         int[] ladder)
     {
+        this(sampling, thinking, budgetMinimum, budgetMaximum, ladder, LlmServiceTier.ALL);
+    }
+
+    public LlmModelCapability(
+        boolean sampling,
+        LlmThinking thinking,
+        int budgetMinimum,
+        int budgetMaximum,
+        int[] ladder,
+        int tiers)
+    {
         this.sampling = sampling;
         this.thinking = thinking;
         this.budgetMinimum = budgetMinimum;
         this.budgetMaximum = budgetMaximum;
         this.ladder = ladder;
+        this.tiers = tiers;
+    }
+
+    public boolean supports(
+        int tier)
+    {
+        return (tiers & 1 << tier) != 0;
     }
 }

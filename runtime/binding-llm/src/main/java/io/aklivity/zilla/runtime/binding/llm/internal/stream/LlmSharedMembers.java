@@ -28,14 +28,35 @@ final class LlmSharedMembers
     static final String RESPONSE_FORMAT = "response_format";
     static final String REASONING_EFFORT = "reasoning_effort";
     static final String THINKING_BUDGET_TOKENS = "thinking_budget_tokens";
+    static final String USER = "user";
+    static final String SERVICE_TIER = "service_tier";
 
     private static final String NATIVE_STOP_SEQUENCES = "stop_sequences";
-    private static final String[] OPENAI = {
-        TEMPERATURE, TOP_P, STOP, SEED, FREQUENCY_PENALTY, PRESENCE_PENALTY, TOOL_CHOICE, PARALLEL_TOOL_CALLS,
-        RESPONSE_FORMAT, REASONING_EFFORT
+    private static final String NATIVE_SAFETY_IDENTIFIER = "safety_identifier";
+    private static final String[][] OPENAI = {
+        {TEMPERATURE, TEMPERATURE},
+        {TOP_P, TOP_P},
+        {STOP, STOP},
+        {SEED, SEED},
+        {FREQUENCY_PENALTY, FREQUENCY_PENALTY},
+        {PRESENCE_PENALTY, PRESENCE_PENALTY},
+        {TOOL_CHOICE, TOOL_CHOICE},
+        {PARALLEL_TOOL_CALLS, PARALLEL_TOOL_CALLS},
+        {RESPONSE_FORMAT, RESPONSE_FORMAT},
+        {REASONING_EFFORT, REASONING_EFFORT},
+        {NATIVE_SAFETY_IDENTIFIER, USER}
     };
-    private static final String[] OPENAI_RESPONSES = {TEMPERATURE, TOP_P, PARALLEL_TOOL_CALLS};
-    private static final String[] ANTHROPIC = {TEMPERATURE, TOP_P, TOP_K};
+    private static final String[][] OPENAI_RESPONSES = {
+        {TEMPERATURE, TEMPERATURE},
+        {TOP_P, TOP_P},
+        {PARALLEL_TOOL_CALLS, PARALLEL_TOOL_CALLS},
+        {NATIVE_SAFETY_IDENTIFIER, USER}
+    };
+    private static final String[][] ANTHROPIC = {
+        {TEMPERATURE, TEMPERATURE},
+        {TOP_P, TOP_P},
+        {TOP_K, TOP_K}
+    };
     private static final String[][] GEMINI = {
         {TEMPERATURE, TEMPERATURE},
         {"topP", TOP_P},
@@ -54,32 +75,25 @@ final class LlmSharedMembers
     static String openai(
         CharSequence key)
     {
-        return named(key, OPENAI);
+        return paired(key, OPENAI);
     }
 
     static String openaiResponses(
         CharSequence key)
     {
-        return named(key, OPENAI_RESPONSES);
+        return paired(key, OPENAI_RESPONSES);
     }
 
     static String anthropic(
         CharSequence key)
     {
-        return matches(key, NATIVE_STOP_SEQUENCES) ? STOP : named(key, ANTHROPIC);
+        return matches(key, NATIVE_STOP_SEQUENCES) ? STOP : paired(key, ANTHROPIC);
     }
 
     static String gemini(
         CharSequence key)
     {
-        String shared = null;
-
-        for (int index = 0; shared == null && index < GEMINI.length; index++)
-        {
-            shared = matches(key, GEMINI[index][0]) ? GEMINI[index][1] : null;
-        }
-
-        return shared;
+        return paired(key, GEMINI);
     }
 
     static boolean matches(
@@ -97,18 +111,18 @@ final class LlmSharedMembers
         return matches;
     }
 
-    private static String named(
+    private static String paired(
         CharSequence key,
-        String[] members)
+        String[][] members)
     {
-        String named = null;
+        String shared = null;
 
-        for (int index = 0; named == null && index < members.length; index++)
+        for (int index = 0; shared == null && index < members.length; index++)
         {
-            named = matches(key, members[index]) ? members[index] : null;
+            shared = matches(key, members[index][0]) ? members[index][1] : null;
         }
 
-        return named;
+        return shared;
     }
 
     private LlmSharedMembers()
