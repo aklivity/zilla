@@ -2715,4 +2715,100 @@ public class LlmOpenaiResponsesClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.unsupported.yaml")
+    @ScriptProperty({
+        "source \"anthropic\"",
+        "target \"openai/responses\"",
+        "model \"strict-model\"",
+        "member \"parallel_tool_calls\"",
+        "value \"false\""})
+    @Specification({
+        "${app}/transform.rejected.member/client",
+        "${net}/openai.responses.transform.rejected.member/server"})
+    public void shouldRejectUnsupportedParallelToolCallsFalseAsOpenaiResponsesNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.unsupported.yaml")
+    @ScriptProperty({
+        "source \"anthropic\"",
+        "target \"openai/responses\"",
+        "model \"strict-model\"",
+        "member \"response_format\"",
+        "value \"{\\\"type\\\":\\\"json_object\\\"}\""})
+    @Specification({
+        "${app}/transform.rejected.member/client",
+        "${net}/openai.responses.transform.rejected.member/server"})
+    public void shouldRejectUnsupportedResponseFormatJsonObjectAsOpenaiResponsesNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.unsupported.yaml")
+    @ScriptProperty({
+        "source \"anthropic\"",
+        "target \"openai/responses\"",
+        "model \"strict-model\"",
+        "member \"parallel_tool_calls\"",
+        "value \"true\""})
+    @Specification({
+        "${app}/transform.request.member/client",
+        "${net}/openai.responses.transform.request.dropped/server"})
+    public void shouldDropUnsupportedParallelToolCallsTrueAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.unsupported.yaml")
+    @ScriptProperty({
+        "source \"anthropic\"",
+        "target \"openai/responses\"",
+        "model \"strict-model\"",
+        "member \"response_format\"",
+        "value \"{\\\"type\\\":\\\"text\\\"}\""})
+    @Specification({
+        "${app}/transform.request.member/client",
+        "${net}/openai.responses.transform.request.dropped/server"})
+    public void shouldDropUnsupportedResponseFormatTextAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.unsupported.yaml")
+    @ScriptProperty({
+        "source \"anthropic\"",
+        "target \"openai/responses\"",
+        "model \"strict-model\"",
+        "member \"user\"",
+        "value \"\\\"user-1\\\"\""})
+    @Specification({
+        "${app}/transform.request.member/client",
+        "${net}/openai.responses.transform.request.dropped/server"})
+    public void shouldDropUnsupportedUserAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.exclusive.yaml")
+    @ScriptProperty({
+        "source \"anthropic\"",
+        "target \"openai/responses\"",
+        "effort \"high\"",
+        "budget \"8192\"",
+        "wire \"medium\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort.budget/client",
+        "${net}/openai.responses.transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortAndBudgetBudgetFirstByDefaultAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
 }

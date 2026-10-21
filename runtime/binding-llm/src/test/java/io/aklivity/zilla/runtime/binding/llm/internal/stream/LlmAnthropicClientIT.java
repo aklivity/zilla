@@ -3301,4 +3301,162 @@ public class LlmAnthropicClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.anthropic.unsupported.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"anthropic\"",
+        "model \"strict-model\"",
+        "member \"parallel_tool_calls\"",
+        "value \"false\""})
+    @Specification({
+        "${app}/transform.rejected.member/client",
+        "${net}/anthropic.transform.rejected.member/server"})
+    public void shouldRejectUnsupportedParallelToolCallsFalseAsAnthropicNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.unsupported.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"anthropic\"",
+        "model \"strict-model\"",
+        "member \"response_format\"",
+        "value \"{\\\"type\\\":\\\"json_schema\\\",\\\"json_schema\\\":{\\\"name\\\":\\\"n\\\",\\\"schema\\\":{}}}\""})
+    @Specification({
+        "${app}/transform.rejected.member/client",
+        "${net}/anthropic.transform.rejected.member/server"})
+    public void shouldRejectUnsupportedResponseFormatJsonSchemaAsAnthropicNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.unsupported.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"anthropic\"",
+        "model \"strict-model\"",
+        "member \"stop\"",
+        "value \"[\\\"END\\\"]\""})
+    @Specification({
+        "${app}/transform.rejected.member/client",
+        "${net}/anthropic.transform.rejected.member/server"})
+    public void shouldRejectUnsupportedStopAsAnthropicNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.unsupported.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"anthropic\"",
+        "model \"strict-model\"",
+        "member \"parallel_tool_calls\"",
+        "value \"true\""})
+    @Specification({
+        "${app}/transform.request.member/client",
+        "${net}/anthropic.transform.request.dropped/server"})
+    public void shouldDropUnsupportedParallelToolCallsTrueAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.unsupported.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"anthropic\"",
+        "model \"strict-model\"",
+        "member \"tool_choice\"",
+        "value \"\\\"auto\\\"\""})
+    @Specification({
+        "${app}/transform.request.member/client",
+        "${net}/anthropic.transform.request.dropped/server"})
+    public void shouldDropUnsupportedToolChoiceAutoAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.unsupported.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"anthropic\"",
+        "model \"strict-model\"",
+        "member \"user\"",
+        "value \"\\\"user-1\\\"\""})
+    @Specification({
+        "${app}/transform.request.member/client",
+        "${net}/anthropic.transform.request.dropped/server"})
+    public void shouldDropUnsupportedUserAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.unsupported.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"anthropic\"",
+        "member \"top_k\"",
+        "value \"40\""})
+    @Specification({
+        "${app}/transform.request.member/client",
+        "${net}/anthropic.transform.request.dropped/server"})
+    public void shouldDropUnsupportedTopKByDefaultAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.unsupported.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.parallel/client",
+        "${net}/anthropic.transform.request.tool.choice.parallel/server"})
+    public void shouldTransformParallelToolCallsFalseWhenNotUnsupportedAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.exclusive.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"anthropic\"",
+        "model \"effort-first\"",
+        "effort \"medium\"",
+        "budget \"1536\"",
+        "wire \"medium\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort.budget/client",
+        "${net}/anthropic.transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortAndBudgetEffortFirstAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.exclusive.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"anthropic\"",
+        "model \"budget-first\"",
+        "effort \"medium\"",
+        "budget \"1536\"",
+        "wire \"1536\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort.budget/client",
+        "${net}/anthropic.transform.request.reasoning.budget/server"})
+    public void shouldTransformReasoningEffortAndBudgetBudgetFirstAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
 }

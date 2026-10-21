@@ -2487,4 +2487,155 @@ public class LlmGeminiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.gemini.unsupported.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "model \"strict-model\"",
+        "member \"response_format\"",
+        "value \"{\\\"type\\\":\\\"json_object\\\"}\""})
+    @Specification({
+        "${app}/transform.rejected.member/client",
+        "${net}/gemini.transform.rejected.member/server"})
+    public void shouldRejectUnsupportedResponseFormatJsonObjectAsGeminiNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.unsupported.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "model \"strict-model\"",
+        "member \"parallel_tool_calls\"",
+        "value \"false\""})
+    @Specification({
+        "${app}/transform.rejected.member/client",
+        "${net}/gemini.transform.rejected.member/server"})
+    public void shouldRejectUnsupportedParallelToolCallsFalseAsGeminiNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.unsupported.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "model \"strict-model\"",
+        "member \"tool_choice\"",
+        "value \"\\\"auto\\\"\""})
+    @Specification({
+        "${app}/transform.request.member/client",
+        "${net}/gemini.transform.request.dropped/server"})
+    public void shouldDropUnsupportedToolChoiceAutoAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.unsupported.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "model \"strict-model\"",
+        "member \"parallel_tool_calls\"",
+        "value \"true\""})
+    @Specification({
+        "${app}/transform.request.member/client",
+        "${net}/gemini.transform.request.dropped/server"})
+    public void shouldDropUnsupportedParallelToolCallsTrueAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.unsupported.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "model \"strict-model\"",
+        "member \"user\"",
+        "value \"\\\"user-1\\\"\""})
+    @Specification({
+        "${app}/transform.request.member/client",
+        "${net}/gemini.transform.request.dropped/server"})
+    public void shouldDropUnsupportedUserAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.unsupported.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "member \"seed\"",
+        "value \"42\""})
+    @Specification({
+        "${app}/transform.request.member/client",
+        "${net}/gemini.transform.request.dropped/server"})
+    public void shouldDropUnsupportedSeedByDefaultAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.unsupported.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.auto/client",
+        "${net}/gemini.transform.request.tool.choice.auto/server"})
+    public void shouldTransformToolChoiceAutoWhenNotUnsupportedAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.exclusive.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "model \"effort-first\"",
+        "effort \"high\"",
+        "budget \"4096\"",
+        "wire \"24576\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort.budget/client",
+        "${net}/gemini.transform.request.reasoning.budget/server"})
+    public void shouldTransformReasoningEffortAndBudgetEffortFirstAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.exclusive.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "model \"budget-first\"",
+        "effort \"high\"",
+        "budget \"4096\"",
+        "wire \"4096\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort.budget/client",
+        "${net}/gemini.transform.request.reasoning.budget/server"})
+    public void shouldTransformReasoningEffortAndBudgetBudgetFirstAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
 }

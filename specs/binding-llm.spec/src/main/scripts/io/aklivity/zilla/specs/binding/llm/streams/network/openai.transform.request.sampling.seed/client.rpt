@@ -13,6 +13,8 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property model "model"
+
 connect "zilla://streams/net0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
@@ -28,7 +30,7 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-write "{\"model\":\"model\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"seed\":42,\"max_completion_tokens\":2048}"
+write "{\"model\":\"" ${model} "\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"seed\":42,\"max_completion_tokens\":2048}"
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()
