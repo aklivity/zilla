@@ -40,7 +40,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("ASSISTANT_REASONING")
                           .message(1)
                           .build()}
-write "{\"anthropic:signature\":\"sig-1\",\"text\":\"Let me think.\"}"
+write "{\"x:signature\":\"sig-1\",\"text\":\"Let me think.\"}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -65,7 +65,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("ASSISTANT_REASONING")
                           .message(0)
                           .build()}
-read "{\"text\":\"Let me think about it.\",\"anthropic:signature\":\"sig-1\"}"
+read "{\"text\":\"Let me think about it.\",\"x:signature\":\"sig-1\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))

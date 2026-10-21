@@ -310,7 +310,11 @@ abstract class LlmToolTransform implements JsonTransform
 
         int action = PASS_VALUE;
 
-        if (colon == length)
+        if (colon == length && matches(key, LlmCacheBreakpoint.MEMBER))
+        {
+            action = breakpoint(key);
+        }
+        else if (colon == length)
         {
             target = name(null, key);
         }
@@ -331,6 +335,12 @@ abstract class LlmToolTransform implements JsonTransform
     }
 
     protected int shared(
+        CharSequence member)
+    {
+        return DROP;
+    }
+
+    protected int breakpoint(
         CharSequence member)
     {
         return DROP;

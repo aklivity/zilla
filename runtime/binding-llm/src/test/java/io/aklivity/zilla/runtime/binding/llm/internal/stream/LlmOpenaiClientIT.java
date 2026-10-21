@@ -2506,4 +2506,59 @@ public class LlmOpenaiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.cache.breakpoint/client",
+        "${net}/openai.transform.user.text/server"})
+    public void shouldDropCacheBreakpointAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.cache.breakpoint.default/client",
+        "${net}/openai.transform.user.text/server"})
+    public void shouldDropCacheBreakpointWithoutTtlAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.tool.definition.strict/client",
+        "${net}/openai.transform.tool.definition.strict/server"})
+    public void shouldTransformToolDefinitionStrictAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.user.document.citations/client",
+        "${net}/openai.transform.user.document.reference/server"})
+    public void shouldDropUserDocumentCitationsAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.assistant.reasoning.redacted/client",
+        "${net}/openai.transform.assistant.reasoning/server"})
+    public void shouldDropRedactedReasoningAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
 }

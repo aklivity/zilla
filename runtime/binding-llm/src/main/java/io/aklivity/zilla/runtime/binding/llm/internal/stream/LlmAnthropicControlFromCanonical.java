@@ -66,6 +66,7 @@ final class LlmAnthropicControlFromCanonical extends LlmFormatFromCanonical
     private int parallelCalls;
     private int effort;
     private int budget;
+    private boolean structured;
 
     LlmAnthropicControlFromCanonical(
         boolean sameDialect)
@@ -126,6 +127,11 @@ final class LlmAnthropicControlFromCanonical extends LlmFormatFromCanonical
         return budget;
     }
 
+    boolean structured()
+    {
+        return structured;
+    }
+
     @Override
     public void reset()
     {
@@ -133,6 +139,7 @@ final class LlmAnthropicControlFromCanonical extends LlmFormatFromCanonical
         member = null;
         choiceType = null;
         parallelCalls = PARALLEL_UNSET;
+        structured = false;
         effort = LlmEffort.ABSENT;
         budget = LlmEffort.ABSENT;
     }
@@ -237,6 +244,7 @@ final class LlmAnthropicControlFromCanonical extends LlmFormatFromCanonical
     protected void openFormat(
         int kind)
     {
+        structured = true;
         emit(JsonEvent.KEY_NAME, MEMBER_OUTPUT_CONFIG);
         emit(JsonEvent.START_OBJECT);
         emit(JsonEvent.KEY_NAME, MEMBER_FORMAT);

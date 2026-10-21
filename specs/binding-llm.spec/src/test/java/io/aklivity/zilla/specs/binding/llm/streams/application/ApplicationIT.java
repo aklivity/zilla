@@ -8441,4 +8441,175 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.cache.breakpoint/client",
+        "${app}/transform.request.cache.breakpoint/server"})
+    public void shouldForwardTransformRequestCacheBreakpoint() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.cache.breakpoint.default/client",
+        "${app}/transform.request.cache.breakpoint.default/server"})
+    public void shouldForwardTransformRequestCacheBreakpointDefault() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.cache.breakpoint.mode/client",
+        "${app}/transform.request.cache.breakpoint.mode/server"})
+    public void shouldForwardTransformRequestCacheBreakpointMode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.cache.breakpoint.limit/client",
+        "${app}/transform.request.cache.breakpoint.limit/server"})
+    public void shouldForwardTransformRequestCacheBreakpointLimit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.tool.definition.strict/client",
+        "${app}/anthropic.section.tool.definition.strict/server"})
+    public void shouldForwardAnthropicSectionToolDefinitionStrict() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.user.image.cache.control/client",
+        "${app}/anthropic.section.user.image.cache.control/server"})
+    public void shouldForwardAnthropicSectionUserImageCacheControl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.user.document.citations/client",
+        "${app}/anthropic.section.user.document.citations/server"})
+    public void shouldForwardAnthropicSectionUserDocumentCitations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.tool.definition.strict/client",
+        "${app}/transform.tool.definition.strict/server"})
+    public void shouldForwardTransformToolDefinitionStrict() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.user.document.citations/client",
+        "${app}/transform.user.document.citations/server"})
+    public void shouldForwardTransformUserDocumentCitations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.assistant.reasoning.redacted/client",
+        "${app}/transform.assistant.reasoning.redacted/server"})
+    public void shouldForwardTransformAssistantReasoningRedacted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.transform.assistant.reasoning.redacted/client",
+        "${app}/gemini.transform.assistant.reasoning.redacted/server"})
+    public void shouldForwardGeminiTransformAssistantReasoningRedacted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.citations.response.format/client",
+        "${app}/transform.rejected.citations.response.format/server"})
+    public void shouldForwardTransformRejectedCitationsResponseFormat() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.response.format.citations/client",
+        "${app}/transform.rejected.response.format.citations/server"})
+    public void shouldForwardTransformRejectedResponseFormatCitations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.transform.user.document.citations/client",
+        "${app}/gemini.transform.user.document.citations/server"})
+    public void shouldForwardGeminiTransformUserDocumentCitations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.user.text.cache.control.split/client",
+        "${app}/anthropic.section.user.text.cache.control.split/server"})
+    public void shouldForwardAnthropicSectionUserTextCacheControlSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.user.text.held.close/client",
+        "${app}/anthropic.section.user.text.held.close/server"})
+    public void shouldForwardAnthropicSectionUserTextHeldClose() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.user.text.cache.control.fragmented/client",
+        "${app}/anthropic.section.user.text.cache.control.fragmented/server"})
+    public void shouldForwardAnthropicSectionUserTextCacheControlFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.user.text.cache.control.10k/client",
+        "${app}/anthropic.section.user.text.cache.control.10k/server"})
+    public void shouldForwardAnthropicSectionUserTextCacheControl10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.user.text.cache.control.window/client",
+        "${app}/anthropic.section.user.text.cache.control.window/server"})
+    public void shouldForwardAnthropicSectionUserTextCacheControlWindow() throws Exception
+    {
+        k3po.finish();
+    }
 }

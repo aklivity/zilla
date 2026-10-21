@@ -67,6 +67,10 @@ final class LlmGeminiToolDefinitionFromCanonical extends LlmToolTransform
             target = "parametersJsonSchema";
             action = PASS_OBJECT;
         }
+        else if (depth == 2 && matches(key, "strict"))
+        {
+            action = DROP;
+        }
         else
         {
             action = unprefix(DIALECT, key);

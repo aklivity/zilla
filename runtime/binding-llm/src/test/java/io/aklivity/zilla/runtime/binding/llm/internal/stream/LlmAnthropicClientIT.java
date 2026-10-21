@@ -3099,4 +3099,206 @@ public class LlmAnthropicClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.tool.definition.strict/client",
+        "${net}/anthropic.section.tool.definition.strict/server"})
+    public void shouldEncodeAnthropicSectionToolDefinitionStrict() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.user.image.cache.control/client",
+        "${net}/anthropic.section.user.image.cache.control/server"})
+    public void shouldEncodeAnthropicSectionUserImageCacheControl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.user.document.citations/client",
+        "${net}/anthropic.section.user.document.citations/server"})
+    public void shouldEncodeAnthropicSectionUserDocumentCitations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"anthropic\"",
+        "ttl \"5m\"",
+        "wire \"5m\""})
+    @Specification({
+        "${app}/transform.request.cache.breakpoint/client",
+        "${net}/anthropic.transform.request.cache.breakpoint/server"})
+    public void shouldTransformCacheBreakpointTtlFiveMinutesAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"anthropic\"",
+        "ttl \"1h\"",
+        "wire \"1h\""})
+    @Specification({
+        "${app}/transform.request.cache.breakpoint/client",
+        "${net}/anthropic.transform.request.cache.breakpoint/server"})
+    public void shouldTransformCacheBreakpointTtlOneHourAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"anthropic\"",
+        "ttl \"30m\"",
+        "wire \"1h\""})
+    @Specification({
+        "${app}/transform.request.cache.breakpoint/client",
+        "${net}/anthropic.transform.request.cache.breakpoint/server"})
+    public void shouldTransformCacheBreakpointTtlThirtyMinutesAsOneHourAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"anthropic\"",
+        "ttl \"90s\"",
+        "wire \"5m\""})
+    @Specification({
+        "${app}/transform.request.cache.breakpoint/client",
+        "${net}/anthropic.transform.request.cache.breakpoint/server"})
+    public void shouldTransformCacheBreakpointTtlNinetySecondsAsFiveMinutesAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({
+        "source \"openai\"",
+        "target \"anthropic\"",
+        "ttl \"24h\"",
+        "wire \"1h\""})
+    @Specification({
+        "${app}/transform.request.cache.breakpoint/client",
+        "${net}/anthropic.transform.request.cache.breakpoint/server"})
+    public void shouldTransformCacheBreakpointTtlTwentyFourHoursClampedToOneHourAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.cache.breakpoint.default/client",
+        "${net}/anthropic.transform.request.cache.breakpoint.default/server"})
+    public void shouldTransformCacheBreakpointWithoutTtlAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.cache.breakpoint.mode/client",
+        "${net}/anthropic.transform.user.text/server"})
+    public void shouldDropCacheBreakpointModeAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.cache.breakpoint.limit/client",
+        "${net}/anthropic.transform.request.cache.breakpoint.limit/server"})
+    public void shouldStopMarkingCacheBreakpointsAtLimitAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.tool.definition.strict/client",
+        "${net}/anthropic.transform.tool.definition.strict/server"})
+    public void shouldTransformToolDefinitionStrictAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.user.document.citations/client",
+        "${net}/anthropic.transform.user.document.citations/server"})
+    public void shouldTransformUserDocumentCitationsAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.rejected.citations.response.format/client",
+        "${net}/anthropic.transform.rejected.citations/server"})
+    public void shouldRejectCitationsWithResponseFormatAsAnthropicDocumentFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.rejected.response.format.citations/client",
+        "${net}/anthropic.transform.rejected.tool.choice/server"})
+    public void shouldRejectCitationsWithResponseFormatAsAnthropicFormatFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.user.text.cache.control.fragmented/client",
+        "${net}/anthropic.section.user.text.cache.control.fragmented/server"})
+    public void shouldEncodeAnthropicSectionUserTextCacheControlFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.user.text.cache.control.10k/client",
+        "${net}/anthropic.section.user.text.cache.control.10k/server"})
+    public void shouldEncodeAnthropicSectionUserTextCacheControl10k() throws Exception
+    {
+        k3po.finish();
+    }
 }

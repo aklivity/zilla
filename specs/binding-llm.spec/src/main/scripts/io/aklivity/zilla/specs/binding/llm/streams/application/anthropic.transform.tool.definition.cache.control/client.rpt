@@ -34,7 +34,7 @@ write zilla:data.ext ${llm:dataEx()
                           .message(-1)
                           .attribute("tool-name", "get_weather")
                           .build()}
-write "{\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"description\":\"Get the weather\",\"parameters\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}}},\"anthropic:cache_control\":{\"type\":\"ephemeral\"}}}"
+write "{\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"description\":\"Get the weather\",\"parameters\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}}},\"prompt_cache_breakpoint\":{\"mode\":\"explicit\"}}}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()

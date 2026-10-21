@@ -2671,4 +2671,48 @@ public class LlmOpenaiResponsesClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.cache.breakpoint/client",
+        "${net}/openai.responses.transform.user.text/server"})
+    public void shouldDropCacheBreakpointAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.cache.breakpoint.default/client",
+        "${net}/openai.responses.transform.user.text/server"})
+    public void shouldDropCacheBreakpointWithoutTtlAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.tool.definition.strict/client",
+        "${net}/openai.responses.transform.tool.definition.strict/server"})
+    public void shouldTransformToolDefinitionStrictAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.user.document.citations/client",
+        "${net}/openai.responses.transform.user.document.reference/server"})
+    public void shouldDropUserDocumentCitationsAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
 }
