@@ -2195,4 +2195,34 @@ public class LlmOpenaiResponsesServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.response.controls.many/client",
+        "${app}/openai.responses.response.controls.many/server"})
+    public void shouldEncodeOpenaiResponsesResponseControlsMany() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.response.controls.many.stream/client",
+        "${app}/openai.responses.response.controls.many.stream/server"})
+    public void shouldEncodeOpenaiResponsesResponseControlsManyStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.response.controls.grouped/client",
+        "${app}/openai.responses.response.controls.grouped/server"})
+    public void shouldEncodeOpenaiResponsesResponseControlsGrouped() throws Exception
+    {
+        k3po.finish();
+    }
 }

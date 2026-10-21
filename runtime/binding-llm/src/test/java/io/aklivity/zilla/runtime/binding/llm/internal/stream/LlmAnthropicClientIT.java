@@ -3470,4 +3470,14 @@ public class LlmAnthropicClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.streaming.controls.many/client",
+        "${net}/anthropic.streaming.controls.many/server"})
+    public void shouldDecodeAnthropicStreamingControlsMany() throws Exception
+    {
+        k3po.finish();
+    }
 }

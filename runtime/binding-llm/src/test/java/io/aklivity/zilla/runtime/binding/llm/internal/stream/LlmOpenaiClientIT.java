@@ -2864,4 +2864,14 @@ public class LlmOpenaiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.streaming.controls.many/client",
+        "${net}/openai.streaming.controls.many/server"})
+    public void shouldDecodeOpenaiStreamingControlsMany() throws Exception
+    {
+        k3po.finish();
+    }
 }

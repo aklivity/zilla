@@ -8675,4 +8675,139 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.controls.many/client",
+        "${app}/openai.response.controls.many/server"})
+    public void shouldOpenaiResponseControlsMany() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.controls.many.stream/client",
+        "${app}/openai.response.controls.many.stream/server"})
+    public void shouldOpenaiResponseControlsManyStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.controls.grouped/client",
+        "${app}/openai.response.controls.grouped/server"})
+    public void shouldOpenaiResponseControlsGrouped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.response.controls.many/client",
+        "${app}/anthropic.response.controls.many/server"})
+    public void shouldAnthropicResponseControlsMany() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.response.controls.many.stream/client",
+        "${app}/anthropic.response.controls.many.stream/server"})
+    public void shouldAnthropicResponseControlsManyStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.response.controls.grouped/client",
+        "${app}/anthropic.response.controls.grouped/server"})
+    public void shouldAnthropicResponseControlsGrouped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.response.controls.many/client",
+        "${app}/gemini.response.controls.many/server"})
+    public void shouldGeminiResponseControlsMany() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.response.controls.many.stream/client",
+        "${app}/gemini.response.controls.many.stream/server"})
+    public void shouldGeminiResponseControlsManyStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.response.controls.grouped/client",
+        "${app}/gemini.response.controls.grouped/server"})
+    public void shouldGeminiResponseControlsGrouped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.response.controls.many/client",
+        "${app}/openai.responses.response.controls.many/server"})
+    public void shouldOpenaiResponsesResponseControlsMany() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.response.controls.many.stream/client",
+        "${app}/openai.responses.response.controls.many.stream/server"})
+    public void shouldOpenaiResponsesResponseControlsManyStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.response.controls.grouped/client",
+        "${app}/openai.responses.response.controls.grouped/server"})
+    public void shouldOpenaiResponsesResponseControlsGrouped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.streaming.controls.many/client",
+        "${app}/openai.streaming.controls.many/server"})
+    public void shouldOpenaiStreamingControlsMany() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.streaming.controls.many/client",
+        "${app}/anthropic.streaming.controls.many/server"})
+    public void shouldAnthropicStreamingControlsMany() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.controls.message.stream/client",
+        "${app}/openai.response.controls.message.stream/server"})
+    public void shouldOpenaiResponseControlsMessageStream() throws Exception
+    {
+        k3po.finish();
+    }
 }

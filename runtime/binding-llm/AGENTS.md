@@ -32,8 +32,36 @@ Status key: **implemented** is in the IDL, spec functions and runtime today;
   `stream_options`) does. A key or an escape sequence split across DATA frames never makes a decoder buffer the
   section: it streams each key as it completes, and skips the separator that a key delivered in fragments leaves
   unconsumed (`LlmValueStart`). A client keeps or drops each key on its own and writes the
-  members it keeps into the request in order. (**implemented** for the request path
-  of every dialect; the response path still carries one member per section)
+  members it keeps into the request in order. A server accepts the same grouped section from the application on the
+  response path and processes it member by member ([Response-level members](#response-level-members)).
+  (**implemented** for the request and response paths of every dialect)
+
+## Response-level members
+
+A server encodes the `CONTROL` sections of a reply into the response. A section may hold one member or several, each
+prefixed with the response dialect (`{"openai:created":1700000000,"openai:system_fingerprint":"fp"}`); a member that
+carries another dialect's prefix is dropped. (**implemented** for `openai`, `openai/responses`, `anthropic`
+and `gemini`)
+
+- **Members of a section.** A server splits the section by key as it streams (`LlmMemberSplitter`) and runs each
+  member through the control transform as a section of its own, so every key keeps the placement, conversion and
+  verbatim handling of a single-member section, whatever the order and the number of keys.
+- **Inline and held.** A member the wire format can carry where it arrives is written inline, streamed with no holding:
+  before the choices of a non-streaming `openai` reply, and before the content of an `anthropic` reply or of a
+  non-streaming `openai/responses` reply. Every other member is held until the reply finishes: a late member of a
+  non-streaming reply, an `openai` or `openai/responses` member of a streamed reply, every `gemini` member, and
+  `usage` and the `anthropic` `stop_sequence`, which the dialect places itself. `openai` repeats the held members in
+  every chunk that follows.
+- **Held by credit.** The held members live in a pool slot (`LlmControlHold`), with no limit on how many there are.
+  The bytes held are not acknowledged to the application, so the credit the server grants shrinks as the hold grows,
+  as it does for the client factories that hold a native container, and the hold never outgrows the slot. A member
+  that cannot fit in the remaining credit is flow-controlled to a stop. No member is dropped for lack of count or
+  bytes.
+- **Message-level members.** A member of a message (`message` 0 and above) is written inline by a non-streaming
+  `openai` reply. A streamed `openai` reply holds it and writes it into the finish chunk, in the `delta` (and
+  `logprobs` at the choice, as a non-streaming reply does). The other dialects have no place for it and drop it.
+- **Clients.** A client that decodes a streamed response carries each distinct member once per message although every
+  event repeats it, and remembers every one it has carried (`LlmControlSeen`), however many there are.
 
 ## Shared members (`x:`)
 
@@ -572,7 +600,7 @@ stage)
 | `TOOL_DEFINITION`, `SERVER_TOOL_DEFINITION` | none | request side, whole | same |
 | `SERVER_TOOL_RESULT` | none yet | not covered | whole |
 | `CITATIONS` | none; every member is prefixed | not covered | request history only today |
-| `CONTROL` | none; bypasses guardrails | one section per member | same |
+| `CONTROL` | none; bypasses guardrails | one section holds one or more members | same |
 
 The media data is the base64 in `image_url.url` (a `data:` URI that declares base64),
 `file.file_data` (a `data:` URI that declares base64), `input_audio.data` and

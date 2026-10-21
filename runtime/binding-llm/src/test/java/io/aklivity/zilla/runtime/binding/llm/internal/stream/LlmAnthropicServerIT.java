@@ -2058,4 +2058,34 @@ public class LlmAnthropicServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.response.controls.many/client",
+        "${app}/anthropic.response.controls.many/server"})
+    public void shouldEncodeAnthropicResponseControlsMany() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.response.controls.many.stream/client",
+        "${app}/anthropic.response.controls.many.stream/server"})
+    public void shouldEncodeAnthropicResponseControlsManyStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.response.controls.grouped/client",
+        "${app}/anthropic.response.controls.grouped/server"})
+    public void shouldEncodeAnthropicResponseControlsGrouped() throws Exception
+    {
+        k3po.finish();
+    }
 }
