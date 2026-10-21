@@ -53,7 +53,7 @@ final class LlmOpenaiResponsesDialectContext implements LlmDialectContext
             }
             break;
         case CLIENT:
-            if (NAME.equals(fixed))
+            if (fixed != null && LlmDialectNames.admits(fixed, NAME))
             {
                 supplyClient().attach(binding);
                 handler = client;

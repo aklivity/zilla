@@ -45,6 +45,6 @@ bindings:
                   - secret
     routes:
     - when:
-      - dialect: openai/responses
+      - dialect: openai
         model: [ gpt-a ]
       exit: app0

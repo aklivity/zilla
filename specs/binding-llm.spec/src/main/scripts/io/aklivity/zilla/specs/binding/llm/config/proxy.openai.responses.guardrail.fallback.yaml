@@ -37,7 +37,7 @@ bindings:
                   - Hello
     routes:
     - when:
-      - dialect: openai/responses
+      - dialect: openai
         model: [ gpt-a ]
       exit: app1
       with:

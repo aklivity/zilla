@@ -80,7 +80,7 @@ public class LlmOpenaiResponsesServerIT
     }
 
     @Test
-    @Configuration("server.openai.responses.yaml")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/openai.responses.text/client",
         "${app}/openai.responses.text/server"})

@@ -48,7 +48,7 @@ public class LlmOpenaiResponsesClientIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.text/client",
         "${net}/openai.responses.text/server"})
@@ -58,7 +58,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.text.stream/client",
         "${net}/openai.responses.text.stream/server"})
@@ -68,7 +68,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.text.stream.no.obfuscation/client",
         "${net}/openai.responses.text.stream.no.obfuscation/server"})
@@ -78,7 +78,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.incomplete.max.output.tokens/client",
         "${net}/openai.responses.incomplete.max.output.tokens/server"})
@@ -88,7 +88,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.incomplete.max.output.tokens.stream/client",
         "${net}/openai.responses.incomplete.max.output.tokens.stream/server"})
@@ -98,7 +98,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.incomplete.content.filter/client",
         "${net}/openai.responses.incomplete.content.filter/server"})
@@ -108,7 +108,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.incomplete.max.messages/client",
         "${net}/openai.responses.incomplete.max.messages/server"})
@@ -118,7 +118,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.usage.cache/client",
         "${net}/openai.responses.usage.cache/server"})
@@ -128,7 +128,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.usage.cache.stream/client",
         "${net}/openai.responses.usage.cache.stream/server"})
@@ -138,7 +138,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.system.instruction/client",
         "${net}/openai.responses.section.system.instruction/server"})
@@ -148,7 +148,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.user.text.parts/client",
         "${net}/openai.responses.section.user.text.parts/server"})
@@ -158,7 +158,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.assistant.text/client",
         "${net}/openai.responses.section.assistant.text/server"})
@@ -168,7 +168,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.conversation/client",
         "${net}/openai.responses.section.conversation/server"})
@@ -178,7 +178,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.instructions.last/client",
         "${net}/openai.responses.section.instructions.last/server"})
@@ -188,7 +188,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.request.controls/client",
         "${net}/openai.responses.request.controls/server"})
@@ -198,7 +198,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.response.controls/client",
         "${net}/openai.responses.response.controls/server"})
@@ -208,7 +208,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.response.controls.stream/client",
         "${net}/openai.responses.response.controls.stream/server"})
@@ -218,7 +218,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.rejected.error.code/client",
         "${net}/openai.responses.rejected.error.code/server"})
@@ -228,7 +228,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.rejected.error.code.streaming/client",
         "${net}/openai.responses.rejected.error.code.streaming/server"})
@@ -238,7 +238,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.rejected.error.param/client",
         "${net}/openai.responses.rejected.error.param/server"})
@@ -248,7 +248,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.rejected.rate.limit/client",
         "${net}/openai.responses.rejected.rate.limit/server"})
@@ -258,7 +258,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.rejected.section/client",
         "${net}/openai.responses.rejected.section/server"})
@@ -268,7 +268,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.rejected.streaming/client",
         "${net}/openai.responses.rejected.streaming/server"})
@@ -278,7 +278,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.rejected.streaming.failed/client",
         "${net}/openai.responses.rejected.streaming.failed/server"})
@@ -288,7 +288,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.rejected.bad.gateway/client",
         "${net}/openai.responses.rejected.bad.gateway/server"})
@@ -298,7 +298,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.rejected.reset/client",
         "${net}/openai.responses.rejected.reset/server"})
@@ -308,7 +308,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.rejected.unreachable/client",
         "${net}/openai.responses.rejected.unreachable/server"})
@@ -318,7 +318,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.text.captured/client",
         "${net}/openai.responses.text.captured/server"})
@@ -328,7 +328,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.text.stream.captured/client",
         "${net}/openai.responses.text.stream.captured/server"})
@@ -338,7 +338,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.text.stream/client",
         "${net}/openai.responses.text.stream.unknown.event/server"})
@@ -348,7 +348,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.rejected.output.item.type/client",
         "${net}/openai.responses.rejected.output.item.type/server"})
@@ -358,7 +358,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.rejected.output.item.type.stream/client",
         "${net}/openai.responses.rejected.output.item.type.stream/server"})
@@ -368,7 +368,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.user.text/client",
@@ -379,7 +379,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.system.instruction/client",
@@ -390,7 +390,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.system.instruction.last/client",
@@ -401,7 +401,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.assistant.text/client",
@@ -412,7 +412,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.request.max.output.tokens/client",
@@ -423,7 +423,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/openai.responses.transform.response.text/client",
@@ -434,7 +434,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/openai.responses.transform.response.text/client",
@@ -445,7 +445,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/openai.responses.transform.response.usage/client",
@@ -456,7 +456,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\"", "reason \"openai:insufficient_system_resource\""})
     @Specification({
         "${app}/openai.responses.transform.response.finish.reason/client",
@@ -467,7 +467,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.function.call/client",
         "${net}/openai.responses.function.call/server"})
@@ -477,7 +477,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.function.call.stream/client",
         "${net}/openai.responses.function.call.stream/server"})
@@ -487,7 +487,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.function.call.text/client",
         "${net}/openai.responses.function.call.text/server"})
@@ -497,7 +497,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.function.call.text.stream/client",
         "${net}/openai.responses.function.call.text.stream/server"})
@@ -507,7 +507,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.function.calls/client",
         "${net}/openai.responses.function.calls/server"})
@@ -517,7 +517,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.function.calls.stream/client",
         "${net}/openai.responses.function.calls.stream/server"})
@@ -527,7 +527,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.custom.tool.call/client",
         "${net}/openai.responses.custom.tool.call/server"})
@@ -537,7 +537,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.custom.tool.call.stream/client",
         "${net}/openai.responses.custom.tool.call.stream/server"})
@@ -547,7 +547,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.web.search/client",
         "${net}/openai.responses.web.search/server"})
@@ -557,7 +557,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.web.search.stream/client",
         "${net}/openai.responses.web.search.stream/server"})
@@ -567,7 +567,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.code.interpreter/client",
         "${net}/openai.responses.code.interpreter/server"})
@@ -577,7 +577,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.code.interpreter.stream/client",
         "${net}/openai.responses.code.interpreter.stream/server"})
@@ -587,7 +587,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.mcp/client",
         "${net}/openai.responses.mcp/server"})
@@ -597,7 +597,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.mcp.stream/client",
         "${net}/openai.responses.mcp.stream/server"})
@@ -607,7 +607,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.image.generation/client",
         "${net}/openai.responses.image.generation/server"})
@@ -617,7 +617,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.image.generation.stream/client",
         "${net}/openai.responses.image.generation.stream/server"})
@@ -627,7 +627,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.function.calls.stream/client",
         "${net}/openai.responses.function.calls.interleaved.stream/server"})
@@ -637,7 +637,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.function.calls.interleaved.overflow.stream/client",
         "${net}/openai.responses.function.calls.interleaved.overflow.stream/server"})
@@ -647,7 +647,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.image.generation.stream/client",
         "${net}/openai.responses.image.generation.partial.stream/server"})
@@ -657,7 +657,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.tool.definition/client",
         "${net}/openai.responses.section.tool.definition/server"})
@@ -667,7 +667,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.tool.definition.members/client",
         "${net}/openai.responses.section.tool.definition.members/server"})
@@ -677,7 +677,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.tool.definition.100k/client",
         "${net}/openai.responses.section.tool.definition.100k/server"})
@@ -687,7 +687,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.server.tool.definition/client",
         "${net}/openai.responses.section.server.tool.definition/server"})
@@ -697,7 +697,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.tool.call/client",
         "${net}/openai.responses.section.tool.call/server"})
@@ -707,7 +707,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.tool.calls/client",
         "${net}/openai.responses.section.tool.calls/server"})
@@ -717,7 +717,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.assistant.text.and.tool.call/client",
         "${net}/openai.responses.section.assistant.text.and.tool.call/server"})
@@ -727,7 +727,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.tool.call.members/client",
         "${net}/openai.responses.section.tool.call.members/server"})
@@ -737,7 +737,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.tool.call.escaped/client",
         "${net}/openai.responses.section.tool.call.escaped/server"})
@@ -747,7 +747,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.tool.result/client",
         "${net}/openai.responses.section.tool.result/server"})
@@ -757,7 +757,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.tool.result.parts/client",
         "${net}/openai.responses.section.tool.result.parts/server"})
@@ -767,7 +767,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.server.tool.call/client",
         "${net}/openai.responses.section.server.tool.call/server"})
@@ -777,7 +777,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.tool.definition/client",
@@ -788,7 +788,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.tool.result/client",
@@ -799,7 +799,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.tool.result.blocks/client",
@@ -810,7 +810,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.assistant.tool.call/client",
@@ -821,7 +821,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.assistant.tool.call.escaped/client",
@@ -832,7 +832,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"source \"openai/responses\""})
     @Specification({
         "${app}/transform.server.tool.definition/client",
@@ -843,7 +843,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.server.tool.definition/client",
@@ -854,7 +854,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/anthropic.transform.server.tool.definition/client",
@@ -865,7 +865,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/anthropic.transform.server.tool.result/client",
@@ -876,7 +876,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/anthropic.transform.tool.definition.cache.control/client",
@@ -887,7 +887,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/openai.transform.assistant.tool.call.members/client",
@@ -898,7 +898,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/openai.responses.transform.response.tool.call/client",
@@ -909,7 +909,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/openai.responses.transform.response.tool.call/client",
@@ -920,7 +920,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/openai.responses.transform.response.tool.call.empty/client",
@@ -931,7 +931,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/openai.responses.transform.response.tool.calls/client",
@@ -942,7 +942,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/openai.responses.transform.response.tool.calls/client",
@@ -953,7 +953,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/openai.responses.transform.response.text.and.tool.call/client",
@@ -964,7 +964,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/openai.responses.transform.response.text.and.tool.call/client",
@@ -975,7 +975,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.function.call.large/client",
         "${net}/openai.responses.function.call.large/server"})
@@ -985,7 +985,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.function.call.large.stream/client",
         "${net}/openai.responses.function.call.large.stream/server"})
@@ -995,7 +995,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.function.call.huge.late/client",
         "${net}/openai.responses.function.call.huge/server"})
@@ -1005,7 +1005,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.function.call.huge.stream/client",
         "${net}/openai.responses.function.call.huge.stream/server"})
@@ -1015,7 +1015,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.text.stream.large/client",
         "${net}/openai.responses.text.stream.large/server"})
@@ -1025,7 +1025,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.text.stream.huge/client",
         "${net}/openai.responses.text.stream.huge/server"})
@@ -1035,7 +1035,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.rejected.output.item.type/client",
         "${net}/openai.responses.rejected.output.item.type/server"})
@@ -1045,7 +1045,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.tool.call.attributes.last/client",
         "${net}/openai.responses.section.tool.call.attributes.last/server"})
@@ -1055,7 +1055,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.reasoning/client",
         "${net}/openai.responses.reasoning/server"})
@@ -1065,7 +1065,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.reasoning.stream/client",
         "${net}/openai.responses.reasoning.stream/server"})
@@ -1075,7 +1075,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.reasoning.no.summary/client",
         "${net}/openai.responses.reasoning.no.summary/server"})
@@ -1085,7 +1085,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.reasoning.no.summary.stream/client",
         "${net}/openai.responses.reasoning.no.summary.stream/server"})
@@ -1095,7 +1095,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.reasoning.tool.call/client",
         "${net}/openai.responses.reasoning.tool.call/server"})
@@ -1105,7 +1105,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.reasoning.tool.call.stream/client",
         "${net}/openai.responses.reasoning.tool.call.stream/server"})
@@ -1115,7 +1115,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.reasoning.id/client",
         "${net}/openai.responses.reasoning.id/server"})
@@ -1125,7 +1125,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.reasoning.id.stream/client",
         "${net}/openai.responses.reasoning.id.stream/server"})
@@ -1135,7 +1135,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.reasoning.large/client",
         "${net}/openai.responses.reasoning.large/server"})
@@ -1145,7 +1145,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.reasoning.large.stream/client",
         "${net}/openai.responses.reasoning.large.stream/server"})
@@ -1155,7 +1155,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.refusal/client",
         "${net}/openai.responses.refusal/server"})
@@ -1165,7 +1165,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.refusal.stream/client",
         "${net}/openai.responses.refusal.stream/server"})
@@ -1175,7 +1175,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.text.citations/client",
         "${net}/openai.responses.text.citations/server"})
@@ -1185,7 +1185,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.text.citations.stream/client",
         "${net}/openai.responses.text.citations.stream/server"})
@@ -1195,7 +1195,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.text.citations.members/client",
         "${net}/openai.responses.text.citations.members/server"})
@@ -1205,7 +1205,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.text.citations.members.stream/client",
         "${net}/openai.responses.text.citations.members.stream/server"})
@@ -1215,7 +1215,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.reasoning.real/client",
         "${net}/openai.responses.reasoning.real/server"})
@@ -1225,7 +1225,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.reasoning.real.stream/client",
         "${net}/openai.responses.reasoning.real.stream/server"})
@@ -1235,7 +1235,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.reasoning.no.summary/client",
         "${net}/openai.responses.reasoning.real.no.summary/server"})
@@ -1245,7 +1245,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.reasoning.no.summary.stream/client",
         "${net}/openai.responses.reasoning.real.no.summary.stream/server"})
@@ -1255,7 +1255,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.text.citations.stream/client",
         "${net}/openai.responses.text.citations.between.stream/server"})
@@ -1265,7 +1265,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.text.citations.stream/client",
         "${net}/openai.responses.text.citations.done.stream/server"})
@@ -1275,7 +1275,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.text.citations/client",
         "${net}/openai.responses.text.citations.api/server"})
@@ -1285,7 +1285,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.reasoning.real.huge/client",
         "${net}/openai.responses.reasoning.real.huge/server"})
@@ -1295,7 +1295,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.reasoning/client",
         "${net}/openai.responses.section.reasoning/server"})
@@ -1305,7 +1305,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.reasoning.no.summary/client",
         "${net}/openai.responses.section.reasoning.no.summary/server"})
@@ -1315,7 +1315,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.reasoning.parts/client",
         "${net}/openai.responses.section.reasoning.parts/server"})
@@ -1325,7 +1325,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.reasoning.items/client",
         "${net}/openai.responses.section.reasoning.items/server"})
@@ -1335,7 +1335,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.reasoning.large/client",
         "${net}/openai.responses.section.reasoning.large/server"})
@@ -1345,7 +1345,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.assistant.refusal/client",
         "${net}/openai.responses.section.assistant.refusal/server"})
@@ -1355,7 +1355,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.assistant.text.citations/client",
         "${net}/openai.responses.section.assistant.text.citations/server"})
@@ -1365,7 +1365,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.assistant.text.citations.members/client",
         "${net}/openai.responses.section.assistant.text.citations.members/server"})
@@ -1375,7 +1375,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.assistant.text.citations.extra/client",
         "${net}/openai.responses.section.assistant.text.citations.extra/server"})
@@ -1385,7 +1385,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.assistant.text.parts/client",
         "${net}/openai.responses.section.assistant.text.parts/server"})
@@ -1395,7 +1395,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.user.image/client",
         "${net}/openai.responses.section.user.image/server"})
@@ -1405,7 +1405,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.user.image.inline/client",
         "${net}/openai.responses.section.user.image.inline/server"})
@@ -1415,7 +1415,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.user.image.reference/client",
         "${net}/openai.responses.section.user.image.reference/server"})
@@ -1425,7 +1425,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.user.image.detail.first/client",
         "${net}/openai.responses.section.user.image.detail.first/server"})
@@ -1435,7 +1435,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.user.image.10k/client",
         "${net}/openai.responses.section.user.image.10k/server"})
@@ -1445,7 +1445,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.user.image.url.10k/client",
         "${net}/openai.responses.section.user.image.url.10k/server"})
@@ -1455,7 +1455,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.user.image.url.100k/client",
         "${net}/openai.responses.section.user.image.url.100k/server"})
@@ -1465,7 +1465,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.user.document/client",
         "${net}/openai.responses.section.user.document/server"})
@@ -1475,7 +1475,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.user.document.inline/client",
         "${net}/openai.responses.section.user.document.inline/server"})
@@ -1485,7 +1485,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.user.document.reference/client",
         "${net}/openai.responses.section.user.document.reference/server"})
@@ -1495,7 +1495,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.user.document.detail/client",
         "${net}/openai.responses.section.user.document.detail/server"})
@@ -1505,7 +1505,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.section.user.audio/client",
         "${net}/openai.responses.section.user.audio/server"})
@@ -1515,7 +1515,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.user.image/client",
@@ -1526,7 +1526,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.user.image.inline/client",
@@ -1537,7 +1537,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.user.image.10k/client",
@@ -1548,7 +1548,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.user.image.url.10k/client",
@@ -1559,7 +1559,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.user.image.url.100k/client",
@@ -1570,7 +1570,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.user.document.inline/client",
@@ -1581,7 +1581,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.user.document.reference/client",
@@ -1592,7 +1592,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.assistant.reasoning/client",
@@ -1603,7 +1603,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.assistant.refusal/client",
@@ -1614,7 +1614,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.rejected.user.video/client",
@@ -1625,7 +1625,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/openai.transform.assistant.text.citations/client",
@@ -1636,7 +1636,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/anthropic.transform.assistant.text.citations/client",
@@ -1647,7 +1647,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/openai.responses.transform.response.reasoning/client",
@@ -1658,7 +1658,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/openai.responses.transform.response.reasoning/client",
@@ -1669,7 +1669,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.assistant.text.and.tool.call/client",
@@ -1680,7 +1680,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.assistant.tool.call.100k/client",
@@ -1691,7 +1691,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.assistant.tool.call.10k/client",
@@ -1702,7 +1702,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.assistant.tool.call.id.last/client",
@@ -1713,7 +1713,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.assistant.tool.call.name.last/client",
@@ -1724,7 +1724,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.mixed.content/client",
@@ -1735,7 +1735,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.system.instruction.last.100k/client",
@@ -1746,7 +1746,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.tool.definition.100k/client",
@@ -1757,7 +1757,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.tool.definition.10k/client",
@@ -1768,7 +1768,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.tool.definition.name.last/client",
@@ -1779,7 +1779,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.tool.definition.parameters.100k/client",
@@ -1790,7 +1790,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.tool.definition.parameters.10k/client",
@@ -1801,7 +1801,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.tool.result.error/client",
@@ -1812,7 +1812,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.rejected.tool.call.name/client",
@@ -1823,7 +1823,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.rejected.tool.call.arguments/client",
@@ -1834,7 +1834,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/transform.rejected.tool.definition.name/client",
@@ -1845,7 +1845,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"source \"anthropic\"", "target \"openai/responses\""})
     @Specification({
         "${app}/transform.rejected.user.video/client",
@@ -1856,7 +1856,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"source \"openai\"", "target \"openai/responses\""})
     @Specification({
         "${app}/transform.rejected.user.video/client",
@@ -1867,7 +1867,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/openai.responses.transform.response.refusal/client",
@@ -1878,7 +1878,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/openai.responses.transform.response.text.100k/client",
@@ -1889,7 +1889,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/openai.responses.transform.response.text.escaped/client",
@@ -1900,7 +1900,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/openai.responses.transform.response.refusal/client",
@@ -1911,7 +1911,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/openai.responses.transform.response.text.error/client",
@@ -1922,7 +1922,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/openai.responses.transform.response.tool.call.error/client",
@@ -1933,7 +1933,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
     @Specification({
         "${app}/openai.responses.transform.response.streaming/client",
@@ -1944,7 +1944,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"source \"openai\"", "target \"openai/responses\""})
     @Specification({
         "${app}/openai.responses.transform.response.streaming/client",
@@ -1955,7 +1955,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/openai.responses.transform.response.usage.cache.write/client",
@@ -1966,7 +1966,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/responses\""})
     @Specification({
         "${app}/openai.responses.transform.response.usage.cache.write/client",
@@ -1977,7 +1977,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.transform.request.members/client",
         "${net}/openai.responses.transform.request.members/server"})
@@ -1987,7 +1987,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"source \"openai\""})
     @Specification({
         "${app}/openai.transform.request.members/client",
@@ -1998,7 +1998,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.transform.conversation/client",
         "${net}/openai.responses.transform.conversation/server"})
@@ -2008,7 +2008,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.transform.conversation/client",
         "${net}/openai.responses.transform.conversation/server"})
@@ -2018,7 +2018,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.text.citations.long/client",
         "${net}/openai.responses.text.citations.long/server"})
@@ -2028,7 +2028,7 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.text.citations.members/client",
         "${net}/openai.responses.text.citations.members.api/server"})
