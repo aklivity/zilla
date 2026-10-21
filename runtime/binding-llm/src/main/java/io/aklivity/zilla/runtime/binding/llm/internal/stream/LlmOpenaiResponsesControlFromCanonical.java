@@ -23,13 +23,29 @@ final class LlmOpenaiResponsesControlFromCanonical extends LlmToolTransform
     private static final String MEMBER_STREAM_OPTIONS = "stream_options";
     private static final String MEMBER_INCLUDE_USAGE = "include_usage";
 
+    private final boolean members;
+
     private String member;
     private boolean optionsOpen;
 
     LlmOpenaiResponsesControlFromCanonical(
         boolean sameDialect)
     {
-        super(MODE_EXTRACT, sameDialect);
+        this(MODE_EXTRACT, sameDialect);
+    }
+
+    private LlmOpenaiResponsesControlFromCanonical(
+        int mode,
+        boolean sameDialect)
+    {
+        super(mode, sameDialect);
+        this.members = mode == MODE_OBJECT;
+    }
+
+    static LlmOpenaiResponsesControlFromCanonical members(
+        boolean sameDialect)
+    {
+        return new LlmOpenaiResponsesControlFromCanonical(MODE_OBJECT, sameDialect);
     }
 
     String member()
@@ -72,6 +88,12 @@ final class LlmOpenaiResponsesControlFromCanonical extends LlmToolTransform
             {
                 optionsOpen = true;
                 member = MEMBER_STREAM_OPTIONS;
+
+                if (members)
+                {
+                    emit(JsonEvent.KEY_NAME, MEMBER_STREAM_OPTIONS);
+                }
+
                 emit(JsonEvent.START_OBJECT);
             }
         }
@@ -94,6 +116,10 @@ final class LlmOpenaiResponsesControlFromCanonical extends LlmToolTransform
             {
                 pass(JsonEvent.END_OBJECT);
             }
+        }
+        else if (members)
+        {
+            pass(JsonEvent.END_OBJECT);
         }
         else if (member == null)
         {
