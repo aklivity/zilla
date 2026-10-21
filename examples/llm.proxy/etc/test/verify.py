@@ -693,20 +693,31 @@ def check_anthropic_tools_secondary_streaming():
         anthropic_message("claude-3-5-haiku-20241022", streaming=True, tools=ANTHROPIC_TOOLS))
 
 
-# Scrapes the prometheus exporter into {(sample, binding, le): value}, where
-# le is the cumulative bucket limit for a histogram _bucket sample and None
-# for every other sample.
-def scrape_metrics():
+# Scrapes the prometheus exporter into {(sample, binding, le, attributes): value},
+# where le is the cumulative bucket limit for a histogram _bucket sample and None
+# for every other sample, and attributes is the sorted tuple of the binding's
+# telemetry attribute labels.
+def scrape_series():
     with urllib.request.urlopen(METRICS_URL, timeout=10) as resp:
         text = resp.read().decode()
-    samples = {}
+    series = {}
     for line in text.splitlines():
         match = re.match(r'^(llm_[a-z_]+)\{([^}]*)\} (\S+)$', line)
         if match:
-            binding = re.search(r'binding="([^"]+)"', match.group(2)).group(1)
-            le = re.search(r'le="([^"]+)"', match.group(2))
-            samples[(match.group(1), binding, le.group(1) if le else None)] = float(match.group(3))
-    return samples
+            labels = dict(re.findall(r'(\w+)="([^"]*)"', match.group(2)))
+            binding = labels.pop("binding")
+            labels.pop("namespace", None)
+            le = labels.pop("le", None)
+            series[(match.group(1), binding, le, tuple(sorted(labels.items())))] = float(match.group(3))
+    return series
+
+
+# The same samples with the attribute labels summed away: {(sample, binding, le): value}.
+def scrape_metrics():
+    totals = {}
+    for (sample, binding, le, _), value in scrape_series().items():
+        totals[(sample, binding, le)] = totals.get((sample, binding, le), 0) + value
+    return totals
 
 
 # Histogram sums are reported from bucket limits, not exact values, so a
@@ -761,6 +772,48 @@ def check_anthropic_llm_metrics():
     assert_llm_metrics(
         lambda: anthropic_message("gpt-4", streaming=False),
         ["north_llm_server_anthropic", "north_llm_proxy", "south_llm_client_openai"])
+
+
+# Each exchange is recorded under its requested and served models, and
+# llm.active.requests carries only the model known when the request starts, so
+# its increment and decrement land on the same series.
+def assert_llm_model_attributes(exchange, bindings, requested, served):
+    before = scrape_series()
+    exchange()
+    after = scrape_series()
+
+    for binding in bindings:
+        attributes = (("requested", requested), ("served", served))
+        key = ("llm_tokens_input_count", binding, None, attributes)
+        assert after.get(key, 0) - before.get(key, 0) == 1, (binding, attributes, "input count by model")
+
+        active = ("llm_active_requests", binding, None, (("requested", requested),))
+        assert after.get(active) == 0, (binding, requested, "active requests by requested model")
+        assert not any(
+            k[0] == "llm_active_requests" and k[1] == binding and any(name == "served" for name, _ in k[3])
+            for k in after), (binding, "active requests carry no served model")
+
+
+# WHEN: an OpenAI SDK client sends a chat request naming a Claude model, which
+#       mock-anthropic answers with the same model
+# THEN: north_llm_server_openai, north_llm_proxy and south_llm_client_anthropic
+#       record the exchange with requested and served both claude-3-opus-20240229
+def check_openai_llm_model_attributes():
+    assert_llm_model_attributes(
+        lambda: openai_chat("claude-3-opus-20240229", streaming=False),
+        ["north_llm_server_openai", "north_llm_proxy", "south_llm_client_anthropic"],
+        "claude-3-opus-20240229", "claude-3-opus-20240229")
+
+
+# WHEN: an Anthropic SDK client sends a messages request naming gpt-4, which
+#       mock-openai answers as the dated model gpt-4-0613, as the real API does
+# THEN: north_llm_server_anthropic, north_llm_proxy and south_llm_client_openai
+#       record the exchange with requested gpt-4 and served gpt-4-0613
+def check_anthropic_llm_model_attributes():
+    assert_llm_model_attributes(
+        lambda: anthropic_message("gpt-4", streaming=False),
+        ["north_llm_server_anthropic", "north_llm_proxy", "south_llm_client_openai"],
+        "gpt-4", "gpt-4-0613")
 
 
 # WHEN: a Gemini SDK client sends a request for a gemini-* model, which
@@ -1410,6 +1463,8 @@ run_check("credential_pass_through_to_anthropic", check_credential_pass_through_
 run_check("credential_pass_through_to_openai", check_credential_pass_through_to_openai)
 run_check("openai_llm_metrics", check_openai_llm_metrics)
 run_check("anthropic_llm_metrics", check_anthropic_llm_metrics)
+run_check("openai_llm_model_attributes", check_openai_llm_model_attributes)
+run_check("anthropic_llm_model_attributes", check_anthropic_llm_model_attributes)
 run_check("gemini_text", check_gemini_text)
 run_check("gemini_text_streaming", check_gemini_text_streaming)
 run_check("gemini_tools", check_gemini_tools)

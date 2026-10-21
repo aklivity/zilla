@@ -541,6 +541,23 @@ bindings:
         - llm.*
 ```
 
+`${llm.request.model}` and `${llm.response.model}` label a series with the model the
+request named and the model that served it, which can differ, as when a request for
+`gpt-4` is served as `gpt-4-0613`. This example's `llm` bindings label every series
+that way, so `north_llm_proxy` reports:
+
+```bash
+curl -s http://localhost:7190/metrics | grep '^llm_tokens_input_count.*north_llm_proxy'
+```
+
+```text
+llm_tokens_input_count{namespace="example",binding="north_llm_proxy",requested="gpt-4",served="gpt-4-0613"} 1
+```
+
+`${llm.response.model}` is known only once the response starts, so `llm.active.requests`
+carries just the values known when the request starts, and a response model the upstream
+does not report is left off the series.
+
 Each distinct attribute value creates its own series, so avoid claims with
 unbounded values.
 

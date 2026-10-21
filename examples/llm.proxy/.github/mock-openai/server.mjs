@@ -29,6 +29,13 @@ function logReceived(path, req, prompt, roles)
         `prompt=${JSON.stringify(prompt)}`);
 }
 
+const SERVED_MODELS = { "gpt-4": "gpt-4-0613" };
+
+function servedModel(model)
+{
+    return SERVED_MODELS[model] ?? model;
+}
+
 function streamChatCompletion(res, model, message, includeUsage)
 {
     res.set("Content-Type", "text/event-stream");
@@ -120,7 +127,7 @@ app.post("/v1/chat/completions", (req, res) =>
     // response's content type rather than the request
     if (promptText(messages).includes(STREAM_MARKER))
     {
-        streamChatCompletion(res, model, message, streamOptions?.include_usage);
+        streamChatCompletion(res, servedModel(model), message, streamOptions?.include_usage);
         return;
     }
 
@@ -132,7 +139,7 @@ app.post("/v1/chat/completions", (req, res) =>
     res.send(JSON.stringify({
         object: "chat.completion",
         id: "chatcmpl_1",
-        model,
+        model: servedModel(model),
         choices: [
             {
                 index: 0,
