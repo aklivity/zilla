@@ -30,6 +30,8 @@ public class LlmOpenaiControlFromCanonicalTest
 
     private final LlmOpenaiControlFromCanonical transform = new LlmOpenaiControlFromCanonical(true);
     private final LlmOpenaiControlFromCanonical foreign = new LlmOpenaiControlFromCanonical(false);
+    private final LlmOpenaiControlFromCanonical sameMembers = LlmOpenaiControlFromCanonical.members(true);
+    private final LlmOpenaiControlFromCanonical foreignMembers = LlmOpenaiControlFromCanonical.members(false);
 
     @Test
     public void shouldRestoreOwnPrefixedMember()
@@ -142,5 +144,69 @@ public class LlmOpenaiControlFromCanonicalTest
     public void shouldRejectMemberThatIsNotAnObject()
     {
         assertRejects(transform, json("[1]"));
+    }
+
+    @Test
+    public void shouldRestoreSharedSamplingMembers()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:temperature':0.7,'x:top_p':0.9,'x:seed':42,'x:frequency_penalty':0.5,'x:presence_penalty':-0.5}"),
+            json("{'temperature':0.7,'top_p':0.9,'seed':42,'frequency_penalty':0.5,'presence_penalty':-0.5}"));
+    }
+
+    @Test
+    public void shouldRestoreSharedStopEntries()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:stop':['a','b','c','d']}"),
+            json("{'stop':['a','b','c','d']}"));
+    }
+
+    @Test
+    public void shouldRestoreSharedStopEntriesBeyondLimitSameDialect()
+    {
+        assertTransforms(sameMembers,
+            json("{'x:stop':['a','b','c','d','e']}"),
+            json("{'stop':['a','b','c','d','e']}"));
+    }
+
+    @Test
+    public void shouldRejectSharedStopWithMoreEntriesThanLimit()
+    {
+        assertRejects(foreignMembers, json("{'x:stop':['a','b','c','d','e']}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("stop"));
+    }
+
+    @Test
+    public void shouldDropSharedStopThatIsNull()
+    {
+        assertTransforms(foreignMembers, json("{'x:stop':null,'x:seed':1}"), json("{'seed':1}"));
+    }
+
+    @Test
+    public void shouldRejectSharedStopThatIsNotAnArray()
+    {
+        assertRejects(foreignMembers, json("{'x:stop':'a'}"));
+    }
+
+    @Test
+    public void shouldDropSharedMemberNotSupported()
+    {
+        assertTransforms(foreignMembers, json("{'x:top_k':40,'x:temperature':0.7}"), json("{'temperature':0.7}"));
+    }
+
+    @Test
+    public void shouldDropSharedMemberWhenExtracting()
+    {
+        assertTransforms(foreign, json("{'x:temperature':0.7}"), "null");
+
+        assertThat(foreign.member(), nullValue());
+    }
+
+    @Test
+    public void shouldPassSharedTemperatureOutOfRange()
+    {
+        assertTransforms(foreignMembers, json("{'x:temperature':99}"), json("{'temperature':99}"));
     }
 }

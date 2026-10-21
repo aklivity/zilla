@@ -14,6 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.STOP;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TEMPERATURE;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TOP_P;
+
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
@@ -95,6 +99,28 @@ final class LlmOpenaiResponsesControlFromCanonical extends LlmToolTransform
                 }
 
                 emit(JsonEvent.START_OBJECT);
+            }
+        }
+
+        return action;
+    }
+
+    @Override
+    protected int shared(
+        CharSequence key)
+    {
+        int action = DROP;
+
+        if (members)
+        {
+            if (matches(key, TEMPERATURE) || matches(key, TOP_P))
+            {
+                target = name(key);
+                action = PASS_VALUE;
+            }
+            else if (matches(key, STOP))
+            {
+                action = reject(key);
             }
         }
 

@@ -1447,4 +1447,59 @@ public class LlmOpenaiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai\""})
+    @Specification({
+        "${net}/openai.transform.request.sampling/client",
+        "${app}/transform.request.sampling/server"})
+    public void shouldTransformRequestSamplingFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai\""})
+    @Specification({
+        "${net}/openai.transform.request.sampling.seed/client",
+        "${app}/transform.request.sampling.seed/server"})
+    public void shouldTransformRequestSamplingSeedFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai\""})
+    @Specification({
+        "${net}/openai.transform.request.sampling.penalties/client",
+        "${app}/transform.request.sampling.penalties/server"})
+    public void shouldTransformRequestSamplingPenaltiesFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai\""})
+    @Specification({
+        "${net}/openai.transform.request.sampling.stop/client",
+        "${app}/transform.request.sampling.stop/server"})
+    public void shouldTransformRequestSamplingStopFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai\""})
+    @Specification({
+        "${net}/openai.transform.request.sampling.stop.string/client",
+        "${app}/transform.request.sampling.stop/server"})
+    public void shouldTransformRequestSamplingStopStringToArrayFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
 }

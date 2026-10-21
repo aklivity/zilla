@@ -14,6 +14,11 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.STOP;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TEMPERATURE;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TOP_K;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TOP_P;
+
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
@@ -21,6 +26,9 @@ final class LlmAnthropicControlFromCanonical extends LlmToolTransform
 {
     private static final String DIALECT = "anthropic";
     private static final String MEMBER_STREAM_OPTIONS = "stream_options";
+    private static final String MEMBER_STOP_SEQUENCES = "stop_sequences";
+    private static final double TEMPERATURE_MINIMUM = 0.0;
+    private static final double TEMPERATURE_MAXIMUM = 1.0;
 
     private final boolean members;
 
@@ -76,6 +84,33 @@ final class LlmAnthropicControlFromCanonical extends LlmToolTransform
             if (depth == 1 && action != DROP && (!members || member == null))
             {
                 member = target;
+            }
+        }
+
+        return action;
+    }
+
+    @Override
+    protected int shared(
+        CharSequence key)
+    {
+        int action = DROP;
+
+        if (members)
+        {
+            if (matches(key, TEMPERATURE))
+            {
+                action = clamp(TEMPERATURE, TEMPERATURE_MINIMUM, TEMPERATURE_MAXIMUM);
+            }
+            else if (matches(key, TOP_P) || matches(key, TOP_K))
+            {
+                target = name(key);
+                action = PASS_VALUE;
+            }
+            else if (matches(key, STOP))
+            {
+                target = MEMBER_STOP_SEQUENCES;
+                action = DESCEND_ELEMENTS;
             }
         }
 

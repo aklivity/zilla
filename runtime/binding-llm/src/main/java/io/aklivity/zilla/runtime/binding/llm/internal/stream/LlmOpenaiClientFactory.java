@@ -97,6 +97,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private static final String MESSAGE_MODEL_MISSING = "Missing required parameter: 'model'.";
     private static final String MESSAGE_SECTION_INVALID = "Invalid request section.";
     private static final String MESSAGE_SECTION_CONVERT = "%s cannot be converted from %s to %s";
+    private static final String SHARED_PREFIX = "x:";
     private static final String MESSAGE_SECTION_CONVERT_AFTER_TOOLS =
         "%s cannot be converted from %s to %s after tool-definition";
     private static final Set<String> RESPONSE_CONTENT_TYPES = Set.of(CONTENT_TYPE_JSON, CONTENT_TYPE_EVENT_STREAM);
@@ -918,8 +919,13 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private String rejection()
         {
             final String message;
+            final String member = http.rejectedMember();
 
-            if (requestSection == null || requestSection == LlmSectionType.NONE)
+            if (member != null)
+            {
+                message = MESSAGE_SECTION_CONVERT.formatted(SHARED_PREFIX + member, dialect, NAME);
+            }
+            else if (requestSection == null || requestSection == LlmSectionType.NONE)
             {
                 message = MESSAGE_SECTION_INVALID;
             }
@@ -4092,6 +4098,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private LlmSectionPipeline toolCallPipeline;
         private LlmSectionPipeline toolDefinitionPipeline;
         private LlmSectionPipeline controlPipeline;
+        private LlmOpenaiControlFromCanonical controlTransform;
         private int controlMessage;
         private LlmSectionPipeline citationsPipeline;
         private LlmTextPipeline encodeText;
@@ -4272,11 +4279,17 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             return citationsPipeline;
         }
 
+        private String rejectedMember()
+        {
+            return controlTransform != null ? controlTransform.rejectedMember() : null;
+        }
+
         private LlmSectionPipeline controlPipeline()
         {
             if (controlPipeline == null)
             {
-                controlPipeline = new LlmSectionPipeline(LlmOpenaiControlFromCanonical.members(sameDialect), transformBuffer);
+                controlTransform = LlmOpenaiControlFromCanonical.members(sameDialect);
+                controlPipeline = new LlmSectionPipeline(controlTransform, transformBuffer);
             }
 
             return controlPipeline;

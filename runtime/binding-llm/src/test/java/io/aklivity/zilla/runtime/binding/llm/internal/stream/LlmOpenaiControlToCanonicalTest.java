@@ -67,8 +67,8 @@ public class LlmOpenaiControlToCanonicalTest
     public void shouldMoveArrayValueUnchanged()
     {
         assertTransforms(transform,
-            json("{'stop':['a','b',{'c':1}]}"),
-            json("{'openai:stop':['a','b',{'c':1}]}"));
+            json("{'modalities':['a','b',{'c':1}]}"),
+            json("{'openai:modalities':['a','b',{'c':1}]}"));
     }
 
     @Test
@@ -233,5 +233,43 @@ public class LlmOpenaiControlToCanonicalTest
     public void shouldRejectMemberThatIsNotAnObject()
     {
         assertRejects(transform, json("[1]"));
+    }
+
+    @Test
+    public void shouldShareStopArrayUnchanged()
+    {
+        assertTransforms(transform,
+            json("{'stop':['END','" + LONG + "']}"),
+            json("{'x:stop':['END','" + LONG + "']}"));
+    }
+
+    @Test
+    public void shouldShareStopStringAsOneEntryArray()
+    {
+        assertTransforms(transform,
+            json("{'stop':'END'}"),
+            json("{'x:stop':['END']}"));
+    }
+
+    @Test
+    public void shouldShareStopStringWithEscapes()
+    {
+        assertTransforms(transform,
+            json("{'stop':'a\\n\\\"b'}"),
+            json("{'x:stop':['a\\n\\\"b']}"));
+    }
+
+    @Test
+    public void shouldShareStopNullUnchanged()
+    {
+        assertTransforms(transform,
+            json("{'stop':null}"),
+            json("{'x:stop':null}"));
+    }
+
+    @Test
+    public void shouldRejectStopStringLargerThanHeldLimit()
+    {
+        assertRejects(transform, json("{'stop':'" + HUGE + "'}"));
     }
 }

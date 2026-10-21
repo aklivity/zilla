@@ -1582,4 +1582,37 @@ public class LlmAnthropicServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
+        "${net}/anthropic.transform.request.sampling/client",
+        "${app}/transform.request.sampling/server"})
+    public void shouldTransformRequestSamplingFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
+        "${net}/anthropic.transform.request.sampling.top.k/client",
+        "${app}/transform.request.sampling.top.k/server"})
+    public void shouldTransformRequestSamplingTopKFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
+        "${net}/anthropic.transform.request.sampling.stop/client",
+        "${app}/transform.request.sampling.stop/server"})
+    public void shouldTransformRequestSamplingStopFromAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
 }

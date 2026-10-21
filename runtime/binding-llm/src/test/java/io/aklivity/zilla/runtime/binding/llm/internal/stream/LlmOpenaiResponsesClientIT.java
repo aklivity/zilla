@@ -1839,4 +1839,70 @@ public class LlmOpenaiResponsesClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.sampling/client",
+        "${net}/openai.responses.transform.request.sampling/server"})
+    public void shouldTransformRequestSamplingAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.sampling.seed/client",
+        "${net}/openai.responses.transform.request.max.output.tokens/server"})
+    public void shouldDropRequestSamplingSeedAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.sampling.penalties/client",
+        "${net}/openai.responses.transform.request.max.output.tokens/server"})
+    public void shouldDropRequestSamplingPenaltiesAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.sampling.top.k/client",
+        "${net}/openai.responses.transform.request.max.output.tokens/server"})
+    public void shouldDropRequestSamplingTopKAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.sampling.clamp/client",
+        "${net}/openai.responses.transform.request.sampling.clamp/server"})
+    public void shouldPassRequestSamplingTemperatureAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.rejected.sampling.stop/client",
+        "${net}/openai.responses.transform.rejected.sampling.stop/server"})
+    public void shouldRejectRequestSamplingStopAsOpenaiResponsesNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
 }
