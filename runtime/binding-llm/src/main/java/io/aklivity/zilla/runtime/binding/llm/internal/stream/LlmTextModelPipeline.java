@@ -157,7 +157,8 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
             }
         }
 
-        if (!stopped && scanner.region() != LlmObjectScanner.TAIL && textLength > textProgress)
+        if (!stopped && scanner.region() != LlmObjectScanner.TAIL &&
+            (textLength > textProgress || textStatus == ModelStatus.SUSPENDED))
         {
             transformText(traceId, bindingId, authorization, 0, dst, dstIndex + produced, dstLimit);
 
@@ -265,6 +266,7 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
         textLength = 0;
         textProgress = 0;
         started = false;
+        textStatus = ModelStatus.UNDERFLOW;
 
         generator.wrap(primerBuffer, 0, primerBuffer.capacity());
         generator.reset();

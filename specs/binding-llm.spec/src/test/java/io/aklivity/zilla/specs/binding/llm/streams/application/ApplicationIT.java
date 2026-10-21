@@ -3521,6 +3521,24 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.proxy.guardrail.response.classified.streaming.exit/client",
+        "${app}/openai.proxy.guardrail.response.classified.streaming.exit/server"})
+    public void shouldGuardOpenaiResponseClassifiedStreamingExit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.classified.paused.exit/client",
+        "${app}/openai.proxy.guardrail.response.classified.paused.exit/server"})
+    public void shouldGuardOpenaiResponseClassifiedPausedExit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.proxy.guardrail.response.rejected.streaming.exit/client",
         "${app}/openai.proxy.guardrail.response.rejected.streaming.exit/server"})
     public void shouldGuardOpenaiResponseRejectedStreamingExit() throws Exception
