@@ -1741,4 +1741,37 @@ public class LlmOpenaiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"gemini\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.sampling/client",
+        "${net}/openai.transform.request.sampling/server"})
+    public void shouldTransformRequestSamplingFromGeminiAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"gemini\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.sampling.stop/client",
+        "${net}/openai.transform.request.sampling.stop/server"})
+    public void shouldTransformRequestSamplingStopFromGeminiAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"gemini\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.sampling.top.k/client",
+        "${net}/openai.transform.request.max.output.tokens/server"})
+    public void shouldDropRequestSamplingTopKFromGeminiAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
 }

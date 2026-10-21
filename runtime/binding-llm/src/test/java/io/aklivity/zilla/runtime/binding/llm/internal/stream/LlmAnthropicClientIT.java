@@ -1830,4 +1830,37 @@ public class LlmAnthropicClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"gemini\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.sampling.top.k/client",
+        "${net}/anthropic.transform.request.sampling.top.k/server"})
+    public void shouldTransformRequestSamplingTopKFromGeminiAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"gemini\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.sampling.stop/client",
+        "${net}/anthropic.transform.request.sampling.stop/server"})
+    public void shouldTransformRequestSamplingStopFromGeminiAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"gemini\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.sampling.clamp/client",
+        "${net}/anthropic.transform.request.sampling.clamp/server"})
+    public void shouldClampRequestSamplingTemperatureFromGeminiAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
 }

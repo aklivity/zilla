@@ -59,4 +59,31 @@ public class LlmSharedMembersTest
         assertThat(LlmSharedMembers.anthropic("stop"), nullValue());
         assertThat(LlmSharedMembers.anthropic("thinking"), nullValue());
     }
+
+    @Test
+    public void shouldPromoteGeminiGenerationConfigLeaves()
+    {
+        assertThat(LlmSharedMembers.gemini("temperature"), equalTo("temperature"));
+        assertThat(LlmSharedMembers.gemini("topP"), equalTo("top_p"));
+        assertThat(LlmSharedMembers.gemini("top_p"), equalTo("top_p"));
+        assertThat(LlmSharedMembers.gemini("topK"), equalTo("top_k"));
+        assertThat(LlmSharedMembers.gemini("top_k"), equalTo("top_k"));
+        assertThat(LlmSharedMembers.gemini("stopSequences"), equalTo("stop"));
+        assertThat(LlmSharedMembers.gemini("stop_sequences"), equalTo("stop"));
+        assertThat(LlmSharedMembers.gemini("seed"), equalTo("seed"));
+        assertThat(LlmSharedMembers.gemini("frequencyPenalty"), equalTo("frequency_penalty"));
+        assertThat(LlmSharedMembers.gemini("frequency_penalty"), equalTo("frequency_penalty"));
+        assertThat(LlmSharedMembers.gemini("presencePenalty"), equalTo("presence_penalty"));
+        assertThat(LlmSharedMembers.gemini("presence_penalty"), equalTo("presence_penalty"));
+    }
+
+    @Test
+    public void shouldKeepGeminiGenerationConfigResidue()
+    {
+        for (String member : new String[] {"candidateCount", "maxOutputTokens", "max_output_tokens", "responseMimeType",
+            "thinkingConfig", "stop", "topp", "temperatures"})
+        {
+            assertThat(member, LlmSharedMembers.gemini(member), nullValue());
+        }
+    }
 }

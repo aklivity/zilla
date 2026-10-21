@@ -28,6 +28,20 @@ final class LlmSharedMembers
     private static final String[] OPENAI = {TEMPERATURE, TOP_P, STOP, SEED, FREQUENCY_PENALTY, PRESENCE_PENALTY};
     private static final String[] OPENAI_RESPONSES = {TEMPERATURE, TOP_P};
     private static final String[] ANTHROPIC = {TEMPERATURE, TOP_P, TOP_K};
+    private static final String[][] GEMINI = {
+        {TEMPERATURE, TEMPERATURE},
+        {"topP", TOP_P},
+        {TOP_P, TOP_P},
+        {"topK", TOP_K},
+        {TOP_K, TOP_K},
+        {"stopSequences", STOP},
+        {NATIVE_STOP_SEQUENCES, STOP},
+        {SEED, SEED},
+        {"frequencyPenalty", FREQUENCY_PENALTY},
+        {FREQUENCY_PENALTY, FREQUENCY_PENALTY},
+        {"presencePenalty", PRESENCE_PENALTY},
+        {PRESENCE_PENALTY, PRESENCE_PENALTY}
+    };
 
     static String openai(
         CharSequence key)
@@ -45,6 +59,19 @@ final class LlmSharedMembers
         CharSequence key)
     {
         return matches(key, NATIVE_STOP_SEQUENCES) ? STOP : named(key, ANTHROPIC);
+    }
+
+    static String gemini(
+        CharSequence key)
+    {
+        String shared = null;
+
+        for (int index = 0; shared == null && index < GEMINI.length; index++)
+        {
+            shared = matches(key, GEMINI[index][0]) ? GEMINI[index][1] : null;
+        }
+
+        return shared;
     }
 
     static boolean matches(

@@ -220,6 +220,9 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final String MEMBER_FUNCTION_DECLARATIONS = "functionDeclarations";
     private static final String MEMBER_SYSTEM_INSTRUCTION = "systemInstruction";
     private static final String MEMBER_GENERATION_CONFIG = "generationConfig";
+    private static final String[] CONTAINERS = {MEMBER_GENERATION_CONFIG};
+    private static final int CONTAINER_GENERATION_CONFIG = 0;
+    private static final String SHARED_PREFIX = "x:";
     private static final String MEMBER_MAX_OUTPUT_TOKENS = "maxOutputTokens";
     private static final String ROLE_NAME_USER = "user";
     private static final String ROLE_NAME_MODEL = "model";
@@ -269,6 +272,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private final BindingHandler streamFactory;
     private final BufferPool decodePool;
     private final BufferPool encodePool;
+    private final BufferPool holdPool;
     private final Long2ObjectHashMap<LlmBindingConfig> bindings;
     private final int decodeMax;
     private final int encodeMax;
@@ -283,6 +287,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         this.contentTypeMatcher = CONTENT_TYPE.matcher("");
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool().duplicate();
+        this.holdPool = context.bufferPool().duplicate();
         this.decodeMax = decodePool.slotCapacity();
         this.encodeMax = encodePool.slotCapacity();
         this.transformBuffer = new UnsafeBufferEx(new byte[decodeMax]);
@@ -883,6 +888,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             http.doNetAbort(traceId);
             cleanupControlSlot();
             http.cleanupEncodeSlot();
+            http.cleanupHeldSlot();
         }
 
         private void onAppWindow(
@@ -909,6 +915,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             http.doNetAbort(traceId);
             cleanupControlSlot();
             http.cleanupEncodeSlot();
+            http.cleanupHeldSlot();
             http.cleanupDecodeSlot();
         }
 
@@ -920,16 +927,30 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
         private String rejection()
         {
-            return requestSection == null || requestSection == LlmSectionType.NONE
-                ? MESSAGE_SECTION_INVALID
-                : MESSAGE_SECTION_CONVERT.formatted(requestSection.name().toLowerCase().replace('_', '-'), dialect, NAME);
+            final String member = http.rejectedMember();
+            final String message;
+
+            if (member != null)
+            {
+                message = MESSAGE_SECTION_CONVERT.formatted(member, dialect, NAME);
+            }
+            else if (requestSection == null || requestSection == LlmSectionType.NONE)
+            {
+                message = MESSAGE_SECTION_INVALID;
+            }
+            else
+            {
+                message = MESSAGE_SECTION_CONVERT.formatted(requestSection.name().toLowerCase().replace('_', '-'), dialect, NAME);
+            }
+
+            return message;
         }
 
         private void flushAppWindow(
             long traceId)
         {
-            final int credit = Math.max(0, (encodeMax - http.encodeSlotOffset - ENCODE_SLACK - http.signatureReserve()) /
-                ESCAPE_EXPANSION);
+            final int room = encodeMax - http.encodeSlotOffset - ENCODE_SLACK - http.signatureReserve() - http.heldReserve();
+            final int credit = Math.max(0, room / ESCAPE_EXPANSION);
             final long target = initialSeq + credit;
 
             if (http.initialMax > 0 &&
@@ -3660,6 +3681,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             http.doNetReset(traceId);
             cleanupControlSlot();
             http.cleanupEncodeSlot();
+            http.cleanupHeldSlot();
             http.cleanupDecodeSlot();
         }
     }
@@ -3727,6 +3749,8 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private final String[] callNames = new String[CALLS_MAX];
         private int callCount;
         private LlmSectionPipeline controlPipeline;
+        private LlmGeminiControlFromCanonical controlTransform;
+        private int heldSlot = NO_SLOT;
         private int controlMessage;
         private int controlMode;
         private LlmSectionPipeline.Output sectionTarget;
@@ -3734,7 +3758,9 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         {
         };
         private final LlmSectionPipeline.Output sectionOutput = (buffer, offset, length, last) -> putRaw(buffer, offset, length);
-        private final LlmMembersOutput controlOutput = new LlmMembersOutput(this::putControl);
+        private final LlmMemberCollector collector = new LlmMemberCollector(CONTAINERS, this::putControl, this::heldBuffer);
+        private final LlmMembersOutput controlOutput = new LlmMembersOutput(collector);
+        private final LlmMembersOutput.Members heldOutput = this::putHeld;
 
         private int decodeSlot = NO_SLOT;
         private int decodeSlotOffset;
@@ -3936,10 +3962,44 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         {
             if (controlPipeline == null)
             {
-                controlPipeline = new LlmSectionPipeline(LlmGeminiControlFromCanonical.members(sameDialect), transformBuffer);
+                controlTransform = LlmGeminiControlFromCanonical.members(sameDialect);
+                controlPipeline = new LlmSectionPipeline(controlTransform, transformBuffer);
             }
 
             return controlPipeline;
+        }
+
+        private String rejectedMember()
+        {
+            final String shared = controlTransform != null ? controlTransform.rejectedMember() : null;
+
+            return collector.overflowed() ? collector.overflow() : shared != null ? SHARED_PREFIX + shared : null;
+        }
+
+        private int heldReserve()
+        {
+            return collector.held();
+        }
+
+        private MutableDirectBufferEx heldBuffer()
+        {
+            if (heldSlot == NO_SLOT)
+            {
+                heldSlot = holdPool.acquire(initialId);
+            }
+
+            return heldSlot != NO_SLOT ? holdPool.buffer(heldSlot) : null;
+        }
+
+        private void cleanupHeldSlot()
+        {
+            collector.reset();
+
+            if (heldSlot != NO_SLOT)
+            {
+                holdPool.release(heldSlot);
+                heldSlot = NO_SLOT;
+            }
         }
 
         private void onSectionText(
@@ -3986,6 +4046,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 {
                     controlMessage = message;
                     controlMode = CONTROL_PENDING;
+                    collector.begin();
                     controlOutput.begin();
                     beginSectionStreaming(controlPipeline(), controlOutput);
                 }
@@ -4287,7 +4348,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             {
                 if (beginEncode(0))
                 {
-                    if (!sectionPipeline.feed(buffer, offset, length, fin, sectionTarget))
+                    if (!sectionPipeline.feed(buffer, offset, length, fin, sectionTarget) || collector.overflowed())
                     {
                         encodeFailed = true;
                     }
@@ -4428,23 +4489,45 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         {
             if (!LlmState.initialClosing(state) && !LlmState.initialClosed(state))
             {
-                if (beginEncode(ENCODE_STRUCTURE + ENCODE_MAX_TOKENS))
+                if (beginEncode(ENCODE_STRUCTURE + ENCODE_MAX_TOKENS + collector.held()))
                 {
                     closeRegion();
 
-                    if (stream.crossDialect && maxOutputTokens != NO_MAX_OUTPUT_TOKENS)
+                    for (int container = 0; container < CONTAINERS.length; container++)
                     {
-                        generator.writeStartObject(MEMBER_GENERATION_CONFIG)
-                            .write(MEMBER_MAX_OUTPUT_TOKENS, maxOutputTokens)
-                            .writeEnd();
+                        final boolean tokens = container == CONTAINER_GENERATION_CONFIG &&
+                            stream.crossDialect && maxOutputTokens != NO_MAX_OUTPUT_TOKENS;
+
+                        if (collector.holds(container) || tokens)
+                        {
+                            generator.writeStartObject(CONTAINERS[container]);
+                            collector.drain(container, heldOutput);
+
+                            if (tokens)
+                            {
+                                generator.write(MEMBER_MAX_OUTPUT_TOKENS, maxOutputTokens);
+                            }
+
+                            generator.writeEnd();
+                        }
                     }
 
                     generator.writeEnd();
                     endEncode();
                 }
 
+                cleanupHeldSlot();
+
                 state = LlmState.closingInitial(state);
             }
+        }
+
+        private void putHeld(
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            generator.writeMembers(buffer, offset, length, Completion.COMPLETE);
         }
 
         private boolean beginEncode(
@@ -4747,6 +4830,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
             state = LlmState.closeInitial(state);
             cleanupEncodeSlot();
+            cleanupHeldSlot();
             cleanupDecodeSlot();
             resetDecodeState();
 
@@ -5182,6 +5266,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             cleanupDecodeSlot();
             resetDecodeState();
             cleanupEncodeSlot();
+            cleanupHeldSlot();
             doNetReset(traceId);
             stream.doAppFailure(traceId, STATUS_BAD_GATEWAY);
         }
@@ -5258,6 +5343,8 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 net.accept(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
                 state = LlmState.closeInitial(state);
             }
+
+            cleanupHeldSlot();
         }
 
         private void doNetReset(
