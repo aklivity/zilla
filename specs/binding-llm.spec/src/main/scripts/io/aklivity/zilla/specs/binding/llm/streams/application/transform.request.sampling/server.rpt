@@ -16,6 +16,7 @@
 property source "source"
 property target "target"
 property model "model"
+property errorType "invalid_request_error"
 
 accept "zilla://streams/app0"
        option zilla:window 0
@@ -55,7 +56,7 @@ read advised zilla:flush ${llm:matchDialectFlushEx()
 write zilla:reset.ext ${llm:resetEx()
                             .typeId(zilla:id("llm"))
                             .status(400)
-                            .type("invalid_request_error")
+                            .type(errorType)
                             .message("Invalid request")
                             .build()}
 

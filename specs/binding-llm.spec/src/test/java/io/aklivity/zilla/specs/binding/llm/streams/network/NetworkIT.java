@@ -6740,4 +6740,139 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.sampling/client",
+        "${net}/gemini.request.sampling/server"})
+    public void shouldForwardGeminiRequestSampling() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.sampling.residue.absent/client",
+        "${net}/gemini.request.sampling.residue.absent/server"})
+    public void shouldForwardGeminiRequestSamplingResidueAbsent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.sampling.empty/client",
+        "${net}/gemini.request.sampling.empty/server"})
+    public void shouldForwardGeminiRequestSamplingEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.sampling.interleaved/client",
+        "${net}/gemini.request.sampling.interleaved/server"})
+    public void shouldForwardGeminiRequestSamplingInterleaved() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.sampling.snake/client",
+        "${net}/gemini.request.sampling.snake/server"})
+    public void shouldForwardGeminiRequestSamplingSnake() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.sampling.split/client",
+        "${net}/gemini.request.sampling.split/server"})
+    public void shouldForwardGeminiRequestSamplingSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.request.sampling/client",
+        "${net}/gemini.transform.request.sampling/server"})
+    public void shouldGeminiTransformRequestSampling() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.request.sampling.top.k/client",
+        "${net}/gemini.transform.request.sampling.top.k/server"})
+    public void shouldGeminiTransformRequestSamplingTopK() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.request.sampling.seed/client",
+        "${net}/gemini.transform.request.sampling.seed/server"})
+    public void shouldGeminiTransformRequestSamplingSeed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.request.sampling.penalties/client",
+        "${net}/gemini.transform.request.sampling.penalties/server"})
+    public void shouldGeminiTransformRequestSamplingPenalties() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.request.sampling.stop/client",
+        "${net}/gemini.transform.request.sampling.stop/server"})
+    public void shouldGeminiTransformRequestSamplingStop() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.request.sampling.stop.limit/client",
+        "${net}/gemini.transform.request.sampling.stop.limit/server"})
+    public void shouldGeminiTransformRequestSamplingStopLimit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.request.sampling.clamp/client",
+        "${net}/gemini.transform.request.sampling.clamp/server"})
+    public void shouldGeminiTransformRequestSamplingClamp() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.rejected.sampling.stop.entries/client",
+        "${net}/gemini.transform.rejected.sampling.stop.entries/server"})
+    public void shouldGeminiTransformRejectedSamplingStopEntries() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.request.sampling.seed.max/client",
+        "${net}/gemini.transform.request.sampling.seed.max/server"})
+    public void shouldGeminiTransformRequestSamplingSeedMax() throws Exception
+    {
+        k3po.finish();
+    }
 }

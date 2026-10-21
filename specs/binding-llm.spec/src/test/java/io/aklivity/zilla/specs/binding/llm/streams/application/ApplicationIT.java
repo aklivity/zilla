@@ -7280,4 +7280,85 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.sampling/client",
+        "${app}/gemini.request.sampling/server"})
+    public void shouldForwardGeminiRequestSampling() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.sampling.residue.absent/client",
+        "${app}/gemini.request.sampling.residue.absent/server"})
+    public void shouldForwardGeminiRequestSamplingResidueAbsent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.sampling.empty/client",
+        "${app}/gemini.request.sampling.empty/server"})
+    public void shouldForwardGeminiRequestSamplingEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.sampling.interleaved/client",
+        "${app}/gemini.request.sampling.interleaved/server"})
+    public void shouldForwardGeminiRequestSamplingInterleaved() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.sampling.snake/client",
+        "${app}/gemini.request.sampling.snake/server"})
+    public void shouldForwardGeminiRequestSamplingSnake() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.sampling.seed.range/client",
+        "${app}/transform.request.sampling.seed.range/server"})
+    public void shouldTransformRequestSamplingSeedRange() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.sampling.stop.limit/client",
+        "${app}/transform.request.sampling.stop.limit/server"})
+    public void shouldTransformRequestSamplingStopLimit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.sampling.stop.entries/client",
+        "${app}/transform.rejected.sampling.stop.entries/server"})
+    public void shouldTransformRejectedSamplingStopEntries() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.sampling.seed.max/client",
+        "${app}/transform.request.sampling.seed.max/server"})
+    public void shouldTransformRequestSamplingSeedMax() throws Exception
+    {
+        k3po.finish();
+    }
 }
