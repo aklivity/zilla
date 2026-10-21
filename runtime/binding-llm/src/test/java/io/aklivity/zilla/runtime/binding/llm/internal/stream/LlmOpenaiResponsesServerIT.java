@@ -1811,4 +1811,84 @@ public class LlmOpenaiResponsesServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.request.tool.choice.auto/client",
+        "${app}/openai.responses.request.tool.choice.auto/server"})
+    public void shouldForwardOpenaiResponsesRequestToolChoiceAuto() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.request.tool.choice.required/client",
+        "${app}/openai.responses.request.tool.choice.required/server"})
+    public void shouldForwardOpenaiResponsesRequestToolChoiceRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.request.tool.choice.none/client",
+        "${app}/openai.responses.request.tool.choice.none/server"})
+    public void shouldForwardOpenaiResponsesRequestToolChoiceNone() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.request.tool.choice.function/client",
+        "${app}/openai.responses.request.tool.choice.function/server"})
+    public void shouldForwardOpenaiResponsesRequestToolChoiceFunction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.request.tool.choice.allowed/client",
+        "${app}/openai.responses.request.tool.choice.allowed/server"})
+    public void shouldForwardOpenaiResponsesRequestToolChoiceAllowed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.request.tool.choice.hosted/client",
+        "${app}/openai.responses.request.tool.choice.hosted/server"})
+    public void shouldForwardOpenaiResponsesRequestToolChoiceHosted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.request.tool.choice.parallel/client",
+        "${app}/openai.responses.request.tool.choice.parallel/server"})
+    public void shouldForwardOpenaiResponsesRequestToolChoiceParallel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.request.tool.choice.mixed/client",
+        "${app}/openai.responses.request.tool.choice.mixed/server"})
+    public void shouldForwardOpenaiResponsesRequestToolChoiceMixed() throws Exception
+    {
+        k3po.finish();
+    }
 }

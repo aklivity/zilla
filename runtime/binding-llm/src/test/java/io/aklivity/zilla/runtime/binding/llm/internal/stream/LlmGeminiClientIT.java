@@ -1410,4 +1410,183 @@ public class LlmGeminiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.auto/client",
+        "${net}/gemini.transform.request.tool.choice.auto/server"})
+    public void shouldTransformRequestToolChoiceAutoAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.required/client",
+        "${net}/gemini.transform.request.tool.choice.required/server"})
+    public void shouldTransformRequestToolChoiceRequiredAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.none/client",
+        "${net}/gemini.transform.request.tool.choice.none/server"})
+    public void shouldTransformRequestToolChoiceNoneAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.function/client",
+        "${net}/gemini.transform.request.tool.choice.function/server"})
+    public void shouldTransformRequestToolChoiceFunctionAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.allowed/client",
+        "${net}/gemini.transform.request.tool.choice.allowed/server"})
+    public void shouldTransformRequestToolChoiceAllowedAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.allowed.required/client",
+        "${net}/gemini.transform.request.tool.choice.allowed.required/server"})
+    public void shouldTransformRequestToolChoiceAllowedRequiredAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.parallel.true/client",
+        "${net}/gemini.transform.request.tool.choice.parallel.true/server"})
+    public void shouldTransformRequestToolChoiceParallelTrueAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.rejected.tool.choice.value/client",
+        "${net}/gemini.transform.rejected.tool.choice/server"})
+    public void shouldRejectRequestToolChoiceValueAsGeminiNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.rejected.parallel.tool.calls/client",
+        "${net}/gemini.transform.rejected.tool.choice/server"})
+    public void shouldRejectRequestToolChoiceParallelAsGeminiNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.request.tool.choice.auto/client",
+        "${net}/gemini.request.tool.choice.auto/server"})
+    public void shouldRestoreGeminiRequestToolChoiceAuto() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.request.tool.choice.any/client",
+        "${net}/gemini.request.tool.choice.any/server"})
+    public void shouldRestoreGeminiRequestToolChoiceAny() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.request.tool.choice.none/client",
+        "${net}/gemini.request.tool.choice.none/server"})
+    public void shouldRestoreGeminiRequestToolChoiceNone() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.request.tool.choice.function/client",
+        "${net}/gemini.request.tool.choice.function/server"})
+    public void shouldRestoreGeminiRequestToolChoiceFunction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.request.tool.choice.allowed.required/client",
+        "${net}/gemini.request.tool.choice.allowed.required/server"})
+    public void shouldRestoreGeminiRequestToolChoiceAllowedRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.request.tool.choice.allowed.auto/client",
+        "${net}/gemini.request.tool.choice.allowed.auto/server"})
+    public void shouldRestoreGeminiRequestToolChoiceAllowedAuto() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.request.tool.choice.validated/client",
+        "${net}/gemini.request.tool.choice.validated/server"})
+    public void shouldRestoreGeminiRequestToolChoiceValidated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.request.tool.choice.residue/client",
+        "${net}/gemini.request.tool.choice.residue/server"})
+    public void shouldRestoreGeminiRequestToolChoiceResidue() throws Exception
+    {
+        k3po.finish();
+    }
 }

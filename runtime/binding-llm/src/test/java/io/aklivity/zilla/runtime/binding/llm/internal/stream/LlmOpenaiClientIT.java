@@ -1774,4 +1774,250 @@ public class LlmOpenaiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.auto/client",
+        "${net}/openai.transform.request.tool.choice.auto/server"})
+    public void shouldTransformRequestToolChoiceAutoAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.auto/client",
+        "${net}/openai.transform.request.tool.choice.auto/server"})
+    public void shouldTransformRequestToolChoiceAutoFromOpenaiAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.required/client",
+        "${net}/openai.transform.request.tool.choice.required/server"})
+    public void shouldTransformRequestToolChoiceRequiredAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.none/client",
+        "${net}/openai.transform.request.tool.choice.none/server"})
+    public void shouldTransformRequestToolChoiceNoneAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.function/client",
+        "${net}/openai.transform.request.tool.choice.function/server"})
+    public void shouldTransformRequestToolChoiceFunctionAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.function/client",
+        "${net}/openai.transform.request.tool.choice.function/server"})
+    public void shouldTransformRequestToolChoiceFunctionFromOpenaiAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.allowed/client",
+        "${net}/openai.transform.request.tool.choice.allowed/server"})
+    public void shouldTransformRequestToolChoiceAllowedAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.allowed/client",
+        "${net}/openai.transform.request.tool.choice.allowed/server"})
+    public void shouldTransformRequestToolChoiceAllowedFromOpenaiAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.allowed.required/client",
+        "${net}/openai.transform.request.tool.choice.allowed.required/server"})
+    public void shouldTransformRequestToolChoiceAllowedRequiredAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.parallel/client",
+        "${net}/openai.transform.request.tool.choice.parallel/server"})
+    public void shouldTransformRequestToolChoiceParallelAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.parallel/client",
+        "${net}/openai.transform.request.tool.choice.parallel/server"})
+    public void shouldTransformRequestToolChoiceParallelFromOpenaiAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.parallel.true/client",
+        "${net}/openai.transform.request.tool.choice.parallel.true/server"})
+    public void shouldTransformRequestToolChoiceParallelTrueAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.choice.parallel/client",
+        "${net}/openai.transform.request.tool.choice.choice.parallel/server"})
+    public void shouldTransformRequestToolChoiceChoiceParallelAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.choice.parallel/client",
+        "${net}/openai.transform.request.tool.choice.choice.parallel/server"})
+    public void shouldTransformRequestToolChoiceChoiceParallelFromOpenaiAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.parallel.first/client",
+        "${net}/openai.transform.request.tool.choice.parallel.first/server"})
+    public void shouldTransformRequestToolChoiceParallelFirstAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.none.parallel/client",
+        "${net}/openai.transform.request.tool.choice.none.parallel/server"})
+    public void shouldTransformRequestToolChoiceNoneParallelAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.tool.choice.auto/client",
+        "${net}/openai.request.tool.choice.auto/server"})
+    public void shouldRestoreOpenaiRequestToolChoiceAuto() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.tool.choice.required/client",
+        "${net}/openai.request.tool.choice.required/server"})
+    public void shouldRestoreOpenaiRequestToolChoiceRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.tool.choice.none/client",
+        "${net}/openai.request.tool.choice.none/server"})
+    public void shouldRestoreOpenaiRequestToolChoiceNone() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.tool.choice.function/client",
+        "${net}/openai.request.tool.choice.function/server"})
+    public void shouldRestoreOpenaiRequestToolChoiceFunction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.tool.choice.allowed/client",
+        "${net}/openai.request.tool.choice.allowed/server"})
+    public void shouldRestoreOpenaiRequestToolChoiceAllowed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.tool.choice.parallel/client",
+        "${net}/openai.request.tool.choice.parallel/server"})
+    public void shouldRestoreOpenaiRequestToolChoiceParallel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.tool.choice.mixed/client",
+        "${net}/openai.request.tool.choice.mixed/server"})
+    public void shouldRestoreOpenaiRequestToolChoiceMixed() throws Exception
+    {
+        k3po.finish();
+    }
 }

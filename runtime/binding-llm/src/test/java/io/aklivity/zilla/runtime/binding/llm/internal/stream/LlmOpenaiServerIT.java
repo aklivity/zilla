@@ -1502,4 +1502,74 @@ public class LlmOpenaiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.request.tool.choice.auto/client",
+        "${app}/openai.request.tool.choice.auto/server"})
+    public void shouldForwardOpenaiRequestToolChoiceAuto() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.request.tool.choice.required/client",
+        "${app}/openai.request.tool.choice.required/server"})
+    public void shouldForwardOpenaiRequestToolChoiceRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.request.tool.choice.none/client",
+        "${app}/openai.request.tool.choice.none/server"})
+    public void shouldForwardOpenaiRequestToolChoiceNone() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.request.tool.choice.function/client",
+        "${app}/openai.request.tool.choice.function/server"})
+    public void shouldForwardOpenaiRequestToolChoiceFunction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.request.tool.choice.allowed/client",
+        "${app}/openai.request.tool.choice.allowed/server"})
+    public void shouldForwardOpenaiRequestToolChoiceAllowed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.request.tool.choice.parallel/client",
+        "${app}/openai.request.tool.choice.parallel/server"})
+    public void shouldForwardOpenaiRequestToolChoiceParallel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.request.tool.choice.mixed/client",
+        "${app}/openai.request.tool.choice.mixed/server"})
+    public void shouldForwardOpenaiRequestToolChoiceMixed() throws Exception
+    {
+        k3po.finish();
+    }
 }

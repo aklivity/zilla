@@ -1334,4 +1334,104 @@ public class LlmGeminiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.tool.choice.auto/client",
+        "${app}/gemini.request.tool.choice.auto/server"})
+    public void shouldForwardGeminiRequestToolChoiceAuto() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.tool.choice.any/client",
+        "${app}/gemini.request.tool.choice.any/server"})
+    public void shouldForwardGeminiRequestToolChoiceAny() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.tool.choice.none/client",
+        "${app}/gemini.request.tool.choice.none/server"})
+    public void shouldForwardGeminiRequestToolChoiceNone() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.tool.choice.function/client",
+        "${app}/gemini.request.tool.choice.function/server"})
+    public void shouldForwardGeminiRequestToolChoiceFunction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.tool.choice.allowed.required/client",
+        "${app}/gemini.request.tool.choice.allowed.required/server"})
+    public void shouldForwardGeminiRequestToolChoiceAllowedRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.tool.choice.allowed.auto/client",
+        "${app}/gemini.request.tool.choice.allowed.auto/server"})
+    public void shouldForwardGeminiRequestToolChoiceAllowedAuto() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.tool.choice.validated/client",
+        "${app}/gemini.request.tool.choice.validated/server"})
+    public void shouldForwardGeminiRequestToolChoiceValidated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.tool.choice.residue/client",
+        "${app}/gemini.request.tool.choice.residue/server"})
+    public void shouldForwardGeminiRequestToolChoiceResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.tool.choice.snake/client",
+        "${app}/gemini.request.tool.choice.snake/server"})
+    public void shouldForwardGeminiRequestToolChoiceSnake() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.tool.choice.mixed/client",
+        "${app}/gemini.request.tool.choice.mixed/server"})
+    public void shouldForwardGeminiRequestToolChoiceMixed() throws Exception
+    {
+        k3po.finish();
+    }
 }
