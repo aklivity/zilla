@@ -18,6 +18,8 @@ Status key: **implemented** is in the IDL, spec functions and runtime today;
   Dialect-specific members use the `<dialect>:<name>` prefix. (**implemented** for the
   text sections and for tool calls: the guard relays the bytes before the primary
   value as they arrive and the bytes after it once the chain has finished the value)
+- A member that belongs to one block rides inline in that block's section payload (see
+  [Block-level members](#block-level-members)), not in a `CONTROL` section.
 - Anything that a transform might need to adjust or exclude rides in **range
   attributes** (below), not in the body.
 - Response-level and request-level members that belong to no section ride in
@@ -37,7 +39,8 @@ A member carried as `<dialect>:<member>` is restored only by a client of that di
 other client. A member that two or more dialects have with the same meaning is carried as `x:<member>`
 instead. (**implemented** as the `x:` namespace in `LlmToolTransform`: `shared()`, `share()` and `reject()`;
 the sampling, tool choice, response format, reasoning, user and service tier members below are promoted for every
-dialect, the `gemini`, `anthropic` and `openai/responses` ones lifted out of their native containers)
+dialect, the `gemini`, `anthropic` and `openai/responses` ones lifted out of their native containers; the block-level
+members have their own section)
 
 - `x` is reserved as a dialect name. `LlmDialectFactory` refuses to register a dialect named `x`.
 - A decoder emits `x:<member>` in place of `<dialect>:<member>` for each member it understands, including a
@@ -348,6 +351,49 @@ the absence of the member. (**implemented** for `openai`, `openai/responses`, `a
 - **Unconfirmed.** On one `gemini` surface the valid wire syntax of the tier enum is not confirmed: an enum-style
   spelling such as `STANDARD` may be required there. The client writes the documented lowercase values (`standard`,
   `flex`, `priority`) and the decoder reads either case, so the written form is unconfirmed on that surface.
+
+### Block-level members
+
+A member that belongs to one block rides inline in that block's section payload, at depth 1 (a `TOOL_DEFINITION` keeps it
+inside `function`, beside `strict`). It is never a `CONTROL` section. (**implemented** for `anthropic`, which is the only
+dialect that carries them natively; every other client drops them where it has no equivalent)
+
+| Member | Section | `anthropic` | `openai`, `openai/responses`, `gemini` |
+|---|---|---|---|
+| `x:signature` | `ASSISTANT_REASONING` | `thinking` `signature`, request history and response | the reasoning section is skipped whole |
+| `x:redacted_data` | `ASSISTANT_REASONING` | `redacted_thinking` `data`, request history and response | the reasoning section is skipped whole |
+| `x:citations` | `USER_DOCUMENT` | document `citations` `{"enabled":true}` | dropped |
+| `prompt_cache_breakpoint` | `SYSTEM_INSTRUCTION`, `USER_TEXT`, `TOOL_RESULT`, `TOOL_CALL`, `SERVER_TOOL_CALL`, `TOOL_DEFINITION`, `USER_IMAGE`, `USER_DOCUMENT` | `cache_control` | dropped |
+| `function.strict` | `TOOL_DEFINITION` | `strict` | `openai` and `openai/responses` write it as the canonical member; `gemini` drops it |
+
+- **Signature and redacted data.** `x:signature` and `x:redacted_data` are opaque strings and the continuity token of the
+  `anthropic` family. A decoder of that family emits them in the reasoning payload and a client of that family writes them
+  back; every other client skips the reasoning section whole, as it does for `gemini:thoughtSignature` and
+  `openai:encrypted_content`, which stay prefixed. A client never converts a redacted block it cannot write natively.
+- **Citations.** `x:citations` is `{"enabled":true}`. A value that is not enabled is the absence of the member. The `anthropic`
+  client rejects a request that carries a document with `x:citations` and a `json_schema` `x:response_format`, in either
+  order of arrival (class B, `x:citations cannot be converted from <dialect> to anthropic`).
+- **Cache breakpoint.** `prompt_cache_breakpoint` is canonical, not `x:`: the OpenAI content-part member
+  `{"mode":"explicit","ttl":"<duration>"}`, with `ttl` a duration string (`90s`, `5m`, `1h`, `1d`). `anthropic` maps
+  `cache_control` `{"type":"ephemeral","ttl":"5m"|"1h"}` to it and back. A target writes the smallest ttl it offers that is at
+  least the requested one, else its largest (class C), and the provider default for an absent or malformed ttl; `anthropic`
+  offers `5m` and `1h`. A target stops marking at its own checkpoint limit (`anthropic` 4, counted over the whole request in
+  arrival order) and never rejects. A `mode` other than `explicit` and a `cache_control` `type` other than `ephemeral` are
+  dropped. Request-level `prompt_cache_options` and the `anthropic` top-level `cache_control` stay prefixed.
+- **Not placed.** The `openai` and `openai/responses` clients write a single text as a plain string `content`, and the
+  `gemini` client has no equivalent, so none of them writes `prompt_cache_breakpoint`; they drop it (no client of those
+  dialects decodes it either, so it is never produced for them).
+- **Strict.** The `anthropic` decoder maps tool `strict` to the canonical `function.strict`, the `anthropic` client writes it
+  back and `gemini` drops it.
+- **Marker after content.** An `anthropic` text block, a tool result and a system block carry `cache_control` after the text,
+  so the decoder withholds the closing `}` of the section payload and its `fin` flag until the next block begins (or the
+  tool result, the message or the request ends), and writes the member before the `}`. The text is never withheld: the
+  final piece of a text value is held only while the same input window can still show what follows, and is delivered before
+  the decoder yields. A marker that precedes the text is held in a small stash and written when the section opens. A block
+  level `cache_control` of a tool result is written on the last section of the block. The held `}` is reserved against the
+  application credit, so back-pressure delays it but never loses it; only when the credit is too small to keep holding is the
+  section closed early, and a marker that arrives later is dropped. A marker that follows `citations` has no section to join
+  and is dropped.
 
 ### Native containers
 
