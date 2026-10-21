@@ -53,9 +53,9 @@ write zilla:data.ext ${llm:dataEx()
                           .message(0)
                           .attribute("tool-name", "get_weather")
                           .attribute("tool-call-id", "call_1")
-                          .range(13)
+                          .range(8)
                           .rangeAttribute("test:a", "1")
-                          .range(11)
+                          .range(3)
                           .rangeOpen()
                           .build()}
 write "{\"arguments\":{\"city\":\"Pa"
@@ -64,7 +64,7 @@ write flush
 write option zilla:flags "fin"
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .range(6)
+                          .range(5)
                           .rangeAttribute("test:b", "2")
                           .build()}
 write "ris\"}}"

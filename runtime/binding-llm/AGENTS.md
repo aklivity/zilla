@@ -15,8 +15,9 @@ Status key: **implemented** is in the IDL, spec functions and runtime today;
 
 - Members that sit beside a section's primary value are **opaque**. A proxy relays
   them unmodified and in order. They are never presented to a guardrail stage.
-  Dialect-specific members use the `<dialect>:<name>` prefix. (planned for the text
-  guard, which currently collects them and re-emits them after the text)
+  Dialect-specific members use the `<dialect>:<name>` prefix. (**implemented** for the
+  text sections and for tool calls: the guard relays the bytes before the primary
+  value as they arrive and the bytes after it once the chain has finished the value)
 - Anything that a transform might need to adjust or exclude rides in **range
   attributes** (below), not in the body.
 - Response-level and request-level members that belong to no section ride in
@@ -39,6 +40,9 @@ a `closing` flag (default `1`) and a list of `LlmAttribute` (name, value). (the 
   - the `text` value of the six text sections, `SYSTEM_INSTRUCTION`, `USER_TEXT`,
     `ASSISTANT_TEXT`, `ASSISTANT_REASONING`, `ASSISTANT_REFUSAL` and `TOOL_RESULT`,
     in UTF-8 bytes of the **decoded** text, independent of JSON escaping;
+  - the `arguments` value of `TOOL_CALL` and `SERVER_TOOL_CALL`, in bytes of the JSON
+    value exactly as it is carried, so the bytes of the members around it are not
+    covered by any range;
   - every other section, in payload bytes.
 - A producer should align frames to its source's chunks, so one frame carries one
   range, and split a range only when credit forces it. A consumer must handle both.
@@ -52,8 +56,14 @@ later frame's extension carries only ranges, and is omitted when it has none.
 |---|---|
 | none | relayed with the frames |
 | `identity()` | **implemented**: relayed, re-cut to the output frames by cumulative byte count; parts of one range that leave in the same frame are merged |
-| not identity | **implemented**: dropped for the section |
-| not identity, bytes unchanged up to the first edit | planned: kept until the first byte that differs from the input, verified in lockstep, then dropped for the rest of the section |
+| not identity | **implemented**: kept until the first byte that differs from the input, then dropped for the rest of the section |
+
+A chain that is not identity is followed in lockstep: what it produces is compared, byte
+for byte, with what it consumed at the same position, however far its output lags its
+input. Ranges are kept while they match. A range that contains the first differing byte,
+and every range after it, is dropped, so a frame that holds that byte carries ranges only
+for the bytes before the range that contains it. A range that was left open by an earlier
+frame carries no attributes.
 
 Attributes that a stage could have changed are dropped, never forwarded. A later
 refinement may let a stage report omitted, injected and retained bytes per range so
@@ -65,19 +75,30 @@ and are dropped for the rest of the section once they exceed it.
 ## Per section type
 
 The **model-visible value** is what a guardrail stage inspects. Everything else in
-the section passes through. (planned; the guard currently passes the whole payload
-of non-text sections to the stage)
+the section passes through. (**implemented** for the text sections, tool calls and
+media; the guard currently passes the whole payload of every other section to the
+stage)
 
 | Section | Model-visible value | Streaming | Non-streaming |
 |---|---|---|---|
 | `SYSTEM_INSTRUCTION`, `USER_TEXT`, `TOOL_RESULT` | `text` | request side, whole | request side, whole |
 | `ASSISTANT_TEXT`, `ASSISTANT_REASONING`, `ASSISTANT_REFUSAL` | `text` | one section, one range per delta | one section, one range |
 | `TOOL_CALL`, `SERVER_TOOL_CALL` | `arguments` (the JSON value), the same value mcp(proxy) validates for `tools/call` | partial JSON fragments in frames, one range per delta | one frame, one range |
-| `USER_IMAGE`, `USER_DOCUMENT`, `USER_AUDIO`, `USER_VIDEO` | the decoded media data, **verdict-only** (`identity()` stages); a URL reference is not inspected | request side, whole (may be split by credit) | same |
+| `USER_IMAGE`, `USER_DOCUMENT`, `USER_AUDIO`, `USER_VIDEO` | the decoded media data, **verdict-only**; a URL reference is not inspected | request side, whole (may be split by credit) | same |
 | `TOOL_DEFINITION`, `SERVER_TOOL_DEFINITION` | none | request side, whole | same |
 | `SERVER_TOOL_RESULT` | none yet | not covered | whole |
 | `CITATIONS` | none; every member is prefixed | not covered | request history only today |
 | `CONTROL` | none; bypasses guardrails | one section per member | same |
+
+The media data is the base64 in `image_url.url` (a `data:` URI that declares base64),
+`file.file_data` (a `data:` URI that declares base64), `input_audio.data` and
+`input_video.data` (base64 on its own). A `data:` URI without base64 and any URL or file
+id reference are not inspected, and the chain is not started for them. The chain is
+presented the decoded bytes, with `init` on its first fragment and `fin` once the value
+has ended, and only its verdict applies: what it produces is discarded and the bytes of
+the section are relayed unmodified. The bytes that carry the end of the media wait for
+the verdict, so a rejected section never completes downstream. Base64 that cannot be
+decoded rejects the section. Ranges are in payload bytes.
 
 Streaming and non-streaming differ only in how many frames and ranges carry the same
 section. The section type, body shape and members are identical.

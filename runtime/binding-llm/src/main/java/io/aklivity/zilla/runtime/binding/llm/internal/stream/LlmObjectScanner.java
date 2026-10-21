@@ -18,10 +18,10 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
-final class LlmTextObjectScanner
+final class LlmObjectScanner
 {
     static final int PREFIX = 0;
-    static final int TEXT = 1;
+    static final int VALUE = 1;
     static final int SUFFIX = 2;
     static final int TAIL = 3;
 
@@ -34,7 +34,8 @@ final class LlmTextObjectScanner
     private static final int STATE_AFTER = 6;
     private static final int STATE_END = 7;
 
-    private static final byte[] TEXT_KEY = "text".getBytes(UTF_8);
+    private final byte[] key;
+    private final boolean quoted;
 
     private int region;
     private int state;
@@ -43,10 +44,51 @@ final class LlmTextObjectScanner
     private int depth;
     private boolean inString;
     private boolean escaped;
+    private boolean valueStarted;
+    private boolean scalar;
+
+    static LlmObjectScanner text()
+    {
+        return string("text");
+    }
+
+    static LlmObjectScanner string(
+        String key)
+    {
+        return new LlmObjectScanner(key.getBytes(UTF_8), true);
+    }
+
+    static LlmObjectScanner member(
+        String key)
+    {
+        return new LlmObjectScanner(key.getBytes(UTF_8), false);
+    }
+
+    private LlmObjectScanner(
+        byte[] key,
+        boolean quoted)
+    {
+        this.key = key;
+        this.quoted = quoted;
+    }
 
     int region()
     {
         return region;
+    }
+
+    void copy(
+        LlmObjectScanner from)
+    {
+        region = from.region;
+        state = from.state;
+        keyLength = from.keyLength;
+        keyMatches = from.keyMatches;
+        depth = from.depth;
+        inString = from.inString;
+        escaped = from.escaped;
+        valueStarted = from.valueStarted;
+        scalar = from.scalar;
     }
 
     void settle()
@@ -63,6 +105,8 @@ final class LlmTextObjectScanner
         depth = 0;
         inString = false;
         escaped = false;
+        valueStarted = false;
+        scalar = false;
     }
 
     int scan(
@@ -79,23 +123,105 @@ final class LlmTextObjectScanner
             {
                 prefix(buffer.getByte(index++));
             }
-            break;
-        case TEXT:
-            while (index < limit && region == TEXT)
-            {
-                final byte value = buffer.getByte(index);
 
+            if (region == VALUE && !quoted)
+            {
+                index--;
+            }
+            break;
+        case VALUE:
+            if (quoted)
+            {
+                index = scanText(buffer, index, limit);
+            }
+            else
+            {
+                index = scanMember(buffer, index, limit);
+            }
+            break;
+        default:
+            index = limit;
+            break;
+        }
+
+        return index;
+    }
+
+    private int scanText(
+        DirectBufferEx buffer,
+        int from,
+        int limit)
+    {
+        int index = from;
+
+        while (index < limit && region == VALUE)
+        {
+            final byte value = buffer.getByte(index);
+
+            if (escaped)
+            {
+                escaped = false;
+                index++;
+            }
+            else if (value == '\\')
+            {
+                escaped = true;
+                index++;
+            }
+            else if (value == '"')
+            {
+                region = SUFFIX;
+            }
+            else
+            {
+                index++;
+            }
+        }
+
+        return index;
+    }
+
+    private int scanMember(
+        DirectBufferEx buffer,
+        int from,
+        int limit)
+    {
+        int index = from;
+
+        while (index < limit && region == VALUE)
+        {
+            final byte value = buffer.getByte(index);
+
+            if (!valueStarted)
+            {
+                valueStarted = true;
+                inString = value == '"';
+                scalar = !inString && value != '{' && value != '[';
+                depth = value == '{' || value == '[' ? 1 : 0;
+                escaped = false;
+                index++;
+            }
+            else if (inString)
+            {
                 if (escaped)
                 {
                     escaped = false;
-                    index++;
                 }
                 else if (value == '\\')
                 {
                     escaped = true;
-                    index++;
                 }
                 else if (value == '"')
+                {
+                    inString = false;
+                    region = depth == 0 ? SUFFIX : region;
+                }
+
+                index++;
+            }
+            else if (scalar)
+            {
+                if (value == ',' || value == '}' || value == ']' || isWhitespace(value))
                 {
                     region = SUFFIX;
                 }
@@ -104,10 +230,24 @@ final class LlmTextObjectScanner
                     index++;
                 }
             }
-            break;
-        default:
-            index = limit;
-            break;
+            else
+            {
+                if (value == '"')
+                {
+                    inString = true;
+                }
+                else if (value == '{' || value == '[')
+                {
+                    depth++;
+                }
+                else if (value == '}' || value == ']')
+                {
+                    depth--;
+                    region = depth == 0 ? SUFFIX : region;
+                }
+
+                index++;
+            }
         }
 
         return index;
@@ -174,12 +314,12 @@ final class LlmTextObjectScanner
         }
         else if (value == '"')
         {
-            keyMatches &= keyLength == TEXT_KEY.length;
+            keyMatches &= keyLength == key.length;
             state = STATE_COLON;
         }
         else
         {
-            keyMatches &= keyLength < TEXT_KEY.length && value == TEXT_KEY[keyLength];
+            keyMatches &= keyLength < key.length && value == key[keyLength];
             keyLength++;
         }
     }
@@ -187,10 +327,11 @@ final class LlmTextObjectScanner
     private void valueOpen(
         byte value)
     {
-        if (value == '"' && keyMatches)
+        if (keyMatches && (quoted ? value == '"' : !isWhitespace(value)))
         {
-            region = TEXT;
+            region = VALUE;
             escaped = false;
+            valueStarted = false;
         }
         else if (value == '"' || value == '{' || value == '[')
         {
@@ -199,7 +340,7 @@ final class LlmTextObjectScanner
             escaped = false;
             state = STATE_SKIP;
         }
-        else if (value != ' ' && value != '\t' && value != '\r' && value != '\n')
+        else if (!isWhitespace(value))
         {
             inString = false;
             depth = 0;
@@ -247,5 +388,11 @@ final class LlmTextObjectScanner
         {
             state = STATE_END;
         }
+    }
+
+    private static boolean isWhitespace(
+        byte value)
+    {
+        return value == ' ' || value == '\t' || value == '\r' || value == '\n';
     }
 }

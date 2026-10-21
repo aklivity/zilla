@@ -44,18 +44,25 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .model(model)
                            .build()}
 
+read option zilla:flags "init"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("TOOL_CALL")
                           .message(0)
                           .attribute("tool-name", "get_weather")
                           .attribute("tool-call-id", "call_1")
-                          .range(13)
+                          .build()}
+read "{\"arguments\":"
+
+read option zilla:flags "fin"
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .range(8)
                           .rangeAttribute("test:a", "1")
-                          .range(17)
+                          .range(8)
                           .rangeAttribute("test:b", "2")
                           .build()}
-read "{\"arguments\":{\"city\":\"Paris\"}}"
+read "{\"city\":\"Paris\"}}"
 
 read closed
 

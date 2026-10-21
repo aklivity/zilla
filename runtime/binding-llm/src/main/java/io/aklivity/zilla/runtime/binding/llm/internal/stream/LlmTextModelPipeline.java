@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 
-import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionType;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -37,12 +36,16 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
     private static final int ESCAPE_EXPANSION = 6;
     private static final DirectBufferEx EMPTY_TEXT = new UnsafeBufferEx(new byte[0]);
 
+    private static final int LAG_CAPACITY = 1 << 16;
+
     private final ModelPipeline pipeline;
+    private final boolean identity;
+    private final LlmLockstep lockstep;
     private final BufferPool pool;
     private final long streamId;
     private final MutableDirectBufferEx transformBuffer;
     private final LlmTextPipeline decoder;
-    private final LlmTextObjectScanner scanner;
+    private final LlmObjectScanner scanner;
     private final JsonGeneratorEx generator;
     private final MutableDirectBufferEx primerBuffer;
     private final ModelPipelineResult result;
@@ -56,6 +59,7 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
     private int textProduced;
     private ModelStatus textStatus;
     private int values;
+    private int matched;
 
     LlmTextModelPipeline(
         ModelPipeline pipeline,
@@ -65,24 +69,18 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
         boolean optional)
     {
         this.pipeline = pipeline;
+        this.identity = pipeline.identity();
+        this.lockstep = new LlmLockstep(LAG_CAPACITY);
         this.pool = pool;
         this.streamId = streamId;
         this.transformBuffer = transformBuffer;
         this.slot = NO_SLOT;
         this.decoder = new LlmTextPipeline(this::onText, optional);
-        this.scanner = new LlmTextObjectScanner();
+        this.scanner = LlmObjectScanner.text();
         this.generator = JsonEx.createGenerator();
         this.primerBuffer = new UnsafeBufferEx(new byte[16]);
         this.result = new ModelPipelineResult();
         begin();
-    }
-
-    static boolean objectShaped(
-        LlmSectionType type)
-    {
-        return type == LlmSectionType.SYSTEM_INSTRUCTION || type == LlmSectionType.USER_TEXT ||
-            type == LlmSectionType.ASSISTANT_TEXT || type == LlmSectionType.ASSISTANT_REFUSAL ||
-            type == LlmSectionType.ASSISTANT_REASONING || type == LlmSectionType.TOOL_RESULT;
     }
 
     @Override
@@ -113,12 +111,13 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
         boolean stopped = false;
 
         values = 0;
+        matched = 0;
 
         while (!stopped && position < srcLimit)
         {
             final int region = scanner.region();
 
-            if (region == LlmTextObjectScanner.TEXT)
+            if (region == LlmObjectScanner.VALUE)
             {
                 final int end = scanner.scan(src, position, srcLimit);
 
@@ -130,7 +129,7 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
 
                 position = end;
             }
-            else if (region == LlmTextObjectScanner.SUFFIX)
+            else if (region == LlmObjectScanner.SUFFIX)
             {
                 decoder.feed(src, position, 1, false);
                 finishText(traceId, bindingId, authorization, dst, dstIndex + produced, dstLimit);
@@ -147,7 +146,7 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
                 dst.putBytes(dstIndex + produced, src, position, end - position);
                 produced += end - position;
 
-                if (region == LlmTextObjectScanner.PREFIX && !feed(src, position, end - position))
+                if (region == LlmObjectScanner.PREFIX && !feed(src, position, end - position))
                 {
                     status = ModelStatus.REJECTED;
                     stopped = true;
@@ -158,7 +157,7 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
             }
         }
 
-        if (!stopped && scanner.region() != LlmTextObjectScanner.TAIL && textLength > textProgress)
+        if (!stopped && scanner.region() != LlmObjectScanner.TAIL && textLength > textProgress)
         {
             transformText(traceId, bindingId, authorization, 0, dst, dstIndex + produced, dstLimit);
 
@@ -172,7 +171,7 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
         }
         else if (sectionFin && !stopped && status != ModelStatus.REJECTED && status != ModelStatus.OVERFLOW)
         {
-            if (scanner.region() != LlmTextObjectScanner.TAIL)
+            if (scanner.region() != LlmObjectScanner.TAIL)
             {
                 finishText(traceId, bindingId, authorization, dst, dstIndex + produced, dstLimit);
 
@@ -201,8 +200,9 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
         ModelStatus status = ModelStatus.COMPLETE;
 
         values = 0;
+        matched = 0;
 
-        if (scanner.region() != LlmTextObjectScanner.TAIL)
+        if (scanner.region() != LlmObjectScanner.TAIL)
         {
             finishText(traceId, bindingId, authorization, dst, dstIndex, dstLimit);
 
@@ -232,6 +232,18 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
     }
 
     @Override
+    public int matched()
+    {
+        return matched;
+    }
+
+    @Override
+    public boolean diverged()
+    {
+        return !identity && lockstep.diverged();
+    }
+
+    @Override
     public int closeWidth()
     {
         return 0;
@@ -249,6 +261,7 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
     {
         decoder.begin();
         scanner.begin();
+        lockstep.begin();
         textLength = 0;
         textProgress = 0;
         started = false;
@@ -297,6 +310,12 @@ final class LlmTextModelPipeline implements LlmGuardPipeline
 
         final ModelPipelineResult inner = pipeline.transform(traceId, bindingId, authorization, innerFlags,
             slot != NO_SLOT ? slotBuffer : EMPTY_TEXT, textProgress, textLength, transformBuffer, 0, room);
+
+        if (!identity)
+        {
+            lockstep.consumed(slot != NO_SLOT ? slotBuffer : EMPTY_TEXT, textProgress, inner.consumed());
+            matched += lockstep.produced(transformBuffer, 0, inner.produced());
+        }
 
         textProgress += inner.consumed();
         values += inner.produced();

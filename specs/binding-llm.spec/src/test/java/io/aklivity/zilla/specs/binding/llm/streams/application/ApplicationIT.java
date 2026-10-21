@@ -425,18 +425,36 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/openai.proxy.guardrail.ranges.transformed/client",
-        "${app}/openai.proxy.guardrail.ranges.transformed/server"})
-    public void shouldGuardOpenaiRangesTransformedNet() throws Exception
+        "${app}/openai.proxy.guardrail.ranges.mask.unchanged/client",
+        "${app}/openai.proxy.guardrail.ranges.mask.unchanged/server"})
+    public void shouldGuardOpenaiRangesMaskUnchangedNet() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/openai.proxy.guardrail.ranges.transformed.exit/client",
-        "${app}/openai.proxy.guardrail.ranges.transformed.exit/server"})
-    public void shouldGuardOpenaiRangesTransformedExit() throws Exception
+        "${app}/openai.proxy.guardrail.ranges.mask.changed/client",
+        "${app}/openai.proxy.guardrail.ranges.mask.changed/server"})
+    public void shouldGuardOpenaiRangesMaskChangedNet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.ranges.mask.unchanged.exit/client",
+        "${app}/openai.proxy.guardrail.ranges.mask.unchanged.exit/server"})
+    public void shouldGuardOpenaiRangesMaskUnchangedExit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.ranges.mask.changed.exit/client",
+        "${app}/openai.proxy.guardrail.ranges.mask.changed.exit/server"})
+    public void shouldGuardOpenaiRangesMaskChangedExit() throws Exception
     {
         k3po.finish();
     }
@@ -518,6 +536,78 @@ public class ApplicationIT
         "${app}/openai.proxy.guardrail.response.accepted.tool.call/client",
         "${app}/openai.proxy.guardrail.response.accepted.tool.call/server"})
     public void shouldGuardOpenaiResponseAcceptedToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.accepted.tool.call.member/client",
+        "${app}/openai.proxy.guardrail.response.accepted.tool.call.member/server"})
+    public void shouldGuardOpenaiResponseAcceptedToolCallMember() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.media.accepted/client",
+        "${app}/openai.proxy.guardrail.media.accepted/server"})
+    public void shouldGuardOpenaiMediaAccepted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.media.url.accepted/client",
+        "${app}/openai.proxy.guardrail.media.url.accepted/server"})
+    public void shouldGuardOpenaiMediaUrlAccepted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.tool.definition.accepted/client",
+        "${app}/openai.proxy.guardrail.tool.definition.accepted/server"})
+    public void shouldGuardOpenaiToolDefinitionAccepted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.media.image.rejected/client",
+        "${app}/openai.proxy.guardrail.media.image.rejected/server"})
+    public void shouldGuardOpenaiMediaImageRejected() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.media.image.rejected.exit/client",
+        "${app}/openai.proxy.guardrail.media.image.rejected.exit/server"})
+    public void shouldGuardOpenaiMediaImageRejectedExit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.media.audio.rejected/client",
+        "${app}/openai.proxy.guardrail.media.audio.rejected/server"})
+    public void shouldGuardOpenaiMediaAudioRejected() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.media.audio.rejected.exit/client",
+        "${app}/openai.proxy.guardrail.media.audio.rejected.exit/server"})
+    public void shouldGuardOpenaiMediaAudioRejectedExit() throws Exception
     {
         k3po.finish();
     }
@@ -3362,6 +3452,24 @@ public class ApplicationIT
         "${app}/openai.proxy.guardrail.response.transformed.tool.call.exit/client",
         "${app}/openai.proxy.guardrail.response.transformed.tool.call.exit/server"})
     public void shouldGuardOpenaiResponseTransformedToolCallExit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.transformed.tool.call.member/client",
+        "${app}/openai.proxy.guardrail.response.transformed.tool.call.member/server"})
+    public void shouldGuardOpenaiResponseTransformedToolCallMemberNet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.transformed.tool.call.member.exit/client",
+        "${app}/openai.proxy.guardrail.response.transformed.tool.call.member.exit/server"})
+    public void shouldGuardOpenaiResponseTransformedToolCallMemberExit() throws Exception
     {
         k3po.finish();
     }
