@@ -53,7 +53,7 @@ public class LlmFunctionsTest
     {
         byte[] bytes = LlmFunctions.beginEx()
             .typeId(0)
-            .dialect("openai")
+            .dialect("openai/ccs")
             .contentType("application/json")
             .model("gpt-x")
             .build();
@@ -66,7 +66,7 @@ public class LlmFunctionsTest
     {
         byte[] bytes = LlmFunctions.beginEx()
             .typeId(0)
-            .dialect("openai")
+            .dialect("openai/ccs")
             .build();
 
         assertNotNull(bytes);
@@ -77,7 +77,7 @@ public class LlmFunctionsTest
     {
         BytesMatcher matcher = LlmFunctions.matchBeginEx()
             .typeId(0)
-            .dialect("openai")
+            .dialect("openai/ccs")
             .contentType("application/json")
             .model("gpt-x")
             .build();
@@ -87,7 +87,7 @@ public class LlmFunctionsTest
         new LlmBeginExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .dialect("openai")
+            .dialect("openai/ccs")
             .contentType("application/json")
             .model("gpt-x")
             .build();
@@ -100,7 +100,7 @@ public class LlmFunctionsTest
     {
         BytesMatcher matcher = LlmFunctions.matchBeginEx()
             .typeId(0)
-            .dialect("openai")
+            .dialect("openai/ccs")
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
@@ -841,13 +841,13 @@ public class LlmFunctionsTest
     {
         BytesMatcher matcher = LlmFunctions.matchBeginEx()
             .typeId(0)
-            .dialect("openai")
+            .dialect("openai/ccs")
             .extension("ext")
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.beginEx()
             .typeId(0)
-            .dialect("openai")
+            .dialect("openai/ccs")
             .extension("ext")
             .build());
 
@@ -859,13 +859,13 @@ public class LlmFunctionsTest
     {
         BytesMatcher matcher = LlmFunctions.matchBeginEx()
             .typeId(0)
-            .dialect("openai")
+            .dialect("openai/ccs")
             .extensionNull()
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.beginEx()
             .typeId(0)
-            .dialect("openai")
+            .dialect("openai/ccs")
             .build());
 
         assertNotNull(matcher.match(byteBuf));
@@ -876,13 +876,13 @@ public class LlmFunctionsTest
     {
         BytesMatcher matcher = LlmFunctions.matchBeginEx()
             .typeId(0)
-            .dialect("openai")
+            .dialect("openai/ccs")
             .extension("a")
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.beginEx()
             .typeId(0)
-            .dialect("openai")
+            .dialect("openai/ccs")
             .extension("b")
             .build());
 
@@ -1757,7 +1757,7 @@ public class LlmFunctionsTest
     {
         byte[] bytes = LlmFunctions.beginEx()
             .typeId(0)
-            .dialect("openai")
+            .dialect("openai/ccs")
             .model("gpt-x")
             .id("chatcmpl_1")
             .build();
@@ -1783,7 +1783,7 @@ public class LlmFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.beginEx()
             .typeId(0)
-            .dialect("openai")
+            .dialect("openai/ccs")
             .id("b")
             .build());
 
@@ -1795,7 +1795,7 @@ public class LlmFunctionsTest
     {
         byte[] bytes = LlmFunctions.beginEx()
             .typeId(0)
-            .dialect("openai")
+            .dialect("openai/ccs")
             .build();
 
         LlmBeginExFW beginEx = new LlmBeginExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
@@ -1808,7 +1808,7 @@ public class LlmFunctionsTest
     {
         byte[] bytes = LlmFunctions.beginEx()
             .typeId(0)
-            .dialect("openai")
+            .dialect("openai/ccs")
             .model("gpt-x")
             .attribute("test:flavor", "mild")
             .attribute("test:level", "2")
@@ -1816,7 +1816,7 @@ public class LlmFunctionsTest
 
         LlmBeginExFW beginEx = new LlmBeginExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
 
-        assertEquals("openai", beginEx.dialect().asString());
+        assertEquals("openai/ccs", beginEx.dialect().asString());
         assertEquals("gpt-x", beginEx.model().asString());
         assertEquals(Map.of("test:flavor", "mild", "test:level", "2"), attributesOf(beginEx));
     }
@@ -1842,14 +1842,14 @@ public class LlmFunctionsTest
     {
         BytesMatcher matcher = LlmFunctions.matchBeginEx()
             .typeId(0)
-            .dialect("openai")
+            .dialect("openai/ccs")
             .attribute("test:flavor", "mild")
             .attribute("test:level", "2")
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.beginEx()
             .typeId(0)
-            .dialect("openai")
+            .dialect("openai/ccs")
             .attribute("test:flavor", "mild")
             .attribute("test:level", "2")
             .build());
@@ -1868,7 +1868,7 @@ public class LlmFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.beginEx()
             .typeId(0)
-            .dialect("openai")
+            .dialect("openai/ccs")
             .attribute("test:flavor", "mild")
             .attribute("test:level", "2")
             .build());
@@ -1881,12 +1881,12 @@ public class LlmFunctionsTest
     {
         BytesMatcher matcher = LlmFunctions.matchBeginEx()
             .typeId(0)
-            .dialect("openai")
+            .dialect("openai/ccs")
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.beginEx()
             .typeId(0)
-            .dialect("openai")
+            .dialect("openai/ccs")
             .attribute("test:flavor", "mild")
             .build());
 
@@ -1903,7 +1903,7 @@ public class LlmFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.beginEx()
             .typeId(0)
-            .dialect("openai")
+            .dialect("openai/ccs")
             .attribute("test:flavor", "mild")
             .attribute("test:level", "2")
             .build());
@@ -1922,7 +1922,7 @@ public class LlmFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.beginEx()
             .typeId(0)
-            .dialect("openai")
+            .dialect("openai/ccs")
             .attribute("test:flavor", "mild")
             .build());
 
@@ -1939,7 +1939,7 @@ public class LlmFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.beginEx()
             .typeId(0)
-            .dialect("openai")
+            .dialect("openai/ccs")
             .build());
 
         assertThrows(Exception.class, () -> matcher.match(byteBuf));
@@ -1955,7 +1955,7 @@ public class LlmFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.beginEx()
             .typeId(0)
-            .dialect("openai")
+            .dialect("openai/ccs")
             .attribute("test:flavor", "sharp")
             .build());
 
@@ -2019,7 +2019,7 @@ public class LlmFunctionsTest
     {
         final byte[] beginEx = LlmFunctions.beginEx()
             .typeId(0)
-            .dialect("openai")
+            .dialect("openai/ccs")
             .build();
 
         final BytesMatcher matcher = LlmFunctions.matchBeginEx()

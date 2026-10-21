@@ -1486,7 +1486,7 @@ public class LlmAnthropicServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"anthropic\"", "target \"openai\"", "reason \"openai:max_messages\""})
+    @ScriptProperty({"source \"anthropic\"", "target \"openai/ccs\"", "reason \"openai/rs:max_messages\""})
     @Specification({
         "${net}/anthropic.transform.response.text/client",
         "${app}/transform.response.finish.reason/server"})
@@ -1508,7 +1508,7 @@ public class LlmAnthropicServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"anthropic\"", "target \"openai/responses\""})
+    @ScriptProperty({"source \"anthropic\"", "target \"openai/rs\""})
     @Specification({
         "${net}/anthropic.transform.response.text/client",
         "${app}/openai.responses.transform.response.text/server"})
@@ -1519,7 +1519,7 @@ public class LlmAnthropicServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"anthropic\"", "target \"openai/responses\""})
+    @ScriptProperty({"source \"anthropic\"", "target \"openai/rs\""})
     @Specification({
         "${net}/anthropic.transform.response.reasoning/client",
         "${app}/openai.responses.transform.response.reasoning/server"})
@@ -1530,7 +1530,7 @@ public class LlmAnthropicServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"anthropic\"", "target \"openai/responses\""})
+    @ScriptProperty({"source \"anthropic\"", "target \"openai/rs\""})
     @Specification({
         "${net}/anthropic.transform.response.tool.call/client",
         "${app}/openai.responses.transform.response.tool.call/server"})
@@ -1541,7 +1541,7 @@ public class LlmAnthropicServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"anthropic\"", "target \"openai/responses\""})
+    @ScriptProperty({"source \"anthropic\"", "target \"openai/rs\""})
     @Specification({
         "${net}/anthropic.transform.response.tool.calls/client",
         "${app}/openai.responses.transform.response.tool.calls/server"})
@@ -1552,7 +1552,7 @@ public class LlmAnthropicServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"anthropic\"", "target \"openai/responses\""})
+    @ScriptProperty({"source \"anthropic\"", "target \"openai/rs\""})
     @Specification({
         "${net}/anthropic.transform.response.text.and.tool.call/client",
         "${app}/openai.responses.transform.response.text.and.tool.call/server"})
@@ -1563,7 +1563,7 @@ public class LlmAnthropicServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"anthropic\"", "target \"openai/responses\""})
+    @ScriptProperty({"source \"anthropic\"", "target \"openai/rs\""})
     @Specification({
         "${net}/anthropic.transform.response.tool.call.empty/client",
         "${app}/openai.responses.transform.response.tool.call.empty/server"})
@@ -1574,7 +1574,7 @@ public class LlmAnthropicServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"anthropic\"", "target \"openai/responses\"", "reason \"openai:max_messages\""})
+    @ScriptProperty({"source \"anthropic\"", "target \"openai/rs\"", "reason \"openai/rs:max_messages\""})
     @Specification({
         "${net}/anthropic.transform.response.text/client",
         "${app}/transform.response.finish.reason/server"})

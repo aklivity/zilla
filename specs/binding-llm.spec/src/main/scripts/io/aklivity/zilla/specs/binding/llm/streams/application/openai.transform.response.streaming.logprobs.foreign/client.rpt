@@ -19,7 +19,7 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${llm:beginEx()
                           .typeId(zilla:id("llm"))
-                          .dialect("openai")
+                          .dialect("openai/ccs")
                           .model("gpt-4")
                           .build()}
 
@@ -38,7 +38,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:logprobs\":true}"
+write "{\"openai/ccs:logprobs\":true}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()

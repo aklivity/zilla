@@ -1488,7 +1488,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai/responses\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/rs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.user.text/client",
         "${net}/anthropic.transform.user.text/server"})
@@ -1499,7 +1499,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai/responses\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/rs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.system.instruction/client",
         "${net}/anthropic.transform.system.instruction/server"})
@@ -1510,7 +1510,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai/responses\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/rs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.assistant.text/client",
         "${net}/anthropic.transform.assistant.text/server"})
@@ -1521,7 +1521,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai/responses\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/rs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.tool.definition/client",
         "${net}/anthropic.transform.tool.definition/server"})
@@ -1532,7 +1532,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai/responses\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/rs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.assistant.tool.call/client",
         "${net}/anthropic.transform.assistant.tool.call/server"})
@@ -1543,7 +1543,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai/responses\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/rs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.tool.result/client",
         "${net}/anthropic.transform.tool.result/server"})
@@ -1554,7 +1554,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai/responses\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/rs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.user.image/client",
         "${net}/anthropic.transform.user.image/server"})
@@ -1565,7 +1565,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai/responses\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/rs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.user.document.inline/client",
         "${net}/anthropic.transform.user.document.inline/server"})
@@ -1576,7 +1576,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai/responses\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/rs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.mixed.content/client",
         "${net}/anthropic.transform.mixed.content/server"})
@@ -1587,7 +1587,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai/responses\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/rs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.request.max.output.tokens/client",
         "${net}/anthropic.transform.request.max.output.tokens/server"})
@@ -1598,7 +1598,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai/responses\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/rs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.assistant.text.and.tool.call/client",
         "${net}/anthropic.transform.assistant.text.and.tool.call/server"})
@@ -1609,7 +1609,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai/responses\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/rs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.rejected.user.video/client",
         "${net}/anthropic.transform.rejected.user.video/server"})
@@ -1724,7 +1724,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.request.sampling/client",
         "${net}/anthropic.transform.request.sampling/server"})
@@ -1746,7 +1746,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.request.sampling.top.k/client",
         "${net}/anthropic.transform.request.sampling.top.k/server"})
@@ -1768,7 +1768,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.request.sampling.stop/client",
         "${net}/anthropic.transform.request.sampling.stop/server"})
@@ -1790,7 +1790,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.request.sampling.seed/client",
         "${net}/anthropic.transform.request.max.output.tokens/server"})
@@ -1801,7 +1801,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.request.sampling.penalties/client",
         "${net}/anthropic.transform.request.max.output.tokens/server"})
@@ -1812,7 +1812,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.request.sampling.clamp/client",
         "${net}/anthropic.transform.request.sampling.clamp/server"})
@@ -1856,7 +1856,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.request.tool.choice.auto/client",
         "${net}/anthropic.transform.request.tool.choice.auto/server"})
@@ -1878,7 +1878,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.request.tool.choice.required/client",
         "${net}/anthropic.transform.request.tool.choice.required/server"})
@@ -1900,7 +1900,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.request.tool.choice.none/client",
         "${net}/anthropic.transform.request.tool.choice.none/server"})
@@ -1922,7 +1922,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.request.tool.choice.function/client",
         "${net}/anthropic.transform.request.tool.choice.function/server"})
@@ -1944,7 +1944,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.request.tool.choice.parallel/client",
         "${net}/anthropic.transform.request.tool.choice.parallel/server"})
@@ -1966,7 +1966,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.request.tool.choice.parallel.true/client",
         "${net}/anthropic.transform.request.tool.choice.parallel.true/server"})
@@ -1988,7 +1988,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.request.tool.choice.choice.parallel/client",
         "${net}/anthropic.transform.request.tool.choice.choice.parallel/server"})
@@ -2010,7 +2010,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.request.tool.choice.parallel.first/client",
         "${net}/anthropic.transform.request.tool.choice.parallel.first/server"})
@@ -2032,7 +2032,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.request.tool.choice.none.parallel/client",
         "${net}/anthropic.transform.request.tool.choice.none.parallel/server"})
@@ -2054,7 +2054,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.rejected.tool.choice.allowed/client",
         "${net}/anthropic.transform.rejected.tool.choice/server"})
@@ -2076,7 +2076,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.rejected.tool.choice.value/client",
         "${net}/anthropic.transform.rejected.tool.choice/server"})
@@ -2218,7 +2218,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.request.response.format.text/client",
         "${net}/anthropic.transform.request.response.format.text/server"})
@@ -2240,7 +2240,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.request.response.format.json.schema/client",
         "${net}/anthropic.transform.request.response.format.json.schema/server"})
@@ -2262,7 +2262,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.request.response.format.json.schema.names/client",
         "${net}/anthropic.transform.request.response.format.json.schema.names/server"})
@@ -2284,7 +2284,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.request.response.format.json.schema.type.last/client",
         "${net}/anthropic.transform.request.response.format.json.schema/server"})
@@ -2306,7 +2306,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.rejected.response.format.json.object/client",
         "${net}/anthropic.transform.rejected.tool.choice/server"})
@@ -2317,7 +2317,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.rejected.response.format.type/client",
         "${net}/anthropic.transform.rejected.tool.choice/server"})
@@ -2328,7 +2328,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.rejected.response.format.keyword.minimum/client",
         "${net}/anthropic.transform.rejected.tool.choice/server"})
@@ -2339,7 +2339,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.rejected.response.format.keyword.min.length/client",
         "${net}/anthropic.transform.rejected.tool.choice/server"})
@@ -2350,7 +2350,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.rejected.response.format.keyword.max.items/client",
         "${net}/anthropic.transform.rejected.tool.choice/server"})
@@ -2361,7 +2361,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.rejected.response.format.keyword.min.items/client",
         "${net}/anthropic.transform.rejected.tool.choice/server"})
@@ -2372,7 +2372,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.rejected.response.format.keyword.external.ref/client",
         "${net}/anthropic.transform.rejected.tool.choice/server"})
@@ -2383,7 +2383,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.rejected.response.format.keyword.recursive.ref/client",
         "${net}/anthropic.transform.rejected.tool.choice/server"})
@@ -2394,7 +2394,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\"", "effort \"low\"", "wire \"low\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\"", "effort \"low\"", "wire \"low\""})
     @Specification({
         "${app}/transform.request.reasoning.effort/client",
         "${net}/anthropic.transform.request.reasoning.effort/server"})
@@ -2405,7 +2405,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\"", "effort \"medium\"", "wire \"medium\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\"", "effort \"medium\"", "wire \"medium\""})
     @Specification({
         "${app}/transform.request.reasoning.effort/client",
         "${net}/anthropic.transform.request.reasoning.effort/server"})
@@ -2416,7 +2416,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\"", "effort \"high\"", "wire \"high\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\"", "effort \"high\"", "wire \"high\""})
     @Specification({
         "${app}/transform.request.reasoning.effort/client",
         "${net}/anthropic.transform.request.reasoning.effort/server"})
@@ -2427,7 +2427,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\"", "effort \"xhigh\"", "wire \"xhigh\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\"", "effort \"xhigh\"", "wire \"xhigh\""})
     @Specification({
         "${app}/transform.request.reasoning.effort/client",
         "${net}/anthropic.transform.request.reasoning.effort/server"})
@@ -2438,7 +2438,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\"", "effort \"max\"", "wire \"max\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\"", "effort \"max\"", "wire \"max\""})
     @Specification({
         "${app}/transform.request.reasoning.effort/client",
         "${net}/anthropic.transform.request.reasoning.effort/server"})
@@ -2449,7 +2449,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\"", "effort \"minimal\"", "wire \"low\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\"", "effort \"minimal\"", "wire \"low\""})
     @Specification({
         "${app}/transform.request.reasoning.effort/client",
         "${net}/anthropic.transform.request.reasoning.effort/server"})
@@ -2460,7 +2460,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\"", "effort \"none\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\"", "effort \"none\""})
     @Specification({
         "${app}/transform.request.reasoning.effort/client",
         "${net}/anthropic.transform.request.reasoning.disabled/server"})
@@ -2471,7 +2471,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.models.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\"", "effort \"none\"", "model \"thinking-adaptive-disabled\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\"", "effort \"none\"", "model \"thinking-adaptive-disabled\""})
     @Specification({
         "${app}/transform.request.reasoning.effort/client",
         "${net}/anthropic.transform.request.reasoning.disabled/server"})
@@ -2482,7 +2482,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.models.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\"", "effort \"none\"", "model \"thinking-adaptive-enabled\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\"", "effort \"none\"", "model \"thinking-adaptive-enabled\""})
     @Specification({
         "${app}/transform.request.reasoning.effort/client",
         "${net}/anthropic.transform.request.reasoning.disabled/server"})
@@ -2494,7 +2494,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.models.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"anthropic\"",
         "effort \"none\"",
         "model \"thinking-adaptive\"",
@@ -2509,7 +2509,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.models.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\"", "effort \"none\"", "model \"thinking-enabled\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\"", "effort \"none\"", "model \"thinking-enabled\""})
     @Specification({
         "${app}/transform.request.reasoning.effort/client",
         "${net}/anthropic.transform.request.reasoning.omitted/server"})
@@ -2521,7 +2521,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"anthropic\"",
         "effort \"none\"",
         "model \"claude-opus-4-7\"",
@@ -2536,7 +2536,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.models.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\"", "effort \"none\"", "model \"claude-opus-4-7\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\"", "effort \"none\"", "model \"claude-opus-4-7\""})
     @Specification({
         "${app}/transform.request.reasoning.effort/client",
         "${net}/anthropic.transform.request.reasoning.disabled/server"})
@@ -2672,7 +2672,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.models.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"anthropic\"",
         "effort \"minimal\"",
         "model \"thinking-enabled\"",
@@ -2688,7 +2688,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.models.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"anthropic\"",
         "effort \"low\"",
         "model \"thinking-enabled\"",
@@ -2704,7 +2704,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.models.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"anthropic\"",
         "effort \"medium\"",
         "model \"thinking-enabled\"",
@@ -2720,7 +2720,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.models.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"anthropic\"",
         "effort \"high\"",
         "model \"thinking-enabled\"",
@@ -2736,7 +2736,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.models.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"anthropic\"",
         "effort \"xhigh\"",
         "model \"thinking-enabled\"",
@@ -2752,7 +2752,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.models.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"anthropic\"",
         "effort \"max\"",
         "model \"thinking-enabled\"",
@@ -2768,7 +2768,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.models.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"anthropic\"",
         "effort \"minimal\"",
         "model \"thinking-ladder\"",
@@ -2784,7 +2784,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.models.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"anthropic\"",
         "effort \"medium\"",
         "model \"thinking-ladder\"",
@@ -2800,7 +2800,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.models.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"anthropic\"",
         "effort \"high\"",
         "model \"thinking-ladder\"",
@@ -2816,7 +2816,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.models.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"anthropic\"",
         "effort \"max\"",
         "model \"thinking-ladder\"",
@@ -2831,7 +2831,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.models.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\"", "effort \"high\"", "model \"thinking-floor\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\"", "effort \"high\"", "model \"thinking-floor\""})
     @Specification({
         "${app}/transform.request.reasoning.effort/client",
         "${net}/anthropic.transform.request.reasoning.omitted/server"})
@@ -2843,7 +2843,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.models.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"anthropic\"",
         "effort \"medium\"",
         "budget \"1536\"",
@@ -2860,7 +2860,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.rejected.reasoning.effort/client",
         "${net}/anthropic.transform.rejected.reasoning/server"})
@@ -2871,7 +2871,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.rejected.reasoning.budget/client",
         "${net}/anthropic.transform.rejected.reasoning/server"})
@@ -2882,7 +2882,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\"", "model \"claude-opus-4-7\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\"", "model \"claude-opus-4-7\""})
     @Specification({
         "${app}/transform.request.sampling.members/client",
         "${net}/anthropic.transform.request.sampling.unsupported/server"})
@@ -2893,7 +2893,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.models.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\"", "model \"sampling-rejected\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\"", "model \"sampling-rejected\""})
     @Specification({
         "${app}/transform.request.sampling.members/client",
         "${net}/anthropic.transform.request.sampling.unsupported/server"})
@@ -2904,7 +2904,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.models.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\"", "model \"claude-opus-4-7\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\"", "model \"claude-opus-4-7\""})
     @Specification({
         "${app}/transform.request.sampling.members/client",
         "${net}/anthropic.transform.request.sampling.supported/server"})
@@ -2915,7 +2915,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.request.sampling.members/client",
         "${net}/anthropic.transform.request.sampling.supported/server"})
@@ -2967,7 +2967,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\"", "user \"user-123\"", "wire \"user-123\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\"", "user \"user-123\"", "wire \"user-123\""})
     @Specification({
         "${app}/transform.request.user/client",
         "${net}/anthropic.transform.request.user/server"})
@@ -2978,7 +2978,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\"", "tier \"auto\"", "wire \"auto\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\"", "tier \"auto\"", "wire \"auto\""})
     @Specification({
         "${app}/transform.request.service.tier/client",
         "${net}/anthropic.transform.request.service.tier/server"})
@@ -2989,7 +2989,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\"", "tier \"default\"", "wire \"standard_only\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\"", "tier \"default\"", "wire \"standard_only\""})
     @Specification({
         "${app}/transform.request.service.tier/client",
         "${net}/anthropic.transform.request.service.tier/server"})
@@ -3000,7 +3000,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\"", "tier \"flex\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\"", "tier \"flex\""})
     @Specification({
         "${app}/transform.request.service.tier/client",
         "${net}/anthropic.transform.request.dropped/server"})
@@ -3011,7 +3011,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\"", "tier \"priority\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\"", "tier \"priority\""})
     @Specification({
         "${app}/transform.request.service.tier/client",
         "${net}/anthropic.transform.request.dropped/server"})
@@ -3022,7 +3022,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.tiers.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\"", "model \"standard-only\"", "tier \"auto\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\"", "model \"standard-only\"", "tier \"auto\""})
     @Specification({
         "${app}/transform.request.service.tier/client",
         "${net}/anthropic.transform.request.dropped/server"})
@@ -3034,7 +3034,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.tiers.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"anthropic\"",
         "model \"standard-only\"",
         "tier \"default\"",
@@ -3049,7 +3049,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.tiers.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\"", "model \"other-model\"", "tier \"auto\"", "wire \"auto\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\"", "model \"other-model\"", "tier \"auto\"", "wire \"auto\""})
     @Specification({
         "${app}/transform.request.service.tier/client",
         "${net}/anthropic.transform.request.service.tier/server"})
@@ -3144,7 +3144,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"anthropic\"",
         "ttl \"5m\"",
         "wire \"5m\""})
@@ -3159,7 +3159,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"anthropic\"",
         "ttl \"1h\"",
         "wire \"1h\""})
@@ -3174,7 +3174,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"anthropic\"",
         "ttl \"30m\"",
         "wire \"1h\""})
@@ -3189,7 +3189,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"anthropic\"",
         "ttl \"90s\"",
         "wire \"5m\""})
@@ -3204,7 +3204,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"anthropic\"",
         "ttl \"24h\"",
         "wire \"1h\""})
@@ -3218,7 +3218,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.request.cache.breakpoint.default/client",
         "${net}/anthropic.transform.request.cache.breakpoint.default/server"})
@@ -3229,7 +3229,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.request.cache.breakpoint.mode/client",
         "${net}/anthropic.transform.user.text/server"})
@@ -3240,7 +3240,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.request.cache.breakpoint.limit/client",
         "${net}/anthropic.transform.request.cache.breakpoint.limit/server"})
@@ -3251,7 +3251,7 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.tool.definition.strict/client",
         "${net}/anthropic.transform.tool.definition.strict/server"})
@@ -3316,7 +3316,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.unsupported.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"anthropic\"",
         "model \"strict-model\"",
         "member \"parallel_tool_calls\"",
@@ -3332,7 +3332,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.unsupported.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"anthropic\"",
         "model \"strict-model\"",
         "member \"response_format\"",
@@ -3348,7 +3348,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.unsupported.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"anthropic\"",
         "model \"strict-model\"",
         "member \"stop\"",
@@ -3364,7 +3364,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.unsupported.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"anthropic\"",
         "model \"strict-model\"",
         "member \"parallel_tool_calls\"",
@@ -3380,7 +3380,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.unsupported.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"anthropic\"",
         "model \"strict-model\"",
         "member \"tool_choice\"",
@@ -3396,7 +3396,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.unsupported.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"anthropic\"",
         "model \"strict-model\"",
         "member \"user\"",
@@ -3412,7 +3412,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.unsupported.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"anthropic\"",
         "member \"top_k\"",
         "value \"40\""})
@@ -3427,7 +3427,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.unsupported.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"anthropic\""})
     @Specification({
         "${app}/transform.request.tool.choice.parallel/client",
@@ -3440,7 +3440,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.exclusive.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"anthropic\"",
         "model \"effort-first\"",
         "effort \"medium\"",
@@ -3457,7 +3457,7 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.exclusive.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"anthropic\"",
         "model \"budget-first\"",
         "effort \"medium\"",

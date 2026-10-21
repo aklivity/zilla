@@ -5169,6 +5169,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.responses.transform.response.shared.members/client",
+        "${net}/openai.responses.transform.response.shared.members/server"})
+    public void shouldOpenaiResponsesTransformResponseSharedMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.responses.transform.response.text.sse/client",
         "${net}/openai.responses.transform.response.text.sse/server"})
     public void shouldOpenaiResponsesTransformResponseTextSse() throws Exception

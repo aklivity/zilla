@@ -21,7 +21,7 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai/responses")
+                           .dialect("openai/rs")
                            .model(model)
                            .build()}
 
@@ -42,7 +42,7 @@ write zilla:data.ext ${llm:dataEx()
                           .attribute("tool-name", "get_weather")
                           .attribute("tool-call-id", "call_1")
                           .build()}
-write "{\"openai:namespace\":\"ns\",\"arguments\":{\"city\":\"Paris\"}}"
+write "{\"openai/rs:namespace\":\"ns\",\"arguments\":{\"city\":\"Paris\"}}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -52,7 +52,7 @@ write zilla:data.ext ${llm:dataEx()
                           .attribute("tool-name", "get_weather")
                           .attribute("tool-call-id", "call_2")
                           .build()}
-write "{\"arguments\":{\"city\":\"London\"},\"openai:note\":\"x\"}"
+write "{\"arguments\":{\"city\":\"London\"},\"openai/rs:note\":\"x\"}"
 write flush
 
 write advise zilla:flush

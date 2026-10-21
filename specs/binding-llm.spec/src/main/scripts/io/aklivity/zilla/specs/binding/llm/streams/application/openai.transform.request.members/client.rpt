@@ -50,7 +50,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"x:seed\":42,\"x:stop\":[\"END\"],\"openai:store\":true,\"x:service_tier\":\"auto\",\"openai:logprobs\":true,\"openai:top_logprobs\":3,\"openai:n\":2,\"openai:audio\":{\"voice\":\"alloy\",\"format\":\"wav\"}}"
+write "{\"x:seed\":42,\"x:stop\":[\"END\"],\"openai:store\":true,\"x:service_tier\":\"auto\",\"openai/ccs:logprobs\":true,\"openai/ccs:top_logprobs\":3,\"openai/ccs:n\":2,\"openai/ccs:audio\":{\"voice\":\"alloy\",\"format\":\"wav\"}}"
 write flush
 
 write advise zilla:flush
