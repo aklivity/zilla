@@ -114,4 +114,14 @@ public class LlmSharedMembersTest
         assertThat(LlmSharedMembers.gemini("toolConfig"), nullValue());
         assertThat(LlmSharedMembers.gemini("tool_config"), nullValue());
     }
+
+
+    @Test
+    public void shouldPromoteOpenaiResponseFormat()
+    {
+        assertThat(LlmSharedMembers.openai("response_format"), equalTo("response_format"));
+        assertThat(LlmSharedMembers.openaiResponses("response_format"), nullValue());
+        assertThat(LlmSharedMembers.anthropic("response_format"), nullValue());
+        assertThat(LlmSharedMembers.gemini("response_format"), nullValue());
+    }
 }

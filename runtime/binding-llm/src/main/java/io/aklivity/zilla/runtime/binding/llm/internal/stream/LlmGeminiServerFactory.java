@@ -154,6 +154,11 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private static final DirectBufferEx OBJECT_EMPTY = new UnsafeBufferEx("{}".getBytes(UTF_8));
     private static final DirectBufferEx CONTROL_BEGIN = new UnsafeBufferEx("{".getBytes(UTF_8));
     private static final DirectBufferEx CONTROL_CONTINUE = new UnsafeBufferEx(",".getBytes(UTF_8));
+    private static final DirectBufferEx RESPONSE_FORMAT_SCHEMA_OPEN = new UnsafeBufferEx(
+        "{\"type\":\"json_schema\",\"json_schema\":{\"name\":\"response\",\"schema\":".getBytes(UTF_8));
+    private static final DirectBufferEx RESPONSE_FORMAT_SCHEMA_CLOSE = new UnsafeBufferEx("}}".getBytes(UTF_8));
+    private static final DirectBufferEx RESPONSE_FORMAT_OBJECT =
+        new UnsafeBufferEx("{\"type\":\"json_object\"}".getBytes(UTF_8));
     private static final DirectBufferEx PARTS_PREFIX = new UnsafeBufferEx("{\"contents\":[{\"parts\":[".getBytes(UTF_8));
 
     private static final int MIN_WINDOW = 64;
@@ -171,6 +176,23 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private static final String MEMBER_GENERATION_CONFIG_SNAKE = "generation_config";
     private static final String MEMBER_MAX_OUTPUT_TOKENS = "maxOutputTokens";
     private static final String MEMBER_MAX_OUTPUT_TOKENS_SNAKE = "max_output_tokens";
+    private static final String MEMBER_RESPONSE_FORMAT = "responseFormat";
+    private static final String MEMBER_RESPONSE_FORMAT_SNAKE = "response_format";
+    private static final String MEMBER_RESPONSE_MIME_TYPE = "responseMimeType";
+    private static final String MEMBER_RESPONSE_MIME_TYPE_SNAKE = "response_mime_type";
+    private static final String MEMBER_RESPONSE_SCHEMA = "responseSchema";
+    private static final String MEMBER_RESPONSE_SCHEMA_SNAKE = "response_schema";
+    private static final String MEMBER_RESPONSE_JSON_SCHEMA = "responseJsonSchema";
+    private static final String MEMBER_RESPONSE_JSON_SCHEMA_SNAKE = "response_json_schema";
+    private static final String SHARED_RESPONSE_FORMAT = "response_format";
+    private static final String MIME_JSON = "application/json";
+    private static final String MIME_JSON_ENUM = "APPLICATION_JSON";
+
+    private static final int FORMAT_NONE = 0;
+    private static final int FORMAT_PENDING = 1;
+    private static final int FORMAT_RESIDUE = 2;
+    private static final int FORMAT_LIFTED = 3;
+    private static final int MIME_MAX = 64;
     private static final String MEMBER_SYSTEM_INSTRUCTION = "systemInstruction";
     private static final String MEMBER_SYSTEM_INSTRUCTION_SNAKE = "system_instruction";
 
@@ -259,6 +281,9 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private final LlmGeminiServerDecoder decodeConfigLeaf = this::decodeConfigLeaf;
     private final LlmGeminiServerDecoder decodeConfigResidue = this::decodeConfigResidue;
     private final LlmGeminiServerDecoder decodeConfigTokens = this::decodeConfigTokens;
+    private final LlmGeminiServerDecoder decodeConfigMime = this::decodeConfigMime;
+    private final LlmGeminiServerDecoder decodeConfigSchema = this::decodeConfigSchema;
+    private final LlmGeminiServerDecoder decodeConfigConverted = this::decodeConfigConverted;
     private final LlmGeminiServerDecoder decodeSkip = this::decodeSkip;
     private final LlmGeminiServerDecoder decodeEnd = this::decodeEnd;
     private final LlmGeminiServerDecoder decodeIgnore = this::decodeIgnore;
@@ -669,6 +694,33 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         CharSequence key)
     {
         return matches(key, MEMBER_TOOL_CONFIG) || matches(key, MEMBER_TOOL_CONFIG_SNAKE);
+    }
+
+    private boolean isResponseFormat(
+        CharSequence key)
+    {
+        return matches(key, MEMBER_RESPONSE_FORMAT) || matches(key, MEMBER_RESPONSE_FORMAT_SNAKE);
+    }
+
+    private boolean isResponseMimeType(
+        CharSequence key)
+    {
+        return matches(key, MEMBER_RESPONSE_MIME_TYPE) || matches(key, MEMBER_RESPONSE_MIME_TYPE_SNAKE);
+    }
+
+    private boolean isResponseSchema(
+        CharSequence key)
+    {
+        return matches(key, MEMBER_RESPONSE_SCHEMA) ||
+            matches(key, MEMBER_RESPONSE_SCHEMA_SNAKE) ||
+            matches(key, MEMBER_RESPONSE_JSON_SCHEMA) ||
+            matches(key, MEMBER_RESPONSE_JSON_SCHEMA_SNAKE);
+    }
+
+    private static boolean isJsonMime(
+        CharSequence mime)
+    {
+        return MIME_JSON.contentEquals(mime) || MIME_JSON_ENUM.contentEquals(mime);
     }
 
     private boolean isConfig(
@@ -1744,6 +1796,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 break;
             case END_OBJECT:
                 server.onDecodeConfigResidueClose();
+                server.onDecodeConfigEnd();
                 server.decoder = decodeRootControl;
                 break;
             default:
@@ -1782,6 +1835,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 server.onDecodeConfigKey(parser.getStringView(), false);
                 break;
             case END_OBJECT:
+                server.onDecodeConfigEnd();
                 server.decoder = decodeRootControl;
                 break;
             default:
@@ -1841,6 +1895,93 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             if (server.captureDepth == 0 && !deferred)
             {
                 server.endConfigValue(traceId, authorization, decodeConfigOpen);
+            }
+        }
+
+        return server.position();
+    }
+
+    private int decodeConfigSchema(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        while (server.decoder == decodeConfigSchema && parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            final boolean deferred = onCaptureEvent(server, event);
+
+            if (server.captureDepth == 0 && !deferred)
+            {
+                server.endConfigSchema(traceId, authorization);
+            }
+        }
+
+        return server.position();
+    }
+
+    private int decodeConfigConverted(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        while (server.decoder == decodeConfigConverted && parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            final boolean deferred = onCaptureEvent(server, event);
+
+            if (server.captureDepth == 0 && !deferred)
+            {
+                server.endConfigConverted(traceId, authorization);
+            }
+        }
+
+        return server.position();
+    }
+
+    private int decodeConfigMime(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        while (server.decoder == decodeConfigMime && parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+
+            if (event == JsonEvent.VALUE_STRING && server.mimeType.length() < MIME_MAX)
+            {
+                server.mimeType.append(parser.getStringView());
+            }
+
+            final boolean deferred = onCaptureEvent(server, event);
+
+            if (server.captureDepth == 0 && !deferred)
+            {
+                server.endConfigMime(traceId, authorization);
             }
         }
 
@@ -2209,6 +2350,11 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         private final LlmMembersOutput memberOutput = new LlmMembersOutput((buffer, offset, length) ->
             onDecodeSectionData(decodeTraceId, decodeAuthorization, buffer, offset, length, false));
         private LlmSectionPipeline toolConfigPipeline;
+        private LlmGeminiControlToCanonical toolConfigTransform;
+        private final StringBuilder mimeKey = new StringBuilder();
+        private final StringBuilder mimeType = new StringBuilder();
+        private LlmGeminiServerDecoder mimeThen;
+        private int format;
 
         private LlmGeminiServer(
             MessageConsumer network,
@@ -2699,8 +2845,8 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         {
             if (toolConfigPipeline == null)
             {
-                toolConfigPipeline = new LlmSectionPipeline(new LlmGeminiControlToCanonical(),
-                    new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                toolConfigTransform = new LlmGeminiControlToCanonical();
+                toolConfigPipeline = new LlmSectionPipeline(toolConfigTransform, new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
             }
 
             return toolConfigPipeline;
@@ -2721,6 +2867,8 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         {
             configKey.setLength(0);
             configKey.append(key);
+            format = FORMAT_NONE;
+            captureThen = decodeRootControl;
             decoder = decodeConfigStart;
         }
 
@@ -2740,6 +2888,36 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 onDecodeSharedKey(shared, controlOpen());
                 decoder = decodeConfigLeaf;
             }
+            else if (isResponseFormat(key))
+            {
+                if (residueOpen)
+                {
+                    onDecodeConfigResidueClose();
+                }
+
+                onDecodeConfigConverted(key);
+                decoder = decodeConfigConverted;
+            }
+            else if (isResponseMimeType(key))
+            {
+                mimeKey.setLength(0);
+                mimeKey.append(key);
+                mimeType.setLength(0);
+                mimeThen = residueOpen ? decodeConfigOpen : decodeConfigClosed;
+                decoder = decodeConfigMime;
+            }
+            else if (isResponseSchema(key) && format == FORMAT_PENDING)
+            {
+                if (residueOpen)
+                {
+                    onDecodeConfigResidueClose();
+                }
+
+                onDecodeSharedKey(SHARED_RESPONSE_FORMAT, controlOpen());
+                onDecodeBlockData(decodeTraceId, decodeAuthorization, RESPONSE_FORMAT_SCHEMA_OPEN, 0,
+                    RESPONSE_FORMAT_SCHEMA_OPEN.capacity(), false);
+                decoder = decodeConfigSchema;
+            }
             else
             {
                 if (residueOpen)
@@ -2752,6 +2930,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                     onDecodeControlKey(key, false, '{');
                 }
 
+                format = format == FORMAT_NONE && isResponseSchema(key) ? FORMAT_RESIDUE : format;
                 decoder = matches(key, MEMBER_MAX_OUTPUT_TOKENS) || matches(key, MEMBER_MAX_OUTPUT_TOKENS_SNAKE)
                     ? decodeConfigTokens
                     : decodeConfigResidue;
@@ -2782,6 +2961,91 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
             captureOpen = false;
             decoder = then;
+        }
+
+        private void onDecodeConfigConverted(
+            CharSequence key)
+        {
+            final DirectBufferEx separator = Flags.hasInit(blockFlags) ? CONTROL_BEGIN : CONTROL_CONTINUE;
+
+            onDecodeSectionData(decodeTraceId, decodeAuthorization, separator, 0, separator.capacity(), false);
+
+            blockPipeline = toolConfigPipeline();
+            toolConfigTransform.residueKey(NAME + ':' + configKey);
+            blockPipeline.begin(blockAttributes);
+            memberOutput.begin();
+
+            onDecodeControlKey(key, false, '{');
+        }
+
+        private void endConfigConverted(
+            long traceId,
+            long authorization)
+        {
+            flushCapture(traceId, authorization, false);
+
+            if (!onDecodeBlockData(traceId, authorization, CONTROL_CLOSE, 0, CONTROL_CLOSE.capacity(), true))
+            {
+                onDecodeInvalidRequest(traceId, MESSAGE_BLOCK_INVALID);
+            }
+
+            blockPipeline = null;
+            captureOpen = false;
+            decoder = decodeConfigClosed;
+        }
+
+        private void endConfigSchema(
+            long traceId,
+            long authorization)
+        {
+            flushCapture(traceId, authorization, false);
+            onDecodeBlockData(traceId, authorization, RESPONSE_FORMAT_SCHEMA_CLOSE, 0,
+                RESPONSE_FORMAT_SCHEMA_CLOSE.capacity(), false);
+
+            format = FORMAT_LIFTED;
+            captureOpen = false;
+            decoder = decodeConfigClosed;
+        }
+
+        private void endConfigMime(
+            long traceId,
+            long authorization)
+        {
+            if (format == FORMAT_NONE && isJsonMime(mimeType))
+            {
+                format = FORMAT_PENDING;
+                captureFrom = position();
+                decoder = mimeThen;
+            }
+            else
+            {
+                if (mimeThen == decodeConfigOpen)
+                {
+                    onDecodeControlKey(mimeKey, false, ',');
+                }
+                else
+                {
+                    onDecodeControlKey(configKey, true, controlOpen());
+                    onDecodeControlKey(mimeKey, false, '{');
+                }
+
+                format = format == FORMAT_NONE ? FORMAT_RESIDUE : format;
+                decoder = decodeConfigOpen;
+                flushCapture(traceId, authorization, false);
+            }
+
+            captureOpen = false;
+        }
+
+        private void onDecodeConfigEnd()
+        {
+            if (format == FORMAT_PENDING)
+            {
+                onDecodeSharedKey(SHARED_RESPONSE_FORMAT, controlOpen());
+                onDecodeBlockData(decodeTraceId, decodeAuthorization, RESPONSE_FORMAT_OBJECT, 0,
+                    RESPONSE_FORMAT_OBJECT.capacity(), false);
+                format = FORMAT_LIFTED;
+            }
         }
 
         private char controlOpen()

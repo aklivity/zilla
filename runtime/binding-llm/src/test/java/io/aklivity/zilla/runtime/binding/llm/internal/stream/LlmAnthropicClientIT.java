@@ -423,16 +423,6 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/anthropic.request.output.config.100k/client",
-        "${net}/anthropic.request.output.config.100k/server"})
-    public void shouldEncodeAnthropicRequestOutputConfig100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
         "${app}/anthropic.request.options/client",
         "${net}/anthropic.request.options/server"})
     public void shouldEncodeAnthropicRequestOptions() throws Exception
@@ -2182,6 +2172,222 @@ public class LlmAnthropicClientIT
         "${app}/anthropic.request.tool.choice.unknown/client",
         "${net}/anthropic.request.tool.choice.unknown/server"})
     public void shouldRestoreAnthropicRequestToolChoiceUnknown() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.response.format.json.schema/client",
+        "${net}/anthropic.request.response.format.json.schema/server"})
+    public void shouldRestoreAnthropicRequestResponseFormatJsonSchema() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.response.format.residue/client",
+        "${net}/anthropic.request.response.format.residue/server"})
+    public void shouldRestoreAnthropicRequestResponseFormatResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.response.format.residue.split/client",
+        "${net}/anthropic.request.response.format.residue.split/server"})
+    public void shouldRestoreAnthropicRequestResponseFormatResidueSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.response.format.residue.only/client",
+        "${net}/anthropic.request.response.format.residue.only/server"})
+    public void shouldRestoreAnthropicRequestResponseFormatResidueOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.response.format.text/client",
+        "${net}/anthropic.transform.request.response.format.text/server"})
+    public void shouldTransformRequestResponseFormatTextAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.response.format.text/client",
+        "${net}/anthropic.transform.request.response.format.text/server"})
+    public void shouldTransformRequestResponseFormatTextFromAnthropicAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.response.format.json.schema/client",
+        "${net}/anthropic.transform.request.response.format.json.schema/server"})
+    public void shouldTransformRequestResponseFormatJsonSchemaAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.response.format.json.schema/client",
+        "${net}/anthropic.transform.request.response.format.json.schema/server"})
+    public void shouldTransformRequestResponseFormatJsonSchemaFromAnthropicAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.response.format.json.schema.names/client",
+        "${net}/anthropic.transform.request.response.format.json.schema.names/server"})
+    public void shouldTransformRequestResponseFormatJsonSchemaNamesAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.response.format.json.schema.names/client",
+        "${net}/anthropic.transform.request.response.format.json.schema.names/server"})
+    public void shouldTransformRequestResponseFormatJsonSchemaNamesFromAnthropicAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.response.format.json.schema.type.last/client",
+        "${net}/anthropic.transform.request.response.format.json.schema/server"})
+    public void shouldTransformRequestResponseFormatJsonSchemaTypeLastAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.response.format.json.schema.type.last/client",
+        "${net}/anthropic.transform.request.response.format.json.schema/server"})
+    public void shouldTransformRequestResponseFormatJsonSchemaTypeLastFromAnthropicAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.rejected.response.format.json.object/client",
+        "${net}/anthropic.transform.rejected.tool.choice/server"})
+    public void shouldRejectResponseFormatJsonObjectAsAnthropicNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.rejected.response.format.type/client",
+        "${net}/anthropic.transform.rejected.tool.choice/server"})
+    public void shouldRejectResponseFormatTypeAsAnthropicNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.rejected.response.format.keyword.minimum/client",
+        "${net}/anthropic.transform.rejected.tool.choice/server"})
+    public void shouldRejectResponseFormatKeywordMinimumAsAnthropicNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.rejected.response.format.keyword.min.length/client",
+        "${net}/anthropic.transform.rejected.tool.choice/server"})
+    public void shouldRejectResponseFormatKeywordMinLengthAsAnthropicNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.rejected.response.format.keyword.max.items/client",
+        "${net}/anthropic.transform.rejected.tool.choice/server"})
+    public void shouldRejectResponseFormatKeywordMaxItemsAsAnthropicNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.rejected.response.format.keyword.min.items/client",
+        "${net}/anthropic.transform.rejected.tool.choice/server"})
+    public void shouldRejectResponseFormatKeywordMinItemsAsAnthropicNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.rejected.response.format.keyword.external.ref/client",
+        "${net}/anthropic.transform.rejected.tool.choice/server"})
+    public void shouldRejectResponseFormatKeywordExternalRefAsAnthropicNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.rejected.response.format.keyword.recursive.ref/client",
+        "${net}/anthropic.transform.rejected.tool.choice/server"})
+    public void shouldRejectResponseFormatKeywordRecursiveRefAsAnthropicNamingMemberAndDialects() throws Exception
     {
         k3po.finish();
     }

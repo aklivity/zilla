@@ -39,7 +39,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-read "{\"openai:response_format\":{\"type\":\"json_schema\",\"json_schema\":{\"name\":\"answer\",\"strict\":true,\"schema\":{\"type\":\"object\",\"description\":\"small\"}}}}"
+read "{\"x:response_format\":{\"type\":\"json_schema\",\"json_schema\":{\"name\":\"answer\",\"strict\":true,\"schema\":{\"type\":\"object\",\"description\":\"small\"}}}}"
 
 read advised zilla:flush
 

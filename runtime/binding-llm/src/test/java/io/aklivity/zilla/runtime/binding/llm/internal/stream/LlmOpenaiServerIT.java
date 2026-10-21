@@ -1572,4 +1572,24 @@ public class LlmOpenaiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.request.response.format.text/client",
+        "${app}/openai.request.response.format.text/server"})
+    public void shouldForwardOpenaiRequestResponseFormatText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.request.response.format.json.object/client",
+        "${app}/openai.request.response.format.json.object/server"})
+    public void shouldForwardOpenaiRequestResponseFormatJsonObject() throws Exception
+    {
+        k3po.finish();
+    }
 }

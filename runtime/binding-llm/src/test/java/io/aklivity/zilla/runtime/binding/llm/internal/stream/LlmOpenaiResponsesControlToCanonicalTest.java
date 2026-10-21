@@ -114,4 +114,118 @@ public class LlmOpenaiResponsesControlToCanonicalTest
     {
         assertRejects(transform, json("{'tool_choice':{'type':'function','name':'" + HUGE + "'}}"));
     }
+
+
+    @Test
+    public void shouldLiftTextFormatText()
+    {
+        assertTransforms(transform,
+            json("{'text':{'format':{'type':'text'}}}"),
+            json("{'x:response_format':{'type':'text'}}"));
+    }
+
+    @Test
+    public void shouldLiftTextFormatJsonObject()
+    {
+        assertTransforms(transform,
+            json("{'text':{'format':{'type':'json_object'}}}"),
+            json("{'x:response_format':{'type':'json_object'}}"));
+    }
+
+    @Test
+    public void shouldNestJsonSchemaFormat()
+    {
+        assertTransforms(transform,
+            json("{'text':{'format':{'type':'json_schema','name':'answer','description':'d','schema':{'type':'object'}," +
+                "'strict':true}}}"),
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'name':'answer','description':'d'," +
+                "'schema':{'type':'object'},'strict':true}}}"));
+    }
+
+    @Test
+    public void shouldNestJsonSchemaFormatWithTypeLast()
+    {
+        assertTransforms(transform,
+            json("{'text':{'format':{'name':'answer','schema':{'type':'object'},'strict':true,'type':'json_schema'}}}"),
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'name':'answer','schema':{'type':'object'}," +
+                "'strict':true}}}"));
+    }
+
+    @Test
+    public void shouldStreamSchemaLargerThanWindowAfterType()
+    {
+        assertTransforms(transform,
+            json("{'text':{'format':{'type':'json_schema','name':'a','schema':{'description':'" + HUGE + "'}}}}"),
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'name':'a','schema':{'description':'" + HUGE +
+                "'}}}}"));
+    }
+
+    @Test
+    public void shouldRejectMembersBeforeTypeBeyondBound()
+    {
+        assertRejects(transform,
+            json("{'text':{'format':{'name':'a','schema':{'description':'" + HUGE + "'},'type':'json_schema'}}}"));
+    }
+
+    @Test
+    public void shouldKeepOtherTextMembersAsResidueAfterFormat()
+    {
+        assertTransforms(transform,
+            json("{'text':{'format':{'type':'json_object'},'verbosity':'low'}}"),
+            json("{'x:response_format':{'type':'json_object'},'openai:text':{'verbosity':'low'}}"));
+    }
+
+    @Test
+    public void shouldKeepOtherTextMembersAsResidueBeforeFormat()
+    {
+        assertTransforms(transform,
+            json("{'text':{'verbosity':'low','format':{'type':'json_object'}}}"),
+            json("{'openai:text':{'verbosity':'low'},'x:response_format':{'type':'json_object'}}"));
+    }
+
+    @Test
+    public void shouldSplitTextResidueAroundFormat()
+    {
+        assertTransforms(transform,
+            json("{'text':{'verbosity':'low','format':{'type':'text'},'other':{'a':[1]}}}"),
+            json("{'openai:text':{'verbosity':'low'},'x:response_format':{'type':'text'},'openai:text':{'other':{'a':[1]}}}"));
+    }
+
+    @Test
+    public void shouldKeepTextWithoutFormatAsResidue()
+    {
+        assertTransforms(transform,
+            json("{'text':{'verbosity':'low'}}"),
+            json("{'openai:text':{'verbosity':'low'}}"));
+    }
+
+    @Test
+    public void shouldKeepEmptyTextAsResidue()
+    {
+        assertTransforms(transform, json("{'text':{}}"), json("{'openai:text':{}}"));
+    }
+
+    @Test
+    public void shouldKeepNullTextAsResidue()
+    {
+        assertTransforms(transform, json("{'text':null}"), json("{'openai:text':null}"));
+    }
+
+    @Test
+    public void shouldRejectUnknownFormatType()
+    {
+        assertRejects(transform, json("{'text':{'format':{'type':'grammar'}}}"));
+    }
+
+    @Test
+    public void shouldRejectFormatWithoutType()
+    {
+        assertRejects(transform, json("{'text':{'format':{'name':'a'}}}"));
+    }
+
+    @Test
+    public void shouldRejectFormatThatIsNotAnObject()
+    {
+        assertRejects(transform, json("{'text':{'format':'text'}}"));
+    }
 }

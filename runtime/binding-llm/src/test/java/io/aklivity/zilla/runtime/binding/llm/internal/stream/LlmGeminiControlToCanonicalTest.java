@@ -177,4 +177,115 @@ public class LlmGeminiControlToCanonicalTest
         assertRejects(transform, json("{'toolConfig':{'functionCallingConfig':{'mode':'ANY'," +
             "'allowedFunctionNames':['" + HUGE + "']}}}"));
     }
+
+
+    @Test
+    public void shouldLiftJsonObjectResponseFormat()
+    {
+        assertTransforms(transform,
+            json("{'responseFormat':{'text':{'mimeType':'APPLICATION_JSON'}}}"),
+            json("{'x:response_format':{'type':'json_object'}}"));
+    }
+
+    @Test
+    public void shouldLiftJsonSchemaResponseFormat()
+    {
+        assertTransforms(transform,
+            json("{'responseFormat':{'text':{'mimeType':'APPLICATION_JSON','schema':{'type':'object'}}}}"),
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'name':'response','schema':{'type':'object'}}}}"));
+    }
+
+    @Test
+    public void shouldLiftLowercaseMimeType()
+    {
+        assertTransforms(transform,
+            json("{'responseFormat':{'text':{'mimeType':'application/json'}}}"),
+            json("{'x:response_format':{'type':'json_object'}}"));
+    }
+
+    @Test
+    public void shouldLiftSnakeCaseResponseFormat()
+    {
+        assertTransforms(transform,
+            json("{'response_format':{'text':{'mime_type':'application/json','schema':{}}}}"),
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'name':'response','schema':{}}}}"));
+    }
+
+    @Test
+    public void shouldStreamSchemaLargerThanWindow()
+    {
+        assertTransforms(transform,
+            json("{'responseFormat':{'text':{'mimeType':'APPLICATION_JSON','schema':{'d':'" + HUGE + "'}}}}"),
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'name':'response','schema':{'d':'" + HUGE +
+                "'}}}}"));
+    }
+
+    @Test
+    public void shouldKeepOtherMimeTypeAsResidue()
+    {
+        assertTransforms(transform,
+            json("{'responseFormat':{'text':{'mimeType':'text/x.enum','schema':{'enum':['a']}}}}"),
+            json("{'gemini:generationConfig':{'responseFormat':{'text':{'mimeType':'text/x.enum','schema':{'enum':['a']}}}}}"));
+    }
+
+    @Test
+    public void shouldKeepSchemaBeforeMimeTypeAsResidue()
+    {
+        assertTransforms(transform,
+            json("{'responseFormat':{'text':{'schema':{'a':1},'mimeType':'APPLICATION_JSON'}}}"),
+            json("{'gemini:generationConfig':{'responseFormat':{'text':{'schema':{'a':1},'mimeType':'APPLICATION_JSON'}}}}"));
+    }
+
+    @Test
+    public void shouldKeepUnknownFormatMemberAsResidue()
+    {
+        assertTransforms(transform,
+            json("{'responseFormat':{'other':[1]}}"),
+            json("{'gemini:generationConfig':{'responseFormat':{'other':[1]}}}"));
+    }
+
+    @Test
+    public void shouldKeepEmptyResponseFormatAsResidue()
+    {
+        assertTransforms(transform,
+            json("{'responseFormat':{}}"),
+            json("{'gemini:generationConfig':{'responseFormat':{}}}"));
+        assertTransforms(transform,
+            json("{'responseFormat':{'text':{}}}"),
+            json("{'gemini:generationConfig':{'responseFormat':{'text':{}}}}"));
+    }
+
+    @Test
+    public void shouldKeepResponseFormatThatIsNotAnObjectAsResidue()
+    {
+        assertTransforms(transform,
+            json("{'responseFormat':[{'text':{}}]}"),
+            json("{'gemini:generationConfig':{'responseFormat':[{'text':{}}]}}"));
+    }
+
+    @Test
+    public void shouldKeepResidueInConfiguredKeySpelling()
+    {
+        transform.residueKey("gemini:generation_config");
+
+        assertTransforms(transform,
+            json("{'responseFormat':{'other':1}}"),
+            json("{'gemini:generation_config':{'responseFormat':{'other':1}}}"));
+    }
+
+    @Test
+    public void shouldDropOtherMembersAfterLiftedText()
+    {
+        assertTransforms(transform,
+            json("{'responseFormat':{'text':{'mimeType':'APPLICATION_JSON'},'other':1}}"),
+            json("{'x:response_format':{'type':'json_object'}}"));
+    }
+
+    @Test
+    public void shouldDropOtherTextMembersWhenLifted()
+    {
+        assertTransforms(transform,
+            json("{'responseFormat':{'text':{'mimeType':'APPLICATION_JSON','other':1,'schema':{}}}}"),
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'name':'response','schema':{}}}}"));
+    }
 }

@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.PARALLEL_TOOL_CALLS;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.RESPONSE_FORMAT;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.STOP;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TEMPERATURE;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMembers.TOOL_CHOICE;
@@ -24,7 +25,7 @@ import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmSharedMem
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
-final class LlmAnthropicControlFromCanonical extends LlmToolTransform
+final class LlmAnthropicControlFromCanonical extends LlmFormatFromCanonical
 {
     private static final String DIALECT = "anthropic";
     private static final String MEMBER_STREAM_OPTIONS = "stream_options";
@@ -37,6 +38,9 @@ final class LlmAnthropicControlFromCanonical extends LlmToolTransform
     private static final String TYPE_ANY = "any";
     private static final String TYPE_NONE = "none";
     private static final String TYPE_TOOL = "tool";
+    private static final String MEMBER_OUTPUT_CONFIG = "output_config";
+    private static final String MEMBER_FORMAT = "format";
+    private static final String TYPE_JSON_SCHEMA = "json_schema";
 
     static final int PARALLEL_UNSET = -1;
     static final int PARALLEL_DISABLED = 0;
@@ -44,6 +48,7 @@ final class LlmAnthropicControlFromCanonical extends LlmToolTransform
 
     private final boolean members;
     private final LlmToolChoice choice;
+    private final LlmSchemaScanner scanner;
 
     private String member;
     private String choiceType;
@@ -62,6 +67,7 @@ final class LlmAnthropicControlFromCanonical extends LlmToolTransform
         super(mode, sameDialect);
         this.members = mode == MODE_OBJECT;
         this.choice = new LlmToolChoice();
+        this.scanner = new LlmSchemaScanner(LlmSchemaScanner.TARGET_ANTHROPIC);
         this.parallelCalls = PARALLEL_UNSET;
     }
 
@@ -102,7 +108,11 @@ final class LlmAnthropicControlFromCanonical extends LlmToolTransform
     {
         int action;
 
-        if (depth == 1 && matches(key, MEMBER_STREAM_OPTIONS))
+        if (formatActive(depth))
+        {
+            action = formatMember(depth, key);
+        }
+        else if (depth == 1 && matches(key, MEMBER_STREAM_OPTIONS))
         {
             action = DROP;
         }
@@ -146,6 +156,58 @@ final class LlmAnthropicControlFromCanonical extends LlmToolTransform
                 target = TOOL_CHOICE;
                 action = capture(key);
             }
+            else if (matches(key, RESPONSE_FORMAT))
+            {
+                target = MEMBER_OUTPUT_CONFIG;
+                action = formatShared();
+            }
+        }
+
+        return action;
+    }
+
+    @Override
+    protected boolean formatObject()
+    {
+        return false;
+    }
+
+    @Override
+    protected boolean formatText()
+    {
+        return false;
+    }
+
+    @Override
+    protected void openFormat(
+        int kind)
+    {
+        emit(JsonEvent.KEY_NAME, MEMBER_OUTPUT_CONFIG);
+        emit(JsonEvent.START_OBJECT);
+        emit(JsonEvent.KEY_NAME, MEMBER_FORMAT);
+        emit(JsonEvent.START_OBJECT);
+        emit(JsonEvent.KEY_NAME, MEMBER_TYPE);
+        emit(JsonEvent.VALUE_STRING, TYPE_JSON_SCHEMA);
+    }
+
+    @Override
+    protected void closeFormat()
+    {
+        emit(JsonEvent.END_OBJECT);
+        emit(JsonEvent.END_OBJECT);
+    }
+
+    @Override
+    protected int schemaMember(
+        CharSequence key)
+    {
+        int action = DROP;
+
+        if (matches(key, MEMBER_SCHEMA))
+        {
+            target = MEMBER_SCHEMA;
+            scan(scanner, RESPONSE_FORMAT);
+            action = PASS_VALUE;
         }
 
         return action;
@@ -155,7 +217,11 @@ final class LlmAnthropicControlFromCanonical extends LlmToolTransform
     protected Status onCaptured(
         LlmCapturedValue value)
     {
-        return matches(capturedMember(), PARALLEL_TOOL_CALLS) ? onParallelCalls(value) : onToolChoice(value);
+        final String member = capturedMember();
+
+        return matches(member, MEMBER_TYPE)
+            ? formatCaptured(value)
+            : matches(member, PARALLEL_TOOL_CALLS) ? onParallelCalls(value) : onToolChoice(value);
     }
 
     @Override
@@ -167,7 +233,13 @@ final class LlmAnthropicControlFromCanonical extends LlmToolTransform
     protected Status onClose(
         int depth)
     {
-        if (members)
+        Status status = Status.ADVANCED;
+
+        if (formatActive(depth))
+        {
+            status = formatClosed(depth);
+        }
+        else if (members)
         {
             pass(JsonEvent.END_OBJECT);
         }
@@ -176,7 +248,7 @@ final class LlmAnthropicControlFromCanonical extends LlmToolTransform
             emit(JsonEvent.VALUE_NULL);
         }
 
-        return Status.ADVANCED;
+        return status;
     }
 
     private Status onToolChoice(

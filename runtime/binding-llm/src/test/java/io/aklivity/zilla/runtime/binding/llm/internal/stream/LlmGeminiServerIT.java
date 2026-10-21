@@ -1434,4 +1434,134 @@ public class LlmGeminiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.response.format.json.object/client",
+        "${app}/gemini.request.response.format.json.object/server"})
+    public void shouldForwardGeminiRequestResponseFormatJsonObject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.response.format.json.schema/client",
+        "${app}/gemini.request.response.format.json.schema/server"})
+    public void shouldForwardGeminiRequestResponseFormatJsonSchema() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.response.format.residue/client",
+        "${app}/gemini.request.response.format.residue/server"})
+    public void shouldForwardGeminiRequestResponseFormatResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.response.format.enum/client",
+        "${app}/gemini.request.response.format.enum/server"})
+    public void shouldForwardGeminiRequestResponseFormatEnum() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.response.format.schema.first/client",
+        "${app}/gemini.request.response.format.schema.first/server"})
+    public void shouldForwardGeminiRequestResponseFormatSchemaFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.response.format.deprecated.schema.first/client",
+        "${app}/gemini.request.response.format.deprecated.schema.first/server"})
+    public void shouldForwardGeminiRequestResponseFormatDeprecatedSchemaFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.response.format.json.schema.lowercase/client",
+        "${app}/gemini.request.response.format.json.schema/server"})
+    public void shouldForwardGeminiRequestResponseFormatJsonSchemaLowercase() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.response.format.deprecated.json.object/client",
+        "${app}/gemini.request.response.format.json.object/server"})
+    public void shouldForwardGeminiRequestResponseFormatDeprecatedJsonObject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.response.format.deprecated.json.schema/client",
+        "${app}/gemini.request.response.format.json.schema/server"})
+    public void shouldForwardGeminiRequestResponseFormatDeprecatedJsonSchema() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.response.format.deprecated.json.schema.json/client",
+        "${app}/gemini.request.response.format.json.schema/server"})
+    public void shouldForwardGeminiRequestResponseFormatDeprecatedJsonSchemaJson() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.response.format.snake/client",
+        "${app}/gemini.request.response.format.json.schema/server"})
+    public void shouldForwardGeminiRequestResponseFormatSnake() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.response.format.json.schema.split/client",
+        "${app}/gemini.request.response.format.json.schema/server"})
+    public void shouldForwardGeminiRequestResponseFormatJsonSchemaSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.response.format.deprecated.json.schema.split/client",
+        "${app}/gemini.request.response.format.json.schema/server"})
+    public void shouldForwardGeminiRequestResponseFormatDeprecatedJsonSchemaSplit() throws Exception
+    {
+        k3po.finish();
+    }
 }

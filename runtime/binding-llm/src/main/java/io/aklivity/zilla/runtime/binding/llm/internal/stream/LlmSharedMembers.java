@@ -25,10 +25,12 @@ final class LlmSharedMembers
     static final String PRESENCE_PENALTY = "presence_penalty";
     static final String TOOL_CHOICE = "tool_choice";
     static final String PARALLEL_TOOL_CALLS = "parallel_tool_calls";
+    static final String RESPONSE_FORMAT = "response_format";
 
     private static final String NATIVE_STOP_SEQUENCES = "stop_sequences";
     private static final String[] OPENAI = {
-        TEMPERATURE, TOP_P, STOP, SEED, FREQUENCY_PENALTY, PRESENCE_PENALTY, TOOL_CHOICE, PARALLEL_TOOL_CALLS
+        TEMPERATURE, TOP_P, STOP, SEED, FREQUENCY_PENALTY, PRESENCE_PENALTY, TOOL_CHOICE, PARALLEL_TOOL_CALLS,
+        RESPONSE_FORMAT
     };
     private static final String[] OPENAI_RESPONSES = {TEMPERATURE, TOP_P, PARALLEL_TOOL_CALLS};
     private static final String[] ANTHROPIC = {TEMPERATURE, TOP_P, TOP_K};

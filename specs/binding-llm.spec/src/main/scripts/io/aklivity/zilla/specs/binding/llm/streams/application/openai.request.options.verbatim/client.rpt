@@ -30,7 +30,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"x:temperature\":0.7,\"openai:service_tier\":\"au\\u0074o\",\"openai:response_format\":{ \"type\" : \"json_object\" }}"
+write "{\"x:temperature\":0.7,\"openai:service_tier\":\"au\\u0074o\",\"x:response_format\":{ \"type\" : \"json_object\" }}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()

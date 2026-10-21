@@ -146,6 +146,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private static final String MEMBER_TEXT = "text";
     private static final String MEMBER_STREAM = "stream";
     private static final String MEMBER_TOOL_CHOICE = "tool_choice";
+    private static final String MEMBER_OUTPUT_CONFIG = "output_config";
     private static final byte[] TEXT_PREFIX = "{\"text\":\"".getBytes(UTF_8);
     private static final byte[] TEXT_SUFFIX = "\"}".getBytes(UTF_8);
     private static final int TEXT_ESCAPE_EXPANSION = 6;
@@ -2894,7 +2895,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         {
             captureThen = then;
 
-            if (matches(key, MEMBER_TOOL_CHOICE))
+            if (matches(key, MEMBER_TOOL_CHOICE) || matches(key, MEMBER_OUTPUT_CONFIG))
             {
                 controlConverted(key, CONTROL_CONTINUE);
             }
@@ -2944,7 +2945,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 blockPipeline.begin(blockAttributes);
                 onDecodeControlKey(key, false, '{');
             }
-            else if (matches(key, MEMBER_TOOL_CHOICE))
+            else if (matches(key, MEMBER_TOOL_CHOICE) || matches(key, MEMBER_OUTPUT_CONFIG))
             {
                 controlConverted(key, CONTROL_BEGIN);
             }

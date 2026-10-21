@@ -41,7 +41,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-read "{\"gemini:generationConfig\":{\"candidateCount\":1},\"x:temperature\":0.2,\"gemini:generationConfig\":{\"maxOutputTokens\":256},\"x:top_p\":0.9,\"x:top_k\":40,\"x:stop\":[\"END\"],\"x:seed\":42,\"x:frequency_penalty\":0.5,\"x:presence_penalty\":-0.5,\"gemini:generationConfig\":{\"responseMimeType\":\"application/json\"}}"
+read "{\"gemini:generationConfig\":{\"candidateCount\":1},\"x:temperature\":0.2,\"gemini:generationConfig\":{\"maxOutputTokens\":256},\"x:top_p\":0.9,\"x:top_k\":40,\"x:stop\":[\"END\"],\"x:seed\":42,\"x:frequency_penalty\":0.5,\"x:presence_penalty\":-0.5,\"gemini:generationConfig\":{\"responseLogprobs\":true}}"
 
 read advised zilla:flush ${llm:matchDialectFlushEx()
                                .typeId(zilla:id("llm"))

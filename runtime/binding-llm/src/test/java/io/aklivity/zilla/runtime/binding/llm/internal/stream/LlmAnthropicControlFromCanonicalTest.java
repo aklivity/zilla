@@ -304,4 +304,116 @@ public class LlmAnthropicControlFromCanonicalTest
             json("{'anthropic:tool_choice':{'extra':1}}"),
             json("{'tool_choice':{'extra':1}}"));
     }
+
+
+    @Test
+    public void shouldWriteJsonSchemaFormatAsOutputConfig()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'name':'answer','description':'d'," +
+                "'schema':{'type':'object','a':[1,'" + LONG + "']},'strict':true}}}"),
+            json("{'output_config':{'format':{'type':'json_schema','schema':{'type':'object','a':[1,'" + LONG + "']}}}}"));
+
+        assertThat(foreignMembers.member(), equalTo("output_config"));
+    }
+
+    @Test
+    public void shouldWriteJsonSchemaFormatWithTypeLast()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:response_format':{'json_schema':{'name':'a','schema':{'x':1}},'type':'json_schema'}}"),
+            json("{'output_config':{'format':{'type':'json_schema','schema':{'x':1}}}}"));
+    }
+
+    @Test
+    public void shouldWriteSchemaLargerThanWindow()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'name':'a','schema':{'d':'" + HUGE + "'}}}}"),
+            json("{'output_config':{'format':{'type':'json_schema','schema':{'d':'" + HUGE + "'}}}}"));
+    }
+
+    @Test
+    public void shouldOmitTextFormat()
+    {
+        assertTransforms(foreignMembers, json("{'x:response_format':{'type':'text'}}"), json("{}"));
+    }
+
+    @Test
+    public void shouldDropNullFormat()
+    {
+        assertTransforms(foreignMembers, json("{'x:response_format':null}"), json("{}"));
+    }
+
+    @Test
+    public void shouldRejectJsonObjectFormat()
+    {
+        assertRejects(foreignMembers, json("{'x:response_format':{'type':'json_object'}}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("response_format"));
+    }
+
+    @Test
+    public void shouldRejectUnknownFormatType()
+    {
+        assertRejects(foreignMembers, json("{'x:response_format':{'type':'grammar'}}"));
+    }
+
+    @Test
+    public void shouldRejectDeniedSchemaKeyword()
+    {
+        assertRejects(foreignMembers,
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'name':'a','schema':{'type':'object'," +
+                "'properties':{'n':{'type':'integer','minimum':1}}}}}}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("response_format keyword minimum"));
+    }
+
+    @Test
+    public void shouldRejectDeniedSchemaKeywordLargerThanWindow()
+    {
+        assertRejects(foreignMembers,
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'name':'a','schema':{'d':'" + HUGE +
+                "','maxLength':3}}}}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("response_format keyword maxLength"));
+    }
+
+    @Test
+    public void shouldRejectExternalReference()
+    {
+        assertRejects(foreignMembers,
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'schema':{'$ref':'https://e.com/s'}}}}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("response_format keyword $ref"));
+    }
+
+    @Test
+    public void shouldRejectMinItemsAboveOne()
+    {
+        assertRejects(foreignMembers,
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'schema':{'minItems':2}}}}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("response_format keyword minItems"));
+    }
+
+    @Test
+    public void shouldAcceptKeywordsAsPropertyNames()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'schema':{'properties':{'minimum':{}," +
+                "'maxItems':{'minItems':1,'enum':[{'maximum':1}]}}}}}}"),
+            json("{'output_config':{'format':{'type':'json_schema','schema':{'properties':{'minimum':{}," +
+                "'maxItems':{'minItems':1,'enum':[{'maximum':1}]}}}}}}"));
+    }
+
+    @Test
+    public void shouldNotScanAcrossRequests()
+    {
+        assertRejects(foreignMembers,
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'schema':{'maxLength':1}}}}"));
+        assertTransforms(foreignMembers,
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'schema':{'type':'string'}}}}"),
+            json("{'output_config':{'format':{'type':'json_schema','schema':{'type':'string'}}}}"));
+    }
 }

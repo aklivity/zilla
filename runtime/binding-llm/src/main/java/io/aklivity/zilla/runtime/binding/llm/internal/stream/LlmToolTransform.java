@@ -53,6 +53,8 @@ abstract class LlmToolTransform implements JsonTransform
     protected static final int CLAMP_NUMBER = 19;
     protected static final int INTEGER_RANGE = 20;
     protected static final int CAPTURE_VALUE = 21;
+    protected static final int DESCEND_OR_REPLACE = 22;
+    protected static final int DESCEND_OR_PASS = 23;
 
     protected static final int MODE_OBJECT = 0;
     protected static final int MODE_EXTRACT = 1;
@@ -116,6 +118,8 @@ abstract class LlmToolTransform implements JsonTransform
     private boolean elementPending;
     private String held;
     private String rejectedMember;
+    private LlmSchemaScanner scanner;
+    private String scannedMember;
 
     protected LlmToolTransform()
     {
@@ -359,6 +363,14 @@ abstract class LlmToolTransform implements JsonTransform
         nested = container;
     }
 
+    protected final void scan(
+        LlmSchemaScanner scanner,
+        String member)
+    {
+        this.scanner = scanner;
+        this.scannedMember = member;
+    }
+
     protected final int reject(
         CharSequence member)
     {
@@ -548,6 +560,8 @@ abstract class LlmToolTransform implements JsonTransform
         elementPending = false;
         held = null;
         rejectedMember = null;
+        scanner = null;
+        scannedMember = null;
         heldBuilder.setLength(0);
     }
 
@@ -632,6 +646,7 @@ abstract class LlmToolTransform implements JsonTransform
         else if (passing)
         {
             pass(JsonEvent.KEY_NAME);
+            status = scanned(JsonEvent.KEY_NAME);
         }
         else if (!skipping && !source.deferredBytes())
         {
@@ -847,6 +862,12 @@ abstract class LlmToolTransform implements JsonTransform
         case DESCEND_KEPT_OR_REPLACE:
             status = event == JsonEvent.START_OBJECT ? descendKept(event) : replace(event);
             break;
+        case DESCEND_OR_REPLACE:
+            status = event == JsonEvent.START_OBJECT ? descendSilent() : replace(event);
+            break;
+        case DESCEND_OR_PASS:
+            status = event == JsonEvent.START_OBJECT ? descendSilent() : beginPass(event);
+            break;
         case REPLACE_VALUE:
             status = replace(event);
             break;
@@ -996,6 +1017,13 @@ abstract class LlmToolTransform implements JsonTransform
         }
 
         pass(event);
+        depth++;
+
+        return onDescend(depth);
+    }
+
+    private Status descendSilent()
+    {
         depth++;
 
         return onDescend(depth);
@@ -1277,6 +1305,13 @@ abstract class LlmToolTransform implements JsonTransform
         pass(event);
         passDepth = depth;
 
+        if (scanner != null)
+        {
+            scanner.begin();
+        }
+
+        final Status status = scanned(event);
+
         if (event == JsonEvent.START_OBJECT || event == JsonEvent.START_ARRAY)
         {
             passing = true;
@@ -1288,17 +1323,42 @@ abstract class LlmToolTransform implements JsonTransform
 
             if (!passing)
             {
+                scanner = null;
                 closePassed();
             }
         }
 
-        return Status.ADVANCED;
+        return status;
+    }
+
+    private Status scanned(
+        JsonEvent event)
+    {
+        Status status = Status.ADVANCED;
+
+        if (scanner != null)
+        {
+            final boolean text = event == JsonEvent.KEY_NAME ||
+                event == JsonEvent.VALUE_STRING ||
+                event == JsonEvent.VALUE_NUMBER;
+            final String keyword = scanner.scan(event, text ? source.getStringView() : null, text && source.deferredBytes());
+
+            if (keyword != null)
+            {
+                rejectedMember = scannedMember + " keyword " + keyword;
+                status = Status.REJECTED;
+            }
+        }
+
+        return status;
     }
 
     private Status carry(
         JsonEvent event)
     {
         pass(event);
+
+        final Status status = scanned(event);
 
         switch (event)
         {
@@ -1318,7 +1378,7 @@ abstract class LlmToolTransform implements JsonTransform
 
         finishPass();
 
-        return Status.ADVANCED;
+        return status;
     }
 
     private Status valueEnd()
@@ -1342,6 +1402,7 @@ abstract class LlmToolTransform implements JsonTransform
 
         if (!passing)
         {
+            scanner = null;
             closePassed();
         }
     }
