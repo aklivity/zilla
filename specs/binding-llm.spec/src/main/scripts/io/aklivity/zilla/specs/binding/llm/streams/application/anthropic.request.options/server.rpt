@@ -39,49 +39,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-read "{\"anthropic:temperature\":0.5}"
-
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("CONTROL")
-                          .message(-1)
-                          .build()}
-read "{\"anthropic:top_p\":0.9}"
-
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("CONTROL")
-                          .message(-1)
-                          .build()}
-read "{\"anthropic:top_k\":40}"
-
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("CONTROL")
-                          .message(-1)
-                          .build()}
-read "{\"anthropic:stop_sequences\":[\"END\"]}"
-
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("CONTROL")
-                          .message(-1)
-                          .build()}
-read "{\"anthropic:thinking\":{\"type\":\"enabled\",\"budget_tokens\":2048}}"
-
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("CONTROL")
-                          .message(-1)
-                          .build()}
-read "{\"anthropic:container_id\":\"ctr_1\"}"
-
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("CONTROL")
-                          .message(-1)
-                          .build()}
-read "{\"anthropic:mcp_servers\":[{\"type\":\"url\",\"url\":\"https://mcp.example.com\",\"name\":\"example\"}]}"
+read "{\"anthropic:temperature\":0.5,\"anthropic:top_p\":0.9,\"anthropic:top_k\":40,\"anthropic:stop_sequences\":[\"END\"],\"anthropic:thinking\":{\"type\":\"enabled\",\"budget_tokens\":2048},\"anthropic:container_id\":\"ctr_1\",\"anthropic:mcp_servers\":[{\"type\":\"url\",\"url\":\"https://mcp.example.com\",\"name\":\"example\"}]}"
 
 read advised zilla:flush ${llm:matchDialectFlushEx()
                                  .typeId(zilla:id("llm"))

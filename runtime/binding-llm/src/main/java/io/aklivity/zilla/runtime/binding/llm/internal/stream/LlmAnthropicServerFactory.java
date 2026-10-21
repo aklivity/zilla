@@ -208,6 +208,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private final LlmAnthropicServerDecoder decodeModelMember = this::decodeModelMember;
     private final LlmAnthropicServerDecoder decodeModelValue = this::decodeModelValue;
     private final LlmAnthropicServerDecoder decodeRoot = this::decodeRoot;
+    private final LlmAnthropicServerDecoder decodeRootControl = this::decodeRootControl;
     private final LlmAnthropicServerDecoder decodeMessagesStart = this::decodeMessagesStart;
     private final LlmAnthropicServerDecoder decodeMessages = this::decodeMessages;
     private final LlmAnthropicServerDecoder decodeMessage = this::decodeMessage;
@@ -612,32 +613,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 {
                     break;
                 }
-                final CharSequence key = parser.getStringView();
-                if (matches(key, "messages"))
-                {
-                    server.decoder = decodeMessagesStart;
-                }
-                else if (matches(key, "system"))
-                {
-                    server.decoder = decodeSystemStart;
-                }
-                else if (matches(key, "tools"))
-                {
-                    server.decoder = decodeToolsStart;
-                }
-                else if (matches(key, "max_tokens"))
-                {
-                    server.decoder = decodeMaxOutputTokensValue;
-                }
-                else if (matches(key, "model"))
-                {
-                    server.skip(decodeRoot);
-                    server.decoder = decodeSkip;
-                }
-                else
-                {
-                    server.control(key, -1, decodeRoot);
-                }
+                server.onDecodeRootKey(parser.getStringView());
                 break;
             case END_OBJECT:
                 server.onDecodeRootEnd(traceId);
@@ -650,6 +626,67 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         }
 
         return server.position();
+    }
+
+    private int decodeRootControl(
+        LlmAnthropicServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        decode:
+        if (parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            switch (event)
+            {
+            case KEY_NAME:
+                if (parser.deferredBytes())
+                {
+                    break;
+                }
+                final CharSequence key = parser.getStringView();
+                if (isRootControl(key))
+                {
+                    server.controlMore(key, decodeRootControl);
+                }
+                else
+                {
+                    server.closeControl(traceId, authorization);
+                    server.decoder = decodeRoot;
+                    server.onDecodeRootKey(key);
+                }
+                break;
+            case END_OBJECT:
+                server.closeControl(traceId, authorization);
+                server.onDecodeRootEnd(traceId);
+                break;
+            default:
+                server.onDecodeParseError(traceId);
+                break decode;
+            }
+
+        }
+
+        return server.position();
+    }
+
+    private boolean isRootControl(
+        CharSequence key)
+    {
+        return !matches(key, "messages") &&
+            !matches(key, "system") &&
+            !matches(key, "tools") &&
+            !matches(key, "max_tokens") &&
+            !matches(key, "model") &&
+            !matches(key, MEMBER_STREAM);
     }
 
     private int decodeSystemStart(
@@ -2815,6 +2852,56 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             decoder = probeCapture;
         }
 
+        private void onDecodeRootKey(
+            CharSequence key)
+        {
+            if (matches(key, "messages"))
+            {
+                decoder = decodeMessagesStart;
+            }
+            else if (matches(key, "system"))
+            {
+                decoder = decodeSystemStart;
+            }
+            else if (matches(key, "tools"))
+            {
+                decoder = decodeToolsStart;
+            }
+            else if (matches(key, "max_tokens"))
+            {
+                decoder = decodeMaxOutputTokensValue;
+            }
+            else if (matches(key, "model"))
+            {
+                skip(decodeRoot);
+                decoder = decodeSkip;
+            }
+            else
+            {
+                control(key, -1, isRootControl(key) ? decodeRootControl : decodeRoot);
+            }
+        }
+
+        private void controlMore(
+            CharSequence key,
+            LlmAnthropicServerDecoder then)
+        {
+            onDecodeControlKey(key, true, ',');
+
+            captureThen = then;
+            captureOpen = true;
+            captureDepth = 0;
+            captureFrom = position();
+            decoder = decodeControlValue;
+        }
+
+        private void closeControl(
+            long traceId,
+            long authorization)
+        {
+            onDecodeData(traceId, authorization, EMPTY_BUFFER, 0, 0, true);
+        }
+
         private void control(
             CharSequence key,
             int message,
@@ -2826,11 +2913,11 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             {
                 blockPipeline = controlPipeline();
                 blockPipeline.begin(blockAttributes);
-                onDecodeControlKey(key, false);
+                onDecodeControlKey(key, false, '{');
             }
             else
             {
-                onDecodeControlKey(key, true);
+                onDecodeControlKey(key, true, '{');
             }
 
             captureThen = then;
@@ -2844,7 +2931,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             long traceId,
             long authorization)
         {
-            flushCapture(traceId, authorization, true);
+            flushCapture(traceId, authorization, captureThen != decodeRootControl);
 
             if (blockSection == LlmSectionType.CONTROL && blockPipeline != null)
             {
@@ -2967,7 +3054,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
         private void onDecodeControlKey(
             CharSequence key,
-            boolean prefixed)
+            boolean prefixed,
+            char open)
         {
             controlKey.setLength(0);
 
@@ -2983,6 +3071,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             generator.wrap(pieceBuffer, 0, pieceBytes.length);
             generator.reset();
             generator.writeStartObject().writeKey(controlKey);
+
+            pieceBuffer.putByte(0, (byte) open);
 
             onDecodeBlockData(decodeTraceId, decodeAuthorization, pieceBuffer, 0, generator.length(), false);
         }
