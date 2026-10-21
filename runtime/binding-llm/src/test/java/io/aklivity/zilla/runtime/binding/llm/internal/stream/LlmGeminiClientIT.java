@@ -2423,4 +2423,68 @@ public class LlmGeminiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({
+        "source \"anthropic\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.request.cache.breakpoint/client",
+        "${net}/gemini.transform.user.text/server"})
+    public void shouldDropCacheBreakpointAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({
+        "source \"anthropic\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.request.cache.breakpoint.default/client",
+        "${net}/gemini.transform.user.text/server"})
+    public void shouldDropCacheBreakpointWithoutTtlAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({
+        "source \"anthropic\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\""})
+    @Specification({
+        "${app}/transform.tool.definition.strict/client",
+        "${net}/gemini.transform.tool.definition.strict/server"})
+    public void shouldDropToolDefinitionStrictAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
+        "${app}/gemini.transform.user.document.citations/client",
+        "${net}/gemini.transform.user.document.reference/server"})
+    public void shouldDropUserDocumentCitationsAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
+        "${app}/gemini.transform.assistant.reasoning.redacted/client",
+        "${net}/gemini.transform.assistant.reasoning/server"})
+    public void shouldDropRedactedReasoningAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -65,7 +65,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("ASSISTANT_REASONING")
                           .message(0)
                           .build()}
-read "{\"anthropic:data\":\"opaque\"}"
+read "{\"x:redacted_data\":\"opaque\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))

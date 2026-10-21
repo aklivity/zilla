@@ -1978,4 +1978,74 @@ public class LlmAnthropicServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.tool.definition.strict/client",
+        "${app}/anthropic.section.tool.definition.strict/server"})
+    public void shouldDecodeAnthropicSectionToolDefinitionStrict() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.user.image.cache.control/client",
+        "${app}/anthropic.section.user.image.cache.control/server"})
+    public void shouldDecodeAnthropicSectionUserImageCacheControl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.user.document.citations/client",
+        "${app}/anthropic.section.user.document.citations/server"})
+    public void shouldDecodeAnthropicSectionUserDocumentCitations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.user.text.cache.control.split/client",
+        "${app}/anthropic.section.user.text.cache.control.split/server"})
+    public void shouldDecodeAnthropicSectionUserTextCacheControlSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.user.text.held.close/client",
+        "${app}/anthropic.section.user.text.held.close/server"})
+    public void shouldDecodeAnthropicSectionUserTextHeldClose() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.user.text.cache.control.10k/client",
+        "${app}/anthropic.section.user.text.cache.control.10k/server"})
+    public void shouldDecodeAnthropicSectionUserTextCacheControl10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.user.text.cache.control.window/client",
+        "${app}/anthropic.section.user.text.cache.control.window/server"})
+    public void shouldDecodeAnthropicSectionUserTextCacheControlWindow() throws Exception
+    {
+        k3po.finish();
+    }
 }

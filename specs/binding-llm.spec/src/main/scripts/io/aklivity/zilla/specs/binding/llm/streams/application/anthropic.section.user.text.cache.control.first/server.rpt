@@ -29,17 +29,10 @@ connected
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("CONTROL")
-                          .message(0)
-                          .build()}
-read "{\"anthropic:cache_control\":{\"type\":\"ephemeral\"}}"
-
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-read "{\"text\":\"Hello\"}"
+read "{\"prompt_cache_breakpoint\":{\"mode\":\"explicit\"},\"text\":\"Hello\"}"
 
 read advised zilla:flush
 
