@@ -40,6 +40,7 @@ final class LlmMemberModelPipeline implements LlmGuardPipeline
     private final ModelPipelineResult result;
 
     private boolean started;
+    private ModelStatus valueStatus;
     private int values;
     private int matched;
 
@@ -113,6 +114,7 @@ final class LlmMemberModelPipeline implements LlmGuardPipeline
                 position += inner.consumed();
                 produced += inner.produced();
                 status = inner.status();
+                valueStatus = status;
                 stopped = partial || isBlocked(status);
             }
             else if (region == LlmObjectScanner.SUFFIX)
@@ -134,6 +136,19 @@ final class LlmMemberModelPipeline implements LlmGuardPipeline
                 position = end;
                 stopped = position == limit && limit < srcLimit;
             }
+        }
+
+        if (srcIndex == srcLimit && valueStatus == ModelStatus.SUSPENDED && scanner.region() == LlmObjectScanner.VALUE)
+        {
+            final ModelPipelineResult inner = pipeline.transform(traceId, bindingId, authorization, flags(0), EMPTY, 0, 0, dst,
+                dstIndex + produced, dstLimit);
+
+            follow(EMPTY, 0, 0, dst, dstIndex + produced, inner.produced());
+
+            produced += inner.produced();
+            status = inner.status();
+            valueStatus = status;
+            stopped = isBlocked(status);
         }
 
         if (position < srcLimit && status != ModelStatus.REJECTED && status != ModelStatus.SUSPENDED)
@@ -234,6 +249,7 @@ final class LlmMemberModelPipeline implements LlmGuardPipeline
         scanner.begin();
         lockstep.begin();
         started = false;
+        valueStatus = ModelStatus.UNDERFLOW;
     }
 
     private ModelPipelineResult finishValue(

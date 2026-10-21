@@ -32,6 +32,12 @@ bindings:
                 reject:
                   secrets0:
                     - secret.aws_key
+            - section: tool-call
+              value:
+                model: classify
+                reject:
+                  secrets0:
+                    - secret.aws_key
     routes:
     - when:
       - dialect: openai
