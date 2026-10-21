@@ -2719,7 +2719,7 @@ public class LlmOpenaiResponsesClientIT
     @Test
     @Configuration("client.openai.unsupported.yaml")
     @ScriptProperty({
-        "source \"anthropic\"",
+        "source \"openai/responses\"",
         "target \"openai/responses\"",
         "model \"strict-model\"",
         "member \"parallel_tool_calls\"",
@@ -2735,7 +2735,7 @@ public class LlmOpenaiResponsesClientIT
     @Test
     @Configuration("client.openai.unsupported.yaml")
     @ScriptProperty({
-        "source \"anthropic\"",
+        "source \"openai/responses\"",
         "target \"openai/responses\"",
         "model \"strict-model\"",
         "member \"response_format\"",
@@ -2751,7 +2751,7 @@ public class LlmOpenaiResponsesClientIT
     @Test
     @Configuration("client.openai.unsupported.yaml")
     @ScriptProperty({
-        "source \"anthropic\"",
+        "source \"openai/responses\"",
         "target \"openai/responses\"",
         "model \"strict-model\"",
         "member \"parallel_tool_calls\"",
@@ -2767,7 +2767,7 @@ public class LlmOpenaiResponsesClientIT
     @Test
     @Configuration("client.openai.unsupported.yaml")
     @ScriptProperty({
-        "source \"anthropic\"",
+        "source \"openai/responses\"",
         "target \"openai/responses\"",
         "model \"strict-model\"",
         "member \"response_format\"",
@@ -2783,7 +2783,7 @@ public class LlmOpenaiResponsesClientIT
     @Test
     @Configuration("client.openai.unsupported.yaml")
     @ScriptProperty({
-        "source \"anthropic\"",
+        "source \"openai/responses\"",
         "target \"openai/responses\"",
         "model \"strict-model\"",
         "member \"user\"",
@@ -2799,7 +2799,7 @@ public class LlmOpenaiResponsesClientIT
     @Test
     @Configuration("client.openai.exclusive.yaml")
     @ScriptProperty({
-        "source \"anthropic\"",
+        "source \"openai/responses\"",
         "target \"openai/responses\"",
         "effort \"high\"",
         "budget \"8192\"",

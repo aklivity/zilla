@@ -84,6 +84,7 @@ final class LlmAnthropicControlFromCanonical extends LlmFormatFromCanonical
         this.choice = new LlmToolChoice();
         this.scanner = new LlmSchemaScanner(LlmSchemaScanner.TARGET_ANTHROPIC);
         this.capability = capability;
+        legality(capability);
         this.parallelCalls = PARALLEL_UNSET;
         this.effort = LlmEffort.ABSENT;
         this.budget = LlmEffort.ABSENT;

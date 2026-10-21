@@ -67,6 +67,7 @@ final class LlmOpenaiControlFromCanonical extends LlmToolTransform
         this.members = mode == MODE_OBJECT;
         this.foreign = !sameDialect;
         this.capability = capability;
+        legality(capability);
         this.effort = LlmEffort.ABSENT;
         this.budget = LlmEffort.ABSENT;
     }

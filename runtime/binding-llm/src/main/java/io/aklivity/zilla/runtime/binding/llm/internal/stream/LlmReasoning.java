@@ -17,11 +17,41 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 import static io.aklivity.zilla.runtime.binding.llm.config.LlmModelCapability.UNSET;
 
 import io.aklivity.zilla.runtime.binding.llm.config.LlmEffort;
+import io.aklivity.zilla.runtime.binding.llm.config.LlmMember;
+import io.aklivity.zilla.runtime.binding.llm.config.LlmModelCapability;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 
 final class LlmReasoning
 {
     static final int[] DOCUMENTED_LADDER = {UNSET, UNSET, 1024, 8192, 24576, UNSET, UNSET};
+
+    static int exclusiveEffort(
+        LlmModelCapability capability,
+        int effort,
+        int budget)
+    {
+        return (capability.excluded(present(effort, budget)) & 1 << LlmMember.REASONING_EFFORT) != 0
+            ? LlmEffort.ABSENT
+            : effort;
+    }
+
+    static int exclusiveBudget(
+        LlmModelCapability capability,
+        int effort,
+        int budget)
+    {
+        return (capability.excluded(present(effort, budget)) & 1 << LlmMember.THINKING_BUDGET_TOKENS) != 0
+            ? LlmEffort.ABSENT
+            : budget;
+    }
+
+    private static int present(
+        int effort,
+        int budget)
+    {
+        return (effort != LlmEffort.ABSENT ? 1 << LlmMember.REASONING_EFFORT : 0) |
+            (budget != LlmEffort.ABSENT ? 1 << LlmMember.THINKING_BUDGET_TOKENS : 0);
+    }
 
     static int effortOf(
         LlmCapturedValue value)

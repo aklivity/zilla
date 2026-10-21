@@ -29,6 +29,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
+
 import org.junit.Before;
 import org.junit.Test;
 
@@ -339,6 +341,60 @@ public class LlmBindingConfigTest
             {
             }
         };
+    }
+
+    @Test
+    public void shouldListDialectLevelUnsupportedForEveryModel()
+    {
+        LlmBindingConfig binding = new LlmBindingConfig(binding(LlmOptionsConfig.builder()
+            .dialect("openai")
+            .unsupported(List.of("seed", "parallel_tool_calls"))
+            .build()), context);
+
+        assertThat(binding.capability("gpt-5").unsupported(LlmMember.SEED), is(true));
+        assertThat(binding.capability("gpt-5").unsupported(LlmMember.PARALLEL_TOOL_CALLS), is(true));
+        assertThat(binding.capability("o3-mini").unsupported(LlmMember.SEED), is(true));
+        assertThat(binding.capability("o3-mini").sampling, is(false));
+    }
+
+    @Test
+    public void shouldListDialectLevelExclusiveForEveryModel()
+    {
+        LlmBindingConfig binding = new LlmBindingConfig(binding(LlmOptionsConfig.builder()
+            .dialect("openai")
+            .exclusive(List.of(List.of("thinking_budget_tokens", "reasoning_effort")))
+            .build()), context);
+
+        assertThat(binding.capability("gpt-5").excluded(1 << LlmMember.REASONING_EFFORT | 1 << LlmMember.THINKING_BUDGET_TOKENS),
+            is(1 << LlmMember.REASONING_EFFORT));
+    }
+
+    @Test
+    public void shouldReplaceDialectLevelUnsupportedWithModelEntry()
+    {
+        LlmBindingConfig binding = new LlmBindingConfig(binding(LlmOptionsConfig.builder()
+            .dialect("openai")
+            .unsupported(List.of("seed"))
+            .model()
+                .name("strict-*")
+                .unsupported(List.of("stop"))
+                .build()
+            .build()), context);
+
+        assertThat(binding.capability("strict-1").unsupported(LlmMember.STOP), is(true));
+        assertThat(binding.capability("strict-1").unsupported(LlmMember.SEED), is(false));
+        assertThat(binding.capability("other").unsupported(LlmMember.SEED), is(true));
+        assertThat(binding.capability("other").unsupported(LlmMember.STOP), is(false));
+    }
+
+    @Test
+    public void shouldListNoUnsupportedWithoutOptions()
+    {
+        LlmBindingConfig binding = new LlmBindingConfig(binding(LlmOptionsConfig.builder()
+            .dialect("openai")
+            .build()), context);
+
+        assertThat(binding.capability("gpt-5"), sameInstance(LlmModelCapability.UNSPECIFIED));
     }
 
     private static BindingConfig binding(

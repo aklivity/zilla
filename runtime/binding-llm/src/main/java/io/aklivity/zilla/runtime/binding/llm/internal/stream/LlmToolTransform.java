@@ -19,6 +19,8 @@ import java.util.Arrays;
 
 import jakarta.json.stream.JsonLocation;
 
+import io.aklivity.zilla.runtime.binding.llm.config.LlmMember;
+import io.aklivity.zilla.runtime.binding.llm.config.LlmModelCapability;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
@@ -82,6 +84,8 @@ abstract class LlmToolTransform implements JsonTransform
     private final StringBuilder heldBuilder;
     private final String[] names;
     private final MemberView sharedMember;
+
+    private LlmModelCapability legality;
 
     private JsonEvent[] queueEvents;
     private String[] queueTexts;
@@ -163,12 +167,19 @@ abstract class LlmToolTransform implements JsonTransform
         this.heldBuilder = new StringBuilder();
         this.names = new String[NAMES_CAPACITY];
         this.sharedMember = new MemberView();
+        this.legality = LlmModelCapability.UNSPECIFIED;
         this.pending = NONE;
     }
 
     protected abstract int member(
         int depth,
         CharSequence key);
+
+    protected final void legality(
+        LlmModelCapability legality)
+    {
+        this.legality = legality;
+    }
 
     protected abstract void onOpen();
 
@@ -320,7 +331,7 @@ abstract class LlmToolTransform implements JsonTransform
         }
         else if (colon == SHARED_PREFIX_LENGTH && regionMatches(key, 0, colon, SHARED_DIALECT))
         {
-            action = shared(sharedMember.wrap(key, colon + 1, length));
+            action = legal(sharedMember.wrap(key, colon + 1, length));
         }
         else if (sameDialect && regionMatches(key, 0, colon, dialect))
         {
@@ -338,6 +349,28 @@ abstract class LlmToolTransform implements JsonTransform
         CharSequence member)
     {
         return DROP;
+    }
+
+    private int legal(
+        CharSequence member)
+    {
+        final int listed = legality.unsupported != 0 ? LlmMember.of(member) : LlmMember.INVALID;
+
+        return listed == LlmMember.INVALID || !legality.unsupported(listed)
+            ? shared(member)
+            : LlmMember.behavioural(listed) ? judge(member) : DROP;
+    }
+
+    private int judge(
+        CharSequence member)
+    {
+        target = null;
+
+        final int action = capture(member);
+
+        rejectedMember = captureMember;
+
+        return action;
     }
 
     protected int breakpoint(
@@ -1001,12 +1034,31 @@ abstract class LlmToolTransform implements JsonTransform
         if (status == Status.ADVANCED && captureDepth == 0)
         {
             pending = NONE;
-            status = onCaptured(captured);
+            status = judging(captureMember) ? judged() : onCaptured(captured);
 
             if (status == Status.REJECTED && rejectedMember == null)
             {
                 rejectedMember = captureMember;
             }
+        }
+
+        return status;
+    }
+
+    private boolean judging(
+        String member)
+    {
+        return legality.unsupported != 0 && legality.unsupported(LlmMember.of(member));
+    }
+
+    private Status judged()
+    {
+        Status status = Status.REJECTED;
+
+        if (LlmLegality.harmless(captureMember, captured))
+        {
+            rejectedMember = null;
+            status = Status.ADVANCED;
         }
 
         return status;

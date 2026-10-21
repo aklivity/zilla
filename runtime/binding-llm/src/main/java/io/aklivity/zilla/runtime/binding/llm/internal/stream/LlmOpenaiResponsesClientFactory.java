@@ -6544,6 +6544,10 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             {
                 budget = controlTransform.budget();
             }
+
+            final int exclusiveEffort = LlmReasoning.exclusiveEffort(capability, effort, budget);
+            budget = LlmReasoning.exclusiveBudget(capability, effort, budget);
+            effort = exclusiveEffort;
         }
 
         private void doEncodeSectionEnd()
