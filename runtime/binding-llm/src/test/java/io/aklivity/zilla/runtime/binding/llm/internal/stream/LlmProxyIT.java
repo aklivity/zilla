@@ -137,6 +137,61 @@ public class LlmProxyIT
     @Test
     @Configuration("proxy.guardrail.yaml")
     @Specification({
+        "${app}/openai.proxy.guardrail.media.accepted/client",
+        "${app}/openai.proxy.guardrail.media.accepted/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayGuardedMedia() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.media.url.accepted/client",
+        "${app}/openai.proxy.guardrail.media.url.accepted/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayGuardedMediaUrl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.tool.definition.accepted/client",
+        "${app}/openai.proxy.guardrail.tool.definition.accepted/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayGuardedToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.media.image.rejected/client",
+        "${app}/openai.proxy.guardrail.media.image.rejected.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRejectGuardedImage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.media.audio.rejected/client",
+        "${app}/openai.proxy.guardrail.media.audio.rejected.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRejectGuardedAudio() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.yaml")
+    @Specification({
         "${app}/openai.proxy.guardrail.response.rejected/client",
         "${app}/openai.proxy.guardrail.response.rejected.exit/server"})
     @ScriptProperty("clientAddress \"zilla://streams/net0\"")

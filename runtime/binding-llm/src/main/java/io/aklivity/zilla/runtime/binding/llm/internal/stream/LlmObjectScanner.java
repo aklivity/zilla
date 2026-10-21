@@ -34,8 +34,6 @@ final class LlmObjectScanner
     private static final int STATE_AFTER = 6;
     private static final int STATE_END = 7;
 
-    private static final byte[] TEXT_KEY = "text".getBytes(UTF_8);
-
     private final byte[] key;
     private final boolean quoted;
 
@@ -51,7 +49,13 @@ final class LlmObjectScanner
 
     static LlmObjectScanner text()
     {
-        return new LlmObjectScanner(TEXT_KEY, true);
+        return string("text");
+    }
+
+    static LlmObjectScanner string(
+        String key)
+    {
+        return new LlmObjectScanner(key.getBytes(UTF_8), true);
     }
 
     static LlmObjectScanner member(

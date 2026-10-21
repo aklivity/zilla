@@ -75,8 +75,8 @@ and are dropped for the rest of the section once they exceed it.
 ## Per section type
 
 The **model-visible value** is what a guardrail stage inspects. Everything else in
-the section passes through. (**implemented** for the text sections and for tool
-calls; the guard currently passes the whole payload of every other section to the
+the section passes through. (**implemented** for the text sections, tool calls and
+media; the guard currently passes the whole payload of every other section to the
 stage)
 
 | Section | Model-visible value | Streaming | Non-streaming |
@@ -84,11 +84,21 @@ stage)
 | `SYSTEM_INSTRUCTION`, `USER_TEXT`, `TOOL_RESULT` | `text` | request side, whole | request side, whole |
 | `ASSISTANT_TEXT`, `ASSISTANT_REASONING`, `ASSISTANT_REFUSAL` | `text` | one section, one range per delta | one section, one range |
 | `TOOL_CALL`, `SERVER_TOOL_CALL` | `arguments` (the JSON value), the same value mcp(proxy) validates for `tools/call` | partial JSON fragments in frames, one range per delta | one frame, one range |
-| `USER_IMAGE`, `USER_DOCUMENT`, `USER_AUDIO`, `USER_VIDEO` | the decoded media data, **verdict-only** (`identity()` stages); a URL reference is not inspected | request side, whole (may be split by credit) | same |
+| `USER_IMAGE`, `USER_DOCUMENT`, `USER_AUDIO`, `USER_VIDEO` | the decoded media data, **verdict-only**; a URL reference is not inspected | request side, whole (may be split by credit) | same |
 | `TOOL_DEFINITION`, `SERVER_TOOL_DEFINITION` | none | request side, whole | same |
 | `SERVER_TOOL_RESULT` | none yet | not covered | whole |
 | `CITATIONS` | none; every member is prefixed | not covered | request history only today |
 | `CONTROL` | none; bypasses guardrails | one section per member | same |
+
+The media data is the base64 in `image_url.url` (a `data:` URI that declares base64),
+`file.file_data` (a `data:` URI that declares base64), `input_audio.data` and
+`input_video.data` (base64 on its own). A `data:` URI without base64 and any URL or file
+id reference are not inspected, and the chain is not started for them. The chain is
+presented the decoded bytes, with `init` on its first fragment and `fin` once the value
+has ended, and only its verdict applies: what it produces is discarded and the bytes of
+the section are relayed unmodified. The bytes that carry the end of the media wait for
+the verdict, so a rejected section never completes downstream. Base64 that cannot be
+decoded rejects the section. Ranges are in payload bytes.
 
 Streaming and non-streaming differ only in how many frames and ranges carry the same
 section. The section type, body shape and members are identical.

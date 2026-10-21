@@ -551,6 +551,69 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.proxy.guardrail.media.accepted/client",
+        "${app}/openai.proxy.guardrail.media.accepted/server"})
+    public void shouldGuardOpenaiMediaAccepted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.media.url.accepted/client",
+        "${app}/openai.proxy.guardrail.media.url.accepted/server"})
+    public void shouldGuardOpenaiMediaUrlAccepted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.tool.definition.accepted/client",
+        "${app}/openai.proxy.guardrail.tool.definition.accepted/server"})
+    public void shouldGuardOpenaiToolDefinitionAccepted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.media.image.rejected/client",
+        "${app}/openai.proxy.guardrail.media.image.rejected/server"})
+    public void shouldGuardOpenaiMediaImageRejected() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.media.image.rejected.exit/client",
+        "${app}/openai.proxy.guardrail.media.image.rejected.exit/server"})
+    public void shouldGuardOpenaiMediaImageRejectedExit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.media.audio.rejected/client",
+        "${app}/openai.proxy.guardrail.media.audio.rejected/server"})
+    public void shouldGuardOpenaiMediaAudioRejected() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.media.audio.rejected.exit/client",
+        "${app}/openai.proxy.guardrail.media.audio.rejected.exit/server"})
+    public void shouldGuardOpenaiMediaAudioRejectedExit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.proxy.guardrail.response.rejected.tool.call/client",
         "${app}/openai.proxy.guardrail.response.rejected.tool.call/server"})
     public void shouldGuardOpenaiResponseRejectedToolCallNet() throws Exception

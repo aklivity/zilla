@@ -1370,6 +1370,14 @@ public final class LlmProxyFactory implements LlmStreamFactory
                 new LlmTextModelPipeline(chain, runPool, streamId, transformBuffer);
             case TOOL_CALL, SERVER_TOOL_CALL ->
                 new LlmMemberModelPipeline(chain, ARGUMENTS_MEMBER);
+            case USER_IMAGE ->
+                new LlmMediaGuardPipeline(chain, "image_url", "url", true);
+            case USER_DOCUMENT ->
+                new LlmMediaGuardPipeline(chain, "file", "file_data", true);
+            case USER_AUDIO ->
+                new LlmMediaGuardPipeline(chain, "input_audio", "data", false);
+            case USER_VIDEO ->
+                new LlmMediaGuardPipeline(chain, "input_video", "data", false);
             default ->
                 new LlmRawGuardPipeline(chain);
             };

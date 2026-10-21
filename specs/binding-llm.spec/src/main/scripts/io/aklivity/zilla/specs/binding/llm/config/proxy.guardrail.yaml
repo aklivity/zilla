@@ -28,6 +28,31 @@ bindings:
                 model: test
                 reject:
                   - ignore previous instructions
+            - section: user-image
+              value:
+                model: test
+                reject:
+                  - ignore previous instructions
+            - section: user-document
+              value:
+                model: test
+                reject:
+                  - ignore previous instructions
+            - section: user-audio
+              value:
+                model: test
+                reject:
+                  - ignore previous instructions
+            - section: user-video
+              value:
+                model: test
+                reject:
+                  - ignore previous instructions
+            - section: tool-definition
+              value:
+                model: test
+                reject:
+                  - not a tool definition
           response:
             - section: assistant-text
               value:
