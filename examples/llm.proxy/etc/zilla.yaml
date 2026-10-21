@@ -89,6 +89,9 @@ bindings:
     telemetry:
       metrics:
         - llm.*
+      attributes:
+        requested: ${llm.request.model}
+        served: ${llm.response.model}
     exit: north_llm_proxy
 
   north_tcp_server_anthropic:
@@ -113,6 +116,9 @@ bindings:
     telemetry:
       metrics:
         - llm.*
+      attributes:
+        requested: ${llm.request.model}
+        served: ${llm.response.model}
     exit: north_llm_proxy
 
   north_tcp_server_gemini:
@@ -137,6 +143,9 @@ bindings:
     telemetry:
       metrics:
         - llm.*
+      attributes:
+        requested: ${llm.request.model}
+        served: ${llm.response.model}
     exit: north_llm_proxy
 
   # Shared by all three frontends: routes purely on LlmBeginEx.dialect/model, never
@@ -230,6 +239,9 @@ bindings:
     telemetry:
       metrics:
         - llm.*
+      attributes:
+        requested: ${llm.request.model}
+        served: ${llm.response.model}
     routes:
       - when:
           - dialect: openai
@@ -282,6 +294,9 @@ bindings:
     telemetry:
       metrics:
         - llm.*
+      attributes:
+        requested: ${llm.request.model}
+        served: ${llm.response.model}
     exit: sys:http_client
   south_llm_client_openai:
     type: llm
@@ -295,6 +310,9 @@ bindings:
     telemetry:
       metrics:
         - llm.*
+      attributes:
+        requested: ${llm.request.model}
+        served: ${llm.response.model}
     exit: sys:http_client
   # Second same-dialect (openai) deployment: north_llm_proxy routes gpt-4o here
   # instead of translating to Anthropic -- no dialect translation happens on
@@ -311,6 +329,9 @@ bindings:
     telemetry:
       metrics:
         - llm.*
+      attributes:
+        requested: ${llm.request.model}
+        served: ${llm.response.model}
     exit: sys:http_client
   # Second same-dialect (anthropic) deployment: north_llm_proxy routes
   # claude-3-5-haiku-20241022 here instead of translating to OpenAI.
@@ -326,6 +347,9 @@ bindings:
     telemetry:
       metrics:
         - llm.*
+      attributes:
+        requested: ${llm.request.model}
+        served: ${llm.response.model}
     exit: sys:http_client
   # Targets the real Gemini API over TLS. The caller's own API key is passed
   # through as x-goog-api-key, as options.authorization templates it. A Gemini
@@ -344,4 +368,7 @@ bindings:
     telemetry:
       metrics:
         - llm.*
+      attributes:
+        requested: ${llm.request.model}
+        served: ${llm.response.model}
     exit: sys:http_client

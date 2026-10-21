@@ -88,7 +88,7 @@ public final class LlmInteractionsMetricContext implements MetricContext
         List<AttributeConfig> attributes,
         ToLongFunction<String> resolveId)
     {
-        return new LlmInteractionsHandler(recorder, new LlmAttributes(attributes, context, resolveId));
+        return new LlmInteractionsHandler(recorder, new LlmAttributes(attributes, context, resolveId, llmTypeId));
     }
 
     private final class LlmInteractionsHandler implements MessageConsumer
@@ -155,7 +155,7 @@ public final class LlmInteractionsMetricContext implements MetricContext
                 if (beginEx != null && beginEx.typeId() == llmTypeId)
                 {
                     exchanges.put(exchangeId, 0L);
-                    attributes.request(exchangeId, authorization);
+                    attributes.request(exchangeId, authorization, begin);
                 }
             }
             else
@@ -164,6 +164,7 @@ public final class LlmInteractionsMetricContext implements MetricContext
                 if (state != NOT_TRACKED)
                 {
                     exchanges.put(exchangeId, state | REPLY_OPENED);
+                    attributes.response(exchangeId, begin);
                 }
             }
         }

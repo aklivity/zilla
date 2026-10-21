@@ -93,6 +93,9 @@ bindings:
     telemetry:
       metrics:
         - llm.*
+      attributes:
+        requested: ${llm.request.model}
+        served: ${llm.response.model}
     exit: north_llm_proxy
 
   north_tcp_server_anthropic:
@@ -117,6 +120,9 @@ bindings:
     telemetry:
       metrics:
         - llm.*
+      attributes:
+        requested: ${llm.request.model}
+        served: ${llm.response.model}
     exit: north_llm_proxy
 
   north_tcp_server_gemini:
@@ -141,6 +147,9 @@ bindings:
     telemetry:
       metrics:
         - llm.*
+      attributes:
+        requested: ${llm.request.model}
+        served: ${llm.response.model}
     exit: north_llm_proxy
 
   # Shared by all three frontends: routes purely on LlmBeginEx.dialect/model, never
@@ -230,6 +239,9 @@ bindings:
     telemetry:
       metrics:
         - llm.*
+      attributes:
+        requested: ${llm.request.model}
+        served: ${llm.response.model}
     routes:
       - when:
           - dialect: openai
@@ -277,6 +289,9 @@ bindings:
     telemetry:
       metrics:
         - llm.*
+      attributes:
+        requested: ${llm.request.model}
+        served: ${llm.response.model}
     exit: sys:http_client
   # Nothing listens on this port, so the connection is refused before the llm
   # client grants any credit and north_llm_proxy falls back to the next model
@@ -293,6 +308,9 @@ bindings:
     telemetry:
       metrics:
         - llm.*
+      attributes:
+        requested: ${llm.request.model}
+        served: ${llm.response.model}
     exit: sys:http_client
   south_llm_client_openai:
     type: llm
@@ -306,6 +324,9 @@ bindings:
     telemetry:
       metrics:
         - llm.*
+      attributes:
+        requested: ${llm.request.model}
+        served: ${llm.response.model}
     exit: sys:http_client
   # Second same-dialect (openai) deployment: north_llm_proxy routes gpt-4o here
   # instead of translating to mock-anthropic -- no dialect translation happens
@@ -322,6 +343,9 @@ bindings:
     telemetry:
       metrics:
         - llm.*
+      attributes:
+        requested: ${llm.request.model}
+        served: ${llm.response.model}
     exit: sys:http_client
   # Second same-dialect (anthropic) deployment: north_llm_proxy routes
   # claude-3-5-haiku-20241022 here instead of translating to mock-openai.
@@ -337,6 +361,9 @@ bindings:
     telemetry:
       metrics:
         - llm.*
+      attributes:
+        requested: ${llm.request.model}
+        served: ${llm.response.model}
     exit: sys:http_client
   south_llm_client_gemini:
     type: llm
@@ -350,4 +377,7 @@ bindings:
     telemetry:
       metrics:
         - llm.*
+      attributes:
+        requested: ${llm.request.model}
+        served: ${llm.response.model}
     exit: sys:http_client
