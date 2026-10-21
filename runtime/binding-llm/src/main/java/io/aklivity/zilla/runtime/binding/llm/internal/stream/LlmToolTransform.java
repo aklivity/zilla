@@ -50,6 +50,7 @@ abstract class LlmToolTransform implements JsonTransform
     protected static final int DESCEND_ELEMENTS = 17;
     protected static final int WRAP_STRING_AS_ELEMENT = 18;
     protected static final int CLAMP_NUMBER = 19;
+    protected static final int INTEGER_RANGE = 20;
 
     protected static final int MODE_OBJECT = 0;
     protected static final int MODE_EXTRACT = 1;
@@ -97,6 +98,10 @@ abstract class LlmToolTransform implements JsonTransform
     private boolean converting;
     private boolean wrapping;
     private boolean clamping;
+    private boolean ranging;
+    private boolean nesting;
+    private int nestDepth;
+    private String nested;
     private double clampMinimum;
     private double clampMaximum;
     private boolean awaitingContent;
@@ -328,6 +333,24 @@ abstract class LlmToolTransform implements JsonTransform
         return CLAMP_NUMBER;
     }
 
+    protected final int rangeInteger(
+        String name,
+        double minimum,
+        double maximum)
+    {
+        target = name;
+        clampMinimum = minimum;
+        clampMaximum = maximum;
+
+        return INTEGER_RANGE;
+    }
+
+    protected final void nest(
+        String container)
+    {
+        nested = container;
+    }
+
     protected final int reject(
         CharSequence member)
     {
@@ -450,6 +473,9 @@ abstract class LlmToolTransform implements JsonTransform
         converting = false;
         wrapping = false;
         clamping = false;
+        ranging = false;
+        nesting = false;
+        nested = null;
         awaitingContent = false;
         valueStarted = false;
         arrayOpen = false;
@@ -539,6 +565,7 @@ abstract class LlmToolTransform implements JsonTransform
         }
         else if (!skipping && !source.deferredBytes())
         {
+            nested = null;
             pending = member(depth, source.getStringView());
 
             if (pending == REJECT)
@@ -709,6 +736,11 @@ abstract class LlmToolTransform implements JsonTransform
         pass(event);
         depth--;
 
+        if (nesting && depth == nestDepth)
+        {
+            closeNested();
+        }
+
         return Status.ADVANCED;
     }
 
@@ -785,6 +817,9 @@ abstract class LlmToolTransform implements JsonTransform
         case CLAMP_NUMBER:
             status = event == JsonEvent.VALUE_NUMBER ? holdNumber() : Status.REJECTED;
             break;
+        case INTEGER_RANGE:
+            status = holdInteger(event);
+            break;
         case ESCAPE_OBJECT:
             if (event == JsonEvent.START_OBJECT)
             {
@@ -811,7 +846,7 @@ abstract class LlmToolTransform implements JsonTransform
     {
         if (mode != MODE_EXTRACT && target != null)
         {
-            emit(JsonEvent.KEY_NAME, target);
+            emitMember();
         }
 
         pass(event);
@@ -825,7 +860,7 @@ abstract class LlmToolTransform implements JsonTransform
     {
         if (mode != MODE_EXTRACT && target != null)
         {
-            emit(JsonEvent.KEY_NAME, target);
+            emitMember();
         }
 
         pass(event);
@@ -902,12 +937,77 @@ abstract class LlmToolTransform implements JsonTransform
         return hold();
     }
 
+    private Status holdInteger(
+        JsonEvent event)
+    {
+        final Status status;
+
+        if (event == JsonEvent.VALUE_NUMBER)
+        {
+            ranging = true;
+            status = hold();
+        }
+        else if (event == JsonEvent.VALUE_NULL)
+        {
+            status = Status.ADVANCED;
+        }
+        else
+        {
+            status = Status.REJECTED;
+        }
+
+        return status;
+    }
+
+    private void emitMember()
+    {
+        if (nested != null && !nesting)
+        {
+            emit(JsonEvent.KEY_NAME, nested);
+            emit(JsonEvent.START_OBJECT);
+            nesting = true;
+            nestDepth = depth;
+        }
+
+        emit(JsonEvent.KEY_NAME, target);
+    }
+
+    private void closePassed()
+    {
+        if (passDepth == nestDepth)
+        {
+            closeNested();
+        }
+    }
+
+    private void closeNested()
+    {
+        if (nesting)
+        {
+            nesting = false;
+            emit(JsonEvent.END_OBJECT);
+        }
+    }
+
+    private void emitRanged(
+        String number)
+    {
+        final double value = Double.parseDouble(number);
+
+        if (value >= clampMinimum && value <= clampMaximum && value == Math.rint(value))
+        {
+            emitMember();
+            emit(JsonEvent.VALUE_NUMBER, number);
+            closeNested();
+        }
+    }
+
     private void emitClamped(
         String number)
     {
         final double value = Double.parseDouble(number);
 
-        emit(JsonEvent.KEY_NAME, target);
+        emitMember();
 
         if (value < clampMinimum)
         {
@@ -921,6 +1021,8 @@ abstract class LlmToolTransform implements JsonTransform
         {
             emit(JsonEvent.VALUE_NUMBER, number);
         }
+
+        closeNested();
     }
 
     private Status replace(
@@ -1017,7 +1119,7 @@ abstract class LlmToolTransform implements JsonTransform
     {
         if ((mode != MODE_EXTRACT || depth > extractDepth) && target != null)
         {
-            emit(JsonEvent.KEY_NAME, target);
+            emitMember();
         }
 
         return startPass(event);
@@ -1037,6 +1139,11 @@ abstract class LlmToolTransform implements JsonTransform
         else
         {
             passing = source.deferredBytes();
+
+            if (!passing)
+            {
+                closePassed();
+            }
         }
 
         return Status.ADVANCED;
@@ -1085,6 +1192,11 @@ abstract class LlmToolTransform implements JsonTransform
         if (!passing && mode == MODE_VALUE)
         {
             onValueEnd();
+        }
+
+        if (!passing)
+        {
+            closePassed();
         }
     }
 
@@ -1184,7 +1296,7 @@ abstract class LlmToolTransform implements JsonTransform
 
                     if (target != null)
                     {
-                        emit(JsonEvent.KEY_NAME, target);
+                        emitMember();
                     }
 
                     if (wrapping)
@@ -1198,6 +1310,13 @@ abstract class LlmToolTransform implements JsonTransform
                     {
                         emit(JsonEvent.VALUE_STRING, converted(value));
                     }
+
+                    closeNested();
+                }
+                else if (ranging)
+                {
+                    ranging = false;
+                    emitRanged(value);
                 }
                 else if (clamping)
                 {
