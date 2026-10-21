@@ -40,14 +40,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-read "{\"gemini:safetySettings\":[{\"category\":\"HARM_CATEGORY_HARASSMENT\",\"threshold\":\"BLOCK_NONE\"}]}"
-
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("CONTROL")
-                          .message(-1)
-                          .build()}
-read "{\"gemini:cachedContent\":\"cachedContents/abc123\"}"
+read "{\"gemini:safetySettings\":[{\"category\":\"HARM_CATEGORY_HARASSMENT\",\"threshold\":\"BLOCK_NONE\"}],\"gemini:cachedContent\":\"cachedContents/abc123\"}"
 
 read advised zilla:flush
 

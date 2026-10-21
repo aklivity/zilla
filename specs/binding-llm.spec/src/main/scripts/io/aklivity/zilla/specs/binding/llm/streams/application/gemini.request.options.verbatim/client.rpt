@@ -39,15 +39,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"gemini:safetySettings\":[{\"category\":\"HARM_CATEGORY_HARASSMENT\",\"threshold\":\"BLOCK_NONE\"}]}"
-write flush
-
-write zilla:data.ext ${llm:dataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("CONTROL")
-                          .message(-1)
-                          .build()}
-write "{\"gemini:cachedContent\":\"cachedContents/abc123\"}"
+write "{\"gemini:safetySettings\":[{\"category\":\"HARM_CATEGORY_HARASSMENT\",\"threshold\":\"BLOCK_NONE\"}],\"gemini:cachedContent\":\"cachedContents/abc123\"}"
 write flush
 
 write advise zilla:flush
