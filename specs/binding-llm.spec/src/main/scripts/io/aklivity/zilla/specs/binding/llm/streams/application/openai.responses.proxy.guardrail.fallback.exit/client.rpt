@@ -22,7 +22,7 @@ connect ${clientAddress}
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai/responses")
+                           .dialect("openai/rs")
                            .model(fallback)
                            .build()}
 
@@ -41,7 +41,7 @@ write advise zilla:flush
 
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai/responses")
+                           .dialect("openai/rs")
                            .model(fallback)
                            .build()}
 

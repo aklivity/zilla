@@ -22,10 +22,10 @@ import org.junit.Test;
 
 public class LlmOpenaiMediaFromCanonicalTest
 {
-    private final LlmOpenaiMediaFromCanonical image = LlmOpenaiMediaFromCanonical.image(true);
-    private final LlmOpenaiMediaFromCanonical document = LlmOpenaiMediaFromCanonical.document(true);
-    private final LlmOpenaiMediaFromCanonical audio = LlmOpenaiMediaFromCanonical.audio(true);
-    private final LlmOpenaiMediaFromCanonical foreignImage = LlmOpenaiMediaFromCanonical.image(false);
+    private final LlmOpenaiMediaFromCanonical image = LlmOpenaiMediaFromCanonical.image("openai/ccs");
+    private final LlmOpenaiMediaFromCanonical document = LlmOpenaiMediaFromCanonical.document("openai/ccs");
+    private final LlmOpenaiMediaFromCanonical audio = LlmOpenaiMediaFromCanonical.audio("openai/ccs");
+    private final LlmOpenaiMediaFromCanonical foreignImage = LlmOpenaiMediaFromCanonical.image("openai/rs");
 
     @Test
     public void shouldPassCanonicalImage()
@@ -55,8 +55,8 @@ public class LlmOpenaiMediaFromCanonicalTest
     public void shouldDropOtherDialectPrefixedMembersAndStripOwn()
     {
         assertTransforms(image,
-            json("{'anthropic:cache_control':{'type':'ephemeral'},'type':'image_url','openai:note':'x'," +
-                "'image_url':{'anthropic:y':1,'url':'https://example.com/a.png','openai:z':true}}"),
+            json("{'anthropic:cache_control':{'type':'ephemeral'},'type':'image_url','openai/ccs:note':'x'," +
+                "'image_url':{'anthropic:y':1,'url':'https://example.com/a.png','openai/ccs:z':true}}"),
             json("{'type':'image_url','note':'x','image_url':{'url':'https://example.com/a.png','z':true}}"));
     }
 
@@ -70,7 +70,8 @@ public class LlmOpenaiMediaFromCanonicalTest
     public void shouldDropOwnPrefixedMembersAcrossDialects()
     {
         assertTransforms(foreignImage,
-            json("{'type':'image_url','openai:note':'x','image_url':{'url':'https://example.com/a.png','openai:z':true}}"),
+            json("{'type':'image_url','openai/ccs:note':'x'," +
+                "'image_url':{'url':'https://example.com/a.png','openai/ccs:z':true}}"),
             json("{'type':'image_url','image_url':{'url':'https://example.com/a.png'}}"));
     }
 

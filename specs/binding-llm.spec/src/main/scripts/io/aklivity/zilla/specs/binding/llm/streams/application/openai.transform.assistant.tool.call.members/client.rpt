@@ -22,7 +22,7 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
+                           .dialect("openai/ccs")
                            .model(model)
                            .build()}
 
@@ -43,7 +43,7 @@ write zilla:data.ext ${llm:dataEx()
                           .attribute("tool-name", "get_weather")
                           .attribute("tool-call-id", "call_1")
                           .build()}
-write "{\"openai:index\":0,\"arguments\":{\"city\":\"Paris\"}}"
+write "{\"openai/ccs:index\":0,\"arguments\":{\"city\":\"Paris\"}}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -53,7 +53,7 @@ write zilla:data.ext ${llm:dataEx()
                           .attribute("tool-name", "get_weather")
                           .attribute("tool-call-id", "call_2")
                           .build()}
-write "{\"arguments\":{\"city\":\"London\"},\"openai:note\":\"x\"}"
+write "{\"arguments\":{\"city\":\"London\"},\"openai/ccs:note\":\"x\"}"
 write flush
 
 write advise zilla:flush

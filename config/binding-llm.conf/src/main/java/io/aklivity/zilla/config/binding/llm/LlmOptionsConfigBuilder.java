@@ -28,6 +28,8 @@ public final class LlmOptionsConfigBuilder<T> extends ConfigBuilder.Extensible<T
     private final Function<OptionsConfig, T> mapper;
 
     private String dialect;
+    private List<String> apis;
+    private List<LlmDialectConfig> dialects;
     private LlmAuthorizationConfig authorization;
     private LlmServerConfig server;
     private List<LlmGuardrailConfig> guardrails;
@@ -54,6 +56,20 @@ public final class LlmOptionsConfigBuilder<T> extends ConfigBuilder.Extensible<T
         String dialect)
     {
         this.dialect = dialect;
+        return this;
+    }
+
+    public LlmOptionsConfigBuilder<T> apis(
+        List<String> apis)
+    {
+        this.apis = List.copyOf(apis);
+        return this;
+    }
+
+    public LlmOptionsConfigBuilder<T> dialects(
+        List<LlmDialectConfig> dialects)
+    {
+        this.dialects = List.copyOf(dialects);
         return this;
     }
 
@@ -129,7 +145,7 @@ public final class LlmOptionsConfigBuilder<T> extends ConfigBuilder.Extensible<T
                 refs().stream())
             .toList();
 
-        return mapper.apply(new LlmOptionsConfig(dialect, authorization, server, List.copyOf(guardrails),
+        return mapper.apply(new LlmOptionsConfig(dialect, apis, dialects, authorization, server, List.copyOf(guardrails),
             List.copyOf(models), unsupported, exclusive, extensions(), refs));
     }
 }

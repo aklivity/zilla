@@ -21,7 +21,7 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
+                           .dialect("openai/ccs")
                            .model(model)
                            .build()}
 
@@ -56,7 +56,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(0)
                           .build()}
-write "{\"openai:name\":\"alice\"}"
+write "{\"openai/ccs:name\":\"alice\"}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -79,7 +79,7 @@ write advise zilla:flush
 
 read zilla:begin.ext ${llm:matchBeginEx()
                           .typeId(zilla:id("llm"))
-                          .dialect("openai")
+                          .dialect("openai/ccs")
                           .model(model)
                           .id("chatcmpl_1")
                           .build()}

@@ -33,7 +33,11 @@ final class LlmLegality
     {
         boolean harmless = value.event(0) == JsonEvent.VALUE_NULL;
 
-        if (!harmless && LlmSharedMembers.matches(member, PARALLEL_TOOL_CALLS))
+        if (!harmless && LlmBehaviour.listed(member))
+        {
+            harmless = LlmBehaviour.harmless(member, value);
+        }
+        else if (!harmless && LlmSharedMembers.matches(member, PARALLEL_TOOL_CALLS))
         {
             harmless = value.event(0) == JsonEvent.VALUE_TRUE;
         }

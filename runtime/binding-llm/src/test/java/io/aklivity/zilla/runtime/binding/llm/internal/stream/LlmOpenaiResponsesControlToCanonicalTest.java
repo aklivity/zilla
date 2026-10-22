@@ -82,7 +82,7 @@ public class LlmOpenaiResponsesControlToCanonicalTest
     {
         assertTransforms(transform,
             json("{'tool_choice':{'type':'file_search'}}"),
-            json("{'openai:tool_choice':{'type':'file_search'}}"));
+            json("{'openai/rs:tool_choice':{'type':'file_search'}}"));
     }
 
     @Test
@@ -90,7 +90,7 @@ public class LlmOpenaiResponsesControlToCanonicalTest
     {
         assertTransforms(transform,
             json("{'tool_choice':{'type':'allowed_tools','mode':'auto','tools':[{'type':'mcp','server_label':'s'}]}}"),
-            json("{'openai:tool_choice':{'type':'allowed_tools','mode':'auto','tools':[{'type':'mcp','server_label':'s'}]}}"));
+            json("{'openai/rs:tool_choice':{'type':'allowed_tools','mode':'auto','tools':[{'type':'mcp','server_label':'s'}]}}"));
     }
 
     @Test
@@ -98,7 +98,7 @@ public class LlmOpenaiResponsesControlToCanonicalTest
     {
         assertTransforms(transform,
             json("{'tool_choice':{'type':'function','name':'f','strict':true}}"),
-            json("{'openai:tool_choice':{'type':'function','name':'f','strict':true}}"));
+            json("{'openai/rs:tool_choice':{'type':'function','name':'f','strict':true}}"));
     }
 
     @Test
@@ -106,7 +106,7 @@ public class LlmOpenaiResponsesControlToCanonicalTest
     {
         assertTransforms(transform,
             json("{'tool_choice':'bogus'}"),
-            json("{'openai:tool_choice':'bogus'}"));
+            json("{'openai/rs:tool_choice':'bogus'}"));
     }
 
     @Test
@@ -172,7 +172,7 @@ public class LlmOpenaiResponsesControlToCanonicalTest
     {
         assertTransforms(transform,
             json("{'text':{'format':{'type':'json_object'},'verbosity':'low'}}"),
-            json("{'x:response_format':{'type':'json_object'},'openai:text':{'verbosity':'low'}}"));
+            json("{'x:response_format':{'type':'json_object'},'openai/rs:text':{'verbosity':'low'}}"));
     }
 
     @Test
@@ -180,7 +180,7 @@ public class LlmOpenaiResponsesControlToCanonicalTest
     {
         assertTransforms(transform,
             json("{'text':{'verbosity':'low','format':{'type':'json_object'}}}"),
-            json("{'openai:text':{'verbosity':'low'},'x:response_format':{'type':'json_object'}}"));
+            json("{'openai/rs:text':{'verbosity':'low'},'x:response_format':{'type':'json_object'}}"));
     }
 
     @Test
@@ -188,7 +188,8 @@ public class LlmOpenaiResponsesControlToCanonicalTest
     {
         assertTransforms(transform,
             json("{'text':{'verbosity':'low','format':{'type':'text'},'other':{'a':[1]}}}"),
-            json("{'openai:text':{'verbosity':'low'},'x:response_format':{'type':'text'},'openai:text':{'other':{'a':[1]}}}"));
+            json("{'openai/rs:text':{'verbosity':'low'},'x:response_format':{'type':'text'}," +
+                "'openai/rs:text':{'other':{'a':[1]}}}"));
     }
 
     @Test
@@ -196,19 +197,19 @@ public class LlmOpenaiResponsesControlToCanonicalTest
     {
         assertTransforms(transform,
             json("{'text':{'verbosity':'low'}}"),
-            json("{'openai:text':{'verbosity':'low'}}"));
+            json("{'openai/rs:text':{'verbosity':'low'}}"));
     }
 
     @Test
     public void shouldKeepEmptyTextAsResidue()
     {
-        assertTransforms(transform, json("{'text':{}}"), json("{'openai:text':{}}"));
+        assertTransforms(transform, json("{'text':{}}"), json("{'openai/rs:text':{}}"));
     }
 
     @Test
     public void shouldKeepNullTextAsResidue()
     {
-        assertTransforms(transform, json("{'text':null}"), json("{'openai:text':null}"));
+        assertTransforms(transform, json("{'text':null}"), json("{'openai/rs:text':null}"));
     }
 
     @Test
@@ -245,7 +246,7 @@ public class LlmOpenaiResponsesControlToCanonicalTest
     {
         assertTransforms(transform,
             json("{'reasoning':{'effort':'low','summary':'auto'}}"),
-            json("{'x:reasoning_effort':'low','openai:reasoning':{'summary':'auto'}}"));
+            json("{'x:reasoning_effort':'low','openai/rs:reasoning':{'summary':'auto'}}"));
     }
 
     @Test
@@ -253,7 +254,7 @@ public class LlmOpenaiResponsesControlToCanonicalTest
     {
         assertTransforms(transform,
             json("{'reasoning':{'summary':'auto','effort':'low'}}"),
-            json("{'openai:reasoning':{'summary':'auto'},'x:reasoning_effort':'low'}"));
+            json("{'openai/rs:reasoning':{'summary':'auto'},'x:reasoning_effort':'low'}"));
     }
 
     @Test
@@ -261,8 +262,8 @@ public class LlmOpenaiResponsesControlToCanonicalTest
     {
         assertTransforms(transform,
             json("{'reasoning':{'summary':'auto','effort':'low','generate_summary':'concise'}}"),
-            json("{'openai:reasoning':{'summary':'auto'},'x:reasoning_effort':'low'," +
-                "'openai:reasoning':{'generate_summary':'concise'}}"));
+            json("{'openai/rs:reasoning':{'summary':'auto'},'x:reasoning_effort':'low'," +
+                "'openai/rs:reasoning':{'generate_summary':'concise'}}"));
     }
 
     @Test
@@ -270,7 +271,7 @@ public class LlmOpenaiResponsesControlToCanonicalTest
     {
         assertTransforms(transform,
             json("{'reasoning':{'summary':'auto'}}"),
-            json("{'openai:reasoning':{'summary':'auto'}}"));
+            json("{'openai/rs:reasoning':{'summary':'auto'}}"));
     }
 
     @Test
@@ -278,19 +279,19 @@ public class LlmOpenaiResponsesControlToCanonicalTest
     {
         assertTransforms(transform,
             json("{'reasoning':{'effort':null,'summary':'auto'}}"),
-            json("{'openai:reasoning':{'summary':'auto'}}"));
+            json("{'openai/rs:reasoning':{'summary':'auto'}}"));
     }
 
     @Test
     public void shouldKeepEmptyReasoningAsResidue()
     {
-        assertTransforms(transform, json("{'reasoning':{}}"), json("{'openai:reasoning':{}}"));
+        assertTransforms(transform, json("{'reasoning':{}}"), json("{'openai/rs:reasoning':{}}"));
     }
 
     @Test
     public void shouldKeepNullReasoningAsResidue()
     {
-        assertTransforms(transform, json("{'reasoning':null}"), json("{'openai:reasoning':null}"));
+        assertTransforms(transform, json("{'reasoning':null}"), json("{'openai/rs:reasoning':null}"));
     }
 
     @Test
@@ -343,6 +344,6 @@ public class LlmOpenaiResponsesControlToCanonicalTest
     {
         assertTransforms(transform,
             json("{'user':'u','prompt_cache_key':'k','safety_identifier':'s'}"),
-            json("{'openai:user':'u','openai:prompt_cache_key':'k','openai:safety_identifier':'s'}"));
+            json("{'openai:user':'u','openai:prompt_cache_key':'k','openai/rs:safety_identifier':'s'}"));
     }
 }

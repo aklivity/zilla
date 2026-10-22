@@ -24,6 +24,7 @@ import io.aklivity.zilla.runtime.binding.llm.config.LlmBindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectContext;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectHandler;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmBinding;
+import io.aklivity.zilla.runtime.binding.llm.internal.dialect.LlmDialectNames;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBeginExFW;
@@ -131,8 +132,10 @@ public final class LlmClientFactory implements LlmStreamFactory
             String dialect,
             Map<String, LlmDialectHandler> handlers)
         {
+            final LlmDialectHandler configured = handlers.get(LlmDialectNames.defaultOf(dialect));
+
             this.handlers = handlers;
-            this.fallback = handlers.getOrDefault(dialect, handlers.values().iterator().next());
+            this.fallback = configured != null ? configured : handlers.values().iterator().next();
         }
 
         private LlmDialectHandler resolve(

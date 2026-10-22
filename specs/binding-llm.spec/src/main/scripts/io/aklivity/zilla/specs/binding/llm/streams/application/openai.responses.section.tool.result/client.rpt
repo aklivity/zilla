@@ -19,7 +19,7 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai/responses")
+                           .dialect("openai/rs")
                            .model("gpt-4")
                            .build()}
 
@@ -38,7 +38,7 @@ write advise zilla:flush
 
 read zilla:begin.ext ${llm:matchBeginEx()
                           .typeId(zilla:id("llm"))
-                          .dialect("openai/responses")
+                          .dialect("openai/rs")
                           .model("gpt-4")
                           .id("resp_1")
                           .build()}
@@ -55,7 +55,7 @@ read zilla:data.ext ${llm:matchDataEx()
                          .type("CONTROL")
                          .message(-1)
                          .build()}
-read "{\"openai:usage\":{\"input_tokens\":25,\"output_tokens\":15,\"total_tokens\":40}}"
+read "{\"openai/rs:usage\":{\"input_tokens\":25,\"output_tokens\":15,\"total_tokens\":40}}"
 
 read zilla:end.ext ${llm:matchEndEx()
                         .typeId(zilla:id("llm"))

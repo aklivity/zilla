@@ -39,7 +39,6 @@ import io.aklivity.zilla.runtime.binding.llm.config.LlmBindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmRouteConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectHandler;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmBinding;
-import io.aklivity.zilla.runtime.binding.llm.internal.dialect.LlmDialectNames;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.OctetsFW;
@@ -95,8 +94,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private static final String HEADER_AUTHORIZATION = "authorization";
     private static final String METHOD_POST = "POST";
     private static final String PATH_RESPONSES = "/v1/responses";
-    private static final String VENDOR = LlmDialectNames.vendor(NAME);
-    private static final String VENDOR_PREFIX = VENDOR + ":";
+    private static final String DIALECT_PREFIX = NAME + ":";
     private static final String STATUS_OK = "200";
     private static final String STATUS_UNAUTHORIZED = "401";
     private static final int NO_MAX_OUTPUT_TOKENS = -1;
@@ -144,8 +142,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private static final String TYPE_INPUT_IMAGE = "input_image";
     private static final String TYPE_INPUT_FILE = "input_file";
     private static final String TYPE_INPUT_AUDIO = "input_audio";
-    private static final byte[] ENCRYPTED_KEY = "\"openai:encrypted_content\":\"".getBytes(UTF_8);
-    private static final String ID_MEMBER = VENDOR_PREFIX + "id";
+    private static final byte[] ENCRYPTED_KEY = ("\"" + NAME + ":encrypted_content\":\"").getBytes(UTF_8);
+    private static final String ID_MEMBER = DIALECT_PREFIX + "id";
     private static final int EMPTY_ARRAY_LENGTH = 2;
     private static final byte[] TEXT_PREFIX = "{\"text\":\"".getBytes(UTF_8);
     private static final byte[] TEXT_SUFFIX = "\"}".getBytes(UTF_8);
@@ -4103,7 +4101,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             if (controlPipeline == null)
             {
-                controlTransform = new LlmOpenaiControlToCanonical();
+                controlTransform = new LlmOpenaiControlToCanonical(NAME);
                 controlPipeline = new LlmSectionPipeline(controlTransform, new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
             }
 
@@ -4127,7 +4125,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             {
                 if (prefixed)
                 {
-                    controlKey.append(VENDOR_PREFIX);
+                    controlKey.append(LlmOpenaiMembers.scope(NAME, key)).append(':');
                 }
 
                 controlKey.append(key);
@@ -5840,7 +5838,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             if (controlPipeline == null)
             {
-                controlTransform = new LlmOpenaiControlFromCanonical(NAME.equals(responseDialect));
+                controlTransform = new LlmOpenaiControlFromCanonical(NAME, NAME.equals(responseDialect));
                 controlPipeline = new LlmSectionPipeline(controlTransform, blockBuffer());
             }
 
@@ -6509,7 +6507,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             if (extrasPipeline == null)
             {
                 final LlmOpenaiResponsesServerToolFromCanonical transform =
-                    new LlmOpenaiResponsesServerToolFromCanonical(NAME.equals(responseDialect));
+                    new LlmOpenaiResponsesServerToolFromCanonical(NAME);
 
                 transform.configure(LlmOpenaiResponsesServerToolFromCanonical.PART_EXTRAS, TYPE_FUNCTION_CALL, null);
                 extrasPipeline = new LlmSectionPipeline(transform, blockBuffer());
@@ -6538,7 +6536,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             if (membersPipeline == null)
             {
-                membersTransform = new LlmOpenaiResponsesServerToolFromCanonical(NAME.equals(responseDialect));
+                membersTransform = new LlmOpenaiResponsesServerToolFromCanonical(NAME);
                 membersPipeline = new LlmSectionPipeline(membersTransform, blockBuffer());
             }
 
@@ -6552,7 +6550,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             if (resultPipeline == null)
             {
                 final LlmOpenaiResponsesServerToolFromCanonical transform =
-                    new LlmOpenaiResponsesServerToolFromCanonical(NAME.equals(responseDialect));
+                    new LlmOpenaiResponsesServerToolFromCanonical(NAME);
 
                 transform.configure(LlmOpenaiResponsesServerToolFromCanonical.PART_RESULT, sectionItemType, null);
                 resultPipeline = new LlmSectionPipeline(transform, blockBuffer());
@@ -6855,10 +6853,10 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                     incompleteReason = REASON_CONTENT_FILTER;
                     break;
                 default:
-                    if (NAME.equals(responseDialect) && finishReason.startsWith(VENDOR_PREFIX))
+                    if (NAME.equals(responseDialect) && finishReason.startsWith(DIALECT_PREFIX))
                     {
                         responseStatus = STATUS_INCOMPLETE;
-                        incompleteReason = finishReason.substring(VENDOR_PREFIX.length());
+                        incompleteReason = finishReason.substring(DIALECT_PREFIX.length());
                     }
                     break;
                 }
@@ -7560,7 +7558,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             if (reasoningIdPipeline == null)
             {
                 reasoningIdPipeline = new LlmSectionPipeline(
-                    new LlmOpenaiResponsesReasoningToValue(NAME.equals(responseDialect), MEMBER_ID), blockBuffer());
+                    new LlmOpenaiResponsesReasoningToValue(NAME, MEMBER_ID), blockBuffer());
             }
 
             return reasoningIdPipeline;
@@ -7571,7 +7569,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             if (reasoningMembersPipeline == null)
             {
                 reasoningMembersPipeline = new LlmSectionPipeline(
-                    new LlmOpenaiResponsesReasoningFromCanonical(NAME.equals(responseDialect)), blockBuffer());
+                    new LlmOpenaiResponsesReasoningFromCanonical(NAME), blockBuffer());
             }
 
             return reasoningMembersPipeline;
@@ -7582,7 +7580,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             if (citationsPipeline == null)
             {
                 citationsPipeline = new LlmSectionPipeline(
-                    LlmOpenaiResponsesCitationsFromCanonical.array(NAME.equals(responseDialect)), blockBuffer());
+                    LlmOpenaiResponsesCitationsFromCanonical.array(NAME), blockBuffer());
             }
 
             return citationsPipeline;

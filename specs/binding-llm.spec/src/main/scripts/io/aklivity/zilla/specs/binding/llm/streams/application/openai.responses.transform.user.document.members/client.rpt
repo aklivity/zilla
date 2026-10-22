@@ -21,7 +21,7 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai/responses")
+                           .dialect("openai/rs")
                            .model(model)
                            .build()}
 
@@ -34,7 +34,7 @@ write zilla:data.ext ${llm:dataEx()
                           .attribute("media-type", "application/pdf")
                           .attribute("source", "inline")
                           .build()}
-write "{\"type\":\"file\",\"file\":{\"file_data\":\"data:application/pdf;base64,JVBERi0=\",\"openai:detail\":\"high\"}}"
+write "{\"type\":\"file\",\"file\":{\"file_data\":\"data:application/pdf;base64,JVBERi0=\",\"openai/rs:detail\":\"high\"}}"
 write flush
 
 write advise zilla:flush

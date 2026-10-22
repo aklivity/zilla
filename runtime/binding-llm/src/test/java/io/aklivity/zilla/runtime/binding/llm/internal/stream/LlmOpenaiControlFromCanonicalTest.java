@@ -31,6 +31,7 @@ import io.aklivity.zilla.runtime.binding.llm.config.LlmServiceTier;
 
 public class LlmOpenaiControlFromCanonicalTest
 {
+    private static final String CCS = "openai/ccs";
     private static final String LONG = "x".repeat(300);
     private static final String HUGE = "x".repeat(5000);
     private static final String AT_LIMIT = "0123456789".repeat(13).substring(0, 128);
@@ -38,24 +39,40 @@ public class LlmOpenaiControlFromCanonicalTest
     private static final String SUPPLEMENTARY_AT_LIMIT = "\ud83d\ude00".repeat(128);
     private static final String SUPPLEMENTARY_OVER_LIMIT = SUPPLEMENTARY_AT_LIMIT + "\ud83d\ude00";
 
-    private final LlmOpenaiControlFromCanonical transform = new LlmOpenaiControlFromCanonical(true);
-    private final LlmOpenaiControlFromCanonical foreign = new LlmOpenaiControlFromCanonical(false);
-    private final LlmOpenaiControlFromCanonical sameMembers = LlmOpenaiControlFromCanonical.members(true);
-    private final LlmOpenaiControlFromCanonical foreignMembers = LlmOpenaiControlFromCanonical.members(false);
+    private final LlmOpenaiControlFromCanonical transform = new LlmOpenaiControlFromCanonical(CCS, true);
+    private final LlmOpenaiControlFromCanonical foreign = new LlmOpenaiControlFromCanonical(CCS, false);
+    private final LlmOpenaiControlFromCanonical sameMembers = LlmOpenaiControlFromCanonical.members(CCS, true);
+    private final LlmOpenaiControlFromCanonical foreignMembers = LlmOpenaiControlFromCanonical.members(CCS, false);
 
     @Test
     public void shouldRestoreOwnPrefixedMember()
     {
-        assertTransforms(transform, json("{'openai:temperature':0.7}"), "0.7");
+        assertTransforms(transform, json("{'openai/ccs:temperature':0.7}"), "0.7");
 
         assertThat(transform.member(), equalTo("temperature"));
+    }
+
+    @Test
+    public void shouldRestoreVendorPrefixedMember()
+    {
+        assertTransforms(transform, json("{'openai:store':false}"), "false");
+
+        assertThat(transform.member(), equalTo("store"));
+    }
+
+    @Test
+    public void shouldRestoreVendorPrefixedMemberAcrossVariants()
+    {
+        assertTransforms(foreign, json("{'openai:store':false}"), "false");
+
+        assertThat(foreign.member(), equalTo("store"));
     }
 
     @Test
     public void shouldRestoreObjectValueUnchanged()
     {
         assertTransforms(transform,
-            json("{'openai:response_format':{'type':'json_schema','json_schema':{'name':'x','schema':{'a':[1,{'b':'" + LONG +
+            json("{'openai/ccs:response_format':{'type':'json_schema','json_schema':{'name':'x','schema':{'a':[1,{'b':'" + LONG +
                 "'}],'anthropic:c':true}}}}"),
             json("{'type':'json_schema','json_schema':{'name':'x','schema':{'a':[1,{'b':'" + LONG +
                 "'}],'anthropic:c':true}}}"));
@@ -74,19 +91,43 @@ public class LlmOpenaiControlFromCanonicalTest
     }
 
     @Test
-    public void shouldDropOwnPrefixedMemberAcrossDialects()
+    public void shouldDropSiblingVariantPrefixedMember()
     {
-        assertTransforms(foreign, json("{'openai:temperature':0.7}"), "null");
+        assertTransforms(transform, json("{'openai/rs:truncation':'auto'}"), "null");
+
+        assertThat(transform.member(), nullValue());
+    }
+
+    @Test
+    public void shouldDropSiblingVariantPrefixedMemberAcrossVariants()
+    {
+        assertTransforms(foreign, json("{'openai/rs:truncation':'auto'}"), "null");
 
         assertThat(foreign.member(), nullValue());
     }
 
     @Test
-    public void shouldDropOwnPrefixedObjectMemberAcrossDialects()
+    public void shouldDropSiblingVariantPrefixedObjectMember()
     {
-        assertTransforms(foreign, json("{'openai:metadata':{'a':[1,{'b':'" + LONG + "'}]}}"), "null");
+        assertTransforms(foreign, json("{'openai/rs:text':{'a':[1,{'b':'" + LONG + "'}]}}"), "null");
 
         assertThat(foreign.member(), nullValue());
+    }
+
+    @Test
+    public void shouldDropOtherVendorVariantPrefixedMember()
+    {
+        assertTransforms(transform, json("{'anthropic/messages:top_k':5}"), "null");
+
+        assertThat(transform.member(), nullValue());
+    }
+
+    @Test
+    public void shouldDropMemberPrefixedWithPrefixOfOwnPrefix()
+    {
+        assertTransforms(transform, json("{'openai/cc:temperature':0.7}"), "null");
+
+        assertThat(transform.member(), nullValue());
     }
 
     @Test
@@ -144,7 +185,7 @@ public class LlmOpenaiControlFromCanonicalTest
     {
         assertTransforms(transform,
             json("{'stream_options':{'include_usage':true,'openai:include_obfuscation':false," +
-                "'anthropic:other':{'a':[1,'" + LONG + "']},'openai:extra':{'a':[1]}}}"),
+                "'anthropic:other':{'a':[1,'" + LONG + "']},'openai/ccs:extra':{'a':[1]}}}"),
             json("{'include_usage':true,'include_obfuscation':false,'extra':{'a':[1]}}"));
 
         assertThat(transform.member(), equalTo("stream_options"));
@@ -328,7 +369,7 @@ public class LlmOpenaiControlFromCanonicalTest
     @Test
     public void shouldDropReasoningMembersWhenExtracting()
     {
-        final LlmOpenaiControlFromCanonical extracting = new LlmOpenaiControlFromCanonical(false);
+        final LlmOpenaiControlFromCanonical extracting = new LlmOpenaiControlFromCanonical(CCS, false);
 
         assertTransforms(extracting, json("{'x:reasoning_effort':'low','x:thinking_budget_tokens':2048}"), "null");
     }
@@ -336,7 +377,7 @@ public class LlmOpenaiControlFromCanonicalTest
     @Test
     public void shouldDropSamplingWhenModelRejectsSampling()
     {
-        final LlmOpenaiControlFromCanonical rejecting = LlmOpenaiControlFromCanonical.members(false,
+        final LlmOpenaiControlFromCanonical rejecting = LlmOpenaiControlFromCanonical.members(CCS, false,
             new LlmModelCapability(false, null, -1, -1, null));
 
         assertTransforms(rejecting,
@@ -347,7 +388,7 @@ public class LlmOpenaiControlFromCanonicalTest
     @Test
     public void shouldKeepSamplingWhenModelAcceptsSampling()
     {
-        final LlmOpenaiControlFromCanonical accepting = LlmOpenaiControlFromCanonical.members(false,
+        final LlmOpenaiControlFromCanonical accepting = LlmOpenaiControlFromCanonical.members(CCS, false,
             new LlmModelCapability(true, null, -1, -1, null));
 
         assertTransforms(accepting,
@@ -441,7 +482,7 @@ public class LlmOpenaiControlFromCanonicalTest
     @Test
     public void shouldDropServiceTierTheModelDoesNotSupport()
     {
-        final LlmOpenaiControlFromCanonical restricted = LlmOpenaiControlFromCanonical.members(false,
+        final LlmOpenaiControlFromCanonical restricted = LlmOpenaiControlFromCanonical.members(CCS, false,
             tiers(List.of("auto", "default")));
 
         assertTransforms(restricted,
@@ -455,7 +496,7 @@ public class LlmOpenaiControlFromCanonicalTest
     @Test
     public void shouldDropServiceTierWhenExtracting()
     {
-        final LlmOpenaiControlFromCanonical extracting = new LlmOpenaiControlFromCanonical(false);
+        final LlmOpenaiControlFromCanonical extracting = new LlmOpenaiControlFromCanonical(CCS, false);
 
         assertTransforms(extracting, json("{'x:service_tier':'auto'}"), "null");
     }
@@ -470,5 +511,44 @@ public class LlmOpenaiControlFromCanonicalTest
         List<String> names)
     {
         return new LlmModelCapability(true, null, -1, -1, null, LlmServiceTier.maskOf(names));
+    }
+
+    @Test
+    public void shouldRejectBehaviouralMemberOfResponses()
+    {
+        assertRejects(sameMembers, json("{'openai/rs:previous_response_id':'resp_1'}"));
+
+        assertThat(sameMembers.rejectedMember(), equalTo("openai/rs:previous_response_id"));
+    }
+
+    @Test
+    public void shouldRejectEachBehaviouralMemberOfResponses()
+    {
+        assertRejects(sameMembers, json("{'openai/rs:background':true}"));
+        assertRejects(sameMembers, json("{'openai/rs:conversation':'conv_1'}"));
+        assertRejects(sameMembers, json("{'openai/rs:conversation':{'id':'conv_1'}}"));
+    }
+
+    @Test
+    public void shouldDropHarmlessBehaviouralMemberOfResponses()
+    {
+        assertTransforms(sameMembers,
+            json("{'openai/rs:previous_response_id':null,'openai/rs:background':false,'openai/rs:conversation':null," +
+                "'x:seed':1}"),
+            json("{'seed':1}"));
+    }
+
+    @Test
+    public void shouldDropMemberOfResponsesThatIsNotBehavioural()
+    {
+        assertTransforms(sameMembers,
+            json("{'openai/rs:truncation':'auto','openai/rs:include':[],'x:seed':1}"),
+            json("{'seed':1}"));
+    }
+
+    @Test
+    public void shouldNotRejectBehaviouralMemberNamedUnderVendorPrefix()
+    {
+        assertTransforms(sameMembers, json("{'openai:background':false,'x:seed':1}"), json("{'background':false,'seed':1}"));
     }
 }

@@ -60,9 +60,28 @@ public class LlmModelDefaultsTest
     }
 
     @Test
+    public void shouldDefaultOpenaiModelsForEveryVariant()
+    {
+        for (String dialect : List.of("openai/ccs", "openai/rs"))
+        {
+            List<LlmModelConfig> models = LlmModelConfig.defaults(dialect);
+
+            assertThat(models, not(empty()));
+            assertThat(named(models, "o3*").sampling, equalTo(false));
+        }
+    }
+
+    @Test
     public void shouldDefaultNothingForUnknownDialect()
     {
         assertThat(LlmModelConfig.defaults("unknown"), empty());
+    }
+
+    @Test
+    public void shouldDefaultNothingForUnknownVendorVariant()
+    {
+        assertThat(LlmModelConfig.defaults("unknown/rs"), empty());
+        assertThat(LlmModelConfig.defaults("../openai/rs"), empty());
     }
 
     @Test

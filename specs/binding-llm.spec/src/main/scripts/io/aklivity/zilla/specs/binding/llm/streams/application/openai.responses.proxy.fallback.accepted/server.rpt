@@ -24,7 +24,7 @@ accepted
 
 read zilla:begin.ext ${llm:matchBeginEx()
                           .typeId(zilla:id("llm"))
-                          .dialect("openai/responses")
+                          .dialect("openai/rs")
                           .model(fallback)
                           .build()}
 
@@ -34,7 +34,7 @@ read '{"model":"gpt-b","input":[{"role":"user","content":"Hello"}]}'
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai/responses")
+                           .dialect("openai/rs")
                            .contentType("application/json")
                            .model(fallback)
                            .build()}

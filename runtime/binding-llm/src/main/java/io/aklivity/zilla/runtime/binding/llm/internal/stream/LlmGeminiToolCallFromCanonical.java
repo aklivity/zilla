@@ -35,7 +35,7 @@ final class LlmGeminiToolCallFromCanonical extends LlmToolTransform
     LlmGeminiToolCallFromCanonical(
         boolean sameDialect)
     {
-        super(MODE_OBJECT, sameDialect);
+        super(MODE_OBJECT, sameDialect ? DIALECT : null);
     }
 
     void placeholder(
@@ -76,7 +76,7 @@ final class LlmGeminiToolCallFromCanonical extends LlmToolTransform
         {
             endCall();
 
-            action = unprefix(DIALECT, key);
+            action = unprefix(key);
 
             if (action != DROP && MEMBER_SIGNATURE.equals(target))
             {

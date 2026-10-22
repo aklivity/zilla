@@ -22,7 +22,7 @@ connect ${acceptedAddress}
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai/responses")
+                           .dialect("openai/rs")
                            .model(fallback)
                            .build()}
 
@@ -32,7 +32,7 @@ write '{"model":"gpt-b","input":[{"role":"user","content":"Hello"}]}'
 
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai/responses")
+                           .dialect("openai/rs")
                            .contentType("application/json")
                            .model(fallback)
                            .build()}

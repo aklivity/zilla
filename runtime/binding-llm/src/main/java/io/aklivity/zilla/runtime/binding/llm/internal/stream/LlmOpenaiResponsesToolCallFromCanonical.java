@@ -19,15 +19,14 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 final class LlmOpenaiResponsesToolCallFromCanonical extends LlmToolTransform
 {
-    private static final String DIALECT = "openai";
 
     private boolean opened;
     private boolean argumented;
 
     LlmOpenaiResponsesToolCallFromCanonical(
-        boolean sameDialect)
+        String dialect)
     {
-        super(MODE_OBJECT, sameDialect);
+        super(MODE_OBJECT, dialect);
     }
 
     @Override
@@ -53,7 +52,7 @@ final class LlmOpenaiResponsesToolCallFromCanonical extends LlmToolTransform
         }
         else
         {
-            action = unprefix(DIALECT, key);
+            action = unprefix(key);
         }
 
         return action;

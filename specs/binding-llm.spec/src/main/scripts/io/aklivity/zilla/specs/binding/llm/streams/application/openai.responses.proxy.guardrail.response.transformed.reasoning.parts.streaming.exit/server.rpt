@@ -24,7 +24,7 @@ accepted
 
 read zilla:begin.ext ${llm:matchBeginEx()
                           .typeId(zilla:id("llm"))
-                          .dialect("openai/responses")
+                          .dialect("openai/rs")
                           .model(model)
                           .build()}
 
@@ -41,7 +41,7 @@ read advised zilla:flush
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai/responses")
+                           .dialect("openai/rs")
                            .model(model)
                            .build()}
 write flush
@@ -90,11 +90,11 @@ write "{\"text\":\"third sec"
 write flush
 
 write option zilla:flags "none"
-write "ret\",\"openai:id\":\"rs_1\","
+write "ret\",\"openai/rs:id\":\"rs_1\","
 write flush
 
 write option zilla:flags "none"
-write "\"openai:encrypted_content\":\"gAAAAABo"
+write "\"openai/rs:encrypted_content\":\"gAAAAABo"
 write flush
 
 write option zilla:flags "fin"

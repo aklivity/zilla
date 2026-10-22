@@ -16,6 +16,8 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 final class LlmSharedMembers
 {
+    private static final String SHARED_PREFIX = "x:";
+
     static final String TEMPERATURE = "temperature";
     static final String TOP_P = "top_p";
     static final String TOP_K = "top_k";
@@ -96,6 +98,12 @@ final class LlmSharedMembers
         CharSequence key)
     {
         return paired(key, GEMINI);
+    }
+
+    static String wire(
+        String member)
+    {
+        return member.indexOf(':') < 0 ? SHARED_PREFIX + member : member;
     }
 
     static boolean matches(

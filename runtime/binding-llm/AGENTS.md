@@ -15,7 +15,7 @@ Status key: **implemented** is in the IDL, spec functions and runtime today;
 
 - Members that sit beside a section's primary value are **opaque**. A proxy relays
   them unmodified and in order. They are never presented to a guardrail stage.
-  Dialect-specific members use the `<dialect>:<name>` prefix. (**implemented** for the
+  Dialect-specific members use the `<prefix>:<name>` prefix (see [Dialect names](#dialect-names)). (**implemented** for the
   text sections and for tool calls: the guard relays the bytes before the primary
   value as they arrive and the bytes after it once the chain has finished the value)
 - A member that belongs to one block rides inline in that block's section payload (see
@@ -63,11 +63,40 @@ and `gemini`)
 - **Clients.** A client that decodes a streamed response carries each distinct member once per message although every
   event repeats it, and remembers every one it has carried (`LlmControlSeen`), however many there are.
 
+## Dialect names
+
+A dialect id names one wire API and is the `LlmBeginEx.dialect` of a stream: `openai/ccs` (Chat Completions),
+`openai/rs` (Responses), `anthropic` and `gemini`. A bare vendor name such as `openai` is a selector only: it appears in
+yaml (`dialect: openai`) and in route conditions, never on a stream, and `LlmDialectNames.admits` matches it against every
+dialect of the vendor. A pattern that names a variant (`openai/rs`) admits only that id.
+
+- A server fixed to a vendor serves every dialect of the vendor, told apart by path; a client fixed to a vendor speaks the
+  inbound dialect when it is one of the vendor's, and otherwise `LlmDialectNames.defaultOf(vendor)`, which is `openai/ccs`
+  for `openai`.
+- `dialect: openai` takes an optional `apis` list, from `chat/completions` and `responses` (default: both), that narrows the
+  APIs a binding supports. A server answers a request for an API outside the list as an unknown dialect, and does not skip
+  path detection for it. A client speaks the API of the inbound request when it is listed, and otherwise the first listed
+  API, translating the request. A route condition takes a scalar `api` beside `dialect: openai` that matches one API.
+  `LlmBindingConfig.serves` is the single check the dialect contexts use, and `LlmDialectNames.api` and `id` map between
+  API names and dialect ids.
+- Built-in model defaults describe models, not APIs, so they are keyed by vendor (`models/<vendor>.json`).
+- The prose and tables below write `openai` for the chat dialect `openai/ccs` and `openai/responses` for the Responses
+  dialect `openai/rs`.
+
+### Member prefixes
+
+A member carried as `<prefix>:<member>` is restored only by a client whose own dialect id the prefix admits, and dropped by
+every other client. A prefix is a dialect id, which admits only that dialect (`openai/ccs:`, `openai/rs:`, `anthropic:`,
+`gemini:`), or a bare vendor name, which admits every dialect of the vendor (`openai:` admits `openai/ccs` and `openai/rs`).
+A decoder emits the vendor prefix only for the members that mean the same in every dialect of the vendor, an explicit
+allow-list (for `openai`: `store`, `metadata`, `prompt_cache_key`, `user`, `include_obfuscation` and the non-canonical
+`service_tier`), and its own dialect id for every other member, so the scope of a member never widens by accident.
+`LlmOpenaiMembers` holds the `openai` allow-list.
+
 ## Shared members (`x:`)
 
-A member carried as `<dialect>:<member>` is restored only by a client of that dialect and dropped by every
-other client. A member that two or more dialects have with the same meaning is carried as `x:<member>`
-instead. (**implemented** as the `x:` namespace in `LlmToolTransform`: `shared()`, `share()` and `reject()`;
+A member that two or more dialects have with the same meaning is carried as `x:<member>` instead of a prefixed
+member. (**implemented** as the `x:` namespace in `LlmToolTransform`: `shared()`, `share()` and `reject()`;
 the sampling, tool choice, response format, reasoning, user and service tier members below are promoted for every
 dialect, the `gemini`, `anthropic` and `openai/responses` ones lifted out of their native containers; the block-level
 members have their own section)
@@ -319,7 +348,7 @@ The options of a client carry a `models` map of capabilities, keyed by model ide
 against the model of each request. The schema of each dialect admits only the properties that dialect uses. A setting
 that an entry does not give falls back to the next matching entry: configured entries first (exact names before globs, in
 declaration order), then the built-in defaults of the dialect, which are data
-(`config/binding-llm.conf/src/main/resources/.../models/<dialect>.json`) and are overridden entry by entry.
+(`config/binding-llm.conf/src/main/resources/.../models/<vendor>.json`) and are overridden entry by entry.
 
 | Property | Dialects | Meaning |
 |---|---|---|

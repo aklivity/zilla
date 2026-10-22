@@ -95,7 +95,7 @@ public class LlmOpenaiToolCallToCanonicalTest
         assertTransforms(transform,
             json("{'index':0,'id':'call_1','type':'function','function':{'name':'ping','arguments':" +
                 quote(json("{'a':1}")) + "}}"),
-            json("{'openai:index':0,'arguments':{'a':1}}"));
+            json("{'openai/ccs:index':0,'arguments':{'a':1}}"));
     }
 
     @Test
@@ -104,7 +104,7 @@ public class LlmOpenaiToolCallToCanonicalTest
         assertTransforms(transform,
             json("{'id':'call_1','type':'function','function':{'name':'ping','arguments':" +
                 quote(json("{'a':1}")) + "},'extra':{'x':[1,{'y':2}],'z':'" + LONG + "'},'tail':null}"),
-            json("{'arguments':{'a':1},'openai:extra':{'x':[1,{'y':2}],'z':'" + LONG + "'},'openai:tail':null}"));
+            json("{'arguments':{'a':1},'openai/ccs:extra':{'x':[1,{'y':2}],'z':'" + LONG + "'},'openai/ccs:tail':null}"));
     }
 
     @Test
@@ -112,7 +112,7 @@ public class LlmOpenaiToolCallToCanonicalTest
     {
         assertTransforms(transform,
             json("{'index':0,'id':'call_1','type':'function','function':{'name':'ping'},'tail':null}"),
-            json("{'openai:index':0,'arguments':{},'openai:tail':null}"));
+            json("{'openai/ccs:index':0,'arguments':{},'openai/ccs:tail':null}"));
     }
 
     @Test

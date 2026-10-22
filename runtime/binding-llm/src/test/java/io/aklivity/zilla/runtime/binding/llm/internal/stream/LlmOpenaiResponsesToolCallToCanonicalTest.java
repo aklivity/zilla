@@ -39,7 +39,7 @@ public class LlmOpenaiResponsesToolCallToCanonicalTest
     {
         assertTransforms(transform,
             json("{'type':'function_call','arguments':") + quote(json("{'a':1}")) + json(",'namespace':'ns','call_id':'c'}"),
-            json("{'arguments':{'a':1},'openai:namespace':'ns'}"));
+            json("{'arguments':{'a':1},'openai/rs:namespace':'ns'}"));
     }
 
     @Test

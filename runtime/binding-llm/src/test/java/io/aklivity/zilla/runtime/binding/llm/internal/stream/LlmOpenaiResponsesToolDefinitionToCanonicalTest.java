@@ -46,7 +46,7 @@ public class LlmOpenaiResponsesToolDefinitionToCanonicalTest
     {
         assertTransforms(transform,
             json("{'type':'function','name':'get_weather','defer_loading':true}"),
-            json("{'type':'function','function':{'name':'get_weather','openai:defer_loading':true}}"));
+            json("{'type':'function','function':{'name':'get_weather','openai/rs:defer_loading':true}}"));
     }
 
     @Test

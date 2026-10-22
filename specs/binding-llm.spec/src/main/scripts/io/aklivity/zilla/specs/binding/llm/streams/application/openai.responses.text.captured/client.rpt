@@ -19,7 +19,7 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai/responses")
+                           .dialect("openai/rs")
                            .model("gpt-4.1-mini")
                            .build()}
 
@@ -45,7 +45,7 @@ write advise zilla:flush
 
 read zilla:begin.ext ${llm:matchBeginEx()
                           .typeId(zilla:id("llm"))
-                          .dialect("openai/responses")
+                          .dialect("openai/rs")
                           .model("gpt-4.1-mini-2025-04-14")
                           .id("resp_1")
                           .build()}
@@ -55,70 +55,70 @@ read zilla:data.ext ${llm:matchDataEx()
                          .type("CONTROL")
                          .message(-1)
                          .build()}
-read "{\"openai:created_at\":1792445323}"
+read "{\"openai/rs:created_at\":1792445323}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
                          .type("CONTROL")
                          .message(-1)
                          .build()}
-read "{\"openai:access_programs\":null}"
+read "{\"openai/rs:access_programs\":null}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
                          .type("CONTROL")
                          .message(-1)
                          .build()}
-read "{\"openai:background\":false}"
+read "{\"openai/rs:background\":false}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
                          .type("CONTROL")
                          .message(-1)
                          .build()}
-read "{\"openai:billing\":{\"payer\":\"developer\"}}"
+read "{\"openai/rs:billing\":{\"payer\":\"developer\"}}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
                          .type("CONTROL")
                          .message(-1)
                          .build()}
-read "{\"openai:completed_at\":1792445324}"
+read "{\"openai/rs:completed_at\":1792445324}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
                          .type("CONTROL")
                          .message(-1)
                          .build()}
-read "{\"openai:frequency_penalty\":0.0}"
+read "{\"openai/rs:frequency_penalty\":0.0}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
                          .type("CONTROL")
                          .message(-1)
                          .build()}
-read "{\"openai:instructions\":null}"
+read "{\"openai/rs:instructions\":null}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
                          .type("CONTROL")
                          .message(-1)
                          .build()}
-read "{\"openai:max_output_tokens\":null}"
+read "{\"openai/rs:max_output_tokens\":null}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
                          .type("CONTROL")
                          .message(-1)
                          .build()}
-read "{\"openai:max_tool_calls\":null}"
+read "{\"openai/rs:max_tool_calls\":null}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
                          .type("CONTROL")
                          .message(-1)
                          .build()}
-read "{\"openai:moderation\":null}"
+read "{\"openai/rs:moderation\":null}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
@@ -132,21 +132,21 @@ read zilla:data.ext ${llm:matchDataEx()
                          .type("CONTROL")
                          .message(-1)
                          .build()}
-read "{\"openai:parallel_tool_calls\":true}"
+read "{\"openai/rs:parallel_tool_calls\":true}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
                          .type("CONTROL")
                          .message(-1)
                          .build()}
-read "{\"openai:presence_penalty\":0.0}"
+read "{\"openai/rs:presence_penalty\":0.0}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
                          .type("CONTROL")
                          .message(-1)
                          .build()}
-read "{\"openai:previous_response_id\":null}"
+read "{\"openai/rs:previous_response_id\":null}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
@@ -160,21 +160,21 @@ read zilla:data.ext ${llm:matchDataEx()
                          .type("CONTROL")
                          .message(-1)
                          .build()}
-read "{\"openai:prompt_cache_retention\":\"in_memory\"}"
+read "{\"openai/rs:prompt_cache_retention\":\"in_memory\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
                          .type("CONTROL")
                          .message(-1)
                          .build()}
-read "{\"openai:reasoning\":{\"context\":null,\"effort\":null,\"summary\":null}}"
+read "{\"openai/rs:reasoning\":{\"context\":null,\"effort\":null,\"summary\":null}}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
                          .type("CONTROL")
                          .message(-1)
                          .build()}
-read "{\"openai:safety_identifier\":null}"
+read "{\"openai/rs:safety_identifier\":null}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
@@ -195,63 +195,63 @@ read zilla:data.ext ${llm:matchDataEx()
                          .type("CONTROL")
                          .message(-1)
                          .build()}
-read "{\"openai:temperature\":1.0}"
+read "{\"openai/rs:temperature\":1.0}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
                          .type("CONTROL")
                          .message(-1)
                          .build()}
-read "{\"openai:text\":{\"format\":{\"type\":\"text\"},\"verbosity\":\"medium\"}}"
+read "{\"openai/rs:text\":{\"format\":{\"type\":\"text\"},\"verbosity\":\"medium\"}}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
                          .type("CONTROL")
                          .message(-1)
                          .build()}
-read "{\"openai:tool_choice\":\"auto\"}"
+read "{\"openai/rs:tool_choice\":\"auto\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
                          .type("CONTROL")
                          .message(-1)
                          .build()}
-read "{\"openai:tool_usage\":{\"image_gen\":{\"input_tokens\":0,\"input_tokens_details\":{\"image_tokens\":0,\"text_tokens\":0},\"output_tokens\":0,\"output_tokens_details\":{\"image_tokens\":0,\"text_tokens\":0},\"total_tokens\":0},\"web_search\":{\"num_requests\":0}}}"
+read "{\"openai/rs:tool_usage\":{\"image_gen\":{\"input_tokens\":0,\"input_tokens_details\":{\"image_tokens\":0,\"text_tokens\":0},\"output_tokens\":0,\"output_tokens_details\":{\"image_tokens\":0,\"text_tokens\":0},\"total_tokens\":0},\"web_search\":{\"num_requests\":0}}}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
                          .type("CONTROL")
                          .message(-1)
                          .build()}
-read "{\"openai:tools\":[]}"
+read "{\"openai/rs:tools\":[]}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
                          .type("CONTROL")
                          .message(-1)
                          .build()}
-read "{\"openai:top_logprobs\":0}"
+read "{\"openai/rs:top_logprobs\":0}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
                          .type("CONTROL")
                          .message(-1)
                          .build()}
-read "{\"openai:top_p\":1.0}"
+read "{\"openai/rs:top_p\":1.0}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
                          .type("CONTROL")
                          .message(-1)
                          .build()}
-read "{\"openai:truncation\":\"disabled\"}"
+read "{\"openai/rs:truncation\":\"disabled\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
                          .type("CONTROL")
                          .message(-1)
                          .build()}
-read "{\"openai:usage\":{\"input_tokens\":14,\"input_tokens_details\":{\"cache_write_tokens\":0,\"cached_tokens\":0},\"output_tokens\":8,\"output_tokens_details\":{\"reasoning_tokens\":0},\"total_tokens\":22}}"
+read "{\"openai/rs:usage\":{\"input_tokens\":14,\"input_tokens_details\":{\"cache_write_tokens\":0,\"cached_tokens\":0},\"output_tokens\":8,\"output_tokens_details\":{\"reasoning_tokens\":0},\"total_tokens\":22}}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))

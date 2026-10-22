@@ -35,7 +35,6 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 final class LlmOpenaiControlFromCanonical extends LlmToolTransform
 {
-    private static final String DIALECT = "openai";
     private static final String MEMBER_STREAM_OPTIONS = "stream_options";
     private static final String MEMBER_INCLUDE_USAGE = "include_usage";
     private static final String MEMBER_SAFETY_IDENTIFIER = "safety_identifier";
@@ -53,17 +52,19 @@ final class LlmOpenaiControlFromCanonical extends LlmToolTransform
     private int budget;
 
     LlmOpenaiControlFromCanonical(
+        String dialect,
         boolean sameDialect)
     {
-        this(MODE_EXTRACT, sameDialect, LlmModelCapability.UNSPECIFIED);
+        this(MODE_EXTRACT, dialect, sameDialect, LlmModelCapability.UNSPECIFIED);
     }
 
     private LlmOpenaiControlFromCanonical(
         int mode,
+        String dialect,
         boolean sameDialect,
         LlmModelCapability capability)
     {
-        super(mode, sameDialect);
+        super(mode, dialect);
         this.members = mode == MODE_OBJECT;
         this.foreign = !sameDialect;
         this.capability = capability;
@@ -73,16 +74,18 @@ final class LlmOpenaiControlFromCanonical extends LlmToolTransform
     }
 
     static LlmOpenaiControlFromCanonical members(
+        String dialect,
         boolean sameDialect)
     {
-        return members(sameDialect, LlmModelCapability.UNSPECIFIED);
+        return members(dialect, sameDialect, LlmModelCapability.UNSPECIFIED);
     }
 
     static LlmOpenaiControlFromCanonical members(
+        String dialect,
         boolean sameDialect,
         LlmModelCapability capability)
     {
-        return new LlmOpenaiControlFromCanonical(MODE_OBJECT, sameDialect, capability);
+        return new LlmOpenaiControlFromCanonical(MODE_OBJECT, dialect, sameDialect, capability);
     }
 
     String member()
@@ -130,7 +133,7 @@ final class LlmOpenaiControlFromCanonical extends LlmToolTransform
         }
         else
         {
-            action = unprefix(DIALECT, key);
+            action = unprefix(key);
 
             if (depth == 1 && action != DROP)
             {

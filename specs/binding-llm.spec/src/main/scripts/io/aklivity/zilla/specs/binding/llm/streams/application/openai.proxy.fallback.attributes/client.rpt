@@ -23,7 +23,7 @@ connect ${clientAddress}
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
+                           .dialect("openai/ccs")
                            .model(model)
                            .attribute("test:flavor", "mild")
                            .attribute("test:level", "2")
@@ -40,7 +40,7 @@ write '{"model":"gpt-b","messages":[{"role":"user","content":"Hello"}],"stream":
 
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
+                           .dialect("openai/ccs")
                            .contentType("application/json")
                            .model(fallback)
                            .build()}

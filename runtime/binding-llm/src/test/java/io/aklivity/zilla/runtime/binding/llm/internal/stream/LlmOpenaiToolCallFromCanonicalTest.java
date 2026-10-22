@@ -28,8 +28,8 @@ public class LlmOpenaiToolCallFromCanonicalTest
 {
     private static final String HUGE = "x".repeat(5000);
 
-    private final LlmOpenaiToolCallFromCanonical transform = new LlmOpenaiToolCallFromCanonical(true);
-    private final LlmOpenaiToolCallFromCanonical foreign = new LlmOpenaiToolCallFromCanonical(false);
+    private final LlmOpenaiToolCallFromCanonical transform = new LlmOpenaiToolCallFromCanonical("openai/ccs");
+    private final LlmOpenaiToolCallFromCanonical foreign = new LlmOpenaiToolCallFromCanonical("openai/rs");
 
     private final Consumer<LlmSectionAttributes> id = attributes -> attributes.toolCallId("call_1");
     private final Consumer<LlmSectionAttributes> name = attributes -> attributes.toolName("get_weather");
@@ -120,7 +120,7 @@ public class LlmOpenaiToolCallFromCanonicalTest
     public void shouldRestoreOwnMembersBeforeAndAfterArguments()
     {
         assertTransforms(transform, both, null,
-            json("{'openai:index':0,'arguments':{'a':1},'openai:note':'" + HUGE + "'}"),
+            json("{'openai/ccs:index':0,'arguments':{'a':1},'openai/ccs:note':'" + HUGE + "'}"),
             json("{'id':'call_1','type':'function','index':0,'function':{'name':'get_weather','arguments':") +
                 quote(json("{'a':1}")) + json("},'note':'" + HUGE + "'}"));
     }
@@ -166,7 +166,7 @@ public class LlmOpenaiToolCallFromCanonicalTest
     public void shouldDropOwnPrefixedMemberAcrossDialects()
     {
         assertTransforms(foreign, both, null,
-            json("{'openai:index':0,'arguments':{'a':1}}"),
+            json("{'openai/ccs:index':0,'arguments':{'a':1}}"),
             json("{'id':'call_1','type':'function','function':{'name':'get_weather','arguments':") +
                 quote(json("{'a':1}")) + "}}");
     }
