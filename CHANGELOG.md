@@ -21,6 +21,8 @@
 - binding-llm: carry block-level members inline in section payloads [\#2777](https://github.com/aklivity/zilla/issues/2777) ([jfallows](https://github.com/jfallows))
 - binding-llm: group request-level control members and lift leaves out of native containers [\#2778](https://github.com/aklivity/zilla/issues/2778) ([jfallows](https://github.com/jfallows))
 - binding-llm: a client applies the legality rule itself instead of relying on the upstream [\#2779](https://github.com/aklivity/zilla/issues/2779) ([jfallows](https://github.com/jfallows))
+- llm: control `openai` APIs \(`chat/completions`, `responses`\) per server, client and route [\#2792](https://github.com/aklivity/zilla/issues/2792) ([jfallows](https://github.com/jfallows))
+- binding-llm: anthropic server can lose a held cache breakpoint when the request prefix shifts by a few bytes [\#2794](https://github.com/aklivity/zilla/issues/2794) ([jfallows](https://github.com/jfallows))
 
 **Merged pull requests:**
 
@@ -52,6 +54,8 @@
 - fix\(binding-llm\): relay streamed guardrail output before the section ends [\#2789](https://github.com/aklivity/zilla/pull/2789) ([jfallows](https://github.com/jfallows))
 - feat\(engine\): report the trailing text a detector could not rule out [\#2791](https://github.com/aklivity/zilla/pull/2791) ([jfallows](https://github.com/jfallows))
 - feat\(binding-llm\): carry grouped and many control members without loss [\#2793](https://github.com/aklivity/zilla/pull/2793) ([jfallows](https://github.com/jfallows))
+- fix\(binding-llm\): keep the held cache breakpoint of an anthropic section across input windows [\#2795](https://github.com/aklivity/zilla/pull/2795) ([jfallows](https://github.com/jfallows))
+- feat\(binding-llm\): control openai APIs \(chat/completions, responses\) per server, client and route [\#2796](https://github.com/aklivity/zilla/pull/2796) ([jfallows](https://github.com/jfallows))
 
 ## [2.5.0](https://github.com/aklivity/zilla/tree/2.5.0) (2026-10-19)
 
