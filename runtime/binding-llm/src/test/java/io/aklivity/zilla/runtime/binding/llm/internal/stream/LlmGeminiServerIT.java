@@ -1709,4 +1709,44 @@ public class LlmGeminiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.controls.split/client",
+        "${app}/gemini.request.controls.split/server"})
+    public void shouldDecodeGeminiRequestControlsSplitUnderBackPressure() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.response.controls.many/client",
+        "${app}/gemini.response.controls.many/server"})
+    public void shouldEncodeGeminiResponseControlsMany() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.response.controls.many.stream/client",
+        "${app}/gemini.response.controls.many.stream/server"})
+    public void shouldEncodeGeminiResponseControlsManyStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.response.controls.grouped/client",
+        "${app}/gemini.response.controls.grouped/server"})
+    public void shouldEncodeGeminiResponseControlsGrouped() throws Exception
+    {
+        k3po.finish();
+    }
 }

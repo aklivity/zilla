@@ -161,7 +161,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
     private static final int NONE = -1;
     private static final int ROOT_CONTROL = -1;
-    private static final int CONTROL_SEEN_MAX = 16;
     private static final int CONTROL_CLOSING = 1;
     private static final int CONTROL_HEADER = 2 * Integer.BYTES;
     private static final DirectBufferEx CONTROL_TERMINATOR = new UnsafeBufferEx("}".getBytes(UTF_8));
@@ -632,9 +631,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private byte[] controlBytes;
         private UnsafeBufferEx controlBuffer;
         private final StringBuilder controlKey = new StringBuilder();
-        private final String[] controlSeen = new String[CONTROL_SEEN_MAX];
-        private final int[] controlSeenMessage = new int[CONTROL_SEEN_MAX];
-        private int controlSeenCount;
+        private final LlmControlSeen controlSeen = new LlmControlSeen();
         private int controlSlot = NO_SLOT;
         private int controlSlotOffset;
         private int controlEntry;
@@ -2814,7 +2811,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             int message,
             LlmGeminiResponseDecoder then)
         {
-            if (http.framing && controlCarried(member, message))
+            if (http.framing && controlSeen.carried(member, message))
             {
                 skipMember(then);
             }
@@ -2866,27 +2863,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 controlFrom = position();
                 decoder = decodeControlValue;
             }
-        }
-
-        private boolean controlCarried(
-            CharSequence member,
-            int message)
-        {
-            boolean carried = false;
-
-            for (int index = 0; index < controlSeenCount && !carried; index++)
-            {
-                carried = controlSeenMessage[index] == message && member.toString().equals(controlSeen[index]);
-            }
-
-            if (!carried && controlSeenCount < CONTROL_SEEN_MAX)
-            {
-                controlSeen[controlSeenCount] = member.toString();
-                controlSeenMessage[controlSeenCount] = message;
-                controlSeenCount++;
-            }
-
-            return carried;
         }
 
         private int decodeControlValue(

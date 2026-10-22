@@ -2351,6 +2351,28 @@ public class LlmOpenaiClientIT
 
     @Test
     @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.shared.members/client",
+        "${net}/openai.transform.request.shared.members/server"})
+    public void shouldTransformSharedMembersAsOpenaiAndDropForeignMember() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai\"", "target \"openai\""})
+    @Specification({
+        "${app}/transform.request.shared.members/client",
+        "${net}/openai.request.shared.members/server"})
+    public void shouldRestoreSharedMembersAsOpenaiWithoutLimit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
     @ScriptProperty({"source \"anthropic\"", "target \"openai\"", "user \"user-123\"", "wire \"user-123\""})
     @Specification({
         "${app}/transform.request.user/client",
@@ -2839,6 +2861,16 @@ public class LlmOpenaiClientIT
         "${app}/transform.request.reasoning.effort.budget/client",
         "${net}/openai.transform.request.reasoning.effort/server"})
     public void shouldTransformReasoningEffortAndBudgetEffortFirstAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.streaming.controls.many/client",
+        "${net}/openai.streaming.controls.many/server"})
+    public void shouldDecodeOpenaiStreamingControlsMany() throws Exception
     {
         k3po.finish();
     }

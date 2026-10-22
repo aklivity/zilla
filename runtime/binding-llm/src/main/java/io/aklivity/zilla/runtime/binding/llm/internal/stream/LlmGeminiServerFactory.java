@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.LongUnaryOperator;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -246,6 +247,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private final BindingHandler streamFactory;
     private final BufferPool decodePool;
     private final BufferPool encodePool;
+    private final BufferPool holdPool;
     private final Long2ObjectHashMap<LlmBindingConfig> bindings;
     private final int decodeMax;
     private final int llmTypeId;
@@ -278,6 +280,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private final LlmGeminiServerDecoder decodeAttributes = this::decodeAttributes;
     private final LlmGeminiServerDecoder decodeTool = this::decodeTool;
     private final LlmGeminiServerDecoder decodeControlValue = this::decodeControlValue;
+    private final LlmGeminiServerDecoder decodeControlSeparator = this::decodeControlSeparator;
     private final LlmGeminiServerDecoder decodeConfigStart = this::decodeConfigStart;
     private final LlmGeminiServerDecoder decodeConfigFirst = this::decodeConfigFirst;
     private final LlmGeminiServerDecoder decodeConfigOpen = this::decodeConfigOpen;
@@ -303,6 +306,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         this.contentTypeMatcher = CONTENT_TYPE.matcher("");
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool().duplicate();
+        this.holdPool = context.bufferPool().duplicate();
         this.decodeMax = decodePool.slotCapacity();
         this.copyBuffer = new UnsafeBufferEx(new byte[encodePool.slotCapacity()]);
         this.supplyInitialId = context::supplyInitialId;
@@ -662,7 +666,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 }
                 else if (isRootControl(key))
                 {
-                    server.controlMore(key, decodeRootControl, decodeControlValue);
+                    server.controlMore(key, decodeRootControl);
                 }
                 else
                 {
@@ -1684,6 +1688,22 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         return server.position();
     }
 
+    private int decodeControlSeparator(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        server.onDecodeControlSeparator();
+
+        return server.position();
+    }
+
     private int decodeControlValue(
         LlmGeminiServer server,
         long traceId,
@@ -2058,7 +2078,8 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         JsonEvent event)
     {
         final JsonParserEx parser = server.parser;
-        final boolean deferred = event == JsonEvent.VALUE_STRING && parser.deferredBytes();
+        final boolean deferred = (event == JsonEvent.VALUE_STRING || event == JsonEvent.VALUE_NUMBER) &&
+            parser.deferredBytes();
 
         switch (event)
         {
@@ -2070,7 +2091,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         case END_ARRAY:
             server.captureDepth--;
             break;
-        case VALUE_STRING:
+        case VALUE_STRING, VALUE_NUMBER:
             if (deferred)
             {
                 parser.consumed(parser.getStringView().length());
@@ -2322,6 +2343,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         private boolean captureOpen;
         private int captureDepth;
         private int captureFrom;
+        private LlmGeminiServerDecoder separatorThen;
 
         private boolean holding;
         private int holdFrom;
@@ -2817,14 +2839,34 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             }
             else
             {
-                control(key, -1, decodeRootControl, decodeControlValue);
+                control(key, -1, decodeRootControl);
+            }
+        }
+
+        private void onDecodeControlValue(
+            LlmGeminiServerDecoder then)
+        {
+            captureOpen = true;
+            captureDepth = 0;
+            captureFrom = position();
+            separatorThen = then;
+            decoder = decodeControlSeparator;
+        }
+
+        private void onDecodeControlSeparator()
+        {
+            final int start = LlmValueStart.of(decodedInput, captureFrom, decodedWindowLimit);
+
+            if (start < decodedWindowLimit)
+            {
+                captureFrom = start;
+                decoder = separatorThen;
             }
         }
 
         private void controlMore(
             CharSequence key,
-            LlmGeminiServerDecoder then,
-            LlmGeminiServerDecoder value)
+            LlmGeminiServerDecoder then)
         {
             captureThen = then;
 
@@ -2837,10 +2879,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 onDecodeControlKey(key, true, controlOpen());
             }
 
-            captureOpen = true;
-            captureDepth = 0;
-            captureFrom = position();
-            decoder = value;
+            onDecodeControlValue(decodeControlValue);
         }
 
         private void controlConverted(
@@ -2952,9 +2991,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                     : decodeConfigResidue;
             }
 
-            captureOpen = true;
-            captureDepth = 0;
-            captureFrom = position();
+            onDecodeControlValue(decoder);
         }
 
         private void onDecodeConfigResidueClose()
@@ -3072,8 +3109,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         private void control(
             CharSequence key,
             int message,
-            LlmGeminiServerDecoder then,
-            LlmGeminiServerDecoder value)
+            LlmGeminiServerDecoder then)
         {
             onDecodeBlock(LlmSectionType.CONTROL, message);
 
@@ -3088,10 +3124,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 onDecodeControlKey(key, true, '{');
             }
 
-            captureOpen = true;
-            captureDepth = 0;
-            captureFrom = position();
-            decoder = value;
+            onDecodeControlValue(decodeControlValue);
         }
 
         private void endCapture(
@@ -3555,6 +3588,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             if (stream != null)
             {
                 stream.cleanupEncodeSlot();
+                stream.cleanupHeld();
             }
             if (!deauthorized)
             {
@@ -4044,11 +4078,12 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
         private static final int CONTROL_DROP = 0;
         private static final int CONTROL_HELD = 1;
-        private static final int CONTROL_MEMBERS_MAX = 8;
-        private static final int CONTROL_HELD_MAX = 4096;
         private static final String MEMBER_USAGE_METADATA = "usageMetadata";
         private static final Set<String> CANDIDATE_MEMBERS = Set.of("finishMessage", "safetyRatings", "groundingMetadata",
             "urlContextMetadata", "citationMetadata", "avgLogprobs", "logprobsResult", "tokenCount");
+        private static final Predicate<String> CANDIDATE_ONLY = CANDIDATE_MEMBERS::contains;
+        private static final Predicate<String> RESPONSE_ONLY =
+            name -> !CANDIDATE_MEMBERS.contains(name) && !MEMBER_USAGE_METADATA.equals(name);
 
         private static final int NONE = -1;
         private static final int MESSAGE_FIRST = 0;
@@ -4110,14 +4145,9 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         private int controlMessage;
         private int controlMode;
         private boolean controlOpen;
-        private String[] controlKeys;
-        private int[] controlOffsets;
-        private int[] controlLengths;
-        private UnsafeBufferEx controlBuffer;
-        private int controlCount;
-        private int controlLimit;
-        private int usageOffset;
-        private int usageLength;
+        private final LlmControlHold hold = new LlmControlHold(this::heldBuffer);
+        private final LlmMemberSplitter splitter = new LlmMemberSplitter(this::onEncodeMember);
+        private int heldSlot = NO_SLOT;
 
         private LlmGeminiStream(
             LlmGeminiServer server)
@@ -4348,7 +4378,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         private void ackReply(
             long traceId)
         {
-            final long replyAckMax = replySeq - server.encodeSlotRawOffset;
+            final long replyAckMax = replySeq - server.encodeSlotRawOffset - hold.held();
 
             if (replyAckMax > replyAck)
             {
@@ -4381,6 +4411,8 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 usage != null ? usage.reasoningTokens() : NONE,
                 usage != null ? usage.totalTokens() : NONE);
 
+            cleanupHeld();
+
             doEncodeFlush(0, 0L, traceId, authorization);
 
             if (server.encodeSlot != NO_SLOT)
@@ -4408,6 +4440,8 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
             replySeq = abort.sequence();
             state = LlmState.closeReply(state);
+
+            cleanupHeld();
 
             server.doNetAbort(traceId, abort.authorization(), extension);
 
@@ -4820,8 +4854,8 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             if (kind == KIND_CONTROL)
             {
                 controlMessage = message;
-                controlOpen = false;
-                controlPipeline().begin(replyAttributes);
+                controlMode = CONTROL_DROP;
+                splitter.begin();
             }
 
             if (part(kind))
@@ -4857,7 +4891,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         {
             if (kind == KIND_CONTROL)
             {
-                if (!controlPipeline.feed(payload, payloadOffset, payloadLength, fin, encodeControl))
+                if (!splitter.put(payload, payloadOffset, payloadLength, fin) || hold.failed())
                 {
                     server.cleanup(traceId);
                 }
@@ -4965,11 +4999,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
         private void doEncodeEnd()
         {
-            if (kind == KIND_CONTROL)
-            {
-                onEncodeControlEnd();
-            }
-            else if (kind == KIND_TEXT || kind == KIND_REASONING)
+            if (kind == KIND_TEXT || kind == KIND_REASONING)
             {
                 final String signature = signatureTransform.signature();
 
@@ -5159,15 +5189,30 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         private void writeControls(
             boolean candidate)
         {
-            for (int index = 0; index < controlCount; index++)
+            hold.write(generator, candidate ? CANDIDATE_ONLY : RESPONSE_ONLY);
+        }
+
+        private MutableDirectBufferEx heldBuffer()
+        {
+            if (heldSlot == NO_SLOT)
             {
-                if (CANDIDATE_MEMBERS.contains(controlKeys[index]) == candidate)
-                {
-                    generator.writeKey(controlKeys[index]);
-                    generator.writeRaw(controlBuffer, controlOffsets[index], controlLengths[index]);
-                }
+                heldSlot = holdPool.acquire(replyId);
+            }
+
+            return heldSlot != NO_SLOT ? holdPool.buffer(heldSlot) : null;
+        }
+
+        private void cleanupHeld()
+        {
+            hold.reset();
+
+            if (heldSlot != NO_SLOT)
+            {
+                holdPool.release(heldSlot);
+                heldSlot = NO_SLOT;
             }
         }
+
 
         private void putUsage(
             int inputTokens,
@@ -5176,10 +5221,12 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             int reasoningTokens,
             int totalTokens)
         {
-            if (usageLength > 0)
+            final int index = hold.indexOf(MEMBER_USAGE_METADATA);
+
+            if (index != NONE && hold.length(index) > 0)
             {
                 generator.writeKey(MEMBER_USAGE_METADATA);
-                generator.writeRaw(controlBuffer, usageOffset, usageLength);
+                generator.writeRaw(hold.buffer(), hold.offset(index), hold.length(index));
             }
             else
             {
@@ -5278,29 +5325,31 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         private void onEncodeControlBegin(
             String name)
         {
-            controlMode = controlMessage == NONE ? CONTROL_HELD : CONTROL_DROP;
+            controlMode = controlMessage == NONE && hold.begin(name) ? CONTROL_HELD : CONTROL_DROP;
+        }
 
-            if (controlMode == CONTROL_HELD)
+
+        private boolean onEncodeMember(
+            DirectBufferEx buffer,
+            int offset,
+            int length,
+            boolean init,
+            boolean last)
+        {
+            if (init)
             {
-                if (controlKeys == null)
-                {
-                    controlKeys = new String[CONTROL_MEMBERS_MAX];
-                    controlOffsets = new int[CONTROL_MEMBERS_MAX];
-                    controlLengths = new int[CONTROL_MEMBERS_MAX];
-                    controlBuffer = new UnsafeBufferEx(new byte[CONTROL_HELD_MAX]);
-                }
-
-                if (controlCount < CONTROL_MEMBERS_MAX)
-                {
-                    controlKeys[controlCount] = name;
-                    controlOffsets[controlCount] = controlLimit;
-                    controlLengths[controlCount] = 0;
-                }
-                else
-                {
-                    controlMode = CONTROL_DROP;
-                }
+                controlOpen = false;
+                controlPipeline().begin(replyAttributes);
             }
+
+            final boolean accepted = controlPipeline.feed(buffer, offset, length, last, encodeControl);
+
+            if (last)
+            {
+                onEncodeControlEnd();
+            }
+
+            return accepted;
         }
 
         private void onEncodeControlHeld(
@@ -5308,36 +5357,23 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             int offset,
             int length)
         {
-            if (controlLimit + length <= CONTROL_HELD_MAX)
+            if (!hold.put(payload, offset, length))
             {
-                controlBuffer.putBytes(controlLimit, payload, offset, length);
-                controlLimit += length;
-                controlLengths[controlCount] += length;
-            }
-            else
-            {
-                controlLimit = controlOffsets[controlCount];
                 controlMode = CONTROL_DROP;
             }
         }
+
 
         private void onEncodeControlEnd()
         {
             if (controlMode == CONTROL_HELD)
             {
-                if (MEMBER_USAGE_METADATA.equals(controlKeys[controlCount]))
-                {
-                    usageOffset = controlOffsets[controlCount];
-                    usageLength = controlLengths[controlCount];
-                }
-                else
-                {
-                    controlCount++;
-                }
+                hold.end();
             }
 
             controlMode = CONTROL_DROP;
         }
+
 
         private void chunkBegin()
         {

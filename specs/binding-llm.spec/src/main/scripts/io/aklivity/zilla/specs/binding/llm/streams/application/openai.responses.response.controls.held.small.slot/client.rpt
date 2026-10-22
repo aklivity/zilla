@@ -49,7 +49,7 @@ read zilla:data.ext ${llm:matchDataEx()
                          .message(0)
                          .build()}
 read "{\"text\":\""
-     ${core:randomBase64(800)}
+     ${core:randomBase64(120)}
      "\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
@@ -59,7 +59,7 @@ read zilla:data.ext ${llm:matchDataEx()
                          .build()}
 read "{\"openai:note1\":"
      "\""
-     ${core:randomBase64(3500)}
+     ${core:randomBase64(150)}
      "\""
      "}"
 
@@ -70,7 +70,7 @@ read zilla:data.ext ${llm:matchDataEx()
                          .build()}
 read "{\"openai:note2\":"
      "\""
-     ${core:randomBase64(3500)}
+     ${core:randomBase64(150)}
      "\""
      "}"
 
