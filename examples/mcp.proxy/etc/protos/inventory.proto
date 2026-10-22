@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package acme.inventory.v1;
+
+service InventoryService
+{
+  rpc GetItem(GetItemRequest) returns (Item);
+  rpc ListItems(ListItemsRequest) returns (ListItemsResponse);
+}
+
+message GetItemRequest
+{
+  string sku = 1;
+}
+
+message ListItemsRequest
+{
+  string category = 1;
+}
+
+message Item
+{
+  string sku = 1;
+  string name = 2;
+  string category = 3;
+  int32 quantity = 4;
+}
+
+message ListItemsResponse
+{
+  repeated Item items = 1;
+}

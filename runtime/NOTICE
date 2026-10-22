@@ -30,6 +30,7 @@ This project includes:
   zilla::config::binding-http.conf under Aklivity Community License Agreement
   zilla::config::binding-kafka-grpc.conf under Aklivity Community License Agreement
   zilla::config::binding-llm.conf under Aklivity Community License Agreement
+  zilla::config::binding-mcp-grpc.conf under Aklivity Community License Agreement
   zilla::config::binding-mcp-http.conf under Aklivity Community License Agreement
   zilla::config::binding-mcp-kafka-connect.conf under Aklivity Community License Agreement
   zilla::config::binding-mcp-kafka.conf under Aklivity Community License Agreement

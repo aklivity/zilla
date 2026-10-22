@@ -148,6 +148,11 @@
 #      resources/subscribe, resources/unsubscribe, and the notification
 #      pass-through across mcp(server), mcp(proxy), and mcp(client)
 #      (aklivity/zilla#2220)
+#  47. mcp-grpc's inventory toolkit: inventory__get_item calls a unary gRPC
+#      method on a real gRPC service end-to-end (protobuf request and
+#      response derived from the catalog .proto, over http(client) h2),
+#      and a non-OK gRPC status (NOT_FOUND for an unknown sku) comes back
+#      as an MCP tool error carrying the status and message
 #
 # kafka__reset_offsets' own OffsetCommit stage (the third hop of its
 # FindCoordinator -> DescribeGroups -> OffsetCommit flow) is a known,
@@ -380,6 +385,8 @@ full_toolset_present() {
     echo "$TOOLS_FULL" | grep -q '^petstore__list_pets$' &&
     echo "$TOOLS_FULL" | grep -q '^petstore__search_pets$' &&
     echo "$TOOLS_FULL" | grep -q '^petstore__create_pet$' &&
+    echo "$TOOLS_FULL" | grep -q '^inventory__get_item$' &&
+    echo "$TOOLS_FULL" | grep -q '^inventory__list_items$' &&
     echo "$TOOLS_FULL" | grep -q '^resource:petstore+/pets/featured$' &&
     echo "$TOOLS_FULL" | grep -q '^template:petstore+/pets/{petId}$' &&
     echo "$TOOLS_FULL" | grep -q '^template:github+pr://{owner}/{repo}/{number}$' &&
@@ -471,6 +478,7 @@ if echo "$TOOLS_NONE" | grep -q '^everything__' &&
     ! echo "$TOOLS_NONE" | grep -q '^urlelicit__' &&
     ! echo "$TOOLS_NONE" | grep -q '^github__' &&
     ! echo "$TOOLS_NONE" | grep -q '^petstore__' &&
+    ! echo "$TOOLS_NONE" | grep -q '^inventory__' &&
     ! echo "$TOOLS_NONE" | grep -q '^kafka_connect__' &&
     ! echo "$TOOLS_NONE" | grep -q '^kafka__' &&
     ! echo "$TOOLS_NONE" | grep -q 'petstore+' &&
@@ -496,6 +504,8 @@ TOOLS_PARTIAL=$(list_tools "$JWT_PARTIAL")
 echo "TOOLS_PARTIAL=$TOOLS_PARTIAL"
 if echo "$TOOLS_PARTIAL" | grep -q '^petstore__list_pets$' &&
     echo "$TOOLS_PARTIAL" | grep -q '^petstore__search_pets$' &&
+    echo "$TOOLS_PARTIAL" | grep -q '^inventory__get_item$' &&
+    echo "$TOOLS_PARTIAL" | grep -q '^inventory__list_items$' &&
     echo "$TOOLS_PARTIAL" | grep -q '^resource:petstore+/pets/featured$' &&
     echo "$TOOLS_PARTIAL" | grep -q '^template:petstore+/pets/{petId}$' &&
     echo "$TOOLS_PARTIAL" | grep -q '^template:github+pr://{owner}/{repo}/{number}$' &&
@@ -707,6 +717,42 @@ if echo "$CREATE_PET_OUT" | grep -q 'Nibbles'; then
   echo "✅ petstore__create_pet succeeded for a pets:write-scoped caller"
 else
   fail "petstore__create_pet did not succeed as expected"
+fi
+
+# WHEN: an inventory:tools-scoped caller calls inventory__get_item with a known sku
+# THEN: the call reaches the real gRPC inventory service through the mcp-grpc
+#       binding's generated grpc(client) composite and returns the item as JSON
+call_get_item() {
+  GET_ITEM_OUT=$(mcp_run \
+      -e JWT_TOKEN="$JWT_PARTIAL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="inventory__get_item" \
+      -e CALL_ARGS='{"sku":"sku-1"}' \
+      tools-list-client 2>&1)
+  echo "$GET_ITEM_OUT" | grep -q 'Widget'
+}
+timed get_item retry_until 5 3 call_get_item
+echo "GET_ITEM_OUT=$GET_ITEM_OUT"
+if echo "$GET_ITEM_OUT" | grep -q 'Widget'; then
+  echo "✅ inventory__get_item called a real gRPC method end-to-end"
+else
+  fail "inventory__get_item did not return the inventory item"
+fi
+
+# WHEN: the same caller asks for a sku the service does not have
+# THEN: the gRPC NOT_FOUND status is returned as an MCP tool error carrying the
+#       status name and message, not as a transport failure
+MISSING_ITEM_OUT=$(mcp_run \
+    -e JWT_TOKEN="$JWT_PARTIAL" \
+    -e MCP_URL="http://zilla:$PORT/mcp" \
+    -e CALL_TOOL="inventory__get_item" \
+    -e CALL_ARGS='{"sku":"nope"}' \
+    tools-list-client 2>&1)
+echo "MISSING_ITEM_OUT=$MISSING_ITEM_OUT"
+if echo "$MISSING_ITEM_OUT" | grep -q 'NOT_FOUND: unknown sku nope'; then
+  echo "✅ inventory__get_item reported a gRPC NOT_FOUND status as an MCP tool error"
+else
+  fail "inventory__get_item did not report the gRPC status as a tool error"
 fi
 
 SR_SUBJECT="orders-value"

@@ -28,7 +28,7 @@ services:
     volumes:
       - ./etc:/etc/zilla
       # - ~/docker-captures:/var/log/zilla-captures
-    command: start -v -e
+    command: start -v -e -Pzilla.binding.mcp.grpc.client.exit=south_http_client_inventory
     depends_on:
       everything:
         condition: service_healthy
@@ -37,6 +37,8 @@ services:
       ghapi:
         condition: service_healthy
       petstore:
+        condition: service_healthy
+      inventory:
         condition: service_healthy
       karapace-registry:
         condition: service_healthy
@@ -151,6 +153,27 @@ services:
       start_period: 30s
       start_interval: 250ms
       test: ["CMD", "nc", "-z", "127.0.0.1", "4002"]
+
+  # Mock gRPC inventory service backing the mcp-grpc "inventory" toolkit; it loads
+  # the same etc/protos/inventory.proto that Zilla derives the MCP tools from.
+  inventory:
+    image: node:20-alpine
+    hostname: inventory
+    restart: unless-stopped
+    working_dir: /app
+    command: ["sh", "-c", "npm install --no-audit --no-fund --silent && node server.mjs"]
+    environment:
+      PORT: "4004"
+    volumes:
+      - ./inventory:/app
+      - ./etc/protos:/protos:ro
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
+      start_interval: 250ms
+      test: ["CMD", "nc", "-z", "127.0.0.1", "4004"]
 
   # Real single-node Kafka broker (KRaft mode) backing the mcp-kafka "kafka" toolkit.
   #

@@ -227,6 +227,10 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
             // while the JSON generator writes its closing structure here so the produced bytes are well-formed
             generator.flush();
         }
+        if (status == Status.STARVED)
+        {
+            generator.suspend();
+        }
         int produced = rejected ? 0 : generator.length();
         // SUSPENDED holds the input steady (drain and re-present the same window); otherwise the window
         // advanced by all but the unconsumed tail the caller re-presents at the front of the next window

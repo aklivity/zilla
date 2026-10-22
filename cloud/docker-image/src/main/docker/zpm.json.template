@@ -27,6 +27,7 @@
     "io.aklivity.zilla:binding-kafka-grpc",
     "io.aklivity.zilla:binding-llm",
     "io.aklivity.zilla:binding-mcp",
+    "io.aklivity.zilla:binding-mcp-grpc",
     "io.aklivity.zilla:binding-mcp-http",
     "io.aklivity.zilla:binding-mcp-kafka",
     "io.aklivity.zilla:binding-mcp-kafka-connect",

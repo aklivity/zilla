@@ -1,0 +1,119 @@
+/*
+ * Copyright 2021-2026 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+package io.aklivity.zilla.specs.binding.mcp.grpc.streams;
+
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.rules.RuleChain.outerRule;
+
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.DisableOnDebug;
+import org.junit.rules.TestRule;
+import org.junit.rules.Timeout;
+
+import io.aklivity.k3po.runtime.junit.annotation.Specification;
+import io.aklivity.k3po.runtime.junit.rules.K3poRule;
+
+public class HttpClientIT
+{
+    private final K3poRule k3po = new K3poRule()
+        .addScriptRoot("http", "io/aklivity/zilla/specs/binding/mcp/grpc/streams/http");
+
+    private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
+
+    @Rule
+    public final TestRule chain = outerRule(k3po).around(timeout);
+
+    @Test
+    @Specification({
+        "${http}/tools.call/client",
+        "${http}/tools.call/server"})
+    public void shouldCallUnaryRpc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/tools.call.error/client",
+        "${http}/tools.call.error/server"})
+    public void shouldCallUnaryRpcReturningError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/tools.call.with.credentials/client",
+        "${http}/tools.call.with.credentials/server"})
+    public void shouldCallUnaryRpcWithCredentials() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/tools.call.aborted/client",
+        "${http}/tools.call.aborted/server"})
+    public void shouldAbortUnaryRpc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/tools.call.reset/client",
+        "${http}/tools.call.reset/server"})
+    public void shouldResetUnaryRpc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/tools.call.streaming.aborted/client",
+        "${http}/tools.call.streaming.aborted/server"})
+    public void shouldAbortUnaryRpcResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/tools.call.10k/client",
+        "${http}/tools.call.10k/server"})
+    public void shouldCallUnaryRpc10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/tools.call.100k/client",
+        "${http}/tools.call.100k/server"})
+    public void shouldCallUnaryRpc100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/tools.call.client.reset/client",
+        "${http}/tools.call.client.reset/server"})
+    public void shouldRelayClientReset() throws Exception
+    {
+        k3po.finish();
+    }
+}
