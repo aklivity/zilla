@@ -2356,28 +2356,6 @@ public class LlmOpenaiClientIT
 
     @Test
     @Configuration("client.openai.yaml")
-    @ScriptProperty({"source \"anthropic\"", "target \"openai/ccs\""})
-    @Specification({
-        "${app}/transform.request.shared.members/client",
-        "${net}/openai.transform.request.shared.members/server"})
-    public void shouldTransformSharedMembersAsOpenaiAndDropForeignMember() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.openai.yaml")
-    @ScriptProperty({"source \"openai/ccs\"", "target \"openai/ccs\""})
-    @Specification({
-        "${app}/transform.request.shared.members/client",
-        "${net}/openai.request.shared.members/server"})
-    public void shouldRestoreSharedMembersAsOpenaiWithoutLimit() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.openai.yaml")
     @ScriptProperty({"source \"anthropic\"", "target \"openai/ccs\"", "user \"user-123\"", "wire \"user-123\""})
     @Specification({
         "${app}/transform.request.user/client",
@@ -2871,11 +2849,6 @@ public class LlmOpenaiClientIT
     }
 
     @Test
-    @Configuration("client.openai.yaml")
-    @Specification({
-        "${app}/openai.streaming.controls.many/client",
-        "${net}/openai.streaming.controls.many/server"})
-    public void shouldDecodeOpenaiStreamingControlsMany() throws Exception
     @Configuration("client.openai.chat.yaml")
     @Specification({
         "${app}/openai.responses.transform.request.members/client",
@@ -2897,6 +2870,38 @@ public class LlmOpenaiClientIT
         "${app}/transform.rejected.prefixed.member/client",
         "${net}/openai.transform.rejected.member/server"})
     public void shouldRejectBehaviouralMemberOfResponsesAsOpenaiChatCompletions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai/ccs\""})
+    @Specification({
+        "${app}/transform.request.shared.members/client",
+        "${net}/openai.transform.request.shared.members/server"})
+    public void shouldTransformSharedMembersAsOpenaiAndDropForeignMember() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/ccs\"", "target \"openai/ccs\""})
+    @Specification({
+        "${app}/transform.request.shared.members/client",
+        "${net}/openai.request.shared.members/server"})
+    public void shouldRestoreSharedMembersAsOpenaiWithoutLimit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.streaming.controls.many/client",
+        "${net}/openai.streaming.controls.many/server"})
+    public void shouldDecodeOpenaiStreamingControlsMany() throws Exception
     {
         k3po.finish();
     }

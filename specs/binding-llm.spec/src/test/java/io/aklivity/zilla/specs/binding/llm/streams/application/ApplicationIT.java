@@ -8615,16 +8615,6 @@ public class ApplicationIT
     }
 
     @Test
-    @ScriptProperty({"model \"claude-3-opus-20240229xx\""})
-    @Specification({
-        "${app}/anthropic.section.user.text.cache.control.window/client",
-        "${app}/anthropic.section.user.text.cache.control.window/server"})
-    public void shouldForwardAnthropicSectionUserTextCacheControlWindowModelPlus2() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
     @Specification({
         "${app}/transform.request.member/client",
         "${app}/transform.request.member/server"})
@@ -8644,12 +8634,37 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/transform.request.shared.members/client",
-        "${app}/transform.request.shared.members/server"})
-    public void shouldTransformRequestSharedMembers() throws Exception
         "${app}/openai.transform.request.shared.members/client",
         "${app}/openai.transform.request.shared.members/server"})
     public void shouldOpenaiTransformRequestSharedMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.prefixed.member/client",
+        "${app}/transform.rejected.prefixed.member/server"})
+    public void shouldTransformRejectedPrefixedMember() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @ScriptProperty({"model \"claude-3-opus-20240229xx\""})
+    @Specification({
+        "${app}/anthropic.section.user.text.cache.control.window/client",
+        "${app}/anthropic.section.user.text.cache.control.window/server"})
+    public void shouldForwardAnthropicSectionUserTextCacheControlWindowModelPlus2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.shared.members/client",
+        "${app}/transform.request.shared.members/server"})
+    public void shouldTransformRequestSharedMembers() throws Exception
     {
         k3po.finish();
     }
@@ -8821,9 +8836,6 @@ public class ApplicationIT
         "${app}/openai.response.controls.message.stream/client",
         "${app}/openai.response.controls.message.stream/server"})
     public void shouldOpenaiResponseControlsMessageStream() throws Exception
-        "${app}/transform.rejected.prefixed.member/client",
-        "${app}/transform.rejected.prefixed.member/server"})
-    public void shouldTransformRejectedPrefixedMember() throws Exception
     {
         k3po.finish();
     }

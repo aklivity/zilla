@@ -23,7 +23,7 @@ accepted
 
 read zilla:begin.ext ${llm:matchBeginEx()
                           .typeId(zilla:id("llm"))
-                          .dialect("openai")
+                          .dialect("openai/ccs")
                           .model("gpt-4o-mini")
                           .build()}
 
@@ -40,7 +40,7 @@ read advised zilla:flush
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
+                           .dialect("openai/ccs")
                            .model("gpt-4o-mini-2024-07-18")
                            .id("chatcmpl-EQNL5kPFWGuGSBO2lca3rDUj9mrfi")
                            .build()}
@@ -51,7 +51,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:created\":1789954951}"
+write "{\"openai/ccs:created\":1789954951}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -67,7 +67,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:system_fingerprint\":\"fp_c28ee603a6\"}"
+write "{\"openai/ccs:system_fingerprint\":\"fp_c28ee603a6\"}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -75,7 +75,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:m01\":1}"
+write "{\"openai/ccs:m01\":1}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -83,7 +83,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:m02\":\"two\"}"
+write "{\"openai/ccs:m02\":\"two\"}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -91,7 +91,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:m03\":[3]}"
+write "{\"openai/ccs:m03\":[3]}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -99,7 +99,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:m04\":true}"
+write "{\"openai/ccs:m04\":true}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -107,7 +107,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:m05\":null}"
+write "{\"openai/ccs:m05\":null}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -115,7 +115,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:m06\":{\"k\":\"v\"}}"
+write "{\"openai/ccs:m06\":{\"k\":\"v\"}}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -123,7 +123,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:m07\":7.5}"
+write "{\"openai/ccs:m07\":7.5}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -131,7 +131,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:m08\":\"eight\"}"
+write "{\"openai/ccs:m08\":\"eight\"}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -139,7 +139,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:m09\":9}"
+write "{\"openai/ccs:m09\":9}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -147,7 +147,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:m10\":\"ten\"}"
+write "{\"openai/ccs:m10\":\"ten\"}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -155,7 +155,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:m11\":11}"
+write "{\"openai/ccs:m11\":11}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -163,7 +163,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:m12\":\"twelve\"}"
+write "{\"openai/ccs:m12\":\"twelve\"}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -171,7 +171,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:m13\":[13]}"
+write "{\"openai/ccs:m13\":[13]}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -179,7 +179,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:m14\":false}"
+write "{\"openai/ccs:m14\":false}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -187,7 +187,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:m15\":15}"
+write "{\"openai/ccs:m15\":15}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -195,7 +195,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:m16\":\"sixteen\"}"
+write "{\"openai/ccs:m16\":\"sixteen\"}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -203,7 +203,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(0)
                           .build()}
-write "{\"openai:logprobs\":null}"
+write "{\"openai/ccs:logprobs\":null}"
 write flush
 
 write option zilla:flags "init"
@@ -226,7 +226,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:usage\":{\"prompt_tokens\":13,\"completion_tokens\":9,\"total_tokens\":22,\"prompt_tokens_details\":{\"cached_tokens\":0,\"audio_tokens\":0},\"completion_tokens_details\":{\"reasoning_tokens\":0,\"audio_tokens\":0,\"accepted_prediction_tokens\":0,\"rejected_prediction_tokens\":0}}}"
+write "{\"openai/ccs:usage\":{\"prompt_tokens\":13,\"completion_tokens\":9,\"total_tokens\":22,\"prompt_tokens_details\":{\"cached_tokens\":0,\"audio_tokens\":0},\"completion_tokens_details\":{\"reasoning_tokens\":0,\"audio_tokens\":0,\"accepted_prediction_tokens\":0,\"rejected_prediction_tokens\":0}}}"
 write flush
 
 write zilla:end.ext ${llm:endEx()

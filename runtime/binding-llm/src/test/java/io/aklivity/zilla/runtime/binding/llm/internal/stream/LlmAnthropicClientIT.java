@@ -2926,17 +2926,6 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\""})
-    @Specification({
-        "${app}/transform.request.shared.members/client",
-        "${net}/anthropic.transform.request.shared.members/server"})
-    public void shouldTransformSharedMembersAsAnthropicAndDropForeignMember() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
     @Specification({
         "${app}/anthropic.request.reasoning.thinking.residue/client",
         "${net}/anthropic.request.reasoning.thinking.residue/server"})
@@ -3473,10 +3462,6 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @Specification({
-        "${app}/anthropic.streaming.controls.many/client",
-        "${net}/anthropic.streaming.controls.many/server"})
-    public void shouldDecodeAnthropicStreamingControlsMany() throws Exception
     @ScriptProperty({
         "source \"openai/rs\"",
         "target \"anthropic\"",
@@ -3487,6 +3472,27 @@ public class LlmAnthropicClientIT
         "${app}/transform.rejected.prefixed.member/client",
         "${net}/anthropic.transform.rejected.member/server"})
     public void shouldRejectBehaviouralMemberOfOpenaiResponsesAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
+    @Specification({
+        "${app}/transform.request.shared.members/client",
+        "${net}/anthropic.transform.request.shared.members/server"})
+    public void shouldTransformSharedMembersAsAnthropicAndDropForeignMember() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.streaming.controls.many/client",
+        "${net}/anthropic.streaming.controls.many/server"})
+    public void shouldDecodeAnthropicStreamingControlsMany() throws Exception
     {
         k3po.finish();
     }

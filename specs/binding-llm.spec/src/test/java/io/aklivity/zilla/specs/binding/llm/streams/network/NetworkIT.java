@@ -8651,16 +8651,6 @@ public class NetworkIT
     }
 
     @Test
-    @ScriptProperty({"model \"claude-3-opus-20240229xx\""})
-    @Specification({
-        "${net}/anthropic.section.user.text.cache.control.window/client",
-        "${net}/anthropic.section.user.text.cache.control.window/server"})
-    public void shouldForwardAnthropicSectionUserTextCacheControlWindowModelPlus2() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
     @Specification({
         "${net}/openai.transform.rejected.member/client",
         "${net}/openai.transform.rejected.member/server"})
@@ -8698,9 +8688,6 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.transform.request.shared.members/client",
-        "${net}/openai.transform.request.shared.members/server"})
-    public void shouldOpenaiTransformRequestSharedMembers() throws Exception
         "${net}/reject.openai.api.responses/client",
         "${net}/reject.openai.api.responses/server"})
     public void shouldRejectOpenaiApiResponses() throws Exception
@@ -8710,9 +8697,6 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.request.shared.members/client",
-        "${net}/openai.request.shared.members/server"})
-    public void shouldOpenaiRequestSharedMembers() throws Exception
         "${net}/reject.openai.api.chat.completions/client",
         "${net}/reject.openai.api.chat.completions/server"})
     public void shouldRejectOpenaiApiChatCompletions() throws Exception
@@ -8722,9 +8706,6 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/anthropic.transform.request.shared.members/client",
-        "${net}/anthropic.transform.request.shared.members/server"})
-    public void shouldAnthropicTransformRequestSharedMembers() throws Exception
         "${net}/openai.responses.transform.request.members.chat/client",
         "${net}/openai.responses.transform.request.members.chat/server"})
     public void shouldOpenaiResponsesTransformRequestMembersChat() throws Exception
@@ -8734,12 +8715,64 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/gemini.transform.request.shared.members/client",
-        "${net}/gemini.transform.request.shared.members/server"})
-    public void shouldGeminiTransformRequestSharedMembers() throws Exception
         "${net}/openai.responses.transform.request.shared.members/client",
         "${net}/openai.responses.transform.request.shared.members/server"})
     public void shouldOpenaiResponsesTransformRequestSharedMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/reject.gemini.dialect/client",
+        "${net}/reject.gemini.dialect/server"})
+    public void shouldRejectGeminiDialect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @ScriptProperty({"model \"claude-3-opus-20240229xx\""})
+    @Specification({
+        "${net}/anthropic.section.user.text.cache.control.window/client",
+        "${net}/anthropic.section.user.text.cache.control.window/server"})
+    public void shouldForwardAnthropicSectionUserTextCacheControlWindowModelPlus2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.request.shared.members/client",
+        "${net}/openai.transform.request.shared.members/server"})
+    public void shouldOpenaiTransformRequestSharedMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.shared.members/client",
+        "${net}/openai.request.shared.members/server"})
+    public void shouldOpenaiRequestSharedMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.request.shared.members/client",
+        "${net}/anthropic.transform.request.shared.members/server"})
+    public void shouldAnthropicTransformRequestSharedMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.request.shared.members/client",
+        "${net}/gemini.transform.request.shared.members/server"})
+    public void shouldGeminiTransformRequestSharedMembers() throws Exception
     {
         k3po.finish();
     }
@@ -8911,9 +8944,6 @@ public class NetworkIT
         "${net}/openai.response.controls.message.stream/client",
         "${net}/openai.response.controls.message.stream/server"})
     public void shouldOpenaiResponseControlsMessageStream() throws Exception
-        "${net}/reject.gemini.dialect/client",
-        "${net}/reject.gemini.dialect/server"})
-    public void shouldRejectGeminiDialect() throws Exception
     {
         k3po.finish();
     }
