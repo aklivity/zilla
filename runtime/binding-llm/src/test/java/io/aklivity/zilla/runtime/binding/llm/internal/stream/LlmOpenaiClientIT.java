@@ -2876,6 +2876,27 @@ public class LlmOpenaiClientIT
         "${app}/openai.streaming.controls.many/client",
         "${net}/openai.streaming.controls.many/server"})
     public void shouldDecodeOpenaiStreamingControlsMany() throws Exception
+    @Configuration("client.openai.chat.yaml")
+    @Specification({
+        "${app}/openai.responses.transform.request.members/client",
+        "${net}/openai.responses.transform.request.members.chat/server"})
+    public void shouldRestoreSharedAndDropResponsesRequestMembersAsOpenaiChatCompletionsWhenApisRestricted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.chat.yaml")
+    @ScriptProperty({
+        "source \"openai/rs\"",
+        "target \"openai/ccs\"",
+        "model \"model\"",
+        "member \"openai/rs:previous_response_id\"",
+        "value \"\\\"resp_1\\\"\""})
+    @Specification({
+        "${app}/transform.rejected.prefixed.member/client",
+        "${net}/openai.transform.rejected.member/server"})
+    public void shouldRejectBehaviouralMemberOfResponsesAsOpenaiChatCompletions() throws Exception
     {
         k3po.finish();
     }

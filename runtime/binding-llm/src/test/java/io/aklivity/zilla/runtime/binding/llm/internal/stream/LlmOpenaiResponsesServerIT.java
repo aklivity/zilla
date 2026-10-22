@@ -2222,6 +2222,11 @@ public class LlmOpenaiResponsesServerIT
         "${net}/openai.responses.response.controls.grouped/client",
         "${app}/openai.responses.response.controls.grouped/server"})
     public void shouldEncodeOpenaiResponsesResponseControlsGrouped() throws Exception
+    @Configuration("server.openai.responses.yaml")
+    @Specification({
+        "${net}/openai.responses.text/client",
+        "${app}/openai.responses.text/server"})
+    public void shouldServeOpenaiResponsesWhenApisRestrictedToResponses() throws Exception
     {
         k3po.finish();
     }

@@ -1329,4 +1329,26 @@ public class LlmProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.openai.api.yaml")
+    @ScriptProperty({"clientAddress \"zilla://streams/net0\""})
+    @Specification({
+        "${app}/openai.proxy/client",
+        "${app}/openai.proxy/server"})
+    public void shouldRouteOpenaiChatCompletionsToAppZeroByApi() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.openai.api.yaml")
+    @ScriptProperty({"clientAddress \"zilla://streams/net0\"", "serverAddress \"zilla://streams/app1\""})
+    @Specification({
+        "${app}/openai.responses.proxy/client",
+        "${app}/openai.responses.proxy/server"})
+    public void shouldRouteOpenaiResponsesToAppOneByApi() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -1763,6 +1763,11 @@ public class LlmOpenaiServerIT
         "${net}/openai.request.controls.split/client",
         "${app}/openai.request.controls.split/server"})
     public void shouldDecodeOpenaiRequestControlsSplitUnderBackPressure() throws Exception
+    @Configuration("server.openai.chat.yaml")
+    @Specification({
+        "${net}/openai.echo/client",
+        "${app}/openai.echo/server"})
+    public void shouldServeOpenaiChatCompletionsWhenApisRestrictedToChatCompletions() throws Exception
     {
         k3po.finish();
     }
@@ -1803,6 +1808,11 @@ public class LlmOpenaiServerIT
         "${net}/openai.response.controls.message.stream/client",
         "${app}/openai.response.controls.message.stream/server"})
     public void shouldEncodeOpenaiResponseControlsMessageStream() throws Exception
+    @Configuration("server.dialects.yaml")
+    @Specification({
+        "${net}/openai.echo/client",
+        "${app}/openai.echo/server"})
+    public void shouldServeOpenaiChatCompletionsWhenDialectsRestrictOpenaiToChatCompletions() throws Exception
     {
         k3po.finish();
     }

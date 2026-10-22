@@ -73,6 +73,12 @@ dialect of the vendor. A pattern that names a variant (`openai/rs`) admits only 
 - A server fixed to a vendor serves every dialect of the vendor, told apart by path; a client fixed to a vendor speaks the
   inbound dialect when it is one of the vendor's, and otherwise `LlmDialectNames.defaultOf(vendor)`, which is `openai/ccs`
   for `openai`.
+- `dialect: openai` takes an optional `apis` list, from `chat/completions` and `responses` (default: both), that narrows the
+  APIs a binding supports. A server answers a request for an API outside the list as an unknown dialect, and does not skip
+  path detection for it. A client speaks the API of the inbound request when it is listed, and otherwise the first listed
+  API, translating the request. A route condition takes a scalar `api` beside `dialect: openai` that matches one API.
+  `LlmBindingConfig.serves` is the single check the dialect contexts use, and `LlmDialectNames.api` and `id` map between
+  API names and dialect ids.
 - Built-in model defaults describe models, not APIs, so they are keyed by vendor (`models/<vendor>.json`).
 - The prose and tables below write `openai` for the chat dialect `openai/ccs` and `openai/responses` for the Responses
   dialect `openai/rs`.

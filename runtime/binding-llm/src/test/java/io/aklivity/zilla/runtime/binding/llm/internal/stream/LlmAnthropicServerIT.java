@@ -2173,6 +2173,11 @@ public class LlmAnthropicServerIT
         "${net}/anthropic.response.controls.grouped/client",
         "${app}/anthropic.response.controls.grouped/server"})
     public void shouldEncodeAnthropicResponseControlsGrouped() throws Exception
+    @Configuration("server.dialects.yaml")
+    @Specification({
+        "${net}/anthropic.echo/client",
+        "${app}/anthropic.echo/server"})
+    public void shouldServeAnthropicWhenDialectsListAnthropic() throws Exception
     {
         k3po.finish();
     }

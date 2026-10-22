@@ -245,7 +245,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final int CONTAINER_OUTPUT_CONFIG = 1;
     private static final int CONTAINER_THINKING = 2;
     private static final int CONTAINER_METADATA = 3;
-    private static final String SHARED_PREFIX = "x:";
     private static final String MEMBER_TOOLS = "tools";
     private static final String MEMBER_TOOL_USE_ID = "tool_use_id";
     private static final String MEMBER_IS_ERROR = "is_error";
@@ -4212,7 +4211,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             final String shared = controlTransform != null ? controlTransform.rejectedMember() : null;
 
             return collector.overflowed() ? collector.overflow() : conflicted != null ? conflicted :
-                shared != null ? SHARED_PREFIX + shared : null;
+                shared != null ? LlmSharedMembers.wire(shared) : null;
         }
 
         private int heldReserve()

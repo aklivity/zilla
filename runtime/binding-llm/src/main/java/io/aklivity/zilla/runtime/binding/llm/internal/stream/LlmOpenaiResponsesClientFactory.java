@@ -100,7 +100,6 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
     private static final String MESSAGE_MODEL_MISSING = "Missing required parameter: 'model'.";
     private static final String MESSAGE_SECTION_INVALID = "Invalid request section.";
     private static final String MESSAGE_SECTION_CONVERT = "%s cannot be converted from %s to %s";
-    private static final String SHARED_PREFIX = "x:";
     private static final String MESSAGE_SECTION_CONVERT_AFTER_INPUT =
         "%s cannot be converted from %s to %s after the input is closed";
     private static final String MESSAGE_ITEM_UNSUPPORTED = "Unsupported output item type: '%s'.";
@@ -5844,7 +5843,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         {
             final String shared = controlTransform != null ? controlTransform.rejectedMember() : null;
 
-            return collector.overflowed() ? collector.overflow() : shared != null ? SHARED_PREFIX + shared : null;
+            return collector.overflowed() ? collector.overflow() : shared != null ? LlmSharedMembers.wire(shared) : null;
         }
 
         private int containerReserve()

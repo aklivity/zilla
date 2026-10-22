@@ -153,4 +153,33 @@ public class LlmConditionMatcherTest
         assertFalse(matcher.matches("openai/rs", "gpt-4o-mini"));
         assertFalse(matcher.matches("anthropic/messages", "gpt-4o"));
     }
+
+    @Test
+    public void shouldMatchOnlyNamedApiWhenConditionNamesApi()
+    {
+        LlmConditionConfig condition = LlmConditionConfig.builder()
+            .dialect("openai")
+            .api("responses")
+            .build();
+        LlmConditionMatcher matcher = new LlmConditionMatcher(condition);
+
+        assertTrue(matcher.matches("openai/rs", null));
+        assertFalse(matcher.matches("openai/ccs", null));
+        assertFalse(matcher.matches("anthropic", null));
+    }
+
+    @Test
+    public void shouldMatchNamedApiAndModelTogether()
+    {
+        LlmConditionConfig condition = LlmConditionConfig.builder()
+            .dialect("openai")
+            .api("chat/completions")
+            .model(asList("gpt-4o"))
+            .build();
+        LlmConditionMatcher matcher = new LlmConditionMatcher(condition);
+
+        assertTrue(matcher.matches("openai/ccs", "gpt-4o"));
+        assertFalse(matcher.matches("openai/ccs", "gpt-4o-mini"));
+        assertFalse(matcher.matches("openai/rs", "gpt-4o"));
+    }
 }

@@ -91,7 +91,7 @@ public class LlmOpenaiResponsesControlFromCanonicalTest
     @Test
     public void shouldDropSiblingVariantPrefixedMember()
     {
-        assertTransforms(foreign, json("{'openai/rs:previous_response_id':'resp_1'}"), "null");
+        assertTransforms(foreign, json("{'openai/rs:truncation':'auto'}"), "null");
 
         assertThat(foreign.member(), nullValue());
     }
@@ -590,5 +590,38 @@ public class LlmOpenaiResponsesControlFromCanonicalTest
         List<String> names)
     {
         return new LlmModelCapability(true, null, -1, -1, null, LlmServiceTier.maskOf(names));
+    }
+
+    @Test
+    public void shouldRejectBehaviouralMemberOfChatCompletions()
+    {
+        assertRejects(foreignMembers, json("{'openai/ccs:n':2}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("openai/ccs:n"));
+    }
+
+    @Test
+    public void shouldRejectEachBehaviouralMemberOfChatCompletions()
+    {
+        assertRejects(foreignMembers, json("{'openai/ccs:logprobs':true}"));
+        assertRejects(foreignMembers, json("{'openai/ccs:audio':{'voice':'alloy','format':'wav'}}"));
+        assertRejects(foreignMembers, json("{'openai/ccs:modalities':['text','audio']}"));
+    }
+
+    @Test
+    public void shouldDropHarmlessBehaviouralMembersOfChatCompletions()
+    {
+        assertTransforms(foreignMembers,
+            json("{'openai/ccs:n':1,'openai/ccs:logprobs':false,'openai/ccs:audio':null,'openai/ccs:modalities':null," +
+                "'x:temperature':0.2}"),
+            json("{'temperature':0.2}"));
+    }
+
+    @Test
+    public void shouldDropMemberOfChatCompletionsThatIsNotBehavioural()
+    {
+        assertTransforms(foreignMembers,
+            json("{'openai/ccs:logit_bias':{'1':-1},'x:temperature':0.2}"),
+            json("{'temperature':0.2}"));
     }
 }

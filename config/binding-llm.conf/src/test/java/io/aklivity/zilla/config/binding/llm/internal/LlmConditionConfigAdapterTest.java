@@ -128,6 +128,43 @@ public class LlmConditionConfigAdapterTest
     }
 
     @Test
+    public void shouldReadConditionWithDialectAndApi()
+    {
+        String text =
+                "{" +
+                    "\"dialect\": \"openai\"," +
+                    "\"api\": \"responses\"" +
+                "}";
+
+        LlmConditionConfig condition = jsonb.fromJson(text, LlmConditionConfig.class);
+
+        assertThat(condition, not(nullValue()));
+        assertThat(condition.dialect, equalTo("openai"));
+        assertThat(condition.api, equalTo("responses"));
+    }
+
+    @Test
+    public void shouldWriteConditionWithDialectAndApi()
+    {
+        LlmConditionConfig condition = LlmConditionConfig.builder()
+            .dialect("openai")
+            .api("chat/completions")
+            .build();
+
+        String text = jsonb.toJson(condition);
+
+        assertThat(text, equalTo("{\"dialect\":\"openai\",\"api\":\"chat/completions\"}"));
+    }
+
+    @Test
+    public void shouldReadConditionWithoutApi()
+    {
+        LlmConditionConfig condition = jsonb.fromJson("{\"dialect\": \"openai\"}", LlmConditionConfig.class);
+
+        assertThat(condition.api, nullValue());
+    }
+
+    @Test
     public void shouldBuildConditionViaMapper()
     {
         LlmConditionConfig condition = LlmConditionConfig.builder(LlmConditionConfig.class::cast)

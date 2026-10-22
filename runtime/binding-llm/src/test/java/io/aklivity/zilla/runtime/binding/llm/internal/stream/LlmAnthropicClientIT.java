@@ -3477,6 +3477,16 @@ public class LlmAnthropicClientIT
         "${app}/anthropic.streaming.controls.many/client",
         "${net}/anthropic.streaming.controls.many/server"})
     public void shouldDecodeAnthropicStreamingControlsMany() throws Exception
+    @ScriptProperty({
+        "source \"openai/rs\"",
+        "target \"anthropic\"",
+        "model \"model\"",
+        "member \"openai/rs:background\"",
+        "value \"true\""})
+    @Specification({
+        "${app}/transform.rejected.prefixed.member/client",
+        "${net}/anthropic.transform.rejected.member/server"})
+    public void shouldRejectBehaviouralMemberOfOpenaiResponsesAsAnthropic() throws Exception
     {
         k3po.finish();
     }

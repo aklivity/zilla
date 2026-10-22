@@ -8647,6 +8647,9 @@ public class ApplicationIT
         "${app}/transform.request.shared.members/client",
         "${app}/transform.request.shared.members/server"})
     public void shouldTransformRequestSharedMembers() throws Exception
+        "${app}/openai.transform.request.shared.members/client",
+        "${app}/openai.transform.request.shared.members/server"})
+    public void shouldOpenaiTransformRequestSharedMembers() throws Exception
     {
         k3po.finish();
     }
@@ -8818,6 +8821,9 @@ public class ApplicationIT
         "${app}/openai.response.controls.message.stream/client",
         "${app}/openai.response.controls.message.stream/server"})
     public void shouldOpenaiResponseControlsMessageStream() throws Exception
+        "${app}/transform.rejected.prefixed.member/client",
+        "${app}/transform.rejected.prefixed.member/server"})
+    public void shouldTransformRejectedPrefixedMember() throws Exception
     {
         k3po.finish();
     }

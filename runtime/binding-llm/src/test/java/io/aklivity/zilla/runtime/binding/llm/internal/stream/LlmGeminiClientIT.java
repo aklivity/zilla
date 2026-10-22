@@ -2649,4 +2649,21 @@ public class LlmGeminiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({
+        "source \"openai/ccs\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "model \"model\"",
+        "member \"openai/ccs:n\"",
+        "value \"3\""})
+    @Specification({
+        "${app}/transform.rejected.prefixed.member/client",
+        "${net}/gemini.transform.rejected.member/server"})
+    public void shouldRejectBehaviouralMemberOfOpenaiChatCompletionsAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
 }

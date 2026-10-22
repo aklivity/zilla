@@ -2811,4 +2811,30 @@ public class LlmOpenaiResponsesClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @Specification({
+        "${app}/openai.transform.request.shared.members/client",
+        "${net}/openai.responses.transform.request.shared.members/server"})
+    public void shouldRestoreSharedAndDropChatRequestMembersAsOpenaiResponsesWhenApisRestricted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @ScriptProperty({
+        "source \"openai/ccs\"",
+        "target \"openai/rs\"",
+        "model \"model\"",
+        "member \"openai/ccs:n\"",
+        "value \"2\""})
+    @Specification({
+        "${app}/transform.rejected.prefixed.member/client",
+        "${net}/openai.responses.transform.rejected.member/server"})
+    public void shouldRejectBehaviouralMemberOfChatCompletionsAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
 }

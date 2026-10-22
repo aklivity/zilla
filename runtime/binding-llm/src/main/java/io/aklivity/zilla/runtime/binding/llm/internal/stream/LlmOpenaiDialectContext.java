@@ -19,7 +19,6 @@ import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmOpenaiDia
 import io.aklivity.zilla.runtime.binding.llm.config.LlmBindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectContext;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectHandler;
-import io.aklivity.zilla.runtime.binding.llm.internal.dialect.LlmDialectNames;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 
 final class LlmOpenaiDialectContext implements LlmDialectContext
@@ -46,14 +45,14 @@ final class LlmOpenaiDialectContext implements LlmDialectContext
         switch (binding.kind)
         {
         case SERVER:
-            if (fixed == null || LlmDialectNames.admits(fixed, NAME))
+            if (binding.serves(NAME))
             {
                 handler = supplyServer();
                 server.attach(binding);
             }
             break;
         case CLIENT:
-            if (fixed != null && LlmDialectNames.admits(fixed, NAME))
+            if (fixed != null && binding.serves(NAME))
             {
                 supplyClient().attach(binding);
                 handler = client;

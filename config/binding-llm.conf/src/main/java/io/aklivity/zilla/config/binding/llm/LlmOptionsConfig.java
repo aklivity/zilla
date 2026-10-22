@@ -24,6 +24,8 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 public final class LlmOptionsConfig extends OptionsConfig
 {
     public final String dialect;
+    public final List<String> apis;
+    public final List<LlmDialectConfig> dialects;
     public final LlmAuthorizationConfig authorization;
     public final LlmServerConfig server;
     public final List<LlmGuardrailConfig> guardrails;
@@ -44,6 +46,8 @@ public final class LlmOptionsConfig extends OptionsConfig
 
     LlmOptionsConfig(
         String dialect,
+        List<String> apis,
+        List<LlmDialectConfig> dialects,
         LlmAuthorizationConfig authorization,
         LlmServerConfig server,
         List<LlmGuardrailConfig> guardrails,
@@ -55,6 +59,8 @@ public final class LlmOptionsConfig extends OptionsConfig
     {
         super(extensions, refs);
         this.dialect = dialect;
+        this.apis = apis;
+        this.dialects = dialects;
         this.authorization = authorization;
         this.server = server;
         this.guardrails = guardrails;

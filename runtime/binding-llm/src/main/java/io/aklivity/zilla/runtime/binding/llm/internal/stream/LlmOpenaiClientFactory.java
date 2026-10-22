@@ -99,7 +99,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private static final String MESSAGE_MODEL_MISSING = "Missing required parameter: 'model'.";
     private static final String MESSAGE_SECTION_INVALID = "Invalid request section.";
     private static final String MESSAGE_SECTION_CONVERT = "%s cannot be converted from %s to %s";
-    private static final String SHARED_PREFIX = "x:";
     private static final String MESSAGE_SECTION_CONVERT_AFTER_TOOLS =
         "%s cannot be converted from %s to %s after tool-definition";
     private static final Set<String> RESPONSE_CONTENT_TYPES = Set.of(CONTENT_TYPE_JSON, CONTENT_TYPE_EVENT_STREAM);
@@ -924,7 +923,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
             if (member != null)
             {
-                message = MESSAGE_SECTION_CONVERT.formatted(SHARED_PREFIX + member, dialect, NAME);
+                message = MESSAGE_SECTION_CONVERT.formatted(LlmSharedMembers.wire(member), dialect, NAME);
             }
             else if (requestSection == null || requestSection == LlmSectionType.NONE)
             {

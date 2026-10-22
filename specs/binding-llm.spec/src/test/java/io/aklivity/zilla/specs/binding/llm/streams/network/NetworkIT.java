@@ -8701,6 +8701,9 @@ public class NetworkIT
         "${net}/openai.transform.request.shared.members/client",
         "${net}/openai.transform.request.shared.members/server"})
     public void shouldOpenaiTransformRequestSharedMembers() throws Exception
+        "${net}/reject.openai.api.responses/client",
+        "${net}/reject.openai.api.responses/server"})
+    public void shouldRejectOpenaiApiResponses() throws Exception
     {
         k3po.finish();
     }
@@ -8710,6 +8713,9 @@ public class NetworkIT
         "${net}/openai.request.shared.members/client",
         "${net}/openai.request.shared.members/server"})
     public void shouldOpenaiRequestSharedMembers() throws Exception
+        "${net}/reject.openai.api.chat.completions/client",
+        "${net}/reject.openai.api.chat.completions/server"})
+    public void shouldRejectOpenaiApiChatCompletions() throws Exception
     {
         k3po.finish();
     }
@@ -8719,6 +8725,9 @@ public class NetworkIT
         "${net}/anthropic.transform.request.shared.members/client",
         "${net}/anthropic.transform.request.shared.members/server"})
     public void shouldAnthropicTransformRequestSharedMembers() throws Exception
+        "${net}/openai.responses.transform.request.members.chat/client",
+        "${net}/openai.responses.transform.request.members.chat/server"})
+    public void shouldOpenaiResponsesTransformRequestMembersChat() throws Exception
     {
         k3po.finish();
     }
@@ -8728,6 +8737,9 @@ public class NetworkIT
         "${net}/gemini.transform.request.shared.members/client",
         "${net}/gemini.transform.request.shared.members/server"})
     public void shouldGeminiTransformRequestSharedMembers() throws Exception
+        "${net}/openai.responses.transform.request.shared.members/client",
+        "${net}/openai.responses.transform.request.shared.members/server"})
+    public void shouldOpenaiResponsesTransformRequestSharedMembers() throws Exception
     {
         k3po.finish();
     }
@@ -8899,6 +8911,9 @@ public class NetworkIT
         "${net}/openai.response.controls.message.stream/client",
         "${net}/openai.response.controls.message.stream/server"})
     public void shouldOpenaiResponseControlsMessageStream() throws Exception
+        "${net}/reject.gemini.dialect/client",
+        "${net}/reject.gemini.dialect/server"})
+    public void shouldRejectGeminiDialect() throws Exception
     {
         k3po.finish();
     }

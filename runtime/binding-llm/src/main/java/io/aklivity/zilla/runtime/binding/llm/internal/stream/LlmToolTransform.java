@@ -337,6 +337,10 @@ abstract class LlmToolTransform implements JsonTransform
         {
             target = name(null, key, colon + 1, length);
         }
+        else if (LlmBehaviour.listed(key))
+        {
+            action = judge(key);
+        }
         else
         {
             action = DROP;
@@ -1048,7 +1052,7 @@ abstract class LlmToolTransform implements JsonTransform
     private boolean judging(
         String member)
     {
-        return legality.unsupported != 0 && legality.unsupported(LlmMember.of(member));
+        return legality.unsupported != 0 && legality.unsupported(LlmMember.of(member)) || LlmBehaviour.listed(member);
     }
 
     private Status judged()

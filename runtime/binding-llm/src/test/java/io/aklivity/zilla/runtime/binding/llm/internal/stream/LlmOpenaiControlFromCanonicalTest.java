@@ -93,7 +93,7 @@ public class LlmOpenaiControlFromCanonicalTest
     @Test
     public void shouldDropSiblingVariantPrefixedMember()
     {
-        assertTransforms(transform, json("{'openai/rs:previous_response_id':'resp_1'}"), "null");
+        assertTransforms(transform, json("{'openai/rs:truncation':'auto'}"), "null");
 
         assertThat(transform.member(), nullValue());
     }
@@ -101,7 +101,7 @@ public class LlmOpenaiControlFromCanonicalTest
     @Test
     public void shouldDropSiblingVariantPrefixedMemberAcrossVariants()
     {
-        assertTransforms(foreign, json("{'openai/rs:previous_response_id':'resp_1'}"), "null");
+        assertTransforms(foreign, json("{'openai/rs:truncation':'auto'}"), "null");
 
         assertThat(foreign.member(), nullValue());
     }
@@ -511,5 +511,44 @@ public class LlmOpenaiControlFromCanonicalTest
         List<String> names)
     {
         return new LlmModelCapability(true, null, -1, -1, null, LlmServiceTier.maskOf(names));
+    }
+
+    @Test
+    public void shouldRejectBehaviouralMemberOfResponses()
+    {
+        assertRejects(sameMembers, json("{'openai/rs:previous_response_id':'resp_1'}"));
+
+        assertThat(sameMembers.rejectedMember(), equalTo("openai/rs:previous_response_id"));
+    }
+
+    @Test
+    public void shouldRejectEachBehaviouralMemberOfResponses()
+    {
+        assertRejects(sameMembers, json("{'openai/rs:background':true}"));
+        assertRejects(sameMembers, json("{'openai/rs:conversation':'conv_1'}"));
+        assertRejects(sameMembers, json("{'openai/rs:conversation':{'id':'conv_1'}}"));
+    }
+
+    @Test
+    public void shouldDropHarmlessBehaviouralMemberOfResponses()
+    {
+        assertTransforms(sameMembers,
+            json("{'openai/rs:previous_response_id':null,'openai/rs:background':false,'openai/rs:conversation':null," +
+                "'x:seed':1}"),
+            json("{'seed':1}"));
+    }
+
+    @Test
+    public void shouldDropMemberOfResponsesThatIsNotBehavioural()
+    {
+        assertTransforms(sameMembers,
+            json("{'openai/rs:truncation':'auto','openai/rs:include':[],'x:seed':1}"),
+            json("{'seed':1}"));
+    }
+
+    @Test
+    public void shouldNotRejectBehaviouralMemberNamedUnderVendorPrefix()
+    {
+        assertTransforms(sameMembers, json("{'openai:background':false,'x:seed':1}"), json("{'background':false,'seed':1}"));
     }
 }

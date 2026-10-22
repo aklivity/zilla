@@ -45,14 +45,14 @@ final class LlmGeminiDialectContext implements LlmDialectContext
         switch (binding.kind)
         {
         case SERVER:
-            if (fixed == null || NAME.equals(fixed))
+            if (binding.serves(NAME))
             {
                 handler = supplyServer();
                 server.attach(binding);
             }
             break;
         case CLIENT:
-            if (NAME.equals(fixed))
+            if (fixed != null && binding.serves(NAME))
             {
                 supplyClient().attach(binding);
                 handler = client;

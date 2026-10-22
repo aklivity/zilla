@@ -20,6 +20,9 @@ public final class LlmDialectNames
 {
     private static final char VARIANT = '/';
     private static final Map<String, String> DEFAULTS = Map.of("openai", "openai/ccs");
+    private static final Map<String, String> APIS = Map.of(
+        "openai/ccs", "chat/completions",
+        "openai/rs", "responses");
 
     public static String vendor(
         String dialect)
@@ -33,6 +36,29 @@ public final class LlmDialectNames
         String dialect)
     {
         return dialect != null ? DEFAULTS.getOrDefault(dialect, dialect) : null;
+    }
+
+    public static String api(
+        String dialect)
+    {
+        return dialect != null ? APIS.get(dialect) : null;
+    }
+
+    public static String id(
+        String vendor,
+        String api)
+    {
+        String id = null;
+
+        for (Map.Entry<String, String> entry : APIS.entrySet())
+        {
+            if (id == null && entry.getValue().equals(api) && vendor(entry.getKey()).equals(vendor))
+            {
+                id = entry.getKey();
+            }
+        }
+
+        return id;
     }
 
     public static boolean admits(

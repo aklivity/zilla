@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.llm.internal.dialect;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
@@ -103,6 +104,36 @@ public class LlmDialectNamesTest
         assertFalse(LlmDialectNames.admits(key, 0, 9, "anthropic"));
         assertFalse(LlmDialectNames.admits("openai:store", 0, 6, "anthropic"));
         assertFalse(LlmDialectNames.admits("openai:store", 0, 6, null));
+    }
+
+    @Test
+    public void shouldNameApiOfDialect()
+    {
+        assertEquals("chat/completions", LlmDialectNames.api("openai/ccs"));
+        assertEquals("responses", LlmDialectNames.api("openai/rs"));
+    }
+
+    @Test
+    public void shouldNotNameApiOfDialectWithoutApis()
+    {
+        assertNull(LlmDialectNames.api("anthropic"));
+        assertNull(LlmDialectNames.api("gemini"));
+        assertNull(LlmDialectNames.api("openai"));
+        assertNull(LlmDialectNames.api(null));
+    }
+
+    @Test
+    public void shouldResolveDialectOfApi()
+    {
+        assertEquals("openai/ccs", LlmDialectNames.id("openai", "chat/completions"));
+        assertEquals("openai/rs", LlmDialectNames.id("openai", "responses"));
+    }
+
+    @Test
+    public void shouldNotResolveDialectOfUnknownApi()
+    {
+        assertNull(LlmDialectNames.id("openai", "embeddings"));
+        assertNull(LlmDialectNames.id("anthropic", "responses"));
     }
 
     @Test
