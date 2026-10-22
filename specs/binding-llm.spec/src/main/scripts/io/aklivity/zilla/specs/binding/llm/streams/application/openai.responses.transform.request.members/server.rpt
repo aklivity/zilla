@@ -23,7 +23,7 @@ accepted
 
 read zilla:begin.ext ${llm:matchBeginEx()
                           .typeId(zilla:id("llm"))
-                          .dialect("openai/responses")
+                          .dialect("openai/rs")
                           .model(model)
                           .build()}
 
@@ -41,7 +41,7 @@ read zilla:data.ext ${llm:matchDataEx()
                          .type("CONTROL")
                          .message(-1)
                          .build()}
-read "{\"x:temperature\":0.2,\"openai:store\":false,\"openai:metadata\":{\"k\":\"v\"},\"x:tool_choice\":\"auto\",\"openai:include\":[\"reasoning.encrypted_content\"],\"x:parallel_tool_calls\":true,\"openai:truncation\":\"auto\",\"x:reasoning_effort\":\"low\",\"x:response_format\":{\"type\":\"text\"}}"
+read "{\"x:temperature\":0.2,\"openai:store\":false,\"openai:metadata\":{\"k\":\"v\"},\"x:tool_choice\":\"auto\",\"openai/rs:include\":[\"reasoning.encrypted_content\"],\"x:parallel_tool_calls\":true,\"openai/rs:truncation\":\"auto\",\"x:reasoning_effort\":\"low\",\"x:response_format\":{\"type\":\"text\"}}"
 
 read advised zilla:flush
 

@@ -38,12 +38,21 @@ public class LlmOpenaiResponsesControlFromCanonicalTest
     private static final String SUPPLEMENTARY_AT_LIMIT = "\ud83d\ude00".repeat(128);
     private static final String SUPPLEMENTARY_OVER_LIMIT = SUPPLEMENTARY_AT_LIMIT + "\ud83d\ude00";
 
-    private final LlmOpenaiResponsesControlFromCanonical transform = new LlmOpenaiResponsesControlFromCanonical(true);
-    private final LlmOpenaiResponsesControlFromCanonical foreign = new LlmOpenaiResponsesControlFromCanonical(false);
-    private final LlmOpenaiResponsesControlFromCanonical foreignMembers = LlmOpenaiResponsesControlFromCanonical.members(false);
+    private final LlmOpenaiResponsesControlFromCanonical transform = new LlmOpenaiResponsesControlFromCanonical("openai/rs");
+    private final LlmOpenaiResponsesControlFromCanonical foreign = new LlmOpenaiResponsesControlFromCanonical("openai/ccs");
+    private final LlmOpenaiResponsesControlFromCanonical foreignMembers =
+        LlmOpenaiResponsesControlFromCanonical.members("openai/rs");
 
     @Test
     public void shouldRestoreOwnPrefixedMember()
+    {
+        assertTransforms(transform, json("{'openai/rs:previous_response_id':'resp_1'}"), json("'resp_1'"));
+
+        assertThat(transform.member(), equalTo("previous_response_id"));
+    }
+
+    @Test
+    public void shouldRestoreVendorPrefixedMember()
     {
         assertTransforms(transform, json("{'openai:store':false}"), "false");
 
@@ -51,10 +60,19 @@ public class LlmOpenaiResponsesControlFromCanonicalTest
     }
 
     @Test
+    public void shouldRestoreVendorPrefixedMemberAcrossVariants()
+    {
+        assertTransforms(foreign, json("{'openai:store':false}"), "false");
+
+        assertThat(foreign.member(), equalTo("store"));
+    }
+
+    @Test
     public void shouldRestoreObjectValueUnchanged()
     {
         assertTransforms(transform,
-            json("{'openai:text':{'format':{'type':'json_schema','schema':{'a':[1,{'b':'" + LONG + "'}],'anthropic:c':true}}}}"),
+            json("{'openai/rs:text':{'format':{'type':'json_schema','schema':{'a':[1,{'b':'" + LONG +
+                "'}],'anthropic:c':true}}}}"),
             json("{'format':{'type':'json_schema','schema':{'a':[1,{'b':'" + LONG + "'}],'anthropic:c':true}}}"));
 
         assertThat(transform.member(), equalTo("text"));
@@ -71,9 +89,9 @@ public class LlmOpenaiResponsesControlFromCanonicalTest
     }
 
     @Test
-    public void shouldDropOwnPrefixedMemberAcrossDialects()
+    public void shouldDropSiblingVariantPrefixedMember()
     {
-        assertTransforms(foreign, json("{'openai:store':false}"), "null");
+        assertTransforms(foreign, json("{'openai/rs:truncation':'auto'}"), "null");
 
         assertThat(foreign.member(), nullValue());
     }
@@ -125,17 +143,27 @@ public class LlmOpenaiResponsesControlFromCanonicalTest
     {
         assertTransforms(transform,
             json("{'stream_options':{'openai:include_obfuscation':false,'anthropic:other':{'a':[1,'" + LONG +
-                "']},'openai:extra':{'a':[1]},'include_usage':true}}"),
+                "']},'openai/rs:extra':{'a':[1]},'include_usage':true}}"),
             json("{'include_obfuscation':false,'extra':{'a':[1]}}"));
 
         assertThat(transform.member(), equalTo("stream_options"));
     }
 
     @Test
-    public void shouldDropForeignOptionMembersAcrossDialects()
+    public void shouldRestoreVendorOptionMembersAcrossVariants()
     {
         assertTransforms(foreign,
             json("{'stream_options':{'include_usage':true,'openai:include_obfuscation':false}}"),
+            json("{'include_obfuscation':false}"));
+
+        assertThat(foreign.member(), equalTo("stream_options"));
+    }
+
+    @Test
+    public void shouldDropSiblingVariantOptionMembers()
+    {
+        assertTransforms(foreign,
+            json("{'stream_options':{'include_usage':true,'openai/rs:extra':{'a':[1]}}}"),
             "null");
 
         assertThat(foreign.member(), nullValue());
@@ -420,7 +448,7 @@ public class LlmOpenaiResponsesControlFromCanonicalTest
     @Test
     public void shouldDropReasoningMembersWhenExtracting()
     {
-        final LlmOpenaiResponsesControlFromCanonical extracting = new LlmOpenaiResponsesControlFromCanonical(false);
+        final LlmOpenaiResponsesControlFromCanonical extracting = new LlmOpenaiResponsesControlFromCanonical("openai/rs");
 
         assertTransforms(extracting, json("{'x:reasoning_effort':'low','x:thinking_budget_tokens':2048}"), "null");
     }
@@ -428,7 +456,7 @@ public class LlmOpenaiResponsesControlFromCanonicalTest
     @Test
     public void shouldDropSamplingWhenModelRejectsSampling()
     {
-        final LlmOpenaiResponsesControlFromCanonical rejecting = LlmOpenaiResponsesControlFromCanonical.members(false,
+        final LlmOpenaiResponsesControlFromCanonical rejecting = LlmOpenaiResponsesControlFromCanonical.members("openai/rs",
             new LlmModelCapability(false, null, -1, -1, null));
 
         assertTransforms(rejecting,
@@ -439,7 +467,7 @@ public class LlmOpenaiResponsesControlFromCanonicalTest
     @Test
     public void shouldKeepSamplingWhenModelAcceptsSampling()
     {
-        final LlmOpenaiResponsesControlFromCanonical accepting = LlmOpenaiResponsesControlFromCanonical.members(false,
+        final LlmOpenaiResponsesControlFromCanonical accepting = LlmOpenaiResponsesControlFromCanonical.members("openai/rs",
             new LlmModelCapability(true, null, -1, -1, null));
 
         assertTransforms(accepting,
@@ -533,7 +561,7 @@ public class LlmOpenaiResponsesControlFromCanonicalTest
     @Test
     public void shouldDropServiceTierTheModelDoesNotSupport()
     {
-        final LlmOpenaiResponsesControlFromCanonical restricted = LlmOpenaiResponsesControlFromCanonical.members(false,
+        final LlmOpenaiResponsesControlFromCanonical restricted = LlmOpenaiResponsesControlFromCanonical.members("openai/rs",
             tiers(List.of("auto", "default")));
 
         assertTransforms(restricted,
@@ -547,7 +575,7 @@ public class LlmOpenaiResponsesControlFromCanonicalTest
     @Test
     public void shouldDropServiceTierWhenExtracting()
     {
-        final LlmOpenaiResponsesControlFromCanonical extracting = new LlmOpenaiResponsesControlFromCanonical(false);
+        final LlmOpenaiResponsesControlFromCanonical extracting = new LlmOpenaiResponsesControlFromCanonical("openai/rs");
 
         assertTransforms(extracting, json("{'x:service_tier':'auto'}"), "null");
     }
@@ -562,5 +590,38 @@ public class LlmOpenaiResponsesControlFromCanonicalTest
         List<String> names)
     {
         return new LlmModelCapability(true, null, -1, -1, null, LlmServiceTier.maskOf(names));
+    }
+
+    @Test
+    public void shouldRejectBehaviouralMemberOfChatCompletions()
+    {
+        assertRejects(foreignMembers, json("{'openai/ccs:n':2}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("openai/ccs:n"));
+    }
+
+    @Test
+    public void shouldRejectEachBehaviouralMemberOfChatCompletions()
+    {
+        assertRejects(foreignMembers, json("{'openai/ccs:logprobs':true}"));
+        assertRejects(foreignMembers, json("{'openai/ccs:audio':{'voice':'alloy','format':'wav'}}"));
+        assertRejects(foreignMembers, json("{'openai/ccs:modalities':['text','audio']}"));
+    }
+
+    @Test
+    public void shouldDropHarmlessBehaviouralMembersOfChatCompletions()
+    {
+        assertTransforms(foreignMembers,
+            json("{'openai/ccs:n':1,'openai/ccs:logprobs':false,'openai/ccs:audio':null,'openai/ccs:modalities':null," +
+                "'x:temperature':0.2}"),
+            json("{'temperature':0.2}"));
+    }
+
+    @Test
+    public void shouldDropMemberOfChatCompletionsThatIsNotBehavioural()
+    {
+        assertTransforms(foreignMembers,
+            json("{'openai/ccs:logit_bias':{'1':-1},'x:temperature':0.2}"),
+            json("{'temperature':0.2}"));
     }
 }

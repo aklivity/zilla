@@ -24,7 +24,7 @@ final class LlmGeminiTextFromCanonical extends LlmToolTransform
     LlmGeminiTextFromCanonical(
         boolean sameDialect)
     {
-        super(MODE_OBJECT, sameDialect);
+        super(MODE_OBJECT, sameDialect ? DIALECT : null);
     }
 
     @Override
@@ -32,7 +32,7 @@ final class LlmGeminiTextFromCanonical extends LlmToolTransform
         int depth,
         CharSequence key)
     {
-        return unprefix(DIALECT, key);
+        return unprefix(key);
     }
 
     @Override

@@ -22,7 +22,6 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 final class LlmOpenaiControlToCanonical extends LlmToolTransform
 {
-    private static final String DIALECT = "openai";
     private static final String MEMBER_STREAM = "stream";
     private static final String MEMBER_STREAM_OPTIONS = "stream_options";
     private static final String MEMBER_INCLUDE_USAGE = "include_usage";
@@ -36,6 +35,8 @@ final class LlmOpenaiControlToCanonical extends LlmToolTransform
     private static final int REPLACING_USAGE = 3;
     private static final int REPLACING_OBFUSCATION = 4;
 
+    private final String dialect;
+
     private int replacing;
     private boolean streamSeen;
     private boolean streaming;
@@ -43,6 +44,12 @@ final class LlmOpenaiControlToCanonical extends LlmToolTransform
     private boolean usageSeen;
     private boolean usageRequested;
     private boolean obfuscationDisabled;
+
+    LlmOpenaiControlToCanonical(
+        String dialect)
+    {
+        this.dialect = dialect;
+    }
 
     boolean obfuscationDisabled()
     {
@@ -109,7 +116,7 @@ final class LlmOpenaiControlToCanonical extends LlmToolTransform
         }
         else if (depth == 2 && matches(key, MEMBER_INCLUDE_OBFUSCATION))
         {
-            prefix(DIALECT, key);
+            prefix(LlmOpenaiMembers.VENDOR, key);
             replacing = REPLACING_OBFUSCATION;
             action = REPLACE_VALUE;
         }
@@ -124,7 +131,7 @@ final class LlmOpenaiControlToCanonical extends LlmToolTransform
         }
         else
         {
-            action = prefix(DIALECT, key);
+            action = prefix(LlmOpenaiMembers.scope(dialect, key), key);
         }
 
         return action;

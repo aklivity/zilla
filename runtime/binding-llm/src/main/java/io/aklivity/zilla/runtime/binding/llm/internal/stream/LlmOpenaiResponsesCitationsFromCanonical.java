@@ -19,29 +19,28 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 final class LlmOpenaiResponsesCitationsFromCanonical extends LlmToolTransform
 {
-    private static final String DIALECT = "openai";
     private static final String TYPE_URL = "url_citation";
 
     private final boolean object;
 
     static LlmOpenaiResponsesCitationsFromCanonical array(
-        boolean sameDialect)
+        String dialect)
     {
-        return new LlmOpenaiResponsesCitationsFromCanonical(MODE_ARRAY, false, sameDialect);
+        return new LlmOpenaiResponsesCitationsFromCanonical(MODE_ARRAY, false, dialect);
     }
 
     static LlmOpenaiResponsesCitationsFromCanonical object(
-        boolean sameDialect)
+        String dialect)
     {
-        return new LlmOpenaiResponsesCitationsFromCanonical(MODE_OBJECT, true, sameDialect);
+        return new LlmOpenaiResponsesCitationsFromCanonical(MODE_OBJECT, true, dialect);
     }
 
     private LlmOpenaiResponsesCitationsFromCanonical(
         int mode,
         boolean object,
-        boolean sameDialect)
+        String dialect)
     {
-        super(mode, sameDialect);
+        super(mode, dialect);
         this.object = object;
     }
 
@@ -58,7 +57,7 @@ final class LlmOpenaiResponsesCitationsFromCanonical extends LlmToolTransform
         }
         else
         {
-            action = unprefix(DIALECT, key);
+            action = unprefix(key);
         }
 
         return action;

@@ -4205,6 +4205,11 @@
                                                                     "description": "Matches when the request's resolved dialect equals this value. A vendor name such as openai also matches every dialect of that vendor.",
                                                                     "$ref": "#/$defs/binding-ext/llm/dialect"
                                                                 },
+                                                                "api": {
+                                                                    "title": "API",
+                                                                    "description": "Matches when the request's resolved dialect is the named API of the openai dialect, from chat/completions and responses. Omit to match every API of the dialect. Requires dialect to be openai.",
+                                                                    "$ref": "#/$defs/binding-ext/llm/openai-api"
+                                                                },
                                                                 "model": {
                                                                     "title": "Model",
                                                                     "description": "Matches when the request's extracted model is admitted by this allow-set. Accepts exact model names or * glob patterns.",
@@ -4213,6 +4218,21 @@
                                                                         "type": "string"
                                                                     }
                                                                 }
+                                                            },
+                                                            "if": {
+                                                                "required": [
+                                                                    "api"
+                                                                ]
+                                                            },
+                                                            "then": {
+                                                                "properties": {
+                                                                    "dialect": {
+                                                                        "const": "openai"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "dialect"
+                                                                ]
                                                             },
                                                             "additionalProperties": false
                                                         }
@@ -7906,6 +7926,64 @@
                         "gemini"
                     ]
                 },
+                "openai-api": {
+                    "title": "API",
+                    "type": "string",
+                    "enum": [
+                        "chat/completions",
+                        "responses"
+                    ]
+                },
+                "openai-apis": {
+                    "title": "APIs",
+                    "description": "The OpenAI APIs this binding supports, from chat/completions and responses. Defaults to both. A server answers a request for an API that is not listed as an unknown dialect. A client speaks the API of the inbound request when it is listed, and otherwise translates the request to the first listed API. Requires dialect to be openai.",
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {
+                        "$ref": "#/$defs/binding-ext/llm/openai-api"
+                    }
+                },
+                "dialect-entry": {
+                    "title": "Dialect Entry",
+                    "description": "A dialect, named on its own to serve every API of the dialect, or as an object with one property named by the dialect that holds the options for that dialect.",
+                    "oneOf": [
+                        {
+                            "$ref": "#/$defs/binding-ext/llm/dialect"
+                        },
+                        {
+                            "type": "object",
+                            "minProperties": 1,
+                            "maxProperties": 1,
+                            "propertyNames": {
+                                "$ref": "#/$defs/binding-ext/llm/dialect"
+                            },
+                            "properties": {
+                                "openai": {
+                                    "type": "object",
+                                    "properties": {
+                                        "apis": {
+                                            "$ref": "#/$defs/binding-ext/llm/openai-apis"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "anthropic": {
+                                    "type": "object",
+                                    "additionalProperties": false
+                                },
+                                "gemini": {
+                                    "type": "object",
+                                    "additionalProperties": false
+                                }
+                            },
+                            "additionalProperties": {
+                                "type": "object",
+                                "additionalProperties": false
+                            }
+                        }
+                    ]
+                },
                 "client-options": {
                     "title": "Client Options",
                     "type": "object",
@@ -7946,6 +8024,9 @@
                                     "dialect": true,
                                     "server": true,
                                     "authorization": true,
+                                    "apis": {
+                                        "$ref": "#/$defs/binding-ext/llm/openai-apis"
+                                    },
                                     "models": {
                                         "$ref": "#/$defs/binding-ext/llm/openai-models"
                                     },
@@ -8234,8 +8315,17 @@
                     "properties": {
                         "dialect": {
                             "title": "Dialect",
-                            "description": "Fixes the dialect assumed for inbound requests instead of detecting it automatically. Accepts the name of any dialect registered with the binding, for example openai, anthropic or gemini.",
+                            "description": "Fixes the dialect assumed for inbound requests instead of detecting it automatically. Accepts the name of any dialect registered with the binding, for example openai, anthropic or gemini. Mutually exclusive with dialects.",
                             "$ref": "#/$defs/binding-ext/llm/dialect"
+                        },
+                        "dialects": {
+                            "title": "Dialects",
+                            "description": "The dialects this server serves, told apart by the request path. Each is a dialect name, or an object with one property named by the dialect that holds the options for that dialect, such as apis for openai. A dialect may be listed once. Mutually exclusive with dialect.",
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "$ref": "#/$defs/binding-ext/llm/dialect-entry"
+                            }
                         },
                         "authorization": {
                             "title": "Authorization",
@@ -8243,23 +8333,91 @@
                             "$ref": "#/$defs/binding-ext/llm/authorization"
                         }
                     },
+                    "not": {
+                        "required": [
+                            "dialect",
+                            "dialects"
+                        ]
+                    },
                     "allOf": [
                         {
                             "if": {
                                 "properties": {
                                     "dialect": {
                                         "enum": [
-                                            "openai",
                                             "anthropic",
                                             "gemini"
                                         ]
                                     }
-                                }
+                                },
+                                "required": [
+                                    "dialect"
+                                ]
                             },
                             "then": {
                                 "properties": {
                                     "dialect": true,
                                     "authorization": true
+                                },
+                                "additionalProperties": false
+                            }
+                        },
+                        {
+                            "if": {
+                                "required": [
+                                    "dialects"
+                                ]
+                            },
+                            "then": {
+                                "properties": {
+                                    "dialects": true,
+                                    "authorization": true
+                                },
+                                "additionalProperties": false
+                            }
+                        },
+                        {
+                            "if": {
+                                "not": {
+                                    "anyOf": [
+                                        {
+                                            "required": [
+                                                "dialect"
+                                            ]
+                                        },
+                                        {
+                                            "required": [
+                                                "dialects"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            },
+                            "then": {
+                                "properties": {
+                                    "authorization": true
+                                },
+                                "additionalProperties": false
+                            }
+                        },
+                        {
+                            "if": {
+                                "properties": {
+                                    "dialect": {
+                                        "const": "openai"
+                                    }
+                                },
+                                "required": [
+                                    "dialect"
+                                ]
+                            },
+                            "then": {
+                                "properties": {
+                                    "dialect": true,
+                                    "authorization": true,
+                                    "apis": {
+                                        "$ref": "#/$defs/binding-ext/llm/openai-apis"
+                                    }
                                 },
                                 "additionalProperties": false
                             }

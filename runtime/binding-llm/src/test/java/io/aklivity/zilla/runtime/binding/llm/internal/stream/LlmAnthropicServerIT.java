@@ -1486,7 +1486,7 @@ public class LlmAnthropicServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"anthropic\"", "target \"openai\"", "reason \"openai:max_messages\""})
+    @ScriptProperty({"source \"anthropic\"", "target \"openai/ccs\"", "reason \"openai/rs:max_messages\""})
     @Specification({
         "${net}/anthropic.transform.response.text/client",
         "${app}/transform.response.finish.reason/server"})
@@ -1508,7 +1508,7 @@ public class LlmAnthropicServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"anthropic\"", "target \"openai/responses\""})
+    @ScriptProperty({"source \"anthropic\"", "target \"openai/rs\""})
     @Specification({
         "${net}/anthropic.transform.response.text/client",
         "${app}/openai.responses.transform.response.text/server"})
@@ -1519,7 +1519,7 @@ public class LlmAnthropicServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"anthropic\"", "target \"openai/responses\""})
+    @ScriptProperty({"source \"anthropic\"", "target \"openai/rs\""})
     @Specification({
         "${net}/anthropic.transform.response.reasoning/client",
         "${app}/openai.responses.transform.response.reasoning/server"})
@@ -1530,7 +1530,7 @@ public class LlmAnthropicServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"anthropic\"", "target \"openai/responses\""})
+    @ScriptProperty({"source \"anthropic\"", "target \"openai/rs\""})
     @Specification({
         "${net}/anthropic.transform.response.tool.call/client",
         "${app}/openai.responses.transform.response.tool.call/server"})
@@ -1541,7 +1541,7 @@ public class LlmAnthropicServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"anthropic\"", "target \"openai/responses\""})
+    @ScriptProperty({"source \"anthropic\"", "target \"openai/rs\""})
     @Specification({
         "${net}/anthropic.transform.response.tool.calls/client",
         "${app}/openai.responses.transform.response.tool.calls/server"})
@@ -1552,7 +1552,7 @@ public class LlmAnthropicServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"anthropic\"", "target \"openai/responses\""})
+    @ScriptProperty({"source \"anthropic\"", "target \"openai/rs\""})
     @Specification({
         "${net}/anthropic.transform.response.text.and.tool.call/client",
         "${app}/openai.responses.transform.response.text.and.tool.call/server"})
@@ -1563,7 +1563,7 @@ public class LlmAnthropicServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"anthropic\"", "target \"openai/responses\""})
+    @ScriptProperty({"source \"anthropic\"", "target \"openai/rs\""})
     @Specification({
         "${net}/anthropic.transform.response.tool.call.empty/client",
         "${app}/openai.responses.transform.response.tool.call.empty/server"})
@@ -1574,7 +1574,7 @@ public class LlmAnthropicServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"anthropic\"", "target \"openai/responses\"", "reason \"openai:max_messages\""})
+    @ScriptProperty({"source \"anthropic\"", "target \"openai/rs\"", "reason \"openai/rs:max_messages\""})
     @Specification({
         "${net}/anthropic.transform.response.text/client",
         "${app}/transform.response.finish.reason/server"})
@@ -2045,6 +2045,104 @@ public class LlmAnthropicServerIT
         "${net}/anthropic.section.user.text.cache.control.window/client",
         "${app}/anthropic.section.user.text.cache.control.window/server"})
     public void shouldDecodeAnthropicSectionUserTextCacheControlWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.dialects.yaml")
+    @Specification({
+        "${net}/anthropic.echo/client",
+        "${app}/anthropic.echo/server"})
+    public void shouldServeAnthropicWhenDialectsListAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"model \"claude-3-opus-20240229x\""})
+    @Specification({
+        "${net}/anthropic.section.user.text.cache.control.window/client",
+        "${app}/anthropic.section.user.text.cache.control.window/server"})
+    public void shouldDecodeAnthropicSectionUserTextCacheControlWindowModelPlus1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"model \"claude-3-opus-20240229xx\""})
+    @Specification({
+        "${net}/anthropic.section.user.text.cache.control.window/client",
+        "${app}/anthropic.section.user.text.cache.control.window/server"})
+    public void shouldDecodeAnthropicSectionUserTextCacheControlWindowModelPlus2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"model \"claude-3-opus-20240229xxx\""})
+    @Specification({
+        "${net}/anthropic.section.user.text.cache.control.window/client",
+        "${app}/anthropic.section.user.text.cache.control.window/server"})
+    public void shouldDecodeAnthropicSectionUserTextCacheControlWindowModelPlus3() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"model \"claude-3-opus-20240229xxxx\""})
+    @Specification({
+        "${net}/anthropic.section.user.text.cache.control.window/client",
+        "${app}/anthropic.section.user.text.cache.control.window/server"})
+    public void shouldDecodeAnthropicSectionUserTextCacheControlWindowModelPlus4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"model \"claude-3-opus-20240229xxxxx\""})
+    @Specification({
+        "${net}/anthropic.section.user.text.cache.control.window/client",
+        "${app}/anthropic.section.user.text.cache.control.window/server"})
+    public void shouldDecodeAnthropicSectionUserTextCacheControlWindowModelPlus5() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"model \"claude-3-opus-20240229xxxxxx\""})
+    @Specification({
+        "${net}/anthropic.section.user.text.cache.control.window/client",
+        "${app}/anthropic.section.user.text.cache.control.window/server"})
+    public void shouldDecodeAnthropicSectionUserTextCacheControlWindowModelPlus6() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"model \"claude-3-opus-20240229xxxxxxx\""})
+    @Specification({
+        "${net}/anthropic.section.user.text.cache.control.window/client",
+        "${app}/anthropic.section.user.text.cache.control.window/server"})
+    public void shouldDecodeAnthropicSectionUserTextCacheControlWindowModelPlus7() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"model \"claude-3-opus-20240229xxxxxxxx\""})
+    @Specification({
+        "${net}/anthropic.section.user.text.cache.control.window/client",
+        "${app}/anthropic.section.user.text.cache.control.window/server"})
+    public void shouldDecodeAnthropicSectionUserTextCacheControlWindowModelPlus8() throws Exception
     {
         k3po.finish();
     }

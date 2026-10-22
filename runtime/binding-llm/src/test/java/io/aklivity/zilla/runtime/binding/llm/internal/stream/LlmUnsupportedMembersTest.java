@@ -36,8 +36,8 @@ public class LlmUnsupportedMembersTest
     private static final String HUGE_SCHEMA = "x".repeat(5000);
 
     private static final List<Function<LlmModelCapability, LlmToolTransform>> DIALECTS = List.of(
-        capability -> LlmOpenaiControlFromCanonical.members(false, capability),
-        capability -> LlmOpenaiResponsesControlFromCanonical.members(false, capability),
+        capability -> LlmOpenaiControlFromCanonical.members("openai/ccs", false, capability),
+        capability -> LlmOpenaiResponsesControlFromCanonical.members("openai/rs", capability),
         capability -> LlmAnthropicControlFromCanonical.members(false, capability),
         capability -> LlmGeminiControlFromCanonical.members(false, capability));
 
@@ -151,10 +151,10 @@ public class LlmUnsupportedMembersTest
     {
         final LlmModelCapability capability = unsupported("seed");
 
-        assertTransforms(LlmOpenaiControlFromCanonical.members(false, capability),
+        assertTransforms(LlmOpenaiControlFromCanonical.members("openai/ccs", false, capability),
             json("{'x:seed':1,'x:parallel_tool_calls':false}"),
             json("{'parallel_tool_calls':false}"));
-        assertTransforms(LlmOpenaiResponsesControlFromCanonical.members(false, capability),
+        assertTransforms(LlmOpenaiResponsesControlFromCanonical.members("openai/rs", capability),
             json("{'x:seed':1,'x:parallel_tool_calls':false}"),
             json("{'parallel_tool_calls':false}"));
         assertTransforms(LlmAnthropicControlFromCanonical.members(false, capability),
@@ -168,7 +168,7 @@ public class LlmUnsupportedMembersTest
     @Test
     public void shouldNotListAnythingByDefault()
     {
-        assertTransforms(LlmOpenaiControlFromCanonical.members(false, LlmModelCapability.UNSPECIFIED),
+        assertTransforms(LlmOpenaiControlFromCanonical.members("openai/ccs", false, LlmModelCapability.UNSPECIFIED),
             json("{'x:parallel_tool_calls':false,'x:response_format':{'type':'json_object'},'x:tool_choice':'auto'}"),
             json("{'parallel_tool_calls':false,'response_format':{'type':'json_object'},'tool_choice':'auto'}"));
     }

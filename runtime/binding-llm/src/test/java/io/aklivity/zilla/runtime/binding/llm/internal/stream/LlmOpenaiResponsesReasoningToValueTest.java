@@ -21,14 +21,14 @@ import org.junit.Test;
 
 public class LlmOpenaiResponsesReasoningToValueTest
 {
-    private final LlmOpenaiResponsesReasoningToValue same = new LlmOpenaiResponsesReasoningToValue(true, "id");
-    private final LlmOpenaiResponsesReasoningToValue foreign = new LlmOpenaiResponsesReasoningToValue(false, "id");
+    private final LlmOpenaiResponsesReasoningToValue same = new LlmOpenaiResponsesReasoningToValue("openai/rs", "id");
+    private final LlmOpenaiResponsesReasoningToValue foreign = new LlmOpenaiResponsesReasoningToValue("openai/ccs", "id");
 
     @Test
     public void shouldExtractMemberValue()
     {
         assertTransforms(same,
-            json("{'text':'Let me think','openai:id':'rs_1','openai:encrypted_content':'QUJD'}"),
+            json("{'text':'Let me think','openai/rs:id':'rs_1','openai/rs:encrypted_content':'QUJD'}"),
             json("'rs_1'"));
     }
 
@@ -44,7 +44,7 @@ public class LlmOpenaiResponsesReasoningToValueTest
     public void shouldExtractNothingAcrossDialects()
     {
         assertTransforms(foreign,
-            json("{'text':'Let me think','openai:id':'rs_1'}"),
+            json("{'text':'Let me think','openai/rs:id':'rs_1'}"),
             "");
     }
 }

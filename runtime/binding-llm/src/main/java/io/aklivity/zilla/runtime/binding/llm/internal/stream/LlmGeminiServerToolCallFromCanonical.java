@@ -28,7 +28,7 @@ final class LlmGeminiServerToolCallFromCanonical extends LlmToolTransform
     LlmGeminiServerToolCallFromCanonical(
         boolean sameDialect)
     {
-        super(MODE_OBJECT, sameDialect);
+        super(MODE_OBJECT, sameDialect ? DIALECT : null);
     }
 
     @Override
@@ -63,7 +63,7 @@ final class LlmGeminiServerToolCallFromCanonical extends LlmToolTransform
         {
             endCall();
 
-            action = contains(key, ':') ? unprefix(DIALECT, key) : DROP;
+            action = contains(key, ':') ? unprefix(key) : DROP;
         }
 
         return action;

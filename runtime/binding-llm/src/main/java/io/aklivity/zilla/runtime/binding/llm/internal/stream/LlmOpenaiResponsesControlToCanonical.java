@@ -22,12 +22,12 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
 {
-    private static final String DIALECT = "openai";
-    private static final String MEMBER_NATIVE_TOOL_CHOICE = "openai:tool_choice";
+    private static final String DIALECT = LlmOpenaiResponsesDialectFactorySpi.NAME;
+    private static final String MEMBER_NATIVE_TOOL_CHOICE = DIALECT + ":tool_choice";
     private static final String MEMBER_SHARED_TOOL_CHOICE = "x:tool_choice";
-    private static final String MEMBER_NATIVE_TEXT = "openai:text";
+    private static final String MEMBER_NATIVE_TEXT = DIALECT + ":text";
     private static final String MEMBER_REASONING = "reasoning";
-    private static final String MEMBER_NATIVE_REASONING = "openai:reasoning";
+    private static final String MEMBER_NATIVE_REASONING = DIALECT + ":reasoning";
     private static final String MEMBER_EFFORT = "effort";
     private static final String MEMBER_SHARED_REASONING_EFFORT = "x:reasoning_effort";
     private static final String MEMBER_SHARED_SERVICE_TIER = "x:service_tier";
@@ -113,7 +113,7 @@ final class LlmOpenaiResponsesControlToCanonical extends LlmToolTransform
         }
         else
         {
-            action = prefix(DIALECT, key);
+            action = prefix(LlmOpenaiMembers.scope(DIALECT, key), key);
         }
 
         return action;

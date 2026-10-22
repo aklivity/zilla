@@ -27,12 +27,12 @@ public class LlmOpenaiResponsesServerToolFromCanonicalTest
     private final Consumer<LlmSectionAttributes> named = id.andThen(attributes -> attributes.toolName("code_exec"));
 
     private LlmOpenaiResponsesServerToolFromCanonical transform(
-        boolean sameDialect,
+        String dialect,
         int part,
         String itemType,
         String exclude)
     {
-        final LlmOpenaiResponsesServerToolFromCanonical transform = new LlmOpenaiResponsesServerToolFromCanonical(sameDialect);
+        final LlmOpenaiResponsesServerToolFromCanonical transform = new LlmOpenaiResponsesServerToolFromCanonical(dialect);
 
         transform.configure(part, itemType, exclude);
 
@@ -42,7 +42,8 @@ public class LlmOpenaiResponsesServerToolFromCanonicalTest
     @Test
     public void shouldWriteMembersWithoutExcluded()
     {
-        assertTransforms(transform(true, LlmOpenaiResponsesServerToolFromCanonical.PART_MEMBERS, "code_interpreter_call", "code"),
+        assertTransforms(
+            transform("openai/rs", LlmOpenaiResponsesServerToolFromCanonical.PART_MEMBERS, "code_interpreter_call", "code"),
             json("{'arguments':{'code':'1','container_id':'c'}}"),
             json("{'container_id':'c'}"));
     }
@@ -50,7 +51,8 @@ public class LlmOpenaiResponsesServerToolFromCanonicalTest
     @Test
     public void shouldWriteResultMembers()
     {
-        assertTransforms(transform(true, LlmOpenaiResponsesServerToolFromCanonical.PART_RESULT, "code_interpreter_call", null),
+        assertTransforms(
+            transform("openai/rs", LlmOpenaiResponsesServerToolFromCanonical.PART_RESULT, "code_interpreter_call", null),
             json("{'outputs':[1,2]}"),
             json("{'outputs':[1,2]}"));
     }
@@ -58,23 +60,23 @@ public class LlmOpenaiResponsesServerToolFromCanonicalTest
     @Test
     public void shouldWriteExtrasWithoutArguments()
     {
-        assertTransforms(transform(true, LlmOpenaiResponsesServerToolFromCanonical.PART_EXTRAS, "function_call", null),
-            json("{'arguments':{'a':1},'openai:namespace':'ns'}"),
+        assertTransforms(transform("openai/rs", LlmOpenaiResponsesServerToolFromCanonical.PART_EXTRAS, "function_call", null),
+            json("{'arguments':{'a':1},'openai/rs:namespace':'ns'}"),
             json("{'namespace':'ns'}"));
     }
 
     @Test
     public void shouldDropOtherDialectExtras()
     {
-        assertTransforms(transform(false, LlmOpenaiResponsesServerToolFromCanonical.PART_EXTRAS, "function_call", null),
-            json("{'arguments':{'a':1},'openai:namespace':'ns','kept':1}"),
+        assertTransforms(transform("openai/ccs", LlmOpenaiResponsesServerToolFromCanonical.PART_EXTRAS, "function_call", null),
+            json("{'arguments':{'a':1},'openai/rs:namespace':'ns','kept':1}"),
             json("{'kept':1}"));
     }
 
     @Test
     public void shouldWriteCallItemWithIdentityFromId()
     {
-        assertTransforms(transform(true, LlmOpenaiResponsesServerToolFromCanonical.PART_CALL, "web_search_call", null),
+        assertTransforms(transform("openai/rs", LlmOpenaiResponsesServerToolFromCanonical.PART_CALL, "web_search_call", null),
             id, null,
             json("{'arguments':{'action':{'type':'search'}}}"),
             json("{'type':'web_search_call','id':'ws_1','status':'completed','action':{'type':'search'}}"));
@@ -83,7 +85,7 @@ public class LlmOpenaiResponsesServerToolFromCanonicalTest
     @Test
     public void shouldWriteCallItemWithCallIdAndName()
     {
-        assertTransforms(transform(true, LlmOpenaiResponsesServerToolFromCanonical.PART_CALL, "custom_tool_call", null),
+        assertTransforms(transform("openai/rs", LlmOpenaiResponsesServerToolFromCanonical.PART_CALL, "custom_tool_call", null),
             named, null,
             json("{'arguments':{'input':'x'}}"),
             json("{'type':'custom_tool_call','input':'x','call_id':'ws_1','name':'code_exec'}"));
@@ -92,7 +94,8 @@ public class LlmOpenaiResponsesServerToolFromCanonicalTest
     @Test
     public void shouldWriteOutputItem()
     {
-        assertTransforms(transform(true, LlmOpenaiResponsesServerToolFromCanonical.PART_OUTPUT, "custom_tool_call_output", null),
+        assertTransforms(
+            transform("openai/rs", LlmOpenaiResponsesServerToolFromCanonical.PART_OUTPUT, "custom_tool_call_output", null),
             id, null,
             json("{'output':'x'}"),
             json("{'type':'custom_tool_call_output','call_id':'ws_1','output':'x'}"));

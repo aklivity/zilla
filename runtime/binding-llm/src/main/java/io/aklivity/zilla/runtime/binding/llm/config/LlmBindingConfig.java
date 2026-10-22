@@ -36,6 +36,7 @@ import io.aklivity.zilla.config.binding.llm.LlmOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.ConfigException;
 import io.aklivity.zilla.config.engine.KindConfig;
+import io.aklivity.zilla.runtime.binding.llm.internal.dialect.LlmDialectNames;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionType;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
@@ -113,6 +114,34 @@ public class LlmBindingConfig
         this.credentialsPattern = binding.credentialsPattern;
         this.guardrails = binding.guardrails;
         this.models = binding.models;
+    }
+
+    public boolean serves(
+        String dialect)
+    {
+        final String api = LlmDialectNames.api(dialect);
+
+        boolean serves;
+
+        if (options.dialects != null)
+        {
+            serves = options.dialects.stream()
+                .anyMatch(d -> LlmDialectNames.admits(d.name, dialect) && permits(d.apis, api));
+        }
+        else
+        {
+            serves = (options.dialect == null || LlmDialectNames.admits(options.dialect, dialect)) &&
+                permits(options.apis, api);
+        }
+
+        return serves;
+    }
+
+    private static boolean permits(
+        List<String> apis,
+        String api)
+    {
+        return apis == null || api == null || apis.contains(api);
     }
 
     public LlmAuthorizationResult authorize(

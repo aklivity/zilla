@@ -1391,7 +1391,7 @@ public class LlmGeminiClientIT
 
     @Test
     @Configuration("client.gemini.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
     @Specification({
         "${app}/transform.request.sampling.penalties/client",
         "${net}/gemini.transform.request.sampling.penalties/server"})
@@ -1413,7 +1413,7 @@ public class LlmGeminiClientIT
 
     @Test
     @Configuration("client.gemini.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
     @Specification({
         "${app}/transform.request.tool.choice.auto/client",
         "${net}/gemini.transform.request.tool.choice.auto/server"})
@@ -1424,7 +1424,7 @@ public class LlmGeminiClientIT
 
     @Test
     @Configuration("client.gemini.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
     @Specification({
         "${app}/transform.request.tool.choice.required/client",
         "${net}/gemini.transform.request.tool.choice.required/server"})
@@ -1435,7 +1435,7 @@ public class LlmGeminiClientIT
 
     @Test
     @Configuration("client.gemini.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
     @Specification({
         "${app}/transform.request.tool.choice.none/client",
         "${net}/gemini.transform.request.tool.choice.none/server"})
@@ -1446,7 +1446,7 @@ public class LlmGeminiClientIT
 
     @Test
     @Configuration("client.gemini.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
     @Specification({
         "${app}/transform.request.tool.choice.function/client",
         "${net}/gemini.transform.request.tool.choice.function/server"})
@@ -1457,7 +1457,7 @@ public class LlmGeminiClientIT
 
     @Test
     @Configuration("client.gemini.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
     @Specification({
         "${app}/transform.request.tool.choice.allowed/client",
         "${net}/gemini.transform.request.tool.choice.allowed/server"})
@@ -1468,7 +1468,7 @@ public class LlmGeminiClientIT
 
     @Test
     @Configuration("client.gemini.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
     @Specification({
         "${app}/transform.request.tool.choice.allowed.required/client",
         "${net}/gemini.transform.request.tool.choice.allowed.required/server"})
@@ -1479,7 +1479,7 @@ public class LlmGeminiClientIT
 
     @Test
     @Configuration("client.gemini.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
     @Specification({
         "${app}/transform.request.tool.choice.parallel.true/client",
         "${net}/gemini.transform.request.tool.choice.parallel.true/server"})
@@ -1490,7 +1490,7 @@ public class LlmGeminiClientIT
 
     @Test
     @Configuration("client.gemini.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
     @Specification({
         "${app}/transform.rejected.tool.choice.value/client",
         "${net}/gemini.transform.rejected.tool.choice/server"})
@@ -1501,7 +1501,7 @@ public class LlmGeminiClientIT
 
     @Test
     @Configuration("client.gemini.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
     @Specification({
         "${app}/transform.rejected.parallel.tool.calls/client",
         "${net}/gemini.transform.rejected.tool.choice/server"})
@@ -1652,7 +1652,7 @@ public class LlmGeminiClientIT
 
     @Test
     @Configuration("client.gemini.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
     @Specification({
         "${app}/transform.request.response.format.text/client",
         "${net}/gemini.transform.request.response.format.text/server"})
@@ -1663,7 +1663,7 @@ public class LlmGeminiClientIT
 
     @Test
     @Configuration("client.gemini.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
     @Specification({
         "${app}/transform.request.response.format.json.object/client",
         "${net}/gemini.transform.request.response.format.json.object/server"})
@@ -1674,7 +1674,7 @@ public class LlmGeminiClientIT
 
     @Test
     @Configuration("client.gemini.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
     @Specification({
         "${app}/transform.request.response.format.json.schema/client",
         "${net}/gemini.transform.request.response.format.json.schema/server"})
@@ -1685,7 +1685,7 @@ public class LlmGeminiClientIT
 
     @Test
     @Configuration("client.gemini.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
     @Specification({
         "${app}/transform.request.response.format.json.schema.names/client",
         "${net}/gemini.transform.request.response.format.json.schema.names/server"})
@@ -1696,7 +1696,7 @@ public class LlmGeminiClientIT
 
     @Test
     @Configuration("client.gemini.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
     @Specification({
         "${app}/transform.request.response.format.json.schema.type.last/client",
         "${net}/gemini.transform.request.response.format.json.schema/server"})
@@ -1707,7 +1707,7 @@ public class LlmGeminiClientIT
 
     @Test
     @Configuration("client.gemini.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
     @Specification({
         "${app}/transform.rejected.response.format.type/client",
         "${net}/gemini.transform.rejected.tool.choice/server"})
@@ -1718,7 +1718,7 @@ public class LlmGeminiClientIT
 
     @Test
     @Configuration("client.gemini.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
     @Specification({
         "${app}/transform.rejected.response.format.keyword.pattern.properties/client",
         "${net}/gemini.transform.rejected.tool.choice/server"})
@@ -1729,7 +1729,7 @@ public class LlmGeminiClientIT
 
     @Test
     @Configuration("client.gemini.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
     @Specification({
         "${app}/transform.rejected.response.format.keyword.not/client",
         "${net}/gemini.transform.rejected.tool.choice/server"})
@@ -1740,7 +1740,7 @@ public class LlmGeminiClientIT
 
     @Test
     @Configuration("client.gemini.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
     @Specification({
         "${app}/transform.rejected.response.format.keyword.external.ref/client",
         "${net}/gemini.transform.rejected.tool.choice/server"})
@@ -1752,7 +1752,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "errorType \"INVALID_ARGUMENT\"",
         "effort \"minimal\"",
@@ -1768,7 +1768,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "errorType \"INVALID_ARGUMENT\"",
         "effort \"low\"",
@@ -1784,7 +1784,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "errorType \"INVALID_ARGUMENT\"",
         "effort \"medium\"",
@@ -1800,7 +1800,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "errorType \"INVALID_ARGUMENT\"",
         "effort \"high\"",
@@ -1816,7 +1816,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "errorType \"INVALID_ARGUMENT\"",
         "effort \"xhigh\"",
@@ -1832,7 +1832,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "errorType \"INVALID_ARGUMENT\"",
         "effort \"max\"",
@@ -1848,7 +1848,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "errorType \"INVALID_ARGUMENT\"",
         "effort \"none\"",
@@ -1864,7 +1864,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.models.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "errorType \"INVALID_ARGUMENT\"",
         "effort \"high\"",
@@ -1881,7 +1881,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.models.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "errorType \"INVALID_ARGUMENT\"",
         "effort \"medium\"",
@@ -1898,7 +1898,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.models.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "errorType \"INVALID_ARGUMENT\"",
         "effort \"low\"",
@@ -1915,7 +1915,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.models.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "errorType \"INVALID_ARGUMENT\"",
         "effort \"minimal\"",
@@ -1932,7 +1932,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.models.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "errorType \"INVALID_ARGUMENT\"",
         "effort \"xhigh\"",
@@ -1949,7 +1949,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.models.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "errorType \"INVALID_ARGUMENT\"",
         "effort \"max\"",
@@ -1966,7 +1966,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.models.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "errorType \"INVALID_ARGUMENT\"",
         "effort \"none\"",
@@ -1983,7 +1983,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.models.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "errorType \"INVALID_ARGUMENT\"",
         "effort \"none\"",
@@ -2000,7 +2000,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.models.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "errorType \"INVALID_ARGUMENT\"",
         "effort \"high\"",
@@ -2017,7 +2017,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.models.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "errorType \"INVALID_ARGUMENT\"",
         "effort \"high\"",
@@ -2034,7 +2034,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.models.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "errorType \"INVALID_ARGUMENT\"",
         "budget \"4096\"",
@@ -2051,7 +2051,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.models.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "errorType \"INVALID_ARGUMENT\"",
         "budget \"100000\"",
@@ -2068,7 +2068,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.models.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "errorType \"INVALID_ARGUMENT\"",
         "budget \"64\"",
@@ -2085,7 +2085,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.models.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "errorType \"INVALID_ARGUMENT\"",
         "budget \"4096\"",
@@ -2102,7 +2102,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.models.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "errorType \"INVALID_ARGUMENT\"",
         "budget \"0\"",
@@ -2119,7 +2119,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "errorType \"INVALID_ARGUMENT\"",
         "effort \"low\"",
@@ -2136,7 +2136,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.models.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "errorType \"INVALID_ARGUMENT\"",
         "effort \"low\"",
@@ -2153,7 +2153,7 @@ public class LlmGeminiClientIT
 
     @Test
     @Configuration("client.gemini.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
     @Specification({
         "${app}/transform.rejected.reasoning.effort/client",
         "${net}/gemini.transform.rejected.reasoning/server"})
@@ -2164,7 +2164,7 @@ public class LlmGeminiClientIT
 
     @Test
     @Configuration("client.gemini.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
     @Specification({
         "${app}/transform.rejected.reasoning.budget/client",
         "${net}/gemini.transform.rejected.reasoning/server"})
@@ -2176,7 +2176,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.models.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "errorType \"INVALID_ARGUMENT\"",
         "model \"sampling-rejected\""})
@@ -2190,7 +2190,7 @@ public class LlmGeminiClientIT
 
     @Test
     @Configuration("client.gemini.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
     @Specification({
         "${app}/transform.request.sampling.members/client",
         "${net}/gemini.transform.request.sampling.supported/server"})
@@ -2262,7 +2262,7 @@ public class LlmGeminiClientIT
 
     @Test
     @Configuration("client.gemini.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "user \"user-123\"", "errorType \"INVALID_ARGUMENT\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"gemini\"", "user \"user-123\"", "errorType \"INVALID_ARGUMENT\""})
     @Specification({
         "${app}/transform.request.user/client",
         "${net}/gemini.transform.request.dropped/server"})
@@ -2273,7 +2273,7 @@ public class LlmGeminiClientIT
 
     @Test
     @Configuration("client.gemini.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"gemini\"", "tier \"auto\"", "errorType \"INVALID_ARGUMENT\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"gemini\"", "tier \"auto\"", "errorType \"INVALID_ARGUMENT\""})
     @Specification({
         "${app}/transform.request.service.tier/client",
         "${net}/gemini.transform.request.dropped/server"})
@@ -2285,7 +2285,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "tier \"default\"",
         "errorType \"INVALID_ARGUMENT\"",
@@ -2301,7 +2301,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "tier \"flex\"",
         "errorType \"INVALID_ARGUMENT\"",
@@ -2317,7 +2317,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "tier \"priority\"",
         "errorType \"INVALID_ARGUMENT\"",
@@ -2333,7 +2333,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.tiers.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "model \"no-priority\"",
         "tier \"priority\"",
@@ -2349,7 +2349,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.tiers.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "model \"no-priority\"",
         "tier \"flex\"",
@@ -2366,7 +2366,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.tiers.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "model \"other-model\"",
         "tier \"priority\"",
@@ -2502,7 +2502,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.unsupported.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "errorType \"INVALID_ARGUMENT\"",
         "model \"strict-model\"",
@@ -2519,7 +2519,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.unsupported.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "errorType \"INVALID_ARGUMENT\"",
         "model \"strict-model\"",
@@ -2536,7 +2536,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.unsupported.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "errorType \"INVALID_ARGUMENT\"",
         "model \"strict-model\"",
@@ -2553,7 +2553,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.unsupported.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "errorType \"INVALID_ARGUMENT\"",
         "model \"strict-model\"",
@@ -2570,7 +2570,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.unsupported.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "errorType \"INVALID_ARGUMENT\"",
         "model \"strict-model\"",
@@ -2587,7 +2587,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.unsupported.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "errorType \"INVALID_ARGUMENT\"",
         "member \"seed\"",
@@ -2603,7 +2603,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.unsupported.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "errorType \"INVALID_ARGUMENT\""})
     @Specification({
@@ -2617,7 +2617,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.exclusive.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "errorType \"INVALID_ARGUMENT\"",
         "model \"effort-first\"",
@@ -2635,7 +2635,7 @@ public class LlmGeminiClientIT
     @Test
     @Configuration("client.gemini.exclusive.yaml")
     @ScriptProperty({
-        "source \"openai\"",
+        "source \"openai/ccs\"",
         "target \"gemini\"",
         "errorType \"INVALID_ARGUMENT\"",
         "model \"budget-first\"",
@@ -2646,6 +2646,23 @@ public class LlmGeminiClientIT
         "${app}/transform.request.reasoning.effort.budget/client",
         "${net}/gemini.transform.request.reasoning.budget/server"})
     public void shouldTransformReasoningEffortAndBudgetBudgetFirstAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({
+        "source \"openai/ccs\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "model \"model\"",
+        "member \"openai/ccs:n\"",
+        "value \"3\""})
+    @Specification({
+        "${app}/transform.rejected.prefixed.member/client",
+        "${net}/gemini.transform.rejected.member/server"})
+    public void shouldRejectBehaviouralMemberOfOpenaiChatCompletionsAsGemini() throws Exception
     {
         k3po.finish();
     }

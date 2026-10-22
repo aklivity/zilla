@@ -22,7 +22,7 @@ connect ${clientAddress}
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai/responses")
+                           .dialect("openai/rs")
                            .model(model)
                            .build()}
 

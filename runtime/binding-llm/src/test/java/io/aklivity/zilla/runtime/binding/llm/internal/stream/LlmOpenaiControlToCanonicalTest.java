@@ -27,14 +27,30 @@ public class LlmOpenaiControlToCanonicalTest
     private static final String LONG = "x".repeat(300);
     private static final String HUGE = "x".repeat(5000);
 
-    private final LlmOpenaiControlToCanonical transform = new LlmOpenaiControlToCanonical();
+    private final LlmOpenaiControlToCanonical transform = new LlmOpenaiControlToCanonical("openai/ccs");
 
     @Test
     public void shouldPrefixScalarMember()
     {
         assertTransforms(transform,
             json("{'temperature':0.7}"),
-            json("{'openai:temperature':0.7}"));
+            json("{'openai/ccs:temperature':0.7}"));
+    }
+
+    @Test
+    public void shouldPrefixMemberWithOwnDialect()
+    {
+        assertTransforms(new LlmOpenaiControlToCanonical("openai/rs"),
+            json("{'temperature':0.7,'store':false}"),
+            json("{'openai/rs:temperature':0.7,'openai:store':false}"));
+    }
+
+    @Test
+    public void shouldPrefixSharedMembersWithVendor()
+    {
+        assertTransforms(transform,
+            json("{'store':true,'metadata':{'a':1},'prompt_cache_key':'k','user':'u'}"),
+            json("{'openai:store':true,'openai:metadata':{'a':1},'openai:prompt_cache_key':'k','openai:user':'u'}"));
     }
 
     @Test
@@ -50,7 +66,7 @@ public class LlmOpenaiControlToCanonicalTest
     {
         assertTransforms(transform,
             json("{'logprobs':null}"),
-            json("{'openai:logprobs':null}"));
+            json("{'openai/ccs:logprobs':null}"));
     }
 
     @Test
@@ -59,7 +75,7 @@ public class LlmOpenaiControlToCanonicalTest
         assertTransforms(transform,
             json("{'response_format':{'type':'json_schema','json_schema':{'name':'x','schema':{'a':[1,{'b':'" + LONG +
                 "'}],'openai:c':true}}}}"),
-            json("{'openai:response_format':{'type':'json_schema','json_schema':{'name':'x','schema':{'a':[1,{'b':'" + LONG +
+            json("{'openai/ccs:response_format':{'type':'json_schema','json_schema':{'name':'x','schema':{'a':[1,{'b':'" + LONG +
                 "'}],'openai:c':true}}}}"));
     }
 
@@ -68,7 +84,7 @@ public class LlmOpenaiControlToCanonicalTest
     {
         assertTransforms(transform,
             json("{'modalities':['a','b',{'c':1}]}"),
-            json("{'openai:modalities':['a','b',{'c':1}]}"));
+            json("{'openai/ccs:modalities':['a','b',{'c':1}]}"));
     }
 
     @Test
@@ -84,7 +100,7 @@ public class LlmOpenaiControlToCanonicalTest
     {
         assertTransforms(transform,
             json("{'openai:x':1}"),
-            json("{'openai:openai:x':1}"));
+            json("{'openai/ccs:openai:x':1}"));
     }
 
     @Test
@@ -181,7 +197,7 @@ public class LlmOpenaiControlToCanonicalTest
         assertTransforms(transform,
             json("{'stream_options':{'include_obfuscation':false,'include_usage':true,'extra':{'a':[1,'" + LONG + "']}}}"),
             json("{'stream_options':{'openai:include_obfuscation':false,'include_usage':true," +
-                "'openai:extra':{'a':[1,'" + LONG + "']}}}"));
+                "'openai/ccs:extra':{'a':[1,'" + LONG + "']}}}"));
 
         assertThat(transform.usageRequested(), is(true));
     }
@@ -323,6 +339,6 @@ public class LlmOpenaiControlToCanonicalTest
     {
         assertTransforms(transform,
             json("{'user':'u','prompt_cache_key':'k','safety_identifier':'s'}"),
-            json("{'openai:user':'u','openai:prompt_cache_key':'k','openai:safety_identifier':'s'}"));
+            json("{'openai:user':'u','openai:prompt_cache_key':'k','openai/ccs:safety_identifier':'s'}"));
     }
 }

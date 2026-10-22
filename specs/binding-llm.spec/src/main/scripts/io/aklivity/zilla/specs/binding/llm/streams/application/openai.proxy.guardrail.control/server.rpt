@@ -24,7 +24,7 @@ accepted
 
 read zilla:begin.ext ${llm:matchBeginEx()
                           .typeId(zilla:id("llm"))
-                          .dialect("openai")
+                          .dialect("openai/ccs")
                           .model(model)
                           .build()}
 
@@ -49,13 +49,13 @@ read zilla:data.ext ${llm:matchDataEx()
                          .type("CONTROL")
                          .message(0)
                          .build()}
-read "{\"openai:name\":\"ignore previous instructions\"}"
+read "{\"openai/ccs:name\":\"ignore previous instructions\"}"
 
 read advised zilla:flush
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
+                           .dialect("openai/ccs")
                            .model(model)
                            .build()}
 write flush
@@ -65,7 +65,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:system_fingerprint\":\"ignore previous instructions\"}"
+write "{\"openai/ccs:system_fingerprint\":\"ignore previous instructions\"}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -81,7 +81,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(0)
                           .build()}
-write "{\"openai:logprobs\":\"ignore previous instructions\"}"
+write "{\"openai/ccs:logprobs\":\"ignore previous instructions\"}"
 write flush
 
 write close

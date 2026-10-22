@@ -229,7 +229,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final String[] CONTAINERS = {MEMBER_GENERATION_CONFIG, MEMBER_TOOL_CONFIG, MEMBER_THINKING_CONFIG};
     private static final int CONTAINER_GENERATION_CONFIG = 0;
     private static final int CONTAINER_THINKING_CONFIG = 2;
-    private static final String SHARED_PREFIX = "x:";
     private static final String MEMBER_MAX_OUTPUT_TOKENS = "maxOutputTokens";
     private static final String ROLE_NAME_USER = "user";
     private static final String ROLE_NAME_MODEL = "model";
@@ -3962,7 +3961,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         {
             final String shared = controlTransform != null ? controlTransform.rejectedMember() : null;
 
-            return collector.overflowed() ? collector.overflow() : shared != null ? SHARED_PREFIX + shared : null;
+            return collector.overflowed() ? collector.overflow() : shared != null ? LlmSharedMembers.wire(shared) : null;
         }
 
         private int heldReserve()

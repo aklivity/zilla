@@ -34,6 +34,7 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.config.binding.llm.LlmDialectConfig;
 import io.aklivity.zilla.config.binding.llm.LlmModelConfig;
 import io.aklivity.zilla.config.binding.llm.LlmOptionsConfig;
 import io.aklivity.zilla.config.binding.llm.LlmTestDialectConfig;
@@ -90,6 +91,89 @@ public class LlmOptionsConfigAdapterTest
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"dialect\":\"openai/responses\"}"));
+    }
+
+    @Test
+    public void shouldReadOptionsWithApis()
+    {
+        String text =
+                "{" +
+                    "\"dialect\": \"openai\"," +
+                    "\"apis\": [\"chat/completions\", \"responses\"]" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.apis, contains("chat/completions", "responses"));
+    }
+
+    @Test
+    public void shouldReadOptionsWithoutApis()
+    {
+        LlmOptionsConfig options = jsonb.fromJson("{\"dialect\": \"openai\"}", LlmOptionsConfig.class);
+
+        assertThat(options.apis, nullValue());
+    }
+
+    @Test
+    public void shouldWriteOptionsWithApis()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .dialect("openai")
+            .apis(List.of("responses"))
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, equalTo("{\"dialect\":\"openai\",\"apis\":[\"responses\"]}"));
+    }
+
+    @Test
+    public void shouldReadOptionsWithDialects()
+    {
+        String text =
+                "{" +
+                    "\"dialects\": [\"anthropic\", {\"openai\": {\"apis\": [\"responses\"]}}, {\"gemini\": {}}]" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.dialect, nullValue());
+        assertThat(options.dialects, hasSize(3));
+        assertThat(options.dialects.get(0).name, equalTo("anthropic"));
+        assertThat(options.dialects.get(0).apis, nullValue());
+        assertThat(options.dialects.get(1).name, equalTo("openai"));
+        assertThat(options.dialects.get(1).apis, contains("responses"));
+        assertThat(options.dialects.get(2).name, equalTo("gemini"));
+        assertThat(options.dialects.get(2).apis, nullValue());
+    }
+
+    @Test
+    public void shouldReadOptionsWithoutDialects()
+    {
+        LlmOptionsConfig options = jsonb.fromJson("{\"dialect\": \"openai\"}", LlmOptionsConfig.class);
+
+        assertThat(options.dialects, nullValue());
+    }
+
+    @Test
+    public void shouldWriteOptionsWithDialects()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .dialects(List.of(
+                LlmDialectConfig.builder().name("openai").apis(List.of("chat/completions")).build(),
+                LlmDialectConfig.builder().name("anthropic").build()))
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, equalTo("{\"dialects\":[{\"openai\":{\"apis\":[\"chat/completions\"]}},\"anthropic\"]}"));
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectOptionsWithDuplicateDialect()
+    {
+        jsonb.fromJson("{\"dialects\": [\"openai\", {\"openai\": {\"apis\": [\"responses\"]}}]}", LlmOptionsConfig.class);
     }
 
     @Test

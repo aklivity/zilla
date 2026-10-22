@@ -56,7 +56,7 @@ public class LlmOpenaiResponsesCitationsToCanonicalTest
     {
         assertTransforms(array,
             json("[{'type':'url_citation','url':'https://example.com','extra':true}]"),
-            json("[{'type':'url_citation','url_citation':{'url':'https://example.com'},'openai:extra':true}]"));
+            json("[{'type':'url_citation','url_citation':{'url':'https://example.com'},'openai/rs:extra':true}]"));
     }
 
     @Test
@@ -65,8 +65,9 @@ public class LlmOpenaiResponsesCitationsToCanonicalTest
         assertTransforms(array,
             json("[{'type':'file_citation','file_id':'file_1','filename':'a.pdf','index':0}," +
                 "{'type':'file_path','file_id':'file_2','index':3}]"),
-            json("[{'openai:type':'file_citation','openai:file_id':'file_1','openai:filename':'a.pdf','openai:index':0}," +
-                "{'openai:type':'file_path','openai:file_id':'file_2','openai:index':3}]"));
+            json("[{'openai/rs:type':'file_citation','openai/rs:file_id':'file_1','openai/rs:filename':'a.pdf'," +
+                "'openai/rs:index':0}," +
+                "{'openai/rs:type':'file_path','openai/rs:file_id':'file_2','openai/rs:index':3}]"));
     }
 
     @Test
@@ -74,8 +75,8 @@ public class LlmOpenaiResponsesCitationsToCanonicalTest
     {
         assertTransforms(object,
             json("{'type':'container_file_citation','container_id':'c','end_index':5,'file_id':'f','start_index':1}"),
-            json("{'openai:type':'container_file_citation','openai:container_id':'c','openai:end_index':5," +
-                "'openai:file_id':'f','openai:start_index':1}"));
+            json("{'openai/rs:type':'container_file_citation','openai/rs:container_id':'c','openai/rs:end_index':5," +
+                "'openai/rs:file_id':'f','openai/rs:start_index':1}"));
     }
 
     @Test

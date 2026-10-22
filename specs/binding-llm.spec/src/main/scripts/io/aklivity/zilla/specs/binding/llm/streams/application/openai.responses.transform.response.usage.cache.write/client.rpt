@@ -58,7 +58,7 @@ read zilla:data.ext ${llm:matchDataEx()
                          .type("CONTROL")
                          .message(-1)
                          .build()}
-read "{\"openai:usage\":{\"input_tokens\":4019,\"input_tokens_details\":{\"cache_write_tokens\":512,\"cached_tokens\":3328},\"output_tokens\":2,\"output_tokens_details\":{\"reasoning_tokens\":1},\"total_tokens\":4021}}"
+read "{\"openai/rs:usage\":{\"input_tokens\":4019,\"input_tokens_details\":{\"cache_write_tokens\":512,\"cached_tokens\":3328},\"output_tokens\":2,\"output_tokens_details\":{\"reasoning_tokens\":1},\"total_tokens\":4021}}"
 
 read zilla:end.ext ${llm:matchEndEx()
                         .typeId(zilla:id("llm"))

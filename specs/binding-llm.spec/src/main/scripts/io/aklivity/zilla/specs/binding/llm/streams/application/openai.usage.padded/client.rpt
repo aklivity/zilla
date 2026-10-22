@@ -23,7 +23,7 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
+                           .dialect("openai/ccs")
                            .model("gpt-4o-mini")
                            .build()}
 
@@ -41,7 +41,7 @@ write advise zilla:flush
 
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
+                           .dialect("openai/ccs")
                            .model("gpt-4o-mini-2024-07-18")
                            .id("chatcmpl-EQNKhNLHHohc7KwUHH83164mX3IMA")
                            .build()}
@@ -51,7 +51,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-read "{\"openai:created\":1789954927}"
+read "{\"openai/ccs:created\":1789954927}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
@@ -65,21 +65,21 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("CONTROL")
                           .message(0)
                           .build()}
-read "{\"openai:annotations\":[]}"
+read "{\"openai/ccs:annotations\":[]}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("CONTROL")
                           .message(0)
                           .build()}
-read "{\"openai:logprobs\":null}"
+read "{\"openai/ccs:logprobs\":null}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-read "{\"openai:usage\":{\"prompt_tokens\":13,\"completion_tokens\":9,\"total_tokens\":22,\"prompt_tokens_details\":{\"cached_tokens\":0,\"audio_tokens\":0},\"completion_tokens_details\":{\"reasoning_tokens\":0,\"audio_tokens\":0,\"accepted_prediction_tokens\":0,\"rejected_prediction_tokens\":0}}}"
+read "{\"openai/ccs:usage\":{\"prompt_tokens\":13,\"completion_tokens\":9,\"total_tokens\":22,\"prompt_tokens_details\":{\"cached_tokens\":0,\"audio_tokens\":0},\"completion_tokens_details\":{\"reasoning_tokens\":0,\"audio_tokens\":0,\"accepted_prediction_tokens\":0,\"rejected_prediction_tokens\":0}}}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
@@ -93,7 +93,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-read "{\"openai:system_fingerprint\":\"fp_c28ee603a6\"}"
+read "{\"openai/ccs:system_fingerprint\":\"fp_c28ee603a6\"}"
 
 read zilla:end.ext ${llm:matchEndEx()
                             .typeId(zilla:id("llm"))

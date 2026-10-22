@@ -29,8 +29,9 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 public class LlmSharedMemberTest
 {
     private final ToShared decoder = new ToShared();
-    private final FromShared client = new FromShared(true);
-    private final FromShared foreign = new FromShared(false);
+    private final FromShared client = new FromShared("foo");
+    private final FromShared foreign = new FromShared("bar");
+    private final FromShared sibling = new FromShared("foo/b");
 
     @Test
     public void shouldEmitSharedMemberInPlaceOfDialectMember()
@@ -56,6 +57,27 @@ public class LlmSharedMemberTest
     public void shouldRestoreSharedMemberInNativeForm()
     {
         assertTransforms(client, json("{'x:alpha':7}"), json("{'alpha_native':7}"));
+    }
+
+    @Test
+    public void shouldRestoreVendorPrefixedMemberInEveryVariantOfVendor()
+    {
+        assertTransforms(sibling, json("{'foo:other':7}"), json("{'other':7}"));
+        assertTransforms(client, json("{'foo:other':7}"), json("{'other':7}"));
+    }
+
+    @Test
+    public void shouldRestoreVariantPrefixedMemberOnlyInThatVariant()
+    {
+        assertTransforms(sibling, json("{'foo/b:other':7}"), json("{'other':7}"));
+        assertTransforms(client, json("{'foo/b:other':7}"), json("{}"));
+        assertTransforms(foreign, json("{'foo/b:other':7}"), json("{}"));
+    }
+
+    @Test
+    public void shouldDropVendorPrefixedMemberAcrossVendors()
+    {
+        assertTransforms(foreign, json("{'foo:other':7}"), json("{}"));
     }
 
     @Test
@@ -146,9 +168,9 @@ public class LlmSharedMemberTest
     private static final class FromShared extends LlmToolTransform
     {
         FromShared(
-            boolean sameDialect)
+            String dialect)
         {
-            super(MODE_OBJECT, sameDialect);
+            super(MODE_OBJECT, dialect);
         }
 
         @Override
@@ -156,7 +178,7 @@ public class LlmSharedMemberTest
             int depth,
             CharSequence key)
         {
-            return unprefix("foo", key);
+            return unprefix(key);
         }
 
         @Override

@@ -21,7 +21,7 @@ accepted
 
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai/responses")
+                           .dialect("openai/rs")
                            .model("gpt-4")
                            .build()}
 
@@ -39,7 +39,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-read "{\"openai:text\":{\"verbosity\":\"low\"}}"
+read "{\"openai/rs:text\":{\"verbosity\":\"low\"}}"
 
 read advised zilla:flush
 

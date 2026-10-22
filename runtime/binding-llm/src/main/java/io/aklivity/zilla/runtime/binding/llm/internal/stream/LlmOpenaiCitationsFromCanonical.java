@@ -19,15 +19,14 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 final class LlmOpenaiCitationsFromCanonical extends LlmToolTransform
 {
-    private static final String DIALECT = "openai";
     private static final String TYPE_URL = "url_citation";
 
     private boolean typed;
 
     LlmOpenaiCitationsFromCanonical(
-        boolean sameDialect)
+        String dialect)
     {
-        super(MODE_ARRAY, sameDialect);
+        super(MODE_ARRAY, dialect);
     }
 
     @Override
@@ -46,7 +45,7 @@ final class LlmOpenaiCitationsFromCanonical extends LlmToolTransform
 
         if (depth == 2)
         {
-            action = unprefix(DIALECT, key);
+            action = unprefix(key);
         }
         else if (matches(key, "type"))
         {
@@ -65,7 +64,7 @@ final class LlmOpenaiCitationsFromCanonical extends LlmToolTransform
         else
         {
             emitType();
-            action = unprefix(DIALECT, key);
+            action = unprefix(key);
         }
 
         return action;

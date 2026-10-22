@@ -21,7 +21,7 @@ accepted
 
 read zilla:begin.ext ${llm:matchBeginEx()
                           .typeId(zilla:id("llm"))
-                          .dialect("openai/responses")
+                          .dialect("openai/rs")
                           .model("gpt-4")
                           .build()}
 
@@ -46,13 +46,13 @@ read zilla:data.ext ${llm:matchDataEx()
                          .type("CITATIONS")
                          .message(1)
                          .build()}
-read "[{\"type\":\"url_citation\",\"url_citation\":{\"start_index\":0,\"end_index\":4,\"url\":\"https://example.com\",\"title\":\"Example\"}},{\"openai:type\":\"file_citation\",\"openai:file_id\":\"file_1\",\"openai:filename\":\"a.pdf\",\"openai:index\":0},{\"openai:type\":\"container_file_citation\",\"openai:container_id\":\"cntr_1\",\"openai:end_index\":5,\"openai:file_id\":\"cfile_1\",\"openai:filename\":\"b.png\",\"openai:start_index\":1},{\"openai:type\":\"file_path\",\"openai:file_id\":\"file_2\",\"openai:index\":3}]"
+read "[{\"type\":\"url_citation\",\"url_citation\":{\"start_index\":0,\"end_index\":4,\"url\":\"https://example.com\",\"title\":\"Example\"}},{\"openai/rs:type\":\"file_citation\",\"openai/rs:file_id\":\"file_1\",\"openai/rs:filename\":\"a.pdf\",\"openai/rs:index\":0},{\"openai/rs:type\":\"container_file_citation\",\"openai/rs:container_id\":\"cntr_1\",\"openai/rs:end_index\":5,\"openai/rs:file_id\":\"cfile_1\",\"openai/rs:filename\":\"b.png\",\"openai/rs:start_index\":1},{\"openai/rs:type\":\"file_path\",\"openai/rs:file_id\":\"file_2\",\"openai/rs:index\":3}]"
 
 read advised zilla:flush
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai/responses")
+                           .dialect("openai/rs")
                            .model("gpt-4")
                            .id("resp_1")
                            .build()}
@@ -82,7 +82,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:usage\":{\"input_tokens\":25,\"output_tokens\":15,\"total_tokens\":40}}"
+write "{\"openai/rs:usage\":{\"input_tokens\":25,\"output_tokens\":15,\"total_tokens\":40}}"
 write flush
 
 write zilla:end.ext ${llm:endEx()

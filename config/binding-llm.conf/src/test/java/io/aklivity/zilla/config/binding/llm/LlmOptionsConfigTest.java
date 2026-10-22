@@ -79,6 +79,28 @@ public class LlmOptionsConfigTest
     }
 
     @Test
+    public void shouldInjectDialectBuilder()
+    {
+        LlmDialectConfigBuilder<LlmDialectConfig> builder = LlmDialectConfig.builder();
+
+        LlmDialectConfigBuilder<LlmDialectConfig> injected = builder.inject(identity -> identity);
+
+        assertThat(injected, sameInstance(builder));
+    }
+
+    @Test
+    public void shouldBuildDialectViaMapper()
+    {
+        String name = LlmDialectConfig
+            .builder(dialect -> dialect.name)
+            .name("openai")
+            .apis(List.of("responses"))
+            .build();
+
+        assertThat(name, equalTo("openai"));
+    }
+
+    @Test
     public void shouldInjectBuilder()
     {
         LlmOptionsConfigBuilder<LlmOptionsConfig> builder = LlmOptionsConfig.builder();

@@ -82,7 +82,7 @@ public class LlmToolCallCanonicalRoundTripTest
     @Test
     public void shouldRoundTripOpenaiToolCall()
     {
-        assertRoundTrips(new LlmOpenaiToolCallToCanonical(), new LlmOpenaiToolCallFromCanonical(true),
+        assertRoundTrips(new LlmOpenaiToolCallToCanonical(), new LlmOpenaiToolCallFromCanonical("openai/ccs"),
             attributes,
             json("{'id':'toolu_1','type':'function','function':{'name':'get_weather','arguments':") +
                 quote(json("{'city':'Paris'}")) + "}}");
@@ -91,7 +91,7 @@ public class LlmToolCallCanonicalRoundTripTest
     @Test
     public void shouldRoundTripOpenaiNativeOnlyMembersBeforeAndAfterArguments()
     {
-        assertRoundTrips(new LlmOpenaiToolCallToCanonical(), new LlmOpenaiToolCallFromCanonical(true),
+        assertRoundTrips(new LlmOpenaiToolCallToCanonical(), new LlmOpenaiToolCallFromCanonical("openai/ccs"),
             attributes,
             json("{'id':'toolu_1','type':'function','index':0,'function':{'name':'get_weather','arguments':") +
                 quote(json("{'text':'" + LONG + "'}")) + json("},'note':'" + LONG + "'}"));

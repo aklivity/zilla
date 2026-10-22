@@ -23,14 +23,14 @@ public class LlmOpenaiResponsesReasoningFromCanonicalTest
 {
     private static final String ENCRYPTED = "QUJD".repeat(2500);
 
-    private final LlmOpenaiResponsesReasoningFromCanonical same = new LlmOpenaiResponsesReasoningFromCanonical(true);
-    private final LlmOpenaiResponsesReasoningFromCanonical foreign = new LlmOpenaiResponsesReasoningFromCanonical(false);
+    private final LlmOpenaiResponsesReasoningFromCanonical same = new LlmOpenaiResponsesReasoningFromCanonical("openai/rs");
+    private final LlmOpenaiResponsesReasoningFromCanonical foreign = new LlmOpenaiResponsesReasoningFromCanonical("openai/ccs");
 
     @Test
     public void shouldRestoreMembersWithoutText()
     {
         assertTransforms(same,
-            json("{'text':'Let me think','openai:id':'rs_1','openai:encrypted_content':'QUJD'}"),
+            json("{'text':'Let me think','openai/rs:id':'rs_1','openai/rs:encrypted_content':'QUJD'}"),
             json("{'id':'rs_1','encrypted_content':'QUJD'}"));
     }
 
@@ -38,7 +38,7 @@ public class LlmOpenaiResponsesReasoningFromCanonicalTest
     public void shouldRestoreEncryptedContentLargerThanWindow()
     {
         assertTransforms(same,
-            json("{'text':'Let me think','openai:id':'rs_1','openai:encrypted_content':'" + ENCRYPTED + "'}"),
+            json("{'text':'Let me think','openai/rs:id':'rs_1','openai/rs:encrypted_content':'" + ENCRYPTED + "'}"),
             json("{'id':'rs_1','encrypted_content':'" + ENCRYPTED + "'}"));
     }
 
@@ -46,7 +46,7 @@ public class LlmOpenaiResponsesReasoningFromCanonicalTest
     public void shouldRestoreMembersOfSectionWithoutText()
     {
         assertTransforms(same,
-            json("{'openai:id':'rs_1','openai:encrypted_content':'QUJD'}"),
+            json("{'openai/rs:id':'rs_1','openai/rs:encrypted_content':'QUJD'}"),
             json("{'id':'rs_1','encrypted_content':'QUJD'}"));
     }
 
@@ -54,7 +54,7 @@ public class LlmOpenaiResponsesReasoningFromCanonicalTest
     public void shouldDropOtherDialectMembers()
     {
         assertTransforms(same,
-            json("{'text':'Let me think','anthropic:signature':'sig','openai:id':'rs_1'}"),
+            json("{'text':'Let me think','anthropic:signature':'sig','openai/rs:id':'rs_1'}"),
             json("{'id':'rs_1'}"));
     }
 
@@ -70,7 +70,7 @@ public class LlmOpenaiResponsesReasoningFromCanonicalTest
     public void shouldDropEveryMemberAcrossDialects()
     {
         assertTransforms(foreign,
-            json("{'text':'Let me think','openai:id':'rs_1','openai:encrypted_content':'QUJD'}"),
+            json("{'text':'Let me think','openai/rs:id':'rs_1','openai/rs:encrypted_content':'QUJD'}"),
             json("{}"));
     }
 }

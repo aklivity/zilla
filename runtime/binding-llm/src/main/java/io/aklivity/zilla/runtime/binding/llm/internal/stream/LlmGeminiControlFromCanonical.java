@@ -88,7 +88,7 @@ final class LlmGeminiControlFromCanonical extends LlmFormatFromCanonical
         boolean sameDialect,
         LlmModelCapability capability)
     {
-        super(mode, sameDialect);
+        super(mode, sameDialect ? DIALECT : null);
         this.members = mode == MODE_OBJECT;
         this.foreign = !sameDialect;
         this.choice = new LlmToolChoice();
@@ -154,7 +154,7 @@ final class LlmGeminiControlFromCanonical extends LlmFormatFromCanonical
         }
         else
         {
-            action = unprefix(DIALECT, key);
+            action = unprefix(key);
 
             if (depth == 1 && action != DROP)
             {

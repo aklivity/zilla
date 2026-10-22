@@ -569,4 +569,12 @@ public class LlmGeminiControlFromCanonicalTest
     {
         return new LlmModelCapability(true, null, -1, -1, null, LlmServiceTier.maskOf(names));
     }
+
+    @Test
+    public void shouldRejectBehaviouralMemberOfOpenaiVariant()
+    {
+        assertRejects(foreignMembers, json("{'openai/ccs:n':3}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("openai/ccs:n"));
+    }
 }

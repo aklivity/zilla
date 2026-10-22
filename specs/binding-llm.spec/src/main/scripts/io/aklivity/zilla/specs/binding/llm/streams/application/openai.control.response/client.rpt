@@ -21,7 +21,7 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
+                           .dialect("openai/ccs")
                            .model(model)
                            .build()}
 
@@ -39,7 +39,7 @@ write advise zilla:flush
 
 read zilla:begin.ext ${llm:matchBeginEx()
                           .typeId(zilla:id("llm"))
-                          .dialect("openai")
+                          .dialect("openai/ccs")
                           .model(model)
                           .id("chatcmpl_2")
                           .build()}
@@ -49,7 +49,7 @@ read zilla:data.ext ${llm:matchDataEx()
                          .type("CONTROL")
                          .message(-1)
                          .build()}
-read "{\"openai:created\":1700000000}"
+read "{\"openai/ccs:created\":1700000000}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
@@ -63,21 +63,21 @@ read zilla:data.ext ${llm:matchDataEx()
                          .type("CONTROL")
                          .message(0)
                          .build()}
-read "{\"openai:logprobs\":{\"content\":[]}}"
+read "{\"openai/ccs:logprobs\":{\"content\":[]}}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
                          .type("CONTROL")
                          .message(-1)
                          .build()}
-read "{\"openai:usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}}"
+read "{\"openai/ccs:usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
                          .type("CONTROL")
                          .message(-1)
                          .build()}
-read "{\"openai:system_fingerprint\":\"fp_1\"}"
+read "{\"openai/ccs:system_fingerprint\":\"fp_1\"}"
 
 read zilla:end.ext ${llm:matchEndEx()
                         .typeId(zilla:id("llm"))

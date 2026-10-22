@@ -22,9 +22,10 @@ import org.junit.Test;
 
 public class LlmOpenaiResponsesToolDefinitionFromCanonicalTest
 {
-    private final LlmOpenaiResponsesToolDefinitionFromCanonical same = new LlmOpenaiResponsesToolDefinitionFromCanonical(true);
+    private final LlmOpenaiResponsesToolDefinitionFromCanonical same =
+        new LlmOpenaiResponsesToolDefinitionFromCanonical("openai/rs");
     private final LlmOpenaiResponsesToolDefinitionFromCanonical foreign =
-        new LlmOpenaiResponsesToolDefinitionFromCanonical(false);
+        new LlmOpenaiResponsesToolDefinitionFromCanonical("openai/ccs");
 
     @Test
     public void shouldFlattenFunctionTool()
@@ -39,7 +40,7 @@ public class LlmOpenaiResponsesToolDefinitionFromCanonicalTest
     public void shouldRestoreOwnPrefixedMembers()
     {
         assertTransforms(same,
-            json("{'type':'function','function':{'name':'get_weather','openai:defer_loading':true}}"),
+            json("{'type':'function','function':{'name':'get_weather','openai/rs:defer_loading':true}}"),
             json("{'type':'function','name':'get_weather','defer_loading':true}"));
     }
 
@@ -47,7 +48,7 @@ public class LlmOpenaiResponsesToolDefinitionFromCanonicalTest
     public void shouldDropOtherDialectMembers()
     {
         assertTransforms(foreign,
-            json("{'type':'function','function':{'name':'get_weather','openai:defer_loading':true,'kept':1}}"),
+            json("{'type':'function','function':{'name':'get_weather','openai/rs:defer_loading':true,'kept':1}}"),
             json("{'type':'function','name':'get_weather','kept':1}"));
     }
 

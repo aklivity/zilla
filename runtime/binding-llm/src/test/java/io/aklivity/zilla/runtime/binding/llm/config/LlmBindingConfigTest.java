@@ -34,6 +34,7 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.config.binding.llm.LlmDialectConfig;
 import io.aklivity.zilla.config.binding.llm.LlmOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.ConfigException;
@@ -411,5 +412,108 @@ public class LlmBindingConfigTest
         binding.resolveId = name -> 1L;
 
         return binding;
+    }
+
+    @Test
+    public void shouldServeEveryDialectWithoutFixedDialect()
+    {
+        LlmBindingConfig binding = new LlmBindingConfig(binding(LlmOptionsConfig.builder().build()), context);
+
+        assertThat(binding.serves("openai/ccs"), is(true));
+        assertThat(binding.serves("openai/rs"), is(true));
+        assertThat(binding.serves("anthropic"), is(true));
+        assertThat(binding.serves("gemini"), is(true));
+    }
+
+    @Test
+    public void shouldServeEveryDialectOfFixedVendor()
+    {
+        LlmBindingConfig binding = new LlmBindingConfig(binding(LlmOptionsConfig.builder()
+            .dialect("openai")
+            .build()), context);
+
+        assertThat(binding.serves("openai/ccs"), is(true));
+        assertThat(binding.serves("openai/rs"), is(true));
+        assertThat(binding.serves("anthropic"), is(false));
+    }
+
+    @Test
+    public void shouldServeOnlyListedApis()
+    {
+        LlmBindingConfig binding = new LlmBindingConfig(binding(LlmOptionsConfig.builder()
+            .dialect("openai")
+            .apis(List.of("responses"))
+            .build()), context);
+
+        assertThat(binding.serves("openai/rs"), is(true));
+        assertThat(binding.serves("openai/ccs"), is(false));
+        assertThat(binding.serves("anthropic"), is(false));
+    }
+
+    @Test
+    public void shouldServeBothListedApis()
+    {
+        LlmBindingConfig binding = new LlmBindingConfig(binding(LlmOptionsConfig.builder()
+            .dialect("openai")
+            .apis(List.of("chat/completions", "responses"))
+            .build()), context);
+
+        assertThat(binding.serves("openai/ccs"), is(true));
+        assertThat(binding.serves("openai/rs"), is(true));
+    }
+
+    @Test
+    public void shouldServeOnlyFixedVariant()
+    {
+        LlmBindingConfig binding = new LlmBindingConfig(binding(LlmOptionsConfig.builder()
+            .dialect("openai/ccs")
+            .build()), context);
+
+        assertThat(binding.serves("openai/ccs"), is(true));
+        assertThat(binding.serves("openai/rs"), is(false));
+    }
+
+    @Test
+    public void shouldServeOnlyListedDialects()
+    {
+        LlmBindingConfig binding = new LlmBindingConfig(binding(LlmOptionsConfig.builder()
+            .dialects(List.of(
+                LlmDialectConfig.builder().name("openai").build(),
+                LlmDialectConfig.builder().name("gemini").build()))
+            .build()), context);
+
+        assertThat(binding.serves("openai/ccs"), is(true));
+        assertThat(binding.serves("openai/rs"), is(true));
+        assertThat(binding.serves("gemini"), is(true));
+        assertThat(binding.serves("anthropic"), is(false));
+    }
+
+    @Test
+    public void shouldServeOnlyListedApisOfListedDialect()
+    {
+        LlmBindingConfig binding = new LlmBindingConfig(binding(LlmOptionsConfig.builder()
+            .dialects(List.of(
+                LlmDialectConfig.builder().name("openai").apis(List.of("chat/completions")).build(),
+                LlmDialectConfig.builder().name("anthropic").build()))
+            .build()), context);
+
+        assertThat(binding.serves("openai/ccs"), is(true));
+        assertThat(binding.serves("openai/rs"), is(false));
+        assertThat(binding.serves("anthropic"), is(true));
+        assertThat(binding.serves("gemini"), is(false));
+    }
+
+    @Test
+    public void shouldServeApisOfEachListedDialectSeparately()
+    {
+        LlmBindingConfig binding = new LlmBindingConfig(binding(LlmOptionsConfig.builder()
+            .dialects(List.of(
+                LlmDialectConfig.builder().name("openai").apis(List.of("responses")).build(),
+                LlmDialectConfig.builder().name("gemini").build()))
+            .build()), context);
+
+        assertThat(binding.serves("openai/rs"), is(true));
+        assertThat(binding.serves("openai/ccs"), is(false));
+        assertThat(binding.serves("gemini"), is(true));
     }
 }

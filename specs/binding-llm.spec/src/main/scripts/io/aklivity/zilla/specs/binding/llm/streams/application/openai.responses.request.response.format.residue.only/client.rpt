@@ -19,7 +19,7 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai/responses")
+                           .dialect("openai/rs")
                            .model("gpt-4")
                            .build()}
 
@@ -38,7 +38,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:text\":{\"verbosity\":\"low\"}}"
+write "{\"openai/rs:text\":{\"verbosity\":\"low\"}}"
 write flush
 
 write advise zilla:flush

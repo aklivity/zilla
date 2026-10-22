@@ -25,8 +25,8 @@ import org.junit.Test;
 
 public class LlmOpenaiResponsesToolCallFromCanonicalTest
 {
-    private final LlmOpenaiResponsesToolCallFromCanonical same = new LlmOpenaiResponsesToolCallFromCanonical(true);
-    private final LlmOpenaiResponsesToolCallFromCanonical foreign = new LlmOpenaiResponsesToolCallFromCanonical(false);
+    private final LlmOpenaiResponsesToolCallFromCanonical same = new LlmOpenaiResponsesToolCallFromCanonical("openai/rs");
+    private final LlmOpenaiResponsesToolCallFromCanonical foreign = new LlmOpenaiResponsesToolCallFromCanonical("openai/ccs");
 
     private final Consumer<LlmSectionAttributes> id = attributes -> attributes.toolCallId("call_1");
     private final Consumer<LlmSectionAttributes> name = attributes -> attributes.toolName("get_weather");
@@ -45,7 +45,7 @@ public class LlmOpenaiResponsesToolCallFromCanonicalTest
     public void shouldRestoreOwnMembers()
     {
         assertTransforms(same, both, null,
-            json("{'arguments':{'a':1},'openai:namespace':'ns'}"),
+            json("{'arguments':{'a':1},'openai/rs:namespace':'ns'}"),
             json("{'type':'function_call','arguments':") + quote(json("{'a':1}")) +
                 json(",'namespace':'ns','call_id':'call_1','name':'get_weather'}"));
     }
@@ -54,7 +54,7 @@ public class LlmOpenaiResponsesToolCallFromCanonicalTest
     public void shouldDropOtherDialectMembers()
     {
         assertTransforms(foreign, both, null,
-            json("{'arguments':{'a':1},'openai:namespace':'ns'}"),
+            json("{'arguments':{'a':1},'openai/rs:namespace':'ns'}"),
             json("{'type':'function_call','arguments':") + quote(json("{'a':1}")) +
                 json(",'call_id':'call_1','name':'get_weather'}"));
     }

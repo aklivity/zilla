@@ -21,7 +21,7 @@ accepted
 
 read zilla:begin.ext ${llm:matchBeginEx()
                           .typeId(zilla:id("llm"))
-                          .dialect("openai/responses")
+                          .dialect("openai/rs")
                           .model("gpt-4")
                           .build()}
 
@@ -38,7 +38,7 @@ read advised zilla:flush
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai/responses")
+                           .dialect("openai/rs")
                            .model("gpt-4")
                            .id("resp_1")
                            .build()}
@@ -68,7 +68,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:created_at\":1700000000}"
+write "{\"openai/rs:created_at\":1700000000}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -84,7 +84,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:usage\":{\"input_tokens\":25,\"output_tokens\":15,\"total_tokens\":40}}"
+write "{\"openai/rs:usage\":{\"input_tokens\":25,\"output_tokens\":15,\"total_tokens\":40}}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -92,7 +92,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:m01\":1}"
+write "{\"openai/rs:m01\":1}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -100,7 +100,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:m02\":\"two\"}"
+write "{\"openai/rs:m02\":\"two\"}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -108,7 +108,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:m03\":[3]}"
+write "{\"openai/rs:m03\":[3]}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -116,7 +116,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:m04\":true}"
+write "{\"openai/rs:m04\":true}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -124,7 +124,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:m05\":null}"
+write "{\"openai/rs:m05\":null}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -132,7 +132,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:m06\":{\"k\":\"v\"}}"
+write "{\"openai/rs:m06\":{\"k\":\"v\"}}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -140,7 +140,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:m07\":7.5}"
+write "{\"openai/rs:m07\":7.5}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -148,7 +148,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:m08\":\"eight\"}"
+write "{\"openai/rs:m08\":\"eight\"}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -156,7 +156,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:m09\":9}"
+write "{\"openai/rs:m09\":9}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -164,7 +164,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:m10\":\"ten\"}"
+write "{\"openai/rs:m10\":\"ten\"}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -172,7 +172,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:m11\":11}"
+write "{\"openai/rs:m11\":11}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -180,7 +180,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:m12\":\"twelve\"}"
+write "{\"openai/rs:m12\":\"twelve\"}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -188,7 +188,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:m13\":[13]}"
+write "{\"openai/rs:m13\":[13]}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -196,7 +196,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:m14\":false}"
+write "{\"openai/rs:m14\":false}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -204,7 +204,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:m15\":15}"
+write "{\"openai/rs:m15\":15}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -212,7 +212,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:m16\":\"sixteen\"}"
+write "{\"openai/rs:m16\":\"sixteen\"}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -220,7 +220,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:big1\":\""
+write "{\"openai/rs:big1\":\""
      ${core:randomBase64(1000)}
      "\"}"
 write flush
@@ -230,7 +230,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:big2\":\""
+write "{\"openai/rs:big2\":\""
      ${core:randomBase64(1001)}
      "\"}"
 write flush
@@ -240,7 +240,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:big3\":\""
+write "{\"openai/rs:big3\":\""
      ${core:randomBase64(1002)}
      "\"}"
 write flush

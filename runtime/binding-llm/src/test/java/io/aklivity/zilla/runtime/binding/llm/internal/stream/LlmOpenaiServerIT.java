@@ -926,7 +926,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.user.text/client",
         "${app}/transform.user.text/server"})
@@ -937,7 +937,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.assistant.text/client",
         "${app}/transform.assistant.text/server"})
@@ -948,7 +948,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.tool.result/client",
         "${app}/transform.tool.result/server"})
@@ -959,7 +959,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.tool.result.blocks/client",
         "${app}/transform.tool.result.blocks/server"})
@@ -970,7 +970,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.request.frames/client",
         "${app}/openai.transform.request.members/server"})
@@ -981,7 +981,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.frames/client",
         "${app}/transform.response.frames/server"})
@@ -1062,7 +1062,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.text/client",
         "${app}/transform.response.text/server"})
@@ -1073,7 +1073,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.text.escaped/client",
         "${app}/transform.response.text.escaped/server"})
@@ -1084,7 +1084,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.text.100k/client",
         "${app}/transform.response.text.100k/server"})
@@ -1095,7 +1095,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.text.multibyte/client",
         "${app}/transform.response.text.multibyte/server"})
@@ -1106,7 +1106,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.text.and.tool.call/client",
         "${app}/transform.response.text.and.tool.call/server"})
@@ -1117,7 +1117,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.usage/client",
         "${app}/transform.response.usage/server"})
@@ -1128,7 +1128,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.reasoning/client",
         "${app}/transform.response.reasoning/server"})
@@ -1139,7 +1139,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.reasoning.tag/client",
         "${app}/transform.response.reasoning.tag/server"})
@@ -1150,7 +1150,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.streaming.reasoning/client",
         "${app}/openai.transform.response.streaming.reasoning/server"})
@@ -1161,7 +1161,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.streaming.reasoning.tag/client",
         "${app}/openai.transform.response.streaming.reasoning.tag/server"})
@@ -1172,7 +1172,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.reasoning.tag.fragmented/client",
         "${app}/transform.response.reasoning.tag.fragmented/server"})
@@ -1183,7 +1183,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.streaming.reasoning.tag.fragmented/client",
         "${app}/openai.transform.response.streaming.reasoning.tag.fragmented/server"})
@@ -1194,7 +1194,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.reasoning.tag.multiple/client",
         "${app}/transform.response.reasoning.tag.multiple/server"})
@@ -1205,7 +1205,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.reasoning.tag.unclosed/client",
         "${app}/transform.response.reasoning.tag.unclosed/server"})
@@ -1216,7 +1216,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.reasoning.tag.absent/client",
         "${app}/transform.response.reasoning.tag.absent/server"})
@@ -1237,7 +1237,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.refusal/client",
         "${app}/transform.response.refusal/server"})
@@ -1248,7 +1248,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.streaming/client",
         "${app}/openai.transform.response.streaming/server"})
@@ -1259,7 +1259,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.streaming.tool.call/client",
         "${app}/openai.transform.response.streaming.tool.call/server"})
@@ -1270,7 +1270,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.streaming.error/client",
         "${app}/openai.transform.response.streaming.error/server"})
@@ -1281,7 +1281,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.request.max.output.tokens/client",
         "${app}/transform.request.max.output.tokens/server"})
@@ -1362,7 +1362,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"openai\"", "reason \"openai:insufficient_system_resource\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"openai/ccs\"", "reason \"openai/ccs:insufficient_system_resource\""})
     @Specification({
         "${net}/openai.transform.response.finish.reason.unknown/client",
         "${app}/transform.response.finish.reason/server"})
@@ -1373,7 +1373,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"anthropic\"", "reason \"anthropic:stop_sequence\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\"", "reason \"anthropic:stop_sequence\""})
     @Specification({
         "${net}/openai.transform.response.text/client",
         "${app}/transform.response.finish.reason/server"})
@@ -1384,7 +1384,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"openai\"", "reason \"unprefixed\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"openai/ccs\"", "reason \"unprefixed\""})
     @Specification({
         "${net}/openai.transform.response.text/client",
         "${app}/transform.response.finish.reason/server"})
@@ -1395,7 +1395,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"openai/responses\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"openai/rs\""})
     @Specification({
         "${net}/openai.transform.response.text/client",
         "${app}/openai.responses.transform.response.text/server"})
@@ -1406,7 +1406,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"openai/responses\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"openai/rs\""})
     @Specification({
         "${net}/openai.transform.response.reasoning/client",
         "${app}/openai.responses.transform.response.reasoning/server"})
@@ -1417,7 +1417,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"openai/responses\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"openai/rs\""})
     @Specification({
         "${net}/openai.transform.response.text.and.tool.call/client",
         "${app}/openai.responses.transform.response.text.and.tool.call/server"})
@@ -1428,7 +1428,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"openai/responses\"", "reason \"openai:max_messages\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"openai/rs\"", "reason \"openai/rs:max_messages\""})
     @Specification({
         "${net}/openai.transform.response.text/client",
         "${app}/transform.response.finish.reason/server"})
@@ -1439,7 +1439,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\"", "target \"openai/responses\""})
+    @ScriptProperty({"source \"openai/ccs\"", "target \"openai/rs\""})
     @Specification({
         "${net}/openai.transform.response.streaming/client",
         "${app}/openai.responses.transform.response.streaming/server"})
@@ -1450,7 +1450,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.request.sampling/client",
         "${app}/transform.request.sampling/server"})
@@ -1461,7 +1461,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.request.sampling.seed/client",
         "${app}/transform.request.sampling.seed/server"})
@@ -1472,7 +1472,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.request.sampling.penalties/client",
         "${app}/transform.request.sampling.penalties/server"})
@@ -1483,7 +1483,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.request.sampling.stop/client",
         "${app}/transform.request.sampling.stop/server"})
@@ -1494,7 +1494,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.request.sampling.stop.string/client",
         "${app}/transform.request.sampling.stop/server"})
@@ -1595,7 +1595,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\"", "effort \"none\"", "wire \"none\""})
+    @ScriptProperty({"source \"openai/ccs\"", "effort \"none\"", "wire \"none\""})
     @Specification({
         "${net}/openai.transform.request.reasoning.effort/client",
         "${app}/transform.request.reasoning.effort/server"})
@@ -1606,7 +1606,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\"", "effort \"minimal\"", "wire \"minimal\""})
+    @ScriptProperty({"source \"openai/ccs\"", "effort \"minimal\"", "wire \"minimal\""})
     @Specification({
         "${net}/openai.transform.request.reasoning.effort/client",
         "${app}/transform.request.reasoning.effort/server"})
@@ -1617,7 +1617,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\"", "effort \"low\"", "wire \"low\""})
+    @ScriptProperty({"source \"openai/ccs\"", "effort \"low\"", "wire \"low\""})
     @Specification({
         "${net}/openai.transform.request.reasoning.effort/client",
         "${app}/transform.request.reasoning.effort/server"})
@@ -1628,7 +1628,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\"", "effort \"medium\"", "wire \"medium\""})
+    @ScriptProperty({"source \"openai/ccs\"", "effort \"medium\"", "wire \"medium\""})
     @Specification({
         "${net}/openai.transform.request.reasoning.effort/client",
         "${app}/transform.request.reasoning.effort/server"})
@@ -1639,7 +1639,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\"", "effort \"high\"", "wire \"high\""})
+    @ScriptProperty({"source \"openai/ccs\"", "effort \"high\"", "wire \"high\""})
     @Specification({
         "${net}/openai.transform.request.reasoning.effort/client",
         "${app}/transform.request.reasoning.effort/server"})
@@ -1650,7 +1650,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\"", "effort \"xhigh\"", "wire \"xhigh\""})
+    @ScriptProperty({"source \"openai/ccs\"", "effort \"xhigh\"", "wire \"xhigh\""})
     @Specification({
         "${net}/openai.transform.request.reasoning.effort/client",
         "${app}/transform.request.reasoning.effort/server"})
@@ -1661,7 +1661,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\"", "user \"user-123\"", "wire \"user-123\""})
+    @ScriptProperty({"source \"openai/ccs\"", "user \"user-123\"", "wire \"user-123\""})
     @Specification({
         "${net}/openai.transform.request.user/client",
         "${app}/transform.request.user/server"})
@@ -1672,7 +1672,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\"", "tier \"auto\"", "wire \"auto\""})
+    @ScriptProperty({"source \"openai/ccs\"", "tier \"auto\"", "wire \"auto\""})
     @Specification({
         "${net}/openai.transform.request.service.tier/client",
         "${app}/transform.request.service.tier/server"})
@@ -1683,7 +1683,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\"", "tier \"default\"", "wire \"default\""})
+    @ScriptProperty({"source \"openai/ccs\"", "tier \"default\"", "wire \"default\""})
     @Specification({
         "${net}/openai.transform.request.service.tier/client",
         "${app}/transform.request.service.tier/server"})
@@ -1694,7 +1694,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\"", "tier \"flex\"", "wire \"flex\""})
+    @ScriptProperty({"source \"openai/ccs\"", "tier \"flex\"", "wire \"flex\""})
     @Specification({
         "${net}/openai.transform.request.service.tier/client",
         "${app}/transform.request.service.tier/server"})
@@ -1705,7 +1705,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\"", "tier \"priority\"", "wire \"priority\""})
+    @ScriptProperty({"source \"openai/ccs\"", "tier \"priority\"", "wire \"priority\""})
     @Specification({
         "${net}/openai.transform.request.service.tier/client",
         "${app}/transform.request.service.tier/server"})
@@ -1753,6 +1753,26 @@ public class LlmOpenaiServerIT
         "${net}/openai.request.service.tier.residue/client",
         "${app}/openai.request.service.tier.residue/server"})
     public void shouldDecodeOpenaiRequestServiceTierResidueScale() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.openai.chat.yaml")
+    @Specification({
+        "${net}/openai.echo/client",
+        "${app}/openai.echo/server"})
+    public void shouldServeOpenaiChatCompletionsWhenApisRestrictedToChatCompletions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.dialects.yaml")
+    @Specification({
+        "${net}/openai.echo/client",
+        "${app}/openai.echo/server"})
+    public void shouldServeOpenaiChatCompletionsWhenDialectsRestrictOpenaiToChatCompletions() throws Exception
     {
         k3po.finish();
     }

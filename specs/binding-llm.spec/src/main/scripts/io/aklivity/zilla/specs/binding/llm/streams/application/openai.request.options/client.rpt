@@ -19,7 +19,7 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
+                           .dialect("openai/ccs")
                            .model("gpt-4")
                            .build()}
 
@@ -38,7 +38,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"x:temperature\":0.7,\"x:top_p\":0.9,\"x:seed\":42,\"x:stop\":[\"END\"],\"openai:store\":true,\"x:service_tier\":\"auto\",\"openai:logprobs\":true,\"openai:top_logprobs\":3,\"openai:n\":2,\"openai:audio\":{\"voice\":\"alloy\",\"format\":\"wav\"}}"
+write "{\"x:temperature\":0.7,\"x:top_p\":0.9,\"x:seed\":42,\"x:stop\":[\"END\"],\"openai:store\":true,\"x:service_tier\":\"auto\",\"openai/ccs:logprobs\":true,\"openai/ccs:top_logprobs\":3,\"openai/ccs:n\":2,\"openai/ccs:audio\":{\"voice\":\"alloy\",\"format\":\"wav\"}}"
 write flush
 
 write advise zilla:flush ${llm:dialectFlushEx()

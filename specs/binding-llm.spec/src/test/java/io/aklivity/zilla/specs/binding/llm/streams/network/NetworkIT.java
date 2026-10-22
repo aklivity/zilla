@@ -23,6 +23,7 @@ import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 
+import io.aklivity.k3po.runtime.junit.annotation.ScriptProperty;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 
@@ -5168,6 +5169,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.responses.transform.response.shared.members/client",
+        "${net}/openai.responses.transform.response.shared.members/server"})
+    public void shouldOpenaiResponsesTransformResponseSharedMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.responses.transform.response.text.sse/client",
         "${net}/openai.responses.transform.response.text.sse/server"})
     public void shouldOpenaiResponsesTransformResponseTextSse() throws Exception
@@ -8672,6 +8682,61 @@ public class NetworkIT
         "${net}/gemini.transform.rejected.member/client",
         "${net}/gemini.transform.rejected.member/server"})
     public void shouldGeminiTransformRejectedMember() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/reject.openai.api.responses/client",
+        "${net}/reject.openai.api.responses/server"})
+    public void shouldRejectOpenaiApiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/reject.openai.api.chat.completions/client",
+        "${net}/reject.openai.api.chat.completions/server"})
+    public void shouldRejectOpenaiApiChatCompletions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.request.members.chat/client",
+        "${net}/openai.responses.transform.request.members.chat/server"})
+    public void shouldOpenaiResponsesTransformRequestMembersChat() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.request.shared.members/client",
+        "${net}/openai.responses.transform.request.shared.members/server"})
+    public void shouldOpenaiResponsesTransformRequestSharedMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/reject.gemini.dialect/client",
+        "${net}/reject.gemini.dialect/server"})
+    public void shouldRejectGeminiDialect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @ScriptProperty({"model \"claude-3-opus-20240229xx\""})
+    @Specification({
+        "${net}/anthropic.section.user.text.cache.control.window/client",
+        "${net}/anthropic.section.user.text.cache.control.window/server"})
+    public void shouldForwardAnthropicSectionUserTextCacheControlWindowModelPlus2() throws Exception
     {
         k3po.finish();
     }

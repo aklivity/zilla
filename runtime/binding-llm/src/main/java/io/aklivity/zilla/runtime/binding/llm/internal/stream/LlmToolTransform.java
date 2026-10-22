@@ -21,6 +21,7 @@ import jakarta.json.stream.JsonLocation;
 
 import io.aklivity.zilla.runtime.binding.llm.config.LlmMember;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmModelCapability;
+import io.aklivity.zilla.runtime.binding.llm.internal.dialect.LlmDialectNames;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
@@ -76,7 +77,7 @@ abstract class LlmToolTransform implements JsonTransform
     protected String target;
 
     private final int mode;
-    private final boolean sameDialect;
+    private final String dialect;
     private final int extractDepth;
     private final LlmCapturedValue captured;
     private final LiteralSource literalSource;
@@ -138,23 +139,23 @@ abstract class LlmToolTransform implements JsonTransform
     protected LlmToolTransform(
         int mode)
     {
-        this(mode, false);
+        this(mode, null);
     }
 
     protected LlmToolTransform(
         int mode,
-        boolean sameDialect)
+        String dialect)
     {
-        this(mode, sameDialect, 1);
+        this(mode, dialect, 1);
     }
 
     protected LlmToolTransform(
         int mode,
-        boolean sameDialect,
+        String dialect,
         int extractDepth)
     {
         this.mode = mode;
-        this.sameDialect = sameDialect;
+        this.dialect = dialect;
         this.extractDepth = extractDepth;
         this.queueEvents = new JsonEvent[QUEUE_CAPACITY];
         this.queueTexts = new String[QUEUE_CAPACITY];
@@ -299,16 +300,15 @@ abstract class LlmToolTransform implements JsonTransform
     }
 
     protected final int prefix(
-        String dialect,
+        String scope,
         CharSequence key)
     {
-        target = name(dialect, key);
+        target = name(scope, key);
 
         return PASS_VALUE;
     }
 
     protected final int unprefix(
-        String dialect,
         CharSequence key)
     {
         final int length = key.length();
@@ -333,9 +333,13 @@ abstract class LlmToolTransform implements JsonTransform
         {
             action = legal(sharedMember.wrap(key, colon + 1, length));
         }
-        else if (sameDialect && regionMatches(key, 0, colon, dialect))
+        else if (LlmDialectNames.admits(key, 0, colon, dialect))
         {
             target = name(null, key, colon + 1, length);
+        }
+        else if (LlmBehaviour.listed(key))
+        {
+            action = judge(key);
         }
         else
         {
@@ -1048,7 +1052,7 @@ abstract class LlmToolTransform implements JsonTransform
     private boolean judging(
         String member)
     {
-        return legality.unsupported != 0 && legality.unsupported(LlmMember.of(member));
+        return legality.unsupported != 0 && legality.unsupported(LlmMember.of(member)) || LlmBehaviour.listed(member);
     }
 
     private Status judged()

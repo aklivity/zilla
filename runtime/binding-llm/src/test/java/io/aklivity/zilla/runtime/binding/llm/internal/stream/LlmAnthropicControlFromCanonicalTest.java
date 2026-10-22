@@ -658,4 +658,12 @@ public class LlmAnthropicControlFromCanonicalTest
     {
         return new LlmModelCapability(true, null, -1, -1, null, LlmServiceTier.maskOf(names));
     }
+
+    @Test
+    public void shouldRejectBehaviouralMemberOfOpenaiVariant()
+    {
+        assertRejects(foreignMembers, json("{'openai/rs:previous_response_id':'resp_1'}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("openai/rs:previous_response_id"));
+    }
 }

@@ -14,22 +14,25 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmOpenaiResponsesDialectFactorySpi.NAME;
+
+import io.aklivity.zilla.runtime.binding.llm.internal.dialect.LlmDialectNames;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 final class LlmOpenaiResponsesReasoningToValue extends LlmToolTransform
 {
-    private final boolean sameDialect;
+    private final boolean admitted;
     private final String member;
 
     private boolean extracted;
 
     LlmOpenaiResponsesReasoningToValue(
-        boolean sameDialect,
+        String dialect,
         String member)
     {
-        super(MODE_EXTRACT, sameDialect);
-        this.sameDialect = sameDialect;
-        this.member = "openai:" + member;
+        super(MODE_EXTRACT, dialect);
+        this.admitted = LlmDialectNames.admits(NAME, dialect);
+        this.member = NAME + ":" + member;
     }
 
     @Override
@@ -46,7 +49,7 @@ final class LlmOpenaiResponsesReasoningToValue extends LlmToolTransform
     {
         int action = DROP;
 
-        if (sameDialect && matches(key, member))
+        if (admitted && matches(key, member))
         {
             target = member;
             extracted = true;
