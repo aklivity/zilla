@@ -2692,7 +2692,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 final int held = holding ? retained : 0;
                 int window = windowFor(offset, limit);
 
-                if (heldPending && window < held + Math.min(MIN_WINDOW, limit - offset - held))
+                if (heldPending && windowFor(offset, limit, capacity()) < held + Math.min(MIN_WINDOW, limit - offset - held))
                 {
                     flushHeld();
                     retained = held;
@@ -2804,6 +2804,14 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
+            return windowFor(offset, limit, available());
+        }
+
+        private int windowFor(
+            int offset,
+            int limit,
+            int credit)
+        {
             final int reserved = heldTail();
             final int framing = TEXT_PREFIX.length + TEXT_SUFFIX.length;
             final int reserve = decoder == decodeText && textOpen ? TEXT_SUFFIX.length : framing;
@@ -2811,14 +2819,29 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             final int growth = decoder == decodeText ? textGrowth : Math.max(textGrowth, CONTROL_GROWTH);
 
             return stream != null
-                ? (int) Math.min(limit - offset, Math.max(available() - reserved - reserve, 0) / growth)
+                ? (int) Math.min(limit - offset, Math.max(credit - reserved - reserve, 0) / growth)
                 : limit - offset;
         }
 
         private int available()
         {
-            final int credit = stream != null ? (int) Math.max(stream.initialAvailable(), 0L) : 0;
-            final int available = stream != null ? Math.min(credit, stream.encodeRoom()) : 0;
+            return stream != null
+                ? appendable((int) Math.max(stream.initialAvailable(), 0L), stream.encodeRoom())
+                : 0;
+        }
+
+        private int capacity()
+        {
+            return stream != null
+                ? appendable(stream.initialMax, stream.encodeCapacity())
+                : 0;
+        }
+
+        private int appendable(
+            int credit,
+            int room)
+        {
+            final int available = Math.min(credit, room);
             final int appendRoom = streaming && !streamOptions ? Math.min(STREAM_OPTIONS_SECTION.capacity(), available >> 1) : 0;
 
             return available - appendRoom;
@@ -3002,11 +3025,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 breakpointDepth--;
                 break;
             case KEY_NAME:
-                if (parser.deferredBytes())
-                {
-                    parser.consumed(parser.getStringView().length());
-                }
-                else if (breakpointDepth == 1)
+                if (!parser.deferredBytes() && breakpointDepth == 1)
                 {
                     final CharSequence key = parser.getStringView();
 
@@ -3015,17 +3034,17 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 }
                 break;
             case VALUE_STRING:
-                if (parser.deferredBytes())
-                {
-                    parser.consumed(parser.getStringView().length());
-                }
-                else if (breakpointDepth == 1 && breakpointKey == BREAKPOINT_KEY_TYPE)
+                if (!parser.deferredBytes() && breakpointDepth == 1 && breakpointKey == BREAKPOINT_KEY_TYPE)
                 {
                     breakpointEphemeral = matches(parser.getStringView(), LlmCacheBreakpoint.NATIVE_EPHEMERAL);
                 }
-                else if (breakpointDepth == 1 && breakpointKey == BREAKPOINT_KEY_TTL)
+                else if (!parser.deferredBytes() && breakpointDepth == 1 && breakpointKey == BREAKPOINT_KEY_TTL)
                 {
                     breakpointTtl.append(parser.getStringView());
+                }
+                else if (parser.deferredBytes() && (breakpointDepth != 1 || breakpointKey == BREAKPOINT_KEY_NONE))
+                {
+                    parser.consumed(parser.getStringView().length());
                 }
                 break;
             default:
@@ -4144,6 +4163,11 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             final int room = encodePool.slotCapacity() - (encodeSlotOffset - encodeSlotProgress) - REQUEST_ENCODE_SLACK;
 
             return Math.max(room, 0) / REQUEST_CANONICAL_GROWTH;
+        }
+
+        private int encodeCapacity()
+        {
+            return Math.max(encodePool.slotCapacity() - REQUEST_ENCODE_SLACK, 0) / REQUEST_CANONICAL_GROWTH;
         }
 
         private void onAppReset(
