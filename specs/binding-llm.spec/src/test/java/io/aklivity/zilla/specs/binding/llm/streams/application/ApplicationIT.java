@@ -3521,6 +3521,33 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.proxy.guardrail.response.classified.streaming.exit/client",
+        "${app}/openai.proxy.guardrail.response.classified.streaming.exit/server"})
+    public void shouldGuardOpenaiResponseClassifiedStreamingExit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.classified.paused.exit/client",
+        "${app}/openai.proxy.guardrail.response.classified.paused.exit/server"})
+    public void shouldGuardOpenaiResponseClassifiedPausedExit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.classified.tool.call.paused.exit/client",
+        "${app}/openai.proxy.guardrail.response.classified.tool.call.paused.exit/server"})
+    public void shouldGuardOpenaiResponseClassifiedToolCallPausedExit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.proxy.guardrail.response.rejected.streaming.exit/client",
         "${app}/openai.proxy.guardrail.response.rejected.streaming.exit/server"})
     public void shouldGuardOpenaiResponseRejectedStreamingExit() throws Exception
@@ -7178,6 +7205,1608 @@ public class ApplicationIT
         "${app}/openai.responses.response.controls.held.small.slot/client",
         "${app}/openai.responses.response.controls.held.small.slot/server"})
     public void shouldOpenaiResponsesResponseControlsHeldSmallSlot() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.sampling/client",
+        "${app}/transform.request.sampling/server"})
+    public void shouldTransformRequestSampling() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.sampling.top.k/client",
+        "${app}/transform.request.sampling.top.k/server"})
+    public void shouldTransformRequestSamplingTopK() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.sampling.seed/client",
+        "${app}/transform.request.sampling.seed/server"})
+    public void shouldTransformRequestSamplingSeed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.sampling.penalties/client",
+        "${app}/transform.request.sampling.penalties/server"})
+    public void shouldTransformRequestSamplingPenalties() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.sampling.stop/client",
+        "${app}/transform.request.sampling.stop/server"})
+    public void shouldTransformRequestSamplingStop() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.sampling.clamp/client",
+        "${app}/transform.request.sampling.clamp/server"})
+    public void shouldTransformRequestSamplingClamp() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.sampling.stop/client",
+        "${app}/transform.rejected.sampling.stop/server"})
+    public void shouldTransformRejectedSamplingStop() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.sampling.stop.excess/client",
+        "${app}/transform.rejected.sampling.stop.excess/server"})
+    public void shouldTransformRejectedSamplingStopExcess() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.sampling/client",
+        "${app}/gemini.request.sampling/server"})
+    public void shouldForwardGeminiRequestSampling() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.sampling.residue.absent/client",
+        "${app}/gemini.request.sampling.residue.absent/server"})
+    public void shouldForwardGeminiRequestSamplingResidueAbsent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.sampling.empty/client",
+        "${app}/gemini.request.sampling.empty/server"})
+    public void shouldForwardGeminiRequestSamplingEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.sampling.interleaved/client",
+        "${app}/gemini.request.sampling.interleaved/server"})
+    public void shouldForwardGeminiRequestSamplingInterleaved() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.sampling.snake/client",
+        "${app}/gemini.request.sampling.snake/server"})
+    public void shouldForwardGeminiRequestSamplingSnake() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.sampling.seed.range/client",
+        "${app}/transform.request.sampling.seed.range/server"})
+    public void shouldTransformRequestSamplingSeedRange() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.sampling.stop.limit/client",
+        "${app}/transform.request.sampling.stop.limit/server"})
+    public void shouldTransformRequestSamplingStopLimit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.sampling.stop.entries/client",
+        "${app}/transform.rejected.sampling.stop.entries/server"})
+    public void shouldTransformRejectedSamplingStopEntries() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.sampling.seed.max/client",
+        "${app}/transform.request.sampling.seed.max/server"})
+    public void shouldTransformRequestSamplingSeedMax() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.tool.choice.auto/client",
+        "${app}/openai.request.tool.choice.auto/server"})
+    public void shouldForwardOpenaiRequestToolChoiceAuto() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.tool.choice.required/client",
+        "${app}/openai.request.tool.choice.required/server"})
+    public void shouldForwardOpenaiRequestToolChoiceRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.tool.choice.none/client",
+        "${app}/openai.request.tool.choice.none/server"})
+    public void shouldForwardOpenaiRequestToolChoiceNone() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.tool.choice.function/client",
+        "${app}/openai.request.tool.choice.function/server"})
+    public void shouldForwardOpenaiRequestToolChoiceFunction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.tool.choice.allowed/client",
+        "${app}/openai.request.tool.choice.allowed/server"})
+    public void shouldForwardOpenaiRequestToolChoiceAllowed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.tool.choice.parallel/client",
+        "${app}/openai.request.tool.choice.parallel/server"})
+    public void shouldForwardOpenaiRequestToolChoiceParallel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.tool.choice.auto/client",
+        "${app}/openai.responses.request.tool.choice.auto/server"})
+    public void shouldForwardOpenaiResponsesRequestToolChoiceAuto() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.tool.choice.required/client",
+        "${app}/openai.responses.request.tool.choice.required/server"})
+    public void shouldForwardOpenaiResponsesRequestToolChoiceRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.tool.choice.none/client",
+        "${app}/openai.responses.request.tool.choice.none/server"})
+    public void shouldForwardOpenaiResponsesRequestToolChoiceNone() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.tool.choice.function/client",
+        "${app}/openai.responses.request.tool.choice.function/server"})
+    public void shouldForwardOpenaiResponsesRequestToolChoiceFunction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.tool.choice.allowed/client",
+        "${app}/openai.responses.request.tool.choice.allowed/server"})
+    public void shouldForwardOpenaiResponsesRequestToolChoiceAllowed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.tool.choice.hosted/client",
+        "${app}/openai.responses.request.tool.choice.hosted/server"})
+    public void shouldForwardOpenaiResponsesRequestToolChoiceHosted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.tool.choice.parallel/client",
+        "${app}/openai.responses.request.tool.choice.parallel/server"})
+    public void shouldForwardOpenaiResponsesRequestToolChoiceParallel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.tool.choice.auto/client",
+        "${app}/anthropic.request.tool.choice.auto/server"})
+    public void shouldForwardAnthropicRequestToolChoiceAuto() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.tool.choice.any/client",
+        "${app}/anthropic.request.tool.choice.any/server"})
+    public void shouldForwardAnthropicRequestToolChoiceAny() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.tool.choice.none/client",
+        "${app}/anthropic.request.tool.choice.none/server"})
+    public void shouldForwardAnthropicRequestToolChoiceNone() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.tool.choice.tool/client",
+        "${app}/anthropic.request.tool.choice.tool/server"})
+    public void shouldForwardAnthropicRequestToolChoiceTool() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.tool.choice.parallel.disabled/client",
+        "${app}/anthropic.request.tool.choice.parallel.disabled/server"})
+    public void shouldForwardAnthropicRequestToolChoiceParallelDisabled() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.tool.choice.parallel.enabled/client",
+        "${app}/anthropic.request.tool.choice.parallel.enabled/server"})
+    public void shouldForwardAnthropicRequestToolChoiceParallelEnabled() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.tool.choice.parallel.only/client",
+        "${app}/anthropic.request.tool.choice.parallel.only/server"})
+    public void shouldForwardAnthropicRequestToolChoiceParallelOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.tool.choice.residue/client",
+        "${app}/anthropic.request.tool.choice.residue/server"})
+    public void shouldForwardAnthropicRequestToolChoiceResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.tool.choice.unknown/client",
+        "${app}/anthropic.request.tool.choice.unknown/server"})
+    public void shouldForwardAnthropicRequestToolChoiceUnknown() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.tool.choice.auto/client",
+        "${app}/gemini.request.tool.choice.auto/server"})
+    public void shouldForwardGeminiRequestToolChoiceAuto() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.tool.choice.any/client",
+        "${app}/gemini.request.tool.choice.any/server"})
+    public void shouldForwardGeminiRequestToolChoiceAny() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.tool.choice.none/client",
+        "${app}/gemini.request.tool.choice.none/server"})
+    public void shouldForwardGeminiRequestToolChoiceNone() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.tool.choice.function/client",
+        "${app}/gemini.request.tool.choice.function/server"})
+    public void shouldForwardGeminiRequestToolChoiceFunction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.tool.choice.allowed.required/client",
+        "${app}/gemini.request.tool.choice.allowed.required/server"})
+    public void shouldForwardGeminiRequestToolChoiceAllowedRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.tool.choice.allowed.auto/client",
+        "${app}/gemini.request.tool.choice.allowed.auto/server"})
+    public void shouldForwardGeminiRequestToolChoiceAllowedAuto() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.tool.choice.validated/client",
+        "${app}/gemini.request.tool.choice.validated/server"})
+    public void shouldForwardGeminiRequestToolChoiceValidated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.tool.choice.residue/client",
+        "${app}/gemini.request.tool.choice.residue/server"})
+    public void shouldForwardGeminiRequestToolChoiceResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.tool.choice.snake/client",
+        "${app}/gemini.request.tool.choice.snake/server"})
+    public void shouldForwardGeminiRequestToolChoiceSnake() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.tool.choice.auto/client",
+        "${app}/transform.request.tool.choice.auto/server"})
+    public void shouldTransformRequestToolChoiceAuto() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.tool.choice.required/client",
+        "${app}/transform.request.tool.choice.required/server"})
+    public void shouldTransformRequestToolChoiceRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.tool.choice.none/client",
+        "${app}/transform.request.tool.choice.none/server"})
+    public void shouldTransformRequestToolChoiceNone() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.tool.choice.function/client",
+        "${app}/transform.request.tool.choice.function/server"})
+    public void shouldTransformRequestToolChoiceFunction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.tool.choice.allowed/client",
+        "${app}/transform.request.tool.choice.allowed/server"})
+    public void shouldTransformRequestToolChoiceAllowed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.tool.choice.allowed.required/client",
+        "${app}/transform.request.tool.choice.allowed.required/server"})
+    public void shouldTransformRequestToolChoiceAllowedRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.tool.choice.parallel/client",
+        "${app}/transform.request.tool.choice.parallel/server"})
+    public void shouldTransformRequestToolChoiceParallel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.tool.choice.parallel.true/client",
+        "${app}/transform.request.tool.choice.parallel.true/server"})
+    public void shouldTransformRequestToolChoiceParallelTrue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.tool.choice.choice.parallel/client",
+        "${app}/transform.request.tool.choice.choice.parallel/server"})
+    public void shouldTransformRequestToolChoiceChoiceParallel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.tool.choice.parallel.first/client",
+        "${app}/transform.request.tool.choice.parallel.first/server"})
+    public void shouldTransformRequestToolChoiceParallelFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.tool.choice.none.parallel/client",
+        "${app}/transform.request.tool.choice.none.parallel/server"})
+    public void shouldTransformRequestToolChoiceNoneParallel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.tool.choice.allowed/client",
+        "${app}/transform.rejected.tool.choice.allowed/server"})
+    public void shouldTransformRejectedToolChoiceAllowed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.tool.choice.value/client",
+        "${app}/transform.rejected.tool.choice.value/server"})
+    public void shouldTransformRejectedToolChoiceValue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.parallel.tool.calls/client",
+        "${app}/transform.rejected.parallel.tool.calls/server"})
+    public void shouldTransformRejectedParallelToolCalls() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.tool.choice.mixed/client",
+        "${app}/openai.request.tool.choice.mixed/server"})
+    public void shouldForwardOpenaiRequestToolChoiceMixed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.tool.choice.mixed/client",
+        "${app}/openai.responses.request.tool.choice.mixed/server"})
+    public void shouldForwardOpenaiResponsesRequestToolChoiceMixed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.tool.choice.mixed/client",
+        "${app}/anthropic.request.tool.choice.mixed/server"})
+    public void shouldForwardAnthropicRequestToolChoiceMixed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.tool.choice.mixed/client",
+        "${app}/gemini.request.tool.choice.mixed/server"})
+    public void shouldForwardGeminiRequestToolChoiceMixed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.response.format.text/client",
+        "${app}/openai.request.response.format.text/server"})
+    public void shouldForwardOpenaiRequestResponseFormatText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.response.format.json.object/client",
+        "${app}/openai.request.response.format.json.object/server"})
+    public void shouldForwardOpenaiRequestResponseFormatJsonObject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.response.format.text/client",
+        "${app}/openai.responses.request.response.format.text/server"})
+    public void shouldForwardOpenaiResponsesRequestResponseFormatText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.response.format.json.object/client",
+        "${app}/openai.responses.request.response.format.json.object/server"})
+    public void shouldForwardOpenaiResponsesRequestResponseFormatJsonObject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.response.format.json.schema/client",
+        "${app}/openai.responses.request.response.format.json.schema/server"})
+    public void shouldForwardOpenaiResponsesRequestResponseFormatJsonSchema() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.response.format.residue/client",
+        "${app}/openai.responses.request.response.format.residue/server"})
+    public void shouldForwardOpenaiResponsesRequestResponseFormatResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.response.format.residue.split/client",
+        "${app}/openai.responses.request.response.format.residue.split/server"})
+    public void shouldForwardOpenaiResponsesRequestResponseFormatResidueSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.response.format.residue.only/client",
+        "${app}/openai.responses.request.response.format.residue.only/server"})
+    public void shouldForwardOpenaiResponsesRequestResponseFormatResidueOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.response.format.json.schema/client",
+        "${app}/anthropic.request.response.format.json.schema/server"})
+    public void shouldForwardAnthropicRequestResponseFormatJsonSchema() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.response.format.residue/client",
+        "${app}/anthropic.request.response.format.residue/server"})
+    public void shouldForwardAnthropicRequestResponseFormatResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.response.format.residue.split/client",
+        "${app}/anthropic.request.response.format.residue.split/server"})
+    public void shouldForwardAnthropicRequestResponseFormatResidueSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.response.format.residue.only/client",
+        "${app}/anthropic.request.response.format.residue.only/server"})
+    public void shouldForwardAnthropicRequestResponseFormatResidueOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.response.format.json.object/client",
+        "${app}/gemini.request.response.format.json.object/server"})
+    public void shouldForwardGeminiRequestResponseFormatJsonObject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.response.format.json.schema/client",
+        "${app}/gemini.request.response.format.json.schema/server"})
+    public void shouldForwardGeminiRequestResponseFormatJsonSchema() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.response.format.residue/client",
+        "${app}/gemini.request.response.format.residue/server"})
+    public void shouldForwardGeminiRequestResponseFormatResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.response.format.enum/client",
+        "${app}/gemini.request.response.format.enum/server"})
+    public void shouldForwardGeminiRequestResponseFormatEnum() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.response.format.schema.first/client",
+        "${app}/gemini.request.response.format.schema.first/server"})
+    public void shouldForwardGeminiRequestResponseFormatSchemaFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.response.format.deprecated.schema.first/client",
+        "${app}/gemini.request.response.format.deprecated.schema.first/server"})
+    public void shouldForwardGeminiRequestResponseFormatDeprecatedSchemaFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.response.format.text/client",
+        "${app}/transform.request.response.format.text/server"})
+    public void shouldTransformRequestResponseFormatText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.response.format.json.object/client",
+        "${app}/transform.request.response.format.json.object/server"})
+    public void shouldTransformRequestResponseFormatJsonObject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.response.format.json.schema/client",
+        "${app}/transform.request.response.format.json.schema/server"})
+    public void shouldTransformRequestResponseFormatJsonSchema() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.response.format.json.schema.type.last/client",
+        "${app}/transform.request.response.format.json.schema.type.last/server"})
+    public void shouldTransformRequestResponseFormatJsonSchemaTypeLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.response.format.json.schema.names/client",
+        "${app}/transform.request.response.format.json.schema.names/server"})
+    public void shouldTransformRequestResponseFormatJsonSchemaNames() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.response.format.json.object/client",
+        "${app}/transform.rejected.response.format.json.object/server"})
+    public void shouldTransformRejectedResponseFormatJsonObject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.response.format.type/client",
+        "${app}/transform.rejected.response.format.type/server"})
+    public void shouldTransformRejectedResponseFormatType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.response.format.keyword.minimum/client",
+        "${app}/transform.rejected.response.format.keyword.minimum/server"})
+    public void shouldTransformRejectedResponseFormatKeywordMinimum() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.response.format.keyword.min.length/client",
+        "${app}/transform.rejected.response.format.keyword.min.length/server"})
+    public void shouldTransformRejectedResponseFormatKeywordMinLength() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.response.format.keyword.max.items/client",
+        "${app}/transform.rejected.response.format.keyword.max.items/server"})
+    public void shouldTransformRejectedResponseFormatKeywordMaxItems() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.response.format.keyword.min.items/client",
+        "${app}/transform.rejected.response.format.keyword.min.items/server"})
+    public void shouldTransformRejectedResponseFormatKeywordMinItems() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.response.format.keyword.external.ref/client",
+        "${app}/transform.rejected.response.format.keyword.external.ref/server"})
+    public void shouldTransformRejectedResponseFormatKeywordExternalRef() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.response.format.keyword.recursive.ref/client",
+        "${app}/transform.rejected.response.format.keyword.recursive.ref/server"})
+    public void shouldTransformRejectedResponseFormatKeywordRecursiveRef() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.response.format.keyword.pattern.properties/client",
+        "${app}/transform.rejected.response.format.keyword.pattern.properties/server"})
+    public void shouldTransformRejectedResponseFormatKeywordPatternProperties() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.response.format.keyword.not/client",
+        "${app}/transform.rejected.response.format.keyword.not/server"})
+    public void shouldTransformRejectedResponseFormatKeywordNot() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.response.format.rejected.bound/client",
+        "${app}/openai.responses.request.response.format.rejected.bound/server"})
+    public void shouldForwardOpenaiResponsesRequestResponseFormatRejectedBound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.reasoning.effort/client",
+        "${app}/transform.request.reasoning.effort/server"})
+    public void shouldTransformRequestReasoningEffort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.reasoning.budget/client",
+        "${app}/transform.request.reasoning.budget/server"})
+    public void shouldTransformRequestReasoningBudget() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.reasoning.effort.budget/client",
+        "${app}/transform.request.reasoning.effort.budget/server"})
+    public void shouldTransformRequestReasoningEffortBudget() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.sampling.members/client",
+        "${app}/transform.request.sampling.members/server"})
+    public void shouldTransformRequestSamplingMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.reasoning.effort/client",
+        "${app}/transform.rejected.reasoning.effort/server"})
+    public void shouldTransformRejectedReasoningEffort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.reasoning.budget/client",
+        "${app}/transform.rejected.reasoning.budget/server"})
+    public void shouldTransformRejectedReasoningBudget() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.reasoning.residue/client",
+        "${app}/openai.responses.request.reasoning.residue/server"})
+    public void shouldForwardOpenaiResponsesRequestReasoningResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.reasoning.residue.only/client",
+        "${app}/openai.responses.request.reasoning.residue.only/server"})
+    public void shouldForwardOpenaiResponsesRequestReasoningResidueOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.reasoning.residue.split/client",
+        "${app}/openai.responses.request.reasoning.residue.split/server"})
+    public void shouldForwardOpenaiResponsesRequestReasoningResidueSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.reasoning.absent/client",
+        "${app}/openai.responses.request.reasoning.absent/server"})
+    public void shouldForwardOpenaiResponsesRequestReasoningAbsent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.reasoning.thinking.residue/client",
+        "${app}/anthropic.request.reasoning.thinking.residue/server"})
+    public void shouldForwardAnthropicRequestReasoningThinkingResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.reasoning.budget.residue/client",
+        "${app}/anthropic.request.reasoning.budget.residue/server"})
+    public void shouldForwardAnthropicRequestReasoningBudgetResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.reasoning.enabled.only/client",
+        "${app}/anthropic.request.reasoning.enabled.only/server"})
+    public void shouldForwardAnthropicRequestReasoningEnabledOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.reasoning.disabled.effort/client",
+        "${app}/anthropic.request.reasoning.disabled.effort/server"})
+    public void shouldForwardAnthropicRequestReasoningDisabledEffort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.reasoning.level/client",
+        "${app}/gemini.request.reasoning.level/server"})
+    public void shouldForwardGeminiRequestReasoningLevel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.reasoning.budget/client",
+        "${app}/gemini.request.reasoning.budget/server"})
+    public void shouldForwardGeminiRequestReasoningBudget() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.reasoning.budget.automatic/client",
+        "${app}/gemini.request.reasoning.budget.automatic/server"})
+    public void shouldForwardGeminiRequestReasoningBudgetAutomatic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.reasoning.residue.only/client",
+        "${app}/gemini.request.reasoning.residue.only/server"})
+    public void shouldForwardGeminiRequestReasoningResidueOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.reasoning.empty/client",
+        "${app}/gemini.request.reasoning.empty/server"})
+    public void shouldForwardGeminiRequestReasoningEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.reasoning.level.residue.first/client",
+        "${app}/gemini.request.reasoning.level.residue.first/server"})
+    public void shouldForwardGeminiRequestReasoningLevelResidueFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.reasoning.budget.zero/client",
+        "${app}/gemini.request.reasoning.budget.zero/server"})
+    public void shouldForwardGeminiRequestReasoningBudgetZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.reasoning.snake/client",
+        "${app}/gemini.request.reasoning.snake/server"})
+    public void shouldForwardGeminiRequestReasoningSnake() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.reasoning.sampling/client",
+        "${app}/gemini.request.reasoning.sampling/server"})
+    public void shouldForwardGeminiRequestReasoningSampling() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.user/client",
+        "${app}/transform.request.user/server"})
+    public void shouldTransformRequestUser() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.service.tier/client",
+        "${app}/transform.request.service.tier/server"})
+    public void shouldTransformRequestServiceTier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.user/client",
+        "${app}/openai.request.user/server"})
+    public void shouldForwardOpenaiRequestUser() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.service.tier/client",
+        "${app}/openai.request.service.tier/server"})
+    public void shouldForwardOpenaiRequestServiceTier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.service.tier.residue/client",
+        "${app}/openai.request.service.tier.residue/server"})
+    public void shouldForwardOpenaiRequestServiceTierResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.user/client",
+        "${app}/openai.responses.request.user/server"})
+    public void shouldForwardOpenaiResponsesRequestUser() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.service.tier/client",
+        "${app}/openai.responses.request.service.tier/server"})
+    public void shouldForwardOpenaiResponsesRequestServiceTier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.service.tier.residue/client",
+        "${app}/openai.responses.request.service.tier.residue/server"})
+    public void shouldForwardOpenaiResponsesRequestServiceTierResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.user/client",
+        "${app}/anthropic.request.user/server"})
+    public void shouldForwardAnthropicRequestUser() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.user.residue/client",
+        "${app}/anthropic.request.user.residue/server"})
+    public void shouldForwardAnthropicRequestUserResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.service.tier/client",
+        "${app}/anthropic.request.service.tier/server"})
+    public void shouldForwardAnthropicRequestServiceTier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.service.tier.residue/client",
+        "${app}/anthropic.request.service.tier.residue/server"})
+    public void shouldForwardAnthropicRequestServiceTierResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.service.tier/client",
+        "${app}/gemini.request.service.tier/server"})
+    public void shouldForwardGeminiRequestServiceTier() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.service.tier.residue/client",
+        "${app}/gemini.request.service.tier.residue/server"})
+    public void shouldForwardGeminiRequestServiceTierResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.cache.breakpoint/client",
+        "${app}/transform.request.cache.breakpoint/server"})
+    public void shouldForwardTransformRequestCacheBreakpoint() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.cache.breakpoint.default/client",
+        "${app}/transform.request.cache.breakpoint.default/server"})
+    public void shouldForwardTransformRequestCacheBreakpointDefault() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.cache.breakpoint.mode/client",
+        "${app}/transform.request.cache.breakpoint.mode/server"})
+    public void shouldForwardTransformRequestCacheBreakpointMode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.cache.breakpoint.limit/client",
+        "${app}/transform.request.cache.breakpoint.limit/server"})
+    public void shouldForwardTransformRequestCacheBreakpointLimit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.tool.definition.strict/client",
+        "${app}/anthropic.section.tool.definition.strict/server"})
+    public void shouldForwardAnthropicSectionToolDefinitionStrict() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.user.image.cache.control/client",
+        "${app}/anthropic.section.user.image.cache.control/server"})
+    public void shouldForwardAnthropicSectionUserImageCacheControl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.user.document.citations/client",
+        "${app}/anthropic.section.user.document.citations/server"})
+    public void shouldForwardAnthropicSectionUserDocumentCitations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.tool.definition.strict/client",
+        "${app}/transform.tool.definition.strict/server"})
+    public void shouldForwardTransformToolDefinitionStrict() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.user.document.citations/client",
+        "${app}/transform.user.document.citations/server"})
+    public void shouldForwardTransformUserDocumentCitations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.assistant.reasoning.redacted/client",
+        "${app}/transform.assistant.reasoning.redacted/server"})
+    public void shouldForwardTransformAssistantReasoningRedacted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.transform.assistant.reasoning.redacted/client",
+        "${app}/gemini.transform.assistant.reasoning.redacted/server"})
+    public void shouldForwardGeminiTransformAssistantReasoningRedacted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.citations.response.format/client",
+        "${app}/transform.rejected.citations.response.format/server"})
+    public void shouldForwardTransformRejectedCitationsResponseFormat() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.response.format.citations/client",
+        "${app}/transform.rejected.response.format.citations/server"})
+    public void shouldForwardTransformRejectedResponseFormatCitations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.transform.user.document.citations/client",
+        "${app}/gemini.transform.user.document.citations/server"})
+    public void shouldForwardGeminiTransformUserDocumentCitations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.user.text.cache.control.split/client",
+        "${app}/anthropic.section.user.text.cache.control.split/server"})
+    public void shouldForwardAnthropicSectionUserTextCacheControlSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.user.text.held.close/client",
+        "${app}/anthropic.section.user.text.held.close/server"})
+    public void shouldForwardAnthropicSectionUserTextHeldClose() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.user.text.cache.control.fragmented/client",
+        "${app}/anthropic.section.user.text.cache.control.fragmented/server"})
+    public void shouldForwardAnthropicSectionUserTextCacheControlFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.user.text.cache.control.10k/client",
+        "${app}/anthropic.section.user.text.cache.control.10k/server"})
+    public void shouldForwardAnthropicSectionUserTextCacheControl10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.user.text.cache.control.window/client",
+        "${app}/anthropic.section.user.text.cache.control.window/server"})
+    public void shouldForwardAnthropicSectionUserTextCacheControlWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.member/client",
+        "${app}/transform.request.member/server"})
+    public void shouldTransformRequestMember() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.rejected.member/client",
+        "${app}/transform.rejected.member/server"})
+    public void shouldTransformRejectedMember() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.request.shared.members/client",
+        "${app}/transform.request.shared.members/server"})
+    public void shouldTransformRequestSharedMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.controls.split/client",
+        "${app}/openai.request.controls.split/server"})
+    public void shouldForwardOpenaiRequestControlsSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.request.controls.split/client",
+        "${app}/openai.responses.request.controls.split/server"})
+    public void shouldForwardOpenaiResponsesRequestControlsSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.controls.split/client",
+        "${app}/anthropic.request.controls.split/server"})
+    public void shouldForwardAnthropicRequestControlsSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.controls.split/client",
+        "${app}/gemini.request.controls.split/server"})
+    public void shouldForwardGeminiRequestControlsSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.controls.many/client",
+        "${app}/openai.response.controls.many/server"})
+    public void shouldOpenaiResponseControlsMany() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.controls.many.stream/client",
+        "${app}/openai.response.controls.many.stream/server"})
+    public void shouldOpenaiResponseControlsManyStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.controls.grouped/client",
+        "${app}/openai.response.controls.grouped/server"})
+    public void shouldOpenaiResponseControlsGrouped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.response.controls.many/client",
+        "${app}/anthropic.response.controls.many/server"})
+    public void shouldAnthropicResponseControlsMany() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.response.controls.many.stream/client",
+        "${app}/anthropic.response.controls.many.stream/server"})
+    public void shouldAnthropicResponseControlsManyStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.response.controls.grouped/client",
+        "${app}/anthropic.response.controls.grouped/server"})
+    public void shouldAnthropicResponseControlsGrouped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.response.controls.many/client",
+        "${app}/gemini.response.controls.many/server"})
+    public void shouldGeminiResponseControlsMany() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.response.controls.many.stream/client",
+        "${app}/gemini.response.controls.many.stream/server"})
+    public void shouldGeminiResponseControlsManyStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.response.controls.grouped/client",
+        "${app}/gemini.response.controls.grouped/server"})
+    public void shouldGeminiResponseControlsGrouped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.response.controls.many/client",
+        "${app}/openai.responses.response.controls.many/server"})
+    public void shouldOpenaiResponsesResponseControlsMany() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.response.controls.many.stream/client",
+        "${app}/openai.responses.response.controls.many.stream/server"})
+    public void shouldOpenaiResponsesResponseControlsManyStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.response.controls.grouped/client",
+        "${app}/openai.responses.response.controls.grouped/server"})
+    public void shouldOpenaiResponsesResponseControlsGrouped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.streaming.controls.many/client",
+        "${app}/openai.streaming.controls.many/server"})
+    public void shouldOpenaiStreamingControlsMany() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.streaming.controls.many/client",
+        "${app}/anthropic.streaming.controls.many/server"})
+    public void shouldAnthropicStreamingControlsMany() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.controls.message.stream/client",
+        "${app}/openai.response.controls.message.stream/server"})
+    public void shouldOpenaiResponseControlsMessageStream() throws Exception
     {
         k3po.finish();
     }

@@ -41,7 +41,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("ASSISTANT_REASONING")
                           .message(1)
                           .build()}
-read "{\"text\":\"Let me think.\",\"anthropic:signature\":\"sig-1\"}"
+read "{\"text\":\"Let me think.\",\"x:signature\":\"sig-1\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))

@@ -66,16 +66,29 @@ final class LlmAnthropicReasoningFromCanonical extends LlmToolTransform
         else
         {
             action = unprefix(DIALECT, key);
+        }
 
-            if (action != DROP && matches(key, "anthropic:signature"))
-            {
-                emitType(TYPE_THINKING);
-                signed = true;
-            }
-            else if (action != DROP && matches(key, "anthropic:data"))
-            {
-                emitType(TYPE_REDACTED);
-            }
+        return action;
+    }
+
+    @Override
+    protected int shared(
+        CharSequence member)
+    {
+        int action = DROP;
+
+        if (matches(member, LlmSharedMembers.SIGNATURE))
+        {
+            emitType(TYPE_THINKING);
+            signed = true;
+            target = "signature";
+            action = PASS_VALUE;
+        }
+        else if (matches(member, LlmSharedMembers.REDACTED_DATA))
+        {
+            emitType(TYPE_REDACTED);
+            target = "data";
+            action = PASS_VALUE;
         }
 
         return action;

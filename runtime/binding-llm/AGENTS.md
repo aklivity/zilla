@@ -18,10 +18,522 @@ Status key: **implemented** is in the IDL, spec functions and runtime today;
   Dialect-specific members use the `<dialect>:<name>` prefix. (**implemented** for the
   text sections and for tool calls: the guard relays the bytes before the primary
   value as they arrive and the bytes after it once the chain has finished the value)
+- A member that belongs to one block rides inline in that block's section payload (see
+  [Block-level members](#block-level-members)), not in a `CONTROL` section.
 - Anything that a transform might need to adjust or exclude rides in **range
   attributes** (below), not in the body.
 - Response-level and request-level members that belong to no section ride in
-  `CONTROL` sections, one member per section. Control sections bypass guardrails.
+  `CONTROL` sections. Control sections bypass guardrails. A run of request-level
+  members adjacent in the source forms one `CONTROL` section whose payload object
+  holds every member of the run (`{"x:temperature":0.7,"openai:store":false}`),
+  streamed key by key in source order with no holding. A decoder closes the section
+  when a section-bearing member or the end of the body intervenes, or when a member
+  that is not request-level control (the model, the output token limit, `stream`,
+  `stream_options`) does. A key or an escape sequence split across DATA frames never makes a decoder buffer the
+  section: it streams each key as it completes, and skips the separator that a key delivered in fragments leaves
+  unconsumed (`LlmValueStart`). A client keeps or drops each key on its own and writes the
+  members it keeps into the request in order. A server accepts the same grouped section from the application on the
+  response path and processes it member by member ([Response-level members](#response-level-members)).
+  (**implemented** for the request and response paths of every dialect)
+
+## Response-level members
+
+A server encodes the `CONTROL` sections of a reply into the response. A section may hold one member or several, each
+prefixed with the response dialect (`{"openai:created":1700000000,"openai:system_fingerprint":"fp"}`); a member that
+carries another dialect's prefix is dropped. (**implemented** for `openai`, `openai/responses`, `anthropic`
+and `gemini`)
+
+- **Members of a section.** A server splits the section by key as it streams (`LlmMemberSplitter`) and runs each
+  member through the control transform as a section of its own, so every key keeps the placement, conversion and
+  verbatim handling of a single-member section, whatever the order and the number of keys.
+- **Inline and held.** A member the wire format can carry where it arrives is written inline, streamed with no holding:
+  before the choices of a non-streaming `openai` reply, and before the content of an `anthropic` reply or of a
+  non-streaming `openai/responses` reply. Every other member is held until the reply finishes: a late member of a
+  non-streaming reply, an `openai` or `openai/responses` member of a streamed reply, every `gemini` member, and
+  `usage` and the `anthropic` `stop_sequence`, which the dialect places itself. `openai` repeats the held members in
+  every chunk that follows.
+- **Held by credit.** The held members live in a pool slot (`LlmControlHold`), with no limit on how many there are.
+  The bytes held are not acknowledged to the application, so the credit the server grants shrinks as the hold grows,
+  as it does for the client factories that hold a native container, and the hold never outgrows the slot. A member
+  that cannot fit in the remaining credit is flow-controlled to a stop. No member is dropped for lack of count or
+  bytes.
+- **Message-level members.** A member of a message (`message` 0 and above) is written inline by a non-streaming
+  `openai` reply. A streamed `openai` reply holds it and writes it into the finish chunk, in the `delta` (and
+  `logprobs` at the choice, as a non-streaming reply does). The other dialects have no place for it and drop it.
+- **Clients.** A client that decodes a streamed response carries each distinct member once per message although every
+  event repeats it, and remembers every one it has carried (`LlmControlSeen`), however many there are.
+
+## Shared members (`x:`)
+
+A member carried as `<dialect>:<member>` is restored only by a client of that dialect and dropped by every
+other client. A member that two or more dialects have with the same meaning is carried as `x:<member>`
+instead. (**implemented** as the `x:` namespace in `LlmToolTransform`: `shared()`, `share()` and `reject()`;
+the sampling, tool choice, response format, reasoning, user and service tier members below are promoted for every
+dialect, the `gemini`, `anthropic` and `openai/responses` ones lifted out of their native containers; the block-level
+members have their own section)
+
+- `x` is reserved as a dialect name. `LlmDialectFactory` refuses to register a dialect named `x`.
+- A decoder emits `x:<member>` in place of `<dialect>:<member>` for each member it understands, including a
+  leaf lifted out of a native container. The value is canonical (OpenAI-shaped); the decoder converts it. A
+  prefixed member keeps its native value unchanged.
+- A client writes its own `<dialect>:` members, translates the `x:` members it supports into native form,
+  and drops an `x:` member it does not know. Each key of a control section is kept or dropped on its own.
+- `x:` appears only at depth 1 of a control section's object and at depth 1 of a section payload. Native
+  containers are never `x:`-prefixed; their promotable leaves are lifted out.
+- A decoder may emit an `x:` member after the request's sections, so a client treats every `x:` member as
+  possibly arriving up to the end of the request and does not rely on the order of `x:` members.
+- A client applies one **legality class** to an `x:` member the target cannot honour:
+  - **A**, advisory: dropped silently.
+  - **B**, behavioural: the request is rejected, and the message names the member and the dialect pair
+    (`x:<member> cannot be converted from <dialect> to <dialect>`).
+  - **C**, advisory numeric with a narrower range on the target: clamped into the target's range, never
+    rescaled.
+- A client decides the class itself and does not take a successful response as proof that the upstream honoured a
+  member. The members an upstream does not honour are listed in the client options, and the client drops or rejects
+  them before it writes the request ([Upstream support](#upstream-support)).
+- **Graduation.** An `x:` member becomes an unprefixed canonical member when all hold: every registered
+  dialect either supports it natively or documents the provider as lacking it; one value domain and one
+  clamp table across dialects; one legality class with no pair-specific exceptions; per-pair scripts pass
+  across two minor releases; and the decision is recorded in an issue.
+- Members that carry content or grant a capability are sections, not `x:` members, and a guardrail stage
+  never sees an `x:` member.
+
+### Promoted sampling members
+
+The canonical value follows OpenAI: numbers for `temperature`, `top_p`, `top_k`, `frequency_penalty` and
+`presence_penalty`, an integer for `seed` and `top_k`, an array of strings for `stop`. Each decoder converts
+the members it understands and leaves every other member prefixed. The maximum output tokens limit is not an
+`x:` member; it stays on the dialect flush. A native value that does not parse as the canonical value is
+passed through and left to the client to reject. (**implemented** for `openai`, `openai/responses`, `anthropic`
+and `gemini`)
+
+| `x:` member | Range | Class | `openai` | `openai/responses` | `anthropic` | `gemini` (inside `generationConfig`) |
+|---|---|---|---|---|---|---|
+| `temperature` | 0..2 | A, C | `temperature` | `temperature` | `temperature`, clamped into 0..1 | `temperature` |
+| `top_p` | 0..1 | A | `top_p` | `top_p` | `top_p` | `topP` |
+| `top_k` | integer | A | dropped | dropped | `top_k` | `topK` |
+| `stop` | array of strings | B | `stop`; a decoded string becomes a one-entry array | rejects | `stop_sequences` | `stopSequences` |
+| `seed` | integer | A | `seed` | dropped | dropped | `seed`, dropped outside int32 |
+| `frequency_penalty`, `presence_penalty` | -2..2 | A | same names | dropped | dropped | `frequencyPenalty`, `presencePenalty` |
+
+- `temperature` and the penalties are advisory (A), `temperature` is clamped (C) only where the target range is
+  narrower than the canonical one. A value outside the canonical range is not clamped by a target that shares
+  that range; the upstream provider judges it.
+- `stop` is behavioural (B). A client without a stop on the wire rejects with
+  `x:stop cannot be converted from <dialect> to <dialect>`. The `openai` client also rejects more than four
+  entries and the `gemini` client more than five on a cross-dialect hop, and both write a same-dialect hop as
+  received. A `null` `stop` is the absence of
+  the member and is dropped.
+- A same-dialect hop restores every native member exactly. The one normalisation is the `openai` `stop` string,
+  which comes back as a one-entry array; `anthropic` `stop_sequences` round-trips unchanged through `x:stop`.
+- A decoder emits the member at its source position inside the control section it belongs to, so a run such as
+  `{"x:temperature":0.7,"openai:store":false}` stays one section.
+- `seed` is an integer; the `gemini` client drops a value that is not an integral number within int32 (A) and
+  passes a `null` seed as absent.
+
+### Promoted tool choice members
+
+`x:tool_choice` carries the OpenAI Chat value, `x:parallel_tool_calls` a boolean. A choice is one of `"none"`, `"auto"`,
+`"required"`, a named function `{"type":"function","function":{"name":N}}`, or
+`{"type":"allowed_tools","allowed_tools":{"mode":"auto"|"required","tools":[{"type":"function","function":{"name":N}}]}}`.
+Only function entries have a canonical form. (**implemented** for `openai`, `openai/responses`, `anthropic` and `gemini`)
+
+| `x:` value | `openai` | `openai/responses` | `anthropic` | `gemini` (`toolConfig.functionCallingConfig`) |
+|---|---|---|---|---|
+| `"auto"` | `tool_choice` `"auto"` | `"auto"` | `{"type":"auto"}` | `mode` `AUTO` |
+| `"required"` | `"required"` | `"required"` | `{"type":"any"}` | `mode` `ANY` |
+| `"none"` | `"none"` | `"none"` | `{"type":"none"}` | `mode` `NONE` |
+| named function | unchanged | `{"type":"function","name":N}` | `{"type":"tool","name":N}` | `mode` `ANY`, `allowedFunctionNames` `[N]` |
+| `allowed_tools` | unchanged | flat `{"type":"allowed_tools","mode":M,"tools":[{"type":"function","name":N}]}` | rejects | `mode` `ANY` (required) or `AUTO`, `allowedFunctionNames` |
+| `x:parallel_tool_calls` | `parallel_tool_calls` | `parallel_tool_calls` | `tool_choice.disable_parallel_tool_use`, negated | `true` dropped, `false` rejects |
+
+- **Decoding.** `openai` renames both members and keeps the value. `openai/responses` renames `parallel_tool_calls` and
+  nests the flat function and `allowed_tools` forms into the canonical value; a hosted tool choice
+  (`file_search`, `mcp`, ...) or any other shape stays `openai:tool_choice` unchanged. `anthropic` splits the native
+  choice into `x:tool_choice` and `x:parallel_tool_calls` (the negation of `disable_parallel_tool_use`, which is
+  consumed); a member it does not know stays under `anthropic:tool_choice` as residue, which is also where a choice
+  with an unknown `type` or a `tool` without a `name` stays. `gemini` lifts `functionCallingConfig` out of
+  `toolConfig` (camel or snake case): `AUTO` is `"auto"`, `ANY` is `"required"`, a single name is the function form,
+  several names are `allowed_tools` with mode `required`, `AUTO` with names is `allowed_tools` with mode `auto`,
+  `NONE` is `"none"`. `VALIDATED`, a `NONE` with names, a missing mode or a member this table does not know keep the
+  whole `functionCallingConfig` in the residue `gemini:toolConfig`, which also holds every other `toolConfig`
+  member and keeps the source spelling.
+- **Holding.** The forms that convert are held by the decoder (`LlmToolTransform` `CAPTURE_VALUE`) and rewritten
+  once the value is complete, because the target form depends on members that arrive in any order. The hold is
+  bounded so the canonical form always fits the encode slot: 4096 units for `anthropic`, 2048 for `openai/responses`
+  and 768 for `gemini` (a unit is a captured event plus the length of its text), and a value beyond the bound rejects
+  the request. Each held value runs through its own pipeline and is appended to the control section like the
+  `openai` `stop` conversion.
+- **Encoding.** `openai` and the `openai/responses` parallel member pass through. `openai/responses` flattens the
+  canonical value. `anthropic` and `gemini` write the choice as a one-member native container fragment
+  (`tool_choice`, `toolConfig`) that `LlmMemberCollector` holds and writes once at the end of the request; the
+  `anthropic` client also holds `x:parallel_tool_calls` and writes `disable_parallel_tool_use` (negated, and
+  `true` as `false`) into the same `tool_choice` at the end, with `{"type":"auto"}` when no choice arrived, and
+  omits it for `none`, which has no such field. A same-dialect `anthropic` hop restores
+  `{"type":"auto","disable_parallel_tool_use":true}` exactly; the `gemini` container is written after
+  `generationConfig`.
+- **Legality.** Both members are behavioural (B). A canonical value that is not one of the four forms, an
+  `allowed_tools` or an entry that is not a function rejects for `openai/responses`, `anthropic` and `gemini`
+  (`x:tool_choice cannot be converted from <dialect> to <dialect>`); `allowed_tools` always rejects for `anthropic`;
+  `x:parallel_tool_calls` false rejects for `gemini`
+  (`x:parallel_tool_calls cannot be converted from <dialect> to gemini`) and a value that is not a boolean rejects
+  for `anthropic` and `gemini`. Models that refuse a forced choice are model capability data, not part of this
+  contract.
+- Function names are matched against the tool definitions unchanged: no client maps tool names, so the name in
+  `x:tool_choice` is the name the definitions carry. A same-dialect hop restores the choice, with the exception that
+  `ANY` with several names comes back as `ANY` with the same names and `allowed_tools` with mode `required` and one
+  name comes back as the function form.
+
+### Promoted response format member
+
+`x:response_format` carries the OpenAI Chat value: `{"type":"text"}`, `{"type":"json_object"}` or
+`{"type":"json_schema","json_schema":{"name":N,"description":D,"schema":S,"strict":B}}`. (**implemented** for `openai`,
+`openai/responses`, `anthropic` and `gemini`)
+
+| `x:` value | `openai` | `openai/responses` (`text.format`) | `anthropic` (`output_config.format`) | `gemini` (`generationConfig.responseFormat.text`) |
+|---|---|---|---|---|
+| `{"type":"text"}` | `response_format` unchanged | `{"type":"text"}` | omitted | omitted |
+| `{"type":"json_object"}` | unchanged | `{"type":"json_object"}` | rejects | `mimeType` `APPLICATION_JSON` |
+| `json_schema` | unchanged | flat `{"type":"json_schema","name":N,"description":D,"schema":S,"strict":B}` | `{"type":"json_schema","schema":S}`; `name`, `description` and `strict` dropped | `mimeType` `APPLICATION_JSON`, `schema` S; `name`, `description` and `strict` dropped |
+
+- **Decoding.** `openai` renames the member and keeps the value. `openai/responses` nests the flat `text.format` under
+  `json_schema` and keeps the other `text` members (`verbosity`) as `openai:text` residue. `anthropic` lifts
+  `output_config.format` as `json_schema` with the `name` defaulted to `"response"` and keeps every other
+  `output_config` member (`effort`) as `anthropic:output_config` residue; a `type` other than `json_schema` rejects the
+  request. `gemini` lifts `application/json` (or `APPLICATION_JSON`) without a schema as `json_object` and with a schema
+  as `json_schema` with the name `"response"`, from `responseFormat.text` (`mimeType`, `schema`) and from the deprecated
+  `responseMimeType` with `responseSchema` or `responseJsonSchema`; camel and snake spellings are decoded. Other mime
+  types (`text/x.enum`, `text/plain`) and every member this table does not know stay in `gemini:generationConfig`.
+  As for any native container, the residue is split around a lifted member, so one section may hold the same residue key
+  several times, and a container whose every member is lifted emits no residue.
+- **Streaming and bounds.** Values are rewritten key by key and never held, with two exceptions. `openai/responses`
+  needs `type` to open the `json_schema` wrapper, so the members that precede `type` are held until it arrives, bounded by
+  2048 units (a unit is a captured event plus the length of its text); a flat format that exceeds the bound, has an
+  unknown `type` or has no `type` rejects the request (`The 'text.format' parameter is invalid, or its 'type' follows
+  members that are too large.`). `anthropic` always writes `type` first, so its source order is free. `gemini` decides
+  at the first member of `responseFormat.text`, or at the first of `responseMimeType` and the schema leaf: a schema that
+  precedes its mime type is not held, and the whole `responseFormat`, or the schema and the mime type, stay in the
+  residue, so a same-dialect hop restores them and another dialect does not receive them. A second schema leaf stays
+  in the residue, and members of a lifted `responseFormat.text` other than `mimeType` and `schema` are not carried.
+- **Encoding.** `openai` passes the member through. The other clients write the native form as a container fragment
+  (`text`, `output_config`, `generationConfig`) that `LlmMemberCollector` holds and writes once at the end of the request,
+  merged with the residue fragments and, for `gemini`, `maxOutputTokens`, so the held contents are bounded by one pool
+  slot like every other container: a format larger than the slot is flow-controlled to a stop. The members of the
+  canonical value may arrive in any order: `json_schema` before `type` is written as when `type` is first, and a
+  `type` that disagrees with the members rejects.
+- **Gemini form.** The client writes the documented current form, a single object
+  `{"text":{"mimeType":"APPLICATION_JSON","schema":S}}` inside `generationConfig.responseFormat`. The array form used
+  on another surface is not produced, and the deprecated `responseMimeType`, `responseSchema` and `responseJsonSchema`
+  are never written. A same-dialect hop therefore normalises the deprecated shape to the current one and restores the
+  current shape exactly; the `anthropic` format restores exactly, the decoder adds the default name `"response"` to the
+  canonical value and the client drops it.
+- **Legality.** The member is behavioural (B). It rejects naming the member and the pair
+  (`x:response_format cannot be converted from <dialect> to <dialect>`) when the value is not one of the three forms,
+  when the type and the members disagree, and for `json_object` towards `anthropic`. A schema keyword that the target
+  does not support rejects naming the keyword
+  (`x:response_format keyword <keyword> cannot be converted from <dialect> to <dialect>`). `strict` is dropped where the
+  provider always constrains decoding (`anthropic`, `gemini`).
+- **Keyword scan.** The `anthropic` and `gemini` clients scan the schema while it streams through, with no hold
+  (`LlmSchemaScanner`), tracking which objects are schemas, maps of named schemas (`properties`, `patternProperties`,
+  `$defs`, `definitions`, `dependentSchemas`), lists of schemas (`allOf`, `anyOf`, `oneOf`, `prefixItems`) and data
+  (`enum`, `const`, `default`, `examples` and unknown members), so a property named like a denied keyword is not
+  rejected. The checked sets are these lists; extend them by adding keys to the per-target arrays.
+
+  | Target | Rejected keywords |
+  |---|---|
+  | `anthropic` | `minimum`, `maximum`, `exclusiveMinimum`, `exclusiveMaximum`, `multipleOf`, `minLength`, `maxLength`, `maxItems`, `uniqueItems`, `contains`, `minContains`, `maxContains`; `minItems` other than 0 or 1; `$ref` that does not start with `#`; `$ref` that is exactly `#` |
+  | `gemini` | `patternProperties`, `not`, `if`, `then`, `else`, `dependentSchemas`, `unevaluatedProperties`; `$ref` that does not start with `#` |
+  | `openai`, `openai/responses` | none |
+
+  Recursion is detected only as the plain `"$ref":"#"` (a reference to the schema root); a recursive reference through
+  `$defs` or `definitions` is not detected while streaming and is left to the provider.
+
+### Promoted reasoning members
+
+`x:reasoning_effort` is one of `none`, `minimal`, `low`, `medium`, `high`, `xhigh` and `max`; `x:thinking_budget_tokens` is
+an integer of 0 or more. A decoder emits a member only when the source carries it. A `null` value is the absence of the
+member: the nested decoders drop it, the flat `openai` rename passes it through and every client reads it as absent. A value
+that is not one of the above rejects at the client (class B,
+`x:reasoning_effort cannot be converted from <dialect> to <dialect>`, and likewise for `x:thinking_budget_tokens`).
+(**implemented** for `openai`, `openai/responses`, `anthropic` and `gemini`)
+
+| Native member | Decoded as |
+|---|---|
+| `openai` `reasoning_effort` | `x:reasoning_effort`, value unchanged |
+| `openai/responses` `reasoning.effort` | `x:reasoning_effort`; the rest of `reasoning` (`summary`, `generate_summary`) stays `openai:reasoning` |
+| `anthropic` `output_config.effort` | `x:reasoning_effort`; the rest of `output_config` stays `anthropic:output_config` |
+| `anthropic` `thinking.type` `disabled` | `x:reasoning_effort` `none` |
+| `anthropic` `thinking.budget_tokens` | `x:thinking_budget_tokens`; the `enabled` type is consumed with it |
+| `gemini` `generationConfig.thinkingConfig.thinkingLevel` | `x:reasoning_effort`, `MINIMAL`, `LOW`, `MEDIUM` and `HIGH` in lower case |
+| `gemini` `thinkingConfig.thinkingBudget` | `0` is `x:reasoning_effort` `none`, a positive value is `x:thinking_budget_tokens`, `-1` (automatic) stays residue |
+
+| `x:` value | `openai`, `openai/responses` | `anthropic` | `gemini` |
+|---|---|---|---|
+| `x:reasoning_effort` `none` | `none` | per thinking form (below) | `MINIMAL`, or `thinkingBudget` 0 on a model that takes a budget |
+| `minimal` | `minimal` | `output_config.effort` `low` | `MINIMAL` |
+| `low`, `medium`, `high` | same | same | `LOW`, `MEDIUM`, `HIGH` |
+| `xhigh` | `xhigh` | `xhigh` | `HIGH` |
+| `max` | `xhigh` | `max` | `HIGH` |
+| `x:thinking_budget_tokens` | derives an effort from the ladder when no effort is present | `thinking` `enabled` with `budget_tokens`, clamped | `thinkingBudget`, clamped into the model range |
+
+- **Class C.** Each client clamps the effort to the nearest value it offers: `openai` and `openai/responses` offer `none` to
+  `xhigh`, `anthropic` offers `low` to `max` and `gemini` offers `MINIMAL` to `HIGH`. `anthropic` budgets are clamped to at
+  least the model minimum (1024 by default) and below `max_tokens`; `gemini` budgets are clamped into the model range.
+- **Decoding.** The leaves are lifted out of their native containers without holding, like the response format members, so
+  one control section may hold the same residue key several times. `anthropic` `thinking` and `output_config`,
+  `openai/responses` `reasoning` and `gemini` `thinkingConfig` are the containers; the `gemini` residue is carried as
+  `gemini:thinkingConfig` (or `gemini:thinking_config`, in the source spelling), a container of its own inside
+  `generationConfig`. An `anthropic` `thinking.type` of `enabled` is held as a flag until the container ends and is kept
+  as residue only when no `budget_tokens` came; any other `type` (`adaptive`) is residue at once. When `thinking.type` is
+  `disabled` and `output_config.effort` are both present, both are emitted and the client keeps the last to arrive.
+- **Encoding.** A client records the effort and the budget while the control sections stream, the last one to arrive
+  winning, and writes the native form once at the end of the request, where the output token limit is known. `openai`
+  writes `reasoning_effort` before `max_completion_tokens`; `openai/responses` merges `effort` into the `reasoning`
+  container (before the residue fragments); `anthropic` writes `output_config`, `tool_choice`, `thinking` and
+  `max_tokens`, with `effort` first in `output_config` and `type` and `budget_tokens` first in `thinking`; `gemini` writes
+  `thinkingConfig` inside `generationConfig`, after the other fragments and before `maxOutputTokens`, with
+  `thinkingLevel` or `thinkingBudget` first. A same-dialect hop restores every member in content, with the effort and the
+  thinking members moving to the end of the request.
+- **Level versus budget.** `gemini` never writes both. A model that takes a level writes `thinkingLevel` for an effort,
+  whatever the budget; a model that takes a budget writes `thinkingBudget`, the explicit budget when one arrived and the
+  ladder value of the effort otherwise. A budget on a model that takes a level, with no effort, is written as
+  `thinkingBudget`. A budget of 0 is `none`.
+- **Anthropic thinking forms.** `adaptive` accepts adaptive thinking only, `adaptive-disabled` adds an explicit
+  `disabled`, `adaptive-enabled` adds the deprecated `enabled` form and `enabled` accepts `enabled` with a budget only.
+  `none` becomes `thinking` `disabled` on `adaptive-disabled` and `adaptive-enabled`, the lowest effort (`low`) on
+  `adaptive`, and plain omission on `enabled`, because some models turn adaptive thinking on when `thinking` is omitted and
+  only an explicit `disabled` turns it off. `x:thinking_budget_tokens` is honoured only on `adaptive-enabled` and `enabled`
+  and is dropped (class A) elsewhere. An `enabled`-only model takes no `output_config.effort`, so its effort becomes a
+  budget from the ladder. Neither effort nor budget writes `thinking` `adaptive`; the form only decides `none` and the
+  budget. A model with no entry takes `adaptive-disabled`, the form of the current Claude models.
+- **Ladder.** A target that takes a budget instead of an effort turns an effort into tokens through a ladder, clamping to
+  the nearest entry present. `gemini` and the inverse used by `openai` and `openai/responses` (a budget with no effort
+  becomes the highest effort whose entry fits, `minimal` below the first and `none` for 0) default to the documented
+  ladder `low` 1024, `medium` 8192, `high` 24576. `anthropic` derives its default ladder from the model minimum and the
+  request's own limit: `minimal` and `low` take the minimum, `medium` the midpoint and `high` and above the largest budget
+  that fits below `max_tokens`. A ladder with no entry that fits drops the effort (class A); an effort is never guessed.
+
+#### Model capability options
+
+The options of a client carry a `models` map of capabilities, keyed by model identifier or `*` glob pattern and matched
+against the model of each request. The schema of each dialect admits only the properties that dialect uses. A setting
+that an entry does not give falls back to the next matching entry: configured entries first (exact names before globs, in
+declaration order), then the built-in defaults of the dialect, which are data
+(`config/binding-llm.conf/src/main/resources/.../models/<dialect>.json`) and are overridden entry by entry.
+
+| Property | Dialects | Meaning |
+|---|---|---|
+| `sampling` | all | `false` for a model that rejects sampling: it receives no `x:temperature`, `x:top_p` or `x:top_k` (class A). A model with no entry receives them unchanged. |
+| `thinking` | `anthropic`: `adaptive`, `adaptive-disabled`, `adaptive-enabled`, `enabled`; `gemini`: `level`, `budget` | The thinking form the model takes. Defaults: `adaptive-disabled`, `level`. |
+| `budget` | `anthropic`, `gemini` | `minimum` and `maximum` thinking budget tokens the model accepts. A `minimum` of 0 admits a budget of 0 for `none`. The `anthropic` minimum defaults to 1024, and its maximum is always below `max_tokens`. |
+| `ladder` | all | Budget tokens by `minimal`, `low`, `medium`, `high`, `xhigh` and `max`, overriding the default ladder. |
+| `tiers` | all | The canonical service tiers (`auto`, `default`, `flex`, `priority`) the model supports. A request that carries another tier has it dropped (class A). A model with no entry, or an entry that does not list `tiers`, receives the tier unchanged; an empty list supports none. No built-in default lists tiers. |
+| `unsupported` | all | The `x:` members the upstream does not honour, applied by the client before it writes the request ([Upstream support](#upstream-support)). A listed list replaces the dialect-level list for the model, and an empty list lists nothing. |
+| `exclusive` | all | Groups of members the upstream refuses together ([Upstream support](#upstream-support)). A listed list replaces the dialect-level list for the model, and an empty list lists nothing. |
+
+The built-in defaults mark `claude-opus-4-7*` as `adaptive` and rejecting sampling, `claude-opus-4-6*` and
+`claude-sonnet-4-6*` as `adaptive-enabled`, `claude-3-*`, `claude-sonnet-4-5*`, `claude-haiku-4-5*` and `claude-opus-4-1*`
+as `enabled`, `gemini-2.5-pro*` as a budget of 128 to 32768, `gemini-2.5-flash*` as a budget of 0 to 24576, and the `o1*`,
+`o3*` and `o4-mini*` models as rejecting sampling. They are best-effort data: override an entry whose provider documentation
+has moved. An `anthropic` model with no entry takes `adaptive-disabled`, so its `thinking.budget_tokens` is dropped until an
+entry gives it a form that accepts `enabled`.
+
+#### Upstream support
+
+A client applies the legality rule itself, from the capability data of its dialect, before it writes the request. A
+successful response is never proof that a member was honoured: some upstreams ignore a parameter they do not support and
+return a normal response, which would silently change what the caller gets for a behavioural member. The `unsupported` and
+`exclusive` options say what the upstream does not honour, so the contract does not depend on how a particular upstream
+reacts. Both are dialect-scoped client options, given once on the options of the client, where they apply to every model,
+and optionally per entry of the `models` map. (**implemented** for `openai`, `openai/responses`, `anthropic` and `gemini`)
+
+```yaml
+options:
+  dialect: openai
+  server: https://upstream.example.com/v1
+  unsupported:
+    - seed
+  exclusive:
+    - - thinking_budget_tokens
+      - reasoning_effort
+  models:
+    strict-*:
+      unsupported:
+        - parallel_tool_calls
+        - response_format
+    lenient-*:
+      unsupported: []
+```
+
+- **Defaults.** Both lists are empty by default and a model with no entry is unaffected, so nothing changes for an upstream
+  that honours every member: with the options empty, every `x:` member is translated exactly as in the sections above.
+- **Merge.** The options are resolved like the other model capability options: configured `models` entries first (exact names
+  before globs, in declaration order), then the dialect-level lists, then the built-in defaults of the dialect (which list
+  nothing). The first match that gives a list wins, field by field, so an entry that lists `unsupported` replaces the
+  dialect-level list for the models it matches without touching `exclusive`, and an entry with an empty list lists nothing.
+  A member listed per model pattern applies only to models that match the pattern.
+- **Names.** `unsupported` names the canonical `x:` member: `temperature`, `top_p`, `top_k`, `stop`, `seed`,
+  `frequency_penalty`, `presence_penalty`, `tool_choice`, `parallel_tool_calls`, `response_format`, `reasoning_effort`,
+  `thinking_budget_tokens`, `user` and `service_tier`. The config schema rejects any other name and a duplicate.
+- **Evaluation.** The client evaluates the list when the `x:` member arrives, before the dialect translation, so the list
+  wins over what the dialect could write natively. A member the dialect already cannot write is dropped or rejected the same
+  way.
+
+| Class | Members | Listed in `unsupported` |
+|---|---|---|
+| A, advisory | `temperature`, `top_p`, `top_k`, `seed`, `frequency_penalty`, `presence_penalty`, `reasoning_effort`, `thinking_budget_tokens`, `user`, `service_tier` | dropped silently, whatever the value |
+| B, behavioural | `stop`, `tool_choice`, `parallel_tool_calls`, `response_format` | rejected naming the member and the dialect pair, unless the value is harmless, which is dropped |
+
+- **Rejection.** The message is the one every other class B rejection carries,
+  `x:<member> cannot be converted from <source dialect> to <target dialect>`, for example
+  `x:parallel_tool_calls cannot be converted from anthropic to openai`. The request is rejected before anything of the
+  rejected member is written.
+- **Harmless values.** A class B value is harmless when dropping it cannot change what the caller gets. It is defined for
+  each member, from the values of the legality classes above, and a value that is not understood is never harmless:
+
+  | Member | Harmless (dropped) | Rejected |
+  |---|---|---|
+  | `parallel_tool_calls` | `true` | `false`, and any value that is not a boolean |
+  | `tool_choice` | `"auto"` | `"none"`, `"required"`, a named function, `allowed_tools`, any other value |
+  | `response_format` | `{"type":"text"}` and no other member | `json_object`, `json_schema`, any other value |
+  | `stop` | none | any value |
+
+  A `null` is the absence of the member for every member, and is dropped.
+- **Bound.** A value of a listed class B member is captured to be judged, bounded by the usual 4096 units; a value beyond the
+  bound is rejected naming the member, because no harmless value is that large.
+- **Class A.** A listed class A member is dropped without being inspected, so `x:user` or `x:service_tier` of any value, and a
+  value that would otherwise be clamped or rejected as invalid, is dropped.
+- **Exclusive.** `exclusive` lists groups of members the upstream refuses together, so the client sends exactly one of
+  each group. The first member of the group that is present wins and the others are dropped (class A). A group has at least
+  two members and a member appears once in it. The members a group can name are `reasoning_effort` and
+  `thinking_budget_tokens`, which a client records until the end of the request, so the winner is known whatever the order
+  in which the members arrived. Every other member streams through to the wire where it arrives and cannot be taken back,
+  so the schema does not admit it in a group. `[reasoning_effort, thinking_budget_tokens]` sends the effort (an
+  `anthropic` request with both carries only `output_config.effort`, a `gemini` model that takes a budget derives it from
+  the effort) and `[thinking_budget_tokens, reasoning_effort]` sends the budget (an `openai` request with both carries the
+  effort the budget derives from the ladder, a `gemini` model that takes a level writes `thinkingBudget`).
+- **Not honoured is not a model capability.** The member lists say what an upstream refuses, not what a model can do: a
+  model that rejects sampling or restricts tiers keeps using `sampling` and `tiers`.
+
+### Promoted user and service tier members
+
+`x:user` is an opaque string that identifies the end user of the request. `x:service_tier` is one of `auto`, `default`,
+`flex` and `priority`. Both are class A: a client drops a value its target cannot honour, silently, and never rejects
+for them. A `x:user` that is not a string, an `x:service_tier` that is not one of the four tiers, and a `null` are all
+the absence of the member. (**implemented** for `openai`, `openai/responses`, `anthropic` and `gemini`)
+
+| Native member | Decoded as |
+|---|---|
+| `openai`, `openai/responses` `safety_identifier` | `x:user`, value unchanged; native `user` and `prompt_cache_key` stay `openai:user` and `openai:prompt_cache_key`, which keeps a same-dialect hop exact |
+| `anthropic` `metadata.user_id` | `x:user`; the rest of `metadata` stays `anthropic:metadata`; a `user_id` that is not a string is dropped |
+| `gemini` | no equivalent |
+| `openai`, `openai/responses` `service_tier` | `x:service_tier` for `auto`, `default`, `flex` and `priority`; any other value (`scale`, `fast`) stays `openai:service_tier` |
+| `anthropic` `service_tier` | `auto` is `auto`, `standard_only` is `default`; any other value stays `anthropic:service_tier` |
+| `gemini` `serviceTier` (or `service_tier`) | `standard` is `default`, `flex` and `priority` are the same, matched ignoring case; `unspecified` and any other value stay `gemini:serviceTier` in the source spelling |
+
+| `x:` member | `openai`, `openai/responses` | `anthropic` | `gemini` |
+|---|---|---|---|
+| `x:user` | `safety_identifier`, at most 128 characters | `metadata.user_id`, at most 256 characters | dropped |
+| `x:service_tier` `auto` | `service_tier` `auto` | `service_tier` `auto` | omitted |
+| `default` | `default` | `standard_only` | `serviceTier` `standard` |
+| `flex` | `flex` | dropped | `flex` |
+| `priority` | `priority` | dropped | `priority` |
+
+- **Why `safety_identifier`.** `openai` deprecates `user` in favour of `safety_identifier` (abuse detection) and
+  `prompt_cache_key`. `safety_identifier` is the counterpart of `anthropic` `metadata.user_id`, so it is the one promoted.
+  The other two keep their prefix and so travel only to a client of the same dialect.
+- **Length.** A value longer than the target's limit is dropped (class A), counted in Unicode code points of the
+  decoded string. The member name is written before the value, so a streamed prefix cannot be taken back once it is
+  emitted; the check is therefore a bounded capture, not a pure streaming one. The client captures at most twice the
+  limit in UTF-16 units (the worst case of one code point per surrogate pair) and discards the rest of the value as it
+  streams, so a value of any size is dropped without growing the hold. The `anthropic` limit of 256 is the documented
+  maximum of `metadata.user_id`, and the 128 of `openai` and `openai/responses` that of `safety_identifier`.
+- **Decoding.** `safety_identifier` is renamed without holding the value. A tier value has to be known before the member
+  name is chosen, so `service_tier` and `serviceTier` run through the control pipeline and are captured (bounded by the
+  usual 4096 units). `metadata` is an `anthropic` container lifted like `output_config`, so one control section may hold
+  `anthropic:metadata` several times.
+- **Encoding.** `openai`, `openai/responses` and `gemini` write the member where it arrives; `gemini` writes the
+  root `serviceTier`, not a `generationConfig` member. `anthropic` writes `metadata.user_id` as a one-member container
+  fragment held by `LlmMemberCollector` and merged, with any `anthropic:metadata` residue in arrival order, into one
+  `metadata` object that follows `tool_choice` and `thinking` at the end of the request. A same-dialect hop restores
+  `metadata` in content, and `service_tier` exactly.
+- **Models.** The `tiers` model option lists the canonical tiers a model supports; the client drops the others.
+- **Response side.** The tier a provider echoes back stays `<dialect>:service_tier` in the response; the decode of
+  response members is unchanged.
+- **Unconfirmed.** On one `gemini` surface the valid wire syntax of the tier enum is not confirmed: an enum-style
+  spelling such as `STANDARD` may be required there. The client writes the documented lowercase values (`standard`,
+  `flex`, `priority`) and the decoder reads either case, so the written form is unconfirmed on that surface.
+
+### Block-level members
+
+A member that belongs to one block rides inline in that block's section payload, at depth 1 (a `TOOL_DEFINITION` keeps it
+inside `function`, beside `strict`). It is never a `CONTROL` section. (**implemented** for `anthropic`, which is the only
+dialect that carries them natively; every other client drops them where it has no equivalent)
+
+| Member | Section | `anthropic` | `openai`, `openai/responses`, `gemini` |
+|---|---|---|---|
+| `x:signature` | `ASSISTANT_REASONING` | `thinking` `signature`, request history and response | the reasoning section is skipped whole |
+| `x:redacted_data` | `ASSISTANT_REASONING` | `redacted_thinking` `data`, request history and response | the reasoning section is skipped whole |
+| `x:citations` | `USER_DOCUMENT` | document `citations` `{"enabled":true}` | dropped |
+| `prompt_cache_breakpoint` | `SYSTEM_INSTRUCTION`, `USER_TEXT`, `TOOL_RESULT`, `TOOL_CALL`, `SERVER_TOOL_CALL`, `TOOL_DEFINITION`, `USER_IMAGE`, `USER_DOCUMENT` | `cache_control` | dropped |
+| `function.strict` | `TOOL_DEFINITION` | `strict` | `openai` and `openai/responses` write it as the canonical member; `gemini` drops it |
+
+- **Signature and redacted data.** `x:signature` and `x:redacted_data` are opaque strings and the continuity token of the
+  `anthropic` family. A decoder of that family emits them in the reasoning payload and a client of that family writes them
+  back; every other client skips the reasoning section whole, as it does for `gemini:thoughtSignature` and
+  `openai:encrypted_content`, which stay prefixed. A client never converts a redacted block it cannot write natively.
+- **Citations.** `x:citations` is `{"enabled":true}`. A value that is not enabled is the absence of the member. The `anthropic`
+  client rejects a request that carries a document with `x:citations` and a `json_schema` `x:response_format`, in either
+  order of arrival (class B, `x:citations cannot be converted from <dialect> to anthropic`).
+- **Cache breakpoint.** `prompt_cache_breakpoint` is canonical, not `x:`: the OpenAI content-part member
+  `{"mode":"explicit","ttl":"<duration>"}`, with `ttl` a duration string (`90s`, `5m`, `1h`, `1d`). `anthropic` maps
+  `cache_control` `{"type":"ephemeral","ttl":"5m"|"1h"}` to it and back. A target writes the smallest ttl it offers that is at
+  least the requested one, else its largest (class C), and the provider default for an absent or malformed ttl; `anthropic`
+  offers `5m` and `1h`. A target stops marking at its own checkpoint limit (`anthropic` 4, counted over the whole request in
+  arrival order) and never rejects. A `mode` other than `explicit` and a `cache_control` `type` other than `ephemeral` are
+  dropped. Request-level `prompt_cache_options` and the `anthropic` top-level `cache_control` stay prefixed.
+- **Not placed.** The `openai` and `openai/responses` clients write a single text as a plain string `content`, and the
+  `gemini` client has no equivalent, so none of them writes `prompt_cache_breakpoint`; they drop it (no client of those
+  dialects decodes it either, so it is never produced for them).
+- **Strict.** The `anthropic` decoder maps tool `strict` to the canonical `function.strict`, the `anthropic` client writes it
+  back and `gemini` drops it.
+- **Marker after content.** An `anthropic` text block, a tool result and a system block carry `cache_control` after the text,
+  so the decoder withholds the closing `}` of the section payload and its `fin` flag until the next block begins (or the
+  tool result, the message or the request ends), and writes the member before the `}`. The text is never withheld: the
+  final piece of a text value is held only while the same input window can still show what follows, and is delivered before
+  the decoder yields. A marker that precedes the text is held in a small stash and written when the section opens. A block
+  level `cache_control` of a tool result is written on the last section of the block. The held `}` is reserved against the
+  application credit, so back-pressure delays it but never loses it; only when the credit is too small to keep holding is the
+  section closed early, and a marker that arrives later is dropped. A marker that follows `citations` has no section to join
+  and is dropped.
+
+### Native containers
+
+A dialect whose promoted members live inside a native object (`gemini` `generationConfig` and `thinkingConfig`, `anthropic`
+`output_config`, `thinking` and `metadata`, `openai/responses` `text` and `reasoning`) carries the container in two forms. Containers are never `x:`-prefixed.
+
+- **Decoding.** Each promoted leaf is lifted out of the container and emitted as `x:<member>` at depth 1 of the
+  control section the container belongs to, without holding anything. The residue stays under
+  `<dialect>:<container>`. A leaf that appears mid-container closes the residue object, emits the `x:` member and
+  re-opens `<dialect>:<container>` for the next residue member, so one section may hold the same
+  `<dialect>:<container>` key several times (deliberate). A container whose every member is lifted emits no
+  `<dialect>:<container>`; an empty container is kept as `{}`; a `null` container is dropped by `gemini` and kept as
+  residue by `anthropic` and `openai/responses`. Both camel and snake
+  spellings of the container and its leaves are decoded, and the residue keeps the container's source spelling.
+- **Encoding.** A client translates each supported `x:` member into a one-member native fragment such as
+  `"generationConfig":{"temperature":0.7}`, and passes the same-dialect residue fragments as they come. The
+  fragments of a container are not written where they arrive: `LlmMemberCollector` streams every other member
+  through unchanged, drops the separators it cuts around a container, and holds the object contents of each
+  container fragment in a pool slot. At the end of the request the client writes each container once, in arrival
+  order of its fragments, then appends the members it owns at that point (the cross-dialect `maxOutputTokens`),
+  so the output holds exactly one `generationConfig` key, after the other request members.
+- A same-dialect hop restores the container exactly in content, and in member order inside it; the container moves
+  after the other request members.
+- The held contents count against the client's encode room, so the credit granted to the application shrinks as the
+  hold grows. A container larger than one pool slot is flow-controlled to a stop, and a request that cannot get a
+  hold slot is rejected naming the container (`generationConfig cannot be converted from <dialect> to gemini`).
+- `maxOutputTokens` is not promoted. It stays in the residue (`gemini:generationConfig`) and is also carried on the
+  flush, which is how another dialect's client receives it.
 
 ## Ranges (`LlmSectionDataEx.ranges`)
 
@@ -88,7 +600,7 @@ stage)
 | `TOOL_DEFINITION`, `SERVER_TOOL_DEFINITION` | none | request side, whole | same |
 | `SERVER_TOOL_RESULT` | none yet | not covered | whole |
 | `CITATIONS` | none; every member is prefixed | not covered | request history only today |
-| `CONTROL` | none; bypasses guardrails | one section per member | same |
+| `CONTROL` | none; bypasses guardrails | one section holds one or more members | same |
 
 The media data is the base64 in `image_url.url` (a `data:` URI that declares base64),
 `file.file_data` (a `data:` URI that declares base64), `input_audio.data` and

@@ -32,7 +32,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"openai:temperature\":0.7}"
+write "{\"x:temperature\":0.7}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()

@@ -609,6 +609,39 @@ public class LlmProxyIT
     }
 
     @Test
+    @Configuration("proxy.guardrail.classify.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.classified.streaming.exit/client",
+        "${app}/openai.proxy.guardrail.response.classified.streaming.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayClassifiedResponseSectionBeforeFin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.classify.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.classified.paused.exit/client",
+        "${app}/openai.proxy.guardrail.response.classified.paused.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayClassifiedResponseSectionWhileStreamPaused() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.guardrail.classify.yaml")
+    @Specification({
+        "${app}/openai.proxy.guardrail.response.classified.tool.call.paused.exit/client",
+        "${app}/openai.proxy.guardrail.response.classified.tool.call.paused.exit/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRelayClassifiedResponseToolCallWhileStreamPaused() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.guardrail.yaml")
     @Specification({
         "${app}/openai.proxy.guardrail.response.rejected/client",

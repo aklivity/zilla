@@ -72,7 +72,7 @@ write "think."
 write flush
 
 write option zilla:flags "none"
-write "\",\"anthropic:signature\":\"sig-1"
+write "\",\"x:signature\":\"sig-1"
 write flush
 
 write option zilla:flags "fin"

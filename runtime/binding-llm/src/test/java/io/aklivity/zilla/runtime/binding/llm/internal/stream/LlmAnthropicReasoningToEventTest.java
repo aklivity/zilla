@@ -32,7 +32,7 @@ public class LlmAnthropicReasoningToEventTest
         signature.index(2);
 
         assertTransforms(signature,
-            json("{'anthropic:signature':'sig-1'}"),
+            json("{'x:signature':'sig-1'}"),
             json("{'type':'content_block_delta','index':2,'delta':{'type':'signature_delta','signature':'sig-1'}}"));
     }
 
@@ -40,7 +40,7 @@ public class LlmAnthropicReasoningToEventTest
     public void shouldConvertSignatureLargerThanWindow()
     {
         assertTransforms(signature,
-            json("{'anthropic:signature':'" + SIGNATURE + "'}"),
+            json("{'x:signature':'" + SIGNATURE + "'}"),
             json("{'type':'content_block_delta','index':0,'delta':{'type':'signature_delta','signature':'" +
                 SIGNATURE + "'}}"));
     }
@@ -49,7 +49,7 @@ public class LlmAnthropicReasoningToEventTest
     public void shouldDropOtherMembersAfterText()
     {
         assertTransforms(signature,
-            json("{'text':'t','openai:note':{'a':[1,2]},'anthropic:signature':'sig-1','anthropic:cache_control':'x'}"),
+            json("{'text':'t','openai:note':{'a':[1,2]},'x:signature':'sig-1','anthropic:cache_control':'x'}"),
             json("{'type':'content_block_delta','index':0,'delta':{'type':'signature_delta','signature':'sig-1'}}"));
     }
 
@@ -65,13 +65,13 @@ public class LlmAnthropicReasoningToEventTest
         redacted.index(1);
 
         assertTransforms(redacted,
-            json("{'anthropic:data':'opaque'}"),
+            json("{'x:redacted_data':'opaque'}"),
             json("{'type':'content_block_start','index':1,'content_block':{'type':'redacted_thinking','data':'opaque'}}"));
     }
 
     @Test
     public void shouldProduceNothingWithoutData()
     {
-        assertTransforms(redacted, json("{'text':'t','anthropic:signature':'sig-1'}"), "");
+        assertTransforms(redacted, json("{'text':'t','x:signature':'sig-1'}"), "");
     }
 }

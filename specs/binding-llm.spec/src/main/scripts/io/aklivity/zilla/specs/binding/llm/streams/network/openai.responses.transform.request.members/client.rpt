@@ -28,7 +28,7 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-write "{\"model\":\"model\",\"input\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"temperature\":0.2,\"store\":false,\"metadata\":{\"k\":\"v\"},\"tool_choice\":\"auto\",\"include\":[\"reasoning.encrypted_content\"],\"reasoning\":{\"effort\":\"low\"},\"text\":{\"format\":{\"type\":\"text\"}},\"parallel_tool_calls\":true,\"truncation\":\"auto\"}"
+write "{\"model\":\"model\",\"input\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"temperature\":0.2,\"store\":false,\"metadata\":{\"k\":\"v\"},\"tool_choice\":\"auto\",\"include\":[\"reasoning.encrypted_content\"],\"parallel_tool_calls\":true,\"truncation\":\"auto\",\"reasoning\":{\"effort\":\"low\"},\"text\":{\"format\":{\"type\":\"text\"}}}"
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()

@@ -51,7 +51,7 @@ write zilla:data.ext ${llm:dataEx()
                           .message(0)
                           .build()}
 write "{\"text\":\""
-      ${core:randomBase64(800)}
+      ${core:randomBase64(120)}
       "\"}"
 write flush
 
@@ -62,7 +62,7 @@ write zilla:data.ext ${llm:dataEx()
                           .build()}
 write "{\"openai:note1\":"
       "\""
-      ${core:randomBase64(3500)}
+      ${core:randomBase64(150)}
       "\""
       "}"
 write flush
@@ -74,7 +74,7 @@ write zilla:data.ext ${llm:dataEx()
                           .build()}
 write "{\"openai:note2\":"
       "\""
-      ${core:randomBase64(3500)}
+      ${core:randomBase64(150)}
       "\""
       "}"
 write flush

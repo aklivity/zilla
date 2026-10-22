@@ -34,7 +34,7 @@ public class LlmAnthropicReasoningFromCanonicalTest
     public void shouldConvertTextToThinkingBlock()
     {
         assertTransforms(reasoning,
-            json("{'text':'Let me think.','anthropic:signature':'sig-1'}"),
+            json("{'text':'Let me think.','x:signature':'sig-1'}"),
             json("{'type':'thinking','thinking':'Let me think.','signature':'sig-1'}"));
     }
 
@@ -42,7 +42,7 @@ public class LlmAnthropicReasoningFromCanonicalTest
     public void shouldConvertSignatureFirstToThinkingBlock()
     {
         assertTransforms(reasoning,
-            json("{'anthropic:signature':'sig-1','text':'Let me think.'}"),
+            json("{'x:signature':'sig-1','text':'Let me think.'}"),
             json("{'type':'thinking','signature':'sig-1','thinking':'Let me think.'}"));
     }
 
@@ -50,7 +50,7 @@ public class LlmAnthropicReasoningFromCanonicalTest
     public void shouldConvertDataToRedactedBlock()
     {
         assertTransforms(reasoning,
-            json("{'anthropic:data':'opaque'}"),
+            json("{'x:redacted_data':'opaque'}"),
             json("{'type':'redacted_thinking','data':'opaque'}"));
     }
 
@@ -82,7 +82,7 @@ public class LlmAnthropicReasoningFromCanonicalTest
     public void shouldKeepSignatureWhenUnsignedModeHasOne()
     {
         assertTransforms(unsigned,
-            json("{'text':'Let me think.','anthropic:signature':'sig-1'}"),
+            json("{'text':'Let me think.','x:signature':'sig-1'}"),
             json("{'type':'thinking','thinking':'Let me think.','signature':'sig-1'}"));
     }
 
@@ -90,7 +90,7 @@ public class LlmAnthropicReasoningFromCanonicalTest
     public void shouldNotAddSignatureToRedactedWhenUnsignedModeHasNone()
     {
         assertTransforms(unsigned,
-            json("{'anthropic:data':'opaque'}"),
+            json("{'x:redacted_data':'opaque'}"),
             json("{'type':'redacted_thinking','data':'opaque'}"));
     }
 
@@ -140,6 +140,14 @@ public class LlmAnthropicReasoningFromCanonicalTest
         assertTransforms(foreign,
             json("{'text':'Let me think.','anthropic:signature':'sig-1'}"),
             json("{'type':'thinking','thinking':'Let me think.'}"));
+    }
+
+    @Test
+    public void shouldKeepSharedSignatureAcrossDialects()
+    {
+        assertTransforms(foreign,
+            json("{'text':'Let me think.','x:signature':'sig-1'}"),
+            json("{'type':'thinking','thinking':'Let me think.','signature':'sig-1'}"));
     }
 
     @Test

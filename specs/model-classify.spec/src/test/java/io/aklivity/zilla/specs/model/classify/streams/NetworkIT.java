@@ -95,4 +95,54 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/client.sent.text.rejected.max.length/client",
+        "${net}/client.sent.text.rejected.max.length/server"
+    })
+    public void shouldReceiveTextExceedingMaxLength() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.sent.text.accepted.max.length/client",
+        "${net}/client.sent.text.accepted.max.length/server"
+    })
+    public void shouldForwardTextAtMaxLength() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/streaming.text.accepted.max.length/client",
+        "${net}/streaming.text.accepted.max.length/server"
+    })
+    public void shouldRelayTextLongerThanMaxLength() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/streaming.text.accepted.multibyte/client",
+        "${net}/streaming.text.accepted.multibyte/server"
+    })
+    public void shouldRelayMultibyteTextWithoutSplittingCharacter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/streaming.text.accepted.retained/client",
+        "${net}/streaming.text.accepted.retained/server"
+    })
+    public void shouldHoldBackPartialLabelUntilRuledOut() throws Exception
+    {
+        k3po.finish();
+    }
 }

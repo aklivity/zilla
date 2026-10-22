@@ -19,9 +19,9 @@ connect "zilla://streams/net0"
 connected
 
 write option zilla:flags "init"
-write "abcdefghijklmnop"
+write "abcdefghijklmnoq"
 write await FIRST_RELAYED
 
 write option zilla:flags "fin"
-write "qrstuvwx"
+write "rstuvwxy"
 write close

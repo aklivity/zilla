@@ -29,18 +29,11 @@ connected
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("CONTROL")
-                          .message(0)
-                          .build()}
-read "{\"anthropic:cache_control\":{\"type\":\"ephemeral\"}}"
-
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
                           .type("TOOL_RESULT")
                           .message(0)
                           .attribute("tool-call-id", "toolu_1")
                           .build()}
-read "{\"text\":\"sunny\"}"
+read "{\"prompt_cache_breakpoint\":{\"mode\":\"explicit\"},\"text\":\"sunny\"}"
 
 read advised zilla:flush
 

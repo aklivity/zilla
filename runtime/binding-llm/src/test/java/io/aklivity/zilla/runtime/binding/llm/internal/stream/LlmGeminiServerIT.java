@@ -1284,4 +1284,469 @@ public class LlmGeminiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.sampling/client",
+        "${app}/gemini.request.sampling/server"})
+    public void shouldForwardGeminiRequestSampling() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.sampling.residue.absent/client",
+        "${app}/gemini.request.sampling.residue.absent/server"})
+    public void shouldForwardGeminiRequestSamplingResidueAbsent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.sampling.empty/client",
+        "${app}/gemini.request.sampling.empty/server"})
+    public void shouldForwardGeminiRequestSamplingEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.sampling.snake/client",
+        "${app}/gemini.request.sampling.snake/server"})
+    public void shouldForwardGeminiRequestSamplingSnake() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.sampling.split/client",
+        "${app}/gemini.request.sampling/server"})
+    public void shouldForwardGeminiRequestSamplingSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.tool.choice.auto/client",
+        "${app}/gemini.request.tool.choice.auto/server"})
+    public void shouldForwardGeminiRequestToolChoiceAuto() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.tool.choice.any/client",
+        "${app}/gemini.request.tool.choice.any/server"})
+    public void shouldForwardGeminiRequestToolChoiceAny() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.tool.choice.none/client",
+        "${app}/gemini.request.tool.choice.none/server"})
+    public void shouldForwardGeminiRequestToolChoiceNone() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.tool.choice.function/client",
+        "${app}/gemini.request.tool.choice.function/server"})
+    public void shouldForwardGeminiRequestToolChoiceFunction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.tool.choice.allowed.required/client",
+        "${app}/gemini.request.tool.choice.allowed.required/server"})
+    public void shouldForwardGeminiRequestToolChoiceAllowedRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.tool.choice.allowed.auto/client",
+        "${app}/gemini.request.tool.choice.allowed.auto/server"})
+    public void shouldForwardGeminiRequestToolChoiceAllowedAuto() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.tool.choice.validated/client",
+        "${app}/gemini.request.tool.choice.validated/server"})
+    public void shouldForwardGeminiRequestToolChoiceValidated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.tool.choice.residue/client",
+        "${app}/gemini.request.tool.choice.residue/server"})
+    public void shouldForwardGeminiRequestToolChoiceResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.tool.choice.snake/client",
+        "${app}/gemini.request.tool.choice.snake/server"})
+    public void shouldForwardGeminiRequestToolChoiceSnake() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.tool.choice.mixed/client",
+        "${app}/gemini.request.tool.choice.mixed/server"})
+    public void shouldForwardGeminiRequestToolChoiceMixed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.response.format.json.object/client",
+        "${app}/gemini.request.response.format.json.object/server"})
+    public void shouldForwardGeminiRequestResponseFormatJsonObject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.response.format.json.schema/client",
+        "${app}/gemini.request.response.format.json.schema/server"})
+    public void shouldForwardGeminiRequestResponseFormatJsonSchema() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.response.format.residue/client",
+        "${app}/gemini.request.response.format.residue/server"})
+    public void shouldForwardGeminiRequestResponseFormatResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.response.format.enum/client",
+        "${app}/gemini.request.response.format.enum/server"})
+    public void shouldForwardGeminiRequestResponseFormatEnum() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.response.format.schema.first/client",
+        "${app}/gemini.request.response.format.schema.first/server"})
+    public void shouldForwardGeminiRequestResponseFormatSchemaFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.response.format.deprecated.schema.first/client",
+        "${app}/gemini.request.response.format.deprecated.schema.first/server"})
+    public void shouldForwardGeminiRequestResponseFormatDeprecatedSchemaFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.response.format.json.schema.lowercase/client",
+        "${app}/gemini.request.response.format.json.schema/server"})
+    public void shouldForwardGeminiRequestResponseFormatJsonSchemaLowercase() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.response.format.deprecated.json.object/client",
+        "${app}/gemini.request.response.format.json.object/server"})
+    public void shouldForwardGeminiRequestResponseFormatDeprecatedJsonObject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.response.format.deprecated.json.schema/client",
+        "${app}/gemini.request.response.format.json.schema/server"})
+    public void shouldForwardGeminiRequestResponseFormatDeprecatedJsonSchema() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.response.format.deprecated.json.schema.json/client",
+        "${app}/gemini.request.response.format.json.schema/server"})
+    public void shouldForwardGeminiRequestResponseFormatDeprecatedJsonSchemaJson() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.response.format.snake/client",
+        "${app}/gemini.request.response.format.json.schema/server"})
+    public void shouldForwardGeminiRequestResponseFormatSnake() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.response.format.json.schema.split/client",
+        "${app}/gemini.request.response.format.json.schema/server"})
+    public void shouldForwardGeminiRequestResponseFormatJsonSchemaSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.response.format.deprecated.json.schema.split/client",
+        "${app}/gemini.request.response.format.json.schema/server"})
+    public void shouldForwardGeminiRequestResponseFormatDeprecatedJsonSchemaSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.reasoning.level/client",
+        "${app}/gemini.request.reasoning.level/server"})
+    public void shouldDecodeGeminiRequestReasoningLevel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.reasoning.budget/client",
+        "${app}/gemini.request.reasoning.budget/server"})
+    public void shouldDecodeGeminiRequestReasoningBudget() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.reasoning.budget.automatic/client",
+        "${app}/gemini.request.reasoning.budget.automatic/server"})
+    public void shouldDecodeGeminiRequestReasoningBudgetAutomatic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.reasoning.residue.only/client",
+        "${app}/gemini.request.reasoning.residue.only/server"})
+    public void shouldDecodeGeminiRequestReasoningResidueOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.reasoning.empty/client",
+        "${app}/gemini.request.reasoning.empty/server"})
+    public void shouldDecodeGeminiRequestReasoningEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.reasoning.level.residue.first/client",
+        "${app}/gemini.request.reasoning.level.residue.first/server"})
+    public void shouldDecodeGeminiRequestReasoningLevelResidueFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.reasoning.budget.zero/client",
+        "${app}/gemini.request.reasoning.budget.zero/server"})
+    public void shouldDecodeGeminiRequestReasoningBudgetZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.reasoning.snake/client",
+        "${app}/gemini.request.reasoning.snake/server"})
+    public void shouldDecodeGeminiRequestReasoningSnake() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.reasoning.sampling/client",
+        "${app}/gemini.request.reasoning.sampling/server"})
+    public void shouldDecodeGeminiRequestReasoningSampling() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"tier \"default\"", "wire \"standard\""})
+    @Specification({
+        "${net}/gemini.request.service.tier/client",
+        "${app}/gemini.request.service.tier/server"})
+    public void shouldDecodeGeminiRequestServiceTierDefault() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"tier \"flex\"", "wire \"flex\""})
+    @Specification({
+        "${net}/gemini.request.service.tier/client",
+        "${app}/gemini.request.service.tier/server"})
+    public void shouldDecodeGeminiRequestServiceTierFlex() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"tier \"priority\"", "wire \"priority\""})
+    @Specification({
+        "${net}/gemini.request.service.tier/client",
+        "${app}/gemini.request.service.tier/server"})
+    public void shouldDecodeGeminiRequestServiceTierPriority() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"wire \"TIER_X\""})
+    @Specification({
+        "${net}/gemini.request.service.tier.residue/client",
+        "${app}/gemini.request.service.tier.residue/server"})
+    public void shouldDecodeGeminiRequestServiceTierResidueUnknown() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"wire \"unspecified\""})
+    @Specification({
+        "${net}/gemini.request.service.tier.residue/client",
+        "${app}/gemini.request.service.tier.residue/server"})
+    public void shouldDecodeGeminiRequestServiceTierResidueUnspecified() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.controls.split/client",
+        "${app}/gemini.request.controls.split/server"})
+    public void shouldDecodeGeminiRequestControlsSplitUnderBackPressure() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.response.controls.many/client",
+        "${app}/gemini.response.controls.many/server"})
+    public void shouldEncodeGeminiResponseControlsMany() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.response.controls.many.stream/client",
+        "${app}/gemini.response.controls.many.stream/server"})
+    public void shouldEncodeGeminiResponseControlsManyStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.response.controls.grouped/client",
+        "${app}/gemini.response.controls.grouped/server"})
+    public void shouldEncodeGeminiResponseControlsGrouped() throws Exception
+    {
+        k3po.finish();
+    }
 }

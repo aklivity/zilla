@@ -1585,4 +1585,1023 @@ public class LlmSchemaValidationTest
 
         reader.read(text);
     }
+
+    @Test
+    public void shouldAcceptClientAnthropicModels()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: anthropic
+                  server: http://example.com:8080
+                  models:
+                    claude-opus-4-7:
+                      sampling: false
+                      thinking: adaptive
+                    claude-3-*:
+                      thinking: enabled
+                      budget:
+                        minimum: 1024
+                      ladder:
+                        low: 2048
+                        medium: 4096
+                        high: 8192
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptClientAnthropicModelThinkingForms()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: anthropic
+                  server: http://example.com:8080
+                  models:
+                    adaptive-only:
+                      thinking: adaptive
+                    adaptive-disabled:
+                      thinking: adaptive-disabled
+                    adaptive-enabled:
+                      thinking: adaptive-enabled
+                    enabled-only:
+                      thinking: enabled
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptClientGeminiModels()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: gemini
+                  server: http://example.com:8080
+                  models:
+                    gemini-2.5-pro:
+                      thinking: budget
+                      budget:
+                        minimum: 128
+                        maximum: 32768
+                      ladder:
+                        low: 1024
+                        medium: 8192
+                        high: 24576
+                    gemini-3-*:
+                      thinking: level
+                      sampling: true
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptClientOpenaiModels()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                  models:
+                    o3*:
+                      sampling: false
+                      ladder:
+                        low: 1024
+                        high: 24576
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientAnthropicModelUnknownThinking()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: anthropic
+                  server: http://example.com:8080
+                  models:
+                    claude-opus-4-7:
+                      thinking: level
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientGeminiModelUnknownThinking()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: gemini
+                  server: http://example.com:8080
+                  models:
+                    gemini-3-pro:
+                      thinking: adaptive
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientOpenaiModelThinking()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                  models:
+                    gpt-5:
+                      thinking: adaptive
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientOpenaiModelBudget()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                  models:
+                    gpt-5:
+                      budget:
+                        minimum: 1024
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientModelUnknownProperty()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: anthropic
+                  server: http://example.com:8080
+                  models:
+                    claude-opus-4-7:
+                      bogus: true
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientModelSamplingNotBoolean()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: anthropic
+                  server: http://example.com:8080
+                  models:
+                    claude-opus-4-7:
+                      sampling: no
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientModelLadderUnknownEffort()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: anthropic
+                  server: http://example.com:8080
+                  models:
+                    claude-opus-4-7:
+                      ladder:
+                        extreme: 4096
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientModelLadderNegative()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: anthropic
+                  server: http://example.com:8080
+                  models:
+                    claude-opus-4-7:
+                      ladder:
+                        low: -1
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientModelBudgetNegative()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: gemini
+                  server: http://example.com:8080
+                  models:
+                    gemini-2.5-pro:
+                      budget:
+                        minimum: -1
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientModelBudgetUnknownProperty()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: gemini
+                  server: http://example.com:8080
+                  models:
+                    gemini-2.5-pro:
+                      budget:
+                        off: true
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientModelsNotObject()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: anthropic
+                  server: http://example.com:8080
+                  models:
+                    - claude-opus-4-7
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectServerWithModels()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: server
+                options:
+                  dialect: anthropic
+                  models:
+                    claude-opus-4-7:
+                      sampling: false
+                exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test
+    public void shouldAcceptClientOpenaiModelTiers()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                  models:
+                    gpt-5:
+                      tiers:
+                        - auto
+                        - default
+                        - flex
+                        - priority
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptClientAnthropicModelTiers()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: anthropic
+                  server: http://example.com:8080
+                  models:
+                    claude-opus-4-7:
+                      tiers:
+                        - auto
+                        - default
+                        - flex
+                        - priority
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptClientGeminiModelTiers()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: gemini
+                  server: http://example.com:8080
+                  models:
+                    gemini-3-flash:
+                      tiers:
+                        - auto
+                        - default
+                        - flex
+                        - priority
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptClientModelNoTiers()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                  models:
+                    gpt-5:
+                      tiers: []
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientModelTiersUnknown()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                  models:
+                    gpt-5:
+                      tiers:
+                        - scale
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientModelTiersNotArray()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: anthropic
+                  server: http://example.com:8080
+                  models:
+                    claude-opus-4-7:
+                      tiers: auto
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientModelTiersDuplicate()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: gemini
+                  server: http://example.com:8080
+                  models:
+                    gemini-3-flash:
+                      tiers:
+                        - flex
+                        - flex
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test
+    public void shouldAcceptClientOpenaiModelUnsupportedAndExclusive()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                  models:
+                    m-1:
+                      unsupported:
+                        - parallel_tool_calls
+                        - response_format
+                      exclusive:
+                        - - reasoning_effort
+                          - thinking_budget_tokens
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptClientOpenaiUnsupportedAndExclusive()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                  unsupported:
+                    - temperature
+                    - top_p
+                    - top_k
+                    - stop
+                    - seed
+                    - frequency_penalty
+                    - presence_penalty
+                    - tool_choice
+                    - parallel_tool_calls
+                    - response_format
+                    - reasoning_effort
+                    - thinking_budget_tokens
+                    - user
+                    - service_tier
+                  exclusive:
+                    - - thinking_budget_tokens
+                      - reasoning_effort
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptClientAnthropicModelUnsupportedAndExclusive()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: anthropic
+                  server: http://example.com:8080
+                  models:
+                    m-1:
+                      unsupported:
+                        - parallel_tool_calls
+                        - response_format
+                      exclusive:
+                        - - reasoning_effort
+                          - thinking_budget_tokens
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptClientAnthropicUnsupportedAndExclusive()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: anthropic
+                  server: http://example.com:8080
+                  unsupported:
+                    - temperature
+                    - top_p
+                    - top_k
+                    - stop
+                    - seed
+                    - frequency_penalty
+                    - presence_penalty
+                    - tool_choice
+                    - parallel_tool_calls
+                    - response_format
+                    - reasoning_effort
+                    - thinking_budget_tokens
+                    - user
+                    - service_tier
+                  exclusive:
+                    - - thinking_budget_tokens
+                      - reasoning_effort
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptClientGeminiModelUnsupportedAndExclusive()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: gemini
+                  server: http://example.com:8080
+                  models:
+                    m-1:
+                      unsupported:
+                        - parallel_tool_calls
+                        - response_format
+                      exclusive:
+                        - - reasoning_effort
+                          - thinking_budget_tokens
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptClientGeminiUnsupportedAndExclusive()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: gemini
+                  server: http://example.com:8080
+                  unsupported:
+                    - temperature
+                    - top_p
+                    - top_k
+                    - stop
+                    - seed
+                    - frequency_penalty
+                    - presence_penalty
+                    - tool_choice
+                    - parallel_tool_calls
+                    - response_format
+                    - reasoning_effort
+                    - thinking_budget_tokens
+                    - user
+                    - service_tier
+                  exclusive:
+                    - - thinking_budget_tokens
+                      - reasoning_effort
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptClientModelNoUnsupportedAndNoExclusive()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                  unsupported:
+                    - seed
+                  models:
+                    gpt-5:
+                      unsupported: []
+                      exclusive: []
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientUnsupportedUnknown()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                  unsupported:
+                    - logit_bias
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientUnsupportedDuplicate()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: anthropic
+                  server: http://example.com:8080
+                  unsupported:
+                    - seed
+                    - seed
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientUnsupportedNotArray()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: gemini
+                  server: http://example.com:8080
+                  unsupported: seed
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientModelUnsupportedUnknown()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                  models:
+                    gpt-5:
+                      unsupported:
+                        - logit_bias
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientModelUnsupportedDuplicate()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: gemini
+                  server: http://example.com:8080
+                  models:
+                    gemini-3-flash:
+                      unsupported:
+                        - stop
+                        - stop
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientExclusiveUnknownMember()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                  exclusive:
+                    - - reasoning_effort
+                      - logit_bias
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientExclusiveGroupTooSmall()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: anthropic
+                  server: http://example.com:8080
+                  exclusive:
+                    - - reasoning_effort
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientExclusiveGroupNotArray()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: gemini
+                  server: http://example.com:8080
+                  exclusive:
+                    - reasoning_effort
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientExclusiveNotRecorded()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                  exclusive:
+                    - - stop
+                      - seed
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientModelExclusiveDuplicateMember()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                  models:
+                    gpt-5:
+                      exclusive:
+                        - - reasoning_effort
+                          - reasoning_effort
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
 }

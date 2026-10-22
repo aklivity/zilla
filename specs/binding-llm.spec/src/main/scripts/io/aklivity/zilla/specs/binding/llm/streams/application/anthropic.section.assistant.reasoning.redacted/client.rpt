@@ -40,7 +40,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("ASSISTANT_REASONING")
                           .message(1)
                           .build()}
-write "{\"anthropic:data\":\"opaque\"}"
+write "{\"x:redacted_data\":\"opaque\"}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()

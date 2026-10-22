@@ -67,8 +67,8 @@ public class LlmOpenaiControlToCanonicalTest
     public void shouldMoveArrayValueUnchanged()
     {
         assertTransforms(transform,
-            json("{'stop':['a','b',{'c':1}]}"),
-            json("{'openai:stop':['a','b',{'c':1}]}"));
+            json("{'modalities':['a','b',{'c':1}]}"),
+            json("{'openai:modalities':['a','b',{'c':1}]}"));
     }
 
     @Test
@@ -233,5 +233,96 @@ public class LlmOpenaiControlToCanonicalTest
     public void shouldRejectMemberThatIsNotAnObject()
     {
         assertRejects(transform, json("[1]"));
+    }
+
+    @Test
+    public void shouldShareStopArrayUnchanged()
+    {
+        assertTransforms(transform,
+            json("{'stop':['END','" + LONG + "']}"),
+            json("{'x:stop':['END','" + LONG + "']}"));
+    }
+
+    @Test
+    public void shouldShareStopStringAsOneEntryArray()
+    {
+        assertTransforms(transform,
+            json("{'stop':'END'}"),
+            json("{'x:stop':['END']}"));
+    }
+
+    @Test
+    public void shouldShareStopStringWithEscapes()
+    {
+        assertTransforms(transform,
+            json("{'stop':'a\\n\\\"b'}"),
+            json("{'x:stop':['a\\n\\\"b']}"));
+    }
+
+    @Test
+    public void shouldShareStopNullUnchanged()
+    {
+        assertTransforms(transform,
+            json("{'stop':null}"),
+            json("{'x:stop':null}"));
+    }
+
+    @Test
+    public void shouldRejectStopStringLargerThanHeldLimit()
+    {
+        assertRejects(transform, json("{'stop':'" + HUGE + "'}"));
+    }
+
+    @Test
+    public void shouldPromoteServiceTier()
+    {
+        assertTransforms(transform,
+            json("{'service_tier':'auto'}"),
+            json("{'x:service_tier':'auto'}"));
+        assertTransforms(transform,
+            json("{'service_tier':'default'}"),
+            json("{'x:service_tier':'default'}"));
+        assertTransforms(transform,
+            json("{'service_tier':'flex'}"),
+            json("{'x:service_tier':'flex'}"));
+        assertTransforms(transform,
+            json("{'service_tier':'priority'}"),
+            json("{'x:service_tier':'priority'}"));
+    }
+
+    @Test
+    public void shouldKeepServiceTierOfOtherValuesPrefixed()
+    {
+        assertTransforms(transform,
+            json("{'service_tier':'scale'}"),
+            json("{'openai:service_tier':'scale'}"));
+        assertTransforms(transform,
+            json("{'service_tier':'fast'}"),
+            json("{'openai:service_tier':'fast'}"));
+        assertTransforms(transform,
+            json("{'service_tier':7}"),
+            json("{'openai:service_tier':7}"));
+        assertTransforms(transform,
+            json("{'service_tier':null}"),
+            json("{'openai:service_tier':null}"));
+        assertTransforms(transform,
+            json("{'service_tier':'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'}"),
+            json("{'openai:service_tier':'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'}"));
+    }
+
+    @Test
+    public void shouldPromoteServiceTierWithEscapes()
+    {
+        assertTransforms(transform,
+            "{\"service_tier\":\"au\\u0074o\"}",
+            json("{'x:service_tier':'auto'}"));
+    }
+
+    @Test
+    public void shouldKeepUserAndPromptCacheKeyPrefixed()
+    {
+        assertTransforms(transform,
+            json("{'user':'u','prompt_cache_key':'k','safety_identifier':'s'}"),
+            json("{'openai:user':'u','openai:prompt_cache_key':'k','openai:safety_identifier':'s'}"));
     }
 }

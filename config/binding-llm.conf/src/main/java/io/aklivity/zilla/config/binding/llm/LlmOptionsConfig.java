@@ -27,6 +27,9 @@ public final class LlmOptionsConfig extends OptionsConfig
     public final LlmAuthorizationConfig authorization;
     public final LlmServerConfig server;
     public final List<LlmGuardrailConfig> guardrails;
+    public final List<LlmModelConfig> models;
+    public final List<String> unsupported;
+    public final List<List<String>> exclusive;
 
     public static LlmOptionsConfigBuilder<LlmOptionsConfig> builder()
     {
@@ -44,6 +47,9 @@ public final class LlmOptionsConfig extends OptionsConfig
         LlmAuthorizationConfig authorization,
         LlmServerConfig server,
         List<LlmGuardrailConfig> guardrails,
+        List<LlmModelConfig> models,
+        List<String> unsupported,
+        List<List<String>> exclusive,
         Map<String, Config> extensions,
         List<Config.Reference> refs)
     {
@@ -52,5 +58,8 @@ public final class LlmOptionsConfig extends OptionsConfig
         this.authorization = authorization;
         this.server = server;
         this.guardrails = guardrails;
+        this.models = models;
+        this.unsupported = unsupported;
+        this.exclusive = exclusive;
     }
 }

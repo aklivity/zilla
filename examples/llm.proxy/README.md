@@ -245,9 +245,9 @@ one of the labels listed under `reject`. The classifiers are declared at the top
   `gpt-4o` response that carries a private key is withheld by the `assistant-text` stage: the SDK reports a
   failed connection. The same holds for a Responses request for `gpt-4o` or `gpt-5`. A streamed response is one
   section delivered in fragments. On a `response` stage the `classify` model checks the text as it arrives, together
-  with the trailing overlap of the text already checked, so a pattern that spans fragments is still matched. What
-  passes is relayed as it passes, apart from the overlap, and a rejection aborts the response after the text already
-  relayed. On a `request` stage the value is classified and relayed once it is complete.
+  with the trailing text that its classifiers could not yet rule out, so a pattern that spans fragments is still
+  matched. What passes is relayed as it passes, apart from that trailing text, and a rejection aborts the response
+  after the text already relayed. On a `request` stage the value is classified and relayed once it is complete.
 - **Fallback.** A request that falls back to another model passes through the stages of the requested model,
   followed by those of the model it falls back to. `claude-unreachable` has no stages of its own, so a prompt
   over 200 characters sent to it is rejected by the stage of `claude-3-5-haiku-20241022`, the model it falls

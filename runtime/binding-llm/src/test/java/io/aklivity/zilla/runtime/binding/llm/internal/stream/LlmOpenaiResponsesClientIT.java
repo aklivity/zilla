@@ -31,6 +31,12 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
 public class LlmOpenaiResponsesClientIT
 {
+    private static final String USER_128 = "0123456789abcdef0123456789abcdef" +
+        "0123456789abcdef0123456789abcdef" +
+        "0123456789abcdef0123456789abcdef" +
+        "0123456789abcdef0123456789abcdef";
+    private static final String USER_129 = USER_128 + "x";
+
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("net", "io/aklivity/zilla/specs/binding/llm/streams/network")
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/llm/streams/application");
@@ -1836,6 +1842,972 @@ public class LlmOpenaiResponsesClientIT
         "${app}/openai.responses.text.citations.members/client",
         "${net}/openai.responses.text.citations.members.api/server"})
     public void shouldForwardOpenaiResponsesTextCitationsMembersApi() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.sampling/client",
+        "${net}/openai.responses.transform.request.sampling/server"})
+    public void shouldTransformRequestSamplingAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.sampling.seed/client",
+        "${net}/openai.responses.transform.request.max.output.tokens/server"})
+    public void shouldDropRequestSamplingSeedAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.sampling.penalties/client",
+        "${net}/openai.responses.transform.request.max.output.tokens/server"})
+    public void shouldDropRequestSamplingPenaltiesAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.sampling.top.k/client",
+        "${net}/openai.responses.transform.request.max.output.tokens/server"})
+    public void shouldDropRequestSamplingTopKAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.sampling.clamp/client",
+        "${net}/openai.responses.transform.request.sampling.clamp/server"})
+    public void shouldPassRequestSamplingTemperatureAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.rejected.sampling.stop/client",
+        "${net}/openai.responses.transform.rejected.sampling.stop/server"})
+    public void shouldRejectRequestSamplingStopAsOpenaiResponsesNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.auto/client",
+        "${net}/openai.responses.transform.request.tool.choice.auto/server"})
+    public void shouldTransformRequestToolChoiceAutoAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.required/client",
+        "${net}/openai.responses.transform.request.tool.choice.required/server"})
+    public void shouldTransformRequestToolChoiceRequiredAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.none/client",
+        "${net}/openai.responses.transform.request.tool.choice.none/server"})
+    public void shouldTransformRequestToolChoiceNoneAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.function/client",
+        "${net}/openai.responses.transform.request.tool.choice.function/server"})
+    public void shouldTransformRequestToolChoiceFunctionAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.allowed/client",
+        "${net}/openai.responses.transform.request.tool.choice.allowed/server"})
+    public void shouldTransformRequestToolChoiceAllowedAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.allowed.required/client",
+        "${net}/openai.responses.transform.request.tool.choice.allowed.required/server"})
+    public void shouldTransformRequestToolChoiceAllowedRequiredAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.parallel/client",
+        "${net}/openai.responses.transform.request.tool.choice.parallel/server"})
+    public void shouldTransformRequestToolChoiceParallelAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.parallel.true/client",
+        "${net}/openai.responses.transform.request.tool.choice.parallel.true/server"})
+    public void shouldTransformRequestToolChoiceParallelTrueAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.choice.parallel/client",
+        "${net}/openai.responses.transform.request.tool.choice.choice.parallel/server"})
+    public void shouldTransformRequestToolChoiceChoiceParallelAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.parallel.first/client",
+        "${net}/openai.responses.transform.request.tool.choice.parallel.first/server"})
+    public void shouldTransformRequestToolChoiceParallelFirstAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.tool.choice.none.parallel/client",
+        "${net}/openai.responses.transform.request.tool.choice.none.parallel/server"})
+    public void shouldTransformRequestToolChoiceNoneParallelAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.rejected.tool.choice.value/client",
+        "${net}/openai.responses.transform.rejected.tool.choice/server"})
+    public void shouldRejectRequestToolChoiceValueAsOpenaiResponsesNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.tool.choice.auto/client",
+        "${net}/openai.responses.request.tool.choice.auto/server"})
+    public void shouldRestoreOpenaiResponsesRequestToolChoiceAuto() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.tool.choice.required/client",
+        "${net}/openai.responses.request.tool.choice.required/server"})
+    public void shouldRestoreOpenaiResponsesRequestToolChoiceRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.tool.choice.none/client",
+        "${net}/openai.responses.request.tool.choice.none/server"})
+    public void shouldRestoreOpenaiResponsesRequestToolChoiceNone() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.tool.choice.function/client",
+        "${net}/openai.responses.request.tool.choice.function/server"})
+    public void shouldRestoreOpenaiResponsesRequestToolChoiceFunction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.tool.choice.allowed/client",
+        "${net}/openai.responses.request.tool.choice.allowed/server"})
+    public void shouldRestoreOpenaiResponsesRequestToolChoiceAllowed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.tool.choice.hosted/client",
+        "${net}/openai.responses.request.tool.choice.hosted/server"})
+    public void shouldRestoreOpenaiResponsesRequestToolChoiceHosted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.tool.choice.parallel/client",
+        "${net}/openai.responses.request.tool.choice.parallel/server"})
+    public void shouldRestoreOpenaiResponsesRequestToolChoiceParallel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.tool.choice.mixed/client",
+        "${net}/openai.responses.request.tool.choice.mixed/server"})
+    public void shouldRestoreOpenaiResponsesRequestToolChoiceMixed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.response.format.text/client",
+        "${net}/openai.responses.request.response.format.text/server"})
+    public void shouldRestoreOpenaiResponsesRequestResponseFormatText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.response.format.json.object/client",
+        "${net}/openai.responses.request.response.format.json.object/server"})
+    public void shouldRestoreOpenaiResponsesRequestResponseFormatJsonObject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.response.format.json.schema/client",
+        "${net}/openai.responses.request.response.format.json.schema/server"})
+    public void shouldRestoreOpenaiResponsesRequestResponseFormatJsonSchema() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.response.format.residue/client",
+        "${net}/openai.responses.request.response.format.residue/server"})
+    public void shouldRestoreOpenaiResponsesRequestResponseFormatResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.response.format.residue.split/client",
+        "${net}/openai.responses.request.response.format.residue.split/server"})
+    public void shouldRestoreOpenaiResponsesRequestResponseFormatResidueSplit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.response.format.residue.only/client",
+        "${net}/openai.responses.request.response.format.residue.only/server"})
+    public void shouldRestoreOpenaiResponsesRequestResponseFormatResidueOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.response.format.text/client",
+        "${net}/openai.responses.transform.request.response.format.text/server"})
+    public void shouldTransformRequestResponseFormatTextFromOpenaiResponsesAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.response.format.json.object/client",
+        "${net}/openai.responses.transform.request.response.format.json.object/server"})
+    public void shouldTransformRequestResponseFormatJsonObjectFromOpenaiResponsesAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.response.format.json.schema/client",
+        "${net}/openai.responses.transform.request.response.format.json.schema/server"})
+    public void shouldTransformRequestResponseFormatJsonSchemaFromOpenaiResponsesAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.response.format.json.schema.type.last/client",
+        "${net}/openai.responses.transform.request.response.format.json.schema/server"})
+    public void shouldTransformRequestResponseFormatJsonSchemaTypeLastFromOpenaiResponsesAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.rejected.response.format.type/client",
+        "${net}/openai.responses.transform.rejected.tool.choice/server"})
+    public void shouldRejectResponseFormatTypeAsOpenaiResponsesNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\"", "effort \"none\"", "wire \"none\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort/client",
+        "${net}/openai.responses.transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortNoneAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\"", "effort \"minimal\"", "wire \"minimal\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort/client",
+        "${net}/openai.responses.transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortMinimalAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\"", "effort \"low\"", "wire \"low\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort/client",
+        "${net}/openai.responses.transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortLowAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\"", "effort \"medium\"", "wire \"medium\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort/client",
+        "${net}/openai.responses.transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortMediumAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\"", "effort \"high\"", "wire \"high\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort/client",
+        "${net}/openai.responses.transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortHighAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\"", "effort \"xhigh\"", "wire \"xhigh\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort/client",
+        "${net}/openai.responses.transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortXhighAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\"", "effort \"max\"", "wire \"xhigh\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort/client",
+        "${net}/openai.responses.transform.request.reasoning.effort/server"})
+    public void shouldClampReasoningEffortMaxAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\"", "budget \"0\"", "wire \"none\""})
+    @Specification({
+        "${app}/transform.request.reasoning.budget/client",
+        "${net}/openai.responses.transform.request.reasoning.effort/server"})
+    public void shouldDeriveReasoningEffortNoneFromBudget0AsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\"", "budget \"512\"", "wire \"minimal\""})
+    @Specification({
+        "${app}/transform.request.reasoning.budget/client",
+        "${net}/openai.responses.transform.request.reasoning.effort/server"})
+    public void shouldDeriveReasoningEffortMinimalFromBudget512AsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\"", "budget \"1024\"", "wire \"low\""})
+    @Specification({
+        "${app}/transform.request.reasoning.budget/client",
+        "${net}/openai.responses.transform.request.reasoning.effort/server"})
+    public void shouldDeriveReasoningEffortLowFromBudget1024AsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\"", "budget \"2048\"", "wire \"low\""})
+    @Specification({
+        "${app}/transform.request.reasoning.budget/client",
+        "${net}/openai.responses.transform.request.reasoning.effort/server"})
+    public void shouldDeriveReasoningEffortLowFromBudget2048AsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\"", "budget \"10000\"", "wire \"medium\""})
+    @Specification({
+        "${app}/transform.request.reasoning.budget/client",
+        "${net}/openai.responses.transform.request.reasoning.effort/server"})
+    public void shouldDeriveReasoningEffortMediumFromBudget10000AsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\"", "budget \"30000\"", "wire \"high\""})
+    @Specification({
+        "${app}/transform.request.reasoning.budget/client",
+        "${net}/openai.responses.transform.request.reasoning.effort/server"})
+    public void shouldDeriveReasoningEffortHighFromBudget30000AsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({
+        "source \"openai/responses\"",
+        "target \"openai/responses\"",
+        "effort \"low\"",
+        "budget \"30000\"",
+        "wire \"low\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort.budget/client",
+        "${net}/openai.responses.transform.request.reasoning.effort/server"})
+    public void shouldPreferReasoningEffortOverBudgetAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.models.yaml")
+    @ScriptProperty({
+        "source \"openai/responses\"",
+        "target \"openai/responses\"",
+        "model \"ladder-model\"",
+        "budget \"3500\"",
+        "wire \"medium\""})
+    @Specification({
+        "${app}/transform.request.reasoning.budget/client",
+        "${net}/openai.responses.transform.request.reasoning.effort/server"})
+    public void shouldDeriveReasoningEffortFromBudgetWithConfiguredLadderAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.models.yaml")
+    @ScriptProperty({
+        "source \"openai/responses\"",
+        "target \"openai/responses\"",
+        "model \"ladder-model\"",
+        "budget \"1000\"",
+        "wire \"minimal\""})
+    @Specification({
+        "${app}/transform.request.reasoning.budget/client",
+        "${net}/openai.responses.transform.request.reasoning.effort/server"})
+    public void shouldDeriveReasoningEffortFromBudgetBelowConfiguredLadderAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.rejected.reasoning.effort/client",
+        "${net}/openai.responses.transform.rejected.reasoning/server"})
+    public void shouldRejectReasoningEffortAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.rejected.reasoning.budget/client",
+        "${net}/openai.responses.transform.rejected.reasoning/server"})
+    public void shouldRejectReasoningBudgetAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\"", "model \"o3-mini\""})
+    @Specification({
+        "${app}/transform.request.sampling.members/client",
+        "${net}/openai.responses.transform.request.sampling.unsupported/server"})
+    public void shouldDropSamplingAsOpenaiResponsesModelRejectingSampling() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.models.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\"", "model \"o3-mini\""})
+    @Specification({
+        "${app}/transform.request.sampling.members/client",
+        "${net}/openai.responses.transform.request.sampling.supported/server"})
+    public void shouldTransformSamplingAsOpenaiResponsesModelOverridingSampling() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.sampling.members/client",
+        "${net}/openai.responses.transform.request.sampling.supported/server"})
+    public void shouldTransformSamplingAsOpenaiResponsesModelWithoutEntry() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.reasoning.residue/client",
+        "${net}/openai.responses.request.reasoning.residue/server"})
+    public void shouldEncodeOpenaiResponsesRequestReasoningResidue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.reasoning.residue.only/client",
+        "${net}/openai.responses.request.reasoning.residue.only/server"})
+    public void shouldEncodeOpenaiResponsesRequestReasoningResidueOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\"", "user \"user-123\"", "wire \"user-123\""})
+    @Specification({
+        "${app}/transform.request.user/client",
+        "${net}/openai.responses.transform.request.user/server"})
+    public void shouldTransformUserAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({
+        "source \"openai/responses\"",
+        "target \"openai/responses\"",
+        "user \"" + USER_128 + "\"",
+        "wire \"" + USER_128 + "\""})
+    @Specification({
+        "${app}/transform.request.user/client",
+        "${net}/openai.responses.transform.request.user/server"})
+    public void shouldTransformUserAtLimitAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\"", "user \"" + USER_129 + "\""})
+    @Specification({
+        "${app}/transform.request.user/client",
+        "${net}/openai.responses.transform.request.dropped/server"})
+    public void shouldDropUserOverLimitAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\"", "tier \"auto\"", "wire \"auto\""})
+    @Specification({
+        "${app}/transform.request.service.tier/client",
+        "${net}/openai.responses.transform.request.service.tier/server"})
+    public void shouldTransformServiceTierAutoAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\"", "tier \"default\"", "wire \"default\""})
+    @Specification({
+        "${app}/transform.request.service.tier/client",
+        "${net}/openai.responses.transform.request.service.tier/server"})
+    public void shouldTransformServiceTierDefaultAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\"", "tier \"flex\"", "wire \"flex\""})
+    @Specification({
+        "${app}/transform.request.service.tier/client",
+        "${net}/openai.responses.transform.request.service.tier/server"})
+    public void shouldTransformServiceTierFlexAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\"", "tier \"priority\"", "wire \"priority\""})
+    @Specification({
+        "${app}/transform.request.service.tier/client",
+        "${net}/openai.responses.transform.request.service.tier/server"})
+    public void shouldTransformServiceTierPriorityAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.tiers.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\"", "model \"no-flex\"", "tier \"flex\""})
+    @Specification({
+        "${app}/transform.request.service.tier/client",
+        "${net}/openai.responses.transform.request.dropped/server"})
+    public void shouldDropServiceTierNotConfiguredAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.tiers.yaml")
+    @ScriptProperty({
+        "source \"openai/responses\"",
+        "target \"openai/responses\"",
+        "model \"no-flex\"",
+        "tier \"priority\"",
+        "wire \"priority\""})
+    @Specification({
+        "${app}/transform.request.service.tier/client",
+        "${net}/openai.responses.transform.request.service.tier/server"})
+    public void shouldTransformServiceTierConfiguredAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.tiers.yaml")
+    @ScriptProperty({
+        "source \"openai/responses\"",
+        "target \"openai/responses\"",
+        "model \"other-model\"",
+        "tier \"flex\"",
+        "wire \"flex\""})
+    @Specification({
+        "${app}/transform.request.service.tier/client",
+        "${net}/openai.responses.transform.request.service.tier/server"})
+    public void shouldTransformServiceTierWithoutModelEntryAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.user/client",
+        "${net}/openai.responses.request.user/server"})
+    public void shouldEncodeOpenaiResponsesRequestUser() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"tier \"default\"", "wire \"default\""})
+    @Specification({
+        "${app}/openai.responses.request.service.tier/client",
+        "${net}/openai.responses.request.service.tier/server"})
+    public void shouldEncodeOpenaiResponsesRequestServiceTierDefault() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"tier \"priority\"", "wire \"priority\""})
+    @Specification({
+        "${app}/openai.responses.request.service.tier/client",
+        "${net}/openai.responses.request.service.tier/server"})
+    public void shouldEncodeOpenaiResponsesRequestServiceTierPriority() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"wire \"fast\""})
+    @Specification({
+        "${app}/openai.responses.request.service.tier.residue/client",
+        "${net}/openai.responses.request.service.tier.residue/server"})
+    public void shouldEncodeOpenaiResponsesRequestServiceTierResidueFast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.cache.breakpoint/client",
+        "${net}/openai.responses.transform.user.text/server"})
+    public void shouldDropCacheBreakpointAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.request.cache.breakpoint.default/client",
+        "${net}/openai.responses.transform.user.text/server"})
+    public void shouldDropCacheBreakpointWithoutTtlAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.tool.definition.strict/client",
+        "${net}/openai.responses.transform.tool.definition.strict/server"})
+    public void shouldTransformToolDefinitionStrictAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/responses\"", "target \"openai/responses\""})
+    @Specification({
+        "${app}/transform.user.document.citations/client",
+        "${net}/openai.responses.transform.user.document.reference/server"})
+    public void shouldDropUserDocumentCitationsAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.unsupported.yaml")
+    @ScriptProperty({
+        "source \"openai/responses\"",
+        "target \"openai/responses\"",
+        "model \"strict-model\"",
+        "member \"parallel_tool_calls\"",
+        "value \"false\""})
+    @Specification({
+        "${app}/transform.rejected.member/client",
+        "${net}/openai.responses.transform.rejected.member/server"})
+    public void shouldRejectUnsupportedParallelToolCallsFalseAsOpenaiResponsesNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.unsupported.yaml")
+    @ScriptProperty({
+        "source \"openai/responses\"",
+        "target \"openai/responses\"",
+        "model \"strict-model\"",
+        "member \"response_format\"",
+        "value \"{\\\"type\\\":\\\"json_object\\\"}\""})
+    @Specification({
+        "${app}/transform.rejected.member/client",
+        "${net}/openai.responses.transform.rejected.member/server"})
+    public void shouldRejectUnsupportedResponseFormatJsonObjectAsOpenaiResponsesNamingMemberAndDialects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.unsupported.yaml")
+    @ScriptProperty({
+        "source \"openai/responses\"",
+        "target \"openai/responses\"",
+        "model \"strict-model\"",
+        "member \"parallel_tool_calls\"",
+        "value \"true\""})
+    @Specification({
+        "${app}/transform.request.member/client",
+        "${net}/openai.responses.transform.request.dropped/server"})
+    public void shouldDropUnsupportedParallelToolCallsTrueAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.unsupported.yaml")
+    @ScriptProperty({
+        "source \"openai/responses\"",
+        "target \"openai/responses\"",
+        "model \"strict-model\"",
+        "member \"response_format\"",
+        "value \"{\\\"type\\\":\\\"text\\\"}\""})
+    @Specification({
+        "${app}/transform.request.member/client",
+        "${net}/openai.responses.transform.request.dropped/server"})
+    public void shouldDropUnsupportedResponseFormatTextAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.unsupported.yaml")
+    @ScriptProperty({
+        "source \"openai/responses\"",
+        "target \"openai/responses\"",
+        "model \"strict-model\"",
+        "member \"user\"",
+        "value \"\\\"user-1\\\"\""})
+    @Specification({
+        "${app}/transform.request.member/client",
+        "${net}/openai.responses.transform.request.dropped/server"})
+    public void shouldDropUnsupportedUserAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.exclusive.yaml")
+    @ScriptProperty({
+        "source \"openai/responses\"",
+        "target \"openai/responses\"",
+        "effort \"high\"",
+        "budget \"8192\"",
+        "wire \"medium\""})
+    @Specification({
+        "${app}/transform.request.reasoning.effort.budget/client",
+        "${net}/openai.responses.transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortAndBudgetBudgetFirstByDefaultAsOpenaiResponses() throws Exception
     {
         k3po.finish();
     }

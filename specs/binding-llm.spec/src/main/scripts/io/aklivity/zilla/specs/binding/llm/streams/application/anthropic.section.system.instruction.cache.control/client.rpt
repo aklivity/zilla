@@ -32,15 +32,7 @@ write zilla:data.ext ${llm:dataEx()
                            .type("SYSTEM_INSTRUCTION")
                            .message(-1)
                            .build()}
-write "{\"text\":\"Be brief.\"}"
-write flush
-
-write zilla:data.ext ${llm:dataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("CONTROL")
-                          .message(-1)
-                          .build()}
-write "{\"anthropic:cache_control\":{\"type\":\"ephemeral\",\"ttl\":\"1h\"}}"
+write "{\"text\":\"Be brief.\",\"prompt_cache_breakpoint\":{\"mode\":\"explicit\",\"ttl\":\"1h\"}}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()

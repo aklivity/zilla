@@ -43,10 +43,14 @@ public final class LlmOptionsConfigAdapter extends ConfigAdapter.Extensible<Opti
     private static final String AUTHORIZATION_CREDENTIALS_DEFAULT = "Bearer {credentials}";
     private static final String SERVER_NAME = "server";
     private static final String GUARDRAILS_NAME = "guardrails";
+    private static final String MODELS_NAME = "models";
+    private static final String UNSUPPORTED_NAME = "unsupported";
+    private static final String EXCLUSIVE_NAME = "exclusive";
     private static final String REQUEST_NAME = "request";
     private static final String RESPONSE_NAME = "response";
 
     private final LlmGuardrailStageConfigAdapter stage = new LlmGuardrailStageConfigAdapter();
+    private final LlmModelConfigAdapter model = new LlmModelConfigAdapter();
 
     private static final String SCHEME_HTTPS = "https";
     private static final int PORT_HTTP = 80;
@@ -109,6 +113,23 @@ public final class LlmOptionsConfigAdapter extends ConfigAdapter.Extensible<Opti
             object.add(GUARDRAILS_NAME, guardrails);
         }
 
+        if (!llmOptions.models.isEmpty())
+        {
+            JsonObjectBuilder models = Json.createObjectBuilder();
+            llmOptions.models.forEach(m -> models.add(m.name, model.adaptToJson(m)));
+            object.add(MODELS_NAME, models);
+        }
+
+        if (llmOptions.unsupported != null)
+        {
+            object.add(UNSUPPORTED_NAME, LlmMemberLists.unsupportedToJson(llmOptions.unsupported));
+        }
+
+        if (llmOptions.exclusive != null)
+        {
+            object.add(EXCLUSIVE_NAME, LlmMemberLists.exclusiveToJson(llmOptions.exclusive));
+        }
+
         injectExtensions(llmOptions, object);
 
         return object.build();
@@ -156,6 +177,22 @@ public final class LlmOptionsConfigAdapter extends ConfigAdapter.Extensible<Opti
                 adaptStagesFromJson(guardrailObject, RESPONSE_NAME).forEach(guardrail::response);
                 llmOptions.guardrail(guardrail.build());
             });
+        }
+
+        if (object.containsKey(MODELS_NAME))
+        {
+            object.getJsonObject(MODELS_NAME).forEach((name, entry) ->
+                llmOptions.model(model.adaptFromJson(name, (JsonObject) entry)));
+        }
+
+        if (object.containsKey(UNSUPPORTED_NAME))
+        {
+            llmOptions.unsupported(LlmMemberLists.unsupportedFromJson(object.getJsonArray(UNSUPPORTED_NAME)));
+        }
+
+        if (object.containsKey(EXCLUSIVE_NAME))
+        {
+            llmOptions.exclusive(LlmMemberLists.exclusiveFromJson(object.getJsonArray(EXCLUSIVE_NAME)));
         }
 
         injectExtensions(object, llmOptions);

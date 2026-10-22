@@ -18,6 +18,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
 
 import java.util.List;
@@ -164,5 +165,124 @@ public class LlmOptionsConfigTest
         LlmAuthorizationConfigBuilder<LlmAuthorizationConfig> injected = builder.inject(identity -> identity);
 
         assertThat(injected, sameInstance(builder));
+    }
+
+    @Test
+    public void shouldBuildModelViaNestedBuilder()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .model()
+                .name("gemini-2.5-pro")
+                .sampling(false)
+                .thinking("budget")
+                .budgetMinimum(128)
+                .budgetMaximum(32768)
+                .ladder("low", 1024)
+                .build()
+            .build();
+
+        LlmModelConfig model = options.models.get(0);
+
+        assertThat(model.name, equalTo("gemini-2.5-pro"));
+        assertThat(model.sampling, equalTo(false));
+        assertThat(model.thinking, equalTo("budget"));
+        assertThat(model.budgetMinimum, equalTo(128));
+        assertThat(model.budgetMaximum, equalTo(32768));
+        assertThat(model.ladder.get("low"), equalTo(1024));
+    }
+
+    @Test
+    public void shouldBuildModelViaCustomMapper()
+    {
+        String name = LlmModelConfig.builder(model -> model.name).name("o3-mini").build();
+
+        assertThat(name, equalTo("o3-mini"));
+    }
+
+    @Test
+    public void shouldInjectModelBuilder()
+    {
+        LlmModelConfigBuilder<LlmModelConfig> builder = LlmModelConfig.builder();
+
+        LlmModelConfigBuilder<LlmModelConfig> injected = builder.inject(identity -> identity);
+
+        assertThat(injected, sameInstance(builder));
+    }
+
+    @Test
+    public void shouldBuildModelWithTiers()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .model()
+                .name("gpt-5")
+                .tiers(List.of("auto", "default"))
+                .build()
+            .build();
+
+        assertThat(options.models.get(0).tiers, equalTo(List.of("auto", "default")));
+    }
+
+    @Test
+    public void shouldBuildModelWithoutTiers()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .model()
+                .name("gpt-5")
+                .build()
+            .build();
+
+        assertThat(options.models.get(0).tiers, nullValue());
+    }
+
+    @Test
+    public void shouldBuildModelWithUnsupportedAndExclusive()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .model()
+                .name("gpt-5")
+                .unsupported(List.of("seed", "response_format"))
+                .exclusive(List.of(List.of("reasoning_effort", "thinking_budget_tokens")))
+                .build()
+            .build();
+
+        assertThat(options.models.get(0).unsupported, equalTo(List.of("seed", "response_format")));
+        assertThat(options.models.get(0).exclusive, equalTo(List.of(List.of("reasoning_effort", "thinking_budget_tokens"))));
+    }
+
+    @Test
+    public void shouldBuildModelWithoutUnsupportedAndExclusive()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .model()
+                .name("gpt-5")
+                .build()
+            .build();
+
+        assertThat(options.models.get(0).unsupported, nullValue());
+        assertThat(options.models.get(0).exclusive, nullValue());
+    }
+
+    @Test
+    public void shouldBuildOptionsWithUnsupportedAndExclusive()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .dialect("openai")
+            .unsupported(List.of("parallel_tool_calls"))
+            .exclusive(List.of(List.of("thinking_budget_tokens", "reasoning_effort")))
+            .build();
+
+        assertThat(options.unsupported, equalTo(List.of("parallel_tool_calls")));
+        assertThat(options.exclusive, equalTo(List.of(List.of("thinking_budget_tokens", "reasoning_effort"))));
+    }
+
+    @Test
+    public void shouldBuildOptionsWithoutUnsupportedAndExclusive()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .dialect("openai")
+            .build();
+
+        assertThat(options.unsupported, nullValue());
+        assertThat(options.exclusive, nullValue());
     }
 }

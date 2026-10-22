@@ -21,9 +21,10 @@ accepted
 connected
 
 read option zilla:flags "init"
-read "abcdefghijkl"
+read "abcdefghijklmnoq"
 read notify FIRST_RELAYED
 
 read option zilla:flags "fin"
-read "mnopqrstuvwx"
+read "rstuvwxy"
+
 read closed

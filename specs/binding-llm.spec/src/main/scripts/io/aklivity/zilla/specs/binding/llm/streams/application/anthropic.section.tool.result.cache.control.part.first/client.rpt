@@ -28,20 +28,12 @@ write zilla:begin.ext ${llm:beginEx()
 connected
 
 write zilla:data.ext ${llm:dataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("CONTROL")
-                          .message(0)
-                          .build()}
-write "{\"anthropic:cache_control\":{\"type\":\"ephemeral\"}}"
-write flush
-
-write zilla:data.ext ${llm:dataEx()
                            .typeId(zilla:id("llm"))
                            .type("TOOL_RESULT")
                            .message(0)
                            .attribute("tool-call-id", "toolu_1")
                            .build()}
-write "{\"text\":\"sunny\"}"
+write "{\"prompt_cache_breakpoint\":{\"mode\":\"explicit\"},\"text\":\"sunny\"}"
 write flush
 
 write advise zilla:flush

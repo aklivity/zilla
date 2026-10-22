@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.model.classify.internal;
 
 import static io.aklivity.zilla.runtime.model.classify.internal.ClassifyModelConfiguration.MAX_LENGTH;
-import static io.aklivity.zilla.runtime.model.classify.internal.ClassifyModelConfiguration.OVERLAP;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
@@ -25,26 +24,17 @@ import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class ClassifyModelConfigurationTest
 {
-    public static final String CLASSIFY_OVERLAP_NAME = "zilla.model.classify.overlap";
+    public static final String CLASSIFY_MAX_LENGTH_NAME = "zilla.model.classify.max.length";
 
     @Test
     public void shouldVerifyConstants()
     {
-        assertThat(MAX_LENGTH.name(), equalTo("zilla.model.classify.max.length"));
-        assertThat(OVERLAP.name(), equalTo(CLASSIFY_OVERLAP_NAME));
+        assertThat(MAX_LENGTH.name(), equalTo(CLASSIFY_MAX_LENGTH_NAME));
     }
 
     @Test
     public void shouldDefaultMaxLength()
     {
         assertThat(new ClassifyModelConfiguration(new Configuration()).maxLength(), equalTo(1048576));
-    }
-
-    @Test
-    public void shouldDefaultOverlap()
-    {
-        ClassifyModelConfiguration config = new ClassifyModelConfiguration(new Configuration());
-
-        assertThat(config.overlap(), equalTo(128));
     }
 }

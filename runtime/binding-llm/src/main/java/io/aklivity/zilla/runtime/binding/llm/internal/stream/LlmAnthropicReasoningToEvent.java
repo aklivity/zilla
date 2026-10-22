@@ -45,13 +45,13 @@ final class LlmAnthropicReasoningToEvent extends LlmToolTransform
 
     static LlmAnthropicReasoningToEvent signature()
     {
-        return new LlmAnthropicReasoningToEvent("anthropic:signature", "content_block_delta", "delta", "signature_delta",
+        return new LlmAnthropicReasoningToEvent("x:signature", "content_block_delta", "delta", "signature_delta",
             "signature");
     }
 
     static LlmAnthropicReasoningToEvent redacted()
     {
-        return new LlmAnthropicReasoningToEvent("anthropic:data", "content_block_start", "content_block", "redacted_thinking",
+        return new LlmAnthropicReasoningToEvent("x:redacted_data", "content_block_start", "content_block", "redacted_thinking",
             "data");
     }
 

@@ -21,15 +21,27 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 
+import java.util.List;
+
 import org.junit.Test;
+
+import io.aklivity.zilla.runtime.binding.llm.config.LlmEffort;
+import io.aklivity.zilla.runtime.binding.llm.config.LlmModelCapability;
+import io.aklivity.zilla.runtime.binding.llm.config.LlmServiceTier;
 
 public class LlmAnthropicControlFromCanonicalTest
 {
     private static final String LONG = "x".repeat(300);
     private static final String HUGE = "x".repeat(5000);
+    private static final String AT_LIMIT = "0123456789".repeat(26).substring(0, 256);
+    private static final String OVER_LIMIT = AT_LIMIT + "x";
+    private static final String SUPPLEMENTARY_AT_LIMIT = "\ud83d\ude00".repeat(256);
+    private static final String SUPPLEMENTARY_OVER_LIMIT = SUPPLEMENTARY_AT_LIMIT + "\ud83d\ude00";
 
     private final LlmAnthropicControlFromCanonical transform = new LlmAnthropicControlFromCanonical(true);
     private final LlmAnthropicControlFromCanonical foreign = new LlmAnthropicControlFromCanonical(false);
+    private final LlmAnthropicControlFromCanonical sameMembers = LlmAnthropicControlFromCanonical.members(true);
+    private final LlmAnthropicControlFromCanonical foreignMembers = LlmAnthropicControlFromCanonical.members(false);
 
     @Test
     public void shouldRestoreOwnPrefixedMember()
@@ -127,5 +139,523 @@ public class LlmAnthropicControlFromCanonicalTest
     public void shouldRejectMemberThatIsNotAnObject()
     {
         assertRejects(transform, json("[1]"));
+    }
+
+
+    @Test
+    public void shouldRestoreSharedSamplingMembers()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:temperature':0.7,'x:top_p':0.9,'x:top_k':40,'x:stop':['END','STOP']}"),
+            json("{'temperature':0.7,'top_p':0.9,'top_k':40,'stop_sequences':['END','STOP']}"));
+
+        assertThat(foreignMembers.member(), equalTo("temperature"));
+    }
+
+    @Test
+    public void shouldClampSharedTemperatureToMaximum()
+    {
+        assertTransforms(foreignMembers, json("{'x:temperature':1.5}"), json("{'temperature':1.0}"));
+    }
+
+    @Test
+    public void shouldClampSharedTemperatureToMinimum()
+    {
+        assertTransforms(foreignMembers, json("{'x:temperature':-0.5}"), json("{'temperature':0.0}"));
+    }
+
+    @Test
+    public void shouldKeepSharedTemperatureWithinRangeVerbatim()
+    {
+        assertTransforms(foreignMembers, json("{'x:temperature':1}"), json("{'temperature':1}"));
+        assertTransforms(foreignMembers, json("{'x:temperature':0.30}"), json("{'temperature':0.30}"));
+    }
+
+    @Test
+    public void shouldRejectSharedTemperatureThatIsNotANumber()
+    {
+        assertRejects(foreignMembers, json("{'x:temperature':'hot'}"));
+    }
+
+    @Test
+    public void shouldDropSharedMemberNotSupported()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:seed':1,'x:frequency_penalty':0.5,'x:presence_penalty':0.5,'x:top_k':3}"),
+            json("{'top_k':3}"));
+    }
+
+    @Test
+    public void shouldDropSharedStopThatIsNull()
+    {
+        assertTransforms(foreignMembers, json("{'x:stop':null,'x:top_k':3}"), json("{'top_k':3}"));
+    }
+
+    @Test
+    public void shouldDropSharedMemberWhenExtracting()
+    {
+        assertTransforms(foreign, json("{'x:temperature':0.7}"), "null");
+
+        assertThat(foreign.member(), nullValue());
+    }
+
+    @Test
+    public void shouldRestoreToolChoiceAutoAsFragment()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:tool_choice':'auto'}"),
+            json("{'tool_choice':{'type':'auto'}}"));
+
+        assertThat(foreignMembers.choiceType(), equalTo("auto"));
+    }
+
+    @Test
+    public void shouldRestoreToolChoiceRequiredAsFragment()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:tool_choice':'required'}"),
+            json("{'tool_choice':{'type':'any'}}"));
+
+        assertThat(foreignMembers.choiceType(), equalTo("any"));
+    }
+
+    @Test
+    public void shouldRestoreToolChoiceNoneAsFragment()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:tool_choice':'none'}"),
+            json("{'tool_choice':{'type':'none'}}"));
+
+        assertThat(foreignMembers.choiceType(), equalTo("none"));
+    }
+
+    @Test
+    public void shouldRestoreFunctionToolChoiceAsTool()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:tool_choice':{'type':'function','function':{'name':'get_weather'}}}"),
+            json("{'tool_choice':{'type':'tool','name':'get_weather'}}"));
+
+        assertThat(foreignMembers.choiceType(), equalTo("tool"));
+    }
+
+    @Test
+    public void shouldRejectAllowedTools()
+    {
+        assertRejects(foreignMembers, json("{'x:tool_choice':{'type':'allowed_tools','allowed_tools':{'mode':'auto'," +
+            "'tools':[{'type':'function','function':{'name':'a'}},{'type':'function'," +
+            "'function':{'name':'b'}}]}}}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("tool_choice"));
+    }
+
+    @Test
+    public void shouldRejectUnrecognizedToolChoice()
+    {
+        assertRejects(foreignMembers, json("{'x:tool_choice':'bogus'}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("tool_choice"));
+    }
+
+    @Test
+    public void shouldHoldParallelToolCallsDisabled()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:parallel_tool_calls':false}"),
+            json("{}"));
+
+        assertThat(foreignMembers.parallelCalls(), equalTo(LlmAnthropicControlFromCanonical.PARALLEL_DISABLED));
+        assertThat(foreignMembers.choiceType(), nullValue());
+    }
+
+    @Test
+    public void shouldHoldParallelToolCallsEnabled()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:parallel_tool_calls':true}"),
+            json("{}"));
+
+        assertThat(foreignMembers.parallelCalls(), equalTo(LlmAnthropicControlFromCanonical.PARALLEL_ENABLED));
+    }
+
+    @Test
+    public void shouldIgnoreNullParallelToolCalls()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:parallel_tool_calls':null}"),
+            json("{}"));
+
+        assertThat(foreignMembers.parallelCalls(), equalTo(LlmAnthropicControlFromCanonical.PARALLEL_UNSET));
+    }
+
+    @Test
+    public void shouldRejectNonBooleanParallelToolCalls()
+    {
+        assertRejects(foreignMembers, json("{'x:parallel_tool_calls':'yes'}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("parallel_tool_calls"));
+    }
+
+    @Test
+    public void shouldHoldBothToolChoiceAndParallelToolCalls()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:parallel_tool_calls':false,'x:tool_choice':'required'}"),
+            json("{'tool_choice':{'type':'any'}}"));
+
+        assertThat(foreignMembers.parallelCalls(), equalTo(LlmAnthropicControlFromCanonical.PARALLEL_DISABLED));
+        assertThat(foreignMembers.choiceType(), equalTo("any"));
+    }
+
+    @Test
+    public void shouldRestoreResidueAsFragment()
+    {
+        assertTransforms(sameMembers,
+            json("{'anthropic:tool_choice':{'extra':1}}"),
+            json("{'tool_choice':{'extra':1}}"));
+    }
+
+
+    @Test
+    public void shouldWriteJsonSchemaFormatAsOutputConfig()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'name':'answer','description':'d'," +
+                "'schema':{'type':'object','a':[1,'" + LONG + "']},'strict':true}}}"),
+            json("{'output_config':{'format':{'type':'json_schema','schema':{'type':'object','a':[1,'" + LONG + "']}}}}"));
+
+        assertThat(foreignMembers.member(), equalTo("output_config"));
+    }
+
+    @Test
+    public void shouldWriteJsonSchemaFormatWithTypeLast()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:response_format':{'json_schema':{'name':'a','schema':{'x':1}},'type':'json_schema'}}"),
+            json("{'output_config':{'format':{'type':'json_schema','schema':{'x':1}}}}"));
+    }
+
+    @Test
+    public void shouldWriteSchemaLargerThanWindow()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'name':'a','schema':{'d':'" + HUGE + "'}}}}"),
+            json("{'output_config':{'format':{'type':'json_schema','schema':{'d':'" + HUGE + "'}}}}"));
+    }
+
+    @Test
+    public void shouldOmitTextFormat()
+    {
+        assertTransforms(foreignMembers, json("{'x:response_format':{'type':'text'}}"), json("{}"));
+    }
+
+    @Test
+    public void shouldDropNullFormat()
+    {
+        assertTransforms(foreignMembers, json("{'x:response_format':null}"), json("{}"));
+    }
+
+    @Test
+    public void shouldRejectJsonObjectFormat()
+    {
+        assertRejects(foreignMembers, json("{'x:response_format':{'type':'json_object'}}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("response_format"));
+    }
+
+    @Test
+    public void shouldRejectUnknownFormatType()
+    {
+        assertRejects(foreignMembers, json("{'x:response_format':{'type':'grammar'}}"));
+    }
+
+    @Test
+    public void shouldRejectDeniedSchemaKeyword()
+    {
+        assertRejects(foreignMembers,
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'name':'a','schema':{'type':'object'," +
+                "'properties':{'n':{'type':'integer','minimum':1}}}}}}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("response_format keyword minimum"));
+    }
+
+    @Test
+    public void shouldRejectDeniedSchemaKeywordLargerThanWindow()
+    {
+        assertRejects(foreignMembers,
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'name':'a','schema':{'d':'" + HUGE +
+                "','maxLength':3}}}}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("response_format keyword maxLength"));
+    }
+
+    @Test
+    public void shouldRejectExternalReference()
+    {
+        assertRejects(foreignMembers,
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'schema':{'$ref':'https://e.com/s'}}}}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("response_format keyword $ref"));
+    }
+
+    @Test
+    public void shouldRejectMinItemsAboveOne()
+    {
+        assertRejects(foreignMembers,
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'schema':{'minItems':2}}}}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("response_format keyword minItems"));
+    }
+
+    @Test
+    public void shouldAcceptKeywordsAsPropertyNames()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'schema':{'properties':{'minimum':{}," +
+                "'maxItems':{'minItems':1,'enum':[{'maximum':1}]}}}}}}"),
+            json("{'output_config':{'format':{'type':'json_schema','schema':{'properties':{'minimum':{}," +
+                "'maxItems':{'minItems':1,'enum':[{'maximum':1}]}}}}}}"));
+    }
+
+    @Test
+    public void shouldNotScanAcrossRequests()
+    {
+        assertRejects(foreignMembers,
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'schema':{'maxLength':1}}}}"));
+        assertTransforms(foreignMembers,
+            json("{'x:response_format':{'type':'json_schema','json_schema':{'schema':{'type':'string'}}}}"),
+            json("{'output_config':{'format':{'type':'json_schema','schema':{'type':'string'}}}}"));
+    }
+
+    @Test
+    public void shouldRecordReasoningEffort()
+    {
+        for (String effort : new String[] {"none", "minimal", "low", "medium", "high", "xhigh", "max"})
+        {
+            assertTransforms(foreignMembers, json("{'x:reasoning_effort':'" + effort + "'}"), json("{}"));
+
+            assertThat(foreignMembers.effort(), equalTo(LlmEffort.of(effort)));
+        }
+    }
+
+    @Test
+    public void shouldIgnoreNullReasoningEffort()
+    {
+        assertTransforms(foreignMembers, json("{'x:reasoning_effort':null}"), json("{}"));
+
+        assertThat(foreignMembers.effort(), equalTo(LlmEffort.ABSENT));
+    }
+
+    @Test
+    public void shouldRejectUnknownReasoningEffort()
+    {
+        assertRejects(foreignMembers, json("{'x:reasoning_effort':'turbo'}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("reasoning_effort"));
+    }
+
+    @Test
+    public void shouldRejectReasoningEffortThatIsNotAString()
+    {
+        assertRejects(foreignMembers, json("{'x:reasoning_effort':3}"));
+    }
+
+    @Test
+    public void shouldRecordThinkingBudget()
+    {
+        assertTransforms(foreignMembers, json("{'x:thinking_budget_tokens':4096}"), json("{}"));
+
+        assertThat(foreignMembers.budget(), equalTo(4096));
+    }
+
+    @Test
+    public void shouldRecordZeroThinkingBudget()
+    {
+        assertTransforms(foreignMembers, json("{'x:thinking_budget_tokens':0}"), json("{}"));
+
+        assertThat(foreignMembers.budget(), equalTo(0));
+    }
+
+    @Test
+    public void shouldIgnoreNullThinkingBudget()
+    {
+        assertTransforms(foreignMembers, json("{'x:thinking_budget_tokens':null}"), json("{}"));
+
+        assertThat(foreignMembers.budget(), equalTo(LlmEffort.ABSENT));
+    }
+
+    @Test
+    public void shouldRejectNegativeThinkingBudget()
+    {
+        assertRejects(foreignMembers, json("{'x:thinking_budget_tokens':-1}"));
+
+        assertThat(foreignMembers.rejectedMember(), equalTo("thinking_budget_tokens"));
+    }
+
+    @Test
+    public void shouldRejectFractionalThinkingBudget()
+    {
+        assertRejects(foreignMembers, json("{'x:thinking_budget_tokens':1.5}"));
+    }
+
+    @Test
+    public void shouldRejectThinkingBudgetThatIsNotANumber()
+    {
+        assertRejects(foreignMembers, json("{'x:thinking_budget_tokens':'high'}"));
+    }
+
+    @Test
+    public void shouldDropReasoningMembersWhenExtracting()
+    {
+        final LlmAnthropicControlFromCanonical extracting = new LlmAnthropicControlFromCanonical(false);
+
+        assertTransforms(extracting, json("{'x:reasoning_effort':'low','x:thinking_budget_tokens':2048}"), "null");
+    }
+
+    @Test
+    public void shouldDropSamplingWhenModelRejectsSampling()
+    {
+        final LlmAnthropicControlFromCanonical rejecting = LlmAnthropicControlFromCanonical.members(false,
+            new LlmModelCapability(false, null, -1, -1, null));
+
+        assertTransforms(rejecting,
+            json("{'x:temperature':0.7,'x:top_p':0.9,'x:top_k':40,'x:stop':['END']}"),
+            json("{'stop_sequences':['END']}"));
+    }
+
+    @Test
+    public void shouldKeepSamplingWhenModelAcceptsSampling()
+    {
+        final LlmAnthropicControlFromCanonical accepting = LlmAnthropicControlFromCanonical.members(false,
+            new LlmModelCapability(true, null, -1, -1, null));
+
+        assertTransforms(accepting,
+            json("{'x:temperature':0.7,'x:top_p':0.9,'x:top_k':40,'x:stop':['END']}"),
+            json("{'temperature':0.7,'top_p':0.9,'top_k':40,'stop_sequences':['END']}"));
+    }
+
+    @Test
+    public void shouldRestoreUser()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:user':'u-1'}"),
+            json("{'metadata':{'user_id':'u-1'}}"));
+    }
+
+    @Test
+    public void shouldRestoreUserAtLimit()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:user':'" + AT_LIMIT + "'}"),
+            json("{'metadata':{'user_id':'" + AT_LIMIT + "'}}"));
+    }
+
+    @Test
+    public void shouldDropUserOverLimit()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:user':'" + OVER_LIMIT + "','x:top_p':0.5}"),
+            json("{'top_p':0.5}"));
+    }
+
+    @Test
+    public void shouldCountUserLimitInCodePoints()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:user':'" + SUPPLEMENTARY_AT_LIMIT + "'}"),
+            json("{'metadata':{'user_id':'" + SUPPLEMENTARY_AT_LIMIT + "'}}"));
+        assertTransforms(foreignMembers,
+            json("{'x:user':'" + SUPPLEMENTARY_OVER_LIMIT + "'}"),
+            json("{}"));
+    }
+
+    @Test
+    public void shouldRestoreUserWithEscapes()
+    {
+        assertTransforms(foreignMembers,
+            "{\"x:user\":\"a\\\"b\\\\c\\u00e9\"}",
+            "{\"metadata\":{\"user_id\":\"a\\\"b\\\\c\u00e9\"}}");
+    }
+
+    @Test
+    public void shouldDropUserThatIsNotString()
+    {
+        assertTransforms(foreignMembers, json("{'x:user':7}"), json("{}"));
+        assertTransforms(foreignMembers, json("{'x:user':{'a':[1]}}"), json("{}"));
+        assertTransforms(foreignMembers, json("{'x:user':null}"), json("{}"));
+    }
+
+    @Test
+    public void shouldDropUserLargerThanHeldBound()
+    {
+        assertTransforms(foreignMembers, json("{'x:user':'" + HUGE + "'}"), json("{}"));
+    }
+
+    @Test
+    public void shouldRestoreServiceTier()
+    {
+        assertTransforms(foreignMembers,
+            json("{'x:service_tier':'auto'}"),
+            json("{'service_tier':'auto'}"));
+        assertTransforms(foreignMembers,
+            json("{'x:service_tier':'default'}"),
+            json("{'service_tier':'standard_only'}"));
+        assertTransforms(foreignMembers,
+            json("{'x:service_tier':'flex'}"),
+            json("{}"));
+        assertTransforms(foreignMembers,
+            json("{'x:service_tier':'priority'}"),
+            json("{}"));
+    }
+
+    @Test
+    public void shouldDropServiceTierThatIsNotCanonical()
+    {
+        assertTransforms(foreignMembers, json("{'x:service_tier':'scale'}"), json("{}"));
+        assertTransforms(foreignMembers, json("{'x:service_tier':'" + HUGE + "'}"), json("{}"));
+        assertTransforms(foreignMembers, json("{'x:service_tier':3}"), json("{}"));
+        assertTransforms(foreignMembers, json("{'x:service_tier':null}"), json("{}"));
+    }
+
+    @Test
+    public void shouldDropServiceTierTheModelDoesNotSupport()
+    {
+        final LlmAnthropicControlFromCanonical restricted = LlmAnthropicControlFromCanonical.members(false,
+            tiers(List.of("default")));
+
+        assertTransforms(restricted,
+            json("{'x:service_tier':'auto'}"),
+            json("{}"));
+        assertTransforms(restricted,
+            json("{'x:service_tier':'default'}"),
+            json("{'service_tier':'standard_only'}"));
+    }
+
+    @Test
+    public void shouldDropServiceTierWhenExtracting()
+    {
+        final LlmAnthropicControlFromCanonical extracting = new LlmAnthropicControlFromCanonical(false);
+
+        assertTransforms(extracting, json("{'x:service_tier':'auto'}"), "null");
+    }
+
+    @Test
+    public void shouldRestoreOwnPrefixedServiceTier()
+    {
+        assertTransforms(transform, json("{'anthropic:service_tier':'other'}"), json("'other'"));
+    }
+
+    @Test
+    public void shouldMergeUserWithResidueIntoOneMetadata()
+    {
+        assertTransforms(sameMembers,
+            json("{'anthropic:metadata':{'a':1},'x:user':'u-1','anthropic:metadata':{'b':2}}"),
+            json("{'metadata':{'a':1},'metadata':{'user_id':'u-1'},'metadata':{'b':2}}"));
+    }
+
+    private static LlmModelCapability tiers(
+        List<String> names)
+    {
+        return new LlmModelCapability(true, null, -1, -1, null, LlmServiceTier.maskOf(names));
     }
 }

@@ -19,7 +19,7 @@ connect "zilla://streams/app0"
 connected
 
 write option zilla:flags "init"
-write "aaaaaaaaaaaaaaaa"
+write "aaaaaaaaaaaaaaaaaaaaaaaa"
 write await FIRST_RELAYED
 
 write abort

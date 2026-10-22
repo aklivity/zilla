@@ -41,6 +41,10 @@ write zilla:begin.ext ${http:beginEx()
                             .build()}
 
 write "{\"id\":\"resp_1\",\"object\":\"response\",\"model\":\"gpt-4\",\"output\":[{\"id\":\"msg_1\",\"type\":\"message\",\"content\":[{\"type\":\"output_text\",\"text\":\""
-      ${core:randomBase64(800)}
-      "\",\"annotations\":[],\"logprobs\":[]}],\"role\":\"assistant\",\"status\":\"completed\"}],\"status\":\"completed\",\"service_tier\":\"default\",\"usage\":{\"input_tokens\":25,\"output_tokens\":15,\"total_tokens\":40}}"
+      ${core:randomBase64(120)}
+      "\",\"annotations\":[],\"logprobs\":[]}],\"role\":\"assistant\",\"status\":\"completed\"}],\"status\":\"completed\",\"note1\":\""
+      ${core:randomBase64(150)}
+      "\",\"note2\":\""
+      ${core:randomBase64(150)}
+      "\",\"service_tier\":\"default\",\"usage\":{\"input_tokens\":25,\"output_tokens\":15,\"total_tokens\":40}}"
 write close

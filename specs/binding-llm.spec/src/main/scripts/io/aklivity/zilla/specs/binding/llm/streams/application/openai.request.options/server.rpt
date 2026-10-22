@@ -39,70 +39,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-read "{\"openai:temperature\":0.7}"
-
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("CONTROL")
-                          .message(-1)
-                          .build()}
-read "{\"openai:top_p\":0.9}"
-
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("CONTROL")
-                          .message(-1)
-                          .build()}
-read "{\"openai:seed\":42}"
-
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("CONTROL")
-                          .message(-1)
-                          .build()}
-read "{\"openai:stop\":[\"END\"]}"
-
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("CONTROL")
-                          .message(-1)
-                          .build()}
-read "{\"openai:store\":true}"
-
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("CONTROL")
-                          .message(-1)
-                          .build()}
-read "{\"openai:service_tier\":\"auto\"}"
-
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("CONTROL")
-                          .message(-1)
-                          .build()}
-read "{\"openai:logprobs\":true}"
-
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("CONTROL")
-                          .message(-1)
-                          .build()}
-read "{\"openai:top_logprobs\":3}"
-
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("CONTROL")
-                          .message(-1)
-                          .build()}
-read "{\"openai:n\":2}"
-
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("CONTROL")
-                          .message(-1)
-                          .build()}
-read "{\"openai:audio\":{\"voice\":\"alloy\",\"format\":\"wav\"}}"
+read "{\"x:temperature\":0.7,\"x:top_p\":0.9,\"x:seed\":42,\"x:stop\":[\"END\"],\"openai:store\":true,\"x:service_tier\":\"auto\",\"openai:logprobs\":true,\"openai:top_logprobs\":3,\"openai:n\":2,\"openai:audio\":{\"voice\":\"alloy\",\"format\":\"wav\"}}"
 
 read advised zilla:flush ${llm:matchDialectFlushEx()
                                  .typeId(zilla:id("llm"))

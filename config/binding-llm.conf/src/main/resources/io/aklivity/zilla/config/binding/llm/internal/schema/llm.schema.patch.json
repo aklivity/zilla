@@ -254,7 +254,7 @@
                             {
                                 "dialect":
                                 {
-                                    "enum": [ "openai", "anthropic", "gemini" ]
+                                    "const": "openai"
                                 }
                             }
                         },
@@ -264,12 +264,339 @@
                             {
                                 "dialect": true,
                                 "server": true,
-                                "authorization": true
+                                "authorization": true,
+                                "models":
+                                {
+                                    "$ref": "#/$defs/binding-ext/llm/openai-models"
+                                },
+                                "unsupported":
+                                {
+                                    "$ref": "#/$defs/binding-ext/llm/unsupported-members"
+                                },
+                                "exclusive":
+                                {
+                                    "$ref": "#/$defs/binding-ext/llm/exclusive-members"
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    {
+                        "if":
+                        {
+                            "properties":
+                            {
+                                "dialect":
+                                {
+                                    "const": "anthropic"
+                                }
+                            }
+                        },
+                        "then":
+                        {
+                            "properties":
+                            {
+                                "dialect": true,
+                                "server": true,
+                                "authorization": true,
+                                "models":
+                                {
+                                    "$ref": "#/$defs/binding-ext/llm/anthropic-models"
+                                },
+                                "unsupported":
+                                {
+                                    "$ref": "#/$defs/binding-ext/llm/unsupported-members"
+                                },
+                                "exclusive":
+                                {
+                                    "$ref": "#/$defs/binding-ext/llm/exclusive-members"
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    {
+                        "if":
+                        {
+                            "properties":
+                            {
+                                "dialect":
+                                {
+                                    "const": "gemini"
+                                }
+                            }
+                        },
+                        "then":
+                        {
+                            "properties":
+                            {
+                                "dialect": true,
+                                "server": true,
+                                "authorization": true,
+                                "models":
+                                {
+                                    "$ref": "#/$defs/binding-ext/llm/gemini-models"
+                                },
+                                "unsupported":
+                                {
+                                    "$ref": "#/$defs/binding-ext/llm/unsupported-members"
+                                },
+                                "exclusive":
+                                {
+                                    "$ref": "#/$defs/binding-ext/llm/exclusive-members"
+                                }
                             },
                             "additionalProperties": false
                         }
                     }
                 ]
+            },
+            "budget-ladder":
+            {
+                "title": "Ladder",
+                "description": "Thinking budget tokens by reasoning effort, for a model that takes a thinking budget instead of an effort. An effort without an entry takes the nearest entry that is present, and a ladder with no entries drops the effort. The built-in ladder of a dialect applies when a model gives none.",
+                "type": "object",
+                "properties":
+                {
+                    "minimal":
+                    {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "low":
+                    {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "medium":
+                    {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "high":
+                    {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "xhigh":
+                    {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "max":
+                    {
+                        "type": "integer",
+                        "minimum": 0
+                    }
+                },
+                "additionalProperties": false
+            },
+            "thinking-budget":
+            {
+                "title": "Budget",
+                "description": "Range of thinking budget tokens the model accepts. A request that carries a budget outside the range is clamped into it, and a minimum of 0 admits a budget of 0 to turn thinking off.",
+                "type": "object",
+                "properties":
+                {
+                    "minimum":
+                    {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "maximum":
+                    {
+                        "type": "integer",
+                        "minimum": 1
+                    }
+                },
+                "additionalProperties": false
+            },
+            "service-tiers":
+            {
+                "title": "Tiers",
+                "description": "Service tiers the model supports, from auto, default, flex and priority. A request that carries a tier the model does not support has the tier dropped. A model with no entry, or an entry that lists no tiers property, receives the tier unchanged.",
+                "type": "array",
+                "items":
+                {
+                    "type": "string",
+                    "enum": [ "auto", "default", "flex", "priority" ]
+                },
+                "uniqueItems": true
+            },
+            "unsupported-members":
+            {
+                "title": "Unsupported",
+                "description": "Request members the upstream does not honour, named by their canonical x: member name. The client decides before writing the request, without relying on the upstream to answer: an advisory member listed here is dropped, and a behavioural member (stop, tool_choice, parallel_tool_calls, response_format) rejects the request naming the member and the dialect pair, unless its value is harmless (null, parallel_tool_calls true, tool_choice auto, response_format text), in which case it is dropped. A model entry that lists unsupported replaces the dialect-level list for that model, and an empty list lists nothing. The default is an empty list.",
+                "type": "array",
+                "items":
+                {
+                    "type": "string",
+                    "enum":
+                    [
+                        "temperature",
+                        "top_p",
+                        "top_k",
+                        "stop",
+                        "seed",
+                        "frequency_penalty",
+                        "presence_penalty",
+                        "tool_choice",
+                        "parallel_tool_calls",
+                        "response_format",
+                        "reasoning_effort",
+                        "thinking_budget_tokens",
+                        "user",
+                        "service_tier"
+                    ]
+                },
+                "uniqueItems": true
+            },
+            "exclusive-members":
+            {
+                "title": "Exclusive",
+                "description": "Groups of request members the upstream refuses together, so the client sends exactly one of each group: the first member of the group that is present wins and the others are dropped. A group lists reasoning_effort and thinking_budget_tokens, the members a client records until the end of the request. A model entry that lists exclusive replaces the dialect-level list for that model, and an empty list lists nothing. The default is an empty list.",
+                "type": "array",
+                "items":
+                {
+                    "type": "array",
+                    "minItems": 2,
+                    "items":
+                    {
+                        "type": "string",
+                        "enum": [ "reasoning_effort", "thinking_budget_tokens" ]
+                    },
+                    "uniqueItems": true
+                }
+            },
+            "openai-models":
+            {
+                "title": "Models",
+                "description": "Capabilities of the models this client speaks to, keyed by model identifier or by a * glob pattern, matched against the model of each request. Settings given here override the built-in defaults of the dialect, which apply to a model that has no entry or that an entry does not set.",
+                "type": "object",
+                "additionalProperties":
+                {
+                    "type": "object",
+                    "properties":
+                    {
+                        "sampling":
+                        {
+                            "title": "Sampling",
+                            "description": "Whether the model accepts temperature, top_p and top_k. A model that rejects sampling does not receive them, and a model with no entry receives them unchanged.",
+                            "type": "boolean"
+                        },
+                        "ladder":
+                        {
+                            "$ref": "#/$defs/binding-ext/llm/budget-ladder"
+                        },
+                        "tiers":
+                        {
+                            "$ref": "#/$defs/binding-ext/llm/service-tiers"
+                        },
+                        "unsupported":
+                        {
+                            "$ref": "#/$defs/binding-ext/llm/unsupported-members"
+                        },
+                        "exclusive":
+                        {
+                            "$ref": "#/$defs/binding-ext/llm/exclusive-members"
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "anthropic-models":
+            {
+                "title": "Models",
+                "description": "Capabilities of the models this client speaks to, keyed by model identifier or by a * glob pattern, matched against the model of each request. Settings given here override the built-in defaults of the dialect, which apply to a model that has no entry or that an entry does not set.",
+                "type": "object",
+                "additionalProperties":
+                {
+                    "type": "object",
+                    "properties":
+                    {
+                        "sampling":
+                        {
+                            "title": "Sampling",
+                            "description": "Whether the model accepts temperature, top_p and top_k. A model that rejects sampling does not receive them, and a model with no entry receives them unchanged.",
+                            "type": "boolean"
+                        },
+                        "thinking":
+                        {
+                            "title": "Thinking",
+                            "description": "The thinking forms the model accepts. adaptive accepts adaptive thinking only, adaptive-disabled adds an explicit disabled, adaptive-enabled adds the deprecated enabled form, and enabled accepts enabled with a budget only. A model with no entry takes adaptive-disabled, the form of the current Claude models.",
+                            "type": "string",
+                            "enum": [ "adaptive", "adaptive-disabled", "adaptive-enabled", "enabled" ]
+                        },
+                        "budget":
+                        {
+                            "$ref": "#/$defs/binding-ext/llm/thinking-budget"
+                        },
+                        "ladder":
+                        {
+                            "$ref": "#/$defs/binding-ext/llm/budget-ladder"
+                        },
+                        "tiers":
+                        {
+                            "$ref": "#/$defs/binding-ext/llm/service-tiers"
+                        },
+                        "unsupported":
+                        {
+                            "$ref": "#/$defs/binding-ext/llm/unsupported-members"
+                        },
+                        "exclusive":
+                        {
+                            "$ref": "#/$defs/binding-ext/llm/exclusive-members"
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "gemini-models":
+            {
+                "title": "Models",
+                "description": "Capabilities of the models this client speaks to, keyed by model identifier or by a * glob pattern, matched against the model of each request. Settings given here override the built-in defaults of the dialect, which apply to a model that has no entry or that an entry does not set.",
+                "type": "object",
+                "additionalProperties":
+                {
+                    "type": "object",
+                    "properties":
+                    {
+                        "sampling":
+                        {
+                            "title": "Sampling",
+                            "description": "Whether the model accepts temperature, top_p and top_k. A model that rejects sampling does not receive them, and a model with no entry receives them unchanged.",
+                            "type": "boolean"
+                        },
+                        "thinking":
+                        {
+                            "title": "Thinking",
+                            "description": "Whether the model takes a thinking level or a thinking budget. A model with no entry takes level, the form of the current Gemini models.",
+                            "type": "string",
+                            "enum": [ "level", "budget" ]
+                        },
+                        "budget":
+                        {
+                            "$ref": "#/$defs/binding-ext/llm/thinking-budget"
+                        },
+                        "ladder":
+                        {
+                            "$ref": "#/$defs/binding-ext/llm/budget-ladder"
+                        },
+                        "tiers":
+                        {
+                            "$ref": "#/$defs/binding-ext/llm/service-tiers"
+                        },
+                        "unsupported":
+                        {
+                            "$ref": "#/$defs/binding-ext/llm/unsupported-members"
+                        },
+                        "exclusive":
+                        {
+                            "$ref": "#/$defs/binding-ext/llm/exclusive-members"
+                        }
+                    },
+                    "additionalProperties": false
+                }
             },
             "server-options":
             {

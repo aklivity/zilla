@@ -26,6 +26,7 @@ public class LlmToolCallCanonicalRoundTripTest
 {
     private static final String LONG = "x".repeat(300);
 
+    private final LlmCacheBreakpoint breakpoints = new LlmCacheBreakpoint(Integer.MAX_VALUE, "5m", "1h");
     private final Consumer<LlmSectionAttributes> id = attributes -> attributes.toolCallId("toolu_1");
     private final Consumer<LlmSectionAttributes> name = attributes -> attributes.toolName("get_weather");
     private final Consumer<LlmSectionAttributes> attributes = id.andThen(name);
@@ -33,7 +34,8 @@ public class LlmToolCallCanonicalRoundTripTest
     @Test
     public void shouldRoundTripAnthropicToolUse()
     {
-        assertRoundTrips(new LlmAnthropicToolCallToCanonical(), new LlmAnthropicToolCallFromCanonical("tool_use", true),
+        assertRoundTrips(new LlmAnthropicToolCallToCanonical(),
+            new LlmAnthropicToolCallFromCanonical("tool_use", true, breakpoints),
             attributes,
             json("{'type':'tool_use','id':'toolu_1','name':'get_weather','input':{'city':'Paris'}}"));
     }
@@ -41,7 +43,8 @@ public class LlmToolCallCanonicalRoundTripTest
     @Test
     public void shouldRoundTripAnthropicServerToolUse()
     {
-        assertRoundTrips(new LlmAnthropicToolCallToCanonical(), new LlmAnthropicToolCallFromCanonical("server_tool_use", true),
+        assertRoundTrips(new LlmAnthropicToolCallToCanonical(),
+            new LlmAnthropicToolCallFromCanonical("server_tool_use", true, breakpoints),
             attributes,
             json("{'type':'server_tool_use','id':'toolu_1','name':'get_weather','input':{'query':'zilla'}}"));
     }
@@ -49,7 +52,8 @@ public class LlmToolCallCanonicalRoundTripTest
     @Test
     public void shouldRoundTripCacheControlBeforeInput()
     {
-        assertRoundTrips(new LlmAnthropicToolCallToCanonical(), new LlmAnthropicToolCallFromCanonical("tool_use", true),
+        assertRoundTrips(new LlmAnthropicToolCallToCanonical(),
+            new LlmAnthropicToolCallFromCanonical("tool_use", true, breakpoints),
             attributes,
             json("{'type':'tool_use','id':'toolu_1','name':'get_weather','cache_control':{'type':'ephemeral'}," +
                 "'input':{'city':'Paris'}}"));
@@ -58,16 +62,18 @@ public class LlmToolCallCanonicalRoundTripTest
     @Test
     public void shouldRoundTripCacheControlAfterInput()
     {
-        assertRoundTrips(new LlmAnthropicToolCallToCanonical(), new LlmAnthropicToolCallFromCanonical("server_tool_use", true),
+        assertRoundTrips(new LlmAnthropicToolCallToCanonical(),
+            new LlmAnthropicToolCallFromCanonical("server_tool_use", true, breakpoints),
             attributes,
             json("{'type':'server_tool_use','id':'toolu_1','name':'get_weather','input':{'city':'Paris'}," +
-                "'cache_control':{'type':'ephemeral','ttl':[1,{'a':null}]}}"));
+                "'cache_control':{'type':'ephemeral','ttl':'1h'}}"));
     }
 
     @Test
     public void shouldRoundTripLongValuesAndManyNativeOnlyMembers()
     {
-        assertRoundTrips(new LlmAnthropicToolCallToCanonical(), new LlmAnthropicToolCallFromCanonical("tool_use", true),
+        assertRoundTrips(new LlmAnthropicToolCallToCanonical(),
+            new LlmAnthropicToolCallFromCanonical("tool_use", true, breakpoints),
             attributes,
             json("{'type':'tool_use','id':'toolu_1','name':'get_weather','note':'" + LONG + "','count':12345," +
                 "'tags':[1,2],'input':{'text':'" + LONG + "'},'gap':null}"));

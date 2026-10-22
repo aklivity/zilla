@@ -31,7 +31,7 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-read "{\"model\":\"claude-3-opus-20240229\", \"temperature\" :  0.5 ,\"container_id\" : \"ctr\\u005f1\" ,\"thinking\" : { \"type\" : \"enabled\" , \"budget_tokens\" : 2048 } ,\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Hello\"}]}]}"
+read "{\"model\":\"claude-3-opus-20240229\", \"temperature\" :  0.5 ,\"container_id\" : \"ctr\\u005f1\" ,\"metadata\" : { \"user_id\" : \"u1\" } ,\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Hello\"}]}]}"
 
 read closed
 

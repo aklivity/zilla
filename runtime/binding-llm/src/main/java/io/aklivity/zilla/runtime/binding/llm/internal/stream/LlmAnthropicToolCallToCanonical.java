@@ -47,12 +47,25 @@ final class LlmAnthropicToolCallToCanonical extends LlmToolTransform
             inputted = true;
             action = PASS_OBJECT;
         }
+        else if (matches(key, LlmCacheBreakpoint.NATIVE_MEMBER))
+        {
+            action = capture(key);
+        }
         else
         {
             action = prefix(DIALECT, key);
         }
 
         return action;
+    }
+
+    @Override
+    protected Status onCaptured(
+        LlmCapturedValue value)
+    {
+        LlmCacheBreakpoint.toCanonical(this, value);
+
+        return Status.ADVANCED;
     }
 
     @Override

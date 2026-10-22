@@ -83,12 +83,36 @@ final class LlmAnthropicMediaToCanonical extends LlmToolTransform
             target = "file_id";
             action = PASS_STRING;
         }
+        else if (depth == 1 && matches(key, LlmCacheBreakpoint.NATIVE_MEMBER))
+        {
+            action = capture(key);
+        }
+        else if (depth == 1 && matches(key, LlmCitationsEnabled.MEMBER))
+        {
+            action = capture(key);
+        }
         else
         {
             action = prefix(DIALECT, key);
         }
 
         return action;
+    }
+
+    @Override
+    protected Status onCaptured(
+        LlmCapturedValue value)
+    {
+        if (matches(capturedMember(), LlmCitationsEnabled.MEMBER))
+        {
+            LlmCitationsEnabled.emit(this, value, LlmCitationsEnabled.SHARED_MEMBER);
+        }
+        else
+        {
+            LlmCacheBreakpoint.toCanonical(this, value);
+        }
+
+        return Status.ADVANCED;
     }
 
     @Override

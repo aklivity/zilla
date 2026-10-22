@@ -42,7 +42,7 @@ final class PatternsMatcher
         this.matchers = new Matcher[patterns.size()];
         for (int i = 0; i < matchers.length; i++)
         {
-            matchers[i] = patterns.get(i).matcher(input);
+            matchers[i] = patterns.get(i).matcher(input).useTransparentBounds(true).useAnchoringBounds(false);
         }
     }
 
@@ -70,6 +70,27 @@ final class PatternsMatcher
         }
 
         return found != -1;
+    }
+
+    int retained()
+    {
+        final int length = input.length();
+        int earliest = length;
+
+        for (Matcher matcher : matchers)
+        {
+            for (int from = 0; from < earliest; from++)
+            {
+                matcher.region(from, length).lookingAt();
+
+                if (matcher.hitEnd())
+                {
+                    earliest = from;
+                }
+            }
+        }
+
+        return length - earliest;
     }
 
     String label()

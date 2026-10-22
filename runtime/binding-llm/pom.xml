@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>runtime</artifactId>
-    <version>2.6.0-rc6</version>
+    <version>2.6.0-rc7</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -67,6 +67,12 @@
       <groupId>${project.groupId}</groupId>
       <artifactId>engine.conf</artifactId>
       <type>test-jar</type>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>model-classify</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>

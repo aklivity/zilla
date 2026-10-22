@@ -33,14 +33,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .message(0)
                           .attribute("tool-call-id", "toolu_1")
                           .build()}
-read "{\"text\":\"sunny\"}"
-
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("CONTROL")
-                          .message(0)
-                          .build()}
-read "{\"anthropic:cache_control\":{\"type\":\"ephemeral\"}}"
+read "{\"text\":\"sunny\",\"prompt_cache_breakpoint\":{\"mode\":\"explicit\"}}"
 
 read advised zilla:flush
 
