@@ -503,8 +503,10 @@ dialect that carries them natively; every other client drops them where it has n
   final piece of a text value is held only while the same input window can still show what follows, and is delivered before
   the decoder yields. A marker that precedes the text is held in a small stash and written when the section opens. A block
   level `cache_control` of a tool result is written on the last section of the block. The held `}` is reserved against the
-  application credit, so back-pressure delays it but never loses it; only when the credit is too small to keep holding is the
-  section closed early, and a marker that arrives later is dropped. A marker that follows `citations` has no section to join
+  application credit, so back-pressure delays it but never loses it; only when the whole credit of the stream, with the
+  encode slot empty, is too small to keep holding is the section closed early, and a marker that arrives later is dropped.
+  A marker is read whole wherever the input window ends: a key or a value of the marker that is split across windows is
+  left unconsumed until it completes, and a value of no interest to the decoder is skipped fragment by fragment. A marker that follows `citations` has no section to join
   and is dropped.
 
 ### Native containers

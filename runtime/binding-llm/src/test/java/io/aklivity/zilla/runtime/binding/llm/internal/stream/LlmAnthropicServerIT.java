@@ -2051,6 +2051,94 @@ public class LlmAnthropicServerIT
 
     @Test
     @Configuration("server.yaml")
+    @ScriptProperty({"model \"claude-3-opus-20240229x\""})
+    @Specification({
+        "${net}/anthropic.section.user.text.cache.control.window/client",
+        "${app}/anthropic.section.user.text.cache.control.window/server"})
+    public void shouldDecodeAnthropicSectionUserTextCacheControlWindowModelPlus1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"model \"claude-3-opus-20240229xx\""})
+    @Specification({
+        "${net}/anthropic.section.user.text.cache.control.window/client",
+        "${app}/anthropic.section.user.text.cache.control.window/server"})
+    public void shouldDecodeAnthropicSectionUserTextCacheControlWindowModelPlus2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"model \"claude-3-opus-20240229xxx\""})
+    @Specification({
+        "${net}/anthropic.section.user.text.cache.control.window/client",
+        "${app}/anthropic.section.user.text.cache.control.window/server"})
+    public void shouldDecodeAnthropicSectionUserTextCacheControlWindowModelPlus3() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"model \"claude-3-opus-20240229xxxx\""})
+    @Specification({
+        "${net}/anthropic.section.user.text.cache.control.window/client",
+        "${app}/anthropic.section.user.text.cache.control.window/server"})
+    public void shouldDecodeAnthropicSectionUserTextCacheControlWindowModelPlus4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"model \"claude-3-opus-20240229xxxxx\""})
+    @Specification({
+        "${net}/anthropic.section.user.text.cache.control.window/client",
+        "${app}/anthropic.section.user.text.cache.control.window/server"})
+    public void shouldDecodeAnthropicSectionUserTextCacheControlWindowModelPlus5() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"model \"claude-3-opus-20240229xxxxxx\""})
+    @Specification({
+        "${net}/anthropic.section.user.text.cache.control.window/client",
+        "${app}/anthropic.section.user.text.cache.control.window/server"})
+    public void shouldDecodeAnthropicSectionUserTextCacheControlWindowModelPlus6() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"model \"claude-3-opus-20240229xxxxxxx\""})
+    @Specification({
+        "${net}/anthropic.section.user.text.cache.control.window/client",
+        "${app}/anthropic.section.user.text.cache.control.window/server"})
+    public void shouldDecodeAnthropicSectionUserTextCacheControlWindowModelPlus7() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"model \"claude-3-opus-20240229xxxxxxxx\""})
+    @Specification({
+        "${net}/anthropic.section.user.text.cache.control.window/client",
+        "${app}/anthropic.section.user.text.cache.control.window/server"})
+    public void shouldDecodeAnthropicSectionUserTextCacheControlWindowModelPlus8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
     @Specification({
         "${net}/anthropic.request.controls.split/client",
         "${app}/anthropic.request.controls.split/server"})
