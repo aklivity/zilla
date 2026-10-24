@@ -63,6 +63,19 @@ and `gemini`)
 - **Clients.** A client that decodes a streamed response carries each distinct member once per message although every
   event repeats it, and remembers every one it has carried (`LlmControlSeen`), however many there are.
 
+## Route resolution
+
+A route may carry a condition on `dialect` and `model`, matched by `LlmRouteConfig.matches(dialect, model)`. A route with no
+condition on a field matches every value of it, and routes are tried in order, skipping routes the caller is not authorized
+for. (**implemented** for `llm(server)` and `llm(proxy)`; `llm(client)` has a single exit and resolves by authorization alone)
+
+- **Server.** The network begin authorizes the caller and rejects it before any of the request is read, and a caller
+  authorized for no route is reset. The exit is resolved with `binding.resolve(authorization, dialect, model)` when the model is
+  known, immediately before the app begin: at the network begin for `gemini`, which carries the model in the path, and as soon
+  as the model member is decoded for `openai`, `openai/responses` and `anthropic`.
+- **No match.** A request whose model matches no route is answered with the dialect's own not-found error (404), and no app
+  stream is opened.
+
 ## Dialect names
 
 A dialect id names one wire API and is the `LlmBeginEx.dialect` of a stream: `openai/ccs` (Chat Completions),
