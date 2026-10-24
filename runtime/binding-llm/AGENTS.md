@@ -566,6 +566,58 @@ A dialect whose promoted members live inside a native object (`gemini` `generati
 - `maxOutputTokens` is not promoted. It stays in the residue (`gemini:generationConfig`) and is also carried on the
   flush, which is how another dialect's client receives it.
 
+## Member classification
+
+(**planned**) Every request or response member and every content part is classified as one of:
+
+- a **setting**, which stays in a `CONTROL` section;
+- **content**, which the model reads, and a **capability**, which grants the request something it could not do
+  without it (a sandbox, a tool server, stored content the model reads). Each is a section, so that a guardrail
+  stage can process it.
+
+A member that names state held by the provider (an id of a stored response, a container or a session) is classified
+by what the provider does with it: a capability when it grants the request something, a setting when the provider only
+records or compares it (cache diagnostics, request correlation).
+
+A member classified as content or as a capability is never carried as a control member of any kind. It is not
+eligible for promotion to a shared (`x:`) or canonical control member, and one already promoted moves to a section.
+
+### Drop or reject
+
+A client that cannot honour a section of another dialect drops it when leaving it out only removes an ability, and
+rejects the request when leaving it out changes the meaning of what is sent (missing history, a constraint on the
+output, a gate on content that remains). A rejection names the member and the dialect pair.
+
+The unit of a drop is the whole section. A client never drops one member of a section and writes the rest, and it
+never writes a credential in a form it cannot honour.
+
+### MCP server definition
+
+A remote tool server is a `SERVER_TOOL_DEFINITION` section whose payload has `"type":"mcp"`; any other payload of the
+section is a provider-hosted tool in native form, which a client of another dialect drops.
+
+| Member | Meaning | `openai/rs` | `anthropic` |
+|---|---|---|---|
+| `label` | name of the server | `server_label` | `mcp_servers[].name`, `mcp_toolset.mcp_server_name` |
+| `url` | endpoint of the server | `server_url` | `mcp_servers[].url` |
+| `authorization` | bearer token, never presented to a guardrail stage | `authorization` | `mcp_servers[].authorization_token` |
+| `tools` | allowlist of tool names; absent allows every tool, empty allows none | `allowed_tools` | names in `mcp_toolset.configs` enabled, with `default_config.enabled` false |
+
+An `anthropic` decoder merges a server and its toolset into one section, and a client writes both. `gemini`
+`generateContent` has no equivalent and drops the section. Members with no canonical form stay native and prefixed:
+
+- `openai/rs:require_approval`, `openai/rs:server_description`, `openai/rs:defer_loading`
+- `openai/rs:connector_id` and `openai/rs:tunnel_id`, which replace `url` and name state held by the provider or the
+  caller
+- `anthropic:disabled_tools`, the denylist of an `anthropic` toolset (`default_config.enabled` true and
+  `configs.<tool>.enabled` false), and `anthropic:defer_loading`
+- `gemini:authorization_header` (default `Authorization`) and `gemini:authorization_format` (default `Bearer %s`),
+  omitted when the default applies, and `gemini:headers` for every other header
+
+The whole section is dropped by a client that cannot honour a native member that gates or reaches the server:
+`require_approval` other than `never`, a locator that replaces `url`, `disabled_tools`, and an authorization header or
+format other than the default.
+
 ## Ranges (`LlmSectionDataEx.ranges`)
 
 A DATA frame's extension may carry an ordered list of ranges, each with a `length`,
