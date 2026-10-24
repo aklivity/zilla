@@ -24,7 +24,10 @@ import static jakarta.json.stream.JsonParser.Event.VALUE_NULL;
 import static jakarta.json.stream.JsonParser.Event.VALUE_NUMBER;
 import static jakarta.json.stream.JsonParser.Event.VALUE_STRING;
 import static jakarta.json.stream.JsonParser.Event.VALUE_TRUE;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.util.ArrayList;
@@ -201,6 +204,37 @@ public final class JsonSchemaImpl implements JsonSchema
         String schema)
     {
         return of(schema, LOCAL_ONLY, null);
+    }
+
+    public static JsonSchema of(
+        Class<?> owner,
+        String resource)
+    {
+        try (InputStream input = owner.getResourceAsStream(resource))
+        {
+            if (input == null)
+            {
+                throw new IllegalArgumentException(String.format("Unable to find schema %s relative to %s%s",
+                    resource, owner.getName(), encapsulation(owner)));
+            }
+
+            return of(new String(input.readAllBytes(), UTF_8));
+        }
+        catch (IOException ex)
+        {
+            throw new IllegalArgumentException(String.format("Unable to read schema %s relative to %s",
+                resource, owner.getName()), ex);
+        }
+    }
+
+    private static String encapsulation(
+        Class<?> owner)
+    {
+        Module module = owner.getModule();
+
+        return module.isNamed()
+            ? String.format(" (the schema package %s of module %s must be opened)", owner.getPackageName(), module.getName())
+            : "";
     }
 
     public static JsonSchema of(
