@@ -50,6 +50,13 @@ public interface JsonSchema
     }
 
     static JsonSchema of(
+        Class<?> owner,
+        String resource)
+    {
+        return JsonSchemaImpl.of(owner, resource);
+    }
+
+    static JsonSchema of(
         String schema,
         JsonRefResolver resolver)
     {
