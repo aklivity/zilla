@@ -1,0 +1,37 @@
+{
+    "type": "array",
+    "items":
+    {
+        "type": "object",
+        "properties":
+        {
+            "name":
+            {
+                "type": "string"
+            },
+            "mode":
+            {
+                "enum": [ "FAST", "SAFE" ]
+            },
+            "target":
+            {
+                "type": "object",
+                "properties":
+                {
+                    "host":
+                    {
+                        "type": "string"
+                    },
+                    "port":
+                    {
+                        "type": "integer"
+                    }
+                },
+                "required": [ "host", "port" ],
+                "additionalProperties": false
+            }
+        },
+        "required": [ "name" ],
+        "additionalProperties": false
+    }
+}

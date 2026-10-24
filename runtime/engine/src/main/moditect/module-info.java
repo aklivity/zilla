@@ -56,7 +56,7 @@ module io.aklivity.zilla.runtime.engine
     requires transitive io.aklivity.zilla.runtime.common.agrona;
     requires transitive io.aklivity.zilla.runtime.common.lang;
     requires io.aklivity.zilla.runtime.common.feature;
-    requires io.aklivity.zilla.runtime.common.json;
+    requires transitive io.aklivity.zilla.runtime.common.json;
     requires io.aklivity.zilla.runtime.common.yaml;
 
     provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
