@@ -618,6 +618,31 @@ The whole section is dropped by a client that cannot honour a native member that
 `require_approval` other than `never`, a locator that replaces `url`, `disabled_tools`, and an authorization header or
 format other than the default.
 
+### Classified members
+
+| Dialect member | Class | Carried as |
+|---|---|---|
+| `openai/ccs` `prediction` | content | `PREDICTION_TEXT` section |
+| `anthropic` `mcp_servers` and its `mcp_toolset` | capability | `SERVER_TOOL_DEFINITION` section ([MCP server definition](#mcp-server-definition)) |
+| `anthropic` `container` | capability, kept as control by exception | `anthropic:container` and `anthropic:container_id` control members |
+| `anthropic` `diagnostics` | setting | `anthropic:diagnostics` control member |
+
+- **`prediction`.** The text is expected output that the model reads, so it is content. `PREDICTION_TEXT` is a
+  request-level section (`message` -1) whose payload is `{"text":"..."}`, the model-visible value of a text stage like
+  `USER_TEXT`; the client writes `"type":"content"`. The `accepted_prediction_tokens` and `rejected_prediction_tokens`
+  counters of the reply stay in `openai/ccs:usage`. A client of another dialect has no equivalent and drops the section,
+  since a prediction only affects speed and cost.
+- **`container`.** A container selects a sandbox whose state persists between requests and the skills the model can
+  run, so it is a capability. It has no section type: no guardrail policy over sandboxes is defined, and the member
+  needs no typed place for another dialect to reject it. It stays a prefixed control member in the behavioural list of
+  `LlmBehaviour`, so a client of another dialect rejects it unless the value is null, because the conversation relies on
+  state that only the provider holds. The reply's `container` (`id`, `expires_at`) is a setting and stays control.
+  Neither form is eligible for promotion.
+- **`diagnostics`.** `previous_message_id` names an earlier response only so that the provider can explain a prompt-cache
+  miss in the reply. It supplies no history and grants nothing, so it is a setting. A client of another dialect drops it
+  as it drops any member of a prefix that does not admit it, and the reply's `diagnostics.cache_miss_reason` is control.
+  It names provider state and is not eligible for promotion.
+
 ## Ranges (`LlmSectionDataEx.ranges`)
 
 A DATA frame's extension may carry an ordered list of ranges, each with a `length`,
