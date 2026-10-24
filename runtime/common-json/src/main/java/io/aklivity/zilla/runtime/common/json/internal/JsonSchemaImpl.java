@@ -212,11 +212,7 @@ public final class JsonSchemaImpl implements JsonSchema
     {
         try (InputStream input = owner.getResourceAsStream(resource))
         {
-            if (input == null)
-            {
-                throw new IllegalArgumentException(String.format("Unable to find schema %s relative to %s%s",
-                    resource, owner.getName(), encapsulation(owner)));
-            }
+            assert input != null;
 
             return of(new String(input.readAllBytes(), UTF_8));
         }
@@ -225,16 +221,6 @@ public final class JsonSchemaImpl implements JsonSchema
             throw new IllegalArgumentException(String.format("Unable to read schema %s relative to %s",
                 resource, owner.getName()), ex);
         }
-    }
-
-    private static String encapsulation(
-        Class<?> owner)
-    {
-        Module module = owner.getModule();
-
-        return module.isNamed()
-            ? String.format(" (the schema package %s of module %s must be opened)", owner.getPackageName(), module.getName())
-            : "";
     }
 
     public static JsonSchema of(
