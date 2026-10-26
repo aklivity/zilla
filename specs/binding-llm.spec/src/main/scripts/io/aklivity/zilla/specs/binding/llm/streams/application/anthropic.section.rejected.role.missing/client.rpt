@@ -27,5 +27,13 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("CONTROL")
+                          .message(0)
+                          .build()}
+write "{\"anthropic:name\":\"alice\"}"
+write flush
+
 write abort
 read abort

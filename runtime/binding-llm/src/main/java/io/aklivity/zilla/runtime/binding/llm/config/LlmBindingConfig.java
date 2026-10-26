@@ -30,10 +30,13 @@ import java.util.regex.Pattern;
 
 import io.aklivity.zilla.config.binding.llm.LlmGuardrailConfig;
 import io.aklivity.zilla.config.binding.llm.LlmGuardrailStageConfig;
+import io.aklivity.zilla.config.binding.llm.LlmModelConfig;
+import io.aklivity.zilla.config.binding.llm.LlmModelConfigBuilder;
 import io.aklivity.zilla.config.binding.llm.LlmOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.ConfigException;
 import io.aklivity.zilla.config.engine.KindConfig;
+import io.aklivity.zilla.runtime.binding.llm.internal.dialect.LlmDialectNames;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionType;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
@@ -65,6 +68,7 @@ public class LlmBindingConfig
     public final GuardHandler guard;
     public final String credentials;
     private final Map<String, LlmGuardrail> guardrails;
+    private final LlmModelCatalog models;
 
     private final Pattern credentialsPattern;
 
@@ -91,6 +95,10 @@ public class LlmBindingConfig
             : null;
         this.guardrails = new LinkedHashMap<>();
         this.options.guardrails.forEach(guardrail -> guardrails.put(guardrail.name, supplyGuardrail(context, guardrail)));
+        this.models = new LlmModelCatalog(
+            this.options.models,
+            supplyDialectModel(this.options),
+            LlmModelConfig.defaults(this.options.dialect));
     }
 
     protected LlmBindingConfig(
@@ -105,6 +113,35 @@ public class LlmBindingConfig
         this.credentials = binding.credentials;
         this.credentialsPattern = binding.credentialsPattern;
         this.guardrails = binding.guardrails;
+        this.models = binding.models;
+    }
+
+    public boolean serves(
+        String dialect)
+    {
+        final String api = LlmDialectNames.api(dialect);
+
+        boolean serves;
+
+        if (options.dialects != null)
+        {
+            serves = options.dialects.stream()
+                .anyMatch(d -> LlmDialectNames.admits(d.name, dialect) && permits(d.apis, api));
+        }
+        else
+        {
+            serves = (options.dialect == null || LlmDialectNames.admits(options.dialect, dialect)) &&
+                permits(options.apis, api);
+        }
+
+        return serves;
+    }
+
+    private static boolean permits(
+        List<String> apis,
+        String api)
+    {
+        return apis == null || api == null || apis.contains(api);
     }
 
     public LlmAuthorizationResult authorize(
@@ -174,6 +211,37 @@ public class LlmBindingConfig
         String model)
     {
         return guardrails.getOrDefault(model, LlmGuardrail.NONE);
+    }
+
+    public LlmModelCapability capability(
+        String model)
+    {
+        return models.resolve(model);
+    }
+
+    private static LlmModelConfig supplyDialectModel(
+        LlmOptionsConfig options)
+    {
+        LlmModelConfig model = null;
+
+        if (options.unsupported != null || options.exclusive != null)
+        {
+            final LlmModelConfigBuilder<LlmModelConfig> builder = LlmModelConfig.builder().name("*");
+
+            if (options.unsupported != null)
+            {
+                builder.unsupported(options.unsupported);
+            }
+
+            if (options.exclusive != null)
+            {
+                builder.exclusive(options.exclusive);
+            }
+
+            model = builder.build();
+        }
+
+        return model;
     }
 
     private static Pattern supplyCredentialsPattern(

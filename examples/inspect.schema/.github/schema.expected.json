@@ -4122,19 +4122,7 @@
                                 "then": {
                                     "properties": {
                                         "options": {
-                                            "properties": {
-                                                "dialect": {
-                                                    "title": "Dialect",
-                                                    "description": "Fixes the dialect assumed for inbound requests instead of detecting it automatically. Accepts the name of any dialect registered with the binding, for example openai or anthropic.",
-                                                    "$ref": "#/$defs/binding-ext/llm/dialect"
-                                                },
-                                                "authorization": {
-                                                    "title": "Authorization",
-                                                    "description": "Guard used to validate inbound request credentials, keyed by guard name. Credentials is a template matched against the request header the resolved dialect expects credentials in (for example Authorization for openai, x-api-key for anthropic), with {credentials} standing in for the extracted token.",
-                                                    "$ref": "#/$defs/binding-ext/llm/authorization"
-                                                }
-                                            },
-                                            "additionalProperties": false
+                                            "$ref": "#/$defs/binding-ext/llm/server-options"
                                         },
                                         "routes": {
                                             "title": "Routes",
@@ -4161,30 +4149,7 @@
                                 "then": {
                                     "properties": {
                                         "options": {
-                                            "properties": {
-                                                "dialect": {
-                                                    "title": "Dialect",
-                                                    "description": "The dialect this client speaks to the large language model server named by server. Accepts the name of any dialect registered with the binding, for example openai or anthropic. When it differs from the dialect resolved on the paired server side, requests and responses are translated between the two dialects automatically, subject to each dialect's own capabilities.",
-                                                    "$ref": "#/$defs/binding-ext/llm/dialect"
-                                                },
-                                                "server": {
-                                                    "title": "Server",
-                                                    "description": "Base URL of the large language model server this client connects to, mirroring the base_url convention of the official SDKs: the whole origin plus a shared path prefix (for example https://aicomp.ai/v1), with the resolved dialect appending only its own fixed operation suffix on top (/chat/completions for openai, /messages for anthropic). The path defaults to /v1 when omitted (for example https://aicomp.ai resolves the same as https://aicomp.ai/v1).",
-                                                    "type": "string",
-                                                    "format": "uri",
-                                                    "pattern": "^https?://"
-                                                },
-                                                "authorization": {
-                                                    "title": "Authorization",
-                                                    "description": "Guard used to resolve outbound request credentials, keyed by guard name. Credentials is a template used to build the request header the resolved dialect sends credentials in (for example Authorization for openai, x-api-key for anthropic), with {credentials} standing in for the resolved token. When {credentials} resolves to the authorization already granted to the inbound request, the caller's own credentials are forwarded upstream unchanged.",
-                                                    "$ref": "#/$defs/binding-ext/llm/authorization"
-                                                }
-                                            },
-                                            "required": [
-                                                "dialect",
-                                                "server"
-                                            ],
-                                            "additionalProperties": false
+                                            "$ref": "#/$defs/binding-ext/llm/client-options"
                                         },
                                         "routes": {
                                             "title": "Routes",
@@ -4237,8 +4202,13 @@
                                                             "properties": {
                                                                 "dialect": {
                                                                     "title": "Dialect",
-                                                                    "description": "Matches when the request's resolved dialect equals this value.",
+                                                                    "description": "Matches when the request's resolved dialect equals this value. A vendor name such as openai also matches every dialect of that vendor.",
                                                                     "$ref": "#/$defs/binding-ext/llm/dialect"
+                                                                },
+                                                                "api": {
+                                                                    "title": "API",
+                                                                    "description": "Matches when the request's resolved dialect is the named API of the openai dialect, from chat/completions and responses. Omit to match every API of the dialect. Requires dialect to be openai.",
+                                                                    "$ref": "#/$defs/binding-ext/llm/openai-api"
                                                                 },
                                                                 "model": {
                                                                     "title": "Model",
@@ -4248,6 +4218,21 @@
                                                                         "type": "string"
                                                                     }
                                                                 }
+                                                            },
+                                                            "if": {
+                                                                "required": [
+                                                                    "api"
+                                                                ]
+                                                            },
+                                                            "then": {
+                                                                "properties": {
+                                                                    "dialect": {
+                                                                        "const": "openai"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "dialect"
+                                                                ]
                                                             },
                                                             "additionalProperties": false
                                                         }
@@ -7937,7 +7922,506 @@
                     "type": "string",
                     "enum": [
                         "openai",
-                        "anthropic"
+                        "anthropic",
+                        "gemini"
+                    ]
+                },
+                "openai-api": {
+                    "title": "API",
+                    "type": "string",
+                    "enum": [
+                        "chat/completions",
+                        "responses"
+                    ]
+                },
+                "openai-apis": {
+                    "title": "APIs",
+                    "description": "The OpenAI APIs this binding supports, from chat/completions and responses. Defaults to both. A server answers a request for an API that is not listed as an unknown dialect. A client speaks the API of the inbound request when it is listed, and otherwise translates the request to the first listed API. Requires dialect to be openai.",
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {
+                        "$ref": "#/$defs/binding-ext/llm/openai-api"
+                    }
+                },
+                "dialect-entry": {
+                    "title": "Dialect Entry",
+                    "description": "A dialect, named on its own to serve every API of the dialect, or as an object with one property named by the dialect that holds the options for that dialect.",
+                    "oneOf": [
+                        {
+                            "$ref": "#/$defs/binding-ext/llm/dialect"
+                        },
+                        {
+                            "type": "object",
+                            "minProperties": 1,
+                            "maxProperties": 1,
+                            "propertyNames": {
+                                "$ref": "#/$defs/binding-ext/llm/dialect"
+                            },
+                            "properties": {
+                                "openai": {
+                                    "type": "object",
+                                    "properties": {
+                                        "apis": {
+                                            "$ref": "#/$defs/binding-ext/llm/openai-apis"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "anthropic": {
+                                    "type": "object",
+                                    "additionalProperties": false
+                                },
+                                "gemini": {
+                                    "type": "object",
+                                    "additionalProperties": false
+                                }
+                            },
+                            "additionalProperties": {
+                                "type": "object",
+                                "additionalProperties": false
+                            }
+                        }
+                    ]
+                },
+                "client-options": {
+                    "title": "Client Options",
+                    "type": "object",
+                    "properties": {
+                        "dialect": {
+                            "title": "Dialect",
+                            "description": "The dialect this client speaks to the large language model server named by server. Accepts the name of any dialect registered with the binding, for example openai, anthropic or gemini. When it differs from the dialect resolved on the paired server side, requests and responses are translated between the two dialects automatically, subject to each dialect's own capabilities. A vendor name such as openai speaks the dialect of the inbound request when it is one of that vendor's, and the vendor's default otherwise.",
+                            "$ref": "#/$defs/binding-ext/llm/dialect"
+                        },
+                        "server": {
+                            "title": "Server",
+                            "description": "Base URL of the large language model server this client connects to, mirroring the base_url convention of the official SDKs: the whole origin plus a shared path prefix (for example https://aicomp.ai/v1), with the resolved dialect appending only its own fixed operation suffix on top (/chat/completions or /responses for openai, /messages for anthropic, /models/{model}:generateContent or :streamGenerateContent for gemini). The path defaults to /v1 when omitted (for example https://aicomp.ai resolves the same as https://aicomp.ai/v1), except for the gemini dialect where it defaults to /v1beta.",
+                            "type": "string",
+                            "format": "uri",
+                            "pattern": "^https?://"
+                        },
+                        "authorization": {
+                            "title": "Authorization",
+                            "description": "Guard used to resolve outbound request credentials, keyed by guard name. Credentials is a template used to build the request header the resolved dialect sends credentials in (for example Authorization for openai, x-api-key for anthropic, x-goog-api-key for gemini), with {credentials} standing in for the resolved token. When {credentials} resolves to the authorization already granted to the inbound request, the caller's own credentials are forwarded upstream unchanged.",
+                            "$ref": "#/$defs/binding-ext/llm/authorization"
+                        }
+                    },
+                    "required": [
+                        "dialect",
+                        "server"
+                    ],
+                    "allOf": [
+                        {
+                            "if": {
+                                "properties": {
+                                    "dialect": {
+                                        "const": "openai"
+                                    }
+                                }
+                            },
+                            "then": {
+                                "properties": {
+                                    "dialect": true,
+                                    "server": true,
+                                    "authorization": true,
+                                    "apis": {
+                                        "$ref": "#/$defs/binding-ext/llm/openai-apis"
+                                    },
+                                    "models": {
+                                        "$ref": "#/$defs/binding-ext/llm/openai-models"
+                                    },
+                                    "unsupported": {
+                                        "$ref": "#/$defs/binding-ext/llm/unsupported-members"
+                                    },
+                                    "exclusive": {
+                                        "$ref": "#/$defs/binding-ext/llm/exclusive-members"
+                                    }
+                                },
+                                "additionalProperties": false
+                            }
+                        },
+                        {
+                            "if": {
+                                "properties": {
+                                    "dialect": {
+                                        "const": "anthropic"
+                                    }
+                                }
+                            },
+                            "then": {
+                                "properties": {
+                                    "dialect": true,
+                                    "server": true,
+                                    "authorization": true,
+                                    "models": {
+                                        "$ref": "#/$defs/binding-ext/llm/anthropic-models"
+                                    },
+                                    "unsupported": {
+                                        "$ref": "#/$defs/binding-ext/llm/unsupported-members"
+                                    },
+                                    "exclusive": {
+                                        "$ref": "#/$defs/binding-ext/llm/exclusive-members"
+                                    }
+                                },
+                                "additionalProperties": false
+                            }
+                        },
+                        {
+                            "if": {
+                                "properties": {
+                                    "dialect": {
+                                        "const": "gemini"
+                                    }
+                                }
+                            },
+                            "then": {
+                                "properties": {
+                                    "dialect": true,
+                                    "server": true,
+                                    "authorization": true,
+                                    "models": {
+                                        "$ref": "#/$defs/binding-ext/llm/gemini-models"
+                                    },
+                                    "unsupported": {
+                                        "$ref": "#/$defs/binding-ext/llm/unsupported-members"
+                                    },
+                                    "exclusive": {
+                                        "$ref": "#/$defs/binding-ext/llm/exclusive-members"
+                                    }
+                                },
+                                "additionalProperties": false
+                            }
+                        }
+                    ]
+                },
+                "budget-ladder": {
+                    "title": "Ladder",
+                    "description": "Thinking budget tokens by reasoning effort, for a model that takes a thinking budget instead of an effort. An effort without an entry takes the nearest entry that is present, and a ladder with no entries drops the effort. The built-in ladder of a dialect applies when a model gives none.",
+                    "type": "object",
+                    "properties": {
+                        "minimal": {
+                            "type": "integer",
+                            "minimum": 0
+                        },
+                        "low": {
+                            "type": "integer",
+                            "minimum": 0
+                        },
+                        "medium": {
+                            "type": "integer",
+                            "minimum": 0
+                        },
+                        "high": {
+                            "type": "integer",
+                            "minimum": 0
+                        },
+                        "xhigh": {
+                            "type": "integer",
+                            "minimum": 0
+                        },
+                        "max": {
+                            "type": "integer",
+                            "minimum": 0
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "thinking-budget": {
+                    "title": "Budget",
+                    "description": "Range of thinking budget tokens the model accepts. A request that carries a budget outside the range is clamped into it, and a minimum of 0 admits a budget of 0 to turn thinking off.",
+                    "type": "object",
+                    "properties": {
+                        "minimum": {
+                            "type": "integer",
+                            "minimum": 0
+                        },
+                        "maximum": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "service-tiers": {
+                    "title": "Tiers",
+                    "description": "Service tiers the model supports, from auto, default, flex and priority. A request that carries a tier the model does not support has the tier dropped. A model with no entry, or an entry that lists no tiers property, receives the tier unchanged.",
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "auto",
+                            "default",
+                            "flex",
+                            "priority"
+                        ]
+                    },
+                    "uniqueItems": true
+                },
+                "unsupported-members": {
+                    "title": "Unsupported",
+                    "description": "Request members the upstream does not honour, named by their canonical x: member name. The client decides before writing the request, without relying on the upstream to answer: an advisory member listed here is dropped, and a behavioural member (stop, tool_choice, parallel_tool_calls, response_format) rejects the request naming the member and the dialect pair, unless its value is harmless (null, parallel_tool_calls true, tool_choice auto, response_format text), in which case it is dropped. A model entry that lists unsupported replaces the dialect-level list for that model, and an empty list lists nothing. The default is an empty list.",
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "temperature",
+                            "top_p",
+                            "top_k",
+                            "stop",
+                            "seed",
+                            "frequency_penalty",
+                            "presence_penalty",
+                            "tool_choice",
+                            "parallel_tool_calls",
+                            "response_format",
+                            "reasoning_effort",
+                            "thinking_budget_tokens",
+                            "user",
+                            "service_tier"
+                        ]
+                    },
+                    "uniqueItems": true
+                },
+                "exclusive-members": {
+                    "title": "Exclusive",
+                    "description": "Groups of request members the upstream refuses together, so the client sends exactly one of each group: the first member of the group that is present wins and the others are dropped. A group lists reasoning_effort and thinking_budget_tokens, the members a client records until the end of the request. A model entry that lists exclusive replaces the dialect-level list for that model, and an empty list lists nothing. The default is an empty list.",
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "minItems": 2,
+                        "items": {
+                            "type": "string",
+                            "enum": [
+                                "reasoning_effort",
+                                "thinking_budget_tokens"
+                            ]
+                        },
+                        "uniqueItems": true
+                    }
+                },
+                "openai-models": {
+                    "title": "Models",
+                    "description": "Capabilities of the models this client speaks to, keyed by model identifier or by a * glob pattern, matched against the model of each request. Settings given here override the built-in defaults of the dialect, which apply to a model that has no entry or that an entry does not set.",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                            "sampling": {
+                                "title": "Sampling",
+                                "description": "Whether the model accepts temperature, top_p and top_k. A model that rejects sampling does not receive them, and a model with no entry receives them unchanged.",
+                                "type": "boolean"
+                            },
+                            "ladder": {
+                                "$ref": "#/$defs/binding-ext/llm/budget-ladder"
+                            },
+                            "tiers": {
+                                "$ref": "#/$defs/binding-ext/llm/service-tiers"
+                            },
+                            "unsupported": {
+                                "$ref": "#/$defs/binding-ext/llm/unsupported-members"
+                            },
+                            "exclusive": {
+                                "$ref": "#/$defs/binding-ext/llm/exclusive-members"
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                },
+                "anthropic-models": {
+                    "title": "Models",
+                    "description": "Capabilities of the models this client speaks to, keyed by model identifier or by a * glob pattern, matched against the model of each request. Settings given here override the built-in defaults of the dialect, which apply to a model that has no entry or that an entry does not set.",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                            "sampling": {
+                                "title": "Sampling",
+                                "description": "Whether the model accepts temperature, top_p and top_k. A model that rejects sampling does not receive them, and a model with no entry receives them unchanged.",
+                                "type": "boolean"
+                            },
+                            "thinking": {
+                                "title": "Thinking",
+                                "description": "The thinking forms the model accepts. adaptive accepts adaptive thinking only, adaptive-disabled adds an explicit disabled, adaptive-enabled adds the deprecated enabled form, and enabled accepts enabled with a budget only. A model with no entry takes adaptive-disabled, the form of the current Claude models.",
+                                "type": "string",
+                                "enum": [
+                                    "adaptive",
+                                    "adaptive-disabled",
+                                    "adaptive-enabled",
+                                    "enabled"
+                                ]
+                            },
+                            "budget": {
+                                "$ref": "#/$defs/binding-ext/llm/thinking-budget"
+                            },
+                            "ladder": {
+                                "$ref": "#/$defs/binding-ext/llm/budget-ladder"
+                            },
+                            "tiers": {
+                                "$ref": "#/$defs/binding-ext/llm/service-tiers"
+                            },
+                            "unsupported": {
+                                "$ref": "#/$defs/binding-ext/llm/unsupported-members"
+                            },
+                            "exclusive": {
+                                "$ref": "#/$defs/binding-ext/llm/exclusive-members"
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                },
+                "gemini-models": {
+                    "title": "Models",
+                    "description": "Capabilities of the models this client speaks to, keyed by model identifier or by a * glob pattern, matched against the model of each request. Settings given here override the built-in defaults of the dialect, which apply to a model that has no entry or that an entry does not set.",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                            "sampling": {
+                                "title": "Sampling",
+                                "description": "Whether the model accepts temperature, top_p and top_k. A model that rejects sampling does not receive them, and a model with no entry receives them unchanged.",
+                                "type": "boolean"
+                            },
+                            "thinking": {
+                                "title": "Thinking",
+                                "description": "Whether the model takes a thinking level or a thinking budget. A model with no entry takes level, the form of the current Gemini models.",
+                                "type": "string",
+                                "enum": [
+                                    "level",
+                                    "budget"
+                                ]
+                            },
+                            "budget": {
+                                "$ref": "#/$defs/binding-ext/llm/thinking-budget"
+                            },
+                            "ladder": {
+                                "$ref": "#/$defs/binding-ext/llm/budget-ladder"
+                            },
+                            "tiers": {
+                                "$ref": "#/$defs/binding-ext/llm/service-tiers"
+                            },
+                            "unsupported": {
+                                "$ref": "#/$defs/binding-ext/llm/unsupported-members"
+                            },
+                            "exclusive": {
+                                "$ref": "#/$defs/binding-ext/llm/exclusive-members"
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                },
+                "server-options": {
+                    "title": "Server Options",
+                    "type": "object",
+                    "properties": {
+                        "dialect": {
+                            "title": "Dialect",
+                            "description": "Fixes the dialect assumed for inbound requests instead of detecting it automatically. Accepts the name of any dialect registered with the binding, for example openai, anthropic or gemini. Mutually exclusive with dialects.",
+                            "$ref": "#/$defs/binding-ext/llm/dialect"
+                        },
+                        "dialects": {
+                            "title": "Dialects",
+                            "description": "The dialects this server serves, told apart by the request path. Each is a dialect name, or an object with one property named by the dialect that holds the options for that dialect, such as apis for openai. A dialect may be listed once. Mutually exclusive with dialect.",
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "$ref": "#/$defs/binding-ext/llm/dialect-entry"
+                            }
+                        },
+                        "authorization": {
+                            "title": "Authorization",
+                            "description": "Guard used to validate inbound request credentials, keyed by guard name. Credentials is a template matched against the request header the resolved dialect expects credentials in (for example Authorization for openai, x-api-key for anthropic, x-goog-api-key for gemini), with {credentials} standing in for the extracted token.",
+                            "$ref": "#/$defs/binding-ext/llm/authorization"
+                        }
+                    },
+                    "not": {
+                        "required": [
+                            "dialect",
+                            "dialects"
+                        ]
+                    },
+                    "allOf": [
+                        {
+                            "if": {
+                                "properties": {
+                                    "dialect": {
+                                        "enum": [
+                                            "anthropic",
+                                            "gemini"
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "dialect"
+                                ]
+                            },
+                            "then": {
+                                "properties": {
+                                    "dialect": true,
+                                    "authorization": true
+                                },
+                                "additionalProperties": false
+                            }
+                        },
+                        {
+                            "if": {
+                                "required": [
+                                    "dialects"
+                                ]
+                            },
+                            "then": {
+                                "properties": {
+                                    "dialects": true,
+                                    "authorization": true
+                                },
+                                "additionalProperties": false
+                            }
+                        },
+                        {
+                            "if": {
+                                "not": {
+                                    "anyOf": [
+                                        {
+                                            "required": [
+                                                "dialect"
+                                            ]
+                                        },
+                                        {
+                                            "required": [
+                                                "dialects"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            },
+                            "then": {
+                                "properties": {
+                                    "authorization": true
+                                },
+                                "additionalProperties": false
+                            }
+                        },
+                        {
+                            "if": {
+                                "properties": {
+                                    "dialect": {
+                                        "const": "openai"
+                                    }
+                                },
+                                "required": [
+                                    "dialect"
+                                ]
+                            },
+                            "then": {
+                                "properties": {
+                                    "dialect": true,
+                                    "authorization": true,
+                                    "apis": {
+                                        "$ref": "#/$defs/binding-ext/llm/openai-apis"
+                                    }
+                                },
+                                "additionalProperties": false
+                            }
+                        }
                     ]
                 },
                 "section": {

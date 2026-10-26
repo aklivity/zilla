@@ -63,4 +63,40 @@ public class LlmServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.openai.chat.yaml")
+    @Specification({
+        "${net}/reject.openai.api.responses/client"})
+    public void shouldRejectOpenaiResponsesRequestWhenApisRestrictedToChatCompletions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.openai.responses.yaml")
+    @Specification({
+        "${net}/reject.openai.api.chat.completions/client"})
+    public void shouldRejectOpenaiChatCompletionsRequestWhenApisRestrictedToResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.dialects.yaml")
+    @Specification({
+        "${net}/reject.openai.api.responses/client"})
+    public void shouldRejectOpenaiResponsesRequestWhenDialectsRestrictOpenaiToChatCompletions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.dialects.yaml")
+    @Specification({
+        "${net}/reject.gemini.dialect/client"})
+    public void shouldRejectGeminiRequestWhenDialectsOmitGemini() throws Exception
+    {
+        k3po.finish();
+    }
 }

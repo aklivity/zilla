@@ -19,7 +19,7 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 final class LlmOpenaiToolCallToCanonical extends LlmToolTransform
 {
-    private static final String DIALECT = "openai";
+    private static final String DIALECT = LlmOpenaiDialectFactorySpi.NAME;
 
     private boolean functioned;
     private boolean argumented;

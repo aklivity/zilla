@@ -16,8 +16,11 @@ package io.aklivity.zilla.specs.binding.llm.internal;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.k3po.runtime.lang.el.Function;
@@ -75,18 +78,6 @@ public final class LlmFunctions
     }
 
     @Function
-    public static LlmFlushExBuilder flushEx()
-    {
-        return new LlmFlushExBuilder();
-    }
-
-    @Function
-    public static LlmFlushExMatcherBuilder matchFlushEx()
-    {
-        return new LlmFlushExMatcherBuilder();
-    }
-
-    @Function
     public static LlmChallengeExBuilder challengeEx()
     {
         return new LlmChallengeExBuilder();
@@ -134,18 +125,6 @@ public final class LlmFunctions
         return new LlmResetExMatcherBuilder();
     }
 
-    @Function
-    public static LlmDialectDataExBuilder dialectDataEx()
-    {
-        return new LlmDialectDataExBuilder();
-    }
-
-    @Function
-    public static LlmDialectDataExMatcherBuilder matchDialectDataEx()
-    {
-        return new LlmDialectDataExMatcherBuilder();
-    }
-
     public static final class LlmBeginExBuilder
     {
         private final LlmBeginExFW.Builder beginExRW;
@@ -191,6 +170,14 @@ public final class LlmFunctions
             return this;
         }
 
+        public LlmBeginExBuilder attribute(
+            String name,
+            String value)
+        {
+            beginExRW.attributesItem(a -> a.name(name).value(value));
+            return this;
+        }
+
         public LlmBeginExBuilder extension(
             String extension)
         {
@@ -219,6 +206,7 @@ public final class LlmFunctions
         private String contentType;
         private String model;
         private String id;
+        private Map<String, String> attributes;
         private String extension;
         private boolean extensionNull;
 
@@ -257,6 +245,19 @@ public final class LlmFunctions
             return this;
         }
 
+        public LlmBeginExMatcherBuilder attribute(
+            String name,
+            String value)
+        {
+            if (attributes == null)
+            {
+                attributes = new LinkedHashMap<>();
+            }
+
+            attributes.put(name, value);
+            return this;
+        }
+
         public LlmBeginExMatcherBuilder extension(
             String extension)
         {
@@ -292,6 +293,7 @@ public final class LlmFunctions
                 matchContentType(beginEx) &&
                 matchModel(beginEx) &&
                 matchId(beginEx) &&
+                matchAttributes(beginEx) &&
                 matchExtension(beginEx))
             {
                 byteBuf.position(byteBuf.position() + beginEx.sizeof());
@@ -331,6 +333,15 @@ public final class LlmFunctions
             return id == null || beginEx.id() != null && id.equals(beginEx.id().asString());
         }
 
+        private boolean matchAttributes(
+            LlmBeginExFW beginEx)
+        {
+            final Map<String, String> actual = new LinkedHashMap<>();
+            beginEx.attributes().forEach(a -> actual.put(a.name().asString(), a.value().asString()));
+
+            return attributes == null || attributes.equals(actual);
+        }
+
         private boolean matchExtension(
             LlmBeginExFW beginEx)
         {
@@ -345,6 +356,8 @@ public final class LlmFunctions
         private final LlmDataExFW.Builder dataExRW;
         private final Map<String, String> attributes;
 
+        private final List<LlmRangeSpec> ranges;
+
         private LlmSectionType type;
         private Integer message;
         private String extension;
@@ -354,6 +367,7 @@ public final class LlmFunctions
             this.writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
             this.dataExRW = new LlmDataExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
             this.attributes = new LinkedHashMap<>();
+            this.ranges = new ArrayList<>();
         }
 
         public LlmDataExBuilder typeId(
@@ -385,6 +399,27 @@ public final class LlmFunctions
             return this;
         }
 
+        public LlmDataExBuilder range(
+            int length)
+        {
+            ranges.add(new LlmRangeSpec(length));
+            return this;
+        }
+
+        public LlmDataExBuilder rangeAttribute(
+            String name,
+            String value)
+        {
+            ranges.get(ranges.size() - 1).attributes.put(name, value);
+            return this;
+        }
+
+        public LlmDataExBuilder rangeOpen()
+        {
+            ranges.get(ranges.size() - 1).closing = false;
+            return this;
+        }
+
         public LlmDataExBuilder extension(
             String extension)
         {
@@ -407,6 +442,12 @@ public final class LlmFunctions
                 }
 
                 attributes.forEach((name, value) -> s.attributesItem(a -> a.name(name).value(value)));
+
+                ranges.forEach(range -> s.rangesItem(r ->
+                {
+                    r.length(range.length).closing(range.closing ? 1 : 0);
+                    range.attributes.forEach((name, value) -> r.attributesItem(a -> a.name(name).value(value)));
+                }));
 
                 if (extension != null)
                 {
@@ -434,6 +475,8 @@ public final class LlmFunctions
         private Integer message;
         private Map<String, String> attributes;
         private boolean attributesNull;
+        private List<LlmRangeSpec> ranges;
+        private boolean rangesNull;
         private String extension;
         private boolean extensionNull;
 
@@ -483,6 +526,38 @@ public final class LlmFunctions
             return this;
         }
 
+        public LlmDataExMatcherBuilder range(
+            int length)
+        {
+            if (ranges == null)
+            {
+                ranges = new ArrayList<>();
+            }
+
+            ranges.add(new LlmRangeSpec(length));
+            return this;
+        }
+
+        public LlmDataExMatcherBuilder rangeAttribute(
+            String name,
+            String value)
+        {
+            ranges.get(ranges.size() - 1).attributes.put(name, value);
+            return this;
+        }
+
+        public LlmDataExMatcherBuilder rangeOpen()
+        {
+            ranges.get(ranges.size() - 1).closing = false;
+            return this;
+        }
+
+        public LlmDataExMatcherBuilder rangesNull()
+        {
+            this.rangesNull = true;
+            return this;
+        }
+
         public LlmDataExMatcherBuilder extension(
             String extension)
         {
@@ -518,6 +593,7 @@ public final class LlmFunctions
                 matchType(dataEx) &&
                 matchMessage(dataEx) &&
                 matchAttributes(dataEx) &&
+                matchRanges(dataEx) &&
                 matchExtension(dataEx))
             {
                 byteBuf.position(byteBuf.position() + dataEx.sizeof());
@@ -555,6 +631,21 @@ public final class LlmFunctions
             return attributesNull ? actual.isEmpty() : attributes == null || attributes.equals(actual);
         }
 
+        private boolean matchRanges(
+            LlmDataExFW dataEx)
+        {
+            final List<LlmRangeSpec> actual = new ArrayList<>();
+            dataEx.section().ranges().forEach(r ->
+            {
+                final LlmRangeSpec range = new LlmRangeSpec(r.length());
+                range.closing = r.closing() != 0;
+                r.attributes().forEach(a -> range.attributes.put(a.name().asString(), a.value().asString()));
+                actual.add(range);
+            });
+
+            return rangesNull ? actual.isEmpty() : ranges == null || ranges.equals(actual);
+        }
+
         private boolean matchExtension(
             LlmDataExFW dataEx)
         {
@@ -564,147 +655,35 @@ public final class LlmFunctions
 
     }
 
-    public static final class LlmDialectDataExBuilder
+    private static final class LlmRangeSpec
     {
-        private final LlmDataExFW.Builder dataExRW;
-
+        private final int length;
         private final Map<String, String> attributes;
 
-        private boolean complete;
-        private boolean usageOnly;
+        private boolean closing;
 
-        private LlmDialectDataExBuilder()
+        private LlmRangeSpec(
+            int length)
         {
+            this.length = length;
             this.attributes = new LinkedHashMap<>();
-            final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024]);
-            this.dataExRW = new LlmDataExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
+            this.closing = true;
         }
 
-        public LlmDialectDataExBuilder typeId(
-            int typeId)
+        @Override
+        public boolean equals(
+            Object obj)
         {
-            dataExRW.typeId(typeId);
-            return this;
+            return obj instanceof LlmRangeSpec that &&
+                length == that.length &&
+                closing == that.closing &&
+                attributes.equals(that.attributes);
         }
 
-        public LlmDialectDataExBuilder complete(
-            boolean complete)
+        @Override
+        public int hashCode()
         {
-            this.complete = complete;
-            return this;
-        }
-
-        public LlmDialectDataExBuilder usageOnly(
-            boolean usageOnly)
-        {
-            this.usageOnly = usageOnly;
-            return this;
-        }
-
-        public LlmDialectDataExBuilder attribute(
-            String name,
-            String value)
-        {
-            attributes.put(name, value);
-            return this;
-        }
-
-        public byte[] build()
-        {
-            final LlmDataExFW dataEx = dataExRW.dialect(d ->
-            {
-                d.complete(complete ? 1 : 0);
-                d.usageOnly(usageOnly ? 1 : 0);
-                attributes.forEach((name, value) -> d.attributesItem(a -> a.name(name).value(value)));
-            }).build();
-            final byte[] array = new byte[dataEx.sizeof()];
-            dataEx.buffer().getBytes(dataEx.offset(), array);
-            return array;
-        }
-    }
-
-    public static final class LlmDialectDataExMatcherBuilder
-    {
-        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
-
-        private final LlmDataExFW dataExRO = new LlmDataExFW();
-
-        private Integer typeId;
-        private Boolean complete;
-        private Boolean usageOnly;
-        private Map<String, String> attributes;
-
-        public LlmDialectDataExMatcherBuilder typeId(
-            int typeId)
-        {
-            this.typeId = typeId;
-            return this;
-        }
-
-        public LlmDialectDataExMatcherBuilder complete(
-            boolean complete)
-        {
-            this.complete = complete;
-            return this;
-        }
-
-        public LlmDialectDataExMatcherBuilder usageOnly(
-            boolean usageOnly)
-        {
-            this.usageOnly = usageOnly;
-            return this;
-        }
-
-        public LlmDialectDataExMatcherBuilder attribute(
-            String name,
-            String value)
-        {
-            if (attributes == null)
-            {
-                attributes = new LinkedHashMap<>();
-            }
-
-            attributes.put(name, value);
-            return this;
-        }
-
-        public BytesMatcher build()
-        {
-            return this::match;
-        }
-
-        private LlmDataExFW match(
-            ByteBuffer byteBuf) throws Exception
-        {
-            if (!byteBuf.hasRemaining())
-            {
-                return null;
-            }
-
-            bufferRO.wrap(byteBuf);
-            final LlmDataExFW dataEx = dataExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.limit());
-
-            if (dataEx != null &&
-                dataEx.kind() == LlmDataExFW.KIND_DIALECT &&
-                (typeId == null || typeId == dataEx.typeId()) &&
-                (complete == null || complete == (dataEx.dialect().complete() != 0)) &&
-                (usageOnly == null || usageOnly == (dataEx.dialect().usageOnly() != 0)) &&
-                matchAttributes(dataEx))
-            {
-                byteBuf.position(byteBuf.position() + dataEx.sizeof());
-                return dataEx;
-            }
-
-            throw new Exception(String.valueOf(dataEx));
-        }
-
-        private boolean matchAttributes(
-            LlmDataExFW dataEx)
-        {
-            final Map<String, String> actual = new LinkedHashMap<>();
-            dataEx.dialect().attributes().forEach(a -> actual.put(a.name().asString(), a.value().asString()));
-
-            return attributes == null || attributes.equals(actual);
+            return Objects.hash(length, closing, attributes);
         }
     }
 
@@ -719,7 +698,6 @@ public final class LlmFunctions
         private Integer outputTokens;
         private Integer reasoningTokens;
         private Integer totalTokens;
-        private String nativeUsage;
         private String finishReason;
 
         private LlmEndExBuilder()
@@ -777,13 +755,6 @@ public final class LlmFunctions
             return this;
         }
 
-        public LlmEndExBuilder nativeUsage(
-            String nativeUsage)
-        {
-            this.nativeUsage = nativeUsage;
-            return this;
-        }
-
         public LlmEndExBuilder finishReason(
             String finishReason)
         {
@@ -801,7 +772,6 @@ public final class LlmFunctions
                 u.outputTokens(outputTokens != null ? outputTokens : -1);
                 u.reasoningTokens(reasoningTokens != null ? reasoningTokens : -1);
                 u.totalTokens(totalTokens != null ? totalTokens : -1);
-                u.nativeUsage(nativeUsage);
             });
             endExRW.finishReason(finishReason);
             final LlmEndExFW endEx = endExRW.build();
@@ -824,8 +794,6 @@ public final class LlmFunctions
         private Integer outputTokens;
         private Integer reasoningTokens;
         private Integer totalTokens;
-        private String nativeUsage;
-        private boolean nativeUsageNull;
         private String finishReason;
         private boolean finishReasonNull;
 
@@ -878,19 +846,6 @@ public final class LlmFunctions
             return this;
         }
 
-        public LlmEndExMatcherBuilder nativeUsage(
-            String nativeUsage)
-        {
-            this.nativeUsage = nativeUsage;
-            return this;
-        }
-
-        public LlmEndExMatcherBuilder nativeUsageNull()
-        {
-            this.nativeUsageNull = true;
-            return this;
-        }
-
         public LlmEndExMatcherBuilder finishReason(
             String finishReason)
         {
@@ -928,7 +883,6 @@ public final class LlmFunctions
                 matchOutputTokens(endEx) &&
                 matchReasoningTokens(endEx) &&
                 matchTotalTokens(endEx) &&
-                matchNativeUsage(endEx) &&
                 matchFinishReason(endEx))
             {
                 byteBuf.position(byteBuf.position() + endEx.sizeof());
@@ -978,13 +932,6 @@ public final class LlmFunctions
             LlmEndExFW endEx)
         {
             return totalTokens == null || totalTokens == endEx.usage().totalTokens();
-        }
-
-        private boolean matchNativeUsage(
-            LlmEndExFW endEx)
-        {
-            return nativeUsageNull ? endEx.usage().nativeUsage().asString() == null
-                : nativeUsage == null || nativeUsage.equals(endEx.usage().nativeUsage().asString());
         }
 
         private boolean matchFinishReason(
@@ -1097,141 +1044,6 @@ public final class LlmFunctions
         }
     }
 
-    public static final class LlmFlushExBuilder
-    {
-        private final LlmFlushExFW.Builder flushExRW;
-
-        private LlmSectionType type;
-        private Integer message;
-
-        private LlmFlushExBuilder()
-        {
-            MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024]);
-            this.flushExRW = new LlmFlushExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
-        }
-
-        public LlmFlushExBuilder typeId(
-            int typeId)
-        {
-            flushExRW.typeId(typeId);
-            return this;
-        }
-
-        public LlmFlushExBuilder type(
-            String type)
-        {
-            this.type = LlmSectionType.valueOf(type);
-            return this;
-        }
-
-        public LlmFlushExBuilder message(
-            int message)
-        {
-            this.message = message;
-            return this;
-        }
-
-        public byte[] build()
-        {
-            flushExRW.section(s ->
-            {
-                if (type != null)
-                {
-                    s.type(t -> t.set(type));
-                }
-
-                if (message != null)
-                {
-                    s.message(message);
-                }
-            });
-
-            final LlmFlushExFW flushEx = flushExRW.build();
-            final byte[] array = new byte[flushEx.sizeof()];
-            flushEx.buffer().getBytes(flushEx.offset(), array);
-            return array;
-        }
-    }
-
-    public static final class LlmFlushExMatcherBuilder
-    {
-        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
-
-        private final LlmFlushExFW flushExRO = new LlmFlushExFW();
-
-        private Integer typeId;
-        private LlmSectionType type;
-        private Integer message;
-
-        public LlmFlushExMatcherBuilder typeId(
-            int typeId)
-        {
-            this.typeId = typeId;
-            return this;
-        }
-
-        public LlmFlushExMatcherBuilder type(
-            String type)
-        {
-            this.type = LlmSectionType.valueOf(type);
-            return this;
-        }
-
-        public LlmFlushExMatcherBuilder message(
-            int message)
-        {
-            this.message = message;
-            return this;
-        }
-
-        public BytesMatcher build()
-        {
-            return this::match;
-        }
-
-        private LlmFlushExFW match(
-            ByteBuffer byteBuf) throws Exception
-        {
-            if (!byteBuf.hasRemaining())
-            {
-                return null;
-            }
-
-            bufferRO.wrap(byteBuf);
-            final LlmFlushExFW flushEx = flushExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.limit());
-
-            if (flushEx != null &&
-                flushEx.kind() == LlmFlushExFW.KIND_SECTION &&
-                matchTypeId(flushEx) &&
-                matchType(flushEx) &&
-                matchMessage(flushEx))
-            {
-                byteBuf.position(byteBuf.position() + flushEx.sizeof());
-                return flushEx;
-            }
-
-            throw new Exception(String.valueOf(flushEx));
-        }
-
-        private boolean matchTypeId(
-            LlmFlushExFW flushEx)
-        {
-            return typeId == null || typeId == flushEx.typeId();
-        }
-
-        private boolean matchType(
-            LlmFlushExFW flushEx)
-        {
-            return type == null || type == flushEx.section().type().get();
-        }
-
-        private boolean matchMessage(
-            LlmFlushExFW flushEx)
-        {
-            return message == null || message == flushEx.section().message();
-        }
-    }
-
     public static final class LlmChallengeExBuilder
     {
         private final LlmChallengeExFW.Builder challengeExRW;
@@ -1246,13 +1058,6 @@ public final class LlmFunctions
             int typeId)
         {
             challengeExRW.typeId(typeId);
-            return this;
-        }
-
-        public LlmChallengeExBuilder dialect(
-            String dialect)
-        {
-            challengeExRW.dialect(dialect);
             return this;
         }
 
@@ -1279,20 +1084,12 @@ public final class LlmFunctions
         private final LlmChallengeExFW challengeExRO = new LlmChallengeExFW();
 
         private Integer typeId;
-        private String dialect;
         private String model;
 
         public LlmChallengeExMatcherBuilder typeId(
             int typeId)
         {
             this.typeId = typeId;
-            return this;
-        }
-
-        public LlmChallengeExMatcherBuilder dialect(
-            String dialect)
-        {
-            this.dialect = dialect;
             return this;
         }
 
@@ -1321,7 +1118,6 @@ public final class LlmFunctions
 
             if (challengeEx != null &&
                 matchTypeId(challengeEx) &&
-                matchDialect(challengeEx) &&
                 matchModel(challengeEx))
             {
                 byteBuf.position(byteBuf.position() + challengeEx.sizeof());
@@ -1335,12 +1131,6 @@ public final class LlmFunctions
             LlmChallengeExFW challengeEx)
         {
             return typeId == null || typeId == challengeEx.typeId();
-        }
-
-        private boolean matchDialect(
-            LlmChallengeExFW challengeEx)
-        {
-            return dialect == null || dialect.equals(challengeEx.dialect().asString());
         }
 
         private boolean matchModel(
@@ -1361,7 +1151,6 @@ public final class LlmFunctions
         private Integer outputTokens;
         private Integer reasoningTokens;
         private Integer totalTokens;
-        private String nativeUsage;
         private int status = -1;
         private String type;
         private String param;
@@ -1423,13 +1212,6 @@ public final class LlmFunctions
             return this;
         }
 
-        public LlmAbortExBuilder nativeUsage(
-            String nativeUsage)
-        {
-            this.nativeUsage = nativeUsage;
-            return this;
-        }
-
         public LlmAbortExBuilder status(
             int status)
         {
@@ -1475,7 +1257,6 @@ public final class LlmFunctions
                 u.outputTokens(outputTokens != null ? outputTokens : -1);
                 u.reasoningTokens(reasoningTokens != null ? reasoningTokens : -1);
                 u.totalTokens(totalTokens != null ? totalTokens : -1);
-                u.nativeUsage(nativeUsage);
             });
             abortExRW.error(e -> e.status(status).type(type).param(param).message(message).code(code));
             final LlmAbortExFW abortEx = abortExRW.build();
@@ -1498,8 +1279,6 @@ public final class LlmFunctions
         private Integer outputTokens;
         private Integer reasoningTokens;
         private Integer totalTokens;
-        private String nativeUsage;
-        private boolean nativeUsageNull;
         private final LlmErrorMatcher error = new LlmErrorMatcher();
 
         public LlmAbortExMatcherBuilder typeId(
@@ -1548,19 +1327,6 @@ public final class LlmFunctions
             int totalTokens)
         {
             this.totalTokens = totalTokens;
-            return this;
-        }
-
-        public LlmAbortExMatcherBuilder nativeUsage(
-            String nativeUsage)
-        {
-            this.nativeUsage = nativeUsage;
-            return this;
-        }
-
-        public LlmAbortExMatcherBuilder nativeUsageNull()
-        {
-            this.nativeUsageNull = true;
             return this;
         }
 
@@ -1641,7 +1407,6 @@ public final class LlmFunctions
                 matchOutputTokens(abortEx) &&
                 matchReasoningTokens(abortEx) &&
                 matchTotalTokens(abortEx) &&
-                matchNativeUsage(abortEx) &&
                 error.matches(abortEx.error()))
             {
                 byteBuf.position(byteBuf.position() + abortEx.sizeof());
@@ -1691,13 +1456,6 @@ public final class LlmFunctions
             LlmAbortExFW abortEx)
         {
             return totalTokens == null || totalTokens == abortEx.usage().totalTokens();
-        }
-
-        private boolean matchNativeUsage(
-            LlmAbortExFW abortEx)
-        {
-            return nativeUsageNull ? abortEx.usage().nativeUsage().asString() == null
-                : nativeUsage == null || nativeUsage.equals(abortEx.usage().nativeUsage().asString());
         }
     }
 

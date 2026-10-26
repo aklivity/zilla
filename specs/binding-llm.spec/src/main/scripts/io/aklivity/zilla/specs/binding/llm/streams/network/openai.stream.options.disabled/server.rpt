@@ -39,24 +39,10 @@ write zilla:begin.ext ${http:beginEx()
                            .header(":status", "200")
                            .header("content-type", "text/event-stream")
                            .build()}
-write flush
 
-write option zilla:flags "init"
-write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\""
-write flush
-write option zilla:flags "none"
-write "Hi"
-write flush
-write option zilla:flags "fin"
-write "\"},\"finish_reason\":null}]}"
-write flush
-
-write option zilla:flags "init fin"
-write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}"
-write flush
-
-write option zilla:flags "init fin"
+write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\"},\"finish_reason\":null}],\"obfuscation\":\"abcdefghij\"}"
+write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Hi\"},\"finish_reason\":null}],\"obfuscation\":\"abcdefghij\"}"
+write "{\"id\":\"chatcmpl_1\",\"object\":\"chat.completion.chunk\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}],\"obfuscation\":\"abcdefghij\"}"
 write "[DONE]"
-write flush
 
 write close

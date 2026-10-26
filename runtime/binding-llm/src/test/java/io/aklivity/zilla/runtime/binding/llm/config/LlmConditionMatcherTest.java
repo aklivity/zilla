@@ -109,4 +109,77 @@ public class LlmConditionMatcherTest
         assertTrue(matcher.matches("openai", "gpt-4o"));
         assertTrue(matcher.matches("anthropic", null));
     }
+
+    @Test
+    public void shouldMatchEveryDialectOfAVendorWhenConditionNamesVendor()
+    {
+        LlmConditionConfig condition = LlmConditionConfig.builder()
+            .dialect("openai")
+            .build();
+        LlmConditionMatcher matcher = new LlmConditionMatcher(condition);
+
+        assertTrue(matcher.matches("openai/ccs", null));
+        assertTrue(matcher.matches("openai/rs", null));
+        assertFalse(matcher.matches("openai-compatible", null));
+        assertFalse(matcher.matches("openaix/rs", null));
+        assertFalse(matcher.matches("anthropic", null));
+    }
+
+    @Test
+    public void shouldMatchOnlyNamedDialectWhenConditionNamesDialectVariant()
+    {
+        LlmConditionConfig condition = LlmConditionConfig.builder()
+            .dialect("openai/rs")
+            .build();
+        LlmConditionMatcher matcher = new LlmConditionMatcher(condition);
+
+        assertTrue(matcher.matches("openai/rs", null));
+        assertFalse(matcher.matches("openai", null));
+        assertFalse(matcher.matches("openai/ccs", null));
+        assertFalse(matcher.matches("openai/rs/v2", null));
+    }
+
+    @Test
+    public void shouldMatchEveryDialectOfAVendorAndModelTogether()
+    {
+        LlmConditionConfig condition = LlmConditionConfig.builder()
+            .dialect("openai")
+            .model(asList("gpt-4o"))
+            .build();
+        LlmConditionMatcher matcher = new LlmConditionMatcher(condition);
+
+        assertTrue(matcher.matches("openai/rs", "gpt-4o"));
+        assertTrue(matcher.matches("openai/ccs", "gpt-4o"));
+        assertFalse(matcher.matches("openai/rs", "gpt-4o-mini"));
+        assertFalse(matcher.matches("anthropic/messages", "gpt-4o"));
+    }
+
+    @Test
+    public void shouldMatchOnlyNamedApiWhenConditionNamesApi()
+    {
+        LlmConditionConfig condition = LlmConditionConfig.builder()
+            .dialect("openai")
+            .api("responses")
+            .build();
+        LlmConditionMatcher matcher = new LlmConditionMatcher(condition);
+
+        assertTrue(matcher.matches("openai/rs", null));
+        assertFalse(matcher.matches("openai/ccs", null));
+        assertFalse(matcher.matches("anthropic", null));
+    }
+
+    @Test
+    public void shouldMatchNamedApiAndModelTogether()
+    {
+        LlmConditionConfig condition = LlmConditionConfig.builder()
+            .dialect("openai")
+            .api("chat/completions")
+            .model(asList("gpt-4o"))
+            .build();
+        LlmConditionMatcher matcher = new LlmConditionMatcher(condition);
+
+        assertTrue(matcher.matches("openai/ccs", "gpt-4o"));
+        assertFalse(matcher.matches("openai/ccs", "gpt-4o-mini"));
+        assertFalse(matcher.matches("openai/rs", "gpt-4o"));
+    }
 }

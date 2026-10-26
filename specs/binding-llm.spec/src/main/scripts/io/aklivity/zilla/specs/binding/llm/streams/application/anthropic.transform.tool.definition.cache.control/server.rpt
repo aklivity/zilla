@@ -30,18 +30,13 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
-read advise zilla:challenge ${llm:challengeEx()
-                                .typeId(zilla:id("llm"))
-                                .dialect(target)
-                                .build()}
-
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("TOOL_DEFINITION")
                           .message(-1)
                           .attribute("tool-name", "get_weather")
                           .build()}
-read "{\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"description\":\"Get the weather\",\"parameters\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}}},\"anthropic:cache_control\":{\"type\":\"ephemeral\"}}}"
+read "{\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"description\":\"Get the weather\",\"parameters\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}}},\"prompt_cache_breakpoint\":{\"mode\":\"explicit\"}}}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))

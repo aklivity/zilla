@@ -49,6 +49,7 @@ services:
     ports:
       - 7161:7161
       - 7162:7162
+      - 7163:7163
       - 7190:7190
     # start_interval matters here: without it, `docker compose up --wait`
     # only re-checks the healthcheck every `interval` (5s), so the compose
@@ -70,16 +71,16 @@ services:
   # plain `docker compose up` never starts it, and `docker compose run` enables
   # the profile of the service it targets. CI additionally merges in
   # .github/compose.mock.yaml (see .github/.env.test) to point zilla at mock
-  # backends instead of the real OpenAI/Anthropic APIs this compose file
-  # targets by default -- depending only on zilla's own health is still enough
+  # backends instead of the real OpenAI, Anthropic and Gemini APIs this compose
+  # file targets by default -- depending only on zilla's own health is still enough
   # to gate the whole topology either way, since only zilla (not verify) ever
   # depends on the mocks. The docker socket is mounted so the credential
   # pass-through assertions can read a mock's own logs via `docker logs`.
   #
-  # Runs the checks through the real openai / anthropic Python SDKs rather
+  # Runs the checks through the real openai / anthropic / google-genai Python SDKs rather
   # than hand-built HTTP calls, so python3 + docker-cli (for the credential
   # pass-through log reads) are the only extra tools this needs -- no Node
-  # here, unlike the mocks above.
+  # here, unlike the mocks in .github/compose.mock.yaml.
   verify:
     image: python:3.13-alpine
     profiles: ["test"]
@@ -97,7 +98,8 @@ services:
       - |
         set -e
         apk add --no-cache docker-cli > /dev/null
-        pip install --no-cache-dir --quiet openai anthropic
+        # anthropic 2.x sends Authorization: Bearer and anthropic-version 2026-10-21, which the anthropic frontend does not yet accept
+        pip install --no-cache-dir --quiet openai 'anthropic<2' google-genai
         exec python3 /test/verify.py
 
 volumes:

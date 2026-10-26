@@ -25,6 +25,7 @@ public final class LlmConditionConfigBuilder<T> extends ConfigBuilder<T, LlmCond
     private final Function<ConditionConfig, T> mapper;
 
     private String dialect;
+    private String api;
     private List<String> model;
 
     LlmConditionConfigBuilder(
@@ -47,6 +48,13 @@ public final class LlmConditionConfigBuilder<T> extends ConfigBuilder<T, LlmCond
         return this;
     }
 
+    public LlmConditionConfigBuilder<T> api(
+        String api)
+    {
+        this.api = api;
+        return this;
+    }
+
     public LlmConditionConfigBuilder<T> model(
         List<String> model)
     {
@@ -57,6 +65,6 @@ public final class LlmConditionConfigBuilder<T> extends ConfigBuilder<T, LlmCond
     @Override
     public T build()
     {
-        return mapper.apply(new LlmConditionConfig(dialect, model));
+        return mapper.apply(new LlmConditionConfig(dialect, api, model));
     }
 }

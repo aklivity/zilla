@@ -1,8 +1,65 @@
 # Changelog
 
-## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+## [2.6.0](https://github.com/aklivity/zilla/tree/2.6.0) (2026-10-22)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/2.4.7...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.5.0...2.6.0)
+
+**Closed issues:**
+
+- binding-llm: classifier-based guardrail models retain their own overlap [\#2737](https://github.com/aklivity/zilla/issues/2737) ([jfallows](https://github.com/jfallows))
+- binding-llm: gemini dialect [\#2742](https://github.com/aklivity/zilla/issues/2742) ([jfallows](https://github.com/jfallows))
+- binding-llm: openai/responses dialect [\#2743](https://github.com/aklivity/zilla/issues/2743) ([jfallows](https://github.com/jfallows))
+- binding-llm: gemini dialect rejects role "model" after parts in a contents entry [\#2754](https://github.com/aklivity/zilla/issues/2754) ([jfallows](https://github.com/jfallows))
+- binding-llm: gemini dialect cannot route a model identifier containing a colon [\#2756](https://github.com/aklivity/zilla/issues/2756) ([jfallows](https://github.com/jfallows))
+- binding-llm: dialect-scoped server options through binding extensions [\#2767](https://github.com/aklivity/zilla/issues/2767) ([jfallows](https://github.com/jfallows))
+- binding-llm: `x:` namespace for control and section members shared by more than one dialect [\#2771](https://github.com/aklivity/zilla/issues/2771) ([jfallows](https://github.com/jfallows))
+- binding-llm: promote sampling and length members to `x:` [\#2772](https://github.com/aklivity/zilla/issues/2772) ([jfallows](https://github.com/jfallows))
+- binding-llm: promote `tool_choice` and `parallel_tool_calls` to `x:` [\#2773](https://github.com/aklivity/zilla/issues/2773) ([jfallows](https://github.com/jfallows))
+- binding-llm: promote `response_format` to `x:` [\#2774](https://github.com/aklivity/zilla/issues/2774) ([jfallows](https://github.com/jfallows))
+- binding-llm: promote reasoning controls to `x:` and add model capability options [\#2775](https://github.com/aklivity/zilla/issues/2775) ([jfallows](https://github.com/jfallows))
+- binding-llm: promote `user` and `service_tier` to `x:` [\#2776](https://github.com/aklivity/zilla/issues/2776) ([jfallows](https://github.com/jfallows))
+- binding-llm: carry block-level members inline in section payloads [\#2777](https://github.com/aklivity/zilla/issues/2777) ([jfallows](https://github.com/jfallows))
+- binding-llm: group request-level control members and lift leaves out of native containers [\#2778](https://github.com/aklivity/zilla/issues/2778) ([jfallows](https://github.com/jfallows))
+- binding-llm: a client applies the legality rule itself instead of relying on the upstream [\#2779](https://github.com/aklivity/zilla/issues/2779) ([jfallows](https://github.com/jfallows))
+- llm: control `openai` APIs \(`chat/completions`, `responses`\) per server, client and route [\#2792](https://github.com/aklivity/zilla/issues/2792) ([jfallows](https://github.com/jfallows))
+- binding-llm: anthropic server can lose a held cache breakpoint when the request prefix shifts by a few bytes [\#2794](https://github.com/aklivity/zilla/issues/2794) ([jfallows](https://github.com/jfallows))
+
+**Merged pull requests:**
+
+- feat\(binding-llm\): control section for non-section members, remove dialect frames [\#2748](https://github.com/aklivity/zilla/pull/2748) ([jfallows](https://github.com/jfallows))
+- feat\(binding-llm\): gemini dialect [\#2749](https://github.com/aklivity/zilla/pull/2749) ([jfallows](https://github.com/jfallows))
+- feat\(binding-http\): optional space after event stream field names via content-type parameter [\#2750](https://github.com/aklivity/zilla/pull/2750) ([jfallows](https://github.com/jfallows))
+- fix\(binding-llm\): gemini request to another dialect keeps its begin extension and tool schema [\#2752](https://github.com/aklivity/zilla/pull/2752) ([jfallows](https://github.com/jfallows))
+- feat\(model-classify\): classify streamed values in windows with model-owned overlap [\#2753](https://github.com/aklivity/zilla/pull/2753) ([jfallows](https://github.com/jfallows))
+- fix\(binding-llm\): decode gemini role after parts [\#2755](https://github.com/aklivity/zilla/pull/2755) ([jfallows](https://github.com/jfallows))
+- fix\(binding-llm\): route gemini model identifiers containing a colon [\#2757](https://github.com/aklivity/zilla/pull/2757) ([jfallows](https://github.com/jfallows))
+- fix\(binding-llm\): lowercase type names in every nested gemini tool schema [\#2758](https://github.com/aklivity/zilla/pull/2758) ([jfallows](https://github.com/jfallows))
+- fix\(binding-llm\): lowercase gemini tool schema types independent of the default locale [\#2759](https://github.com/aklivity/zilla/pull/2759) ([jfallows](https://github.com/jfallows))
+- feat\(binding-llm\): dialect-scoped client options and request-level attributes [\#2760](https://github.com/aklivity/zilla/pull/2760) ([jfallows](https://github.com/jfallows))
+- feat\(binding-llm\): add the Responses API to the openai dialect [\#2761](https://github.com/aklivity/zilla/pull/2761) ([jfallows](https://github.com/jfallows))
+- feat\(probes\): llm compatibility probes for the openai dialect [\#2763](https://github.com/aklivity/zilla/pull/2763) ([jfallows](https://github.com/jfallows))
+- feat\(binding-llm\): section ranges and in-place text guardrails [\#2766](https://github.com/aklivity/zilla/pull/2766) ([jfallows](https://github.com/jfallows))
+- feat\(binding-llm\): dialect-scoped server options through binding extensions [\#2768](https://github.com/aklivity/zilla/pull/2768) ([jfallows](https://github.com/jfallows))
+- feat\(metrics-llm\): add request and response model telemetry attributes [\#2769](https://github.com/aklivity/zilla/pull/2769) ([jfallows](https://github.com/jfallows))
+- feat\(binding-llm\): guard tool call arguments and media data, keep ranges across transforming guardrails [\#2770](https://github.com/aklivity/zilla/pull/2770) ([jfallows](https://github.com/jfallows))
+- feat\(binding-llm\): add x: namespace for members shared across dialects [\#2780](https://github.com/aklivity/zilla/pull/2780) ([jfallows](https://github.com/jfallows))
+- feat\(binding-llm\): group adjacent request members into one control section [\#2781](https://github.com/aklivity/zilla/pull/2781) ([jfallows](https://github.com/jfallows))
+- feat\(binding-llm\): promote sampling and length members to x: [\#2782](https://github.com/aklivity/zilla/pull/2782) ([jfallows](https://github.com/jfallows))
+- feat\(binding-llm\): promote tool\_choice and parallel\_tool\_calls to x: [\#2783](https://github.com/aklivity/zilla/pull/2783) ([jfallows](https://github.com/jfallows))
+- feat\(binding-llm\): promote response\_format to x: [\#2784](https://github.com/aklivity/zilla/pull/2784) ([jfallows](https://github.com/jfallows))
+- feat\(binding-llm\): promote reasoning controls to x: and add model capability options [\#2785](https://github.com/aklivity/zilla/pull/2785) ([jfallows](https://github.com/jfallows))
+- feat\(binding-llm\): promote user and service\_tier to x: [\#2786](https://github.com/aklivity/zilla/pull/2786) ([jfallows](https://github.com/jfallows))
+- feat\(binding-llm\): carry block-level members inline in section payloads [\#2787](https://github.com/aklivity/zilla/pull/2787) ([jfallows](https://github.com/jfallows))
+- feat\(binding-llm\): apply the legality rule in the client from capability options [\#2788](https://github.com/aklivity/zilla/pull/2788) ([jfallows](https://github.com/jfallows))
+- fix\(binding-llm\): relay streamed guardrail output before the section ends [\#2789](https://github.com/aklivity/zilla/pull/2789) ([jfallows](https://github.com/jfallows))
+- feat\(engine\): report the trailing text a detector could not rule out [\#2791](https://github.com/aklivity/zilla/pull/2791) ([jfallows](https://github.com/jfallows))
+- feat\(binding-llm\): carry grouped and many control members without loss [\#2793](https://github.com/aklivity/zilla/pull/2793) ([jfallows](https://github.com/jfallows))
+- fix\(binding-llm\): keep the held cache breakpoint of an anthropic section across input windows [\#2795](https://github.com/aklivity/zilla/pull/2795) ([jfallows](https://github.com/jfallows))
+- feat\(binding-llm\): control openai APIs \(chat/completions, responses\) per server, client and route [\#2796](https://github.com/aklivity/zilla/pull/2796) ([jfallows](https://github.com/jfallows))
+
+## [2.5.0](https://github.com/aklivity/zilla/tree/2.5.0) (2026-10-19)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.4.7...2.5.0)
 
 **Fixed bugs:**
 
@@ -51,6 +108,7 @@
 - binding-llm: dialect extensions carried with canonical sections [\#2638](https://github.com/aklivity/zilla/issues/2638) ([jfallows](https://github.com/jfallows))
 - binding-llm: cross-dialect legality and explicit drops [\#2639](https://github.com/aklivity/zilla/issues/2639) ([jfallows](https://github.com/jfallows))
 - binding-llm: routing and fallback in llm\(proxy\) [\#2640](https://github.com/aklivity/zilla/issues/2640) ([jfallows](https://github.com/jfallows))
+- binding-llm: guardrail stage pipeline in llm\(proxy\) [\#2641](https://github.com/aklivity/zilla/issues/2641) ([jfallows](https://github.com/jfallows))
 - Return JsonValue from GuardHandler.attribute and add JsonStrings unwrap helpers [\#2646](https://github.com/aklivity/zilla/issues/2646) ([jfallows](https://github.com/jfallows))
 - common-yaml: configure duplicate-key handling with the standard JsonConfig.KEY\_STRATEGY [\#2652](https://github.com/aklivity/zilla/issues/2652) ([jfallows](https://github.com/jfallows))
 - common-jwt: construct a Jwk directly from a java.security.PublicKey [\#2658](https://github.com/aklivity/zilla/issues/2658) ([jfallows](https://github.com/jfallows))
@@ -63,6 +121,7 @@
 - Add `classifier-patterns`: label values by regular expression and entropy [\#2689](https://github.com/aklivity/zilla/issues/2689) ([jfallows](https://github.com/jfallows))
 - Add `classifier-presidio`: label personal data using a Presidio analyzer [\#2690](https://github.com/aklivity/zilla/issues/2690) ([jfallows](https://github.com/jfallows))
 - Remove incubator `model-vector` in favor of `model: classify` and `classifier-semantic` [\#2694](https://github.com/aklivity/zilla/issues/2694) ([jfallows](https://github.com/jfallows))
+- binding-llm: emit the same section stream for streaming and non-streaming responses [\#2735](https://github.com/aklivity/zilla/issues/2735) ([jfallows](https://github.com/jfallows))
 - binding-llm: canonical payloads for tool, server tool and media sections [\#2736](https://github.com/aklivity/zilla/issues/2736) ([jfallows](https://github.com/jfallows))
 - binding-llm: tool-call and server-tool-call canonical payload as an object [\#2741](https://github.com/aklivity/zilla/issues/2741) ([jfallows](https://github.com/jfallows))
 
@@ -165,6 +224,7 @@
 - feat\(binding-llm\): canonical payloads for tool, server tool and media sections [\#2738](https://github.com/aklivity/zilla/pull/2738) ([jfallows](https://github.com/jfallows))
 - fix\(binding-llm\): write a system instruction that follows the messages in the openai client [\#2740](https://github.com/aklivity/zilla/pull/2740) ([jfallows](https://github.com/jfallows))
 - feat\(binding-llm\): carry tool-call arguments in a canonical object [\#2745](https://github.com/aklivity/zilla/pull/2745) ([jfallows](https://github.com/jfallows))
+- feat\(binding-llm\): emit the same section stream for streaming and non-streaming responses [\#2746](https://github.com/aklivity/zilla/pull/2746) ([jfallows](https://github.com/jfallows))
 
 ## [2.4.7](https://github.com/aklivity/zilla/tree/2.4.7) (2026-09-30)
 

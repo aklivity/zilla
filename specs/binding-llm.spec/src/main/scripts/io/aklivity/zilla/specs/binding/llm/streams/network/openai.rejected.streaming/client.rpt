@@ -32,7 +32,7 @@ connected
 
 write "{\"model\":\""
       ${model}
-      "\",\"stream\":true,\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}"
+      "\",\"stream\":true,\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"stream_options\":{\"include_obfuscation\":false,\"include_usage\":true}}"
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()

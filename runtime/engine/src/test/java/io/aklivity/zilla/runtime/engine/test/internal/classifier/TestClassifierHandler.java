@@ -47,11 +47,34 @@ public final class TestClassifierHandler implements ClassifierHandler
     {
         try
         {
-            completion.completed(contextId, value != null && labels.stream().anyMatch(value::contains));
+            final boolean detected = value != null && labels.stream().anyMatch(value::contains);
+
+            completion.completed(contextId, detected, detected || value == null ? 0 : retained(labels, value));
         }
         catch (Throwable ex)
         {
             completion.failed(contextId, ex);
         }
+    }
+
+    private static int retained(
+        List<String> labels,
+        String value)
+    {
+        int retained = 0;
+
+        for (String label : labels)
+        {
+            for (int length = Math.min(label.length() - 1, value.length()); length > retained; length--)
+            {
+                if (value.regionMatches(value.length() - length, label, 0, length))
+                {
+                    retained = length;
+                    break;
+                }
+            }
+        }
+
+        return retained;
     }
 }

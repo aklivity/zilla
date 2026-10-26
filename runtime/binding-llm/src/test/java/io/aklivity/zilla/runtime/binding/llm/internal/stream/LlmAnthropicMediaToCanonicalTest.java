@@ -70,7 +70,7 @@ public class LlmAnthropicMediaToCanonicalTest
         assertTransforms(image, null, null,
             json("{'cache_control':{'type':'ephemeral'},'type':'image'," +
                 "'source':{'type':'url','url':'https://example.com/a.png'},'extra':[1,{'a':null}]}"),
-            json("{'type':'image_url','anthropic:cache_control':{'type':'ephemeral'}," +
+            json("{'type':'image_url','prompt_cache_breakpoint':{'mode':'explicit'}," +
                 "'image_url':{'url':'https://example.com/a.png'},'anthropic:extra':[1,{'a':null}]}"));
     }
 

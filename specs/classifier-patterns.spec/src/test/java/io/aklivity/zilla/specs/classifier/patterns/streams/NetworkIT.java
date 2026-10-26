@@ -95,4 +95,24 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/streaming.text.rejected.straddling/client",
+        "${net}/streaming.text.rejected.straddling/server"
+    })
+    public void shouldAbortKeyStraddlingFragmentsWithoutReleasingItsPrefix() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/streaming.text.accepted.retained/client",
+        "${net}/streaming.text.accepted.retained/server"
+    })
+    public void shouldReleaseKeyPrefixOnceRuledOut() throws Exception
+    {
+        k3po.finish();
+    }
 }

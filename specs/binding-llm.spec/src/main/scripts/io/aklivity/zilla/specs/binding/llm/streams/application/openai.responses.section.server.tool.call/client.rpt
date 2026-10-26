@@ -1,0 +1,143 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+connect "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${llm:beginEx()
+                           .typeId(zilla:id("llm"))
+                           .dialect("openai/rs")
+                           .model("gpt-4")
+                           .build()}
+
+connected
+
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("USER_TEXT")
+                          .message(0)
+                          .build()}
+write "{\"text\":\"Search and compute\"}"
+write flush
+
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("SERVER_TOOL_CALL")
+                          .message(1)
+                          .attribute("tool-name", "web_search")
+                          .attribute("tool-call-id", "ws_1")
+                          .extension("web_search_call")
+                          .build()}
+write "{\"arguments\":{\"action\":{\"type\":\"search\",\"query\":\"weather\"}}}"
+write flush
+
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("SERVER_TOOL_CALL")
+                          .message(1)
+                          .attribute("tool-name", "code_interpreter")
+                          .attribute("tool-call-id", "ci_1")
+                          .extension("code_interpreter_call")
+                          .build()}
+write "{\"arguments\":{\"code\":\"1 + 1\",\"container_id\":\"cntr_1\"}}"
+write flush
+
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("SERVER_TOOL_RESULT")
+                          .message(1)
+                          .attribute("tool-call-id", "ci_1")
+                          .extension("code_interpreter_call")
+                          .build()}
+write "{\"outputs\":[{\"type\":\"logs\",\"logs\":\"2\"}]}"
+write flush
+
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("SERVER_TOOL_CALL")
+                          .message(1)
+                          .attribute("tool-name", "ask")
+                          .attribute("tool-call-id", "mcp_1")
+                          .extension("mcp_call")
+                          .build()}
+write "{\"arguments\":{\"arguments\":\"{\\\"q\\\":1}\",\"approval_request_id\":null}}"
+write flush
+
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("SERVER_TOOL_RESULT")
+                          .message(1)
+                          .attribute("tool-call-id", "mcp_1")
+                          .extension("mcp_call")
+                          .build()}
+write "{\"error\":null,\"output\":\"ok\",\"server_label\":\"deepwiki\"}"
+write flush
+
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("SERVER_TOOL_CALL")
+                          .message(1)
+                          .attribute("tool-name", "code_exec")
+                          .attribute("tool-call-id", "call_1")
+                          .extension("custom_tool_call")
+                          .build()}
+write "{\"arguments\":{\"input\":\"print(1)\"}}"
+write flush
+
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("SERVER_TOOL_RESULT")
+                          .message(2)
+                          .attribute("tool-call-id", "call_1")
+                          .extension("custom_tool_call_output")
+                          .build()}
+write "{\"output\":\"1\\n\"}"
+write flush
+
+write advise zilla:flush
+
+read zilla:begin.ext ${llm:matchBeginEx()
+                          .typeId(zilla:id("llm"))
+                          .dialect("openai/rs")
+                          .model("gpt-4")
+                          .id("resp_1")
+                          .build()}
+
+read zilla:data.ext ${llm:matchDataEx()
+                         .typeId(zilla:id("llm"))
+                         .type("ASSISTANT_TEXT")
+                         .message(0)
+                         .build()}
+read "{\"text\":\"Hello there\"}"
+
+read zilla:data.ext ${llm:matchDataEx()
+                         .typeId(zilla:id("llm"))
+                         .type("CONTROL")
+                         .message(-1)
+                         .build()}
+read "{\"openai/rs:usage\":{\"input_tokens\":25,\"output_tokens\":15,\"total_tokens\":40}}"
+
+read zilla:end.ext ${llm:matchEndEx()
+                        .typeId(zilla:id("llm"))
+                        .inputTokens(25)
+                        .outputTokens(15)
+                        .totalTokens(40)
+                        .finishReason("stop")
+                        .build()}
+
+read closed
+
+write close

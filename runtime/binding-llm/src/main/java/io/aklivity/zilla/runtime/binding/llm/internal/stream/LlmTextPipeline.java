@@ -34,6 +34,7 @@ final class LlmTextPipeline
     }
 
     private final JsonPipeline pipeline;
+    private final LlmTextTransform transform;
     private final UnsafeBufferEx windowBuffer;
 
     private byte[] window;
@@ -43,11 +44,54 @@ final class LlmTextPipeline
     LlmTextPipeline(
         Output output)
     {
+        this(output, false, null);
+    }
+
+    LlmTextPipeline(
+        Output output,
+        boolean optional)
+    {
+        this(output, optional, null);
+    }
+
+    LlmTextPipeline(
+        Output output,
+        LlmCacheBreakpoint breakpoints)
+    {
+        this(output, false, breakpoints);
+    }
+
+    private LlmTextPipeline(
+        Output output,
+        boolean optional,
+        LlmCacheBreakpoint breakpoints)
+    {
         this.windowBuffer = new UnsafeBufferEx();
         this.window = new byte[0];
+        this.transform = new LlmTextTransform(optional, breakpoints);
         this.pipeline = JsonEx.stream(JsonEx.createParser())
-            .transform(new LlmTextTransform())
-            .into(new LlmTextSink(output));
+            .transform(transform)
+            .into(new LlmTextSink(output, breakpoints == null));
+    }
+
+    boolean completed()
+    {
+        return completed;
+    }
+
+    boolean extracted()
+    {
+        return transform.extracted();
+    }
+
+    boolean marked()
+    {
+        return transform.marked();
+    }
+
+    String markedTtl()
+    {
+        return transform.markedTtl();
     }
 
     void begin()

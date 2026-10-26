@@ -24,27 +24,24 @@ accepted
 
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
+                           .dialect("openai/ccs")
                            .model(model)
                            .build()}
 
 connected
 
-read option zilla:flags "init"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-read "{\"text\":\"my ******"
-read option zilla:flags "fin"
-read "\",\"anthropic:cache_control\":{\"type\":\"ephemeral\"}}"
+read "{\"text\":\"my ******\",\"anthropic:cache_control\":{\"type\":\"ephemeral\"}}"
 
 read advised zilla:flush
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
+                           .dialect("openai/ccs")
                            .model(model)
                            .build()}
 write flush

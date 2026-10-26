@@ -33,7 +33,7 @@ connected
 
 write "{\"model\":\""
       ${model}
-      "\",\"stream\":true,\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Hello\"}]}]}"
+      "\",\"stream\":true,\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Hello\"}]}],\"max_tokens\":4096}"
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()
@@ -48,7 +48,7 @@ read zilla:data.ext ${http:matchDataEx()
                          .build()}
 read "{\"type\":\"message_start\",\"message\":{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\""
      ${model}
-     "\",\"content\":[],\"stop_reason\":null,\"stop_sequence\":null,\"usage\":{\"input_tokens\":25,\"output_tokens\":1}}}"
+     "\",\"content\":[],\"stop_reason\":null,\"stop_sequence\":null,\"usage\":{\"input_tokens\":0,\"output_tokens\":0}}}"
 read zilla:data.ext ${http:matchDataEx()
                          .typeId(zilla:id("http"))
                          .header("type", "content_block_start")

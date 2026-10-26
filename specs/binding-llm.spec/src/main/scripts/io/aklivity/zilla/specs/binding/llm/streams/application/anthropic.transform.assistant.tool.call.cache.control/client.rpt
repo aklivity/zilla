@@ -28,11 +28,6 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write advised zilla:challenge ${llm:matchChallengeEx()
-                                    .typeId(zilla:id("llm"))
-                                    .dialect(target)
-                                    .build()}
-
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("USER_TEXT")
@@ -48,7 +43,7 @@ write zilla:data.ext ${llm:dataEx()
                           .attribute("tool-name", "get_weather")
                           .attribute("tool-call-id", "call_1")
                           .build()}
-write "{\"anthropic:cache_control\":{\"type\":\"ephemeral\"},\"arguments\":{\"city\":\"Paris\"}}"
+write "{\"prompt_cache_breakpoint\":{\"mode\":\"explicit\"},\"arguments\":{\"city\":\"Paris\"}}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -58,7 +53,7 @@ write zilla:data.ext ${llm:dataEx()
                           .attribute("tool-name", "get_weather")
                           .attribute("tool-call-id", "call_2")
                           .build()}
-write "{\"arguments\":{\"city\":\"London\"},\"anthropic:cache_control\":{\"type\":\"ephemeral\"}}"
+write "{\"arguments\":{\"city\":\"London\"},\"prompt_cache_breakpoint\":{\"mode\":\"explicit\"}}"
 write flush
 
 write advise zilla:flush

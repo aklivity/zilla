@@ -23,27 +23,24 @@ accepted
 
 read zilla:begin.ext ${llm:matchBeginEx()
                           .typeId(zilla:id("llm"))
-                          .dialect("openai")
+                          .dialect("openai/ccs")
                           .model(fallback)
                           .build()}
 
 connected
 
-read option zilla:flags "init"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-read "{\"text\":\"*****, *****"
-read option zilla:flags "fin"
-read "\"}"
+read "{\"text\":\"*****, *****\"}"
 
 read advised zilla:flush
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
+                           .dialect("openai/ccs")
                            .model(fallback)
                            .build()}
 write flush

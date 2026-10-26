@@ -1,0 +1,198 @@
+{
+  "area": "Reasoning",
+  "area_id": "reasoning",
+  "probes": [
+    {
+      "id": "reasoning-shape",
+      "requires": [
+        "reasoning"
+      ],
+      "model": "reasoning",
+      "steps": [
+        {
+          "id": "a",
+          "method": "POST",
+          "path": "/chat/completions",
+          "body": {
+            "model": {
+              "$model": "model"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": "What is 17 times 24? Think it through."
+              }
+            ],
+            "$cap": 1500
+          }
+        }
+      ],
+      "derive": [
+        {
+          "id": "r",
+          "fn": "reasoning_location",
+          "args": {
+            "from": "a"
+          }
+        }
+      ],
+      "classify": [
+        {
+          "when": {
+            "path": "a.status",
+            "op": "status_class",
+            "value": 4
+          },
+          "outcome": "unsupported",
+          "observed": "reasoning model request rejected (HTTP {a.status}): {a.json.error.message}"
+        },
+        {
+          "when": {
+            "path": "r.where",
+            "op": "eq",
+            "value": "tokens-only"
+          },
+          "outcome": "compliant",
+          "observed": "reasoning tokens reported ({r.tokens}); reasoning text not exposed"
+        },
+        {
+          "when": {
+            "path": "r.where",
+            "op": "in",
+            "value": [
+              "reasoning_content",
+              "reasoning",
+              "reasoning_details"
+            ]
+          },
+          "outcome": "adjustment-needed",
+          "observed": "reasoning text in message.{r.where} ({r.chars} chars)",
+          "adjustment": "map-sections"
+        },
+        {
+          "when": {
+            "path": "r.where",
+            "op": "eq",
+            "value": "inline-think"
+          },
+          "outcome": "adjustment-needed",
+          "observed": "reasoning inline in content as <think> text",
+          "adjustment": "map-sections"
+        },
+        {
+          "when": {
+            "path": "r.where",
+            "op": "eq",
+            "value": "none"
+          },
+          "outcome": "unsupported",
+          "observed": "no reasoning text or reasoning token count in response"
+        }
+      ]
+    },
+    {
+      "id": "reasoning-effort",
+      "requires": [
+        "reasoning"
+      ],
+      "model": "reasoning",
+      "steps": [
+        {
+          "id": "low",
+          "method": "POST",
+          "path": "/chat/completions",
+          "body": {
+            "model": {
+              "$model": "model"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": "How many prime numbers are below 300? Work it out carefully."
+              }
+            ],
+            "$cap": 2500,
+            "reasoning_effort": "low"
+          }
+        },
+        {
+          "id": "high",
+          "method": "POST",
+          "path": "/chat/completions",
+          "body": {
+            "model": {
+              "$model": "model"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": "How many prime numbers are below 300? Work it out carefully."
+              }
+            ],
+            "$cap": 2500,
+            "reasoning_effort": "high"
+          }
+        }
+      ],
+      "derive": [
+        {
+          "id": "e",
+          "fn": "effort_compare",
+          "args": {
+            "low": "low",
+            "high": "high"
+          }
+        }
+      ],
+      "classify": [
+        {
+          "when": {
+            "any": [
+              {
+                "path": "low.status",
+                "op": "status_class",
+                "value": 4
+              },
+              {
+                "path": "high.status",
+                "op": "status_class",
+                "value": 4
+              }
+            ]
+          },
+          "outcome": "adjustment-needed",
+          "observed": "reasoning_effort rejected (low HTTP {low.status}, high HTTP {high.status}): {low.json.error.message}",
+          "adjustment": "handle-unsupported"
+        },
+        {
+          "when": {
+            "path": "e.capped",
+            "op": "eq",
+            "value": true
+          },
+          "outcome": "not-applicable",
+          "observed": "both calls hit the output cap ({e.kind} low={e.low} high={e.high}); effect not measurable"
+        },
+        {
+          "when": {
+            "path": "e.effective",
+            "op": "eq",
+            "value": true
+          },
+          "outcome": "compliant",
+          "observed": "{e.kind} low={e.low} high={e.high}"
+        },
+        {
+          "when": {
+            "path": "e.effective",
+            "op": "eq",
+            "value": false
+          },
+          "outcome": "unsupported",
+          "observed": "reasoning_effort accepted; no measurable effect ({e.kind} low={e.low} high={e.high}, single sample)",
+          "silent": true
+        }
+      ]
+    }
+  ]
+}

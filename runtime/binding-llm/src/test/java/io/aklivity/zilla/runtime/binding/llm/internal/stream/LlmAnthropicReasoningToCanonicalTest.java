@@ -31,7 +31,7 @@ public class LlmAnthropicReasoningToCanonicalTest
     {
         assertTransforms(reasoning,
             json("{'type':'thinking','thinking':'Let me think.','signature':'sig-1'}"),
-            json("{'text':'Let me think.','anthropic:signature':'sig-1'}"));
+            json("{'text':'Let me think.','x:signature':'sig-1'}"));
     }
 
     @Test
@@ -39,7 +39,7 @@ public class LlmAnthropicReasoningToCanonicalTest
     {
         assertTransforms(reasoning,
             json("{'type':'thinking','signature':'sig-1','thinking':'Let me think.'}"),
-            json("{'anthropic:signature':'sig-1','text':'Let me think.'}"));
+            json("{'x:signature':'sig-1','text':'Let me think.'}"));
     }
 
     @Test
@@ -47,7 +47,7 @@ public class LlmAnthropicReasoningToCanonicalTest
     {
         assertTransforms(reasoning,
             json("{'type':'thinking','thinking':'" + TEXT + "','signature':'sig-1'}"),
-            json("{'text':'" + TEXT + "','anthropic:signature':'sig-1'}"));
+            json("{'text':'" + TEXT + "','x:signature':'sig-1'}"));
     }
 
     @Test
@@ -63,7 +63,7 @@ public class LlmAnthropicReasoningToCanonicalTest
     {
         assertTransforms(reasoning,
             json("{'type':'redacted_thinking','data':'opaque'}"),
-            json("{'anthropic:data':'opaque'}"));
+            json("{'x:redacted_data':'opaque'}"));
     }
 
     @Test

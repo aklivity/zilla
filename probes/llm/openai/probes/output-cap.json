@@ -1,0 +1,311 @@
+{
+  "area": "Output cap",
+  "area_id": "output-cap",
+  "probes": [
+    {
+      "id": "max-completion-tokens",
+      "requires": [],
+      "steps": [
+        {
+          "id": "a",
+          "method": "POST",
+          "path": "/chat/completions",
+          "body": {
+            "model": {
+              "$model": "model"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": "Count from 1 to 40, one number per line."
+              }
+            ],
+            "max_completion_tokens": 5
+          }
+        },
+        {
+          "id": "b",
+          "method": "POST",
+          "path": "/chat/completions",
+          "body": {
+            "model": {
+              "$model": "model"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": "Count from 1 to 40, one number per line."
+              }
+            ],
+            "max_tokens": 5
+          },
+          "when": {
+            "not": {
+              "all": [
+                {
+                  "path": "a.status",
+                  "op": "eq",
+                  "value": 200
+                },
+                {
+                  "any": [
+                    {
+                      "path": "a.json.usage.completion_tokens",
+                      "op": "le",
+                      "value": 5
+                    },
+                    {
+                      "all": [
+                        {
+                          "path": "a.json.usage.completion_tokens",
+                          "op": "exists",
+                          "value": false
+                        },
+                        {
+                          "path": "a.json.choices[0].finish_reason",
+                          "op": "eq",
+                          "value": "length"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "classify": [
+        {
+          "when": {
+            "all": [
+              {
+                "path": "a.status",
+                "op": "eq",
+                "value": 200
+              },
+              {
+                "any": [
+                  {
+                    "path": "a.json.usage.completion_tokens",
+                    "op": "le",
+                    "value": 5
+                  },
+                  {
+                    "all": [
+                      {
+                        "path": "a.json.usage.completion_tokens",
+                        "op": "exists",
+                        "value": false
+                      },
+                      {
+                        "path": "a.json.choices[0].finish_reason",
+                        "op": "eq",
+                        "value": "length"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "outcome": "compliant",
+          "observed": "max_completion_tokens honoured: completion_tokens={a.json.usage.completion_tokens}"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "path": "a.status",
+                "op": "status_class",
+                "value": 4
+              },
+              {
+                "all": [
+                  {
+                    "path": "b.status",
+                    "op": "eq",
+                    "value": 200
+                  },
+                  {
+                    "any": [
+                      {
+                        "path": "b.json.usage.completion_tokens",
+                        "op": "le",
+                        "value": 5
+                      },
+                      {
+                        "all": [
+                          {
+                            "path": "b.json.usage.completion_tokens",
+                            "op": "exists",
+                            "value": false
+                          },
+                          {
+                            "path": "b.json.choices[0].finish_reason",
+                            "op": "eq",
+                            "value": "length"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "outcome": "adjustment-needed",
+          "observed": "max_completion_tokens rejected (HTTP {a.status}); max_tokens honoured",
+          "adjustment": "rename-reshape"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "path": "a.status",
+                "op": "eq",
+                "value": 200
+              },
+              {
+                "all": [
+                  {
+                    "path": "b.status",
+                    "op": "eq",
+                    "value": 200
+                  },
+                  {
+                    "any": [
+                      {
+                        "path": "b.json.usage.completion_tokens",
+                        "op": "le",
+                        "value": 5
+                      },
+                      {
+                        "all": [
+                          {
+                            "path": "b.json.usage.completion_tokens",
+                            "op": "exists",
+                            "value": false
+                          },
+                          {
+                            "path": "b.json.choices[0].finish_reason",
+                            "op": "eq",
+                            "value": "length"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "outcome": "adjustment-needed",
+          "observed": "max_completion_tokens accepted but ignored (completion_tokens={a.json.usage.completion_tokens}); max_tokens honoured",
+          "adjustment": "rename-reshape",
+          "silent": true
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "eq",
+            "value": 200
+          },
+          "outcome": "unsupported",
+          "observed": "max_completion_tokens and max_tokens accepted but cap not honoured (completion_tokens={a.json.usage.completion_tokens})",
+          "silent": true
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "status_class",
+            "value": 4
+          },
+          "outcome": "unsupported",
+          "observed": "max_completion_tokens rejected (HTTP {a.status}) and max_tokens not honoured"
+        }
+      ]
+    },
+    {
+      "id": "max-tokens",
+      "requires": [],
+      "steps": [
+        {
+          "id": "a",
+          "method": "POST",
+          "path": "/chat/completions",
+          "body": {
+            "model": {
+              "$model": "model"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": "Count from 1 to 40, one number per line."
+              }
+            ],
+            "max_tokens": 5
+          }
+        }
+      ],
+      "classify": [
+        {
+          "when": {
+            "all": [
+              {
+                "path": "a.status",
+                "op": "eq",
+                "value": 200
+              },
+              {
+                "any": [
+                  {
+                    "path": "a.json.usage.completion_tokens",
+                    "op": "le",
+                    "value": 5
+                  },
+                  {
+                    "all": [
+                      {
+                        "path": "a.json.usage.completion_tokens",
+                        "op": "exists",
+                        "value": false
+                      },
+                      {
+                        "path": "a.json.choices[0].finish_reason",
+                        "op": "eq",
+                        "value": "length"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "outcome": "compliant",
+          "observed": "max_tokens honoured: completion_tokens={a.json.usage.completion_tokens}"
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "eq",
+            "value": 200
+          },
+          "outcome": "unsupported",
+          "observed": "max_tokens accepted but ignored (completion_tokens={a.json.usage.completion_tokens})",
+          "silent": true
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "status_class",
+            "value": 4
+          },
+          "outcome": "adjustment-needed",
+          "observed": "max_tokens rejected (HTTP {a.status}): {a.json.error.message}",
+          "adjustment": "rename-reshape"
+        }
+      ]
+    }
+  ]
+}

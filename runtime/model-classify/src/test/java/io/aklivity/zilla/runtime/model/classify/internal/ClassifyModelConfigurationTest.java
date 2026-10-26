@@ -24,10 +24,12 @@ import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class ClassifyModelConfigurationTest
 {
+    public static final String CLASSIFY_MAX_LENGTH_NAME = "zilla.model.classify.max.length";
+
     @Test
     public void shouldVerifyConstants()
     {
-        assertThat(MAX_LENGTH.name(), equalTo("zilla.model.classify.max.length"));
+        assertThat(MAX_LENGTH.name(), equalTo(CLASSIFY_MAX_LENGTH_NAME));
     }
 
     @Test

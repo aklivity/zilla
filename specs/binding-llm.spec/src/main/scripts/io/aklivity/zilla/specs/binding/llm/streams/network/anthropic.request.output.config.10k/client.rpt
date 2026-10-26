@@ -31,7 +31,7 @@ connected
 
 write "{\"model\":\"claude-3-opus-20240229\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Hello\"}]}],\"output_config\":{\"format\":{\"type\":\"json_schema\",\"schema\":{\"type\":\"object\",\"description\":\""
       ${core:randomBase64(10000)}
-      "\"}}}}"
+      "\"}}},\"max_tokens\":4096}"
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()

@@ -24,7 +24,7 @@ accepted
 
 read zilla:begin.ext ${llm:matchBeginEx()
                           .typeId(zilla:id("llm"))
-                          .dialect("openai")
+                          .dialect("openai/ccs")
                           .model(model)
                           .build()}
 
@@ -41,9 +41,19 @@ read advised zilla:flush
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
+                           .dialect("openai/ccs")
                            .model(model)
                            .build()}
+write flush
+
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("TOOL_CALL")
+                          .message(0)
+                          .attribute("tool-call-id", "call_1")
+                          .attribute("tool-name", "get_weather")
+                          .build()}
+write "{\"arguments\":"
 write flush
 
 write zilla:abort.ext ${llm:abortEx()

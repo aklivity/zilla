@@ -31,7 +31,7 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-read "{\"model\":\"claude-3-opus-20240229\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Weather in Paris?\"}]},{\"role\":\"assistant\",\"content\":[{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"get_weather\",\"cache_control\":{\"type\":\"ephemeral\"},\"input\":{\"city\":\"Paris\"}},{\"type\":\"tool_use\",\"id\":\"toolu_2\",\"name\":\"get_weather\",\"input\":{\"city\":\"London\"},\"cache_control\":{\"type\":\"ephemeral\"}},{\"type\":\"server_tool_use\",\"id\":\"srvtoolu_1\",\"name\":\"web_search\",\"input\":{\"query\":\"zilla\"},\"cache_control\":{\"type\":\"ephemeral\"}}]}]}"
+read "{\"model\":\"claude-3-opus-20240229\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Weather in Paris?\"}]},{\"role\":\"assistant\",\"content\":[{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"get_weather\",\"cache_control\":{\"type\":\"ephemeral\"},\"input\":{\"city\":\"Paris\"}},{\"type\":\"tool_use\",\"id\":\"toolu_2\",\"name\":\"get_weather\",\"input\":{\"city\":\"London\"},\"cache_control\":{\"type\":\"ephemeral\"}},{\"type\":\"server_tool_use\",\"id\":\"srvtoolu_1\",\"name\":\"web_search\",\"input\":{\"query\":\"zilla\"},\"cache_control\":{\"type\":\"ephemeral\"}}]}],\"max_tokens\":4096}"
 
 read closed
 

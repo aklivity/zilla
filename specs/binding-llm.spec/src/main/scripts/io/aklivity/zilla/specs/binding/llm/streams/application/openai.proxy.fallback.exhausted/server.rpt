@@ -25,7 +25,7 @@ accepted
 
 read zilla:begin.ext ${llm:matchBeginEx()
                           .typeId(zilla:id("llm"))
-                          .dialect("openai")
+                          .dialect("openai/ccs")
                           .model(model)
                           .build()}
 
@@ -33,7 +33,6 @@ connected
 
 read advise zilla:challenge ${llm:challengeEx()
                                 .typeId(zilla:id("llm"))
-                                .dialect("openai")
                                 .model(fallback)
                                 .build()}
 

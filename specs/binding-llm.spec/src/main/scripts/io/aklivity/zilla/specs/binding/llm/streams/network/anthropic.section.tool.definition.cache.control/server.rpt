@@ -31,7 +31,7 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-read "{\"model\":\"claude-3-opus-20240229\",\"tools\":[{\"name\":\"get_weather\",\"description\":\"Get the weather\",\"input_schema\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}}},\"cache_control\":{\"type\":\"ephemeral\"}}],\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Weather in Paris?\"}]}]}"
+read "{\"model\":\"claude-3-opus-20240229\",\"tools\":[{\"name\":\"get_weather\",\"description\":\"Get the weather\",\"input_schema\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}}},\"cache_control\":{\"type\":\"ephemeral\"}}],\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Weather in Paris?\"}]}],\"max_tokens\":4096}"
 
 read closed
 

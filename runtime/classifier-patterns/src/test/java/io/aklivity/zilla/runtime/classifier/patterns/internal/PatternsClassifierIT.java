@@ -113,4 +113,26 @@ public class PatternsClassifierIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("reject.response.yaml")
+    @Specification({
+        "${net}/streaming.text.rejected.straddling/client",
+        "${app}/streaming.text.rejected.straddling/server"
+    })
+    public void shouldAbortKeyStraddlingFragmentsWithoutReleasingItsPrefix() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("reject.response.yaml")
+    @Specification({
+        "${net}/streaming.text.accepted.retained/client",
+        "${app}/streaming.text.accepted.retained/server"
+    })
+    public void shouldReleaseKeyPrefixOnceRuledOut() throws Exception
+    {
+        k3po.finish();
+    }
 }

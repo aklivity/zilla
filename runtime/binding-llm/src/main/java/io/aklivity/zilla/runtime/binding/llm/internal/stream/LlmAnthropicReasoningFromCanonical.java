@@ -28,14 +28,17 @@ final class LlmAnthropicReasoningFromCanonical extends LlmToolTransform
     private String type;
     private boolean signed;
 
-    LlmAnthropicReasoningFromCanonical()
+    LlmAnthropicReasoningFromCanonical(
+        boolean sameDialect)
     {
-        this(false);
+        this(false, sameDialect);
     }
 
     LlmAnthropicReasoningFromCanonical(
-        boolean unsigned)
+        boolean unsigned,
+        boolean sameDialect)
     {
+        super(MODE_OBJECT, sameDialect ? DIALECT : null);
         this.unsigned = unsigned;
     }
 
@@ -62,17 +65,30 @@ final class LlmAnthropicReasoningFromCanonical extends LlmToolTransform
         }
         else
         {
-            action = unprefix(DIALECT, key);
+            action = unprefix(key);
+        }
 
-            if (action != DROP && matches(key, "anthropic:signature"))
-            {
-                emitType(TYPE_THINKING);
-                signed = true;
-            }
-            else if (action != DROP && matches(key, "anthropic:data"))
-            {
-                emitType(TYPE_REDACTED);
-            }
+        return action;
+    }
+
+    @Override
+    protected int shared(
+        CharSequence member)
+    {
+        int action = DROP;
+
+        if (matches(member, LlmSharedMembers.SIGNATURE))
+        {
+            emitType(TYPE_THINKING);
+            signed = true;
+            target = "signature";
+            action = PASS_VALUE;
+        }
+        else if (matches(member, LlmSharedMembers.REDACTED_DATA))
+        {
+            emitType(TYPE_REDACTED);
+            target = "data";
+            action = PASS_VALUE;
         }
 
         return action;

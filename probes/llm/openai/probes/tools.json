@@ -1,0 +1,253 @@
+{
+  "area": "Tools",
+  "area_id": "tools",
+  "probes": [
+    {
+      "id": "tool-required",
+      "requires": [],
+      "steps": [
+        {
+          "id": "a",
+          "method": "POST",
+          "path": "/chat/completions",
+          "body": {
+            "model": {
+              "$model": "model"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": "What is the weather in Paris?"
+              }
+            ],
+            "$cap": 64,
+            "tools": [
+              {
+                "$const": "weather_tool"
+              }
+            ],
+            "tool_choice": "required",
+            "parallel_tool_calls": false
+          }
+        },
+        {
+          "id": "b",
+          "method": "POST",
+          "path": "/chat/completions",
+          "body": {
+            "model": {
+              "$model": "model"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": "What is the weather in Paris?"
+              }
+            ],
+            "$cap": 64,
+            "tools": [
+              {
+                "$const": "weather_tool"
+              }
+            ],
+            "tool_choice": "required"
+          },
+          "when": {
+            "path": "a.status",
+            "op": "status_class",
+            "value": 4
+          }
+        },
+        {
+          "id": "c",
+          "method": "POST",
+          "path": "/chat/completions",
+          "body": {
+            "model": {
+              "$model": "model"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": "What is the weather in Paris?"
+              }
+            ],
+            "$cap": 64,
+            "tools": [
+              {
+                "$const": "weather_tool"
+              }
+            ],
+            "tool_choice": "auto"
+          },
+          "when": {
+            "all": [
+              {
+                "path": "a.status",
+                "op": "status_class",
+                "value": 4
+              },
+              {
+                "path": "b.status",
+                "op": "status_class",
+                "value": 4
+              }
+            ]
+          }
+        }
+      ],
+      "derive": [
+        {
+          "id": "ta",
+          "fn": "tool_call",
+          "args": {
+            "from": "a"
+          }
+        },
+        {
+          "id": "tb",
+          "fn": "tool_call",
+          "args": {
+            "from": "b"
+          }
+        },
+        {
+          "id": "tc",
+          "fn": "tool_call",
+          "args": {
+            "from": "c"
+          }
+        }
+      ],
+      "classify": [
+        {
+          "when": {
+            "all": [
+              {
+                "path": "a.status",
+                "op": "eq",
+                "value": 200
+              },
+              {
+                "all": [
+                  {
+                    "path": "ta.present",
+                    "op": "eq",
+                    "value": true
+                  },
+                  {
+                    "path": "ta.id",
+                    "op": "exists"
+                  },
+                  {
+                    "path": "ta.name",
+                    "op": "eq",
+                    "value": "get_weather"
+                  },
+                  {
+                    "path": "ta.arguments_valid",
+                    "op": "eq",
+                    "value": true
+                  }
+                ]
+              }
+            ]
+          },
+          "outcome": "compliant",
+          "observed": "tool call id={ta.id} name={ta.name}"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "path": "a.status",
+                "op": "eq",
+                "value": 200
+              },
+              {
+                "path": "ta.present",
+                "op": "eq",
+                "value": true
+              }
+            ]
+          },
+          "outcome": "adjustment-needed",
+          "observed": "tool call missing id or valid arguments (id={ta.id}, arguments_valid={ta.arguments_valid})",
+          "adjustment": "rename-reshape"
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "eq",
+            "value": 200
+          },
+          "outcome": "unsupported",
+          "observed": "tool_choice required accepted but no tool call returned (finish_reason={ta.finish_reason})",
+          "silent": true
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "path": "a.status",
+                "op": "status_class",
+                "value": 4
+              },
+              {
+                "path": "b.status",
+                "op": "eq",
+                "value": 200
+              },
+              {
+                "path": "tb.present",
+                "op": "eq",
+                "value": true
+              }
+            ]
+          },
+          "outcome": "adjustment-needed",
+          "observed": "parallel_tool_calls rejected (HTTP {a.status}): {a.json.error.message}; tools work without it",
+          "adjustment": "handle-unsupported"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "path": "a.status",
+                "op": "status_class",
+                "value": 4
+              },
+              {
+                "path": "b.status",
+                "op": "status_class",
+                "value": 4
+              },
+              {
+                "path": "c.status",
+                "op": "eq",
+                "value": 200
+              },
+              {
+                "path": "tc.present",
+                "op": "eq",
+                "value": true
+              }
+            ]
+          },
+          "outcome": "adjustment-needed",
+          "observed": "tool_choice required rejected (HTTP {b.status}); auto returns a tool call",
+          "adjustment": "declare-capability"
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "status_class",
+            "value": 4
+          },
+          "outcome": "unsupported",
+          "observed": "tool calling rejected (HTTP {a.status}): {a.json.error.message}"
+        }
+      ]
+    }
+  ]
+}

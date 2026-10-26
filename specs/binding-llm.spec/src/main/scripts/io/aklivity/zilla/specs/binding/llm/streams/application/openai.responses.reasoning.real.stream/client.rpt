@@ -1,0 +1,99 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+connect "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${llm:beginEx()
+                           .typeId(zilla:id("llm"))
+                           .dialect("openai/rs")
+                           .model("gpt-4")
+                           .build()}
+
+connected
+
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("CONTROL")
+                          .message(-1)
+                          .build()}
+write "{\"stream\":true}"
+write flush
+
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("USER_TEXT")
+                          .message(0)
+                          .build()}
+write "{\"text\":\"Think about it\"}"
+write flush
+
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("CONTROL")
+                          .message(-1)
+                          .build()}
+write "{\"stream_options\":{\"include_usage\":true}}"
+write flush
+
+write advise zilla:flush
+
+read zilla:begin.ext ${llm:matchBeginEx()
+                          .typeId(zilla:id("llm"))
+                          .dialect("openai/rs")
+                          .model("gpt-4")
+                          .id("resp_1")
+                          .build()}
+
+read zilla:data.ext ${llm:matchDataEx()
+                         .typeId(zilla:id("llm"))
+                         .type("ASSISTANT_REASONING")
+                         .message(0)
+                         .build()}
+read "{\"text\":\"**Counting**\\n\\nFirst, then second.\"}"
+
+read zilla:data.ext ${llm:matchDataEx()
+                         .typeId(zilla:id("llm"))
+                         .type("ASSISTANT_REASONING")
+                         .message(0)
+                         .build()}
+read "{\"text\":\"**Answer**\\n\\nThirty three.\",\"openai/rs:id\":\"rs_1\",\"openai/rs:encrypted_content\":\"gAAAAABq1ouh2zy2x7xA\"}"
+
+read zilla:data.ext ${llm:matchDataEx()
+                         .typeId(zilla:id("llm"))
+                         .type("ASSISTANT_TEXT")
+                         .message(0)
+                         .build()}
+read "{\"text\":\"Hello there\"}"
+
+read zilla:data.ext ${llm:matchDataEx()
+                         .typeId(zilla:id("llm"))
+                         .type("CONTROL")
+                         .message(-1)
+                         .build()}
+read "{\"openai/rs:usage\":{\"input_tokens\":25,\"output_tokens\":15,\"total_tokens\":40}}"
+
+read zilla:end.ext ${llm:matchEndEx()
+                        .typeId(zilla:id("llm"))
+                        .inputTokens(25)
+                        .outputTokens(15)
+                        .totalTokens(40)
+                        .finishReason("stop")
+                        .build()}
+
+read closed
+
+write close

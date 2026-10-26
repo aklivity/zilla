@@ -1,0 +1,143 @@
+{
+  "area": "Tool streaming",
+  "area_id": "tool-streaming",
+  "probes": [
+    {
+      "id": "tool-stream",
+      "requires": [],
+      "steps": [
+        {
+          "id": "a",
+          "method": "POST",
+          "path": "/chat/completions",
+          "body": {
+            "model": {
+              "$model": "model"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": "What is the weather in Paris?"
+              }
+            ],
+            "$cap": 64,
+            "tools": [
+              {
+                "$const": "weather_tool"
+              }
+            ],
+            "tool_choice": "required",
+            "stream": true
+          }
+        }
+      ],
+      "derive": [
+        {
+          "id": "s",
+          "fn": "stream_summary",
+          "args": {
+            "from": "a"
+          }
+        }
+      ],
+      "classify": [
+        {
+          "when": {
+            "path": "a.status",
+            "op": "status_class",
+            "value": 4
+          },
+          "outcome": "unsupported",
+          "observed": "streamed tool call rejected (HTTP {a.status}): {a.json.error.message}"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "path": "a.status",
+                "op": "eq",
+                "value": 200
+              },
+              {
+                "path": "s.chunk_count",
+                "op": "eq",
+                "value": 0
+              }
+            ]
+          },
+          "outcome": "unsupported",
+          "observed": "no SSE stream returned for stream:true",
+          "silent": true
+        },
+        {
+          "when": {
+            "path": "s.tool.present",
+            "op": "eq",
+            "value": false
+          },
+          "outcome": "unsupported",
+          "observed": "tool_choice required accepted but no tool call streamed",
+          "silent": true
+        },
+        {
+          "when": {
+            "path": "s.tool.arguments_valid",
+            "op": "eq",
+            "value": false
+          },
+          "outcome": "adjustment-needed",
+          "observed": "streamed tool arguments are not valid JSON ({s.tool.arg_chunks} argument chunks)",
+          "adjustment": "rename-reshape"
+        },
+        {
+          "when": {
+            "any": [
+              {
+                "path": "s.tool.index_present",
+                "op": "eq",
+                "value": false
+              },
+              {
+                "path": "s.tool.first_has_id",
+                "op": "eq",
+                "value": false
+              }
+            ]
+          },
+          "outcome": "adjustment-needed",
+          "observed": "tool_call delta missing index or id (index_present={s.tool.index_present}, id_on_first={s.tool.first_has_id})",
+          "adjustment": "rename-reshape"
+        },
+        {
+          "when": {
+            "path": "s.tool.incremental",
+            "op": "eq",
+            "value": false
+          },
+          "outcome": "adjustment-needed",
+          "observed": "arguments delivered in one chunk, not as deltas; index and id present",
+          "adjustment": "rename-reshape"
+        },
+        {
+          "when": {
+            "path": "s.tool.id_repeated",
+            "op": "eq",
+            "value": true
+          },
+          "outcome": "adjustment-needed",
+          "observed": "argument deltas with index; id repeated on every delta ({s.tool.arg_chunks} chunks)",
+          "adjustment": "rename-reshape"
+        },
+        {
+          "when": {
+            "path": "s.tool.incremental",
+            "op": "eq",
+            "value": true
+          },
+          "outcome": "compliant",
+          "observed": "argument deltas ({s.tool.arg_chunks} chunks) with index and id on first delta"
+        }
+      ]
+    }
+  ]
+}

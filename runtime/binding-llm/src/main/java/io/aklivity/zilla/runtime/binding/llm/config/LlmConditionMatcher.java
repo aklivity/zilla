@@ -18,17 +18,22 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.config.binding.llm.LlmConditionConfig;
+import io.aklivity.zilla.runtime.binding.llm.internal.dialect.LlmDialectNames;
 import io.aklivity.zilla.runtime.common.lang.Matchers;
 
 final class LlmConditionMatcher
 {
     private final String dialect;
+    private final String apiDialect;
     private final List<Pattern> modelAllow;
 
     LlmConditionMatcher(
         LlmConditionConfig condition)
     {
         this.dialect = condition.dialect;
+        this.apiDialect = condition.api != null
+            ? LlmDialectNames.id(LlmDialectNames.vendor(condition.dialect), condition.api)
+            : null;
         this.modelAllow = Matchers.globAll(condition.model);
     }
 
@@ -42,7 +47,8 @@ final class LlmConditionMatcher
     private boolean matchesDialect(
         String dialect)
     {
-        return this.dialect == null || this.dialect.equals(dialect);
+        return this.dialect == null || LlmDialectNames.admits(this.dialect, dialect) &&
+            (this.apiDialect == null || this.apiDialect.equals(dialect));
     }
 
     private boolean matchesModel(

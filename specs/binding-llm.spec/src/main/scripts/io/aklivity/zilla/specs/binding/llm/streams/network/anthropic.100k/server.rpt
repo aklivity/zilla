@@ -32,7 +32,7 @@ connected
 
 read "{\"model\":\"gpt-b\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\""
       ${core:randomBase64(100000)}
-      "\"}]}]}"
+      "\"}]}],\"max_tokens\":4096}"
 
 read closed
 

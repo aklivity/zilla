@@ -22,7 +22,7 @@ connect ${refusedAddress}
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
+                           .dialect("openai/ccs")
                            .model(model)
                            .build()}
 

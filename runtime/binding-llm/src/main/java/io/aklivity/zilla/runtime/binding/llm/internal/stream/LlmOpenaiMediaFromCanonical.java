@@ -19,28 +19,32 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 final class LlmOpenaiMediaFromCanonical extends LlmToolTransform
 {
-    private static final String DIALECT = "openai";
 
     private final String container;
 
-    static LlmOpenaiMediaFromCanonical image()
+    static LlmOpenaiMediaFromCanonical image(
+        String dialect)
     {
-        return new LlmOpenaiMediaFromCanonical("image_url");
+        return new LlmOpenaiMediaFromCanonical("image_url", dialect);
     }
 
-    static LlmOpenaiMediaFromCanonical document()
+    static LlmOpenaiMediaFromCanonical document(
+        String dialect)
     {
-        return new LlmOpenaiMediaFromCanonical("file");
+        return new LlmOpenaiMediaFromCanonical("file", dialect);
     }
 
-    static LlmOpenaiMediaFromCanonical audio()
+    static LlmOpenaiMediaFromCanonical audio(
+        String dialect)
     {
-        return new LlmOpenaiMediaFromCanonical("input_audio");
+        return new LlmOpenaiMediaFromCanonical("input_audio", dialect);
     }
 
     private LlmOpenaiMediaFromCanonical(
-        String container)
+        String container,
+        String dialect)
     {
+        super(MODE_OBJECT, dialect);
         this.container = container;
     }
 
@@ -63,7 +67,7 @@ final class LlmOpenaiMediaFromCanonical extends LlmToolTransform
         }
         else
         {
-            action = unprefix(DIALECT, key);
+            action = unprefix(key);
         }
 
         return action;

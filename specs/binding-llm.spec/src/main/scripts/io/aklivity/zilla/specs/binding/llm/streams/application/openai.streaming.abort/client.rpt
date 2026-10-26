@@ -19,17 +19,11 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
+                           .dialect("openai/ccs")
                            .model("gpt-4o")
                            .build()}
 
 connected
-
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-write "{\"model\":\"gpt-4o\",\"messages\":[{\"role\":\"user\",\"content\":"
-write flush
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
@@ -39,18 +33,11 @@ write zilla:data.ext ${llm:dataEx()
 write "{\"text\":\"Hello\"}"
 write flush
 
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .build()}
-write "}]}"
-write flush
-
 write advise zilla:flush
 
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
+                           .dialect("openai/ccs")
                            .model("gpt-4o")
                            .id("chatcmpl_1")
                            .build()}
