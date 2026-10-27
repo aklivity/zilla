@@ -1218,12 +1218,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             doClientFanInitialAbortIfNecessary(traceId);
 
-            final KafkaResetExFW kafkaResetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                                                               .typeId(kafkaTypeId)
-                                                               .error(UNKNOWN_ERROR)
-                                                               .build();
-            members.forEach((s, m) -> m.doClientInitialResetIfNecessary(traceId, kafkaResetEx));
-            members.forEach((s, m) -> m.doClientReplyEndIfNecessary(traceId));
+            members.forEach((s, m) -> m.cleanupClient(traceId, EMPTY_OCTETS));
 
             state = KafkaState.closedReply(state);
         }
@@ -1235,12 +1230,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             doClientFanInitialAbortIfNecessary(traceId);
 
-            final KafkaResetExFW kafkaResetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                                                               .typeId(kafkaTypeId)
-                                                               .error(UNKNOWN_ERROR)
-                                                               .build();
-            members.forEach((s, m) -> m.doClientInitialResetIfNecessary(traceId, kafkaResetEx));
-            members.forEach((s, m) -> m.doClientReplyAbortIfNecessary(traceId));
+            members.forEach((s, m) -> m.cleanupClient(traceId, EMPTY_OCTETS));
 
             state = KafkaState.closedReply(state);
         }
@@ -1474,7 +1464,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                     doClientReplyAbortIfNecessary(traceId);
                     fan.onClientFanMemberClosed(traceId, this);
                 }
-                else if (!KafkaState.initialClosed(state))
+                else
                 {
                     fan.onClientInitialFlush(this, flush);
                 }

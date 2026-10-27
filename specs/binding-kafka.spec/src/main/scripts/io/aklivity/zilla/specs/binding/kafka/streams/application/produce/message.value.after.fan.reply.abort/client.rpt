@@ -78,10 +78,6 @@ write zilla:data.ext ${kafka:dataEx()
 write "Hello, world"
 write flush
 
-read zilla:reset.ext ${kafka:resetEx()
-                           .typeId(zilla:id("kafka"))
-                           .error(-2)
-                           .build()}
 write aborted
 
 read aborted
