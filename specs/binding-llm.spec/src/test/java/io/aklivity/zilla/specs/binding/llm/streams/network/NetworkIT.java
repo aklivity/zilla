@@ -9622,4 +9622,13 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/gemini.route.model.unmatched.guarded/client",
+        "${net}/gemini.route.model.unmatched.guarded/server"})
+    public void shouldGeminiRouteModelUnmatchedGuarded() throws Exception
+    {
+        k3po.finish();
+    }
 }

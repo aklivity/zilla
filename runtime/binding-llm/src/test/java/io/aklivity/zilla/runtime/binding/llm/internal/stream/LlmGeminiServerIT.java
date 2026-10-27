@@ -1814,4 +1814,13 @@ public class LlmGeminiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.guarded.route.model.yaml")
+    @Specification({
+        "${net}/gemini.route.model.unmatched.guarded/client"})
+    public void shouldRejectGeminiRequestWithUnmatchedModelForGuardedRoute() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -410,9 +410,10 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                     }
                     else
                     {
+                        final boolean authorizedForRoutes = binding.resolve(authResult.authorization()) != null;
                         authResult.deauthorize().run();
 
-                        if (binding.resolve(authResult.authorization()) != null)
+                        if (authorizedForRoutes)
                         {
                             newStream = new LlmGeminiRejectHandler(network, originId, routedId, initialId,
                                 Integer.toString(STATUS_NOT_FOUND),
