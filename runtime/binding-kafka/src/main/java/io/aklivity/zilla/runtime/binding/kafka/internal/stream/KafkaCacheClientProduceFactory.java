@@ -818,7 +818,6 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 onClientFanMemberClosed(traceId, stream);
             }
 
-            assert partitionIndex != NO_CREDITOR_INDEX;
             creditor.credit(traceId, partitionIndex, reserved);
         }
 
@@ -870,8 +869,6 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 stream.cleanupClient(traceId, error);
                 onClientFanMemberClosed(traceId, stream);
             }
-
-            assert partitionIndex != NO_CREDITOR_INDEX;
             creditor.credit(traceId, partitionIndex, reserved);
         }
 
