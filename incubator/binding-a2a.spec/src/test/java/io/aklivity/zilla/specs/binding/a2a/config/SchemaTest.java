@@ -58,6 +58,22 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateClientRoutes()
+    {
+        JsonObject config = schema.validate("client.routes.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateClientVersions()
+    {
+        JsonObject config = schema.validate("client.versions.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateClient()
     {
         JsonObject config = schema.validate("client.yaml");
@@ -198,15 +214,27 @@ public class SchemaTest
     }
 
     @Test(expected = JsonException.class)
-    public void shouldRejectClientRoutes()
+    public void shouldRejectClientRoutesExitMissing()
     {
-        schema.validate("client.routes.invalid.yaml");
+        schema.validate("client.routes.exit.missing.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientRoutesSkillUnknown()
+    {
+        schema.validate("client.routes.skill.unknown.invalid.yaml");
     }
 
     @Test(expected = JsonException.class)
     public void shouldRejectClientServer()
     {
         schema.validate("client.server.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientVersionsUnknown()
+    {
+        schema.validate("client.versions.unknown.invalid.yaml");
     }
 
     @Test(expected = JsonException.class)
@@ -252,15 +280,15 @@ public class SchemaTest
     }
 
     @Test(expected = JsonException.class)
-    public void shouldRejectProxyRoutesTenantMissing()
+    public void shouldRejectProxyRoutesAgentMissing()
     {
-        schema.validate("proxy.routes.tenant.missing.invalid.yaml");
+        schema.validate("proxy.routes.agent.missing.invalid.yaml");
     }
 
     @Test(expected = JsonException.class)
-    public void shouldRejectProxyRoutesTenantUnknown()
+    public void shouldRejectProxyRoutesAgentUnknown()
     {
-        schema.validate("proxy.routes.tenant.unknown.invalid.yaml");
+        schema.validate("proxy.routes.agent.unknown.invalid.yaml");
     }
 
     @Test(expected = JsonException.class)

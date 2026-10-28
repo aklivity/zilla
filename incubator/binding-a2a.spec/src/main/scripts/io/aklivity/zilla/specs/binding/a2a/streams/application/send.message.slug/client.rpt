@@ -22,24 +22,22 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${a2a:beginEx()
                            .typeId(zilla:id("a2a"))
-                           .tasksGet()
-                               .version("0.3")
-                               .taskId("t-1")
-                               .historyLength(2)
+                           .messageSend()
+                               .agent("weather")
+                               .contentLength(104)
                                .build()
                            .build()}
 
 connected
 
+write '{"message":{"messageId":"m-1","role":"ROLE_USER","parts":[{"text":"What is the weather in New York?"}]}}'
+
 read zilla:data.ext ${a2a:matchDataEx()
                          .typeId(zilla:id("a2a"))
-                         .task()
-                             .taskId("t-1")
-                             .contextId("c-1")
-                             .state("WORKING")
+                         .message()
                              .build()
                          .build()}
-read '{"id":"t-1","contextId":"c-1","status":{"state":"TASK_STATE_WORKING"}}'
+read '{"message":{"messageId":"m-2","role":"ROLE_AGENT","parts":[{"text":"Partly cloudy, 72F"}]}}'
 
 read closed
 

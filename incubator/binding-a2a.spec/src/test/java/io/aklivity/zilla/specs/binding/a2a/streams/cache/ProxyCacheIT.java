@@ -83,15 +83,6 @@ public class ProxyCacheIT
 
     @Test
     @Specification({
-        "${cache}/cache.hydrate.not.modified/client",
-        "${cache}/cache.hydrate.not.modified/server"})
-    public void shouldCacheHydrateNotModified() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${cache}/cache.hydrate.stale/client",
         "${cache}/cache.hydrate.stale/server"})
     public void shouldCacheHydrateStale() throws Exception

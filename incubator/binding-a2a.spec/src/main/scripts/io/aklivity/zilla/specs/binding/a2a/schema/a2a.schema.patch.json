@@ -157,6 +157,19 @@
                                             "format": "uri",
                                             "pattern": "^https?://"
                                         },
+                                        "versions":
+                                        {
+                                            "title": "Versions",
+                                            "type": "array",
+                                            "items":
+                                            {
+                                                "type": "string",
+                                                "enum": [ "1.0", "0.3" ]
+                                            },
+                                            "minItems": 1,
+                                            "uniqueItems": true,
+                                            "default": [ "1.0", "0.3" ]
+                                        },
                                         "authorization":
                                         {
                                             "title": "Authorization",
@@ -184,9 +197,69 @@
                                     },
                                     "additionalProperties": false
                                 },
-                                "routes": false
+                                "routes":
+                                {
+                                    "title": "Routes",
+                                    "type": "array",
+                                    "items":
+                                    {
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "when":
+                                            {
+                                                "title": "When",
+                                                "type": "array",
+                                                "items":
+                                                {
+                                                    "type": "object",
+                                                    "properties":
+                                                    {
+                                                        "skill":
+                                                        {
+                                                            "title": "Skill",
+                                                            "oneOf":
+                                                            [
+                                                                {
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "type": "array",
+                                                                    "items":
+                                                                    {
+                                                                        "type": "string"
+                                                                    }
+                                                                }
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [ "skill" ],
+                                                    "additionalProperties": false
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             },
-                            "required": [ "exit" ]
+                            "anyOf":
+                            [
+                                {
+                                    "required": [ "exit" ]
+                                },
+                                {
+                                    "required": [ "routes" ],
+                                    "properties":
+                                    {
+                                        "routes":
+                                        {
+                                            "contains":
+                                            {
+                                                "required": [ "exit" ]
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     {
@@ -259,9 +332,9 @@
                                             "type": "object",
                                             "properties":
                                             {
-                                                "tenant":
+                                                "agent":
                                                 {
-                                                    "title": "Tenant",
+                                                    "title": "Agent",
                                                     "type": "string",
                                                     "default": "discovery"
                                                 },
@@ -418,9 +491,9 @@
                                                     "type": "object",
                                                     "properties":
                                                     {
-                                                        "tenant":
+                                                        "agent":
                                                         {
-                                                            "title": "Tenant",
+                                                            "title": "Agent",
                                                             "oneOf":
                                                             [
                                                                 {
@@ -436,7 +509,7 @@
                                                             ]
                                                         }
                                                     },
-                                                    "required": [ "tenant" ],
+                                                    "required": [ "agent" ],
                                                     "additionalProperties": false
                                                 }
                                             }
