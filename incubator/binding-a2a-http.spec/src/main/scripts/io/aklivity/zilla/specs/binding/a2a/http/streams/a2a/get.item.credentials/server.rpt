@@ -14,7 +14,7 @@
 #
 
 
-property authorization 1L
+property authorization 0L
 
 property serverAddress "zilla://streams/app0"
 

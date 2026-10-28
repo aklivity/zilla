@@ -13,7 +13,6 @@
 # specific language governing permissions and limitations under the License.
 #
 
-
 property serverAddress "zilla://streams/app0"
 
 accept ${serverAddress}
@@ -25,13 +24,10 @@ accepted
 read zilla:begin.ext ${a2a:matchBeginEx()
                           .typeId(zilla:id("a2a"))
                           .pushConfigCreate()
-                              .contentLength(87)
                               .build()
                           .build()}
 
 connected
-
-read '{"taskId":"t-1","configId":"c-1","config":{"url":"https://client.example.com/webhook"}}'
 
 write zilla:reset.ext ${a2a:resetEx()
                            .typeId(zilla:id("a2a"))

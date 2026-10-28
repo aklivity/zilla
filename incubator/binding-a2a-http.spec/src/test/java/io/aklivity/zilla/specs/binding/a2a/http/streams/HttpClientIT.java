@@ -116,4 +116,31 @@ public class HttpClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${http}/get.item.text/client",
+        "${http}/get.item.text/server"})
+    public void shouldProxyGetTextItemToHttp() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/get.item.file/client",
+        "${http}/get.item.file/server"})
+    public void shouldProxyGetFileItemToHttp() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/get.item.empty/client",
+        "${http}/get.item.empty/server"})
+    public void shouldProxyGetEmptyItemToHttp() throws Exception
+    {
+        k3po.finish();
+    }
 }

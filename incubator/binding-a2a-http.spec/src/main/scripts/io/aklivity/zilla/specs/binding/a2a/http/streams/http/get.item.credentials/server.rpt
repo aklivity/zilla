@@ -30,9 +30,12 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header(":authority", "api.example.internal:443")
                            .header(":path", "/items/42")
                            .header("authorization", "Bearer ghp_secret")
+                           .header("x-user-identity", "test")
                            .build()}
 
 connected
+
+read closed
 
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
@@ -41,9 +44,4 @@ write zilla:begin.ext ${http:beginEx()
                             .build()}
 write flush
 
-write '{"error":"unauthorized"}'
-write flush
-
-write close
-
-read closed
+write aborted

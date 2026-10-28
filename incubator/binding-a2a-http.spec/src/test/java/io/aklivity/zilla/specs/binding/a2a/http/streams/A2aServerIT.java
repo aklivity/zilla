@@ -215,4 +215,31 @@ public class A2aServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/get.item.text/client",
+        "${app}/get.item.text/server"})
+    public void shouldGetTextItem() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/get.item.file/client",
+        "${app}/get.item.file/server"})
+    public void shouldGetFileItem() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/get.item.empty/client",
+        "${app}/get.item.empty/server"})
+    public void shouldGetEmptyItem() throws Exception
+    {
+        k3po.finish();
+    }
 }

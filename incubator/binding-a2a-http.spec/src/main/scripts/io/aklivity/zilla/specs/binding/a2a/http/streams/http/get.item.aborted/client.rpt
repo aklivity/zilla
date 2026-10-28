@@ -27,12 +27,6 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-read zilla:begin.ext ${http:matchBeginEx()
-                           .typeId(zilla:id("http"))
-                           .header(":status", "200")
-                           .header("content-type", "application/json")
-                           .build()}
-
-read '{"id":42,"na'
+write close
 
 read abort
