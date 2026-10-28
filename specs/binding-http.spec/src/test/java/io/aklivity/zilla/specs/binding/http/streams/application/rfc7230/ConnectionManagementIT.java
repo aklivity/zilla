@@ -70,6 +70,15 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
+        "${app}/concurrent.requests.awaiting.connection/client",
+        "${app}/concurrent.requests.awaiting.connection/server" })
+    public void shouldProcessConcurrentRequestsAwaitingConnection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/concurrent.requests.with.content/client",
         "${app}/concurrent.requests.with.content/server" })
     public void concurrentRequestsWithContent() throws Exception

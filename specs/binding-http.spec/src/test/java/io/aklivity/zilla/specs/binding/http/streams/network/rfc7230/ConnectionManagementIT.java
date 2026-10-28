@@ -58,6 +58,15 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
+        "${net}/concurrent.requests.awaiting.connection/client",
+        "${net}/concurrent.requests.awaiting.connection/server" })
+    public void shouldProcessConcurrentRequestsAwaitingConnection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/request.with.header.override/client",
         "${net}/request.with.header.override/server" })
     public void shouldSendRequestWithHeaderOverride() throws Exception
