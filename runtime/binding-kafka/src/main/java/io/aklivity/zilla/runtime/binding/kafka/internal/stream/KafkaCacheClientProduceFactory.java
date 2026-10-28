@@ -1215,7 +1215,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             doClientFanInitialAbortIfNecessary(traceId);
 
-            members.forEach((s, m) -> m.doClientReplyEndIfNecessary(traceId));
+            members.forEach((s, m) -> m.cleanupClient(traceId, EMPTY_OCTETS));
 
             state = KafkaState.closedReply(state);
         }
@@ -1227,7 +1227,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             doClientFanInitialAbortIfNecessary(traceId);
 
-            members.forEach((s, m) -> m.doClientReplyAbortIfNecessary(traceId));
+            members.forEach((s, m) -> m.cleanupClient(traceId, EMPTY_OCTETS));
 
             state = KafkaState.closedReply(state);
         }
