@@ -173,6 +173,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/request.unauthorized.invalid/client",
+        "${net}/request.unauthorized.invalid/server"})
+    public void shouldRejectUnauthorizedInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/request.malformed/client",
         "${net}/request.malformed/server"})
     public void shouldRejectMalformed() throws Exception
@@ -185,6 +194,105 @@ public class NetworkIT
         "${net}/request.run.missing/client",
         "${net}/request.run.missing/server"})
     public void shouldRejectRunMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/run.text.100k/client",
+        "${net}/run.text.100k/server"})
+    public void shouldRunText100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/run.text.meta/client",
+        "${net}/run.text.meta/server"})
+    public void shouldRunTextMeta() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/run.outcome.success/client",
+        "${net}/run.outcome.success/server"})
+    public void shouldRunOutcomeSuccess() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/run.outcome.interrupt/client",
+        "${net}/run.outcome.interrupt/server"})
+    public void shouldRunOutcomeInterrupt() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/run.outcome.cancelled/client",
+        "${net}/run.outcome.cancelled/server"})
+    public void shouldRunOutcomeCancelled() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/run.resume/client",
+        "${net}/run.resume/server"})
+    public void shouldRunResume() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/run.activity/client",
+        "${net}/run.activity/server"})
+    public void shouldRunActivity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/run.step/client",
+        "${net}/run.step/server"})
+    public void shouldRunStep() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/run.subagent/client",
+        "${net}/run.subagent/server"})
+    public void shouldRunSubagent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/run.raw.custom/client",
+        "${net}/run.raw.custom/server"})
+    public void shouldRunRawCustom() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/run.rejected/client",
+        "${net}/run.rejected/server"})
+    public void shouldRejectRun() throws Exception
     {
         k3po.finish();
     }

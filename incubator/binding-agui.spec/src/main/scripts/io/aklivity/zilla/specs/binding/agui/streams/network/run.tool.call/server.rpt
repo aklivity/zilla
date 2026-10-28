@@ -48,7 +48,7 @@ write "{\"type\":\"TOOL_CALL_START\",\"toolCallId\":\"call-1\",\"toolCallName\":
 write "{\"type\":\"TOOL_CALL_ARGS\",\"toolCallId\":\"call-1\",\"delta\":\"{\\\"city\\\":\"}"
 write "{\"type\":\"TOOL_CALL_ARGS\",\"toolCallId\":\"call-1\",\"delta\":\"\\\"Paris\\\"}\"}"
 write "{\"type\":\"TOOL_CALL_END\",\"toolCallId\":\"call-1\"}"
-write "{\"type\":\"TOOL_CALL_RESULT\",\"messageId\":\"msg-3\",\"toolCallId\":\"call-1\",\"content\":\"Sunny\",\"role\":\"tool\"}"
+write "{\"type\":\"TOOL_CALL_RESULT\",\"messageId\":\"msg-3\",\"toolCallId\":\"call-1\",\"content\":\"Sunny\"}"
 write "{\"type\":\"RUN_FINISHED\",\"threadId\":\"thread-1\",\"runId\":\"run-1\"}"
 
 write close
