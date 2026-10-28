@@ -1011,7 +1011,7 @@ public final class A2aHttpProxyFactory implements BindingHandler
                     final A2aHttpSkillConfig matched = skillId != null ? binding.skill(skillId) : null;
                     if (matched != null)
                     {
-                        this.taskId = encodeTaskId(matched.id);
+                        this.taskId = encodeTaskId(matched.id, affinity);
                         onSkill(traceId, matched);
                     }
                     else
@@ -2283,10 +2283,11 @@ public final class A2aHttpProxyFactory implements BindingHandler
     }
 
     private String encodeTaskId(
-        String skillId)
+        String skillId,
+        long affinity)
     {
         return Base64.getUrlEncoder().withoutPadding().encodeToString(skillId.getBytes(UTF_8)) +
-            TASK_ID_SEPARATOR + supplyTaskId.apply(0L);
+            TASK_ID_SEPARATOR + supplyTaskId.apply(affinity);
     }
 
     private static String skillIdOf(
