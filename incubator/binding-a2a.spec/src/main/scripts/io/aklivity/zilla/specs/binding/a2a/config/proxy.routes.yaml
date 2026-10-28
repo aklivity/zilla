@@ -21,8 +21,8 @@ bindings:
     kind: proxy
     routes:
       - when:
-          - tenant: weather
+          - agent: weather
         exit: app1
       - when:
-          - tenant: [ travel, flights ]
+          - agent: [ travel, flights ]
         exit: app2

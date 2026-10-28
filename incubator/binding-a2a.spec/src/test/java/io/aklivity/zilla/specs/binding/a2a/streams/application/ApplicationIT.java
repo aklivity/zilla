@@ -47,36 +47,9 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/agent.card.etag.not.modified/client",
-        "${app}/agent.card.etag.not.modified/server"})
-    public void shouldAgentCardEtagNotModified() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/agent.card.legacy.agent.json/client",
-        "${app}/agent.card.legacy.agent.json/server"})
-    public void shouldAgentCardLegacyAgentJson() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/agent.card.tenant/client",
-        "${app}/agent.card.tenant/server"})
-    public void shouldAgentCardTenant() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/agent.card.v0.3/client",
-        "${app}/agent.card.v0.3/server"})
-    public void shouldAgentCardV03() throws Exception
+        "${app}/agent.card.slug/client",
+        "${app}/agent.card.slug/server"})
+    public void shouldAgentCardSlug() throws Exception
     {
         k3po.finish();
     }
@@ -95,15 +68,6 @@ public class ApplicationIT
         "${app}/cancel.task.not.cancelable/client",
         "${app}/cancel.task.not.cancelable/server"})
     public void shouldCancelTaskNotCancelable() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/cancel.task.v0.3/client",
-        "${app}/cancel.task.v0.3/server"})
-    public void shouldCancelTaskV03() throws Exception
     {
         k3po.finish();
     }
@@ -155,15 +119,6 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/get.task.v0.3/client",
-        "${app}/get.task.v0.3/server"})
-    public void shouldGetTaskV03() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/invalid.params/client",
         "${app}/invalid.params/server"})
     public void shouldInvalidParams() throws Exception
@@ -191,27 +146,9 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/push.config.create.v0.3/client",
-        "${app}/push.config.create.v0.3/server"})
-    public void shouldPushConfigCreateV03() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/push.config.delete/client",
         "${app}/push.config.delete/server"})
     public void shouldPushConfigDelete() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/push.config.delete.v0.3/client",
-        "${app}/push.config.delete.v0.3/server"})
-    public void shouldPushConfigDeleteV03() throws Exception
     {
         k3po.finish();
     }
@@ -227,27 +164,9 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/push.config.get.v0.3/client",
-        "${app}/push.config.get.v0.3/server"})
-    public void shouldPushConfigGetV03() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/push.config.list/client",
         "${app}/push.config.list/server"})
     public void shouldPushConfigList() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/push.config.list.v0.3/client",
-        "${app}/push.config.list.v0.3/server"})
-    public void shouldPushConfigListV03() throws Exception
     {
         k3po.finish();
     }
@@ -326,36 +245,18 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/send.message.slug/client",
+        "${app}/send.message.slug/server"})
+    public void shouldSendMessageSlug() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/send.message.task/client",
         "${app}/send.message.task/server"})
     public void shouldSendMessageTask() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/send.message.tenant/client",
-        "${app}/send.message.tenant/server"})
-    public void shouldSendMessageTenant() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/send.message.tenant.params/client",
-        "${app}/send.message.tenant.params/server"})
-    public void shouldSendMessageTenantParams() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/send.message.v0.3/client",
-        "${app}/send.message.v0.3/server"})
-    public void shouldSendMessageV03() throws Exception
     {
         k3po.finish();
     }
@@ -389,15 +290,6 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/stream.message.v0.3/client",
-        "${app}/stream.message.v0.3/server"})
-    public void shouldStreamMessageV03() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/subscribe.task/client",
         "${app}/subscribe.task/server"})
     public void shouldSubscribeTask() throws Exception
@@ -410,15 +302,6 @@ public class ApplicationIT
         "${app}/subscribe.task.terminal.unsupported/client",
         "${app}/subscribe.task.terminal.unsupported/server"})
     public void shouldSubscribeTaskTerminalUnsupported() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/subscribe.task.v0.3/client",
-        "${app}/subscribe.task.v0.3/server"})
-    public void shouldSubscribeTaskV03() throws Exception
     {
         k3po.finish();
     }

@@ -23,8 +23,8 @@ bindings:
       cache:
         store: memory0
       discovery:
-        tenant: discovery
+        agent: discovery
     routes:
       - when:
-          - tenant: weather
+          - agent: weather
         exit: app1

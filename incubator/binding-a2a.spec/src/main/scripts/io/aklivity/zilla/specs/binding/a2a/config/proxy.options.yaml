@@ -27,7 +27,7 @@ bindings:
           test0:
             credentials: "test-token"
       discovery:
-        tenant: discovery
+        agent: discovery
         search:
           limit: 5
           fields: [ name, description, skills ]
@@ -46,5 +46,5 @@ bindings:
         exit: app2
     routes:
       - when:
-          - tenant: weather
+          - agent: weather
         exit: app1

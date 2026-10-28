@@ -23,7 +23,6 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${a2a:beginEx()
                            .typeId(zilla:id("a2a"))
                            .tasksGet()
-                               .version("1.0")
                                .taskId("t-404")
                                .build()
                            .build()}

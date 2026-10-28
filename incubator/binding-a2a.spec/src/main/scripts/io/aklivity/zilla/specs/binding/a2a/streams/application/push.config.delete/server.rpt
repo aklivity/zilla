@@ -27,7 +27,6 @@ accepted
 read zilla:begin.ext ${a2a:matchBeginEx()
                           .typeId(zilla:id("a2a"))
                           .pushConfigDelete()
-                              .version("1.0")
                               .taskId("t-1")
                               .configId("c-1")
                               .build()

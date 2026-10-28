@@ -23,7 +23,6 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${a2a:beginEx()
                            .typeId(zilla:id("a2a"))
                            .messageSend()
-                               .version("1.0")
                                .extensions("https://example.com/ext/v1")
                                .contentLength(104)
                                .build()

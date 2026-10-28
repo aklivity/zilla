@@ -27,20 +27,12 @@ accepted
 read zilla:begin.ext ${a2a:matchBeginEx()
                           .typeId(zilla:id("a2a"))
                           .agentCard()
-                              .tenant("weather")
-                              .version("1.0")
+                              .agent("weather")
                               .build()
                           .build()}
 
 connected
 
-write zilla:begin.ext ${a2a:beginEx()
-                           .typeId(zilla:id("a2a"))
-                           .agentCard()
-                               .etag("\"v1\"")
-                               .maxAge(300)
-                               .build()
-                           .build()}
 write flush
 
 write '{"name":"Weather Agent","description":"Answers weather questions","supportedInterfaces":[{"url":"http://localhost:9090/a2a","protocolBinding":"JSONRPC","protocolVersion":"1.0"}],"version":"1.0.0","capabilities":{"streaming":true,"pushNotifications":true},"defaultInputModes":["text/plain"],"defaultOutputModes":["text/plain"],"skills":[{"id":"weather","name":"Weather","description":"Current weather","tags":["weather"]}]}'
@@ -55,21 +47,12 @@ accepted
 read zilla:begin.ext ${a2a:matchBeginEx()
                           .typeId(zilla:id("a2a"))
                           .agentCard()
-                              .tenant("weather")
-                              .version("1.0")
-                              .etag("\"v1\"")
+                              .agent("weather")
                               .build()
                           .build()}
 
 connected
 
-write zilla:begin.ext ${a2a:beginEx()
-                           .typeId(zilla:id("a2a"))
-                           .agentCard()
-                               .etag("\"v2\"")
-                               .maxAge(300)
-                               .build()
-                           .build()}
 write flush
 
 write '{"name":"Weather Agent","description":"Answers weather questions","supportedInterfaces":[{"url":"http://localhost:9090/a2a","protocolBinding":"JSONRPC","protocolVersion":"1.0"}],"version":"1.1.0","capabilities":{"streaming":true,"pushNotifications":true},"defaultInputModes":["text/plain"],"defaultOutputModes":["text/plain"],"skills":[{"id":"weather","name":"Weather","description":"Current weather","tags":["weather"]}]}'

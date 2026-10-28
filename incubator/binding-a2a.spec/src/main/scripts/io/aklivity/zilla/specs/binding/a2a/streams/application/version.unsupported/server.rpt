@@ -27,7 +27,6 @@ accepted
 read zilla:begin.ext ${a2a:matchBeginEx()
                           .typeId(zilla:id("a2a"))
                           .messageSend()
-                              .version("2.0")
                               .contentLength(104)
                               .build()
                           .build()}

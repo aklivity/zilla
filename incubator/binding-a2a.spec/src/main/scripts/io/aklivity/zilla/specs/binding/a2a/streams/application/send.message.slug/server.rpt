@@ -26,17 +26,24 @@ accepted
 
 read zilla:begin.ext ${a2a:matchBeginEx()
                           .typeId(zilla:id("a2a"))
-                          .pushConfigList()
-                              .version("0.3")
-                              .taskId("t-1")
+                          .messageSend()
+                              .agent("weather")
+                              .contentLength(104)
                               .build()
                           .build()}
 
 connected
 
+read '{"message":{"messageId":"m-1","role":"ROLE_USER","parts":[{"text":"What is the weather in New York?"}]}}'
+
 write flush
 
-write '{"configs":[{"id":"c-1","taskId":"t-1","url":"https://client.example.com/webhook","token":"tok-1","authentication":{"scheme":"Bearer","credentials":"cred-1"}}]}'
+write zilla:data.ext ${a2a:dataEx()
+                          .typeId(zilla:id("a2a"))
+                          .message()
+                              .build()
+                          .build()}
+write '{"message":{"messageId":"m-2","role":"ROLE_AGENT","parts":[{"text":"Partly cloudy, 72F"}]}}'
 write flush
 
 write close

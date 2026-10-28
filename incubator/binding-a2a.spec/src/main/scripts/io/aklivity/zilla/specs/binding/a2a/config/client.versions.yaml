@@ -21,5 +21,5 @@ bindings:
     kind: client
     options:
       server: http://localhost:8080/a2a
-    routes:
-      - exit: net0
+      versions: [ "1.0" ]
+    exit: net0

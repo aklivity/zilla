@@ -21,7 +21,7 @@ bindings:
     kind: proxy
     routes:
       - when:
-          - tenant: weather
+          - agent: weather
         guarded:
           test0: [ "agents:weather" ]
         exit: app1

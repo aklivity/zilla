@@ -39,7 +39,7 @@ write zilla:begin.ext ${http:beginEx()
                             .build()}
 write flush
 
-write '{"name":"Weather Agent","description":"Answers weather questions","supportedInterfaces":[{"url":"http://localhost:8080/a2a/weather","protocolBinding":"JSONRPC","protocolVersion":"1.0","tenant":"weather"}],"version":"1.0.0","capabilities":{"streaming":true,"pushNotifications":true},"defaultInputModes":["text/plain"],"defaultOutputModes":["text/plain"],"skills":[{"id":"weather","name":"Weather","description":"Current weather","tags":["weather"]}]}'
+write '{"name":"Weather Agent","description":"Answers weather questions","supportedInterfaces":[{"url":"http://localhost:8080/a2a/weather","protocolBinding":"JSONRPC","protocolVersion":"1.0"}],"version":"1.0.0","capabilities":{"streaming":true,"pushNotifications":true},"defaultInputModes":["text/plain"],"defaultOutputModes":["text/plain"],"skills":[{"id":"weather","name":"Weather","description":"Current weather","tags":["weather"]}]}'
 write flush
 
 write close

@@ -205,37 +205,13 @@ public final class A2aFunctions
 
         public final class A2aAgentCardBeginExBuilder
         {
-            private String tenant;
-            private String version;
-            private String etag;
-            private long maxAge = -1L;
+            private String agent;
             private long timeout;
 
-            public A2aAgentCardBeginExBuilder tenant(
-                String tenant)
+            public A2aAgentCardBeginExBuilder agent(
+                String agent)
             {
-                this.tenant = tenant;
-                return this;
-            }
-
-            public A2aAgentCardBeginExBuilder version(
-                String version)
-            {
-                this.version = version;
-                return this;
-            }
-
-            public A2aAgentCardBeginExBuilder etag(
-                String etag)
-            {
-                this.etag = etag;
-                return this;
-            }
-
-            public A2aAgentCardBeginExBuilder maxAge(
-                long maxAge)
-            {
-                this.maxAge = maxAge;
+                this.agent = agent;
                 return this;
             }
 
@@ -248,30 +224,22 @@ public final class A2aFunctions
 
             public A2aBeginExBuilder build()
             {
-                beginExRW.agentCard(b -> b.tenant(tenant).version(version).etag(etag).maxAge(maxAge).timeout(timeout));
+                beginExRW.agentCard(b -> b.agent(agent).timeout(timeout));
                 return A2aBeginExBuilder.this;
             }
         }
 
         public final class A2aMessageSendBeginExBuilder
         {
-            private String tenant;
-            private String version;
+            private String agent;
             private String extensions;
             private int contentLength = -1;
             private long timeout;
 
-            public A2aMessageSendBeginExBuilder tenant(
-                String tenant)
+            public A2aMessageSendBeginExBuilder agent(
+                String agent)
             {
-                this.tenant = tenant;
-                return this;
-            }
-
-            public A2aMessageSendBeginExBuilder version(
-                String version)
-            {
-                this.version = version;
+                this.agent = agent;
                 return this;
             }
 
@@ -298,35 +266,22 @@ public final class A2aFunctions
 
             public A2aBeginExBuilder build()
             {
-                beginExRW.messageSend(b -> b
-                    .tenant(tenant)
-                    .version(version)
-                    .extensions(extensions)
-                    .contentLength(contentLength)
-                    .timeout(timeout));
+                beginExRW.messageSend(b -> b.agent(agent).extensions(extensions).contentLength(contentLength).timeout(timeout));
                 return A2aBeginExBuilder.this;
             }
         }
 
         public final class A2aMessageStreamBeginExBuilder
         {
-            private String tenant;
-            private String version;
+            private String agent;
             private String extensions;
             private int contentLength = -1;
             private long timeout;
 
-            public A2aMessageStreamBeginExBuilder tenant(
-                String tenant)
+            public A2aMessageStreamBeginExBuilder agent(
+                String agent)
             {
-                this.tenant = tenant;
-                return this;
-            }
-
-            public A2aMessageStreamBeginExBuilder version(
-                String version)
-            {
-                this.version = version;
+                this.agent = agent;
                 return this;
             }
 
@@ -354,8 +309,7 @@ public final class A2aFunctions
             public A2aBeginExBuilder build()
             {
                 beginExRW.messageStream(b -> b
-                    .tenant(tenant)
-                    .version(version)
+                    .agent(agent)
                     .extensions(extensions)
                     .contentLength(contentLength)
                     .timeout(timeout));
@@ -365,24 +319,16 @@ public final class A2aFunctions
 
         public final class A2aTasksGetBeginExBuilder
         {
-            private String tenant;
-            private String version;
+            private String agent;
             private String extensions;
             private String taskId;
             private int historyLength = -1;
             private long timeout;
 
-            public A2aTasksGetBeginExBuilder tenant(
-                String tenant)
+            public A2aTasksGetBeginExBuilder agent(
+                String agent)
             {
-                this.tenant = tenant;
-                return this;
-            }
-
-            public A2aTasksGetBeginExBuilder version(
-                String version)
-            {
-                this.version = version;
+                this.agent = agent;
                 return this;
             }
 
@@ -417,8 +363,7 @@ public final class A2aFunctions
             public A2aBeginExBuilder build()
             {
                 beginExRW.tasksGet(b -> b
-                    .tenant(tenant)
-                    .version(version)
+                    .agent(agent)
                     .extensions(extensions)
                     .taskId(taskId)
                     .historyLength(historyLength)
@@ -429,24 +374,16 @@ public final class A2aFunctions
 
         public final class A2aTasksListBeginExBuilder
         {
-            private String tenant;
-            private String version;
+            private String agent;
             private String extensions;
             private String contextId;
             private int contentLength = -1;
             private long timeout;
 
-            public A2aTasksListBeginExBuilder tenant(
-                String tenant)
+            public A2aTasksListBeginExBuilder agent(
+                String agent)
             {
-                this.tenant = tenant;
-                return this;
-            }
-
-            public A2aTasksListBeginExBuilder version(
-                String version)
-            {
-                this.version = version;
+                this.agent = agent;
                 return this;
             }
 
@@ -481,8 +418,7 @@ public final class A2aFunctions
             public A2aBeginExBuilder build()
             {
                 beginExRW.tasksList(b -> b
-                    .tenant(tenant)
-                    .version(version)
+                    .agent(agent)
                     .extensions(extensions)
                     .contextId(contextId)
                     .contentLength(contentLength)
@@ -493,23 +429,15 @@ public final class A2aFunctions
 
         public final class A2aTasksCancelBeginExBuilder
         {
-            private String tenant;
-            private String version;
+            private String agent;
             private String extensions;
             private String taskId;
             private long timeout;
 
-            public A2aTasksCancelBeginExBuilder tenant(
-                String tenant)
+            public A2aTasksCancelBeginExBuilder agent(
+                String agent)
             {
-                this.tenant = tenant;
-                return this;
-            }
-
-            public A2aTasksCancelBeginExBuilder version(
-                String version)
-            {
-                this.version = version;
+                this.agent = agent;
                 return this;
             }
 
@@ -536,35 +464,22 @@ public final class A2aFunctions
 
             public A2aBeginExBuilder build()
             {
-                beginExRW.tasksCancel(b -> b
-                    .tenant(tenant)
-                    .version(version)
-                    .extensions(extensions)
-                    .taskId(taskId)
-                    .timeout(timeout));
+                beginExRW.tasksCancel(b -> b.agent(agent).extensions(extensions).taskId(taskId).timeout(timeout));
                 return A2aBeginExBuilder.this;
             }
         }
 
         public final class A2aTasksSubscribeBeginExBuilder
         {
-            private String tenant;
-            private String version;
+            private String agent;
             private String extensions;
             private String taskId;
             private long timeout;
 
-            public A2aTasksSubscribeBeginExBuilder tenant(
-                String tenant)
+            public A2aTasksSubscribeBeginExBuilder agent(
+                String agent)
             {
-                this.tenant = tenant;
-                return this;
-            }
-
-            public A2aTasksSubscribeBeginExBuilder version(
-                String version)
-            {
-                this.version = version;
+                this.agent = agent;
                 return this;
             }
 
@@ -591,36 +506,23 @@ public final class A2aFunctions
 
             public A2aBeginExBuilder build()
             {
-                beginExRW.tasksSubscribe(b -> b
-                    .tenant(tenant)
-                    .version(version)
-                    .extensions(extensions)
-                    .taskId(taskId)
-                    .timeout(timeout));
+                beginExRW.tasksSubscribe(b -> b.agent(agent).extensions(extensions).taskId(taskId).timeout(timeout));
                 return A2aBeginExBuilder.this;
             }
         }
 
         public final class A2aPushConfigCreateBeginExBuilder
         {
-            private String tenant;
-            private String version;
+            private String agent;
             private String extensions;
             private String taskId;
             private int contentLength = -1;
             private long timeout;
 
-            public A2aPushConfigCreateBeginExBuilder tenant(
-                String tenant)
+            public A2aPushConfigCreateBeginExBuilder agent(
+                String agent)
             {
-                this.tenant = tenant;
-                return this;
-            }
-
-            public A2aPushConfigCreateBeginExBuilder version(
-                String version)
-            {
-                this.version = version;
+                this.agent = agent;
                 return this;
             }
 
@@ -655,8 +557,7 @@ public final class A2aFunctions
             public A2aBeginExBuilder build()
             {
                 beginExRW.pushConfigCreate(b -> b
-                    .tenant(tenant)
-                    .version(version)
+                    .agent(agent)
                     .extensions(extensions)
                     .taskId(taskId)
                     .contentLength(contentLength)
@@ -667,24 +568,16 @@ public final class A2aFunctions
 
         public final class A2aPushConfigGetBeginExBuilder
         {
-            private String tenant;
-            private String version;
+            private String agent;
             private String extensions;
             private String taskId;
             private String configId;
             private long timeout;
 
-            public A2aPushConfigGetBeginExBuilder tenant(
-                String tenant)
+            public A2aPushConfigGetBeginExBuilder agent(
+                String agent)
             {
-                this.tenant = tenant;
-                return this;
-            }
-
-            public A2aPushConfigGetBeginExBuilder version(
-                String version)
-            {
-                this.version = version;
+                this.agent = agent;
                 return this;
             }
 
@@ -719,8 +612,7 @@ public final class A2aFunctions
             public A2aBeginExBuilder build()
             {
                 beginExRW.pushConfigGet(b -> b
-                    .tenant(tenant)
-                    .version(version)
+                    .agent(agent)
                     .extensions(extensions)
                     .taskId(taskId)
                     .configId(configId)
@@ -731,23 +623,15 @@ public final class A2aFunctions
 
         public final class A2aPushConfigListBeginExBuilder
         {
-            private String tenant;
-            private String version;
+            private String agent;
             private String extensions;
             private String taskId;
             private long timeout;
 
-            public A2aPushConfigListBeginExBuilder tenant(
-                String tenant)
+            public A2aPushConfigListBeginExBuilder agent(
+                String agent)
             {
-                this.tenant = tenant;
-                return this;
-            }
-
-            public A2aPushConfigListBeginExBuilder version(
-                String version)
-            {
-                this.version = version;
+                this.agent = agent;
                 return this;
             }
 
@@ -774,36 +658,23 @@ public final class A2aFunctions
 
             public A2aBeginExBuilder build()
             {
-                beginExRW.pushConfigList(b -> b
-                    .tenant(tenant)
-                    .version(version)
-                    .extensions(extensions)
-                    .taskId(taskId)
-                    .timeout(timeout));
+                beginExRW.pushConfigList(b -> b.agent(agent).extensions(extensions).taskId(taskId).timeout(timeout));
                 return A2aBeginExBuilder.this;
             }
         }
 
         public final class A2aPushConfigDeleteBeginExBuilder
         {
-            private String tenant;
-            private String version;
+            private String agent;
             private String extensions;
             private String taskId;
             private String configId;
             private long timeout;
 
-            public A2aPushConfigDeleteBeginExBuilder tenant(
-                String tenant)
+            public A2aPushConfigDeleteBeginExBuilder agent(
+                String agent)
             {
-                this.tenant = tenant;
-                return this;
-            }
-
-            public A2aPushConfigDeleteBeginExBuilder version(
-                String version)
-            {
-                this.version = version;
+                this.agent = agent;
                 return this;
             }
 
@@ -838,8 +709,7 @@ public final class A2aFunctions
             public A2aBeginExBuilder build()
             {
                 beginExRW.pushConfigDelete(b -> b
-                    .tenant(tenant)
-                    .version(version)
+                    .agent(agent)
                     .extensions(extensions)
                     .taskId(taskId)
                     .configId(configId)
@@ -850,22 +720,14 @@ public final class A2aFunctions
 
         public final class A2aExtendedAgentCardBeginExBuilder
         {
-            private String tenant;
-            private String version;
+            private String agent;
             private String extensions;
             private long timeout;
 
-            public A2aExtendedAgentCardBeginExBuilder tenant(
-                String tenant)
+            public A2aExtendedAgentCardBeginExBuilder agent(
+                String agent)
             {
-                this.tenant = tenant;
-                return this;
-            }
-
-            public A2aExtendedAgentCardBeginExBuilder version(
-                String version)
-            {
-                this.version = version;
+                this.agent = agent;
                 return this;
             }
 
@@ -885,15 +747,14 @@ public final class A2aFunctions
 
             public A2aBeginExBuilder build()
             {
-                beginExRW.extendedAgentCard(b -> b.tenant(tenant).version(version).extensions(extensions).timeout(timeout));
+                beginExRW.extendedAgentCard(b -> b.agent(agent).extensions(extensions).timeout(timeout));
                 return A2aBeginExBuilder.this;
             }
         }
 
         public final class A2aPushNotifyBeginExBuilder
         {
-            private String tenant;
-            private String version;
+            private String agent;
             private String configId;
             private String taskId;
             private String url;
@@ -903,17 +764,10 @@ public final class A2aFunctions
             private int contentLength = -1;
             private long timeout;
 
-            public A2aPushNotifyBeginExBuilder tenant(
-                String tenant)
+            public A2aPushNotifyBeginExBuilder agent(
+                String agent)
             {
-                this.tenant = tenant;
-                return this;
-            }
-
-            public A2aPushNotifyBeginExBuilder version(
-                String version)
-            {
-                this.version = version;
+                this.agent = agent;
                 return this;
             }
 
@@ -976,8 +830,7 @@ public final class A2aFunctions
             public A2aBeginExBuilder build()
             {
                 beginExRW.pushNotify(b -> b
-                    .tenant(tenant)
-                    .version(version)
+                    .agent(agent)
                     .configId(configId)
                     .taskId(taskId)
                     .url(url)
@@ -1159,37 +1012,13 @@ public final class A2aFunctions
 
         public final class A2aAgentCardBeginExMatcherBuilder
         {
-            private String16FW tenant;
-            private String16FW version;
-            private String16FW etag;
-            private Long maxAge;
+            private String16FW agent;
             private Long timeout;
 
-            public A2aAgentCardBeginExMatcherBuilder tenant(
-                String tenant)
+            public A2aAgentCardBeginExMatcherBuilder agent(
+                String agent)
             {
-                this.tenant = new String16FW(tenant);
-                return this;
-            }
-
-            public A2aAgentCardBeginExMatcherBuilder version(
-                String version)
-            {
-                this.version = new String16FW(version);
-                return this;
-            }
-
-            public A2aAgentCardBeginExMatcherBuilder etag(
-                String etag)
-            {
-                this.etag = new String16FW(etag);
-                return this;
-            }
-
-            public A2aAgentCardBeginExMatcherBuilder maxAge(
-                long maxAge)
-            {
-                this.maxAge = maxAge;
+                this.agent = new String16FW(agent);
                 return this;
             }
 
@@ -1209,32 +1038,13 @@ public final class A2aFunctions
                 A2aBeginExFW beginEx)
             {
                 final A2aAgentCardBeginExFW agentCard = beginEx.agentCard();
-                return matchTenant(agentCard) && matchVersion(agentCard) && matchEtag(agentCard) && matchMaxAge(agentCard) &&
-                    matchTimeout(agentCard);
+                return matchAgent(agentCard) && matchTimeout(agentCard);
             }
 
-            private boolean matchTenant(
+            private boolean matchAgent(
                 A2aAgentCardBeginExFW agentCard)
             {
-                return tenant == null || tenant.equals(agentCard.tenant());
-            }
-
-            private boolean matchVersion(
-                A2aAgentCardBeginExFW agentCard)
-            {
-                return version == null || version.equals(agentCard.version());
-            }
-
-            private boolean matchEtag(
-                A2aAgentCardBeginExFW agentCard)
-            {
-                return etag == null || etag.equals(agentCard.etag());
-            }
-
-            private boolean matchMaxAge(
-                A2aAgentCardBeginExFW agentCard)
-            {
-                return maxAge == null || maxAge == agentCard.maxAge();
+                return agent == null || agent.equals(agentCard.agent());
             }
 
             private boolean matchTimeout(
@@ -1246,23 +1056,15 @@ public final class A2aFunctions
 
         public final class A2aMessageSendBeginExMatcherBuilder
         {
-            private String16FW tenant;
-            private String16FW version;
+            private String16FW agent;
             private String16FW extensions;
             private Integer contentLength;
             private Long timeout;
 
-            public A2aMessageSendBeginExMatcherBuilder tenant(
-                String tenant)
+            public A2aMessageSendBeginExMatcherBuilder agent(
+                String agent)
             {
-                this.tenant = new String16FW(tenant);
-                return this;
-            }
-
-            public A2aMessageSendBeginExMatcherBuilder version(
-                String version)
-            {
-                this.version = new String16FW(version);
+                this.agent = new String16FW(agent);
                 return this;
             }
 
@@ -1296,20 +1098,14 @@ public final class A2aFunctions
                 A2aBeginExFW beginEx)
             {
                 final A2aMessageSendBeginExFW messageSend = beginEx.messageSend();
-                return matchTenant(messageSend) && matchVersion(messageSend) && matchExtensions(messageSend) &&
-                    matchContentLength(messageSend) && matchTimeout(messageSend);
+                return matchAgent(messageSend) && matchExtensions(messageSend) && matchContentLength(messageSend) &&
+                    matchTimeout(messageSend);
             }
 
-            private boolean matchTenant(
+            private boolean matchAgent(
                 A2aMessageSendBeginExFW messageSend)
             {
-                return tenant == null || tenant.equals(messageSend.tenant());
-            }
-
-            private boolean matchVersion(
-                A2aMessageSendBeginExFW messageSend)
-            {
-                return version == null || version.equals(messageSend.version());
+                return agent == null || agent.equals(messageSend.agent());
             }
 
             private boolean matchExtensions(
@@ -1333,23 +1129,15 @@ public final class A2aFunctions
 
         public final class A2aMessageStreamBeginExMatcherBuilder
         {
-            private String16FW tenant;
-            private String16FW version;
+            private String16FW agent;
             private String16FW extensions;
             private Integer contentLength;
             private Long timeout;
 
-            public A2aMessageStreamBeginExMatcherBuilder tenant(
-                String tenant)
+            public A2aMessageStreamBeginExMatcherBuilder agent(
+                String agent)
             {
-                this.tenant = new String16FW(tenant);
-                return this;
-            }
-
-            public A2aMessageStreamBeginExMatcherBuilder version(
-                String version)
-            {
-                this.version = new String16FW(version);
+                this.agent = new String16FW(agent);
                 return this;
             }
 
@@ -1383,20 +1171,14 @@ public final class A2aFunctions
                 A2aBeginExFW beginEx)
             {
                 final A2aMessageStreamBeginExFW messageStream = beginEx.messageStream();
-                return matchTenant(messageStream) && matchVersion(messageStream) && matchExtensions(messageStream) &&
-                    matchContentLength(messageStream) && matchTimeout(messageStream);
+                return matchAgent(messageStream) && matchExtensions(messageStream) && matchContentLength(messageStream) &&
+                    matchTimeout(messageStream);
             }
 
-            private boolean matchTenant(
+            private boolean matchAgent(
                 A2aMessageStreamBeginExFW messageStream)
             {
-                return tenant == null || tenant.equals(messageStream.tenant());
-            }
-
-            private boolean matchVersion(
-                A2aMessageStreamBeginExFW messageStream)
-            {
-                return version == null || version.equals(messageStream.version());
+                return agent == null || agent.equals(messageStream.agent());
             }
 
             private boolean matchExtensions(
@@ -1420,24 +1202,16 @@ public final class A2aFunctions
 
         public final class A2aTasksGetBeginExMatcherBuilder
         {
-            private String16FW tenant;
-            private String16FW version;
+            private String16FW agent;
             private String16FW extensions;
             private String16FW taskId;
             private Integer historyLength;
             private Long timeout;
 
-            public A2aTasksGetBeginExMatcherBuilder tenant(
-                String tenant)
+            public A2aTasksGetBeginExMatcherBuilder agent(
+                String agent)
             {
-                this.tenant = new String16FW(tenant);
-                return this;
-            }
-
-            public A2aTasksGetBeginExMatcherBuilder version(
-                String version)
-            {
-                this.version = new String16FW(version);
+                this.agent = new String16FW(agent);
                 return this;
             }
 
@@ -1478,20 +1252,14 @@ public final class A2aFunctions
                 A2aBeginExFW beginEx)
             {
                 final A2aTasksGetBeginExFW tasksGet = beginEx.tasksGet();
-                return matchTenant(tasksGet) && matchVersion(tasksGet) && matchExtensions(tasksGet) && matchTaskId(tasksGet) &&
+                return matchAgent(tasksGet) && matchExtensions(tasksGet) && matchTaskId(tasksGet) &&
                     matchHistoryLength(tasksGet) && matchTimeout(tasksGet);
             }
 
-            private boolean matchTenant(
+            private boolean matchAgent(
                 A2aTasksGetBeginExFW tasksGet)
             {
-                return tenant == null || tenant.equals(tasksGet.tenant());
-            }
-
-            private boolean matchVersion(
-                A2aTasksGetBeginExFW tasksGet)
-            {
-                return version == null || version.equals(tasksGet.version());
+                return agent == null || agent.equals(tasksGet.agent());
             }
 
             private boolean matchExtensions(
@@ -1521,24 +1289,16 @@ public final class A2aFunctions
 
         public final class A2aTasksListBeginExMatcherBuilder
         {
-            private String16FW tenant;
-            private String16FW version;
+            private String16FW agent;
             private String16FW extensions;
             private String16FW contextId;
             private Integer contentLength;
             private Long timeout;
 
-            public A2aTasksListBeginExMatcherBuilder tenant(
-                String tenant)
+            public A2aTasksListBeginExMatcherBuilder agent(
+                String agent)
             {
-                this.tenant = new String16FW(tenant);
-                return this;
-            }
-
-            public A2aTasksListBeginExMatcherBuilder version(
-                String version)
-            {
-                this.version = new String16FW(version);
+                this.agent = new String16FW(agent);
                 return this;
             }
 
@@ -1579,20 +1339,14 @@ public final class A2aFunctions
                 A2aBeginExFW beginEx)
             {
                 final A2aTasksListBeginExFW tasksList = beginEx.tasksList();
-                return matchTenant(tasksList) && matchVersion(tasksList) && matchExtensions(tasksList) &&
-                    matchContextId(tasksList) && matchContentLength(tasksList) && matchTimeout(tasksList);
+                return matchAgent(tasksList) && matchExtensions(tasksList) && matchContextId(tasksList) &&
+                    matchContentLength(tasksList) && matchTimeout(tasksList);
             }
 
-            private boolean matchTenant(
+            private boolean matchAgent(
                 A2aTasksListBeginExFW tasksList)
             {
-                return tenant == null || tenant.equals(tasksList.tenant());
-            }
-
-            private boolean matchVersion(
-                A2aTasksListBeginExFW tasksList)
-            {
-                return version == null || version.equals(tasksList.version());
+                return agent == null || agent.equals(tasksList.agent());
             }
 
             private boolean matchExtensions(
@@ -1622,23 +1376,15 @@ public final class A2aFunctions
 
         public final class A2aTasksCancelBeginExMatcherBuilder
         {
-            private String16FW tenant;
-            private String16FW version;
+            private String16FW agent;
             private String16FW extensions;
             private String16FW taskId;
             private Long timeout;
 
-            public A2aTasksCancelBeginExMatcherBuilder tenant(
-                String tenant)
+            public A2aTasksCancelBeginExMatcherBuilder agent(
+                String agent)
             {
-                this.tenant = new String16FW(tenant);
-                return this;
-            }
-
-            public A2aTasksCancelBeginExMatcherBuilder version(
-                String version)
-            {
-                this.version = new String16FW(version);
+                this.agent = new String16FW(agent);
                 return this;
             }
 
@@ -1672,20 +1418,14 @@ public final class A2aFunctions
                 A2aBeginExFW beginEx)
             {
                 final A2aTasksCancelBeginExFW tasksCancel = beginEx.tasksCancel();
-                return matchTenant(tasksCancel) && matchVersion(tasksCancel) && matchExtensions(tasksCancel) &&
-                    matchTaskId(tasksCancel) && matchTimeout(tasksCancel);
+                return matchAgent(tasksCancel) && matchExtensions(tasksCancel) && matchTaskId(tasksCancel) &&
+                    matchTimeout(tasksCancel);
             }
 
-            private boolean matchTenant(
+            private boolean matchAgent(
                 A2aTasksCancelBeginExFW tasksCancel)
             {
-                return tenant == null || tenant.equals(tasksCancel.tenant());
-            }
-
-            private boolean matchVersion(
-                A2aTasksCancelBeginExFW tasksCancel)
-            {
-                return version == null || version.equals(tasksCancel.version());
+                return agent == null || agent.equals(tasksCancel.agent());
             }
 
             private boolean matchExtensions(
@@ -1709,23 +1449,15 @@ public final class A2aFunctions
 
         public final class A2aTasksSubscribeBeginExMatcherBuilder
         {
-            private String16FW tenant;
-            private String16FW version;
+            private String16FW agent;
             private String16FW extensions;
             private String16FW taskId;
             private Long timeout;
 
-            public A2aTasksSubscribeBeginExMatcherBuilder tenant(
-                String tenant)
+            public A2aTasksSubscribeBeginExMatcherBuilder agent(
+                String agent)
             {
-                this.tenant = new String16FW(tenant);
-                return this;
-            }
-
-            public A2aTasksSubscribeBeginExMatcherBuilder version(
-                String version)
-            {
-                this.version = new String16FW(version);
+                this.agent = new String16FW(agent);
                 return this;
             }
 
@@ -1759,20 +1491,14 @@ public final class A2aFunctions
                 A2aBeginExFW beginEx)
             {
                 final A2aTasksSubscribeBeginExFW tasksSubscribe = beginEx.tasksSubscribe();
-                return matchTenant(tasksSubscribe) && matchVersion(tasksSubscribe) && matchExtensions(tasksSubscribe) &&
-                    matchTaskId(tasksSubscribe) && matchTimeout(tasksSubscribe);
+                return matchAgent(tasksSubscribe) && matchExtensions(tasksSubscribe) && matchTaskId(tasksSubscribe) &&
+                    matchTimeout(tasksSubscribe);
             }
 
-            private boolean matchTenant(
+            private boolean matchAgent(
                 A2aTasksSubscribeBeginExFW tasksSubscribe)
             {
-                return tenant == null || tenant.equals(tasksSubscribe.tenant());
-            }
-
-            private boolean matchVersion(
-                A2aTasksSubscribeBeginExFW tasksSubscribe)
-            {
-                return version == null || version.equals(tasksSubscribe.version());
+                return agent == null || agent.equals(tasksSubscribe.agent());
             }
 
             private boolean matchExtensions(
@@ -1796,24 +1522,16 @@ public final class A2aFunctions
 
         public final class A2aPushConfigCreateBeginExMatcherBuilder
         {
-            private String16FW tenant;
-            private String16FW version;
+            private String16FW agent;
             private String16FW extensions;
             private String16FW taskId;
             private Integer contentLength;
             private Long timeout;
 
-            public A2aPushConfigCreateBeginExMatcherBuilder tenant(
-                String tenant)
+            public A2aPushConfigCreateBeginExMatcherBuilder agent(
+                String agent)
             {
-                this.tenant = new String16FW(tenant);
-                return this;
-            }
-
-            public A2aPushConfigCreateBeginExMatcherBuilder version(
-                String version)
-            {
-                this.version = new String16FW(version);
+                this.agent = new String16FW(agent);
                 return this;
             }
 
@@ -1854,20 +1572,14 @@ public final class A2aFunctions
                 A2aBeginExFW beginEx)
             {
                 final A2aPushConfigCreateBeginExFW pushConfigCreate = beginEx.pushConfigCreate();
-                return matchTenant(pushConfigCreate) && matchVersion(pushConfigCreate) && matchExtensions(pushConfigCreate) &&
-                    matchTaskId(pushConfigCreate) && matchContentLength(pushConfigCreate) && matchTimeout(pushConfigCreate);
+                return matchAgent(pushConfigCreate) && matchExtensions(pushConfigCreate) && matchTaskId(pushConfigCreate) &&
+                    matchContentLength(pushConfigCreate) && matchTimeout(pushConfigCreate);
             }
 
-            private boolean matchTenant(
+            private boolean matchAgent(
                 A2aPushConfigCreateBeginExFW pushConfigCreate)
             {
-                return tenant == null || tenant.equals(pushConfigCreate.tenant());
-            }
-
-            private boolean matchVersion(
-                A2aPushConfigCreateBeginExFW pushConfigCreate)
-            {
-                return version == null || version.equals(pushConfigCreate.version());
+                return agent == null || agent.equals(pushConfigCreate.agent());
             }
 
             private boolean matchExtensions(
@@ -1897,24 +1609,16 @@ public final class A2aFunctions
 
         public final class A2aPushConfigGetBeginExMatcherBuilder
         {
-            private String16FW tenant;
-            private String16FW version;
+            private String16FW agent;
             private String16FW extensions;
             private String16FW taskId;
             private String16FW configId;
             private Long timeout;
 
-            public A2aPushConfigGetBeginExMatcherBuilder tenant(
-                String tenant)
+            public A2aPushConfigGetBeginExMatcherBuilder agent(
+                String agent)
             {
-                this.tenant = new String16FW(tenant);
-                return this;
-            }
-
-            public A2aPushConfigGetBeginExMatcherBuilder version(
-                String version)
-            {
-                this.version = new String16FW(version);
+                this.agent = new String16FW(agent);
                 return this;
             }
 
@@ -1955,20 +1659,14 @@ public final class A2aFunctions
                 A2aBeginExFW beginEx)
             {
                 final A2aPushConfigGetBeginExFW pushConfigGet = beginEx.pushConfigGet();
-                return matchTenant(pushConfigGet) && matchVersion(pushConfigGet) && matchExtensions(pushConfigGet) &&
-                    matchTaskId(pushConfigGet) && matchConfigId(pushConfigGet) && matchTimeout(pushConfigGet);
+                return matchAgent(pushConfigGet) && matchExtensions(pushConfigGet) && matchTaskId(pushConfigGet) &&
+                    matchConfigId(pushConfigGet) && matchTimeout(pushConfigGet);
             }
 
-            private boolean matchTenant(
+            private boolean matchAgent(
                 A2aPushConfigGetBeginExFW pushConfigGet)
             {
-                return tenant == null || tenant.equals(pushConfigGet.tenant());
-            }
-
-            private boolean matchVersion(
-                A2aPushConfigGetBeginExFW pushConfigGet)
-            {
-                return version == null || version.equals(pushConfigGet.version());
+                return agent == null || agent.equals(pushConfigGet.agent());
             }
 
             private boolean matchExtensions(
@@ -1998,23 +1696,15 @@ public final class A2aFunctions
 
         public final class A2aPushConfigListBeginExMatcherBuilder
         {
-            private String16FW tenant;
-            private String16FW version;
+            private String16FW agent;
             private String16FW extensions;
             private String16FW taskId;
             private Long timeout;
 
-            public A2aPushConfigListBeginExMatcherBuilder tenant(
-                String tenant)
+            public A2aPushConfigListBeginExMatcherBuilder agent(
+                String agent)
             {
-                this.tenant = new String16FW(tenant);
-                return this;
-            }
-
-            public A2aPushConfigListBeginExMatcherBuilder version(
-                String version)
-            {
-                this.version = new String16FW(version);
+                this.agent = new String16FW(agent);
                 return this;
             }
 
@@ -2048,20 +1738,14 @@ public final class A2aFunctions
                 A2aBeginExFW beginEx)
             {
                 final A2aPushConfigListBeginExFW pushConfigList = beginEx.pushConfigList();
-                return matchTenant(pushConfigList) && matchVersion(pushConfigList) && matchExtensions(pushConfigList) &&
-                    matchTaskId(pushConfigList) && matchTimeout(pushConfigList);
+                return matchAgent(pushConfigList) && matchExtensions(pushConfigList) && matchTaskId(pushConfigList) &&
+                    matchTimeout(pushConfigList);
             }
 
-            private boolean matchTenant(
+            private boolean matchAgent(
                 A2aPushConfigListBeginExFW pushConfigList)
             {
-                return tenant == null || tenant.equals(pushConfigList.tenant());
-            }
-
-            private boolean matchVersion(
-                A2aPushConfigListBeginExFW pushConfigList)
-            {
-                return version == null || version.equals(pushConfigList.version());
+                return agent == null || agent.equals(pushConfigList.agent());
             }
 
             private boolean matchExtensions(
@@ -2085,24 +1769,16 @@ public final class A2aFunctions
 
         public final class A2aPushConfigDeleteBeginExMatcherBuilder
         {
-            private String16FW tenant;
-            private String16FW version;
+            private String16FW agent;
             private String16FW extensions;
             private String16FW taskId;
             private String16FW configId;
             private Long timeout;
 
-            public A2aPushConfigDeleteBeginExMatcherBuilder tenant(
-                String tenant)
+            public A2aPushConfigDeleteBeginExMatcherBuilder agent(
+                String agent)
             {
-                this.tenant = new String16FW(tenant);
-                return this;
-            }
-
-            public A2aPushConfigDeleteBeginExMatcherBuilder version(
-                String version)
-            {
-                this.version = new String16FW(version);
+                this.agent = new String16FW(agent);
                 return this;
             }
 
@@ -2143,20 +1819,14 @@ public final class A2aFunctions
                 A2aBeginExFW beginEx)
             {
                 final A2aPushConfigDeleteBeginExFW pushConfigDelete = beginEx.pushConfigDelete();
-                return matchTenant(pushConfigDelete) && matchVersion(pushConfigDelete) && matchExtensions(pushConfigDelete) &&
-                    matchTaskId(pushConfigDelete) && matchConfigId(pushConfigDelete) && matchTimeout(pushConfigDelete);
+                return matchAgent(pushConfigDelete) && matchExtensions(pushConfigDelete) && matchTaskId(pushConfigDelete) &&
+                    matchConfigId(pushConfigDelete) && matchTimeout(pushConfigDelete);
             }
 
-            private boolean matchTenant(
+            private boolean matchAgent(
                 A2aPushConfigDeleteBeginExFW pushConfigDelete)
             {
-                return tenant == null || tenant.equals(pushConfigDelete.tenant());
-            }
-
-            private boolean matchVersion(
-                A2aPushConfigDeleteBeginExFW pushConfigDelete)
-            {
-                return version == null || version.equals(pushConfigDelete.version());
+                return agent == null || agent.equals(pushConfigDelete.agent());
             }
 
             private boolean matchExtensions(
@@ -2186,22 +1856,14 @@ public final class A2aFunctions
 
         public final class A2aExtendedAgentCardBeginExMatcherBuilder
         {
-            private String16FW tenant;
-            private String16FW version;
+            private String16FW agent;
             private String16FW extensions;
             private Long timeout;
 
-            public A2aExtendedAgentCardBeginExMatcherBuilder tenant(
-                String tenant)
+            public A2aExtendedAgentCardBeginExMatcherBuilder agent(
+                String agent)
             {
-                this.tenant = new String16FW(tenant);
-                return this;
-            }
-
-            public A2aExtendedAgentCardBeginExMatcherBuilder version(
-                String version)
-            {
-                this.version = new String16FW(version);
+                this.agent = new String16FW(agent);
                 return this;
             }
 
@@ -2228,20 +1890,13 @@ public final class A2aFunctions
                 A2aBeginExFW beginEx)
             {
                 final A2aExtendedAgentCardBeginExFW extendedAgentCard = beginEx.extendedAgentCard();
-                return matchTenant(extendedAgentCard) && matchVersion(extendedAgentCard) &&
-                    matchExtensions(extendedAgentCard) && matchTimeout(extendedAgentCard);
+                return matchAgent(extendedAgentCard) && matchExtensions(extendedAgentCard) && matchTimeout(extendedAgentCard);
             }
 
-            private boolean matchTenant(
+            private boolean matchAgent(
                 A2aExtendedAgentCardBeginExFW extendedAgentCard)
             {
-                return tenant == null || tenant.equals(extendedAgentCard.tenant());
-            }
-
-            private boolean matchVersion(
-                A2aExtendedAgentCardBeginExFW extendedAgentCard)
-            {
-                return version == null || version.equals(extendedAgentCard.version());
+                return agent == null || agent.equals(extendedAgentCard.agent());
             }
 
             private boolean matchExtensions(
@@ -2259,8 +1914,7 @@ public final class A2aFunctions
 
         public final class A2aPushNotifyBeginExMatcherBuilder
         {
-            private String16FW tenant;
-            private String16FW version;
+            private String16FW agent;
             private String16FW configId;
             private String16FW taskId;
             private String16FW url;
@@ -2270,17 +1924,10 @@ public final class A2aFunctions
             private Integer contentLength;
             private Long timeout;
 
-            public A2aPushNotifyBeginExMatcherBuilder tenant(
-                String tenant)
+            public A2aPushNotifyBeginExMatcherBuilder agent(
+                String agent)
             {
-                this.tenant = new String16FW(tenant);
-                return this;
-            }
-
-            public A2aPushNotifyBeginExMatcherBuilder version(
-                String version)
-            {
-                this.version = new String16FW(version);
+                this.agent = new String16FW(agent);
                 return this;
             }
 
@@ -2349,21 +1996,15 @@ public final class A2aFunctions
                 A2aBeginExFW beginEx)
             {
                 final A2aPushNotifyBeginExFW pushNotify = beginEx.pushNotify();
-                return matchTenant(pushNotify) && matchVersion(pushNotify) && matchConfigId(pushNotify) &&
-                    matchTaskId(pushNotify) && matchUrl(pushNotify) && matchToken(pushNotify) && matchScheme(pushNotify) &&
+                return matchAgent(pushNotify) && matchConfigId(pushNotify) && matchTaskId(pushNotify) &&
+                    matchUrl(pushNotify) && matchToken(pushNotify) && matchScheme(pushNotify) &&
                     matchCredentials(pushNotify) && matchContentLength(pushNotify) && matchTimeout(pushNotify);
             }
 
-            private boolean matchTenant(
+            private boolean matchAgent(
                 A2aPushNotifyBeginExFW pushNotify)
             {
-                return tenant == null || tenant.equals(pushNotify.tenant());
-            }
-
-            private boolean matchVersion(
-                A2aPushNotifyBeginExFW pushNotify)
-            {
-                return version == null || version.equals(pushNotify.version());
+                return agent == null || agent.equals(pushNotify.agent());
             }
 
             private boolean matchConfigId(

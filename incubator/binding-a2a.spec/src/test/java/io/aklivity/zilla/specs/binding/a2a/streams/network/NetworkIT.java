@@ -47,15 +47,6 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/agent.card.etag.not.modified/client",
-        "${net}/agent.card.etag.not.modified/server"})
-    public void shouldAgentCardEtagNotModified() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/agent.card.legacy.agent.json/client",
         "${net}/agent.card.legacy.agent.json/server"})
     public void shouldAgentCardLegacyAgentJson() throws Exception
@@ -65,9 +56,9 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/agent.card.tenant/client",
-        "${net}/agent.card.tenant/server"})
-    public void shouldAgentCardTenant() throws Exception
+        "${net}/agent.card.slug/client",
+        "${net}/agent.card.slug/server"})
+    public void shouldAgentCardSlug() throws Exception
     {
         k3po.finish();
     }
@@ -344,36 +335,18 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/send.message.slug/client",
+        "${net}/send.message.slug/server"})
+    public void shouldSendMessageSlug() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/send.message.task/client",
         "${net}/send.message.task/server"})
     public void shouldSendMessageTask() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/send.message.tenant/client",
-        "${net}/send.message.tenant/server"})
-    public void shouldSendMessageTenant() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/send.message.tenant.mismatch/client",
-        "${net}/send.message.tenant.mismatch/server"})
-    public void shouldSendMessageTenantMismatch() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/send.message.tenant.params/client",
-        "${net}/send.message.tenant.params/server"})
-    public void shouldSendMessageTenantParams() throws Exception
     {
         k3po.finish();
     }
