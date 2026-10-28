@@ -26,7 +26,7 @@ write zilla:begin.ext ${a2a:beginEx()
 
 connected
 
-read '{"name":"items","description":"Item catalog agent","version":"1.0.0","capabilities":{"streaming":true,"pushNotifications":false},"defaultInputModes":["text/plain","application/json"],"defaultOutputModes":["application/json","text/plain"],"skills":[{"id":"get_item","name":"get_item","description":"Look up an item by id","tags":[],"examples":["get item 42","show me the details of item 7"]},{"id":"create_item","name":"create_item","description":"Create a new item","tags":[],"examples":["create an item","add a new item"]},{"id":"search_items","name":"search_items","description":"Search items by keyword","tags":[],"examples":["search items for widgets","find items matching a keyword"]}]}'
+read '{"name":"items","description":"Items agent","version":"1.0.0","capabilities":{"streaming":true,"pushNotifications":false},"defaultInputModes":["text/plain","application/json"],"defaultOutputModes":["application/json","text/plain"],"skills":[{"id":"get_item","name":"Get item","description":"Look up an item by id","tags":["items"],"examples":["get item 42","show me the details of item 7"]},{"id":"create_item","name":"create_item","description":"Create a new item","tags":["items"],"examples":["create an item","add a new item"]},{"id":"search_items","name":"search_items","description":"Search items by keyword","tags":["items"],"examples":["search items for widgets","find items matching a keyword"]}]}'
 
 read closed
 
