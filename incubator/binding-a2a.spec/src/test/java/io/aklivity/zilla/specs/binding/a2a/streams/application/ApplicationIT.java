@@ -56,6 +56,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/agent.not.found/client",
+        "${app}/agent.not.found/server"})
+    public void shouldAgentNotFound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/cancel.task/client",
         "${app}/cancel.task/server"})
     public void shouldCancelTask() throws Exception
@@ -95,6 +104,15 @@ public class ApplicationIT
         "${app}/extension.required/client",
         "${app}/extension.required/server"})
     public void shouldExtensionRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/forbidden.bearer/client",
+        "${app}/forbidden.bearer/server"})
+    public void shouldForbiddenBearer() throws Exception
     {
         k3po.finish();
     }
