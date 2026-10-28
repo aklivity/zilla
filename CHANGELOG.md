@@ -2,7 +2,22 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/2.5.0...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.6.0...HEAD)
+
+**Closed issues:**
+
+- Engine worker crash: KafkaCacheClientProduceFan credits a released budget slot \(IndexOutOfBoundsException index=-56 in DefaultBudgetCreditor.credit\) — FLUSH path lacks \#1303's guard [\#2179](https://github.com/aklivity/zilla/issues/2179) ([joelmsanto](https://github.com/joelmsanto))
+- engine: typed structured configuration properties via JsonPropertyDef [\#2806](https://github.com/aklivity/zilla/issues/2806) ([jfallows](https://github.com/jfallows))
+
+**Merged pull requests:**
+
+- fix\(binding-kafka\): reset produce members when the cache client fan reply closes [\#2204](https://github.com/aklivity/zilla/pull/2204) ([ankitk-me](https://github.com/ankitk-me))
+- Add JSON property definition support with schema validation [\#2808](https://github.com/aklivity/zilla/pull/2808) ([jfallows](https://github.com/jfallows))
+- fix\(binding-http\): keep queued HTTP/1.1 requests queued while an exchange is in flight [\#2812](https://github.com/aklivity/zilla/pull/2812) ([ankitk-me](https://github.com/ankitk-me))
+
+## [2.6.0](https://github.com/aklivity/zilla/tree/2.6.0) (2026-10-22)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.5.0...2.6.0)
 
 **Closed issues:**
 

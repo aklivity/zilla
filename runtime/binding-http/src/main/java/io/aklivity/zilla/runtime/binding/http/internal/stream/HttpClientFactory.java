@@ -4611,6 +4611,11 @@ public final class HttpClientFactory implements HttpStreamFactory
                 if (httpExchange != null)
                 {
                     final HttpEncoder encoder = httpExchange.client.encoder;
+                    if (encoder == HttpEncoder.HTTP_1_1 && httpExchange.client.exchange != null)
+                    {
+                        break dequeue;
+                    }
+
                     client = encoder == HttpEncoder.HTTP_2 ||
                             encoder == HttpEncoder.HTTP_1_1 && httpExchange.client.exchange == null ||
                             encoder == HttpEncoder.H2C ?
