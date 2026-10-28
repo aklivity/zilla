@@ -37,6 +37,7 @@ read zilla:begin.ext ${http:matchBeginEx()
                        .typeId(zilla:id("http"))
                        .header(":status", "401")
                        .header("content-type", "application/json")
+                       .header("www-authenticate", "Bearer")
                        .build()}
 
 read "{\"error\":\"Unauthorized\"}"

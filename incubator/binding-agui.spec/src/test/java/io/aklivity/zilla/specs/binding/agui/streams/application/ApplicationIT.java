@@ -161,4 +161,103 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/run.text.100k/client",
+        "${app}/run.text.100k/server"})
+    public void shouldRunText100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/run.text.meta/client",
+        "${app}/run.text.meta/server"})
+    public void shouldRunTextMeta() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/run.outcome.success/client",
+        "${app}/run.outcome.success/server"})
+    public void shouldRunOutcomeSuccess() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/run.outcome.interrupt/client",
+        "${app}/run.outcome.interrupt/server"})
+    public void shouldRunOutcomeInterrupt() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/run.outcome.cancelled/client",
+        "${app}/run.outcome.cancelled/server"})
+    public void shouldRunOutcomeCancelled() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/run.resume/client",
+        "${app}/run.resume/server"})
+    public void shouldRunResume() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/run.activity/client",
+        "${app}/run.activity/server"})
+    public void shouldRunActivity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/run.step/client",
+        "${app}/run.step/server"})
+    public void shouldRunStep() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/run.subagent/client",
+        "${app}/run.subagent/server"})
+    public void shouldRunSubagent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/run.raw.custom/client",
+        "${app}/run.raw.custom/server"})
+    public void shouldRunRawCustom() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/run.rejected/client",
+        "${app}/run.rejected/server"})
+    public void shouldRejectRun() throws Exception
+    {
+        k3po.finish();
+    }
 }
