@@ -44,4 +44,148 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/run.text.chunks/client",
+        "${net}/run.text.chunks/server"})
+    public void shouldRunTextChunks() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/run.tool.call/client",
+        "${net}/run.tool.call/server"})
+    public void shouldRunToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/run.state/client",
+        "${net}/run.state/server"})
+    public void shouldRunState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/run.messages.snapshot/client",
+        "${net}/run.messages.snapshot/server"})
+    public void shouldRunMessagesSnapshot() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/run.error/client",
+        "${net}/run.error/server"})
+    public void shouldRunError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/run.abort/client",
+        "${net}/run.abort/server"})
+    public void shouldAbortRun() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/run.reasoning/client",
+        "${net}/run.reasoning/server"})
+    public void shouldRunReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/run.reasoning.group/client",
+        "${net}/run.reasoning.group/server"})
+    public void shouldRunReasoningGroup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/run.reasoning.encrypted/client",
+        "${net}/run.reasoning.encrypted/server"})
+    public void shouldRunReasoningEncrypted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/run.request.ids.last/client",
+        "${net}/run.request.ids.last/server"})
+    public void shouldRunRequestWithIdsLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/run.request.100k/client",
+        "${net}/run.request.100k/server"})
+    public void shouldRunRequest100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/run.state.snapshot.100k/client",
+        "${net}/run.state.snapshot.100k/server"})
+    public void shouldRunStateSnapshot100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/run.authorized/client",
+        "${net}/run.authorized/server"})
+    public void shouldRunAuthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/request.unauthorized/client",
+        "${net}/request.unauthorized/server"})
+    public void shouldRejectUnauthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/request.malformed/client",
+        "${net}/request.malformed/server"})
+    public void shouldRejectMalformed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/request.run.missing/client",
+        "${net}/request.run.missing/server"})
+    public void shouldRejectRunMissing() throws Exception
+    {
+        k3po.finish();
+    }
 }

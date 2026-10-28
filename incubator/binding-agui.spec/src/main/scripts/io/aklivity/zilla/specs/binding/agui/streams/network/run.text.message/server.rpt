@@ -21,14 +21,14 @@ accept "zilla://streams/net0"
 accepted
 
 read zilla:begin.ext ${http:matchBeginEx()
-                           .typeId(zilla:id("http"))
-                           .header(":method", "POST")
-                           .header(":scheme", "http")
-                           .header(":authority", "localhost:8080")
-                           .header(":path", "/agent")
-                           .header("content-type", "application/json")
-                           .header("accept", "text/event-stream")
-                           .build()}
+                       .typeId(zilla:id("http"))
+                       .header(":method", "POST")
+                       .header(":scheme", "http")
+                       .header(":authority", "localhost:8080")
+                       .header(":path", "/agent")
+                       .header("content-type", "application/json")
+                       .header("accept", "text/event-stream")
+                       .build()}
 
 connected
 
@@ -37,10 +37,10 @@ read "{\"threadId\":\"thread-1\",\"runId\":\"run-1\",\"messages\":[{\"id\":\"msg
 read closed
 
 write zilla:begin.ext ${http:beginEx()
-                           .typeId(zilla:id("http"))
-                           .header(":status", "200")
-                           .header("content-type", "text/event-stream")
-                           .build()}
+                        .typeId(zilla:id("http"))
+                        .header(":status", "200")
+                        .header("content-type", "text/event-stream")
+                        .build()}
 write flush
 
 write "{\"type\":\"RUN_STARTED\",\"threadId\":\"thread-1\",\"runId\":\"run-1\"}"
