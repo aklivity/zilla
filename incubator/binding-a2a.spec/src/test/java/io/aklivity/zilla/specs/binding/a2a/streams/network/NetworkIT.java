@@ -74,15 +74,6 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/agent.card.max.age.zero/client",
-        "${net}/agent.card.max.age.zero/server"})
-    public void shouldAgentCardMaxAgeZero() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/agent.card.no.jsonrpc/client",
         "${net}/agent.card.no.jsonrpc/server"})
     public void shouldAgentCardNoJsonrpc() throws Exception
@@ -185,6 +176,24 @@ public class NetworkIT
         "${net}/cancel.task.v0.3/client",
         "${net}/cancel.task.v0.3/server"})
     public void shouldCancelTaskV03() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/chain.send.message/client",
+        "${net}/chain.send.message/server"})
+    public void shouldChainSendMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/chain.send.message.legacy/client",
+        "${net}/chain.send.message.legacy/server"})
+    public void shouldChainSendMessageLegacy() throws Exception
     {
         k3po.finish();
     }
@@ -482,15 +491,6 @@ public class NetworkIT
         "${net}/discover.send.message.legacy/client",
         "${net}/discover.send.message.legacy/server"})
     public void shouldDiscoverSendMessageLegacy() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/discover.send.message.refetch/client",
-        "${net}/discover.send.message.refetch/server"})
-    public void shouldDiscoverSendMessageRefetch() throws Exception
     {
         k3po.finish();
     }

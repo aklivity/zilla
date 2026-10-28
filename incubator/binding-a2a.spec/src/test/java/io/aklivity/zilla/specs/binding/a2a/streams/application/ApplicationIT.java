@@ -290,15 +290,6 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/send.message.refetch/client",
-        "${app}/send.message.refetch/server"})
-    public void shouldSendMessageRefetch() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/send.message.slug/client",
         "${app}/send.message.slug/server"})
     public void shouldSendMessageSlug() throws Exception

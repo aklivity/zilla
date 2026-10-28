@@ -340,16 +340,6 @@ public class A2aClientIT
     @Test
     @Configuration("client.yaml")
     @Specification({
-        "${app}/send.message.refetch/client",
-        "${net}/discover.send.message.refetch/server"})
-    public void shouldSendMessageRefetchStaleCard() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.yaml")
-    @Specification({
         "${app}/send.message.interface.unsupported/client",
         "${net}/discover.interface.unsupported/server"})
     public void shouldRejectInterfaceUnsupported() throws Exception

@@ -151,15 +151,6 @@ public class A2aClientBindingConfigTest
         assertThat(binding.deniedRoles(List.of(), 0L), empty());
     }
 
-    @Test
-    public void shouldCacheCardsPerAgent()
-    {
-        final A2aClientBindingConfig binding = guarded();
-
-        assertThat(binding.cardOf("weather"), sameInstance(binding.cardOf("weather")));
-        assertThat(binding.cardOf("weather").agent, equalTo("weather"));
-    }
-
     private A2aClientBindingConfig guarded()
     {
         final BindingConfig config = A2aBindingConfig.builder()

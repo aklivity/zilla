@@ -31,6 +31,7 @@ import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
 
+import java.io.ByteArrayInputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -40,6 +41,9 @@ import java.util.function.LongUnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonValue;
 import jakarta.json.stream.JsonParser;
 
 import org.agrona.collections.Long2ObjectHashMap;
@@ -50,13 +54,14 @@ import io.aklivity.zilla.runtime.binding.a2a.internal.card.A2aAgentCard;
 import io.aklivity.zilla.runtime.binding.a2a.internal.card.A2aAgentCardParser;
 import io.aklivity.zilla.runtime.binding.a2a.internal.card.A2aAgentInterface;
 import io.aklivity.zilla.runtime.binding.a2a.internal.card.A2aCardConsumer;
-import io.aklivity.zilla.runtime.binding.a2a.internal.card.A2aCardEntry;
-import io.aklivity.zilla.runtime.binding.a2a.internal.card.A2aCardWaiter;
+import io.aklivity.zilla.runtime.binding.a2a.internal.card.A2aCardRoles;
 import io.aklivity.zilla.runtime.binding.a2a.internal.config.A2aClientBindingConfig;
 import io.aklivity.zilla.runtime.binding.a2a.internal.config.A2aClientRouteConfig;
-import io.aklivity.zilla.runtime.binding.a2a.internal.dialect.A2aCardTranslator;
 import io.aklivity.zilla.runtime.binding.a2a.internal.dialect.A2aDialect;
 import io.aklivity.zilla.runtime.binding.a2a.internal.dialect.A2aDialects;
+import io.aklivity.zilla.runtime.binding.a2a.internal.dialect.A2aOperation;
+import io.aklivity.zilla.runtime.binding.a2a.internal.dialect.A2aRequestEncoder;
+import io.aklivity.zilla.runtime.binding.a2a.internal.dialect.A2aRequestParams;
 import io.aklivity.zilla.runtime.binding.a2a.internal.dialect.A2aResultInspector;
 import io.aklivity.zilla.runtime.binding.a2a.internal.types.A2aTaskState;
 import io.aklivity.zilla.runtime.binding.a2a.internal.types.Flyweight;
@@ -103,7 +108,6 @@ public final class A2aClientFactory implements A2aStreamFactory
     private static final String HTTP_HEADER_ACCEPT = "accept";
     private static final String HTTP_HEADER_AUTHORIZATION = "authorization";
     private static final String HTTP_HEADER_WWW_AUTHENTICATE = "www-authenticate";
-    private static final String HTTP_HEADER_CACHE_CONTROL = "cache-control";
     private static final String HTTP_HEADER_A2A_VERSION = "a2a-version";
     private static final String HTTP_HEADER_A2A_EXTENSIONS = "a2a-extensions";
     private static final String HTTP_HEADER_NOTIFICATION_TOKEN = "x-a2a-notification-token";
@@ -123,6 +127,7 @@ public final class A2aClientFactory implements A2aStreamFactory
     private static final String JSON_RPC_VERSION = "2.0";
     private static final String JSON_RPC_END = "}";
     private static final String VERSION_CANONICAL = "1.0";
+    private static final String VERSION_LEGACY = "0.3";
     private static final String JSON_NULL = "null";
     private static final int PUSH_DELIVERY_RETRIES = 2;
     private static final int PEEK_NO = 0;
@@ -150,8 +155,6 @@ public final class A2aClientFactory implements A2aStreamFactory
         "(?=.*?\\berror\\s*=\\s*\"(?<error>invalid_request|invalid_token|insufficient_scope)\")?" +
         ".*$",
         Pattern.CASE_INSENSITIVE);
-    private static final Pattern NO_CACHE_PATTERN = Pattern.compile("no-store|no-cache", Pattern.CASE_INSENSITIVE);
-    private static final Pattern MAX_AGE_PATTERN = Pattern.compile("max-age\\s*=\\s*(\\d+)", Pattern.CASE_INSENSITIVE);
 
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
     private static final int FRAMING_CAPABILITIES_MASK = 1 << Capability.FRAMING.ordinal();
@@ -178,7 +181,6 @@ public final class A2aClientFactory implements A2aStreamFactory
     private final A2aResetExFW.Builder a2aResetExRW = new A2aResetExFW.Builder();
 
     private final Matcher bearerChallengeMatcher = BEARER_CHALLENGE_PATTERN.matcher("");
-    private final Matcher maxAgeMatcher = MAX_AGE_PATTERN.matcher("");
 
     private final A2aConfiguration config;
     private final EngineContext context;
@@ -196,12 +198,11 @@ public final class A2aClientFactory implements A2aStreamFactory
     private final int a2aTypeId;
     private final int decodeMax;
     private final int encodeMax;
-    private final long cardMaxAgeMillis;
 
     private final Long2ObjectHashMap<A2aClientBindingConfig> bindings = new Long2ObjectHashMap<>();
-    private final A2aDialects dialects = new A2aDialects();
+    private final A2aDialects dialects = new A2aDialects(null);
+    private final A2aRequestEncoder requestEncoder = new A2aRequestEncoder();
     private final A2aAgentCardParser cardParser = new A2aAgentCardParser();
-    private final A2aCardTranslator cardTranslator = new A2aCardTranslator();
     private final A2aResultInspector resultInspector = new A2aResultInspector();
     private final JsonParserEx errorParser = JsonEx.createParser(Map.of());
 
@@ -225,7 +226,6 @@ public final class A2aClientFactory implements A2aStreamFactory
         this.a2aTypeId = context.supplyTypeId(A2A_TYPE_NAME);
         this.decodeMax = decodePool.slotCapacity();
         this.encodeMax = decodePool.slotCapacity();
-        this.cardMaxAgeMillis = config.cardMaxAge().toMillis();
     }
 
     @FunctionalInterface
@@ -1236,15 +1236,15 @@ public final class A2aClientFactory implements A2aStreamFactory
         }
     }
 
-    private final class A2aCallStream extends A2aStream implements A2aCardWaiter
+    private final class A2aCallStream extends A2aStream implements A2aCardConsumer
     {
         private final int kind;
+        private final A2aOperation operation;
 
         private String agent;
         private String extensions;
         private int contentLength = -1;
         private UnsafeBufferEx beginExBuffer;
-        private A2aAgentCard card;
         private A2aDialect dialect;
         private A2aAgentInterface selected;
         private int requestReceived;
@@ -1261,6 +1261,7 @@ public final class A2aClientFactory implements A2aStreamFactory
         {
             super(sender, originId, routedId, initialId, resolvedId, binding);
             this.kind = kind;
+            this.operation = operationOf(kind);
         }
 
         @Override
@@ -1286,74 +1287,108 @@ public final class A2aClientFactory implements A2aStreamFactory
             }
             else
             {
-                final A2aCardEntry entry = binding.cardOf(agent != null ? agent : "");
-                if (entry.fresh(context.clock().millis()))
-                {
-                    onCardResolved(traceId, entry);
-                }
-                else
-                {
-                    entry.waiters.add(this);
-
-                    if (entry.fetch == null)
-                    {
-                        entry.fetch = new A2aCardLookup(binding, entry);
-                        fetchCard(entry.fetch, binding, agent, resolvedId, traceId, authorization);
-                    }
-                }
+                fetchCard(this, binding, agent, resolvedId, traceId, authorization);
             }
         }
 
         @Override
-        public void onCardResolved(
+        public void onCard(
             long traceId,
-            A2aCardEntry entry)
+            long authorization,
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
         {
             if (!A2aState.replyClosed(state))
             {
-                this.card = entry.card;
-                this.selected = entry.selected;
+                A2aAgentCard card = null;
 
-                final List<String> denied = binding.deniedRoles(card.skills, authorization);
+                try
+                {
+                    card = cardParser.parse(buffer, offset, limit);
+                }
+                catch (RuntimeException ex)
+                {
+                    onCardRejected(traceId, authorization, 0, null);
+                }
 
-                if (!denied.isEmpty())
+                if (card != null)
                 {
-                    doAppResetBearer(traceId, authorization, BEARER_REALM, String.join(" ", denied),
-                        A2aBearerError.INSUFFICIENT_SCOPE);
-                }
-                else if (selected == null)
-                {
-                    if (card.offersJsonRpc())
-                    {
-                        doAppResetError(traceId, authorization,
-                            ERROR_CODE_VERSION_NOT_SUPPORTED, ERROR_MESSAGE_VERSION_NOT_SUPPORTED);
-                    }
-                    else
-                    {
-                        doAppResetError(traceId, authorization,
-                            ERROR_CODE_UNSUPPORTED_OPERATION, ERROR_MESSAGE_UNSUPPORTED_OPERATION);
-                    }
-                }
-                else
-                {
-                    this.dialect = dialects.lookup(A2aAgentCard.versionOf(selected.version));
-                    onDialect(traceId, authorization);
+                    onCardParsed(traceId, authorization, card);
                 }
             }
         }
 
+        private void onCardParsed(
+            long traceId,
+            long authorization,
+            A2aAgentCard card)
+        {
+            this.selected = card.select(binding.versions);
+
+            final List<String> denied = binding.deniedRoles(card.skills, authorization);
+
+            if (!denied.isEmpty())
+            {
+                doAppResetBearer(traceId, authorization, BEARER_REALM, String.join(" ", denied),
+                    A2aBearerError.INSUFFICIENT_SCOPE);
+            }
+            else if (selected == null)
+            {
+                if (card.offersJsonRpc())
+                {
+                    doAppResetError(traceId, authorization,
+                        ERROR_CODE_VERSION_NOT_SUPPORTED, ERROR_MESSAGE_VERSION_NOT_SUPPORTED);
+                }
+                else
+                {
+                    doAppResetError(traceId, authorization, ERROR_CODE_UNSUPPORTED_OPERATION,
+                        ERROR_MESSAGE_UNSUPPORTED_OPERATION);
+                }
+            }
+            else
+            {
+                this.dialect = dialects.resolveCard(A2aAgentCard.versionOf(selected.version));
+                onDialect(traceId, authorization);
+            }
+        }
+
+        private int encodeRequest(
+            MutableDirectBufferEx output)
+        {
+            final A2aBeginExFW beginEx = a2aBeginExRO.wrap(beginExBuffer, 0, beginExBuffer.capacity());
+
+            requestEncoder.wrap(output, 0).method(dialect.verbatim() ? operation.method() : operation.legacyMethod());
+
+            if (operation.content())
+            {
+                requestEncoder.params();
+            }
+            else
+            {
+                final JsonObject params = dialect.requestParams(operation, paramsOf(beginEx), selected.tenant);
+                if (params != null)
+                {
+                    requestEncoder.params().raw(params.toString());
+                }
+                requestEncoder.end();
+            }
+
+            return requestEncoder.limit();
+        }
+
         private boolean translatesRequest()
         {
-            return dialect.translatesRequest(selected.tenant);
+            return !dialect.verbatim() || selected.tenant != null;
         }
 
         private void onDialect(
             long traceId,
             long authorization)
         {
-            final boolean body = A2aDialect.hasRequestBody(kind);
+            final boolean body = operation.content();
 
-            if (!dialect.supports(kind))
+            if (!dialect.verbatim() && operation.legacyMethod() == null)
             {
                 doAppResetError(traceId, authorization, ERROR_CODE_UNSUPPORTED_OPERATION, ERROR_MESSAGE_UNSUPPORTED_OPERATION);
             }
@@ -1374,6 +1409,7 @@ public final class A2aClientFactory implements A2aStreamFactory
         @Override
         public void onCardRejected(
             long traceId,
+            long authorization,
             int status,
             String challenge)
         {
@@ -1390,10 +1426,9 @@ public final class A2aClientFactory implements A2aStreamFactory
             final HttpCallStream call = new HttpCallStream(this, selected, dialect);
             this.http = call;
 
-            if (!A2aDialect.hasRequestBody(kind))
+            if (!operation.content())
             {
-                final int limit = dialect.encodeRequest(a2aBeginExRO.wrap(beginExBuffer, 0, beginExBuffer.capacity()),
-                    selected.tenant, codecBuffer, 0);
+                final int limit = encodeRequest(codecBuffer);
 
                 call.doEncodeRequestBegin(traceId, authorization, limit);
                 call.doEncodeRequestData(traceId, authorization, codecBuffer, 0, limit);
@@ -1401,8 +1436,7 @@ public final class A2aClientFactory implements A2aStreamFactory
             }
             else if (!translatesRequest())
             {
-                final int limit = dialect.encodeRequest(a2aBeginExRO.wrap(beginExBuffer, 0, beginExBuffer.capacity()),
-                    selected.tenant, codecBuffer, 0);
+                final int limit = encodeRequest(codecBuffer);
 
                 call.doEncodeRequestBegin(traceId, authorization, limit + contentLength + JSON_RPC_END.length());
                 call.doEncodeRequestData(traceId, authorization, codecBuffer, 0, limit);
@@ -1431,7 +1465,7 @@ public final class A2aClientFactory implements A2aStreamFactory
         {
             requestReceived += payload.sizeof();
 
-            if (!A2aDialect.hasRequestBody(kind) || requestReceived > contentLength)
+            if (!operation.content() || requestReceived > contentLength)
             {
                 cleanupApp(traceId, authorization);
             }
@@ -1498,10 +1532,10 @@ public final class A2aClientFactory implements A2aStreamFactory
         {
             try
             {
-                final int prefix = dialect.encodeRequest(a2aBeginExRO.wrap(beginExBuffer, 0, beginExBuffer.capacity()),
-                    selected.tenant, translateBuffer, 0);
-                final int translated = dialect.translateRequest(kind, selected.tenant, body, 0, decodeSlotOffset,
-                    translateBuffer, prefix);
+                final int prefix = encodeRequest(translateBuffer);
+                final JsonObject params = dialect.requestParams(operation,
+                    new A2aRequestParams(null, null, null, -1, readValue(body, 0, decodeSlotOffset)), selected.tenant);
+                final int translated = prefix + translateBuffer.putStringWithoutLengthUtf8(prefix, params.toString());
                 final int limit = translated + translateBuffer.putStringWithoutLengthAscii(translated, JSON_RPC_END);
 
                 cleanupDecodeSlot();
@@ -1522,7 +1556,7 @@ public final class A2aClientFactory implements A2aStreamFactory
             long traceId,
             long authorization)
         {
-            if (A2aDialect.hasRequestBody(kind) && requestReceived != contentLength)
+            if (operation.content() && requestReceived != contentLength)
             {
                 cleanupApp(traceId, authorization);
             }
@@ -1539,8 +1573,6 @@ public final class A2aClientFactory implements A2aStreamFactory
             long traceId,
             long authorization)
         {
-            binding.cardOf(agent != null ? agent : "").waiters.remove(this);
-
             if (http != null)
             {
                 http.doNetAbort(traceId, authorization);
@@ -1595,8 +1627,7 @@ public final class A2aClientFactory implements A2aStreamFactory
             long authorization,
             DirectBufferEx buffer,
             int offset,
-            int limit,
-            long maxAgeMillis)
+            int limit)
         {
             if (!A2aState.replyClosed(state))
             {
@@ -1647,8 +1678,12 @@ public final class A2aClientFactory implements A2aStreamFactory
             {
                 final MutableDirectBufferEx slotBuffer = encodePool.buffer(cardSlot);
                 final A2aAgentCard card = cardParser.parse(slotBuffer, 0, cardSlotLimit);
-                final int limit = cardTranslator.translate(card, binding::rolesOf, slotBuffer, 0, cardSlotLimit,
-                    translateBuffer, 0);
+                final A2aDialect wire = dialects.resolveCard(card.legacy ? VERSION_LEGACY : VERSION_CANONICAL);
+                final JsonObject canonical = wire.cardFromWire(readValue(slotBuffer, 0, cardSlotLimit).asJsonObject());
+                final byte[] unified = A2aCardRoles.inject(canonical, binding::rolesOf).toString()
+                    .getBytes(StandardCharsets.UTF_8);
+                translateBuffer.putBytes(0, unified);
+                final int limit = unified.length;
 
                 cardDelivered = doAppData(traceId, authorization, null, translateBuffer, cardDelivered, limit);
 
@@ -1889,68 +1924,6 @@ public final class A2aClientFactory implements A2aStreamFactory
         }
     }
 
-    private final class A2aCardLookup implements A2aCardConsumer
-    {
-        private final A2aClientBindingConfig binding;
-        private final A2aCardEntry entry;
-
-        A2aCardLookup(
-            A2aClientBindingConfig binding,
-            A2aCardEntry entry)
-        {
-            this.binding = binding;
-            this.entry = entry;
-        }
-
-        @Override
-        public void onCard(
-            long traceId,
-            long authorization,
-            DirectBufferEx buffer,
-            int offset,
-            int limit,
-            long maxAgeMillis)
-        {
-            A2aAgentCard card = null;
-
-            try
-            {
-                card = cardParser.parse(buffer, offset, limit);
-            }
-            catch (RuntimeException ex)
-            {
-                onCardRejected(traceId, authorization, 0, null);
-            }
-
-            if (card != null)
-            {
-                final long maxAge = maxAgeMillis >= 0 ? maxAgeMillis : cardMaxAgeMillis;
-                entry.resolve(card, card.select(binding.versions), context.clock().millis() + maxAge);
-                entry.fetch = null;
-
-                for (A2aCardWaiter waiter = entry.waiters.poll(); waiter != null; waiter = entry.waiters.poll())
-                {
-                    waiter.onCardResolved(traceId, entry);
-                }
-            }
-        }
-
-        @Override
-        public void onCardRejected(
-            long traceId,
-            long authorization,
-            int status,
-            String challenge)
-        {
-            entry.fetch = null;
-
-            for (A2aCardWaiter waiter = entry.waiters.poll(); waiter != null; waiter = entry.waiters.poll())
-            {
-                waiter.onCardRejected(traceId, status, challenge);
-            }
-        }
-    }
-
     private void fetchCard(
         A2aCardConsumer consumer,
         A2aClientBindingConfig binding,
@@ -2019,6 +1992,53 @@ public final class A2aClientFactory implements A2aStreamFactory
         };
     }
 
+    private static A2aOperation operationOf(
+        int kind)
+    {
+        return switch (kind)
+        {
+        case KIND_MESSAGE_SEND -> A2aOperation.MESSAGE_SEND;
+        case KIND_MESSAGE_STREAM -> A2aOperation.MESSAGE_STREAM;
+        case KIND_TASKS_GET -> A2aOperation.TASKS_GET;
+        case KIND_TASKS_LIST -> A2aOperation.TASKS_LIST;
+        case KIND_TASKS_CANCEL -> A2aOperation.TASKS_CANCEL;
+        case KIND_TASKS_SUBSCRIBE -> A2aOperation.TASKS_SUBSCRIBE;
+        case KIND_PUSH_CONFIG_CREATE -> A2aOperation.PUSH_CONFIG_CREATE;
+        case KIND_PUSH_CONFIG_GET -> A2aOperation.PUSH_CONFIG_GET;
+        case KIND_PUSH_CONFIG_LIST -> A2aOperation.PUSH_CONFIG_LIST;
+        case KIND_PUSH_CONFIG_DELETE -> A2aOperation.PUSH_CONFIG_DELETE;
+        default -> A2aOperation.EXTENDED_AGENT_CARD;
+        };
+    }
+
+    private static A2aRequestParams paramsOf(
+        A2aBeginExFW beginEx)
+    {
+        return switch (beginEx.kind())
+        {
+        case KIND_TASKS_GET -> new A2aRequestParams(beginEx.tasksGet().taskId().asString(), null, null,
+            beginEx.tasksGet().historyLength(), null);
+        case KIND_TASKS_CANCEL -> new A2aRequestParams(beginEx.tasksCancel().taskId().asString(), null, null, -1, null);
+        case KIND_TASKS_SUBSCRIBE -> new A2aRequestParams(beginEx.tasksSubscribe().taskId().asString(), null, null, -1, null);
+        case KIND_PUSH_CONFIG_GET -> new A2aRequestParams(beginEx.pushConfigGet().taskId().asString(),
+            beginEx.pushConfigGet().configId().asString(), null, -1, null);
+        case KIND_PUSH_CONFIG_LIST -> new A2aRequestParams(beginEx.pushConfigList().taskId().asString(), null, null, -1, null);
+        case KIND_PUSH_CONFIG_DELETE -> new A2aRequestParams(beginEx.pushConfigDelete().taskId().asString(),
+            beginEx.pushConfigDelete().configId().asString(), null, -1, null);
+        default -> new A2aRequestParams(null, null, null, -1, null);
+        };
+    }
+
+    private static JsonValue readValue(
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        final byte[] json = new byte[limit - offset];
+        buffer.getBytes(offset, json);
+        return Json.createReader(new ByteArrayInputStream(json)).readValue();
+    }
+
     private static String reasonOf(
         int status)
     {
@@ -2050,7 +2070,6 @@ public final class A2aClientFactory implements A2aStreamFactory
 
         protected MessageConsumer net;
         protected int state;
-        protected String cacheControl;
 
         protected long initialSeq;
         protected long initialAck;
@@ -2212,7 +2231,6 @@ public final class A2aClientFactory implements A2aStreamFactory
             {
                 status = headerOf(httpBeginEx, HTTP_HEADER_STATUS);
                 challenge = headerOf(httpBeginEx, HTTP_HEADER_WWW_AUTHENTICATE);
-                cacheControl = headerOf(httpBeginEx, HTTP_HEADER_CACHE_CONTROL);
 
                 if (CONTENT_TYPE_EVENT_STREAM.equals(headerOf(httpBeginEx, HTTP_HEADER_CONTENT_TYPE)))
                 {
@@ -2739,7 +2757,7 @@ public final class A2aClientFactory implements A2aStreamFactory
             long authorization,
             int contentLength)
         {
-            final String accept = A2aDialect.streaming(call.kind) ? CONTENT_TYPE_EVENT_STREAM : CONTENT_TYPE_JSON;
+            final String accept = call.operation.streaming() ? CONTENT_TYPE_EVENT_STREAM : CONTENT_TYPE_JSON;
             final String extensions = call.extensions;
             final String authorizationHeader = call.authorizationHeader();
             final String length = Integer.toString(contentLength);
@@ -2971,20 +2989,9 @@ public final class A2aClientFactory implements A2aStreamFactory
             final MutableDirectBufferEx buffer = decodeSlot != NO_SLOT ? decodePool.buffer(decodeSlot) : codecBuffer;
             final int limit = decodeSlot != NO_SLOT ? decodeSlotOffset : 0;
 
-            long maxAgeMillis = -1L;
-            if (cacheControl != null && maxAgeMatcher.reset(cacheControl).find())
-            {
-                maxAgeMillis = Long.parseLong(maxAgeMatcher.group(1)) * 1000L;
-            }
-            else if (cacheControl != null && NO_CACHE_PATTERN.matcher(cacheControl).find())
-            {
-                maxAgeMillis = 0L;
-            }
-
-            final long maxAge = maxAgeMillis;
             if (limit > 0)
             {
-                consumer.onCard(traceId, authorization, buffer, 0, limit, maxAge);
+                consumer.onCard(traceId, authorization, buffer, 0, limit);
             }
             else
             {
@@ -3163,7 +3170,7 @@ public final class A2aClientFactory implements A2aStreamFactory
     {
         final int kind = http.call.kind;
         final boolean wrapped = kind == KIND_MESSAGE_SEND || kind == KIND_MESSAGE_STREAM || kind == KIND_TASKS_SUBSCRIBE;
-        final int peek = wrapped && !http.dialect.translatesResult() ? peekMessage(buffer, offset, limit) : PEEK_NO;
+        final int peek = wrapped && http.dialect.verbatim() ? peekMessage(buffer, offset, limit) : PEEK_NO;
 
         int progress = offset;
 
@@ -3232,12 +3239,14 @@ public final class A2aClientFactory implements A2aStreamFactory
                 int resultOffset = offset;
                 int resultLimit = limit;
 
-                if (http.dialect.translatesResult())
+                if (!http.dialect.verbatim())
                 {
+                    final byte[] translated = http.dialect.resultFromWire(http.call.operation, readValue(buffer, offset, limit))
+                        .toString().getBytes(StandardCharsets.UTF_8);
+                    translateBuffer.putBytes(0, translated);
                     result = translateBuffer;
                     resultOffset = 0;
-                    resultLimit = http.dialect.translateResult(http.call.kind, http.call.card, buffer, offset, limit,
-                        translateBuffer, 0);
+                    resultLimit = translated.length;
                 }
 
                 final boolean empty = resultLimit - resultOffset == JSON_NULL.length() &&

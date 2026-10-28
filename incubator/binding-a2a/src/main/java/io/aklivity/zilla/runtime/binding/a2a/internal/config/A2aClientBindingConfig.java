@@ -18,14 +18,10 @@ import static java.util.stream.Collectors.toList;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Map;
-
-import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.config.binding.a2a.A2aAuthorizationConfig;
 import io.aklivity.zilla.config.binding.a2a.A2aOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
-import io.aklivity.zilla.runtime.binding.a2a.internal.card.A2aCardEntry;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
@@ -45,7 +41,6 @@ public final class A2aClientBindingConfig
     public final String serverPath;
 
     private final List<A2aClientRouteConfig> routes;
-    private final Map<String, A2aCardEntry> cards = new Object2ObjectHashMap<>();
 
     public A2aClientBindingConfig(
         BindingConfig binding,
@@ -89,12 +84,6 @@ public final class A2aClientBindingConfig
         }
 
         return resolved;
-    }
-
-    public A2aCardEntry cardOf(
-        String agent)
-    {
-        return cards.computeIfAbsent(agent, A2aCardEntry::new);
     }
 
     public List<String> rolesOf(

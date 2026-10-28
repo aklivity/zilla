@@ -34,8 +34,6 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
                            .header(":status", "200")
                            .header("content-type", "application/json")
-                           .header("etag", "\"v1\"")
-                           .header("cache-control", "max-age=300")
                            .build()}
 
 read '{"name":"Weather Agent","description":"Answers weather questions","supportedInterfaces":[{"url":"localhost:8081","protocolBinding":"GRPC","protocolVersion":"1.0"}],"version":"1.0.0","capabilities":{"streaming":true,"pushNotifications":true},"defaultInputModes":["text/plain"],"defaultOutputModes":["text/plain"],"skills":[{"id":"weather","name":"Weather","description":"Current weather","tags":["weather"]}]}'

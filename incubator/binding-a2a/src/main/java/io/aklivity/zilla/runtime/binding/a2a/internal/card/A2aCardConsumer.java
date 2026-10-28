@@ -23,8 +23,7 @@ public interface A2aCardConsumer
         long authorization,
         DirectBufferEx buffer,
         int offset,
-        int limit,
-        long maxAgeMillis);
+        int limit);
 
     void onCardRejected(
         long traceId,

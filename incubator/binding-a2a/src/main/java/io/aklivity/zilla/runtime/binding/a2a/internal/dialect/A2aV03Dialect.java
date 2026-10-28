@@ -223,9 +223,379 @@ public final class A2aV03Dialect implements A2aDialect
     }
 
     @Override
+    public JsonObject requestParams(
+        A2aOperation operation,
+        A2aRequestParams request,
+        String tenant)
+    {
+        JsonObject params = null;
+
+        switch (operation)
+        {
+        case MESSAGE_SEND:
+        case MESSAGE_STREAM:
+            final JsonObjectBuilder message = Json.createObjectBuilder();
+            if (request.body() instanceof JsonObject body)
+            {
+                body.forEach((name, value) -> message.add(name,
+                    "message".equals(name) && value instanceof JsonObject member ? messageFromCanonical(member) : value));
+            }
+            params = message.build();
+            break;
+        case TASKS_GET:
+            final JsonObjectBuilder get = Json.createObjectBuilder().add("id", request.taskId());
+            if (request.historyLength() >= 0)
+            {
+                get.add("historyLength", request.historyLength());
+            }
+            params = get.build();
+            break;
+        case TASKS_CANCEL:
+        case TASKS_SUBSCRIBE:
+        case PUSH_CONFIG_LIST:
+            params = Json.createObjectBuilder().add("id", request.taskId()).build();
+            break;
+        case PUSH_CONFIG_GET:
+        case PUSH_CONFIG_DELETE:
+            params = Json.createObjectBuilder()
+                .add("id", request.taskId())
+                .add("pushNotificationConfigId", request.configId())
+                .build();
+            break;
+        case PUSH_CONFIG_CREATE:
+            params = pushConfigCreateFromCanonical(request.body() instanceof JsonObject body
+                ? body
+                : JsonValue.EMPTY_JSON_OBJECT);
+            break;
+        default:
+            break;
+        }
+
+        return params;
+    }
+
+    @Override
+    public JsonValue resultFromWire(
+        A2aOperation operation,
+        JsonValue wire)
+    {
+        JsonValue result = wire;
+
+        switch (operation)
+        {
+        case TASKS_GET:
+        case TASKS_CANCEL:
+            result = wire instanceof JsonObject task ? taskToCanonical(task) : wire;
+            break;
+        case MESSAGE_SEND:
+        case MESSAGE_STREAM:
+        case TASKS_SUBSCRIBE:
+            result = wire instanceof JsonObject event ? eventToCanonical(event) : wire;
+            break;
+        case PUSH_CONFIG_CREATE:
+        case PUSH_CONFIG_GET:
+            result = wire instanceof JsonObject config ? pushConfigToCanonical(config) : wire;
+            break;
+        case PUSH_CONFIG_LIST:
+            final JsonArrayBuilder configs = Json.createArrayBuilder();
+            if (wire instanceof JsonArray list)
+            {
+                list.forEach(c -> configs.add(c instanceof JsonObject config ? pushConfigToCanonical(config) : c));
+            }
+            result = Json.createObjectBuilder().add("configs", configs).build();
+            break;
+        case EXTENDED_AGENT_CARD:
+            result = wire instanceof JsonObject card ? cardFromWire(card) : wire;
+            break;
+        default:
+            break;
+        }
+
+        return result;
+    }
+
+    @Override
+    public JsonObject cardFromWire(
+        JsonObject wire)
+    {
+        final JsonObjectBuilder builder = Json.createObjectBuilder();
+        boolean interfaces = false;
+
+        for (Map.Entry<String, JsonValue> member : wire.entrySet())
+        {
+            switch (member.getKey())
+            {
+            case "url":
+            case "preferredTransport":
+            case "protocolVersion":
+            case "additionalInterfaces":
+                if (!interfaces)
+                {
+                    interfaces = true;
+                    builder.add("supportedInterfaces", interfacesToCanonical(wire));
+                }
+                break;
+            case "skills":
+                builder.add("skills", member.getValue() instanceof JsonArray skills
+                    ? map(skills, this::skillToCanonical)
+                    : member.getValue());
+                break;
+            default:
+                builder.add(member.getKey(), member.getValue());
+                break;
+            }
+        }
+
+        return builder.build();
+    }
+
+    @Override
     public boolean verbatim()
     {
         return false;
+    }
+
+    private JsonArray interfacesToCanonical(
+        JsonObject wire)
+    {
+        final String version = string(wire, "protocolVersion");
+        final String protocolVersion = version != null ? version : VERSION;
+        final JsonArrayBuilder builder = Json.createArrayBuilder();
+
+        final String url = string(wire, "url");
+        if (url != null)
+        {
+            final String transport = string(wire, "preferredTransport");
+            builder.add(Json.createObjectBuilder()
+                .add("url", url)
+                .add("protocolBinding", transport != null ? transport : BINDING_JSONRPC)
+                .add("protocolVersion", protocolVersion));
+        }
+
+        final JsonArray additional = array(wire, "additionalInterfaces");
+        if (additional != null)
+        {
+            additional.forEach(item ->
+            {
+                if (item instanceof JsonObject candidate)
+                {
+                    builder.add(Json.createObjectBuilder()
+                        .add("url", string(candidate, "url"))
+                        .add("protocolBinding", string(candidate, "transport"))
+                        .add("protocolVersion", protocolVersion));
+                }
+            });
+        }
+
+        return builder.build();
+    }
+
+    private JsonObject skillToCanonical(
+        JsonObject skill)
+    {
+        final JsonObjectBuilder builder = Json.createObjectBuilder();
+        skill.forEach((name, value) ->
+        {
+            if ("security".equals(name) && value instanceof JsonArray requirements)
+            {
+                builder.add("securityRequirements", map(requirements, this::requirementToCanonical));
+            }
+            else
+            {
+                builder.add(name, value);
+            }
+        });
+        return builder.build();
+    }
+
+    private JsonObject requirementToCanonical(
+        JsonObject requirement)
+    {
+        final JsonObjectBuilder schemes = Json.createObjectBuilder();
+        requirement.forEach((scheme, scopes) -> schemes.add(scheme, Json.createObjectBuilder().add("list", scopes)));
+        return Json.createObjectBuilder().add("schemes", schemes).build();
+    }
+
+    private JsonObject pushConfigCreateFromCanonical(
+        JsonObject params)
+    {
+        final String configId = string(params, "configId");
+        final JsonObjectBuilder builder = Json.createObjectBuilder();
+
+        params.forEach((name, value) ->
+        {
+            switch (name)
+            {
+            case "configId":
+                break;
+            case "config":
+                final JsonObjectBuilder config = Json.createObjectBuilder();
+                if (configId != null)
+                {
+                    config.add("id", configId);
+                }
+                if (value instanceof JsonObject canonical)
+                {
+                    canonical.forEach((member, memberValue) -> config.add(member,
+                        "authentication".equals(member) && memberValue instanceof JsonObject authentication
+                            ? authenticationFromCanonical(authentication)
+                            : memberValue));
+                }
+                builder.add("pushNotificationConfig", config);
+                break;
+            default:
+                builder.add(name, value);
+                break;
+            }
+        });
+
+        return builder.build();
+    }
+
+    private JsonObject pushConfigToCanonical(
+        JsonObject wire)
+    {
+        final String taskId = string(wire, "taskId");
+        final JsonObject config = object(wire, "pushNotificationConfig");
+        final JsonObjectBuilder builder = Json.createObjectBuilder();
+
+        if (config != null)
+        {
+            final String id = string(config, "id");
+            if (id != null)
+            {
+                builder.add("id", id);
+            }
+        }
+
+        if (taskId != null)
+        {
+            builder.add("taskId", taskId);
+        }
+
+        if (config != null)
+        {
+            config.forEach((name, value) ->
+            {
+                if ("authentication".equals(name) && value instanceof JsonObject authentication)
+                {
+                    builder.add(name, authenticationToCanonical(authentication));
+                }
+                else if (!"id".equals(name))
+                {
+                    builder.add(name, value);
+                }
+            });
+        }
+
+        return builder.build();
+    }
+
+    private JsonObject eventToCanonical(
+        JsonObject event)
+    {
+        final String kind = string(event, "kind");
+        final JsonObjectBuilder builder = Json.createObjectBuilder();
+
+        switch (kind != null ? kind : "")
+        {
+        case "task":
+            builder.add("task", taskToCanonical(event));
+            break;
+        case "status-update":
+            final JsonObjectBuilder status = Json.createObjectBuilder();
+            event.forEach((name, value) ->
+            {
+                if ("status".equals(name) && value instanceof JsonObject member)
+                {
+                    status.add(name, statusToCanonical(member));
+                }
+                else if (!"kind".equals(name) && !"final".equals(name))
+                {
+                    status.add(name, value);
+                }
+            });
+            builder.add("statusUpdate", status);
+            break;
+        case "artifact-update":
+            final JsonObjectBuilder artifact = Json.createObjectBuilder();
+            event.forEach((name, value) ->
+            {
+                if ("artifact".equals(name) && value instanceof JsonObject member)
+                {
+                    artifact.add(name, artifactToCanonical(member));
+                }
+                else if (!"kind".equals(name))
+                {
+                    artifact.add(name, value);
+                }
+            });
+            builder.add("artifactUpdate", artifact);
+            break;
+        default:
+            builder.add("message", messageToCanonical(event));
+            break;
+        }
+
+        return builder.build();
+    }
+
+    private JsonObject taskToCanonical(
+        JsonObject task)
+    {
+        final JsonObjectBuilder builder = Json.createObjectBuilder();
+        task.forEach((name, value) ->
+        {
+            switch (name)
+            {
+            case "kind":
+                break;
+            case "status":
+                builder.add(name, value instanceof JsonObject status ? statusToCanonical(status) : value);
+                break;
+            case "artifacts":
+                builder.add(name, value instanceof JsonArray artifacts ? map(artifacts, this::artifactToCanonical) : value);
+                break;
+            case "history":
+                builder.add(name, value instanceof JsonArray history ? map(history, this::messageToCanonical) : value);
+                break;
+            default:
+                builder.add(name, value);
+                break;
+            }
+        });
+        return builder.build();
+    }
+
+    private JsonObject statusToCanonical(
+        JsonObject status)
+    {
+        final JsonObjectBuilder builder = Json.createObjectBuilder();
+        status.forEach((name, value) ->
+        {
+            if ("state".equals(name) && value instanceof JsonString state)
+            {
+                builder.add(name, STATES_TO_CANONICAL.getOrDefault(state.getString(), state.getString()));
+            }
+            else if ("message".equals(name) && value instanceof JsonObject message)
+            {
+                builder.add(name, messageToCanonical(message));
+            }
+            else
+            {
+                builder.add(name, value);
+            }
+        });
+        return builder.build();
+    }
+
+    private JsonObject artifactToCanonical(
+        JsonObject artifact)
+    {
+        final JsonObjectBuilder builder = Json.createObjectBuilder();
+        artifact.forEach((name, value) -> builder.add(name,
+            "parts".equals(name) && value instanceof JsonArray parts ? map(parts, this::partToCanonical) : value));
+        return builder.build();
     }
 
     private A2aRequestParams withTask(
