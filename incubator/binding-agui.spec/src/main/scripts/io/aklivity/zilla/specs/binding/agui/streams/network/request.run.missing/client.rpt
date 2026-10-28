@@ -39,6 +39,6 @@ read zilla:begin.ext ${http:matchBeginEx()
                        .header("content-type", "application/json")
                        .build()}
 
-read "{\"error\":\"Malformed RunAgentInput\"}"
+read "{\"error\":\"Missing required property: runId\"}"
 
 read closed
