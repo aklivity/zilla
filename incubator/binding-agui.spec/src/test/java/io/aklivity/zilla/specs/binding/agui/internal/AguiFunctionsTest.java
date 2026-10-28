@@ -25,6 +25,10 @@ import org.junit.Test;
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiBeginExFW;
+import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiDataExFW;
+import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiEndExFW;
+import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiOutcomeType;
+import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiRole;
 
 public class AguiFunctionsTest
 {
@@ -119,6 +123,181 @@ public class AguiFunctionsTest
             .typeId(0x01)
             .threadId("thread-1")
             .runId("run-1")
+            .build()));
+    }
+
+    @Test
+    public void shouldGenerateTextDataEx()
+    {
+        byte[] bytes = AguiFunctions.dataEx()
+            .typeId(0x01)
+            .text()
+                .messageId("msg-2")
+                .role("USER")
+                .build()
+            .build();
+
+        AguiDataExFW dataEx = new AguiDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+
+        assertEquals(0x01, dataEx.typeId());
+        assertEquals(AguiDataExFW.KIND_TEXT, dataEx.kind());
+        assertEquals("msg-2", dataEx.text().messageId().asString());
+        assertEquals(AguiRole.USER, dataEx.text().role().get());
+    }
+
+    @Test
+    public void shouldGenerateTextDataExWithDefaultRole()
+    {
+        byte[] bytes = AguiFunctions.dataEx()
+            .typeId(0x01)
+            .text()
+                .messageId("msg-2")
+                .build()
+            .build();
+
+        AguiDataExFW dataEx = new AguiDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+
+        assertEquals(AguiRole.ASSISTANT, dataEx.text().role().get());
+    }
+
+    @Test
+    public void shouldMatchTextDataEx() throws Exception
+    {
+        BytesMatcher matcher = AguiFunctions.matchDataEx()
+            .typeId(0x01)
+            .text()
+                .messageId("msg-2")
+                .role("ASSISTANT")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(AguiFunctions.dataEx()
+            .typeId(0x01)
+            .text()
+                .messageId("msg-2")
+                .build()
+            .build());
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchTextDataExWithoutConstraints() throws Exception
+    {
+        BytesMatcher matcher = AguiFunctions.matchDataEx().build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(AguiFunctions.dataEx()
+            .typeId(0x01)
+            .text()
+                .messageId("msg-2")
+                .build()
+            .build());
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldNotMatchEmptyDataEx() throws Exception
+    {
+        BytesMatcher matcher = AguiFunctions.matchDataEx().build();
+
+        assertNull(matcher.match(ByteBuffer.allocate(0)));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchTextDataExWithDifferentMessageId() throws Exception
+    {
+        BytesMatcher matcher = AguiFunctions.matchDataEx()
+            .text()
+                .messageId("msg-3")
+                .build()
+            .build();
+
+        matcher.match(ByteBuffer.wrap(AguiFunctions.dataEx()
+            .typeId(0x01)
+            .text()
+                .messageId("msg-2")
+                .build()
+            .build()));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchTextDataExWithDifferentRole() throws Exception
+    {
+        BytesMatcher matcher = AguiFunctions.matchDataEx()
+            .text()
+                .role("USER")
+                .build()
+            .build();
+
+        matcher.match(ByteBuffer.wrap(AguiFunctions.dataEx()
+            .typeId(0x01)
+            .text()
+                .messageId("msg-2")
+                .build()
+            .build()));
+    }
+
+    @Test
+    public void shouldGenerateEndEx()
+    {
+        byte[] bytes = AguiFunctions.endEx()
+            .typeId(0x01)
+            .outcome("SUCCESS")
+            .build();
+
+        AguiEndExFW endEx = new AguiEndExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+
+        assertEquals(0x01, endEx.typeId());
+        assertEquals(AguiOutcomeType.SUCCESS, endEx.outcome().get());
+    }
+
+    @Test
+    public void shouldGenerateEndExWithDefaultOutcome()
+    {
+        byte[] bytes = AguiFunctions.endEx()
+            .typeId(0x01)
+            .build();
+
+        AguiEndExFW endEx = new AguiEndExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+
+        assertEquals(AguiOutcomeType.NONE, endEx.outcome().get());
+    }
+
+    @Test
+    public void shouldMatchEndEx() throws Exception
+    {
+        BytesMatcher matcher = AguiFunctions.matchEndEx()
+            .typeId(0x01)
+            .outcome("SUCCESS")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(AguiFunctions.endEx()
+            .typeId(0x01)
+            .outcome("SUCCESS")
+            .build());
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldNotMatchEmptyEndEx() throws Exception
+    {
+        BytesMatcher matcher = AguiFunctions.matchEndEx().build();
+
+        assertNull(matcher.match(ByteBuffer.allocate(0)));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchEndExWithDifferentOutcome() throws Exception
+    {
+        BytesMatcher matcher = AguiFunctions.matchEndEx()
+            .outcome("INTERRUPT")
+            .build();
+
+        matcher.match(ByteBuffer.wrap(AguiFunctions.endEx()
+            .typeId(0x01)
+            .outcome("SUCCESS")
             .build()));
     }
 }
