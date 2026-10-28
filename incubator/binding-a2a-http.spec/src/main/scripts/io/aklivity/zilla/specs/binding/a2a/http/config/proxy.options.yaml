@@ -52,12 +52,6 @@ catalogs:
       id: 5
       schema: |
         {"type":"object","properties":{"items":{"type":"array","items":{"type":"string"}}}}
-  watch_items_params:
-    type: test
-    options:
-      id: 6
-      schema: |
-        {"type":"object","properties":{}}
 bindings:
   app0:
     type: a2a-http

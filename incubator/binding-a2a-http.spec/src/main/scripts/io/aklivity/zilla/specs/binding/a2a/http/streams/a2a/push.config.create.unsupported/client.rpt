@@ -13,7 +13,6 @@
 # specific language governing permissions and limitations under the License.
 #
 
-
 connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
@@ -21,13 +20,10 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${a2a:beginEx()
                            .typeId(zilla:id("a2a"))
                            .pushConfigCreate()
-                               .contentLength(87)
                                .build()
                            .build()}
 
 connected
-
-write '{"taskId":"t-1","configId":"c-1","config":{"url":"https://client.example.com/webhook"}}'
 
 read zilla:reset.ext ${a2a:matchResetEx()
                           .typeId(zilla:id("a2a"))

@@ -52,18 +52,12 @@ catalogs:
       id: 5
       schema: |
         {"type":"object","properties":{"items":{"type":"array","items":{"type":"string"}}}}
-  watch_items_params:
-    type: test
-    options:
-      id: 6
-      schema: |
-        {"type":"object","properties":{}}
 guards:
   test0:
     type: test
     options:
       roles:
-        - items:read
+        - items:write
 bindings:
   app0:
     type: a2a-http
@@ -125,16 +119,6 @@ bindings:
                 search_items_result:
                   - subject: search_items_result
                     version: latest
-        watch_items:
-          description: Watch item changes
-          examples: [ "watch items" ]
-          schemas:
-            input:
-              model: json
-              catalog:
-                watch_items_params:
-                  - subject: watch_items_params
-                    version: latest
     routes:
       - guarded:
           test0:
@@ -178,15 +162,3 @@ bindings:
             ":scheme": https
             ":authority": api.example.internal:443
             ":path": "/items?q=${args.q}"
-      - guarded:
-          test0:
-            - items:read
-        when:
-          - skill: watch_items
-        exit: http0
-        with:
-          headers:
-            ":method": GET
-            ":scheme": https
-            ":authority": api.example.internal:443
-            ":path": "/items/events"
