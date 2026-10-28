@@ -4606,21 +4606,35 @@ public final class HttpClientFactory implements HttpStreamFactory
                 final long traceId = queueEntry.traceId();
                 final long authorization = queueEntry.authorization();
                 final HttpExchange httpExchange = exchanges.get(streamId);
+                HttpClient client = null;
 
                 if (httpExchange != null)
                 {
-                    if (encoder == HttpEncoder.HTTP_1_1 && exchange != null)
+                    final HttpEncoder encoder = httpExchange.client.encoder;
+                    if (encoder == HttpEncoder.HTTP_1_1 && httpExchange.client.exchange != null)
                     {
                         break dequeue;
                     }
 
-                    httpExchange.doRequestBegin(traceId, authorization, queueEntry.value());
-                    httpExchange.remoteBudget = remoteSharedBudget;
-                    encoder.onApplicationBegin(this, httpExchange, traceId, authorization);
+                    client = encoder == HttpEncoder.HTTP_2 ||
+                            encoder == HttpEncoder.HTTP_1_1 && httpExchange.client.exchange == null ||
+                            encoder == HttpEncoder.H2C ?
+                            httpExchange.client : pool.supplyClient(httpExchange.client.scheme, httpExchange.client.authority);
+
+                    if (client != null)
+                    {
+                        httpExchange.doRequestBegin(traceId, authorization, queueEntry.value());
+                        httpExchange.remoteBudget = httpExchange.client.remoteSharedBudget;
+                        httpExchange.client.encoder.onApplicationBegin(httpExchange.client, httpExchange, traceId, authorization);
+                    }
+                    else
+                    {
+                        httpExchange.doResponseAbort(traceId, authorization, EMPTY_OCTETS);
+                    }
                 }
                 httpQueueSlotOffset += queueEntry.sizeof();
 
-                if (httpExchange != null && encoder == HttpEncoder.H2C)
+                if (client != null && client.encoder == HttpEncoder.H2C)
                 {
                     break dequeue;
                 }
