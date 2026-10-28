@@ -128,4 +128,32 @@ public class SchemaTest
     {
         schema.validate("proxy.resource.input.schema.invalid.yaml");
     }
+
+    @Test
+    public void shouldValidateCatalogOverlay()
+    {
+        JsonObject config = schema.validate("kind.proxy.overlay.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateDeprecatedOverlay()
+    {
+        JsonObject config = schema.validate("kind.proxy.overlay.deprecated.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectCatalogOverlayWithDeprecatedOverlay()
+    {
+        schema.validate("kind.proxy.overlay.both.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectCatalogOverlayWithMultipleCatalogs()
+    {
+        schema.validate("kind.proxy.overlay.multiple.invalid.yaml");
+    }
 }

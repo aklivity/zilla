@@ -88,6 +88,24 @@ public class McpOpenapiProxyIT
     }
 
     @Test
+    @Configuration("kind.proxy.overlay.yaml")
+    @Specification({
+        "${mcp}/tools.list.with.overlay/client"})
+    public void shouldListToolsWithOverlay() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("kind.proxy.overlay.deprecated.yaml")
+    @Specification({
+        "${mcp}/tools.list.with.overlay/client"})
+    public void shouldListToolsWithDeprecatedOverlay() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("kind.proxy.yaml")
     @Specification({
         "${mcp}/resources.list/client"})
