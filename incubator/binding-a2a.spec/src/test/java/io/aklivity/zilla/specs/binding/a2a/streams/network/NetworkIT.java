@@ -47,9 +47,54 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/agent.card.guarded/client",
+        "${net}/agent.card.guarded/server"})
+    public void shouldAgentCardGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/agent.card.legacy.agent.json/client",
         "${net}/agent.card.legacy.agent.json/server"})
     public void shouldAgentCardLegacyAgentJson() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/agent.card.legacy.slug.not.found/client",
+        "${net}/agent.card.legacy.slug.not.found/server"})
+    public void shouldAgentCardLegacySlugNotFound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/agent.card.max.age.zero/client",
+        "${net}/agent.card.max.age.zero/server"})
+    public void shouldAgentCardMaxAgeZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/agent.card.no.jsonrpc/client",
+        "${net}/agent.card.no.jsonrpc/server"})
+    public void shouldAgentCardNoJsonrpc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/agent.card.not.found/client",
+        "${net}/agent.card.not.found/server"})
+    public void shouldAgentCardNotFound() throws Exception
     {
         k3po.finish();
     }
@@ -65,9 +110,45 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/agent.card.slug.forecast/client",
+        "${net}/agent.card.slug.forecast/server"})
+    public void shouldAgentCardSlugForecast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/agent.card.slug.not.found/client",
+        "${net}/agent.card.slug.not.found/server"})
+    public void shouldAgentCardSlugNotFound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/agent.card.tenant/client",
+        "${net}/agent.card.tenant/server"})
+    public void shouldAgentCardTenant() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/agent.card.v0.3/client",
         "${net}/agent.card.v0.3/server"})
     public void shouldAgentCardV03() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/agent.card.version.unsupported/client",
+        "${net}/agent.card.version.unsupported/server"})
+    public void shouldAgentCardVersionUnsupported() throws Exception
     {
         k3po.finish();
     }
@@ -104,6 +185,429 @@ public class NetworkIT
         "${net}/cancel.task.v0.3/client",
         "${net}/cancel.task.v0.3/server"})
     public void shouldCancelTaskV03() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.agent.card/client",
+        "${net}/discover.agent.card/server"})
+    public void shouldDiscoverAgentCard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.agent.card.guarded/client",
+        "${net}/discover.agent.card.guarded/server"})
+    public void shouldDiscoverAgentCardGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.agent.card.legacy/client",
+        "${net}/discover.agent.card.legacy/server"})
+    public void shouldDiscoverAgentCardLegacy() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.agent.card.slug/client",
+        "${net}/discover.agent.card.slug/server"})
+    public void shouldDiscoverAgentCardSlug() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.agent.card.v0.3/client",
+        "${net}/discover.agent.card.v0.3/server"})
+    public void shouldDiscoverAgentCardV03() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.agent.not.found/client",
+        "${net}/discover.agent.not.found/server"})
+    public void shouldDiscoverAgentNotFound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.cancel.task/client",
+        "${net}/discover.cancel.task/server"})
+    public void shouldDiscoverCancelTask() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.cancel.task.not.cancelable/client",
+        "${net}/discover.cancel.task.not.cancelable/server"})
+    public void shouldDiscoverCancelTaskNotCancelable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.cancel.task.v0.3/client",
+        "${net}/discover.cancel.task.v0.3/server"})
+    public void shouldDiscoverCancelTaskV03() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.extended.agent.card/client",
+        "${net}/discover.extended.agent.card/server"})
+    public void shouldDiscoverExtendedAgentCard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.extended.agent.card.not.configured/client",
+        "${net}/discover.extended.agent.card.not.configured/server"})
+    public void shouldDiscoverExtendedAgentCardNotConfigured() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.extension.required/client",
+        "${net}/discover.extension.required/server"})
+    public void shouldDiscoverExtensionRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.forbidden.bearer/client",
+        "${net}/discover.forbidden.bearer/server"})
+    public void shouldDiscoverForbiddenBearer() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.forbidden.bearer.guarded/client",
+        "${net}/discover.forbidden.bearer.guarded/server"})
+    public void shouldDiscoverForbiddenBearerGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.get.task/client",
+        "${net}/discover.get.task/server"})
+    public void shouldDiscoverGetTask() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.get.task.not.found/client",
+        "${net}/discover.get.task.not.found/server"})
+    public void shouldDiscoverGetTaskNotFound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.get.task.tenant/client",
+        "${net}/discover.get.task.tenant/server"})
+    public void shouldDiscoverGetTaskTenant() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.get.task.v0.3/client",
+        "${net}/discover.get.task.v0.3/server"})
+    public void shouldDiscoverGetTaskV03() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.interface.unsupported/client",
+        "${net}/discover.interface.unsupported/server"})
+    public void shouldDiscoverInterfaceUnsupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.invalid.params/client",
+        "${net}/discover.invalid.params/server"})
+    public void shouldDiscoverInvalidParams() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.list.tasks/client",
+        "${net}/discover.list.tasks/server"})
+    public void shouldDiscoverListTasks() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.push.config.create/client",
+        "${net}/discover.push.config.create/server"})
+    public void shouldDiscoverPushConfigCreate() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.push.config.create.v0.3/client",
+        "${net}/discover.push.config.create.v0.3/server"})
+    public void shouldDiscoverPushConfigCreateV03() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.push.config.delete/client",
+        "${net}/discover.push.config.delete/server"})
+    public void shouldDiscoverPushConfigDelete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.push.config.delete.v0.3/client",
+        "${net}/discover.push.config.delete.v0.3/server"})
+    public void shouldDiscoverPushConfigDeleteV03() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.push.config.get/client",
+        "${net}/discover.push.config.get/server"})
+    public void shouldDiscoverPushConfigGet() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.push.config.get.v0.3/client",
+        "${net}/discover.push.config.get.v0.3/server"})
+    public void shouldDiscoverPushConfigGetV03() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.push.config.list/client",
+        "${net}/discover.push.config.list/server"})
+    public void shouldDiscoverPushConfigList() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.push.config.list.v0.3/client",
+        "${net}/discover.push.config.list.v0.3/server"})
+    public void shouldDiscoverPushConfigListV03() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.send.message/client",
+        "${net}/discover.send.message/server"})
+    public void shouldDiscoverSendMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.send.message.100k/client",
+        "${net}/discover.send.message.100k/server"})
+    public void shouldDiscoverSendMessage100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.send.message.extensions/client",
+        "${net}/discover.send.message.extensions/server"})
+    public void shouldDiscoverSendMessageExtensions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.send.message.legacy/client",
+        "${net}/discover.send.message.legacy/server"})
+    public void shouldDiscoverSendMessageLegacy() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.send.message.refetch/client",
+        "${net}/discover.send.message.refetch/server"})
+    public void shouldDiscoverSendMessageRefetch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.send.message.slug/client",
+        "${net}/discover.send.message.slug/server"})
+    public void shouldDiscoverSendMessageSlug() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.send.message.task/client",
+        "${net}/discover.send.message.task/server"})
+    public void shouldDiscoverSendMessageTask() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.send.message.tenant/client",
+        "${net}/discover.send.message.tenant/server"})
+    public void shouldDiscoverSendMessageTenant() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.send.message.v0.3/client",
+        "${net}/discover.send.message.v0.3/server"})
+    public void shouldDiscoverSendMessageV03() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.stream.message/client",
+        "${net}/discover.stream.message/server"})
+    public void shouldDiscoverStreamMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.stream.message.aborted/client",
+        "${net}/discover.stream.message.aborted/server"})
+    public void shouldDiscoverStreamMessageAborted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.stream.message.v0.3/client",
+        "${net}/discover.stream.message.v0.3/server"})
+    public void shouldDiscoverStreamMessageV03() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.subscribe.task/client",
+        "${net}/discover.subscribe.task/server"})
+    public void shouldDiscoverSubscribeTask() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.subscribe.task.terminal.unsupported/client",
+        "${net}/discover.subscribe.task.terminal.unsupported/server"})
+    public void shouldDiscoverSubscribeTaskTerminalUnsupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.subscribe.task.v0.3/client",
+        "${net}/discover.subscribe.task.v0.3/server"})
+    public void shouldDiscoverSubscribeTaskV03() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.unauthorized.bearer/client",
+        "${net}/discover.unauthorized.bearer/server"})
+    public void shouldDiscoverUnauthorizedBearer() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.version.locked/client",
+        "${net}/discover.version.locked/server"})
+    public void shouldDiscoverVersionLocked() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/discover.version.unsupported/client",
+        "${net}/discover.version.unsupported/server"})
+    public void shouldDiscoverVersionUnsupported() throws Exception
     {
         k3po.finish();
     }

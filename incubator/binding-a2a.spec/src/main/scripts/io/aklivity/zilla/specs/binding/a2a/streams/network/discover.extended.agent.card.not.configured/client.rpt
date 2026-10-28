@@ -1,0 +1,77 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+connect "zilla://streams/net0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${http:beginEx()
+                            .typeId(zilla:id("http"))
+                            .header(":method", "GET")
+                            .header(":scheme", "http")
+                            .header(":authority", "localhost:8080")
+                            .header(":path", "/.well-known/agent-card.json")
+                            .header("accept", "application/json")
+                            .build()}
+
+connected
+
+write close
+
+read zilla:begin.ext ${http:matchBeginEx()
+                           .typeId(zilla:id("http"))
+                           .header(":status", "200")
+                           .header("content-type", "application/json")
+                           .header("etag", "\"v1\"")
+                           .header("cache-control", "max-age=300")
+                           .build()}
+
+read '{"name":"Weather Agent","description":"Answers weather questions","supportedInterfaces":[{"url":"http://localhost:8080/a2a","protocolBinding":"JSONRPC","protocolVersion":"1.0"}],"version":"1.0.0","capabilities":{"streaming":true,"pushNotifications":true},"defaultInputModes":["text/plain"],"defaultOutputModes":["text/plain"],"skills":[{"id":"weather","name":"Weather","description":"Current weather","tags":["weather"]}]}'
+
+read closed
+read notify STEP_1
+
+connect await STEP_1
+        "zilla://streams/net0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${http:beginEx()
+                            .typeId(zilla:id("http"))
+                            .header(":method", "POST")
+                            .header(":scheme", "http")
+                            .header(":authority", "localhost:8080")
+                            .header(":path", "/a2a")
+                            .header("content-type", "application/json")
+                            .header("accept", "application/json")
+                            .header("a2a-version", "1.0")
+                            .header("authorization", "Bearer token-1")
+                            .header("content-length", "56")
+                            .build()}
+
+connected
+
+write '{"jsonrpc":"2.0","id":1,"method":"GetExtendedAgentCard"}'
+write close
+
+read zilla:begin.ext ${http:matchBeginEx()
+                           .typeId(zilla:id("http"))
+                           .header(":status", "200")
+                           .header("content-type", "application/json")
+                           .build()}
+
+read '{"jsonrpc":"2.0","id":1,"error":{"code":-32007,"message":"Extended agent card not configured","data":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","reason":"EXTENDED_AGENT_CARD_NOT_CONFIGURED","domain":"a2a-protocol.org"}]}}'
+
+read closed
