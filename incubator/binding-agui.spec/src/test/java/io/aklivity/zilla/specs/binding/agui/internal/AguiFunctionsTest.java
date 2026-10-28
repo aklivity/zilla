@@ -25,13 +25,17 @@ import org.junit.Test;
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiAbortExFW;
+import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiActivityType;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiBeginExFW;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiDataExFW;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiEncryptedSubtype;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiEndExFW;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiOutcomeType;
+import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiResetExFW;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiRole;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiStateType;
+import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiStepType;
+import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiSubagentType;
 
 public class AguiFunctionsTest
 {
@@ -676,5 +680,537 @@ public class AguiFunctionsTest
             .code("agent_failure")
             .message("boom")
             .build()));
+    }
+
+    @Test
+    public void shouldGenerateActivityDataEx()
+    {
+        byte[] bytes = AguiFunctions.dataEx()
+            .typeId(0x01)
+            .activity()
+                .type("DELTA")
+                .messageId("act-1")
+                .activityType("PLAN")
+                .replace(0)
+                .build()
+            .build();
+
+        AguiDataExFW dataEx = new AguiDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+
+        assertEquals(AguiDataExFW.KIND_ACTIVITY, dataEx.kind());
+        assertEquals(AguiActivityType.DELTA, dataEx.activity().type().get());
+        assertEquals("act-1", dataEx.activity().messageId().asString());
+        assertEquals("PLAN", dataEx.activity().activityType().asString());
+        assertEquals(0, dataEx.activity().replace());
+    }
+
+    @Test
+    public void shouldMatchActivityDataEx() throws Exception
+    {
+        BytesMatcher matcher = AguiFunctions.matchDataEx()
+            .activity()
+                .type("DELTA")
+                .messageId("act-1")
+                .activityType("PLAN")
+                .replace(0)
+                .build()
+            .build();
+
+        assertNotNull(matcher.match(ByteBuffer.wrap(AguiFunctions.dataEx()
+            .typeId(0x01)
+            .activity()
+                .type("DELTA")
+                .messageId("act-1")
+                .activityType("PLAN")
+                .replace(0)
+                .build()
+            .build())));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchActivityDataExWithDifferentValue() throws Exception
+    {
+        BytesMatcher matcher = AguiFunctions.matchDataEx()
+            .activity()
+                .replace(1)
+                .build()
+            .build();
+
+        matcher.match(ByteBuffer.wrap(AguiFunctions.dataEx()
+            .typeId(0x01)
+            .activity()
+                .type("DELTA")
+                .messageId("act-1")
+                .activityType("PLAN")
+                .replace(0)
+                .build()
+            .build()));
+    }
+
+    @Test
+    public void shouldGenerateStepDataEx()
+    {
+        byte[] bytes = AguiFunctions.dataEx()
+            .typeId(0x01)
+            .step()
+                .type("FINISHED")
+                .stepName("search")
+                .build()
+            .build();
+
+        AguiDataExFW dataEx = new AguiDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+
+        assertEquals(AguiDataExFW.KIND_STEP, dataEx.kind());
+        assertEquals(AguiStepType.FINISHED, dataEx.step().type().get());
+        assertEquals("search", dataEx.step().stepName().asString());
+    }
+
+    @Test
+    public void shouldMatchStepDataEx() throws Exception
+    {
+        BytesMatcher matcher = AguiFunctions.matchDataEx()
+            .step()
+                .type("FINISHED")
+                .stepName("search")
+                .build()
+            .build();
+
+        assertNotNull(matcher.match(ByteBuffer.wrap(AguiFunctions.dataEx()
+            .typeId(0x01)
+            .step()
+                .type("FINISHED")
+                .stepName("search")
+                .build()
+            .build())));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchStepDataExWithDifferentValue() throws Exception
+    {
+        BytesMatcher matcher = AguiFunctions.matchDataEx()
+            .step()
+                .stepName("other")
+                .build()
+            .build();
+
+        matcher.match(ByteBuffer.wrap(AguiFunctions.dataEx()
+            .typeId(0x01)
+            .step()
+                .type("FINISHED")
+                .stepName("search")
+                .build()
+            .build()));
+    }
+
+    @Test
+    public void shouldGenerateSubagentDataEx()
+    {
+        byte[] bytes = AguiFunctions.dataEx()
+            .typeId(0x01)
+            .subagent()
+                .type("ERROR")
+                .subagentRunId("sub-1")
+                .name("researcher")
+                .description("Finds sources")
+                .parentSubagentRunId("sub-0")
+                .parentToolCallId("call-1")
+                .parentMessageId("msg-2")
+                .code("failed")
+                .message("boom")
+                .build()
+            .build();
+
+        AguiDataExFW dataEx = new AguiDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+
+        assertEquals(AguiDataExFW.KIND_SUBAGENT, dataEx.kind());
+        assertEquals(AguiSubagentType.ERROR, dataEx.subagent().type().get());
+        assertEquals("sub-1", dataEx.subagent().subagentRunId().asString());
+        assertEquals("researcher", dataEx.subagent().name().asString());
+        assertEquals("Finds sources", dataEx.subagent().description().asString());
+        assertEquals("sub-0", dataEx.subagent().parentSubagentRunId().asString());
+        assertEquals("call-1", dataEx.subagent().parentToolCallId().asString());
+        assertEquals("msg-2", dataEx.subagent().parentMessageId().asString());
+        assertEquals("failed", dataEx.subagent().code().asString());
+        assertEquals("boom", dataEx.subagent().message().asString());
+    }
+
+    @Test
+    public void shouldMatchSubagentDataEx() throws Exception
+    {
+        BytesMatcher matcher = AguiFunctions.matchDataEx()
+            .subagent()
+                .type("ERROR")
+                .subagentRunId("sub-1")
+                .name("researcher")
+                .description("Finds sources")
+                .parentSubagentRunId("sub-0")
+                .parentToolCallId("call-1")
+                .parentMessageId("msg-2")
+                .code("failed")
+                .message("boom")
+                .build()
+            .build();
+
+        assertNotNull(matcher.match(ByteBuffer.wrap(AguiFunctions.dataEx()
+            .typeId(0x01)
+            .subagent()
+                .type("ERROR")
+                .subagentRunId("sub-1")
+                .name("researcher")
+                .description("Finds sources")
+                .parentSubagentRunId("sub-0")
+                .parentToolCallId("call-1")
+                .parentMessageId("msg-2")
+                .code("failed")
+                .message("boom")
+                .build()
+            .build())));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchSubagentDataExWithDifferentValue() throws Exception
+    {
+        BytesMatcher matcher = AguiFunctions.matchDataEx()
+            .subagent()
+                .code("other")
+                .build()
+            .build();
+
+        matcher.match(ByteBuffer.wrap(AguiFunctions.dataEx()
+            .typeId(0x01)
+            .subagent()
+                .type("ERROR")
+                .subagentRunId("sub-1")
+                .name("researcher")
+                .description("Finds sources")
+                .parentSubagentRunId("sub-0")
+                .parentToolCallId("call-1")
+                .parentMessageId("msg-2")
+                .code("failed")
+                .message("boom")
+                .build()
+            .build()));
+    }
+
+    @Test
+    public void shouldGenerateRawDataEx()
+    {
+        byte[] bytes = AguiFunctions.dataEx()
+            .typeId(0x01)
+            .raw()
+                .source("provider")
+                .build()
+            .build();
+
+        AguiDataExFW dataEx = new AguiDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+
+        assertEquals(AguiDataExFW.KIND_RAW, dataEx.kind());
+        assertEquals("provider", dataEx.raw().source().asString());
+    }
+
+    @Test
+    public void shouldMatchRawDataEx() throws Exception
+    {
+        BytesMatcher matcher = AguiFunctions.matchDataEx()
+            .raw()
+                .source("provider")
+                .build()
+            .build();
+
+        assertNotNull(matcher.match(ByteBuffer.wrap(AguiFunctions.dataEx()
+            .typeId(0x01)
+            .raw()
+                .source("provider")
+                .build()
+            .build())));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchRawDataExWithDifferentValue() throws Exception
+    {
+        BytesMatcher matcher = AguiFunctions.matchDataEx()
+            .raw()
+                .source("other")
+                .build()
+            .build();
+
+        matcher.match(ByteBuffer.wrap(AguiFunctions.dataEx()
+            .typeId(0x01)
+            .raw()
+                .source("provider")
+                .build()
+            .build()));
+    }
+
+    @Test
+    public void shouldGenerateCustomDataEx()
+    {
+        byte[] bytes = AguiFunctions.dataEx()
+            .typeId(0x01)
+            .custom()
+                .name("approval")
+                .build()
+            .build();
+
+        AguiDataExFW dataEx = new AguiDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+
+        assertEquals(AguiDataExFW.KIND_CUSTOM, dataEx.kind());
+        assertEquals("approval", dataEx.custom().name().asString());
+    }
+
+    @Test
+    public void shouldMatchCustomDataEx() throws Exception
+    {
+        BytesMatcher matcher = AguiFunctions.matchDataEx()
+            .custom()
+                .name("approval")
+                .build()
+            .build();
+
+        assertNotNull(matcher.match(ByteBuffer.wrap(AguiFunctions.dataEx()
+            .typeId(0x01)
+            .custom()
+                .name("approval")
+                .build()
+            .build())));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchCustomDataExWithDifferentValue() throws Exception
+    {
+        BytesMatcher matcher = AguiFunctions.matchDataEx()
+            .custom()
+                .name("other")
+                .build()
+            .build();
+
+        matcher.match(ByteBuffer.wrap(AguiFunctions.dataEx()
+            .typeId(0x01)
+            .custom()
+                .name("approval")
+                .build()
+            .build()));
+    }
+
+    @Test
+    public void shouldGenerateTextDataExWithMeta()
+    {
+        byte[] bytes = AguiFunctions.dataEx()
+            .typeId(0x01)
+            .text()
+                .timestamp(1730130000123L)
+                .subagent("sub-1")
+                .metadata("{\"source\":\"test\"}")
+                .messageId("msg-2")
+                .build()
+            .build();
+
+        AguiDataExFW dataEx = new AguiDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+
+        assertEquals(1730130000123L, dataEx.text().meta().timestamp());
+        assertEquals("sub-1", dataEx.text().meta().subagentRunId().asString());
+        assertEquals(17, dataEx.text().meta().metadata().sizeof());
+    }
+
+    @Test
+    public void shouldMatchTextDataExWithMeta() throws Exception
+    {
+        BytesMatcher matcher = AguiFunctions.matchDataEx()
+            .text()
+                .timestamp(1730130000123L)
+                .subagent("sub-1")
+                .metadata("{\"source\":\"test\"}")
+                .build()
+            .build();
+
+        assertNotNull(matcher.match(ByteBuffer.wrap(AguiFunctions.dataEx()
+            .typeId(0x01)
+            .text()
+                .timestamp(1730130000123L)
+                .subagent("sub-1")
+                .metadata("{\"source\":\"test\"}")
+                .messageId("msg-2")
+                .build()
+            .build())));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchTextDataExWithDifferentTimestamp() throws Exception
+    {
+        AguiFunctions.matchDataEx()
+            .text()
+                .timestamp(1L)
+                .build()
+            .build()
+            .match(ByteBuffer.wrap(AguiFunctions.dataEx()
+                .typeId(0x01)
+                .text()
+                    .messageId("msg-2")
+                    .build()
+                .build()));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchTextDataExWithDifferentSubagent() throws Exception
+    {
+        AguiFunctions.matchDataEx()
+            .text()
+                .subagent("sub-2")
+                .build()
+            .build()
+            .match(ByteBuffer.wrap(AguiFunctions.dataEx()
+                .typeId(0x01)
+                .text()
+                    .subagent("sub-1")
+                    .messageId("msg-2")
+                    .build()
+                .build()));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchTextDataExWithDifferentMetadata() throws Exception
+    {
+        AguiFunctions.matchDataEx()
+            .text()
+                .metadata("{}")
+                .build()
+            .build()
+            .match(ByteBuffer.wrap(AguiFunctions.dataEx()
+                .typeId(0x01)
+                .text()
+                    .metadata("{\"source\":\"test\"}")
+                    .messageId("msg-2")
+                    .build()
+                .build()));
+    }
+
+    @Test
+    public void shouldGenerateEndExWithDetail()
+    {
+        byte[] bytes = AguiFunctions.endEx()
+            .typeId(0x01)
+            .outcome("INTERRUPT")
+            .detail("{\"outcome\":{}}")
+            .build();
+
+        AguiEndExFW endEx = new AguiEndExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+
+        assertEquals(AguiOutcomeType.INTERRUPT, endEx.outcome().get());
+        assertEquals(14, endEx.detailLength());
+    }
+
+    @Test
+    public void shouldMatchEndExWithDetail() throws Exception
+    {
+        BytesMatcher matcher = AguiFunctions.matchEndEx()
+            .detail("{\"outcome\":{}}")
+            .build();
+
+        assertNotNull(matcher.match(ByteBuffer.wrap(AguiFunctions.endEx()
+            .typeId(0x01)
+            .outcome("INTERRUPT")
+            .detail("{\"outcome\":{}}")
+            .build())));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchEndExWithDifferentDetail() throws Exception
+    {
+        AguiFunctions.matchEndEx()
+            .detail("{}")
+            .build()
+            .match(ByteBuffer.wrap(AguiFunctions.endEx()
+                .typeId(0x01)
+                .detail("{\"outcome\":{}}")
+                .build()));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchEndExWithDifferentTypeId() throws Exception
+    {
+        AguiFunctions.matchEndEx()
+            .typeId(0x02)
+            .build()
+            .match(ByteBuffer.wrap(AguiFunctions.endEx()
+                .typeId(0x01)
+                .build()));
+    }
+
+    @Test
+    public void shouldGenerateResetEx()
+    {
+        byte[] bytes = AguiFunctions.resetEx()
+            .typeId(0x01)
+            .status(422)
+            .code("invalid_run")
+            .message("Unsupported threadId")
+            .build();
+
+        AguiResetExFW resetEx = new AguiResetExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+
+        assertEquals(0x01, resetEx.typeId());
+        assertEquals(422, resetEx.error().status());
+        assertEquals("invalid_run", resetEx.error().code().asString());
+        assertEquals("Unsupported threadId", resetEx.error().message().asString());
+    }
+
+    @Test
+    public void shouldMatchResetEx() throws Exception
+    {
+        BytesMatcher matcher = AguiFunctions.matchResetEx()
+            .typeId(0x01)
+            .status(422)
+            .code("invalid_run")
+            .message("Unsupported threadId")
+            .build();
+
+        assertNotNull(matcher.match(ByteBuffer.wrap(AguiFunctions.resetEx()
+            .typeId(0x01)
+            .status(422)
+            .code("invalid_run")
+            .message("Unsupported threadId")
+            .build())));
+    }
+
+    @Test
+    public void shouldNotMatchEmptyResetEx() throws Exception
+    {
+        assertNull(AguiFunctions.matchResetEx().build().match(ByteBuffer.allocate(0)));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchResetExWithDifferentStatus() throws Exception
+    {
+        AguiFunctions.matchResetEx()
+            .status(500)
+            .build()
+            .match(ByteBuffer.wrap(AguiFunctions.resetEx().typeId(0x01).status(422).code("c").message("m").build()));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchResetExWithDifferentCode() throws Exception
+    {
+        AguiFunctions.matchResetEx()
+            .code("other")
+            .build()
+            .match(ByteBuffer.wrap(AguiFunctions.resetEx().typeId(0x01).status(422).code("c").message("m").build()));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchResetExWithDifferentMessage() throws Exception
+    {
+        AguiFunctions.matchResetEx()
+            .message("other")
+            .build()
+            .match(ByteBuffer.wrap(AguiFunctions.resetEx().typeId(0x01).status(422).code("c").message("m").build()));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchResetExWithDifferentTypeId() throws Exception
+    {
+        AguiFunctions.matchResetEx()
+            .typeId(0x02)
+            .build()
+            .match(ByteBuffer.wrap(AguiFunctions.resetEx().typeId(0x01).status(422).code("c").message("m").build()));
     }
 }
