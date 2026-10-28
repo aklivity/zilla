@@ -164,6 +164,8 @@ scope agui
         //   reasoningEncrypted               the encrypted value, as UTF-8
         //   subagent                         for FINISHED, the JSON members that follow subagentRunId; otherwise none
         //   step                             none
+        // The members of the event carried by the init frame extension (timestamp, subagentRunId, metadata) apply to
+        // the event emitted for the init frame, with subagentRunId repeated on every event of the message
         union AguiDataEx switch (uint8) extends core::stream::Extension
         {
             case 0: agui::stream::AguiTextDataEx text;
@@ -187,6 +189,8 @@ scope agui
             CANCELLED(3)
         }
 
+        // detail holds the JSON members of RUN_FINISHED other than threadId, runId and the outcome type:
+        // result, usage, and outcome carrying only the members specific to the outcome type
         struct AguiEndEx extends core::stream::Extension
         {
             int64 timestamp = -1;
@@ -197,6 +201,7 @@ scope agui
 
         struct AguiError
         {
+            int32 status = -1;
             string16 code = null;
             string16 message = null;
         }
