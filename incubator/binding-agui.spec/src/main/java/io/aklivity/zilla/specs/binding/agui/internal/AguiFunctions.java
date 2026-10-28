@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.specs.binding.agui.internal;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.nio.ByteBuffer;
 import java.util.function.Predicate;
 
@@ -23,17 +25,28 @@ import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.specs.binding.agui.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiAbortExFW;
+import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiActivityDataExFW;
+import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiActivityType;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiBeginExFW;
+import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiCustomDataExFW;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiDataExFW;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiEncryptedSubtype;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiEndExFW;
+import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiEventMetaFW;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiOutcomeType;
+import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiRawDataExFW;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiReasoningDataExFW;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiReasoningEncryptedDataExFW;
+import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiResetExFW;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiRole;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiStateDataExFW;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiStateType;
+import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiStepDataExFW;
+import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiStepType;
+import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiSubagentDataExFW;
+import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiSubagentType;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiTextDataExFW;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiToolCallDataExFW;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiToolResultDataExFW;
@@ -74,6 +87,18 @@ public final class AguiFunctions
     public static AguiAbortExMatcherBuilder matchAbortEx()
     {
         return new AguiAbortExMatcherBuilder();
+    }
+
+    @Function
+    public static AguiResetExBuilder resetEx()
+    {
+        return new AguiResetExBuilder();
+    }
+
+    @Function
+    public static AguiResetExMatcherBuilder matchResetEx()
+    {
+        return new AguiResetExMatcherBuilder();
     }
 
     @Function
@@ -228,6 +253,92 @@ public final class AguiFunctions
         }
     }
 
+    public abstract static class AguiEventMetaBuilder<B extends AguiEventMetaBuilder<B>>
+    {
+        private long timestamp = -1;
+        private String subagent;
+        private byte[] metadata;
+
+        public final B timestamp(
+            long timestamp)
+        {
+            this.timestamp = timestamp;
+            return self();
+        }
+
+        public final B subagent(
+            String subagent)
+        {
+            this.subagent = subagent;
+            return self();
+        }
+
+        public final B metadata(
+            String metadata)
+        {
+            this.metadata = metadata.getBytes(UTF_8);
+            return self();
+        }
+
+        protected final AguiEventMetaFW.Builder meta(
+            AguiEventMetaFW.Builder builder)
+        {
+            final AguiEventMetaFW.Builder meta = builder.timestamp(timestamp).subagentRunId(subagent);
+
+            return metadata == null
+                ? meta
+                : meta.metadataLength(metadata.length).metadata(new UnsafeBufferEx(metadata), 0, metadata.length);
+        }
+
+        @SuppressWarnings("unchecked")
+        private B self()
+        {
+            return (B) this;
+        }
+    }
+
+    public abstract static class AguiEventMetaMatcherBuilder<M extends AguiEventMetaMatcherBuilder<M>>
+    {
+        private Long timestamp;
+        private String subagent;
+        private String metadata;
+
+        public final M timestamp(
+            long timestamp)
+        {
+            this.timestamp = timestamp;
+            return self();
+        }
+
+        public final M subagent(
+            String subagent)
+        {
+            this.subagent = subagent;
+            return self();
+        }
+
+        public final M metadata(
+            String metadata)
+        {
+            this.metadata = metadata;
+            return self();
+        }
+
+        protected final boolean matchMeta(
+            AguiEventMetaFW meta)
+        {
+            return (timestamp == null || timestamp == meta.timestamp()) &&
+                (subagent == null || subagent.equals(meta.subagentRunId().asString())) &&
+                (metadata == null || metadata.equals(asString(meta.metadata())));
+        }
+
+        @SuppressWarnings("unchecked")
+        private M self()
+        {
+            return (M) this;
+        }
+    }
+
     public static final class AguiDataExBuilder
     {
         private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024]);
@@ -275,6 +386,31 @@ public final class AguiFunctions
             return new AguiStateDataExBuilder();
         }
 
+        public AguiActivityDataExBuilder activity()
+        {
+            return new AguiActivityDataExBuilder();
+        }
+
+        public AguiStepDataExBuilder step()
+        {
+            return new AguiStepDataExBuilder();
+        }
+
+        public AguiSubagentDataExBuilder subagent()
+        {
+            return new AguiSubagentDataExBuilder();
+        }
+
+        public AguiRawDataExBuilder raw()
+        {
+            return new AguiRawDataExBuilder();
+        }
+
+        public AguiCustomDataExBuilder custom()
+        {
+            return new AguiCustomDataExBuilder();
+        }
+
         public byte[] build()
         {
             final AguiDataExFW dataEx = dataExRW.build();
@@ -283,7 +419,7 @@ public final class AguiFunctions
             return array;
         }
 
-        public final class AguiTextDataExBuilder
+        public final class AguiTextDataExBuilder extends AguiEventMetaBuilder<AguiTextDataExBuilder>
         {
             private String messageId;
             private AguiRole role = AguiRole.ASSISTANT;
@@ -309,14 +445,14 @@ public final class AguiFunctions
             public AguiDataExBuilder build()
             {
                 dataExRW.text(t -> t
-                    .meta(m -> m.timestamp(-1))
+                    .meta(m -> meta(m))
                     .messageId(messageId)
                     .role(x -> x.set(role)));
                 return AguiDataExBuilder.this;
             }
         }
 
-        public final class AguiReasoningDataExBuilder
+        public final class AguiReasoningDataExBuilder extends AguiEventMetaBuilder<AguiReasoningDataExBuilder>
         {
             private String messageId;
             private String groupId;
@@ -342,14 +478,14 @@ public final class AguiFunctions
             public AguiDataExBuilder build()
             {
                 dataExRW.reasoning(t -> t
-                    .meta(m -> m.timestamp(-1))
+                    .meta(m -> meta(m))
                     .messageId(messageId)
                     .groupId(groupId));
                 return AguiDataExBuilder.this;
             }
         }
 
-        public final class AguiReasoningEncryptedDataExBuilder
+        public final class AguiReasoningEncryptedDataExBuilder extends AguiEventMetaBuilder<AguiReasoningEncryptedDataExBuilder>
         {
             private AguiEncryptedSubtype subtype;
             private String entityId;
@@ -375,14 +511,14 @@ public final class AguiFunctions
             public AguiDataExBuilder build()
             {
                 dataExRW.reasoningEncrypted(t -> t
-                    .meta(m -> m.timestamp(-1))
+                    .meta(m -> meta(m))
                     .subtype(x -> x.set(subtype))
                     .entityId(entityId));
                 return AguiDataExBuilder.this;
             }
         }
 
-        public final class AguiToolCallDataExBuilder
+        public final class AguiToolCallDataExBuilder extends AguiEventMetaBuilder<AguiToolCallDataExBuilder>
         {
             private String toolCallId;
             private String toolCallName;
@@ -416,7 +552,7 @@ public final class AguiFunctions
             public AguiDataExBuilder build()
             {
                 dataExRW.toolCall(t -> t
-                    .meta(m -> m.timestamp(-1))
+                    .meta(m -> meta(m))
                     .toolCallId(toolCallId)
                     .toolCallName(toolCallName)
                     .parentMessageId(parentMessageId));
@@ -424,7 +560,7 @@ public final class AguiFunctions
             }
         }
 
-        public final class AguiToolResultDataExBuilder
+        public final class AguiToolResultDataExBuilder extends AguiEventMetaBuilder<AguiToolResultDataExBuilder>
         {
             private String messageId;
             private String toolCallId;
@@ -450,14 +586,14 @@ public final class AguiFunctions
             public AguiDataExBuilder build()
             {
                 dataExRW.toolResult(t -> t
-                    .meta(m -> m.timestamp(-1))
+                    .meta(m -> meta(m))
                     .messageId(messageId)
                     .toolCallId(toolCallId));
                 return AguiDataExBuilder.this;
             }
         }
 
-        public final class AguiStateDataExBuilder
+        public final class AguiStateDataExBuilder extends AguiEventMetaBuilder<AguiStateDataExBuilder>
         {
             private AguiStateType type;
 
@@ -475,8 +611,236 @@ public final class AguiFunctions
             public AguiDataExBuilder build()
             {
                 dataExRW.state(t -> t
-                    .meta(m -> m.timestamp(-1))
+                    .meta(m -> meta(m))
                     .type(x -> x.set(type)));
+                return AguiDataExBuilder.this;
+            }
+        }
+
+        public final class AguiActivityDataExBuilder extends AguiEventMetaBuilder<AguiActivityDataExBuilder>
+        {
+            private AguiActivityType type;
+            private String messageId;
+            private String activityType;
+            private int replace = 1;
+
+            private AguiActivityDataExBuilder()
+            {
+            }
+
+            public AguiActivityDataExBuilder type(
+                String type)
+            {
+                this.type = AguiActivityType.valueOf(type);
+                return this;
+            }
+
+            public AguiActivityDataExBuilder messageId(
+                String messageId)
+            {
+                this.messageId = messageId;
+                return this;
+            }
+
+            public AguiActivityDataExBuilder activityType(
+                String activityType)
+            {
+                this.activityType = activityType;
+                return this;
+            }
+
+            public AguiActivityDataExBuilder replace(
+                int replace)
+            {
+                this.replace = replace;
+                return this;
+            }
+
+            public AguiDataExBuilder build()
+            {
+                dataExRW.activity(t -> t
+                    .meta(m -> meta(m))
+                    .type(x -> x.set(type))
+                    .messageId(messageId)
+                    .activityType(activityType)
+                    .replace(replace));
+                return AguiDataExBuilder.this;
+            }
+        }
+
+        public final class AguiStepDataExBuilder extends AguiEventMetaBuilder<AguiStepDataExBuilder>
+        {
+            private AguiStepType type;
+            private String stepName;
+
+            private AguiStepDataExBuilder()
+            {
+            }
+
+            public AguiStepDataExBuilder type(
+                String type)
+            {
+                this.type = AguiStepType.valueOf(type);
+                return this;
+            }
+
+            public AguiStepDataExBuilder stepName(
+                String stepName)
+            {
+                this.stepName = stepName;
+                return this;
+            }
+
+            public AguiDataExBuilder build()
+            {
+                dataExRW.step(t -> t
+                    .meta(m -> meta(m))
+                    .type(x -> x.set(type))
+                    .stepName(stepName));
+                return AguiDataExBuilder.this;
+            }
+        }
+
+        public final class AguiSubagentDataExBuilder extends AguiEventMetaBuilder<AguiSubagentDataExBuilder>
+        {
+            private AguiSubagentType type;
+            private String subagentRunId;
+            private String name;
+            private String description;
+            private String parentSubagentRunId;
+            private String parentToolCallId;
+            private String parentMessageId;
+            private String code;
+            private String message;
+
+            private AguiSubagentDataExBuilder()
+            {
+            }
+
+            public AguiSubagentDataExBuilder type(
+                String type)
+            {
+                this.type = AguiSubagentType.valueOf(type);
+                return this;
+            }
+
+            public AguiSubagentDataExBuilder subagentRunId(
+                String subagentRunId)
+            {
+                this.subagentRunId = subagentRunId;
+                return this;
+            }
+
+            public AguiSubagentDataExBuilder name(
+                String name)
+            {
+                this.name = name;
+                return this;
+            }
+
+            public AguiSubagentDataExBuilder description(
+                String description)
+            {
+                this.description = description;
+                return this;
+            }
+
+            public AguiSubagentDataExBuilder parentSubagentRunId(
+                String parentSubagentRunId)
+            {
+                this.parentSubagentRunId = parentSubagentRunId;
+                return this;
+            }
+
+            public AguiSubagentDataExBuilder parentToolCallId(
+                String parentToolCallId)
+            {
+                this.parentToolCallId = parentToolCallId;
+                return this;
+            }
+
+            public AguiSubagentDataExBuilder parentMessageId(
+                String parentMessageId)
+            {
+                this.parentMessageId = parentMessageId;
+                return this;
+            }
+
+            public AguiSubagentDataExBuilder code(
+                String code)
+            {
+                this.code = code;
+                return this;
+            }
+
+            public AguiSubagentDataExBuilder message(
+                String message)
+            {
+                this.message = message;
+                return this;
+            }
+
+            public AguiDataExBuilder build()
+            {
+                dataExRW.subagent(t -> t
+                    .meta(m -> meta(m))
+                    .type(x -> x.set(type))
+                    .subagentRunId(subagentRunId)
+                    .name(name)
+                    .description(description)
+                    .parentSubagentRunId(parentSubagentRunId)
+                    .parentToolCallId(parentToolCallId)
+                    .parentMessageId(parentMessageId)
+                    .code(code)
+                    .message(message));
+                return AguiDataExBuilder.this;
+            }
+        }
+
+        public final class AguiRawDataExBuilder extends AguiEventMetaBuilder<AguiRawDataExBuilder>
+        {
+            private String source;
+
+            private AguiRawDataExBuilder()
+            {
+            }
+
+            public AguiRawDataExBuilder source(
+                String source)
+            {
+                this.source = source;
+                return this;
+            }
+
+            public AguiDataExBuilder build()
+            {
+                dataExRW.raw(t -> t
+                    .meta(m -> meta(m))
+                    .source(source));
+                return AguiDataExBuilder.this;
+            }
+        }
+
+        public final class AguiCustomDataExBuilder extends AguiEventMetaBuilder<AguiCustomDataExBuilder>
+        {
+            private String name;
+
+            private AguiCustomDataExBuilder()
+            {
+            }
+
+            public AguiCustomDataExBuilder name(
+                String name)
+            {
+                this.name = name;
+                return this;
+            }
+
+            public AguiDataExBuilder build()
+            {
+                dataExRW.custom(t -> t
+                    .meta(m -> meta(m))
+                    .name(name));
                 return AguiDataExBuilder.this;
             }
         }
@@ -546,6 +910,46 @@ public final class AguiFunctions
             return matcher;
         }
 
+        public AguiActivityDataExMatcherBuilder activity()
+        {
+            this.kind = AguiDataExFW.KIND_ACTIVITY;
+            final AguiActivityDataExMatcherBuilder matcher = new AguiActivityDataExMatcherBuilder();
+            this.caseMatcher = matcher::match;
+            return matcher;
+        }
+
+        public AguiStepDataExMatcherBuilder step()
+        {
+            this.kind = AguiDataExFW.KIND_STEP;
+            final AguiStepDataExMatcherBuilder matcher = new AguiStepDataExMatcherBuilder();
+            this.caseMatcher = matcher::match;
+            return matcher;
+        }
+
+        public AguiSubagentDataExMatcherBuilder subagent()
+        {
+            this.kind = AguiDataExFW.KIND_SUBAGENT;
+            final AguiSubagentDataExMatcherBuilder matcher = new AguiSubagentDataExMatcherBuilder();
+            this.caseMatcher = matcher::match;
+            return matcher;
+        }
+
+        public AguiRawDataExMatcherBuilder raw()
+        {
+            this.kind = AguiDataExFW.KIND_RAW;
+            final AguiRawDataExMatcherBuilder matcher = new AguiRawDataExMatcherBuilder();
+            this.caseMatcher = matcher::match;
+            return matcher;
+        }
+
+        public AguiCustomDataExMatcherBuilder custom()
+        {
+            this.kind = AguiDataExFW.KIND_CUSTOM;
+            final AguiCustomDataExMatcherBuilder matcher = new AguiCustomDataExMatcherBuilder();
+            this.caseMatcher = matcher::match;
+            return matcher;
+        }
+
         public BytesMatcher build()
         {
             return this::match;
@@ -592,7 +996,7 @@ public final class AguiFunctions
             return caseMatcher == null || caseMatcher.test(dataEx);
         }
 
-        public final class AguiTextDataExMatcherBuilder
+        public final class AguiTextDataExMatcherBuilder extends AguiEventMetaMatcherBuilder<AguiTextDataExMatcherBuilder>
         {
             private String messageId;
             private AguiRole role;
@@ -624,7 +1028,8 @@ public final class AguiFunctions
                 AguiDataExFW dataEx)
             {
                 final AguiTextDataExFW text = dataEx.text();
-                return matchMessageId(text) &&
+                return matchMeta(text.meta()) &&
+                    matchMessageId(text) &&
                     matchRole(text);
             }
 
@@ -642,6 +1047,7 @@ public final class AguiFunctions
         }
 
         public final class AguiReasoningDataExMatcherBuilder
+            extends AguiEventMetaMatcherBuilder<AguiReasoningDataExMatcherBuilder>
         {
             private String messageId;
             private String groupId;
@@ -673,7 +1079,8 @@ public final class AguiFunctions
                 AguiDataExFW dataEx)
             {
                 final AguiReasoningDataExFW reasoning = dataEx.reasoning();
-                return matchMessageId(reasoning) &&
+                return matchMeta(reasoning.meta()) &&
+                    matchMessageId(reasoning) &&
                     matchGroupId(reasoning);
             }
 
@@ -691,6 +1098,7 @@ public final class AguiFunctions
         }
 
         public final class AguiReasoningEncryptedDataExMatcherBuilder
+            extends AguiEventMetaMatcherBuilder<AguiReasoningEncryptedDataExMatcherBuilder>
         {
             private AguiEncryptedSubtype subtype;
             private String entityId;
@@ -722,7 +1130,8 @@ public final class AguiFunctions
                 AguiDataExFW dataEx)
             {
                 final AguiReasoningEncryptedDataExFW reasoningEncrypted = dataEx.reasoningEncrypted();
-                return matchSubtype(reasoningEncrypted) &&
+                return matchMeta(reasoningEncrypted.meta()) &&
+                    matchSubtype(reasoningEncrypted) &&
                     matchEntityId(reasoningEncrypted);
             }
 
@@ -739,7 +1148,7 @@ public final class AguiFunctions
             }
         }
 
-        public final class AguiToolCallDataExMatcherBuilder
+        public final class AguiToolCallDataExMatcherBuilder extends AguiEventMetaMatcherBuilder<AguiToolCallDataExMatcherBuilder>
         {
             private String toolCallId;
             private String toolCallName;
@@ -779,7 +1188,8 @@ public final class AguiFunctions
                 AguiDataExFW dataEx)
             {
                 final AguiToolCallDataExFW toolCall = dataEx.toolCall();
-                return matchToolCallId(toolCall) &&
+                return matchMeta(toolCall.meta()) &&
+                    matchToolCallId(toolCall) &&
                     matchToolCallName(toolCall) &&
                     matchParentMessageId(toolCall);
             }
@@ -804,6 +1214,7 @@ public final class AguiFunctions
         }
 
         public final class AguiToolResultDataExMatcherBuilder
+            extends AguiEventMetaMatcherBuilder<AguiToolResultDataExMatcherBuilder>
         {
             private String messageId;
             private String toolCallId;
@@ -835,7 +1246,8 @@ public final class AguiFunctions
                 AguiDataExFW dataEx)
             {
                 final AguiToolResultDataExFW toolResult = dataEx.toolResult();
-                return matchMessageId(toolResult) &&
+                return matchMeta(toolResult.meta()) &&
+                    matchMessageId(toolResult) &&
                     matchToolCallId(toolResult);
             }
 
@@ -852,7 +1264,7 @@ public final class AguiFunctions
             }
         }
 
-        public final class AguiStateDataExMatcherBuilder
+        public final class AguiStateDataExMatcherBuilder extends AguiEventMetaMatcherBuilder<AguiStateDataExMatcherBuilder>
         {
             private AguiStateType type;
 
@@ -876,7 +1288,8 @@ public final class AguiFunctions
                 AguiDataExFW dataEx)
             {
                 final AguiStateDataExFW state = dataEx.state();
-                return matchType(state);
+                return matchMeta(state.meta()) &&
+                    matchType(state);
             }
 
             private boolean matchType(
@@ -885,12 +1298,370 @@ public final class AguiFunctions
                 return type == null || type == state.type().get();
             }
         }
+
+        public final class AguiActivityDataExMatcherBuilder extends AguiEventMetaMatcherBuilder<AguiActivityDataExMatcherBuilder>
+        {
+            private AguiActivityType type;
+            private String messageId;
+            private String activityType;
+            private Integer replace;
+
+            private AguiActivityDataExMatcherBuilder()
+            {
+            }
+
+            public AguiActivityDataExMatcherBuilder type(
+                String type)
+            {
+                this.type = AguiActivityType.valueOf(type);
+                return this;
+            }
+
+            public AguiActivityDataExMatcherBuilder messageId(
+                String messageId)
+            {
+                this.messageId = messageId;
+                return this;
+            }
+
+            public AguiActivityDataExMatcherBuilder activityType(
+                String activityType)
+            {
+                this.activityType = activityType;
+                return this;
+            }
+
+            public AguiActivityDataExMatcherBuilder replace(
+                int replace)
+            {
+                this.replace = replace;
+                return this;
+            }
+
+            public AguiDataExMatcherBuilder build()
+            {
+                return AguiDataExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                AguiDataExFW dataEx)
+            {
+                final AguiActivityDataExFW activity = dataEx.activity();
+                return matchMeta(activity.meta()) &&
+                    matchType(activity) &&
+                    matchMessageId(activity) &&
+                    matchActivityType(activity) &&
+                    matchReplace(activity);
+            }
+
+            private boolean matchType(
+                AguiActivityDataExFW activity)
+            {
+                return type == null || type == activity.type().get();
+            }
+
+            private boolean matchMessageId(
+                AguiActivityDataExFW activity)
+            {
+                return messageId == null || messageId.equals(activity.messageId().asString());
+            }
+
+            private boolean matchActivityType(
+                AguiActivityDataExFW activity)
+            {
+                return activityType == null || activityType.equals(activity.activityType().asString());
+            }
+
+            private boolean matchReplace(
+                AguiActivityDataExFW activity)
+            {
+                return replace == null || replace == activity.replace();
+            }
+        }
+
+        public final class AguiStepDataExMatcherBuilder extends AguiEventMetaMatcherBuilder<AguiStepDataExMatcherBuilder>
+        {
+            private AguiStepType type;
+            private String stepName;
+
+            private AguiStepDataExMatcherBuilder()
+            {
+            }
+
+            public AguiStepDataExMatcherBuilder type(
+                String type)
+            {
+                this.type = AguiStepType.valueOf(type);
+                return this;
+            }
+
+            public AguiStepDataExMatcherBuilder stepName(
+                String stepName)
+            {
+                this.stepName = stepName;
+                return this;
+            }
+
+            public AguiDataExMatcherBuilder build()
+            {
+                return AguiDataExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                AguiDataExFW dataEx)
+            {
+                final AguiStepDataExFW step = dataEx.step();
+                return matchMeta(step.meta()) &&
+                    matchType(step) &&
+                    matchStepName(step);
+            }
+
+            private boolean matchType(
+                AguiStepDataExFW step)
+            {
+                return type == null || type == step.type().get();
+            }
+
+            private boolean matchStepName(
+                AguiStepDataExFW step)
+            {
+                return stepName == null || stepName.equals(step.stepName().asString());
+            }
+        }
+
+        public final class AguiSubagentDataExMatcherBuilder extends AguiEventMetaMatcherBuilder<AguiSubagentDataExMatcherBuilder>
+        {
+            private AguiSubagentType type;
+            private String subagentRunId;
+            private String name;
+            private String description;
+            private String parentSubagentRunId;
+            private String parentToolCallId;
+            private String parentMessageId;
+            private String code;
+            private String message;
+
+            private AguiSubagentDataExMatcherBuilder()
+            {
+            }
+
+            public AguiSubagentDataExMatcherBuilder type(
+                String type)
+            {
+                this.type = AguiSubagentType.valueOf(type);
+                return this;
+            }
+
+            public AguiSubagentDataExMatcherBuilder subagentRunId(
+                String subagentRunId)
+            {
+                this.subagentRunId = subagentRunId;
+                return this;
+            }
+
+            public AguiSubagentDataExMatcherBuilder name(
+                String name)
+            {
+                this.name = name;
+                return this;
+            }
+
+            public AguiSubagentDataExMatcherBuilder description(
+                String description)
+            {
+                this.description = description;
+                return this;
+            }
+
+            public AguiSubagentDataExMatcherBuilder parentSubagentRunId(
+                String parentSubagentRunId)
+            {
+                this.parentSubagentRunId = parentSubagentRunId;
+                return this;
+            }
+
+            public AguiSubagentDataExMatcherBuilder parentToolCallId(
+                String parentToolCallId)
+            {
+                this.parentToolCallId = parentToolCallId;
+                return this;
+            }
+
+            public AguiSubagentDataExMatcherBuilder parentMessageId(
+                String parentMessageId)
+            {
+                this.parentMessageId = parentMessageId;
+                return this;
+            }
+
+            public AguiSubagentDataExMatcherBuilder code(
+                String code)
+            {
+                this.code = code;
+                return this;
+            }
+
+            public AguiSubagentDataExMatcherBuilder message(
+                String message)
+            {
+                this.message = message;
+                return this;
+            }
+
+            public AguiDataExMatcherBuilder build()
+            {
+                return AguiDataExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                AguiDataExFW dataEx)
+            {
+                final AguiSubagentDataExFW subagent = dataEx.subagent();
+                return matchMeta(subagent.meta()) &&
+                    matchType(subagent) &&
+                    matchSubagentRunId(subagent) &&
+                    matchName(subagent) &&
+                    matchDescription(subagent) &&
+                    matchParentSubagentRunId(subagent) &&
+                    matchParentToolCallId(subagent) &&
+                    matchParentMessageId(subagent) &&
+                    matchCode(subagent) &&
+                    matchMessage(subagent);
+            }
+
+            private boolean matchType(
+                AguiSubagentDataExFW subagent)
+            {
+                return type == null || type == subagent.type().get();
+            }
+
+            private boolean matchSubagentRunId(
+                AguiSubagentDataExFW subagent)
+            {
+                return subagentRunId == null || subagentRunId.equals(subagent.subagentRunId().asString());
+            }
+
+            private boolean matchName(
+                AguiSubagentDataExFW subagent)
+            {
+                return name == null || name.equals(subagent.name().asString());
+            }
+
+            private boolean matchDescription(
+                AguiSubagentDataExFW subagent)
+            {
+                return description == null || description.equals(subagent.description().asString());
+            }
+
+            private boolean matchParentSubagentRunId(
+                AguiSubagentDataExFW subagent)
+            {
+                return parentSubagentRunId == null || parentSubagentRunId.equals(subagent.parentSubagentRunId().asString());
+            }
+
+            private boolean matchParentToolCallId(
+                AguiSubagentDataExFW subagent)
+            {
+                return parentToolCallId == null || parentToolCallId.equals(subagent.parentToolCallId().asString());
+            }
+
+            private boolean matchParentMessageId(
+                AguiSubagentDataExFW subagent)
+            {
+                return parentMessageId == null || parentMessageId.equals(subagent.parentMessageId().asString());
+            }
+
+            private boolean matchCode(
+                AguiSubagentDataExFW subagent)
+            {
+                return code == null || code.equals(subagent.code().asString());
+            }
+
+            private boolean matchMessage(
+                AguiSubagentDataExFW subagent)
+            {
+                return message == null || message.equals(subagent.message().asString());
+            }
+        }
+
+        public final class AguiRawDataExMatcherBuilder extends AguiEventMetaMatcherBuilder<AguiRawDataExMatcherBuilder>
+        {
+            private String source;
+
+            private AguiRawDataExMatcherBuilder()
+            {
+            }
+
+            public AguiRawDataExMatcherBuilder source(
+                String source)
+            {
+                this.source = source;
+                return this;
+            }
+
+            public AguiDataExMatcherBuilder build()
+            {
+                return AguiDataExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                AguiDataExFW dataEx)
+            {
+                final AguiRawDataExFW raw = dataEx.raw();
+                return matchMeta(raw.meta()) &&
+                    matchSource(raw);
+            }
+
+            private boolean matchSource(
+                AguiRawDataExFW raw)
+            {
+                return source == null || source.equals(raw.source().asString());
+            }
+        }
+
+        public final class AguiCustomDataExMatcherBuilder extends AguiEventMetaMatcherBuilder<AguiCustomDataExMatcherBuilder>
+        {
+            private String name;
+
+            private AguiCustomDataExMatcherBuilder()
+            {
+            }
+
+            public AguiCustomDataExMatcherBuilder name(
+                String name)
+            {
+                this.name = name;
+                return this;
+            }
+
+            public AguiDataExMatcherBuilder build()
+            {
+                return AguiDataExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                AguiDataExFW dataEx)
+            {
+                final AguiCustomDataExFW custom = dataEx.custom();
+                return matchMeta(custom.meta()) &&
+                    matchName(custom);
+            }
+
+            private boolean matchName(
+                AguiCustomDataExFW custom)
+            {
+                return name == null || name.equals(custom.name().asString());
+            }
+        }
     }
 
     public static final class AguiEndExBuilder
     {
         private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024]);
         private final AguiEndExFW.Builder endExRW = new AguiEndExFW.Builder();
+
+        private AguiOutcomeType outcome = AguiOutcomeType.NONE;
+        private byte[] detail;
 
         private AguiEndExBuilder()
         {
@@ -907,14 +1678,24 @@ public final class AguiFunctions
         public AguiEndExBuilder outcome(
             String outcome)
         {
-            final AguiOutcomeType resolved = AguiOutcomeType.valueOf(outcome);
-            endExRW.outcome(o -> o.set(resolved));
+            this.outcome = AguiOutcomeType.valueOf(outcome);
+            return this;
+        }
+
+        public AguiEndExBuilder detail(
+            String detail)
+        {
+            this.detail = detail.getBytes(UTF_8);
             return this;
         }
 
         public byte[] build()
         {
-            final AguiEndExFW endEx = endExRW.build();
+            final AguiEndExFW.Builder builder = endExRW.outcome(o -> o.set(outcome));
+
+            final AguiEndExFW endEx = detail == null
+                ? builder.build()
+                : builder.detailLength(detail.length).detail(new UnsafeBufferEx(detail), 0, detail.length).build();
             final byte[] array = new byte[endEx.sizeof()];
             writeBuffer.getBytes(endEx.offset(), array);
             return array;
@@ -928,6 +1709,7 @@ public final class AguiFunctions
 
         private Integer typeId;
         private AguiOutcomeType outcome;
+        private String detail;
 
         public AguiEndExMatcherBuilder typeId(
             int typeId)
@@ -940,6 +1722,13 @@ public final class AguiFunctions
             String outcome)
         {
             this.outcome = AguiOutcomeType.valueOf(outcome);
+            return this;
+        }
+
+        public AguiEndExMatcherBuilder detail(
+            String detail)
+        {
+            this.detail = detail;
             return this;
         }
 
@@ -961,7 +1750,8 @@ public final class AguiFunctions
 
             if (endEx != null &&
                 matchTypeId(endEx) &&
-                matchOutcome(endEx))
+                matchOutcome(endEx) &&
+                matchDetail(endEx))
             {
                 byteBuf.position(byteBuf.position() + endEx.sizeof());
                 return endEx;
@@ -980,6 +1770,12 @@ public final class AguiFunctions
             AguiEndExFW endEx)
         {
             return outcome == null || outcome == endEx.outcome().get();
+        }
+
+        private boolean matchDetail(
+            AguiEndExFW endEx)
+        {
+            return detail == null || detail.equals(asString(endEx.detail()));
         }
     }
 
@@ -1103,6 +1899,159 @@ public final class AguiFunctions
         {
             return message == null || message.equals(abortEx.error().message().asString());
         }
+    }
+
+    public static final class AguiResetExBuilder
+    {
+        private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024]);
+        private final AguiResetExFW.Builder resetExRW = new AguiResetExFW.Builder();
+
+        private int status = -1;
+        private String code;
+        private String message;
+
+        private AguiResetExBuilder()
+        {
+            resetExRW.wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public AguiResetExBuilder typeId(
+            int typeId)
+        {
+            resetExRW.typeId(typeId);
+            return this;
+        }
+
+        public AguiResetExBuilder status(
+            int status)
+        {
+            this.status = status;
+            return this;
+        }
+
+        public AguiResetExBuilder code(
+            String code)
+        {
+            this.code = code;
+            return this;
+        }
+
+        public AguiResetExBuilder message(
+            String message)
+        {
+            this.message = message;
+            return this;
+        }
+
+        public byte[] build()
+        {
+            resetExRW.error(e -> e.status(status).code(code).message(message));
+
+            final AguiResetExFW resetEx = resetExRW.build();
+            final byte[] array = new byte[resetEx.sizeof()];
+            writeBuffer.getBytes(resetEx.offset(), array);
+            return array;
+        }
+    }
+
+    public static final class AguiResetExMatcherBuilder
+    {
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
+        private final AguiResetExFW resetExRO = new AguiResetExFW();
+
+        private Integer typeId;
+        private Integer status;
+        private String code;
+        private String message;
+
+        public AguiResetExMatcherBuilder typeId(
+            int typeId)
+        {
+            this.typeId = typeId;
+            return this;
+        }
+
+        public AguiResetExMatcherBuilder status(
+            int status)
+        {
+            this.status = status;
+            return this;
+        }
+
+        public AguiResetExMatcherBuilder code(
+            String code)
+        {
+            this.code = code;
+            return this;
+        }
+
+        public AguiResetExMatcherBuilder message(
+            String message)
+        {
+            this.message = message;
+            return this;
+        }
+
+        public BytesMatcher build()
+        {
+            return this::match;
+        }
+
+        private AguiResetExFW match(
+            ByteBuffer byteBuf) throws Exception
+        {
+            if (!byteBuf.hasRemaining())
+            {
+                return null;
+            }
+
+            bufferRO.wrap(byteBuf);
+            final AguiResetExFW resetEx = resetExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.limit());
+
+            if (resetEx != null &&
+                matchTypeId(resetEx) &&
+                matchStatus(resetEx) &&
+                matchCode(resetEx) &&
+                matchMessage(resetEx))
+            {
+                byteBuf.position(byteBuf.position() + resetEx.sizeof());
+                return resetEx;
+            }
+
+            throw new Exception(String.valueOf(resetEx));
+        }
+
+        private boolean matchTypeId(
+            AguiResetExFW resetEx)
+        {
+            return typeId == null || typeId == resetEx.typeId();
+        }
+
+        private boolean matchStatus(
+            AguiResetExFW resetEx)
+        {
+            return status == null || status == resetEx.error().status();
+        }
+
+        private boolean matchCode(
+            AguiResetExFW resetEx)
+        {
+            return code == null || code.equals(resetEx.error().code().asString());
+        }
+
+        private boolean matchMessage(
+            AguiResetExFW resetEx)
+        {
+            return message == null || message.equals(resetEx.error().message().asString());
+        }
+    }
+
+    private static String asString(
+        OctetsFW octets)
+    {
+        return octets != null && octets.sizeof() > 0
+            ? octets.get((buffer, offset, limit) -> buffer.getStringWithoutLengthUtf8(offset, limit - offset))
+            : null;
     }
 
     public static class Mapper extends FunctionMapperSpi.Reflective
