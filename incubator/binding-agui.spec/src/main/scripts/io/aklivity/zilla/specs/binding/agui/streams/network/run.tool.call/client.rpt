@@ -44,7 +44,7 @@ read "{\"type\":\"TOOL_CALL_START\",\"toolCallId\":\"call-1\",\"toolCallName\":\
 read "{\"type\":\"TOOL_CALL_ARGS\",\"toolCallId\":\"call-1\",\"delta\":\"{\\\"city\\\":\"}"
 read "{\"type\":\"TOOL_CALL_ARGS\",\"toolCallId\":\"call-1\",\"delta\":\"\\\"Paris\\\"}\"}"
 read "{\"type\":\"TOOL_CALL_END\",\"toolCallId\":\"call-1\"}"
-read "{\"type\":\"TOOL_CALL_RESULT\",\"messageId\":\"msg-3\",\"toolCallId\":\"call-1\",\"content\":\"Sunny\",\"role\":\"tool\"}"
+read "{\"type\":\"TOOL_CALL_RESULT\",\"messageId\":\"msg-3\",\"toolCallId\":\"call-1\",\"content\":\"Sunny\"}"
 read "{\"type\":\"RUN_FINISHED\",\"threadId\":\"thread-1\",\"runId\":\"run-1\"}"
 
 read closed

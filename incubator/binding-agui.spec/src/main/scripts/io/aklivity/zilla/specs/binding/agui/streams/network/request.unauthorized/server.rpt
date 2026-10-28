@@ -40,6 +40,7 @@ write zilla:begin.ext ${http:beginEx()
                         .typeId(zilla:id("http"))
                         .header(":status", "401")
                         .header("content-type", "application/json")
+                        .header("www-authenticate", "Bearer")
                         .build()}
 write flush
 

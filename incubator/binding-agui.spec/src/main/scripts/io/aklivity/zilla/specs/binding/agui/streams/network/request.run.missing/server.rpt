@@ -43,6 +43,6 @@ write zilla:begin.ext ${http:beginEx()
                         .build()}
 write flush
 
-write "{\"error\":\"Malformed RunAgentInput\"}"
+write "{\"error\":\"Missing required property: runId\"}"
 
 write close
