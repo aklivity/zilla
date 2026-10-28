@@ -396,4 +396,12 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateProxyCacheMulti()
+    {
+        JsonObject config = schema.validate("proxy.cache.multi.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }
