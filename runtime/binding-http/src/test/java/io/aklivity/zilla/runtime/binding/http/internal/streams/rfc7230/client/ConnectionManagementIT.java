@@ -124,6 +124,16 @@ public class ConnectionManagementIT
     }
 
     @Test
+    @Configuration("client.versions.yaml")
+    @Specification({
+        "${app}/concurrent.requests.awaiting.connection/client",
+        "${net}/concurrent.requests.awaiting.connection/server" })
+    public void shouldProcessConcurrentRequestsAwaitingConnection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.yaml")
     @Specification({
         "${app}/concurrent.requests.same.authority/client",
