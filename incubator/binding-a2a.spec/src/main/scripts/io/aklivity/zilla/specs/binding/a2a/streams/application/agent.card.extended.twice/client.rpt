@@ -23,7 +23,7 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${a2a:beginEx()
                            .typeId(zilla:id("a2a"))
-                           .extendedAgentCard()
+                           .agentCard()
                                .agent("weather")
                                .build()
                            .build()}
@@ -31,6 +31,28 @@ write zilla:begin.ext ${a2a:beginEx()
 connected
 
 read '{"name":"Weather Agent","description":"Answers weather questions","supportedInterfaces":[{"url":"http://localhost:9090/a2a","protocolBinding":"JSONRPC","protocolVersion":"1.0"}],"version":"1.0.0","capabilities":{"streaming":true,"pushNotifications":true},"defaultInputModes":["text/plain"],"defaultOutputModes":["text/plain"],"skills":[{"id":"weather","name":"Weather","description":"Current weather","tags":["weather"]},{"id":"forecast","name":"Forecast","description":"Seven day forecast","tags":["weather"],"securityRequirements":[{"schemes":{"oauth2":{"list":["agents:forecast"]}}}]}]}'
+
+read closed
+
+write close
+read notify CARD_SERVED
+
+connect await CARD_SERVED
+        "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+        option zilla:authorization ${authorization}
+
+write zilla:begin.ext ${a2a:beginEx()
+                           .typeId(zilla:id("a2a"))
+                           .extendedAgentCard()
+                               .agent("weather")
+                               .build()
+                           .build()}
+
+connected
+
+read '{"name":"Weather Agent","description":"Answers weather questions","supportedInterfaces":[{"url":"http://localhost:9090/a2a","protocolBinding":"JSONRPC","protocolVersion":"1.0"}],"version":"1.1.0","capabilities":{"streaming":true,"pushNotifications":true},"defaultInputModes":["text/plain"],"defaultOutputModes":["text/plain"],"skills":[{"id":"weather","name":"Weather","description":"Current weather","tags":["weather"]},{"id":"forecast","name":"Forecast","description":"Seven day forecast","tags":["weather"],"securityRequirements":[{"schemes":{"oauth2":{"list":["agents:forecast"]}}}]}]}'
 
 read closed
 
