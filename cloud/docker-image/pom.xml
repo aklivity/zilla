@@ -80,6 +80,12 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>binding-a2a-http</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>binding-amqp</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
