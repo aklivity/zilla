@@ -31,6 +31,7 @@ public class SchemaTest
     @Rule
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/guard/test.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/store/test.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/binding/a2a/schema/a2a.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/a2a/config");
 
@@ -360,6 +361,38 @@ public class SchemaTest
     public void shouldValidateClientVersionsV03()
     {
         JsonObject config = schema.validate("client.versions.v03.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyCacheGuarded()
+    {
+        JsonObject config = schema.validate("proxy.cache.guarded.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyCacheRefresh()
+    {
+        JsonObject config = schema.validate("proxy.cache.refresh.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyCacheRestricted()
+    {
+        JsonObject config = schema.validate("proxy.cache.restricted.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyRoutesGuarded()
+    {
+        JsonObject config = schema.validate("proxy.routes.guarded.yaml");
 
         assertThat(config, not(nullValue()));
     }
