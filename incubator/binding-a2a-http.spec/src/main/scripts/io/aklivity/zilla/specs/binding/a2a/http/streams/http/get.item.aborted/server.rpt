@@ -31,14 +31,8 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-write zilla:begin.ext ${http:beginEx()
-                            .typeId(zilla:id("http"))
-                            .header(":status", "200")
-                            .header("content-type", "application/json")
-                            .build()}
-write flush
+read closed
 
-write '{"id":42,"na'
-write flush
+write notify REQUEST_RECEIVED
 
 write abort
