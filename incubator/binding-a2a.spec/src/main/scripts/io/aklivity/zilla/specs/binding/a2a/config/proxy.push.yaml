@@ -26,5 +26,5 @@ bindings:
         exit: app2
     routes:
       - when:
-          - tenant: weather
+          - agent: weather
         exit: app1
