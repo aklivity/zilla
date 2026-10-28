@@ -14,37 +14,21 @@
  */
 package io.aklivity.zilla.runtime.binding.a2a.internal;
 
-import java.time.Duration;
-
 import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class A2aConfiguration extends Configuration
 {
     private static final ConfigurationDef A2A_CONFIG;
 
-    public static final PropertyDef<Duration> A2A_CARD_MAX_AGE;
-
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.a2a");
-        A2A_CARD_MAX_AGE = config.property(Duration.class, "card.max.age",
-            (c, v) -> Duration.parse(v), "PT5M");
         A2A_CONFIG = config;
-    }
-
-    public A2aConfiguration()
-    {
-        super(A2A_CONFIG, new Configuration());
     }
 
     public A2aConfiguration(
         Configuration config)
     {
         super(A2A_CONFIG, config);
-    }
-
-    public Duration cardMaxAge()
-    {
-        return A2A_CARD_MAX_AGE.get(this);
     }
 }
