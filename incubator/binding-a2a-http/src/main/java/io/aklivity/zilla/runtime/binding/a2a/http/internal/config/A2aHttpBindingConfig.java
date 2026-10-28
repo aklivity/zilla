@@ -98,6 +98,14 @@ public final class A2aHttpBindingConfig
         this.skillsById = new LinkedHashMap<>();
         this.options.skills.forEach(skill -> skillsById.putIfAbsent(skill.id, skill));
 
+        for (A2aHttpRouteConfig route : routes)
+        {
+            if (route.skill != null && !skillsById.containsKey(route.skill))
+            {
+                throw new IllegalArgumentException("unresolved skill: " + route.skill);
+            }
+        }
+
         final List<String> phrases = new ArrayList<>();
         final List<A2aHttpSkillConfig> phraseSkills = new ArrayList<>();
         for (A2aHttpSkillConfig skill : skillsById.values())

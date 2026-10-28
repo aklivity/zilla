@@ -165,6 +165,7 @@ public final class A2aHttpProxyFactory implements BindingHandler
     private final A2aMessageDecoder decodeRequest = this::decodeRequest;
     private final A2aMessageDecoder decodeIgnore = this::decodeIgnore;
 
+    private final A2aResponseDecoder decodeResponseIgnore = this::decodeResponseIgnore;
     private final A2aResponseDecoder decodeJson = this::decodeJson;
     private final A2aResponseDecoder decodeText = this::decodeText;
     private final A2aResponseDecoder decodeFile = this::decodeFile;
@@ -553,7 +554,7 @@ public final class A2aHttpProxyFactory implements BindingHandler
             if (!A2aHttpState.replyOpened(state))
             {
                 doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, affinity, emptyExtension());
+                    traceId, authorization, affinity, emptyRO);
                 state = A2aHttpState.openedReply(state);
             }
         }
@@ -747,6 +748,7 @@ public final class A2aHttpProxyFactory implements BindingHandler
 
         private A2aMessageDecoder decoder;
         private A2aResponseDecoder responseDecoder;
+        private float[][] phraseVectors;
         private HttpProxy delegate;
 
         private long traceId;
@@ -771,8 +773,6 @@ public final class A2aHttpProxyFactory implements BindingHandler
         private int responseConsumed;
         private int responseRemaining;
         private String artifactAppend;
-        private boolean responseDone;
-        private boolean responseStarted;
 
         private A2aMessageProxy(
             A2aHttpBindingConfig binding,
@@ -876,7 +876,7 @@ public final class A2aHttpProxyFactory implements BindingHandler
         {
             super.onA2aWindow(window);
 
-            if (responseStarted && !responseDone)
+            if (responseActive())
             {
                 delegate.resumeResponse(window.traceId());
             }
@@ -998,8 +998,6 @@ public final class A2aHttpProxyFactory implements BindingHandler
             }
         }
 
-        private float[][] phraseVectors;
-
         @Override
         public void completed(
             long contextId,
@@ -1049,8 +1047,7 @@ public final class A2aHttpProxyFactory implements BindingHandler
         private void onNoMatch(
             long traceId)
         {
-            final String minted = supplyTaskId.apply(affinity);
-            final String taskId = minted;
+            final String taskId = supplyTaskId.apply(affinity);
             final String contextId = this.contextId != null ? this.contextId : supplyTaskId.apply(affinity);
             final String parts = "[{\"text\":" + quote("No matching skill. Available skills: " + binding.skillsSummary()) + "}]";
             doReplyTask(traceId, A2aTaskState.REJECTED, "TASK_STATE_REJECTED", taskId, contextId, parts);
@@ -1251,8 +1248,6 @@ public final class A2aHttpProxyFactory implements BindingHandler
             String status,
             String contentType)
         {
-            responseStarted = true;
-
             final boolean ok = status != null && status.startsWith("2");
             final String mediaType = contentType.indexOf(';') >= 0
                 ? contentType.substring(0, contentType.indexOf(';')).trim()
@@ -1273,7 +1268,7 @@ public final class A2aHttpProxyFactory implements BindingHandler
             {
                 responseDecoder = decodeEvents;
                 artifactAppend = "false";
-                doReplyTaskMessage(traceId, A2aTaskState.WORKING, "TASK_STATE_WORKING", null);
+                doReplyTaskStart(traceId, A2aTaskState.WORKING, "TASK_STATE_WORKING");
             }
             else if (ok)
             {
@@ -1317,7 +1312,7 @@ public final class A2aHttpProxyFactory implements BindingHandler
                 beginResponseMessage(traceId, taskDataEx(A2aTaskState.FAILED), prefix);
             }
 
-            if (responseDecoder != null)
+            if (responseActive())
             {
                 delegate.flushHttpWindow(traceId);
             }
@@ -1363,10 +1358,15 @@ public final class A2aHttpProxyFactory implements BindingHandler
             return responseRemaining;
         }
 
+        boolean responseActive()
+        {
+            return responseDecoder != null && responseDecoder != decodeResponseIgnore;
+        }
+
         void completeResponse(
             long traceId)
         {
-            responseDone = true;
+            responseDecoder = decodeResponseIgnore;
             if (responseSuffix != null)
             {
                 ensureEncodeRoom(traceId, responseSuffix.length);
@@ -1379,7 +1379,6 @@ public final class A2aHttpProxyFactory implements BindingHandler
         void responseReject(
             long traceId)
         {
-            responseDone = true;
             cleanupResponse();
             cleanupEncodeSlot();
             doA2aAbort(traceId);
@@ -1388,7 +1387,6 @@ public final class A2aHttpProxyFactory implements BindingHandler
         void onHttpAbort(
             long traceId)
         {
-            responseDone = true;
             cleanupResponse();
             cleanupEncodeSlot();
             doA2aAbort(traceId);
@@ -1399,7 +1397,7 @@ public final class A2aHttpProxyFactory implements BindingHandler
             responsePipeline = null;
             responseGenerator = null;
             escapeGenerator = null;
-            responseDecoder = null;
+            responseDecoder = decodeResponseIgnore;
             responseConsumed = 0;
             responseRemaining = 0;
         }
@@ -1420,15 +1418,6 @@ public final class A2aHttpProxyFactory implements BindingHandler
             this.taskId = taskId;
             this.contextId = contextId;
             doReply(traceId, taskDataEx(taskState), reply.getBytes(UTF_8));
-        }
-
-        private void doReplyTaskMessage(
-            long traceId,
-            A2aTaskState taskState,
-            String stateName,
-            String parts)
-        {
-            doReplyTaskStart(traceId, taskState, stateName);
         }
 
         private void doReplyTaskStart(
@@ -1616,7 +1605,7 @@ public final class A2aHttpProxyFactory implements BindingHandler
                 onHttpEvent(traceId, payload);
                 pumpResponse(traceId);
             }
-            else if (payload != null && a2a.responseDecoder != null)
+            else if (payload != null && a2a.responseActive())
             {
                 if (decodeSlot == NO_SLOT)
                 {
@@ -1667,7 +1656,7 @@ public final class A2aHttpProxyFactory implements BindingHandler
             replySeq = end.sequence();
             state = A2aHttpState.closedReply(state);
 
-            if (a2a.responseDecoder != null)
+            if (a2a.responseActive())
             {
                 pumpResponse(traceId);
             }
@@ -1879,7 +1868,7 @@ public final class A2aHttpProxyFactory implements BindingHandler
             long traceId)
         {
             boolean progress = true;
-            while (progress && !a2a.responseDone)
+            while (progress && a2a.responseActive())
             {
                 final MutableDirectBufferEx slot = decodeSlot != NO_SLOT ? decodePool.buffer(decodeSlot) : emptyRO;
                 final JsonPipeline.Status status = a2a.responseStep(traceId, slot, 0, decodeSlotOffset,
@@ -1921,7 +1910,7 @@ public final class A2aHttpProxyFactory implements BindingHandler
 
             a2a.flushReply(traceId);
 
-            if (a2a.responseDone)
+            if (!a2a.responseActive())
             {
                 cleanupDecodeSlot();
             }
@@ -1934,7 +1923,7 @@ public final class A2aHttpProxyFactory implements BindingHandler
         private void resumeResponse(
             long traceId)
         {
-            if (a2a.responseStarted && !a2a.responseDone)
+            if (a2a.responseActive())
             {
                 pumpResponse(traceId);
             }
@@ -1983,6 +1972,19 @@ public final class A2aHttpProxyFactory implements BindingHandler
         long traceId,
         boolean last)
     {
+    }
+
+    private JsonPipeline.Status decodeResponseIgnore(
+        A2aMessageProxy proxy,
+        long traceId,
+        DirectBufferEx buffer,
+        int offset,
+        int length,
+        boolean last,
+        boolean bodyReceived)
+    {
+        proxy.responseRemaining = 0;
+        return JsonPipeline.Status.STARVED;
     }
 
     private JsonPipeline.Status decodeJson(
@@ -2278,11 +2280,6 @@ public final class A2aHttpProxyFactory implements BindingHandler
         final byte[] copy = new byte[flyweight.sizeof()];
         flyweight.buffer().getBytes(flyweight.offset(), copy);
         return new UnsafeBufferEx(copy);
-    }
-
-    private DirectBufferEx emptyExtension()
-    {
-        return emptyRO;
     }
 
     private String encodeTaskId(
