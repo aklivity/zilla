@@ -1,0 +1,297 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/binding/properties/type/enum/-",
+        "value": "a2a-http"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/binding/allOf/-",
+        "value": {
+            "if": {
+                "properties": {
+                    "type": {
+                        "const": "a2a-http"
+                    }
+                }
+            },
+            "then": {
+                "properties": {
+                    "type": {
+                        "const": "a2a-http"
+                    },
+                    "kind": {
+                        "enum": [
+                            "proxy"
+                        ]
+                    },
+                    "vault": false,
+                    "entry": false,
+                    "options": {
+                        "properties": {
+                            "embedding": {
+                                "title": "Embedding",
+                                "type": "string"
+                            },
+                            "store": {
+                                "title": "Store",
+                                "type": "string"
+                            },
+                            "threshold": {
+                                "title": "Threshold",
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1,
+                                "default": 0.8
+                            },
+                            "card": {
+                                "title": "Agent Card",
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "title": "Name",
+                                        "type": "string"
+                                    },
+                                    "description": {
+                                        "title": "Description",
+                                        "type": "string"
+                                    },
+                                    "version": {
+                                        "title": "Version",
+                                        "type": "string",
+                                        "default": "1.0.0"
+                                    },
+                                    "defaultInputModes": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "title": "Default Input Modes"
+                                    },
+                                    "defaultOutputModes": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "title": "Default Output Modes"
+                                    }
+                                },
+                                "additionalProperties": false
+                            },
+                            "authorization": {
+                                "title": "Authorization",
+                                "type": "object",
+                                "patternProperties": {
+                                    "^[A-Za-z0-9_-]+$": {
+                                        "type": "object",
+                                        "properties": {
+                                            "credentials": {
+                                                "title": "Credentials",
+                                                "type": "object",
+                                                "properties": {
+                                                    "headers": {
+                                                        "title": "Headers",
+                                                        "type": "object",
+                                                        "patternProperties": {
+                                                            "^[A-Za-z0-9:-]+$": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "additionalProperties": false
+                                                    }
+                                                },
+                                                "additionalProperties": false
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "additionalProperties": false,
+                                "maxProperties": 1
+                            },
+                            "skills": {
+                                "title": "Skills",
+                                "type": "object",
+                                "patternProperties": {
+                                    "^[A-Za-z0-9_-]+$": {
+                                        "type": "object",
+                                        "properties": {
+                                            "name": {
+                                                "title": "Skill Name",
+                                                "type": "string"
+                                            },
+                                            "description": {
+                                                "title": "Skill Description",
+                                                "type": "string"
+                                            },
+                                            "examples": {
+                                                "title": "Skill Examples",
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "tags": {
+                                                "title": "Skill Tags",
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "schemas": {
+                                                "title": "Schemas",
+                                                "type": "object",
+                                                "properties": {
+                                                    "input": {
+                                                        "title": "Input Schema",
+                                                        "$ref": "#/$defs/models"
+                                                    },
+                                                    "output": {
+                                                        "title": "Output Schema",
+                                                        "$ref": "#/$defs/models"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "input"
+                                                ],
+                                                "additionalProperties": false
+                                            }
+                                        },
+                                        "required": [
+                                            "description",
+                                            "schemas"
+                                        ],
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "additionalProperties": false
+                            }
+                        },
+                        "required": [
+                            "embedding",
+                            "store",
+                            "skills"
+                        ],
+                        "additionalProperties": false
+                    },
+                    "routes": {
+                        "title": "Routes",
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "when": {
+                                    "title": "When",
+                                    "type": "array",
+                                    "maxItems": 1,
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "skill": {
+                                                "title": "Skill",
+                                                "type": "string"
+                                            }
+                                        },
+                                        "additionalProperties": false,
+                                        "required": [
+                                            "skill"
+                                        ]
+                                    }
+                                },
+                                "with": {
+                                    "title": "With",
+                                    "type": "object",
+                                    "properties": {
+                                        "headers": {
+                                            "title": "Headers",
+                                            "type": "object",
+                                            "properties": {
+                                                ":scheme": {
+                                                    "title": "Scheme",
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "http",
+                                                        "https"
+                                                    ]
+                                                },
+                                                ":authority": {
+                                                    "title": "Authority",
+                                                    "type": "string",
+                                                    "pattern": "^[^:/]+:[0-9]+$"
+                                                },
+                                                ":path": {
+                                                    "title": "Path",
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "patternProperties": {
+                                                "^[A-Za-z0-9:-]+$": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                ":scheme",
+                                                ":authority",
+                                                ":path"
+                                            ],
+                                            "additionalProperties": false
+                                        },
+                                        "body": {
+                                            "title": "Body",
+                                            "$ref": "#/$defs/models"
+                                        }
+                                    },
+                                    "required": [
+                                        "headers"
+                                    ],
+                                    "additionalProperties": false
+                                }
+                            },
+                            "if": {
+                                "required": [
+                                    "with"
+                                ]
+                            },
+                            "then": {
+                                "required": [
+                                    "when"
+                                ],
+                                "properties": {
+                                    "when": {
+                                        "minItems": 1
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "required": [
+                    "options"
+                ],
+                "oneOf": [
+                    {
+                        "properties": {
+                            "kind": {
+                                "const": "proxy"
+                            },
+                            "routes": {
+                                "items": {
+                                    "if": {
+                                        "required": [
+                                            "with"
+                                        ]
+                                    },
+                                    "then": {
+                                        "required": [
+                                            "exit"
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    }
+]
