@@ -62,17 +62,13 @@ scope a2a
 
         struct A2aAgentCardBeginEx
         {
-            string16 tenant = null;
-            string16 version = null;
-            string16 etag = null;
-            int64 maxAge = -1;
+            string16 agent = null;
             int64 timeout = 0;
         }
 
         struct A2aMessageSendBeginEx
         {
-            string16 tenant = null;
-            string16 version = null;
+            string16 agent = null;
             string16 extensions = null;
             int32 contentLength = -1;
             int64 timeout = 0;
@@ -80,8 +76,7 @@ scope a2a
 
         struct A2aMessageStreamBeginEx
         {
-            string16 tenant = null;
-            string16 version = null;
+            string16 agent = null;
             string16 extensions = null;
             int32 contentLength = -1;
             int64 timeout = 0;
@@ -89,8 +84,7 @@ scope a2a
 
         struct A2aTasksGetBeginEx
         {
-            string16 tenant = null;
-            string16 version = null;
+            string16 agent = null;
             string16 extensions = null;
             string16 taskId;
             int32 historyLength = -1;
@@ -99,8 +93,7 @@ scope a2a
 
         struct A2aTasksListBeginEx
         {
-            string16 tenant = null;
-            string16 version = null;
+            string16 agent = null;
             string16 extensions = null;
             string16 contextId = null;
             int32 contentLength = -1;
@@ -109,8 +102,7 @@ scope a2a
 
         struct A2aTasksCancelBeginEx
         {
-            string16 tenant = null;
-            string16 version = null;
+            string16 agent = null;
             string16 extensions = null;
             string16 taskId;
             int64 timeout = 0;
@@ -118,8 +110,7 @@ scope a2a
 
         struct A2aTasksSubscribeBeginEx
         {
-            string16 tenant = null;
-            string16 version = null;
+            string16 agent = null;
             string16 extensions = null;
             string16 taskId;
             int64 timeout = 0;
@@ -127,8 +118,7 @@ scope a2a
 
         struct A2aPushConfigCreateBeginEx
         {
-            string16 tenant = null;
-            string16 version = null;
+            string16 agent = null;
             string16 extensions = null;
             string16 taskId;
             int32 contentLength = -1;
@@ -137,8 +127,7 @@ scope a2a
 
         struct A2aPushConfigGetBeginEx
         {
-            string16 tenant = null;
-            string16 version = null;
+            string16 agent = null;
             string16 extensions = null;
             string16 taskId;
             string16 configId;
@@ -147,8 +136,7 @@ scope a2a
 
         struct A2aPushConfigListBeginEx
         {
-            string16 tenant = null;
-            string16 version = null;
+            string16 agent = null;
             string16 extensions = null;
             string16 taskId;
             int64 timeout = 0;
@@ -156,8 +144,7 @@ scope a2a
 
         struct A2aPushConfigDeleteBeginEx
         {
-            string16 tenant = null;
-            string16 version = null;
+            string16 agent = null;
             string16 extensions = null;
             string16 taskId;
             string16 configId;
@@ -166,16 +153,14 @@ scope a2a
 
         struct A2aExtendedAgentCardBeginEx
         {
-            string16 tenant = null;
-            string16 version = null;
+            string16 agent = null;
             string16 extensions = null;
             int64 timeout = 0;
         }
 
         struct A2aPushNotifyBeginEx
         {
-            string16 tenant = null;
-            string16 version = null;
+            string16 agent = null;
             string16 configId = null;
             string16 taskId = null;
             string16 url = null;

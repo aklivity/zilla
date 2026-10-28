@@ -23,7 +23,6 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${a2a:beginEx()
                            .typeId(zilla:id("a2a"))
                            .extendedAgentCard()
-                               .version("1.0")
                                .build()
                            .build()}
 

@@ -27,8 +27,7 @@ accepted
 read zilla:begin.ext ${a2a:matchBeginEx()
                           .typeId(zilla:id("a2a"))
                           .agentCard()
-                              .tenant("weather")
-                              .version("1.0")
+                              .agent("weather")
                               .build()
                           .build()}
 

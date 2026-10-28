@@ -47,10 +47,7 @@ public class A2aFunctionsTest
         byte[] bytes = A2aFunctions.beginEx()
             .typeId(0)
             .agentCard()
-                .tenant("tenant-1")
-                .version("version-1")
-                .etag("etag-1")
-                .maxAge(30000L)
+                .agent("agent-1")
                 .timeout(30000L)
                 .build()
             .build();
@@ -58,10 +55,7 @@ public class A2aFunctionsTest
         assertNotNull(bytes);
 
         A2aBeginExFW beginEx = new A2aBeginExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
-        assertEquals("tenant-1", beginEx.agentCard().tenant().asString());
-        assertEquals("version-1", beginEx.agentCard().version().asString());
-        assertEquals("etag-1", beginEx.agentCard().etag().asString());
-        assertEquals(30000L, beginEx.agentCard().maxAge());
+        assertEquals("agent-1", beginEx.agentCard().agent().asString());
         assertEquals(30000L, beginEx.agentCard().timeout());
     }
 
@@ -71,10 +65,7 @@ public class A2aFunctionsTest
         BytesMatcher matcher = A2aFunctions.matchBeginEx()
             .typeId(0)
             .agentCard()
-                .tenant("tenant-1")
-                .version("version-1")
-                .etag("etag-1")
-                .maxAge(30000L)
+                .agent("agent-1")
                 .timeout(30000L)
                 .build()
             .build();
@@ -84,7 +75,7 @@ public class A2aFunctionsTest
         new A2aBeginExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .agentCard(b -> b.tenant("tenant-1").version("version-1").etag("etag-1").maxAge(30000L).timeout(30000L))
+            .agentCard(b -> b.agent("agent-1").timeout(30000L))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -96,7 +87,7 @@ public class A2aFunctionsTest
         BytesMatcher matcher = A2aFunctions.matchBeginEx()
             .typeId(0)
             .agentCard()
-                .tenant("wrong")
+                .agent("wrong")
                 .build()
             .build();
 
@@ -105,7 +96,7 @@ public class A2aFunctionsTest
         new A2aBeginExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .agentCard(b -> b.tenant("tenant-1").version("version-1").etag("etag-1").maxAge(30000L).timeout(30000L))
+            .agentCard(b -> b.agent("agent-1").timeout(30000L))
             .build();
 
         matcher.match(byteBuf);
@@ -117,8 +108,7 @@ public class A2aFunctionsTest
         byte[] bytes = A2aFunctions.beginEx()
             .typeId(0)
             .messageSend()
-                .tenant("tenant-1")
-                .version("version-1")
+                .agent("agent-1")
                 .extensions("extensions-1")
                 .contentLength(7)
                 .timeout(30000L)
@@ -128,8 +118,7 @@ public class A2aFunctionsTest
         assertNotNull(bytes);
 
         A2aBeginExFW beginEx = new A2aBeginExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
-        assertEquals("tenant-1", beginEx.messageSend().tenant().asString());
-        assertEquals("version-1", beginEx.messageSend().version().asString());
+        assertEquals("agent-1", beginEx.messageSend().agent().asString());
         assertEquals("extensions-1", beginEx.messageSend().extensions().asString());
         assertEquals(7, beginEx.messageSend().contentLength());
         assertEquals(30000L, beginEx.messageSend().timeout());
@@ -141,8 +130,7 @@ public class A2aFunctionsTest
         BytesMatcher matcher = A2aFunctions.matchBeginEx()
             .typeId(0)
             .messageSend()
-                .tenant("tenant-1")
-                .version("version-1")
+                .agent("agent-1")
                 .extensions("extensions-1")
                 .contentLength(7)
                 .timeout(30000L)
@@ -154,12 +142,7 @@ public class A2aFunctionsTest
         new A2aBeginExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .messageSend(b -> b
-                .tenant("tenant-1")
-                .version("version-1")
-                .extensions("extensions-1")
-                .contentLength(7)
-                .timeout(30000L))
+            .messageSend(b -> b.agent("agent-1").extensions("extensions-1").contentLength(7).timeout(30000L))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -171,7 +154,7 @@ public class A2aFunctionsTest
         BytesMatcher matcher = A2aFunctions.matchBeginEx()
             .typeId(0)
             .messageSend()
-                .tenant("wrong")
+                .agent("wrong")
                 .build()
             .build();
 
@@ -180,12 +163,7 @@ public class A2aFunctionsTest
         new A2aBeginExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .messageSend(b -> b
-                .tenant("tenant-1")
-                .version("version-1")
-                .extensions("extensions-1")
-                .contentLength(7)
-                .timeout(30000L))
+            .messageSend(b -> b.agent("agent-1").extensions("extensions-1").contentLength(7).timeout(30000L))
             .build();
 
         matcher.match(byteBuf);
@@ -197,8 +175,7 @@ public class A2aFunctionsTest
         byte[] bytes = A2aFunctions.beginEx()
             .typeId(0)
             .messageStream()
-                .tenant("tenant-1")
-                .version("version-1")
+                .agent("agent-1")
                 .extensions("extensions-1")
                 .contentLength(7)
                 .timeout(30000L)
@@ -208,8 +185,7 @@ public class A2aFunctionsTest
         assertNotNull(bytes);
 
         A2aBeginExFW beginEx = new A2aBeginExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
-        assertEquals("tenant-1", beginEx.messageStream().tenant().asString());
-        assertEquals("version-1", beginEx.messageStream().version().asString());
+        assertEquals("agent-1", beginEx.messageStream().agent().asString());
         assertEquals("extensions-1", beginEx.messageStream().extensions().asString());
         assertEquals(7, beginEx.messageStream().contentLength());
         assertEquals(30000L, beginEx.messageStream().timeout());
@@ -221,8 +197,7 @@ public class A2aFunctionsTest
         BytesMatcher matcher = A2aFunctions.matchBeginEx()
             .typeId(0)
             .messageStream()
-                .tenant("tenant-1")
-                .version("version-1")
+                .agent("agent-1")
                 .extensions("extensions-1")
                 .contentLength(7)
                 .timeout(30000L)
@@ -234,12 +209,7 @@ public class A2aFunctionsTest
         new A2aBeginExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .messageStream(b -> b
-                .tenant("tenant-1")
-                .version("version-1")
-                .extensions("extensions-1")
-                .contentLength(7)
-                .timeout(30000L))
+            .messageStream(b -> b.agent("agent-1").extensions("extensions-1").contentLength(7).timeout(30000L))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -251,7 +221,7 @@ public class A2aFunctionsTest
         BytesMatcher matcher = A2aFunctions.matchBeginEx()
             .typeId(0)
             .messageStream()
-                .tenant("wrong")
+                .agent("wrong")
                 .build()
             .build();
 
@@ -260,12 +230,7 @@ public class A2aFunctionsTest
         new A2aBeginExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .messageStream(b -> b
-                .tenant("tenant-1")
-                .version("version-1")
-                .extensions("extensions-1")
-                .contentLength(7)
-                .timeout(30000L))
+            .messageStream(b -> b.agent("agent-1").extensions("extensions-1").contentLength(7).timeout(30000L))
             .build();
 
         matcher.match(byteBuf);
@@ -277,8 +242,7 @@ public class A2aFunctionsTest
         byte[] bytes = A2aFunctions.beginEx()
             .typeId(0)
             .tasksGet()
-                .tenant("tenant-1")
-                .version("version-1")
+                .agent("agent-1")
                 .extensions("extensions-1")
                 .taskId("taskId-1")
                 .historyLength(7)
@@ -289,8 +253,7 @@ public class A2aFunctionsTest
         assertNotNull(bytes);
 
         A2aBeginExFW beginEx = new A2aBeginExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
-        assertEquals("tenant-1", beginEx.tasksGet().tenant().asString());
-        assertEquals("version-1", beginEx.tasksGet().version().asString());
+        assertEquals("agent-1", beginEx.tasksGet().agent().asString());
         assertEquals("extensions-1", beginEx.tasksGet().extensions().asString());
         assertEquals("taskId-1", beginEx.tasksGet().taskId().asString());
         assertEquals(7, beginEx.tasksGet().historyLength());
@@ -303,8 +266,7 @@ public class A2aFunctionsTest
         BytesMatcher matcher = A2aFunctions.matchBeginEx()
             .typeId(0)
             .tasksGet()
-                .tenant("tenant-1")
-                .version("version-1")
+                .agent("agent-1")
                 .extensions("extensions-1")
                 .taskId("taskId-1")
                 .historyLength(7)
@@ -317,13 +279,7 @@ public class A2aFunctionsTest
         new A2aBeginExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .tasksGet(b -> b
-                .tenant("tenant-1")
-                .version("version-1")
-                .extensions("extensions-1")
-                .taskId("taskId-1")
-                .historyLength(7)
-                .timeout(30000L))
+            .tasksGet(b -> b.agent("agent-1").extensions("extensions-1").taskId("taskId-1").historyLength(7).timeout(30000L))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -335,7 +291,7 @@ public class A2aFunctionsTest
         BytesMatcher matcher = A2aFunctions.matchBeginEx()
             .typeId(0)
             .tasksGet()
-                .tenant("wrong")
+                .agent("wrong")
                 .build()
             .build();
 
@@ -344,13 +300,7 @@ public class A2aFunctionsTest
         new A2aBeginExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .tasksGet(b -> b
-                .tenant("tenant-1")
-                .version("version-1")
-                .extensions("extensions-1")
-                .taskId("taskId-1")
-                .historyLength(7)
-                .timeout(30000L))
+            .tasksGet(b -> b.agent("agent-1").extensions("extensions-1").taskId("taskId-1").historyLength(7).timeout(30000L))
             .build();
 
         matcher.match(byteBuf);
@@ -362,8 +312,7 @@ public class A2aFunctionsTest
         byte[] bytes = A2aFunctions.beginEx()
             .typeId(0)
             .tasksList()
-                .tenant("tenant-1")
-                .version("version-1")
+                .agent("agent-1")
                 .extensions("extensions-1")
                 .contextId("contextId-1")
                 .contentLength(7)
@@ -374,8 +323,7 @@ public class A2aFunctionsTest
         assertNotNull(bytes);
 
         A2aBeginExFW beginEx = new A2aBeginExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
-        assertEquals("tenant-1", beginEx.tasksList().tenant().asString());
-        assertEquals("version-1", beginEx.tasksList().version().asString());
+        assertEquals("agent-1", beginEx.tasksList().agent().asString());
         assertEquals("extensions-1", beginEx.tasksList().extensions().asString());
         assertEquals("contextId-1", beginEx.tasksList().contextId().asString());
         assertEquals(7, beginEx.tasksList().contentLength());
@@ -388,8 +336,7 @@ public class A2aFunctionsTest
         BytesMatcher matcher = A2aFunctions.matchBeginEx()
             .typeId(0)
             .tasksList()
-                .tenant("tenant-1")
-                .version("version-1")
+                .agent("agent-1")
                 .extensions("extensions-1")
                 .contextId("contextId-1")
                 .contentLength(7)
@@ -403,8 +350,7 @@ public class A2aFunctionsTest
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .tasksList(b -> b
-                .tenant("tenant-1")
-                .version("version-1")
+                .agent("agent-1")
                 .extensions("extensions-1")
                 .contextId("contextId-1")
                 .contentLength(7)
@@ -420,7 +366,7 @@ public class A2aFunctionsTest
         BytesMatcher matcher = A2aFunctions.matchBeginEx()
             .typeId(0)
             .tasksList()
-                .tenant("wrong")
+                .agent("wrong")
                 .build()
             .build();
 
@@ -430,8 +376,7 @@ public class A2aFunctionsTest
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .tasksList(b -> b
-                .tenant("tenant-1")
-                .version("version-1")
+                .agent("agent-1")
                 .extensions("extensions-1")
                 .contextId("contextId-1")
                 .contentLength(7)
@@ -447,8 +392,7 @@ public class A2aFunctionsTest
         byte[] bytes = A2aFunctions.beginEx()
             .typeId(0)
             .tasksCancel()
-                .tenant("tenant-1")
-                .version("version-1")
+                .agent("agent-1")
                 .extensions("extensions-1")
                 .taskId("taskId-1")
                 .timeout(30000L)
@@ -458,8 +402,7 @@ public class A2aFunctionsTest
         assertNotNull(bytes);
 
         A2aBeginExFW beginEx = new A2aBeginExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
-        assertEquals("tenant-1", beginEx.tasksCancel().tenant().asString());
-        assertEquals("version-1", beginEx.tasksCancel().version().asString());
+        assertEquals("agent-1", beginEx.tasksCancel().agent().asString());
         assertEquals("extensions-1", beginEx.tasksCancel().extensions().asString());
         assertEquals("taskId-1", beginEx.tasksCancel().taskId().asString());
         assertEquals(30000L, beginEx.tasksCancel().timeout());
@@ -471,8 +414,7 @@ public class A2aFunctionsTest
         BytesMatcher matcher = A2aFunctions.matchBeginEx()
             .typeId(0)
             .tasksCancel()
-                .tenant("tenant-1")
-                .version("version-1")
+                .agent("agent-1")
                 .extensions("extensions-1")
                 .taskId("taskId-1")
                 .timeout(30000L)
@@ -484,12 +426,7 @@ public class A2aFunctionsTest
         new A2aBeginExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .tasksCancel(b -> b
-                .tenant("tenant-1")
-                .version("version-1")
-                .extensions("extensions-1")
-                .taskId("taskId-1")
-                .timeout(30000L))
+            .tasksCancel(b -> b.agent("agent-1").extensions("extensions-1").taskId("taskId-1").timeout(30000L))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -501,7 +438,7 @@ public class A2aFunctionsTest
         BytesMatcher matcher = A2aFunctions.matchBeginEx()
             .typeId(0)
             .tasksCancel()
-                .tenant("wrong")
+                .agent("wrong")
                 .build()
             .build();
 
@@ -510,12 +447,7 @@ public class A2aFunctionsTest
         new A2aBeginExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .tasksCancel(b -> b
-                .tenant("tenant-1")
-                .version("version-1")
-                .extensions("extensions-1")
-                .taskId("taskId-1")
-                .timeout(30000L))
+            .tasksCancel(b -> b.agent("agent-1").extensions("extensions-1").taskId("taskId-1").timeout(30000L))
             .build();
 
         matcher.match(byteBuf);
@@ -527,8 +459,7 @@ public class A2aFunctionsTest
         byte[] bytes = A2aFunctions.beginEx()
             .typeId(0)
             .tasksSubscribe()
-                .tenant("tenant-1")
-                .version("version-1")
+                .agent("agent-1")
                 .extensions("extensions-1")
                 .taskId("taskId-1")
                 .timeout(30000L)
@@ -538,8 +469,7 @@ public class A2aFunctionsTest
         assertNotNull(bytes);
 
         A2aBeginExFW beginEx = new A2aBeginExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
-        assertEquals("tenant-1", beginEx.tasksSubscribe().tenant().asString());
-        assertEquals("version-1", beginEx.tasksSubscribe().version().asString());
+        assertEquals("agent-1", beginEx.tasksSubscribe().agent().asString());
         assertEquals("extensions-1", beginEx.tasksSubscribe().extensions().asString());
         assertEquals("taskId-1", beginEx.tasksSubscribe().taskId().asString());
         assertEquals(30000L, beginEx.tasksSubscribe().timeout());
@@ -551,8 +481,7 @@ public class A2aFunctionsTest
         BytesMatcher matcher = A2aFunctions.matchBeginEx()
             .typeId(0)
             .tasksSubscribe()
-                .tenant("tenant-1")
-                .version("version-1")
+                .agent("agent-1")
                 .extensions("extensions-1")
                 .taskId("taskId-1")
                 .timeout(30000L)
@@ -564,12 +493,7 @@ public class A2aFunctionsTest
         new A2aBeginExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .tasksSubscribe(b -> b
-                .tenant("tenant-1")
-                .version("version-1")
-                .extensions("extensions-1")
-                .taskId("taskId-1")
-                .timeout(30000L))
+            .tasksSubscribe(b -> b.agent("agent-1").extensions("extensions-1").taskId("taskId-1").timeout(30000L))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -581,7 +505,7 @@ public class A2aFunctionsTest
         BytesMatcher matcher = A2aFunctions.matchBeginEx()
             .typeId(0)
             .tasksSubscribe()
-                .tenant("wrong")
+                .agent("wrong")
                 .build()
             .build();
 
@@ -590,12 +514,7 @@ public class A2aFunctionsTest
         new A2aBeginExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .tasksSubscribe(b -> b
-                .tenant("tenant-1")
-                .version("version-1")
-                .extensions("extensions-1")
-                .taskId("taskId-1")
-                .timeout(30000L))
+            .tasksSubscribe(b -> b.agent("agent-1").extensions("extensions-1").taskId("taskId-1").timeout(30000L))
             .build();
 
         matcher.match(byteBuf);
@@ -607,8 +526,7 @@ public class A2aFunctionsTest
         byte[] bytes = A2aFunctions.beginEx()
             .typeId(0)
             .pushConfigCreate()
-                .tenant("tenant-1")
-                .version("version-1")
+                .agent("agent-1")
                 .extensions("extensions-1")
                 .taskId("taskId-1")
                 .contentLength(7)
@@ -619,8 +537,7 @@ public class A2aFunctionsTest
         assertNotNull(bytes);
 
         A2aBeginExFW beginEx = new A2aBeginExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
-        assertEquals("tenant-1", beginEx.pushConfigCreate().tenant().asString());
-        assertEquals("version-1", beginEx.pushConfigCreate().version().asString());
+        assertEquals("agent-1", beginEx.pushConfigCreate().agent().asString());
         assertEquals("extensions-1", beginEx.pushConfigCreate().extensions().asString());
         assertEquals("taskId-1", beginEx.pushConfigCreate().taskId().asString());
         assertEquals(7, beginEx.pushConfigCreate().contentLength());
@@ -633,8 +550,7 @@ public class A2aFunctionsTest
         BytesMatcher matcher = A2aFunctions.matchBeginEx()
             .typeId(0)
             .pushConfigCreate()
-                .tenant("tenant-1")
-                .version("version-1")
+                .agent("agent-1")
                 .extensions("extensions-1")
                 .taskId("taskId-1")
                 .contentLength(7)
@@ -648,8 +564,7 @@ public class A2aFunctionsTest
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .pushConfigCreate(b -> b
-                .tenant("tenant-1")
-                .version("version-1")
+                .agent("agent-1")
                 .extensions("extensions-1")
                 .taskId("taskId-1")
                 .contentLength(7)
@@ -665,7 +580,7 @@ public class A2aFunctionsTest
         BytesMatcher matcher = A2aFunctions.matchBeginEx()
             .typeId(0)
             .pushConfigCreate()
-                .tenant("wrong")
+                .agent("wrong")
                 .build()
             .build();
 
@@ -675,8 +590,7 @@ public class A2aFunctionsTest
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .pushConfigCreate(b -> b
-                .tenant("tenant-1")
-                .version("version-1")
+                .agent("agent-1")
                 .extensions("extensions-1")
                 .taskId("taskId-1")
                 .contentLength(7)
@@ -692,8 +606,7 @@ public class A2aFunctionsTest
         byte[] bytes = A2aFunctions.beginEx()
             .typeId(0)
             .pushConfigGet()
-                .tenant("tenant-1")
-                .version("version-1")
+                .agent("agent-1")
                 .extensions("extensions-1")
                 .taskId("taskId-1")
                 .configId("configId-1")
@@ -704,8 +617,7 @@ public class A2aFunctionsTest
         assertNotNull(bytes);
 
         A2aBeginExFW beginEx = new A2aBeginExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
-        assertEquals("tenant-1", beginEx.pushConfigGet().tenant().asString());
-        assertEquals("version-1", beginEx.pushConfigGet().version().asString());
+        assertEquals("agent-1", beginEx.pushConfigGet().agent().asString());
         assertEquals("extensions-1", beginEx.pushConfigGet().extensions().asString());
         assertEquals("taskId-1", beginEx.pushConfigGet().taskId().asString());
         assertEquals("configId-1", beginEx.pushConfigGet().configId().asString());
@@ -718,8 +630,7 @@ public class A2aFunctionsTest
         BytesMatcher matcher = A2aFunctions.matchBeginEx()
             .typeId(0)
             .pushConfigGet()
-                .tenant("tenant-1")
-                .version("version-1")
+                .agent("agent-1")
                 .extensions("extensions-1")
                 .taskId("taskId-1")
                 .configId("configId-1")
@@ -733,8 +644,7 @@ public class A2aFunctionsTest
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .pushConfigGet(b -> b
-                .tenant("tenant-1")
-                .version("version-1")
+                .agent("agent-1")
                 .extensions("extensions-1")
                 .taskId("taskId-1")
                 .configId("configId-1")
@@ -750,7 +660,7 @@ public class A2aFunctionsTest
         BytesMatcher matcher = A2aFunctions.matchBeginEx()
             .typeId(0)
             .pushConfigGet()
-                .tenant("wrong")
+                .agent("wrong")
                 .build()
             .build();
 
@@ -760,8 +670,7 @@ public class A2aFunctionsTest
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .pushConfigGet(b -> b
-                .tenant("tenant-1")
-                .version("version-1")
+                .agent("agent-1")
                 .extensions("extensions-1")
                 .taskId("taskId-1")
                 .configId("configId-1")
@@ -777,8 +686,7 @@ public class A2aFunctionsTest
         byte[] bytes = A2aFunctions.beginEx()
             .typeId(0)
             .pushConfigList()
-                .tenant("tenant-1")
-                .version("version-1")
+                .agent("agent-1")
                 .extensions("extensions-1")
                 .taskId("taskId-1")
                 .timeout(30000L)
@@ -788,8 +696,7 @@ public class A2aFunctionsTest
         assertNotNull(bytes);
 
         A2aBeginExFW beginEx = new A2aBeginExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
-        assertEquals("tenant-1", beginEx.pushConfigList().tenant().asString());
-        assertEquals("version-1", beginEx.pushConfigList().version().asString());
+        assertEquals("agent-1", beginEx.pushConfigList().agent().asString());
         assertEquals("extensions-1", beginEx.pushConfigList().extensions().asString());
         assertEquals("taskId-1", beginEx.pushConfigList().taskId().asString());
         assertEquals(30000L, beginEx.pushConfigList().timeout());
@@ -801,8 +708,7 @@ public class A2aFunctionsTest
         BytesMatcher matcher = A2aFunctions.matchBeginEx()
             .typeId(0)
             .pushConfigList()
-                .tenant("tenant-1")
-                .version("version-1")
+                .agent("agent-1")
                 .extensions("extensions-1")
                 .taskId("taskId-1")
                 .timeout(30000L)
@@ -814,12 +720,7 @@ public class A2aFunctionsTest
         new A2aBeginExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .pushConfigList(b -> b
-                .tenant("tenant-1")
-                .version("version-1")
-                .extensions("extensions-1")
-                .taskId("taskId-1")
-                .timeout(30000L))
+            .pushConfigList(b -> b.agent("agent-1").extensions("extensions-1").taskId("taskId-1").timeout(30000L))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -831,7 +732,7 @@ public class A2aFunctionsTest
         BytesMatcher matcher = A2aFunctions.matchBeginEx()
             .typeId(0)
             .pushConfigList()
-                .tenant("wrong")
+                .agent("wrong")
                 .build()
             .build();
 
@@ -840,12 +741,7 @@ public class A2aFunctionsTest
         new A2aBeginExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .pushConfigList(b -> b
-                .tenant("tenant-1")
-                .version("version-1")
-                .extensions("extensions-1")
-                .taskId("taskId-1")
-                .timeout(30000L))
+            .pushConfigList(b -> b.agent("agent-1").extensions("extensions-1").taskId("taskId-1").timeout(30000L))
             .build();
 
         matcher.match(byteBuf);
@@ -857,8 +753,7 @@ public class A2aFunctionsTest
         byte[] bytes = A2aFunctions.beginEx()
             .typeId(0)
             .pushConfigDelete()
-                .tenant("tenant-1")
-                .version("version-1")
+                .agent("agent-1")
                 .extensions("extensions-1")
                 .taskId("taskId-1")
                 .configId("configId-1")
@@ -869,8 +764,7 @@ public class A2aFunctionsTest
         assertNotNull(bytes);
 
         A2aBeginExFW beginEx = new A2aBeginExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
-        assertEquals("tenant-1", beginEx.pushConfigDelete().tenant().asString());
-        assertEquals("version-1", beginEx.pushConfigDelete().version().asString());
+        assertEquals("agent-1", beginEx.pushConfigDelete().agent().asString());
         assertEquals("extensions-1", beginEx.pushConfigDelete().extensions().asString());
         assertEquals("taskId-1", beginEx.pushConfigDelete().taskId().asString());
         assertEquals("configId-1", beginEx.pushConfigDelete().configId().asString());
@@ -883,8 +777,7 @@ public class A2aFunctionsTest
         BytesMatcher matcher = A2aFunctions.matchBeginEx()
             .typeId(0)
             .pushConfigDelete()
-                .tenant("tenant-1")
-                .version("version-1")
+                .agent("agent-1")
                 .extensions("extensions-1")
                 .taskId("taskId-1")
                 .configId("configId-1")
@@ -898,8 +791,7 @@ public class A2aFunctionsTest
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .pushConfigDelete(b -> b
-                .tenant("tenant-1")
-                .version("version-1")
+                .agent("agent-1")
                 .extensions("extensions-1")
                 .taskId("taskId-1")
                 .configId("configId-1")
@@ -915,7 +807,7 @@ public class A2aFunctionsTest
         BytesMatcher matcher = A2aFunctions.matchBeginEx()
             .typeId(0)
             .pushConfigDelete()
-                .tenant("wrong")
+                .agent("wrong")
                 .build()
             .build();
 
@@ -925,8 +817,7 @@ public class A2aFunctionsTest
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .pushConfigDelete(b -> b
-                .tenant("tenant-1")
-                .version("version-1")
+                .agent("agent-1")
                 .extensions("extensions-1")
                 .taskId("taskId-1")
                 .configId("configId-1")
@@ -942,8 +833,7 @@ public class A2aFunctionsTest
         byte[] bytes = A2aFunctions.beginEx()
             .typeId(0)
             .extendedAgentCard()
-                .tenant("tenant-1")
-                .version("version-1")
+                .agent("agent-1")
                 .extensions("extensions-1")
                 .timeout(30000L)
                 .build()
@@ -952,8 +842,7 @@ public class A2aFunctionsTest
         assertNotNull(bytes);
 
         A2aBeginExFW beginEx = new A2aBeginExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
-        assertEquals("tenant-1", beginEx.extendedAgentCard().tenant().asString());
-        assertEquals("version-1", beginEx.extendedAgentCard().version().asString());
+        assertEquals("agent-1", beginEx.extendedAgentCard().agent().asString());
         assertEquals("extensions-1", beginEx.extendedAgentCard().extensions().asString());
         assertEquals(30000L, beginEx.extendedAgentCard().timeout());
     }
@@ -964,8 +853,7 @@ public class A2aFunctionsTest
         BytesMatcher matcher = A2aFunctions.matchBeginEx()
             .typeId(0)
             .extendedAgentCard()
-                .tenant("tenant-1")
-                .version("version-1")
+                .agent("agent-1")
                 .extensions("extensions-1")
                 .timeout(30000L)
                 .build()
@@ -976,7 +864,7 @@ public class A2aFunctionsTest
         new A2aBeginExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .extendedAgentCard(b -> b.tenant("tenant-1").version("version-1").extensions("extensions-1").timeout(30000L))
+            .extendedAgentCard(b -> b.agent("agent-1").extensions("extensions-1").timeout(30000L))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -988,7 +876,7 @@ public class A2aFunctionsTest
         BytesMatcher matcher = A2aFunctions.matchBeginEx()
             .typeId(0)
             .extendedAgentCard()
-                .tenant("wrong")
+                .agent("wrong")
                 .build()
             .build();
 
@@ -997,7 +885,7 @@ public class A2aFunctionsTest
         new A2aBeginExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .extendedAgentCard(b -> b.tenant("tenant-1").version("version-1").extensions("extensions-1").timeout(30000L))
+            .extendedAgentCard(b -> b.agent("agent-1").extensions("extensions-1").timeout(30000L))
             .build();
 
         matcher.match(byteBuf);
@@ -1009,8 +897,7 @@ public class A2aFunctionsTest
         byte[] bytes = A2aFunctions.beginEx()
             .typeId(0)
             .pushNotify()
-                .tenant("tenant-1")
-                .version("version-1")
+                .agent("agent-1")
                 .configId("configId-1")
                 .taskId("taskId-1")
                 .url("url-1")
@@ -1025,8 +912,7 @@ public class A2aFunctionsTest
         assertNotNull(bytes);
 
         A2aBeginExFW beginEx = new A2aBeginExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
-        assertEquals("tenant-1", beginEx.pushNotify().tenant().asString());
-        assertEquals("version-1", beginEx.pushNotify().version().asString());
+        assertEquals("agent-1", beginEx.pushNotify().agent().asString());
         assertEquals("configId-1", beginEx.pushNotify().configId().asString());
         assertEquals("taskId-1", beginEx.pushNotify().taskId().asString());
         assertEquals("url-1", beginEx.pushNotify().url().asString());
@@ -1043,8 +929,7 @@ public class A2aFunctionsTest
         BytesMatcher matcher = A2aFunctions.matchBeginEx()
             .typeId(0)
             .pushNotify()
-                .tenant("tenant-1")
-                .version("version-1")
+                .agent("agent-1")
                 .configId("configId-1")
                 .taskId("taskId-1")
                 .url("url-1")
@@ -1062,8 +947,7 @@ public class A2aFunctionsTest
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .pushNotify(b -> b
-                .tenant("tenant-1")
-                .version("version-1")
+                .agent("agent-1")
                 .configId("configId-1")
                 .taskId("taskId-1")
                 .url("url-1")
@@ -1083,7 +967,7 @@ public class A2aFunctionsTest
         BytesMatcher matcher = A2aFunctions.matchBeginEx()
             .typeId(0)
             .pushNotify()
-                .tenant("wrong")
+                .agent("wrong")
                 .build()
             .build();
 
@@ -1093,8 +977,7 @@ public class A2aFunctionsTest
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .pushNotify(b -> b
-                .tenant("tenant-1")
-                .version("version-1")
+                .agent("agent-1")
                 .configId("configId-1")
                 .taskId("taskId-1")
                 .url("url-1")
