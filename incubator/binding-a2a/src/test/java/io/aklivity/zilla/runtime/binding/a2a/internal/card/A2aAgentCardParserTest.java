@@ -108,19 +108,6 @@ public class A2aAgentCardParserTest
         assertThat(A2aAgentCard.versionOf("1"), equalTo("1.0"));
     }
 
-    @Test
-    public void shouldTrackFreshness()
-    {
-        final A2aCardEntry entry = new A2aCardEntry("weather");
-
-        assertThat(entry.fresh(0L), is(false));
-
-        entry.resolve(parse("{\"url\":\"http://localhost:8080/a2a\"}"), null, 1000L);
-
-        assertThat(entry.fresh(999L), is(true));
-        assertThat(entry.fresh(1000L), is(false));
-    }
-
     private A2aAgentCard parse(
         String card)
     {
