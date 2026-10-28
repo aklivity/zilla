@@ -8839,4 +8839,58 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.sorted.code.interpreter/client",
+        "${app}/openai.responses.sorted.code.interpreter/server"})
+    public void shouldOpenaiSortedResponsesCodeInterpreter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.sorted.code.interpreter.stream/client",
+        "${app}/openai.responses.sorted.code.interpreter.stream/server"})
+    public void shouldOpenaiSortedResponsesCodeInterpreterStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.sorted.mcp/client",
+        "${app}/openai.responses.sorted.mcp/server"})
+    public void shouldOpenaiSortedResponsesMcp() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.sorted.response.controls/client",
+        "${app}/openai.responses.sorted.response.controls/server"})
+    public void shouldOpenaiSortedResponsesResponseControls() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.sorted.web.search/client",
+        "${app}/openai.responses.sorted.web.search/server"})
+    public void shouldOpenaiSortedResponsesWebSearch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.sorted.web.search.stream/client",
+        "${app}/openai.responses.sorted.web.search.stream/server"})
+    public void shouldOpenaiSortedResponsesWebSearchStream() throws Exception
+    {
+        k3po.finish();
+    }
 }

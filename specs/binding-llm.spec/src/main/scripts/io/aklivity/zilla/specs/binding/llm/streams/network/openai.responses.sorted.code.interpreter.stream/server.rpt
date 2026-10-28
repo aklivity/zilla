@@ -1,0 +1,61 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+accept "zilla://streams/net0"
+       option zilla:window 8192
+       option zilla:transmission "half-duplex"
+
+accepted
+
+read zilla:begin.ext ${http:matchBeginEx()
+                           .typeId(zilla:id("http"))
+                           .header(":method", "POST")
+                           .header(":scheme", "http")
+                           .header(":authority", "example.com:8080")
+                           .header(":path", "/v1/responses")
+                           .header("content-type", "application/json")
+                           .build()}
+
+connected
+
+read "{\"model\":\"gpt-4\",\"stream\":true,\"tools\":[{\"type\":\"code_interpreter\",\"container\":{\"type\":\"auto\"}}],\"input\":[{\"role\":\"user\",\"content\":\"Use python to compute 17 * 23 and tell me the result.\"}],\"stream_options\":{\"include_obfuscation\":false}}"
+
+read closed
+
+write zilla:begin.ext ${http:beginEx()
+                            .typeId(zilla:id("http"))
+                            .header(":status", "200")
+                            .header("content-type", "text/event-stream")
+                            .build()}
+write flush
+
+write "{\"response\":{\"id\":\"resp_1\",\"model\":\"gpt-4\",\"object\":\"response\",\"output\":[],\"status\":\"in_progress\"},\"sequence_number\":0,\"type\":\"response.created\"}"
+write "{\"response\":{\"id\":\"resp_1\",\"model\":\"gpt-4\",\"object\":\"response\",\"output\":[],\"status\":\"in_progress\"},\"sequence_number\":1,\"type\":\"response.in_progress\"}"
+write "{\"item\":{\"code\":\"\",\"id\":\"ci_1\",\"status\":\"in_progress\",\"type\":\"code_interpreter_call\"},\"output_index\":0,\"sequence_number\":2,\"type\":\"response.output_item.added\"}"
+write "{\"item_id\":\"ci_1\",\"output_index\":0,\"sequence_number\":3,\"type\":\"response.code_interpreter_call.in_progress\"}"
+write "{\"delta\":\"result = 17\",\"item_id\":\"ci_1\",\"output_index\":0,\"sequence_number\":4,\"type\":\"response.code_interpreter_call_code.delta\"}"
+write "{\"delta\":\" * 23\\nresult\",\"item_id\":\"ci_1\",\"output_index\":0,\"sequence_number\":5,\"type\":\"response.code_interpreter_call_code.delta\"}"
+write "{\"code\":\"result = 17 * 23\\nresult\",\"item_id\":\"ci_1\",\"output_index\":0,\"sequence_number\":6,\"type\":\"response.code_interpreter_call_code.done\"}"
+write "{\"item_id\":\"ci_1\",\"output_index\":0,\"sequence_number\":7,\"type\":\"response.code_interpreter_call.interpreting\"}"
+write "{\"item_id\":\"ci_1\",\"output_index\":0,\"sequence_number\":8,\"type\":\"response.code_interpreter_call.completed\"}"
+write "{\"item\":{\"code\":\"result = 17 * 23\\nresult\",\"container_id\":\"cntr_1\",\"id\":\"ci_1\",\"outputs\":[{\"logs\":\"391\",\"type\":\"logs\"}],\"status\":\"completed\",\"type\":\"code_interpreter_call\"},\"output_index\":0,\"sequence_number\":9,\"type\":\"response.output_item.done\"}"
+write "{\"item\":{\"content\":[],\"id\":\"msg_2\",\"role\":\"assistant\",\"status\":\"in_progress\",\"type\":\"message\"},\"output_index\":1,\"sequence_number\":10,\"type\":\"response.output_item.added\"}"
+write "{\"content_index\":0,\"item_id\":\"msg_2\",\"output_index\":1,\"part\":{\"annotations\":[],\"logprobs\":[],\"text\":\"\",\"type\":\"output_text\"},\"sequence_number\":11,\"type\":\"response.content_part.added\"}"
+write "{\"content_index\":0,\"delta\":\"The result of 17 multiplied by 23 is 391.\",\"item_id\":\"msg_2\",\"logprobs\":[],\"output_index\":1,\"sequence_number\":12,\"type\":\"response.output_text.delta\"}"
+write "{\"content_index\":0,\"item_id\":\"msg_2\",\"logprobs\":[],\"output_index\":1,\"sequence_number\":13,\"text\":\"The result of 17 multiplied by 23 is 391.\",\"type\":\"response.output_text.done\"}"
+write "{\"content_index\":0,\"item_id\":\"msg_2\",\"output_index\":1,\"part\":{\"annotations\":[],\"logprobs\":[],\"text\":\"The result of 17 multiplied by 23 is 391.\",\"type\":\"output_text\"},\"sequence_number\":14,\"type\":\"response.content_part.done\"}"
+write "{\"item\":{\"content\":[{\"annotations\":[],\"logprobs\":[],\"text\":\"The result of 17 multiplied by 23 is 391.\",\"type\":\"output_text\"}],\"id\":\"msg_2\",\"role\":\"assistant\",\"status\":\"completed\",\"type\":\"message\"},\"output_index\":1,\"sequence_number\":15,\"type\":\"response.output_item.done\"}"
+write "{\"response\":{\"id\":\"resp_1\",\"model\":\"gpt-4\",\"object\":\"response\",\"output\":[{\"code\":\"result = 17 * 23\\nresult\",\"container_id\":\"cntr_1\",\"id\":\"ci_1\",\"outputs\":[{\"logs\":\"391\",\"type\":\"logs\"}],\"status\":\"completed\",\"type\":\"code_interpreter_call\"},{\"content\":[{\"annotations\":[],\"logprobs\":[],\"text\":\"The result of 17 multiplied by 23 is 391.\",\"type\":\"output_text\"}],\"id\":\"msg_2\",\"role\":\"assistant\",\"status\":\"completed\",\"type\":\"message\"}],\"status\":\"completed\",\"usage\":{\"input_tokens\":25,\"output_tokens\":15,\"total_tokens\":40}},\"sequence_number\":16,\"type\":\"response.completed\"}"
+write close

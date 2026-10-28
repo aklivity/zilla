@@ -211,6 +211,9 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
     private static final String MEMBER_NAME = "name";
     private static final String MESSAGE_ITEMS_INTERLEAVED = "Output items interleaved beyond the supported bound.";
     private static final int ITEMS_MAX = 16;
+    private static final int PEEK_NONE = 0;
+    private static final int PEEK_FOUND = 1;
+    private static final int PEEK_PENDING = 2;
     private static final int ITEM_STAGE_MAX = 1024;
     private static final int MODE_FULL = 0;
     private static final int MODE_ADDED = 1;
@@ -654,6 +657,10 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         private LlmOpenaiResponsesDecoder itemThen;
         private LlmOpenaiResponsesDecoder textThen;
         private int decodeLimit;
+        private int inputLimit;
+        private boolean inputLast;
+        private String peekedType;
+        private String peekedId;
         private int skipDepth;
 
         private boolean scanned;
@@ -2503,6 +2510,9 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         {
             int progress = offset;
 
+            inputLimit = limit;
+            inputLast = last;
+
             try
             {
                 if (decoder == decodeEnd || decoder == decodeIgnore)
@@ -2801,15 +2811,25 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         {
             if (hasNextEvent())
             {
-                final JsonEvent event = parser.nextEvent();
+                final int peek = http.framing ? peekObject() : PEEK_NONE;
 
-                if (event == JsonEvent.START_OBJECT)
+                if (peek != PEEK_PENDING)
                 {
-                    decoder = decodeRoot;
-                }
-                else
-                {
-                    parseRejected = true;
+                    final JsonEvent event = parser.nextEvent();
+
+                    if (event == JsonEvent.START_OBJECT)
+                    {
+                        decoder = decodeRoot;
+
+                        if (peek == PEEK_FOUND)
+                        {
+                            onDocumentType(peekedType);
+                        }
+                    }
+                    else
+                    {
+                        parseRejected = true;
+                    }
                 }
             }
 
@@ -2975,19 +2995,8 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
 
                 if (event == JsonEvent.VALUE_STRING && !parser.deferredBytes())
                 {
-                    documentType = eventType(parser.getStringView());
                     decoder = decodeRoot;
-
-                    if (TYPE_TEXT_DONE.equals(documentType) || TYPE_PART_DONE.equals(documentType) ||
-                        TYPE_REFUSAL_DONE.equals(documentType))
-                    {
-                        closeText();
-                    }
-                    else if (TYPE_COMPLETED.equals(documentType) || TYPE_INCOMPLETE.equals(documentType))
-                    {
-                        closeText();
-                        closeItems();
-                    }
+                    onDocumentType(parser.getStringView());
                 }
                 else
                 {
@@ -2996,6 +3005,200 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             }
 
             return position();
+        }
+
+        private void onDocumentType(
+            CharSequence type)
+        {
+            documentType = eventType(type);
+
+            if (TYPE_TEXT_DONE.equals(documentType) || TYPE_PART_DONE.equals(documentType) ||
+                TYPE_REFUSAL_DONE.equals(documentType))
+            {
+                closeText();
+            }
+            else if (TYPE_COMPLETED.equals(documentType) || TYPE_INCOMPLETE.equals(documentType))
+            {
+                closeText();
+                closeItems();
+            }
+        }
+
+        private int peekObject()
+        {
+            final DirectBufferEx buffer = decodeInput;
+
+            int index = position();
+
+            peekedType = null;
+            peekedId = null;
+
+            int peek = index > 0 && buffer.getByte(index - 1) == '{' ? PEEK_PENDING : PEEK_NONE;
+
+            while (peek == PEEK_PENDING)
+            {
+                index = peekSeparatorsEnd(buffer, index);
+
+                if (index >= inputLimit)
+                {
+                    break;
+                }
+
+                if (buffer.getByte(index) != '"')
+                {
+                    peek = PEEK_NONE;
+                }
+                else
+                {
+                    final int keyEnd = peekStringEnd(buffer, index);
+                    final int valueFrom = keyEnd != NONE ? peekSeparatorsEnd(buffer, keyEnd + 1) : NONE;
+
+                    if (valueFrom == NONE || valueFrom >= inputLimit)
+                    {
+                        break;
+                    }
+
+                    final boolean type = peekKeyEquals(buffer, index, keyEnd, MEMBER_TYPE);
+                    final boolean id = !type && peekKeyEquals(buffer, index, keyEnd, MEMBER_ID);
+                    final int valueEnd = peekValueEnd(buffer, valueFrom);
+
+                    if (valueEnd == NONE)
+                    {
+                        break;
+                    }
+
+                    if (type && buffer.getByte(valueFrom) == '"')
+                    {
+                        peekedType = buffer.getStringWithoutLengthUtf8(valueFrom + 1, valueEnd - valueFrom - 2);
+                        peek = PEEK_FOUND;
+                    }
+                    else if (id && buffer.getByte(valueFrom) == '"')
+                    {
+                        peekedId = buffer.getStringWithoutLengthUtf8(valueFrom + 1, valueEnd - valueFrom - 2);
+                    }
+
+                    index = valueEnd;
+                }
+            }
+
+            return peek == PEEK_PENDING && (inputLast || inputLimit - position() >= decodeMax) ? PEEK_NONE : peek;
+        }
+
+        private int peekSeparatorsEnd(
+            DirectBufferEx buffer,
+            int from)
+        {
+            int index = from;
+
+            while (index < inputLimit && (isWhitespace(buffer.getByte(index)) || buffer.getByte(index) == ',' ||
+                buffer.getByte(index) == ':'))
+            {
+                index++;
+            }
+
+            return index;
+        }
+
+        private boolean peekKeyEquals(
+            DirectBufferEx buffer,
+            int from,
+            int keyEnd,
+            String member)
+        {
+            boolean equal = keyEnd - from - 1 == member.length();
+
+            for (int offset = 0; equal && offset < member.length(); offset++)
+            {
+                equal = buffer.getByte(from + 1 + offset) == member.charAt(offset);
+            }
+
+            return equal;
+        }
+
+        private int peekStringEnd(
+            DirectBufferEx buffer,
+            int from)
+        {
+            int index = from + 1;
+            int end = NONE;
+
+            while (end == NONE && index < inputLimit)
+            {
+                final byte value = buffer.getByte(index);
+
+                if (value == '\\')
+                {
+                    index += 2;
+                }
+                else if (value == '"')
+                {
+                    end = index;
+                }
+                else
+                {
+                    index++;
+                }
+            }
+
+            return end;
+        }
+
+        private int peekValueEnd(
+            DirectBufferEx buffer,
+            int from)
+        {
+            int index = from;
+            int depth = 0;
+            int end = NONE;
+
+            while (end == NONE && index < inputLimit)
+            {
+                final byte value = buffer.getByte(index);
+
+                if (value == '"')
+                {
+                    final int quote = peekStringEnd(buffer, index);
+
+                    index = quote != NONE ? quote + 1 : inputLimit;
+                    end = quote != NONE && depth == 0 ? index : NONE;
+                }
+                else if (value == '{' || value == '[')
+                {
+                    depth++;
+                    index++;
+                }
+                else if (value == '}' || value == ']')
+                {
+                    end = depth == 0 ? index : NONE;
+                    depth = depth > 0 ? depth - 1 : depth;
+                    index++;
+                    end = end == NONE && depth == 0 ? index : end;
+                }
+                else if (value == ',' && depth == 0)
+                {
+                    end = index;
+                }
+                else
+                {
+                    index++;
+                }
+            }
+
+            return end;
+        }
+
+        private void onPeekedItem(
+            int peek)
+        {
+            if (peek == PEEK_FOUND)
+            {
+                itemId = peekedId;
+
+                if (LlmOpenaiResponsesItems.kind(peekedType) != LlmOpenaiResponsesItems.KIND_MESSAGE)
+                {
+                    onItemType(peekedType);
+                }
+            }
         }
 
         private int decodeId(
@@ -3200,6 +3403,13 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         {
             while (decoder == decodeOutput && hasNextEvent())
             {
+                final int peek = peekObject();
+
+                if (peek == PEEK_PENDING)
+                {
+                    break;
+                }
+
                 final JsonEvent event = parser.nextEvent();
 
                 if (event == JsonEvent.START_OBJECT)
@@ -3207,6 +3417,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                     itemId = null;
                     itemThen = decodeOutput;
                     decoder = decodeItem;
+                    onPeekedItem(peek);
                 }
                 else if (event == JsonEvent.END_ARRAY)
                 {
@@ -3228,17 +3439,23 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         {
             if (hasNextEvent())
             {
-                final JsonEvent event = parser.nextEvent();
+                final int peek = peekObject();
 
-                if (event == JsonEvent.START_OBJECT)
+                if (peek != PEEK_PENDING)
                 {
-                    itemId = null;
-                    itemThen = decodeRoot;
-                    decoder = decodeItem;
-                }
-                else
-                {
-                    skipAfter(event, decodeRoot);
+                    final JsonEvent event = parser.nextEvent();
+
+                    if (event == JsonEvent.START_OBJECT)
+                    {
+                        itemId = null;
+                        itemThen = decodeRoot;
+                        decoder = decodeItem;
+                        onPeekedItem(peek);
+                    }
+                    else
+                    {
+                        skipAfter(event, decodeRoot);
+                    }
                 }
             }
 
