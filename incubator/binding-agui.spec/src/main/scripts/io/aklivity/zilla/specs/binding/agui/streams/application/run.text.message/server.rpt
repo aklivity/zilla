@@ -21,10 +21,10 @@ accept "zilla://streams/app0"
 accepted
 
 read zilla:begin.ext ${agui:matchBeginEx()
-                           .typeId(zilla:id("agui"))
-                           .threadId("thread-1")
-                           .runId("run-1")
-                           .build()}
+                       .typeId(zilla:id("agui"))
+                       .threadId("thread-1")
+                       .runId("run-1")
+                       .build()}
 
 connected
 
@@ -33,31 +33,29 @@ read "{\"threadId\":\"thread-1\",\"runId\":\"run-1\",\"messages\":[{\"id\":\"msg
 read closed
 
 write zilla:begin.ext ${agui:beginEx()
-                           .typeId(zilla:id("agui"))
-                           .threadId("thread-1")
-                           .runId("run-1")
-                           .build()}
+                        .typeId(zilla:id("agui"))
+                        .threadId("thread-1")
+                        .runId("run-1")
+                        .build()}
 write flush
 
 write option zilla:flags "init"
 write zilla:data.ext ${agui:dataEx()
-                           .typeId(zilla:id("agui"))
-                           .text()
-                               .messageId("msg-2")
-                               .role("ASSISTANT")
-                               .build()
-                           .build()}
+                       .typeId(zilla:id("agui"))
+                       .text()
+                           .messageId("msg-2")
+                           .role("ASSISTANT")
+                           .build()
+                       .build()}
 write "Hello"
 write flush
-
 write option zilla:flags "fin"
 write " world"
 write flush
-
 write option zilla:flags "auto"
 
 write zilla:end.ext ${agui:endEx()
-                            .typeId(zilla:id("agui"))
-                            .build()}
+                      .typeId(zilla:id("agui"))
+                      .build()}
 
 write close

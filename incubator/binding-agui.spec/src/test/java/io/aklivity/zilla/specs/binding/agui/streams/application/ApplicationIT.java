@@ -44,4 +44,121 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/run.text.chunks/client",
+        "${app}/run.text.chunks/server"})
+    public void shouldRunTextChunks() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/run.tool.call/client",
+        "${app}/run.tool.call/server"})
+    public void shouldRunToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/run.state/client",
+        "${app}/run.state/server"})
+    public void shouldRunState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/run.messages.snapshot/client",
+        "${app}/run.messages.snapshot/server"})
+    public void shouldRunMessagesSnapshot() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/run.error/client",
+        "${app}/run.error/server"})
+    public void shouldRunError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/run.abort/client",
+        "${app}/run.abort/server"})
+    public void shouldAbortRun() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/run.reasoning/client",
+        "${app}/run.reasoning/server"})
+    public void shouldRunReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/run.reasoning.group/client",
+        "${app}/run.reasoning.group/server"})
+    public void shouldRunReasoningGroup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/run.reasoning.encrypted/client",
+        "${app}/run.reasoning.encrypted/server"})
+    public void shouldRunReasoningEncrypted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/run.request.ids.last/client",
+        "${app}/run.request.ids.last/server"})
+    public void shouldRunRequestWithIdsLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/run.request.100k/client",
+        "${app}/run.request.100k/server"})
+    public void shouldRunRequest100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/run.state.snapshot.100k/client",
+        "${app}/run.state.snapshot.100k/server"})
+    public void shouldRunStateSnapshot100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/run.authorized/client",
+        "${app}/run.authorized/server"})
+    public void shouldRunAuthorized() throws Exception
+    {
+        k3po.finish();
+    }
 }
