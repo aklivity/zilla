@@ -68,8 +68,8 @@ write zilla:begin.ext ${a2a:beginEx()
 connected
 
 write '{"statusUp'
-write notify ABORTING
 write abort
+write notify ABORTING
 
 connect await ABORTING
         "zilla://streams/app0"
