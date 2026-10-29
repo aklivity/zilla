@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
 import jakarta.json.JsonException;
 import jakarta.json.JsonNumber;
 import jakarta.json.JsonObject;
@@ -48,7 +49,7 @@ public final class A2aDiscoveryRequest
         try (JsonReader reader = Json.createReader(new ByteArrayInputStream(body)))
         {
             final JsonObject message = reader.readObject().getJsonObject(MESSAGE);
-            request = message != null ? of(message) : null;
+            request = message != null && message.get(PARTS) instanceof JsonArray parts ? of(message, parts) : null;
         }
         catch (JsonException | ClassCastException | IllegalStateException ex)
         {
@@ -59,13 +60,14 @@ public final class A2aDiscoveryRequest
     }
 
     private static A2aDiscoveryRequest of(
-        JsonObject message)
+        JsonObject message,
+        JsonArray parts)
     {
         final List<String> texts = new ArrayList<>();
         String query = null;
         int limit = 0;
 
-        for (JsonValue part : message.getJsonArray(PARTS))
+        for (JsonValue part : parts)
         {
             final JsonObject object = part.asJsonObject();
 
