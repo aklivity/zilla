@@ -231,7 +231,11 @@ public final class A2aDiscoverySearch
         private void whenBuilt(
             CompletionCallback<Void> callback)
         {
-            if (built)
+            if (index == null)
+            {
+                callback.failed(new IllegalStateException("No search index factory registered for configured type"));
+            }
+            else if (built)
             {
                 callback.completed(null);
             }

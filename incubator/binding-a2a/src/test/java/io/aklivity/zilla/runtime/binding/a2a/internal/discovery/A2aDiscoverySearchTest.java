@@ -37,6 +37,7 @@ import io.aklivity.zilla.runtime.binding.a2a.internal.cache.A2aAgentCards;
 import io.aklivity.zilla.runtime.binding.a2a.internal.cache.A2aCachedAgent;
 import io.aklivity.zilla.runtime.binding.a2a.internal.cache.A2aCachedAgents;
 import io.aklivity.zilla.runtime.binding.a2a.internal.search.A2aFailingSearchIndexConfig;
+import io.aklivity.zilla.runtime.binding.a2a.internal.search.A2aUnregisteredSearchIndexConfig;
 import io.aklivity.zilla.runtime.binding.a2a.search.A2aAgentSearchIndex.CompletionCallback;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 
@@ -165,6 +166,18 @@ public class A2aDiscoverySearchTest
 
         assertThat(first.failure == null, equalTo(false));
         assertThat(second.failure == null, equalTo(false));
+    }
+
+    @Test
+    public void shouldFailWhenNoIndexFactoryRegistered()
+    {
+        final A2aDiscoverySearchConfig search = A2aDiscoverySearchConfig.builder()
+            .limit(5)
+            .fields(List.of("name"))
+            .index(new A2aUnregisteredSearchIndexConfig())
+            .build();
+
+        assertThat(find(search, PERMITTED, "weather", 0).failure == null, equalTo(false));
     }
 
     private static A2aDiscoverySearchConfig keyword(

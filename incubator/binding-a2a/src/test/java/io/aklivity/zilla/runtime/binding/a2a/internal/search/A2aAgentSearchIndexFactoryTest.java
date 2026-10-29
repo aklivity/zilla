@@ -31,7 +31,6 @@ import org.junit.Test;
 
 import io.aklivity.zilla.config.binding.a2a.A2aDiscoverySearchConfig;
 import io.aklivity.zilla.config.binding.a2a.A2aKeywordSearchIndexConfig;
-import io.aklivity.zilla.config.binding.a2a.A2aSearchIndexConfig;
 import io.aklivity.zilla.runtime.binding.a2a.search.A2aAgentSearchDocument;
 import io.aklivity.zilla.runtime.binding.a2a.search.A2aAgentSearchIndex;
 import io.aklivity.zilla.runtime.binding.a2a.search.A2aAgentSearchMatch;
@@ -39,17 +38,6 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 
 public class A2aAgentSearchIndexFactoryTest
 {
-    private static final class A2aUnregisteredSearchIndexConfig extends A2aSearchIndexConfig
-    {
-        A2aUnregisteredSearchIndexConfig()
-        {
-            super("unregistered");
-        }
-    }
-
-    // dispatches inline -- fine for a unit test asserting ranking behavior, not timing;
-    // A2aKeywordAgentSearchIndexTest.shouldNeverCompleteOnTheCallingStack covers the
-    // "never on the caller's stack" contract itself
     private final EngineContext context = mock(EngineContext.class);
     private final A2aAgentSearchIndexFactory factory = new A2aAgentSearchIndexFactory();
 

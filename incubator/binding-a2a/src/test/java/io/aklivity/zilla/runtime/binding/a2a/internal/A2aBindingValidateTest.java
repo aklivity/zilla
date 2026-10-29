@@ -20,11 +20,14 @@ import java.io.IOException;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.config.binding.a2a.A2aBindingConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.ConfigException;
 import io.aklivity.zilla.config.engine.EngineConfig;
 import io.aklivity.zilla.config.engine.EngineConfigReader;
 import io.aklivity.zilla.config.engine.EngineInfo;
+import io.aklivity.zilla.config.engine.KindConfig;
+import io.aklivity.zilla.runtime.binding.a2a.internal.search.A2aUnregisteredSearchIndexConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class A2aBindingValidateTest
@@ -51,6 +54,28 @@ public class A2aBindingValidateTest
     public void shouldRejectDiscoveryWithoutCache() throws Exception
     {
         final BindingConfig config = bindingOf("proxy.discovery.cache.missing.invalid.yaml");
+
+        assertThrows(ConfigException.class, () -> binding.validate(config));
+    }
+
+    @Test
+    public void shouldRejectDiscoverySearchIndexTypeWithoutFactory()
+    {
+        final BindingConfig config = A2aBindingConfig.builder()
+            .namespace("test")
+            .name("app0")
+            .kind(KindConfig.PROXY)
+            .options()
+                .cache()
+                    .store("memory0")
+                    .build()
+                .discovery()
+                    .search()
+                        .index(new A2aUnregisteredSearchIndexConfig())
+                        .build()
+                    .build()
+                .build()
+            .build();
 
         assertThrows(ConfigException.class, () -> binding.validate(config));
     }
