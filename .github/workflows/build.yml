@@ -49,6 +49,14 @@ jobs:
         path: manager/target/zpm/cache
         key: zpm-${{ runner.os }}-${{ hashFiles('manager/src/conf/install/zpm.json') }}
         restore-keys: zpm-${{ runner.os }}-
+    - name: Restore Maven build cache
+      uses: actions/cache/restore@v6
+      with:
+        path: ~/.m2/build-cache
+        key: maven-build-cache-${{ runner.os }}-${{ github.ref_name }}-${{ github.sha }}
+        restore-keys: |
+          maven-build-cache-${{ runner.os }}-${{ github.base_ref || github.ref_name }}-
+          maven-build-cache-${{ runner.os }}-develop-
     - name: Route Docker Hub pulls through mirror.gcr.io
       run: |
         sudo mkdir -p /etc/docker
@@ -73,7 +81,21 @@ jobs:
           docker load -i ~/docker-base-cache/base-images.tar || true
         fi
     - name: Build with Maven
-      run: ./mvnw -B -nsu -ntp -Ddocker.logStdout -Dfailsafe.skipAfterFailureCount=1 -Ddocker.verbose install jacoco:report-aggregate
+      run: ./mvnw -B -nsu -ntp -Dfailsafe.skipAfterFailureCount=1 install -pl '!cloud/docker-image,!cloud/helm-chart'
+      env:
+        GITHUB_ACTOR: ${{ github.actor }}
+        GITHUB_TOKEN: ${{ github.token }}
+
+    - name: Save Maven build cache
+      if: success() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref_name == 'develop' || startsWith(github.ref_name, 'support/'))
+      uses: actions/cache/save@v6
+      with:
+        path: ~/.m2/build-cache
+        key: maven-build-cache-${{ runner.os }}-${{ github.ref_name }}-${{ github.sha }}
+
+    # A build cache hit would skip the image build, so these modules always build
+    - name: Build Docker image and Helm chart
+      run: ./mvnw -B -nsu -ntp -Ddocker.logStdout -Ddocker.verbose -Dmaven.build.cache.enabled=false install -pl cloud/docker-image,cloud/helm-chart
       env:
         GITHUB_ACTOR: ${{ github.actor }}
         GITHUB_TOKEN: ${{ github.token }}
