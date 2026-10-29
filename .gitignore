@@ -46,3 +46,6 @@ repro-cache-race.sh
 *-Throughput/
 *-Average/
 *-SampleTime/
+
+__pycache__/
+*.pyc
