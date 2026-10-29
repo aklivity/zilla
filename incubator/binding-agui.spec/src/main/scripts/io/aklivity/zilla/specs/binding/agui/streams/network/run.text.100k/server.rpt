@@ -46,94 +46,154 @@ write flush
 write "{\"type\":\"RUN_STARTED\",\"threadId\":\"thread-1\",\"runId\":\"run-1\"}"
 write "{\"type\":\"TEXT_MESSAGE_START\",\"messageId\":\"msg-2\",\"role\":\"assistant\"}"
 write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
-      ${core:randomBase64(4000)}
+      ${core:randomBase64(1500)}
       "\"}"
 write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
-      ${core:randomBase64(4000)}
+      ${core:randomBase64(1500)}
       "\"}"
 write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
-      ${core:randomBase64(4000)}
+      ${core:randomBase64(1500)}
       "\"}"
 write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
-      ${core:randomBase64(4000)}
+      ${core:randomBase64(1500)}
       "\"}"
 write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
-      ${core:randomBase64(4000)}
+      ${core:randomBase64(1500)}
       "\"}"
 write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
-      ${core:randomBase64(4000)}
+      ${core:randomBase64(1500)}
       "\"}"
 write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
-      ${core:randomBase64(4000)}
+      ${core:randomBase64(1500)}
       "\"}"
 write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
-      ${core:randomBase64(4000)}
+      ${core:randomBase64(1500)}
       "\"}"
 write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
-      ${core:randomBase64(4000)}
+      ${core:randomBase64(1500)}
       "\"}"
 write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
-      ${core:randomBase64(4000)}
+      ${core:randomBase64(1500)}
       "\"}"
 write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
-      ${core:randomBase64(4000)}
+      ${core:randomBase64(1500)}
       "\"}"
 write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
-      ${core:randomBase64(4000)}
+      ${core:randomBase64(1500)}
       "\"}"
 write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
-      ${core:randomBase64(4000)}
+      ${core:randomBase64(1500)}
       "\"}"
 write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
-      ${core:randomBase64(4000)}
+      ${core:randomBase64(1500)}
       "\"}"
 write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
-      ${core:randomBase64(4000)}
+      ${core:randomBase64(1500)}
       "\"}"
 write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
-      ${core:randomBase64(4000)}
+      ${core:randomBase64(1500)}
       "\"}"
 write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
-      ${core:randomBase64(4000)}
+      ${core:randomBase64(1500)}
       "\"}"
 write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
-      ${core:randomBase64(4000)}
+      ${core:randomBase64(1500)}
       "\"}"
 write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
-      ${core:randomBase64(4000)}
+      ${core:randomBase64(1500)}
       "\"}"
 write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
-      ${core:randomBase64(4000)}
+      ${core:randomBase64(1500)}
       "\"}"
 write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
-      ${core:randomBase64(2000)}
+      ${core:randomBase64(1500)}
       "\"}"
 write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
-      ${core:randomBase64(2000)}
+      ${core:randomBase64(1500)}
       "\"}"
 write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
-      ${core:randomBase64(2000)}
+      ${core:randomBase64(1500)}
       "\"}"
 write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
-      ${core:randomBase64(2000)}
+      ${core:randomBase64(1500)}
       "\"}"
 write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
-      ${core:randomBase64(2000)}
+      ${core:randomBase64(1500)}
       "\"}"
 write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
-      ${core:randomBase64(2000)}
+      ${core:randomBase64(1500)}
       "\"}"
 write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
-      ${core:randomBase64(2000)}
+      ${core:randomBase64(1500)}
       "\"}"
 write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
-      ${core:randomBase64(2000)}
+      ${core:randomBase64(1500)}
       "\"}"
 write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
-      ${core:randomBase64(2000)}
+      ${core:randomBase64(1500)}
       "\"}"
 write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
-      ${core:randomBase64(2000)}
+      ${core:randomBase64(1500)}
+      "\"}"
+write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
+      ${core:randomBase64(1500)}
+      "\"}"
+write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
+      ${core:randomBase64(1500)}
+      "\"}"
+write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
+      ${core:randomBase64(1500)}
+      "\"}"
+write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
+      ${core:randomBase64(1500)}
+      "\"}"
+write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
+      ${core:randomBase64(1500)}
+      "\"}"
+write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
+      ${core:randomBase64(1500)}
+      "\"}"
+write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
+      ${core:randomBase64(1500)}
+      "\"}"
+write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
+      ${core:randomBase64(1500)}
+      "\"}"
+write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
+      ${core:randomBase64(1500)}
+      "\"}"
+write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
+      ${core:randomBase64(1500)}
+      "\"}"
+write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
+      ${core:randomBase64(1500)}
+      "\"}"
+write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
+      ${core:randomBase64(1500)}
+      "\"}"
+write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
+      ${core:randomBase64(1500)}
+      "\"}"
+write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
+      ${core:randomBase64(1500)}
+      "\"}"
+write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
+      ${core:randomBase64(1500)}
+      "\"}"
+write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
+      ${core:randomBase64(1500)}
+      "\"}"
+write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
+      ${core:randomBase64(1500)}
+      "\"}"
+write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
+      ${core:randomBase64(1500)}
+      "\"}"
+write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
+      ${core:randomBase64(1500)}
+      "\"}"
+write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\""
+      ${core:randomBase64(1500)}
       "\"}"
 write "{\"type\":\"TEXT_MESSAGE_END\",\"messageId\":\"msg-2\"}"
 write "{\"type\":\"RUN_FINISHED\",\"threadId\":\"thread-1\",\"runId\":\"run-1\"}"
