@@ -102,6 +102,24 @@ without properly saying goodbye", event-assertion mismatches) is a symptom of
 this same root cause, not a real bug — before spending time diagnosing a
 crash from an `*IT` run, confirm it was launched with `verify`.
 
+### Build cache
+
+`.mvn/extensions.xml` enables the Maven build cache extension. A module whose
+inputs and reactor dependencies are unchanged is restored from `~/.m2/build-cache`
+without running its tests or ITs; a changed module rebuilds, and so does every
+module that depends on it.
+
+- Use `clean install` for local builds — a rebuilt module fails in moditect if
+  its `target/modules` jar already exists
+- Build a subset with `-pl <module> -am`; without `-am` its siblings resolve from
+  `~/.m2` and the module misses entries from a full build
+- Force a full rebuild with `-Dmaven.build.cache.skipCache=true`, or bypass the
+  extension with `-Dmaven.build.cache.enabled=false`
+- Do not add a direct plugin goal (for example `jacoco:report-aggregate`) to a
+  cached build command — it disables caching for the whole build
+- `cloud/docker-image` and `cloud/helm-chart` build in a separate uncached
+  invocation, because a cache hit would skip the image build
+
 ### Docker
 
 Cloud sessions have Docker installed but the daemon is not running at start,

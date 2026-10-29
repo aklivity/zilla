@@ -10,11 +10,13 @@
   </configuration>
   <input>
     <plugins>
+      <!-- engine's k3po plugin depends on its own jar, which checksum calculation reports as a cycle -->
       <plugin groupId="io.aklivity.k3po" artifactId="k3po-maven-plugin" excludeDependencies="true"/>
     </plugins>
   </input>
   <executionControl>
     <runAlways>
+      <!-- a cache hit would otherwise skip install, leaving restored artifacts out of the local repository -->
       <plugins>
         <plugin artifactId="maven-install-plugin"/>
       </plugins>
