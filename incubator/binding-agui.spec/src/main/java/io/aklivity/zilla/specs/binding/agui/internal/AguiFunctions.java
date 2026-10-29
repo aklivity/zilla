@@ -30,6 +30,7 @@ import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiAbortExFW;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiActivityDataExFW;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiActivityType;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiBeginExFW;
+import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiContentType;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiCustomDataExFW;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiDataExFW;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiEncryptedSubtype;
@@ -564,6 +565,7 @@ public final class AguiFunctions
         {
             private String messageId;
             private String toolCallId;
+            private AguiContentType content = AguiContentType.TEXT;
 
             private AguiToolResultDataExBuilder()
             {
@@ -583,12 +585,20 @@ public final class AguiFunctions
                 return this;
             }
 
+            public AguiToolResultDataExBuilder content(
+                String content)
+            {
+                this.content = AguiContentType.valueOf(content);
+                return this;
+            }
+
             public AguiDataExBuilder build()
             {
                 dataExRW.toolResult(t -> t
                     .meta(m -> meta(m))
                     .messageId(messageId)
-                    .toolCallId(toolCallId));
+                    .toolCallId(toolCallId)
+                    .content(x -> x.set(content)));
                 return AguiDataExBuilder.this;
             }
         }
@@ -1218,6 +1228,7 @@ public final class AguiFunctions
         {
             private String messageId;
             private String toolCallId;
+            private AguiContentType content;
 
             private AguiToolResultDataExMatcherBuilder()
             {
@@ -1237,6 +1248,13 @@ public final class AguiFunctions
                 return this;
             }
 
+            public AguiToolResultDataExMatcherBuilder content(
+                String content)
+            {
+                this.content = AguiContentType.valueOf(content);
+                return this;
+            }
+
             public AguiDataExMatcherBuilder build()
             {
                 return AguiDataExMatcherBuilder.this;
@@ -1248,7 +1266,8 @@ public final class AguiFunctions
                 final AguiToolResultDataExFW toolResult = dataEx.toolResult();
                 return matchMeta(toolResult.meta()) &&
                     matchMessageId(toolResult) &&
-                    matchToolCallId(toolResult);
+                    matchToolCallId(toolResult) &&
+                    matchContent(toolResult);
             }
 
             private boolean matchMessageId(
@@ -1261,6 +1280,12 @@ public final class AguiFunctions
                 AguiToolResultDataExFW toolResult)
             {
                 return toolCallId == null || toolCallId.equals(toolResult.toolCallId().asString());
+            }
+
+            private boolean matchContent(
+                AguiToolResultDataExFW toolResult)
+            {
+                return content == null || content == toolResult.content().get();
             }
         }
 
