@@ -36,6 +36,7 @@ import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.agui.internal.AguiConfiguration;
 import io.aklivity.zilla.runtime.binding.agui.internal.codec.AguiEventDecoder;
 import io.aklivity.zilla.runtime.binding.agui.internal.codec.AguiEventSink;
+import io.aklivity.zilla.runtime.binding.agui.internal.codec.AguiRunInputEncoder;
 import io.aklivity.zilla.runtime.binding.agui.internal.config.AguiClientBindingConfig;
 import io.aklivity.zilla.runtime.binding.agui.internal.config.AguiRouteConfig;
 import io.aklivity.zilla.runtime.binding.agui.internal.types.Flyweight;
@@ -87,7 +88,13 @@ public final class AguiClientFactory implements AguiStreamFactory
     private static final int STATUS_OK = 200;
     private static final int STATUS_BAD_GATEWAY = 502;
 
+    private static final int STATUS_BAD_REQUEST = 400;
+    private static final int STATUS_UNPROCESSABLE = 422;
+
     private static final String ERROR_BAD_GATEWAY = "Bad Gateway";
+    private static final String ERROR_MALFORMED_JSON = "Malformed JSON";
+    private static final String ERROR_RUN_MISMATCH = "RunAgentInput does not match the run";
+    private static final String CODE_INVALID_RUN = "invalid_run";
     private static final String MEMBER_ERROR = "error";
     private static final String MEMBER_CODE = "code";
     private static final String CODE_AGENT_ABORTED = "agent_aborted";
@@ -260,6 +267,7 @@ public final class AguiClientFactory implements AguiStreamFactory
         private long decodeTraceId;
         private int netStatus;
         private AguiEventDecoder decoder;
+        private AguiRunInputEncoder encoder;
         private byte[] terminalEx;
 
         private AguiClient(
@@ -285,6 +293,7 @@ public final class AguiClientFactory implements AguiStreamFactory
             this.threadId = threadId;
             this.runId = runId;
             this.parentRunId = parentRunId;
+            this.encoder = new AguiRunInputEncoder(threadId, runId, parentRunId);
         }
 
         private void onAppMessage(
@@ -376,12 +385,23 @@ public final class AguiClientFactory implements AguiStreamFactory
             {
                 final OctetsFW payload = data.payload();
 
-                if (payload != null && payload.sizeof() > 0)
-                {
-                    doNetData(traceId, authorization, payload.buffer(), payload.offset(), payload.limit());
-                }
+                final AguiRunInputEncoder.Status status = payload != null && payload.sizeof() > 0
+                    ? encoder.encode(payload.buffer(), payload.offset(), payload.limit())
+                    : AguiRunInputEncoder.Status.PENDING;
 
-                flushAppWindow(traceId, authorization);
+                if (status != AguiRunInputEncoder.Status.PENDING)
+                {
+                    onRunInputRejected(traceId, authorization, status);
+                }
+                else
+                {
+                    if (payload != null && payload.sizeof() > 0)
+                    {
+                        doNetData(traceId, authorization, payload.buffer(), payload.offset(), payload.limit());
+                    }
+
+                    flushAppWindow(traceId, authorization);
+                }
             }
         }
 
@@ -394,10 +414,34 @@ public final class AguiClientFactory implements AguiStreamFactory
             initialSeq = end.sequence();
             state = AguiState.closingInitial(state);
 
-            if (encodeSlot == NO_SLOT)
+            final AguiRunInputEncoder.Status status = encoder.finish();
+
+            if (status != AguiRunInputEncoder.Status.VALID)
+            {
+                onRunInputRejected(traceId, authorization, status);
+            }
+            else if (encodeSlot == NO_SLOT)
             {
                 doNetEnd(traceId, authorization);
             }
+        }
+
+        private void onRunInputRejected(
+            long traceId,
+            long authorization,
+            AguiRunInputEncoder.Status status)
+        {
+            final boolean mismatched = status == AguiRunInputEncoder.Status.MISMATCHED;
+
+            doAppResetRejected(traceId, authorization,
+                mismatched ? STATUS_UNPROCESSABLE : STATUS_BAD_REQUEST,
+                mismatched ? CODE_INVALID_RUN : null,
+                mismatched ? ERROR_RUN_MISMATCH : ERROR_MALFORMED_JSON);
+
+            doNetAbort(traceId, authorization);
+            doNetReset(traceId, authorization);
+
+            cleanupSlots();
         }
 
         private void onAppAbort(
