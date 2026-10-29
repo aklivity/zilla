@@ -41,8 +41,11 @@ class SelectExamplesTest(unittest.TestCase):
                      'runtime/pom.xml'):
             self.assertEqual(sorted(EXAMPLES), select([path], ['binding-mqtt']), path)
 
-    def test_should_select_all_when_sources_changed_without_rebuilt_modules(self):
-        self.assertEqual(sorted(EXAMPLES), select(['runtime/binding-mqtt/A.java'], []))
+    def test_should_skip_examples_when_sources_changed_without_rebuilt_modules(self):
+        self.assertEqual(['opaque'], select(['runtime/binding-mqtt/A.java'], []))
+
+    def test_should_skip_examples_for_notice_change(self):
+        self.assertEqual(['opaque'], select(['incubator/NOTICE'], []))
 
     def test_should_select_inspect_schema_for_rebuilt_spec_or_inspect_command(self):
         for module in ('binding-mqtt.spec', 'engine.spec', 'command-inspect'):
