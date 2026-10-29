@@ -1965,7 +1965,7 @@ public final class A2aClientFactory implements A2aStreamFactory
             {
                 addresses = context.resolveHost(hostOf(url));
             }
-            catch (RuntimeException ex)
+            catch (Exception ex)
             {
                 addresses = null;
             }
