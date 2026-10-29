@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.config.binding.a2a.internal;
 
+import java.util.List;
+
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
@@ -21,6 +23,8 @@ import jakarta.json.JsonObjectBuilder;
 import io.aklivity.zilla.config.binding.a2a.A2aDiscoveryConfig;
 import io.aklivity.zilla.config.binding.a2a.A2aDiscoveryConfigBuilder;
 import io.aklivity.zilla.config.engine.ConfigAdapter;
+import io.aklivity.zilla.config.engine.ConfigExtAdapter;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class A2aDiscoveryConfigAdapter extends ConfigAdapter<A2aDiscoveryConfig, JsonObject>
 {
@@ -28,7 +32,18 @@ public final class A2aDiscoveryConfigAdapter extends ConfigAdapter<A2aDiscoveryC
     private static final String AGENT_DEFAULT = "discovery";
     private static final String SEARCH_NAME = "search";
 
-    private final A2aDiscoverySearchConfigAdapter search = new A2aDiscoverySearchConfigAdapter();
+    private final A2aDiscoverySearchConfigAdapter search;
+
+    public A2aDiscoveryConfigAdapter()
+    {
+        this(List.of());
+    }
+
+    public A2aDiscoveryConfigAdapter(
+        List<ConfigExtAdapter<OptionsConfig>> extensions)
+    {
+        this.search = new A2aDiscoverySearchConfigAdapter(extensions);
+    }
 
     @Override
     public JsonObject adaptToJson(
