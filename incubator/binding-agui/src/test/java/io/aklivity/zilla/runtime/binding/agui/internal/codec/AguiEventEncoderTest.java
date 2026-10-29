@@ -488,6 +488,39 @@ public class AguiEventEncoderTest
     }
 
     @Test
+    public void shouldEncodeSubagentFinishedSuspendedWithInterruptIds()
+    {
+        encoder.message(subagent("STARTED", "sub-1", "NONE"), false);
+
+        final AguiMessageEncoding encoding = encoder.message(subagent("FINISHED", "sub-1", "SUSPENDED", "int-1", "int-2"), true);
+
+        assertThat(text(encoding.open), equalTo("{\"type\":\"SUBAGENT_FINISHED\",\"subagentRunId\":\"sub-1\"," +
+            "\"outcome\":{\"type\":\"suspended\",\"interruptIds\":[\"int-1\",\"int-2\"]}}"));
+    }
+
+    @Test
+    public void shouldEncodeSubagentFinishedSuspendedWithInterruptIdsAndResult()
+    {
+        encoder.message(subagent("STARTED", "sub-1", "NONE"), false);
+
+        final AguiMessageEncoding encoding = encoder.message(subagent("FINISHED", "sub-1", "SUSPENDED", "int-1"), false);
+
+        assertThat(new String(encoding.suffix, UTF_8),
+            equalTo(",\"outcome\":{\"type\":\"suspended\",\"interruptIds\":[\"int-1\"]}}"));
+    }
+
+    @Test
+    public void shouldEncodeSubagentFinishedSuspendedEscapingInterruptIds()
+    {
+        encoder.message(subagent("STARTED", "sub-1", "NONE"), false);
+
+        final AguiMessageEncoding encoding = encoder.message(subagent("FINISHED", "sub-1", "SUSPENDED", "int\"1"), true);
+
+        assertThat(text(encoding.open), equalTo("{\"type\":\"SUBAGENT_FINISHED\",\"subagentRunId\":\"sub-1\"," +
+            "\"outcome\":{\"type\":\"suspended\",\"interruptIds\":[\"int\\\"1\"]}}"));
+    }
+
+    @Test
     public void shouldEncodeSubagentFinishedWithoutOutcome()
     {
         encoder.message(subagent("STARTED", "sub-1", "NONE"), false);
@@ -599,16 +632,22 @@ public class AguiEventEncoderTest
     private AguiDataExFW subagent(
         String type,
         String subagentRunId,
-        String outcome)
+        String outcome,
+        String... interruptIds)
     {
-        return dataEx(AguiFunctions.dataEx()
+        final AguiFunctions.AguiDataExBuilder.AguiSubagentDataExBuilder builder = AguiFunctions.dataEx()
             .typeId(1)
             .subagent()
                 .type(type)
                 .subagentRunId(subagentRunId)
-                .outcome(outcome)
-                .build()
-            .build());
+                .outcome(outcome);
+
+        for (String interruptId : interruptIds)
+        {
+            builder.interruptId(interruptId);
+        }
+
+        return dataEx(builder.build().build());
     }
 
     private AguiDataExFW dataEx(
