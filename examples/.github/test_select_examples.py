@@ -1,0 +1,55 @@
+import importlib.util
+import os
+import unittest
+
+spec = importlib.util.spec_from_file_location('select_examples', os.path.join(os.path.dirname(__file__), 'select-examples.py'))
+select_examples = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(select_examples)
+
+EXAMPLES = ['http.echo', 'mqtt.proxy', 'kafka.proxy', 'opaque']
+CONFIGURED = {
+    'http.echo': {'binding-tcp', 'binding-http'},
+    'mqtt.proxy': {'binding-tcp', 'binding-mqtt'},
+    'kafka.proxy': {'binding-tcp', 'binding-kafka', 'model-json'},
+    'opaque': set(),
+}
+
+
+def select(files, built, event='pull_request', mode=''):
+    return select_examples.select(EXAMPLES, CONFIGURED, files, set(built), event, mode)[0]
+
+
+class SelectExamplesTest(unittest.TestCase):
+
+    def test_should_select_examples_configuring_rebuilt_module(self):
+        self.assertEqual(['mqtt.proxy', 'opaque'], select(['runtime/binding-mqtt/A.java'], ['binding-mqtt']))
+
+    def test_should_select_every_example_for_shared_module(self):
+        self.assertEqual(sorted(EXAMPLES), select(['runtime/binding-tcp/A.java'], ['binding-tcp']))
+
+    def test_should_select_changed_example(self):
+        self.assertEqual(['http.echo', 'opaque'], select(['examples/http.echo/etc/zilla.yaml'], []))
+
+    def test_should_skip_documentation_changes(self):
+        self.assertEqual(['opaque'], select(['README.md', 'examples/README.md'], []))
+
+    def test_should_select_all_for_build_infrastructure(self):
+        for path in ('pom.xml', 'cloud/docker-image/pom.xml', '.github/workflows/build.yml', 'examples/.github/test-lib.sh',
+                     'runtime/pom.xml'):
+            self.assertEqual(sorted(EXAMPLES), select([path], ['binding-mqtt']), path)
+
+    def test_should_select_all_when_sources_changed_without_rebuilt_modules(self):
+        self.assertEqual(sorted(EXAMPLES), select(['runtime/binding-mqtt/A.java'], []))
+
+    def test_should_select_all_for_rebuilt_command(self):
+        self.assertEqual(sorted(EXAMPLES), select(['incubator/command-dump/A.java'], ['command-dump']))
+
+    def test_should_select_all_for_push(self):
+        self.assertEqual(sorted(EXAMPLES), select([], [], event='push'))
+
+    def test_should_select_all_when_selection_disabled(self):
+        self.assertEqual(sorted(EXAMPLES), select(['README.md'], [], mode='all'))
+
+
+if __name__ == '__main__':
+    unittest.main()
