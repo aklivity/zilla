@@ -2078,7 +2078,6 @@
                         "a2a",
                         "a2a-http",
                         "a2a-openapi",
-                        "agui",
                         "amqp",
                         "asyncapi",
                         "echo",
@@ -3366,56 +3365,6 @@
                                 ]
                             }
                         ]
-                    }
-                },
-                {
-                    "if": {
-                        "properties": {
-                            "type": {
-                                "const": "agui"
-                            }
-                        }
-                    },
-                    "then": {
-                        "properties": {
-                            "type": {
-                                "const": "agui"
-                            },
-                            "kind": {
-                                "enum": [
-                                    "server"
-                                ]
-                            },
-                            "catalog": false,
-                            "vault": false,
-                            "entry": false,
-                            "options": {
-                                "properties": {
-                                    "authorization": {
-                                        "title": "Authorization",
-                                        "type": "object",
-                                        "patternProperties": {
-                                            "^[A-Za-z0-9_-]+$": {
-                                                "type": "object",
-                                                "properties": {
-                                                    "credentials": {
-                                                        "title": "Credentials",
-                                                        "type": "string",
-                                                        "pattern": ".*\\{credentials\\}.*",
-                                                        "default": "Bearer {credentials}"
-                                                    }
-                                                },
-                                                "additionalProperties": false
-                                            }
-                                        },
-                                        "additionalProperties": false,
-                                        "maxProperties": 1
-                                    }
-                                },
-                                "additionalProperties": false
-                            },
-                            "routes": false
-                        }
                     }
                 },
                 {
