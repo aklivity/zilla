@@ -43,7 +43,6 @@ import io.aklivity.zilla.runtime.binding.agui.internal.types.stream.AguiStateDat
 import io.aklivity.zilla.runtime.binding.agui.internal.types.stream.AguiStepDataExFW;
 import io.aklivity.zilla.runtime.binding.agui.internal.types.stream.AguiStepType;
 import io.aklivity.zilla.runtime.binding.agui.internal.types.stream.AguiSubagentDataExFW;
-import io.aklivity.zilla.runtime.binding.agui.internal.types.stream.AguiSubagentOutcome;
 import io.aklivity.zilla.runtime.binding.agui.internal.types.stream.AguiSubagentType;
 import io.aklivity.zilla.runtime.binding.agui.internal.types.stream.AguiTextDataExFW;
 import io.aklivity.zilla.runtime.binding.agui.internal.types.stream.AguiToolCallDataExFW;
@@ -364,7 +363,7 @@ public final class AguiEventEncoder
                 throw new AguiSequenceException("Subagent not started: " + subagentRunId);
             }
 
-            final String outcome = subagentOutcome(subagent.outcome().get());
+            final String outcome = subagentOutcome(subagent);
 
             if (payloadAbsent)
             {
@@ -496,17 +495,17 @@ public final class AguiEventEncoder
     }
 
     private static String subagentOutcome(
-        AguiSubagentOutcome outcome)
+        AguiSubagentDataExFW subagent)
     {
         final String text;
 
-        switch (outcome)
+        switch (subagent.outcome().get())
         {
         case SUCCESS:
             text = ",\"outcome\":{\"type\":\"success\"}";
             break;
         case SUSPENDED:
-            text = ",\"outcome\":{\"type\":\"suspended\"}";
+            text = ",\"outcome\":{\"type\":\"suspended\"" + interruptIds(subagent) + "}";
             break;
         default:
             text = "";
@@ -514,6 +513,19 @@ public final class AguiEventEncoder
         }
 
         return text;
+    }
+
+    private static String interruptIds(
+        AguiSubagentDataExFW subagent)
+    {
+        final StringBuilder ids = new StringBuilder();
+
+        subagent.interruptIds().forEach(id ->
+            ids.append(ids.length() == 0 ? ",\"interruptIds\":[\"" : ",\"")
+               .append(AguiJsonEscape.escape(id.asString()))
+               .append('"'));
+
+        return ids.length() == 0 ? "" : ids.append(']').toString();
     }
 
     private static String event(
