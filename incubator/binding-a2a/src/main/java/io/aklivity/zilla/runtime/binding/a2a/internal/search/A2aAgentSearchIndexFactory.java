@@ -48,6 +48,12 @@ public final class A2aAgentSearchIndexFactory
             .collect(toMap(A2aAgentSearchIndexFactorySpi::type, identity()));
     }
 
+    public boolean registered(
+        String type)
+    {
+        return factoriesByType.containsKey(type);
+    }
+
     public A2aAgentSearchIndex create(
         EngineContext context,
         A2aDiscoverySearchConfig search)
