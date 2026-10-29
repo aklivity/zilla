@@ -317,6 +317,26 @@ public class AguiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/run.subagent.suspended/client",
+        "${app}/run.subagent.suspended/server"})
+    public void shouldRunSubagentSuspended() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/run.subagent.suspended.interrupts/client",
+        "${app}/run.subagent.suspended.interrupts/server"})
+    public void shouldRunSubagentSuspendedInterrupts() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/run.raw.custom/client",
         "${app}/run.raw.custom/server"})
     public void shouldRunRawCustom() throws Exception
