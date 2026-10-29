@@ -869,6 +869,7 @@ public final class AguiServerFactory implements AguiStreamFactory
             String message)
         {
             decoder = decodeIgnore;
+            cleanupDecodeSlot();
 
             if (!AguiState.replyOpening(state))
             {
@@ -902,6 +903,7 @@ public final class AguiServerFactory implements AguiStreamFactory
             String code)
         {
             decoder = decodeIgnore;
+            cleanupDecodeSlot();
 
             doNetReset(traceId, authorization);
 
