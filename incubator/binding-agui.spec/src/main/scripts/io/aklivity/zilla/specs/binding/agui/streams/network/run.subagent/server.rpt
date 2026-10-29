@@ -48,7 +48,7 @@ write "{\"type\":\"SUBAGENT_STARTED\",\"subagentRunId\":\"sub-1\",\"name\":\"res
 write "{\"type\":\"TEXT_MESSAGE_START\",\"messageId\":\"msg-2\",\"role\":\"assistant\",\"subagentRunId\":\"sub-1\"}"
 write "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\"Found it\",\"subagentRunId\":\"sub-1\"}"
 write "{\"type\":\"TEXT_MESSAGE_END\",\"messageId\":\"msg-2\",\"subagentRunId\":\"sub-1\"}"
-write "{\"type\":\"SUBAGENT_FINISHED\",\"subagentRunId\":\"sub-1\",\"result\":{\"found\":3}}"
+write "{\"type\":\"SUBAGENT_FINISHED\",\"subagentRunId\":\"sub-1\",\"result\":{\"found\":3},\"outcome\":{\"type\":\"success\"}}"
 write "{\"type\":\"SUBAGENT_STARTED\",\"subagentRunId\":\"sub-2\",\"name\":\"writer\"}"
 write "{\"type\":\"SUBAGENT_ERROR\",\"subagentRunId\":\"sub-2\",\"message\":\"boom\",\"code\":\"failed\"}"
 write "{\"type\":\"RUN_FINISHED\",\"threadId\":\"thread-1\",\"runId\":\"run-1\"}"

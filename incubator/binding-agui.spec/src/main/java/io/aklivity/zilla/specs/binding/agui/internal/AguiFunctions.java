@@ -47,6 +47,7 @@ import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiStateType;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiStepDataExFW;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiStepType;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiSubagentDataExFW;
+import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiSubagentOutcome;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiSubagentType;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiTextDataExFW;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiToolCallDataExFW;
@@ -722,6 +723,7 @@ public final class AguiFunctions
             private String parentMessageId;
             private String code;
             private String message;
+            private AguiSubagentOutcome outcome = AguiSubagentOutcome.NONE;
 
             private AguiSubagentDataExBuilder()
             {
@@ -790,6 +792,13 @@ public final class AguiFunctions
                 return this;
             }
 
+            public AguiSubagentDataExBuilder outcome(
+                String outcome)
+            {
+                this.outcome = AguiSubagentOutcome.valueOf(outcome);
+                return this;
+            }
+
             public AguiDataExBuilder build()
             {
                 dataExRW.subagent(t -> t
@@ -802,7 +811,8 @@ public final class AguiFunctions
                     .parentToolCallId(parentToolCallId)
                     .parentMessageId(parentMessageId)
                     .code(code)
-                    .message(message));
+                    .message(message)
+                    .outcome(x -> x.set(outcome)));
                 return AguiDataExBuilder.this;
             }
         }
@@ -1465,6 +1475,7 @@ public final class AguiFunctions
             private String parentMessageId;
             private String code;
             private String message;
+            private AguiSubagentOutcome outcome;
 
             private AguiSubagentDataExMatcherBuilder()
             {
@@ -1533,6 +1544,13 @@ public final class AguiFunctions
                 return this;
             }
 
+            public AguiSubagentDataExMatcherBuilder outcome(
+                String outcome)
+            {
+                this.outcome = AguiSubagentOutcome.valueOf(outcome);
+                return this;
+            }
+
             public AguiDataExMatcherBuilder build()
             {
                 return AguiDataExMatcherBuilder.this;
@@ -1551,7 +1569,8 @@ public final class AguiFunctions
                     matchParentToolCallId(subagent) &&
                     matchParentMessageId(subagent) &&
                     matchCode(subagent) &&
-                    matchMessage(subagent);
+                    matchMessage(subagent) &&
+                    matchOutcome(subagent);
             }
 
             private boolean matchType(
@@ -1606,6 +1625,12 @@ public final class AguiFunctions
                 AguiSubagentDataExFW subagent)
             {
                 return message == null || message.equals(subagent.message().asString());
+            }
+
+            private boolean matchOutcome(
+                AguiSubagentDataExFW subagent)
+            {
+                return outcome == null || outcome == subagent.outcome().get();
             }
         }
 
