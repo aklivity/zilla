@@ -19,6 +19,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.Test;
 
@@ -36,6 +38,7 @@ import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiResetExFW;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiRole;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiStateType;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiStepType;
+import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiSubagentOutcome;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiSubagentType;
 
 public class AguiFunctionsTest
@@ -889,6 +892,91 @@ public class AguiFunctionsTest
                 .parentMessageId("msg-2")
                 .code("failed")
                 .message("boom")
+                .build()
+            .build()));
+    }
+
+    @Test
+    public void shouldGenerateSubagentDataExSuspendedWithInterruptIds()
+    {
+        byte[] bytes = AguiFunctions.dataEx()
+            .typeId(0x01)
+            .subagent()
+                .type("FINISHED")
+                .subagentRunId("sub-1")
+                .outcome("SUSPENDED")
+                .interruptId("int-1")
+                .interruptId("int-2")
+                .build()
+            .build();
+
+        AguiDataExFW dataEx = new AguiDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+        List<String> interruptIds = new ArrayList<>();
+        dataEx.subagent().interruptIds().forEach(id -> interruptIds.add(id.asString()));
+
+        assertEquals(AguiSubagentOutcome.SUSPENDED, dataEx.subagent().outcome().get());
+        assertEquals(List.of("int-1", "int-2"), interruptIds);
+    }
+
+    @Test
+    public void shouldMatchSubagentDataExSuspendedWithInterruptIds() throws Exception
+    {
+        BytesMatcher matcher = AguiFunctions.matchDataEx()
+            .subagent()
+                .outcome("SUSPENDED")
+                .interruptId("int-1")
+                .interruptId("int-2")
+                .build()
+            .build();
+
+        assertNotNull(matcher.match(ByteBuffer.wrap(AguiFunctions.dataEx()
+            .typeId(0x01)
+            .subagent()
+                .type("FINISHED")
+                .subagentRunId("sub-1")
+                .outcome("SUSPENDED")
+                .interruptId("int-1")
+                .interruptId("int-2")
+                .build()
+            .build())));
+    }
+
+    @Test
+    public void shouldMatchSubagentDataExSuspendedWithoutInterruptIds() throws Exception
+    {
+        BytesMatcher matcher = AguiFunctions.matchDataEx()
+            .subagent()
+                .outcome("SUSPENDED")
+                .build()
+            .build();
+
+        assertNotNull(matcher.match(ByteBuffer.wrap(AguiFunctions.dataEx()
+            .typeId(0x01)
+            .subagent()
+                .type("FINISHED")
+                .subagentRunId("sub-1")
+                .outcome("SUSPENDED")
+                .interruptId("int-1")
+                .build()
+            .build())));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchSubagentDataExWithDifferentInterruptIds() throws Exception
+    {
+        BytesMatcher matcher = AguiFunctions.matchDataEx()
+            .subagent()
+                .interruptId("int-1")
+                .build()
+            .build();
+
+        matcher.match(ByteBuffer.wrap(AguiFunctions.dataEx()
+            .typeId(0x01)
+            .subagent()
+                .type("FINISHED")
+                .subagentRunId("sub-1")
+                .outcome("SUSPENDED")
+                .interruptId("int-2")
                 .build()
             .build()));
     }
