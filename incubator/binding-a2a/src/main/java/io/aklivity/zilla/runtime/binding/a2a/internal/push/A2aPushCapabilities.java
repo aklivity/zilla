@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.binding.a2a.internal.push;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonValue;
 
 public final class A2aPushCapabilities
 {
@@ -27,29 +28,34 @@ public final class A2aPushCapabilities
     public static JsonObject advertise(
         JsonObject card)
     {
-        final JsonObjectBuilder capabilities = Json.createObjectBuilder();
-        if (card.get(CAPABILITIES_NAME) instanceof JsonObject existing)
+        final JsonObject capabilities = card.get(CAPABILITIES_NAME) instanceof JsonObject existing
+            ? replace(existing, PUSH_NOTIFICATIONS_NAME)
+            : Json.createObjectBuilder().add(PUSH_NOTIFICATIONS_NAME, true).build();
+
+        return replace(card, CAPABILITIES_NAME, capabilities);
+    }
+
+    private static JsonObject replace(
+        JsonObject object,
+        String member)
+    {
+        return replace(object, member, JsonValue.TRUE);
+    }
+
+    private static JsonObject replace(
+        JsonObject object,
+        String member,
+        JsonValue replacement)
+    {
+        final JsonObjectBuilder builder = Json.createObjectBuilder();
+        object.forEach((name, value) -> builder.add(name, member.equals(name) ? replacement : value));
+
+        if (!object.containsKey(member))
         {
-            existing.forEach((name, value) ->
-            {
-                if (!PUSH_NOTIFICATIONS_NAME.equals(name))
-                {
-                    capabilities.add(name, value);
-                }
-            });
+            builder.add(member, replacement);
         }
-        capabilities.add(PUSH_NOTIFICATIONS_NAME, true);
 
-        final JsonObjectBuilder advertised = Json.createObjectBuilder();
-        card.forEach((name, value) ->
-        {
-            if (!CAPABILITIES_NAME.equals(name))
-            {
-                advertised.add(name, value);
-            }
-        });
-
-        return advertised.add(CAPABILITIES_NAME, capabilities).build();
+        return builder.build();
     }
 
     private A2aPushCapabilities()
