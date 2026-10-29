@@ -117,8 +117,11 @@ module that depends on it.
   extension with `-Dmaven.build.cache.enabled=false`
 - Do not add a direct plugin goal (for example `jacoco:report-aggregate`) to a
   cached build command — it disables caching for the whole build
-- `cloud/docker-image` and `cloud/helm-chart` build in a separate uncached
-  invocation, because a cache hit would skip the image build
+- A module that must always build opts out with
+  `<maven.build.cache.enabled>false</maven.build.cache.enabled>` in its own
+  `<properties>`: `cloud/docker-image` and `cloud/helm-chart` (a cache hit would
+  skip the image build), and modules whose shade plugin installs a
+  dependency-reduced pom (`manager`, `incubator/command-log`)
 
 ### Docker
 
