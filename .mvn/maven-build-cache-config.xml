@@ -8,6 +8,11 @@
       <maxBuildsCached>10</maxBuildsCached>
     </local>
   </configuration>
+  <input>
+    <plugins>
+      <plugin groupId="io.aklivity.k3po" artifactId="k3po-maven-plugin" excludeDependencies="true"/>
+    </plugins>
+  </input>
   <executionControl>
     <runAlways>
       <plugins>
