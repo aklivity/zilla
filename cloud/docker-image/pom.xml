@@ -16,6 +16,11 @@
   <name>zilla::cloud::docker-image</name>
   <packaging>pom</packaging>
 
+  <properties>
+    <!-- a build cache hit would skip the image build -->
+    <maven.build.cache.enabled>false</maven.build.cache.enabled>
+  </properties>
+
   <licenses>
     <license>
       <name>Aklivity Community License Agreement</name>

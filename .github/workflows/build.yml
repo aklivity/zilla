@@ -81,7 +81,7 @@ jobs:
           docker load -i ~/docker-base-cache/base-images.tar || true
         fi
     - name: Build with Maven
-      run: ./mvnw -B -nsu -ntp -Dfailsafe.skipAfterFailureCount=1 install -pl '!cloud/docker-image,!cloud/helm-chart'
+      run: ./mvnw -B -nsu -ntp -Ddocker.logStdout -Dfailsafe.skipAfterFailureCount=1 -Ddocker.verbose install
       env:
         GITHUB_ACTOR: ${{ github.actor }}
         GITHUB_TOKEN: ${{ github.token }}
@@ -92,13 +92,6 @@ jobs:
       with:
         path: ~/.m2/build-cache
         key: maven-build-cache-${{ runner.os }}-${{ github.ref_name }}-${{ github.sha }}
-
-    # A build cache hit would skip the image build, so these modules always build
-    - name: Build Docker image and Helm chart
-      run: ./mvnw -B -nsu -ntp -Ddocker.logStdout -Ddocker.verbose -Dmaven.build.cache.enabled=false install -pl cloud/docker-image,cloud/helm-chart
-      env:
-        GITHUB_ACTOR: ${{ github.actor }}
-        GITHUB_TOKEN: ${{ github.token }}
 
     - name: Save base images
       if: always()

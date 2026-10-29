@@ -20,6 +20,8 @@
     <jacoco.missed.count>0</jacoco.missed.count>
     <maven.version>3.9.16</maven.version>
     <maven.resolver.version>2.0.3</maven.resolver.version>
+    <!-- shade installs a dependency-reduced pom that a build cache restore does not reproduce -->
+    <maven.build.cache.enabled>false</maven.build.cache.enabled>
   </properties>
 
   <dependencies>
