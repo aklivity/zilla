@@ -5245,6 +5245,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             cleanupDecodeSlot();
             resetDecodeState();
 
+            doNetReset(traceId);
             stream.doAppFailure(traceId, STATUS_BAD_GATEWAY);
         }
 

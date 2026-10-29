@@ -8947,4 +8947,58 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.reply.reset/client",
+        "${net}/openai.reply.reset/server"})
+    public void shouldOpenaiReplyReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.reply.reset/client",
+        "${net}/openai.responses.reply.reset/server"})
+    public void shouldOpenaiResponsesReplyReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.reply.reset/client",
+        "${net}/anthropic.reply.reset/server"})
+    public void shouldAnthropicReplyReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.reply.reset/client",
+        "${net}/gemini.reply.reset/server"})
+    public void shouldGeminiReplyReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.rejected.reset/client",
+        "${net}/anthropic.rejected.reset/server"})
+    public void shouldRejectAnthropicReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.rejected.reset/client",
+        "${net}/gemini.rejected.reset/server"})
+    public void shouldRejectGeminiReset() throws Exception
+    {
+        k3po.finish();
+    }
 }

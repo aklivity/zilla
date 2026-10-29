@@ -2666,4 +2666,14 @@ public class LlmGeminiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.rejected.reset/client",
+        "${net}/gemini.rejected.reset/server"})
+    public void shouldResetGeminiRequestWhenUpstreamResets() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -3496,4 +3496,14 @@ public class LlmAnthropicClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.rejected.reset/client",
+        "${net}/anthropic.rejected.reset/server"})
+    public void shouldResetAnthropicRequestWhenUpstreamResets() throws Exception
+    {
+        k3po.finish();
+    }
 }

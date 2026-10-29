@@ -46,3 +46,5 @@ write zilla:reset.ext ${llm:resetEx()
                             .build()}
 
 read abort
+
+write aborted

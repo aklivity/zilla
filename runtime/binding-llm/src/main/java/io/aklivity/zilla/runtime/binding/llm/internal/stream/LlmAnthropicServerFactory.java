@@ -3718,6 +3718,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             if (stream != null)
             {
                 stream.doAppAbort(traceId);
+                stream.doAppReset(traceId);
             }
             cleanup(traceId);
         }
@@ -4181,6 +4182,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             state = LlmState.closeInitial(state);
             cleanupEncodeSlot();
             server.appEndPending = false;
+            doAppReset(traceId);
 
             if (resetEx != null && !server.replyBegun)
             {

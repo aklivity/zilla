@@ -4870,6 +4870,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             cleanupDecodeSlot();
             resetDecodeState();
 
+            doNetReset(traceId);
             stream.doAppFailure(traceId, STATUS_BAD_GATEWAY);
         }
 

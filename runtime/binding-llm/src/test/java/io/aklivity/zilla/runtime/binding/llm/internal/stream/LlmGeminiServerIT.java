@@ -1749,4 +1749,14 @@ public class LlmGeminiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.reply.reset/client",
+        "${app}/gemini.reply.reset/server"})
+    public void shouldGeminiReplyReset() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -3396,6 +3396,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             if (stream != null)
             {
                 stream.doAppAbort(traceId);
+                stream.doAppReset(traceId);
             }
             cleanup(traceId);
         }
@@ -3826,6 +3827,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
             state = LlmState.closeInitial(state);
             server.appEndPending = false;
+            doAppReset(traceId);
 
             if (resetEx != null && !server.replyBegun)
             {

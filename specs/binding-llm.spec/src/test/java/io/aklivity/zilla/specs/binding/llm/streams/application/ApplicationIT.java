@@ -8839,4 +8839,58 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/openai.reply.reset/client",
+        "${app}/openai.reply.reset/server"})
+    public void shouldOpenaiReplyReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.reply.reset/client",
+        "${app}/openai.responses.reply.reset/server"})
+    public void shouldOpenaiResponsesReplyReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.reply.reset/client",
+        "${app}/anthropic.reply.reset/server"})
+    public void shouldAnthropicReplyReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.reply.reset/client",
+        "${app}/gemini.reply.reset/server"})
+    public void shouldGeminiReplyReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.rejected.reset/client",
+        "${app}/anthropic.rejected.reset/server"})
+    public void shouldRejectAnthropicReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.rejected.reset/client",
+        "${app}/gemini.rejected.reset/server"})
+    public void shouldRejectGeminiReset() throws Exception
+    {
+        k3po.finish();
+    }
 }
