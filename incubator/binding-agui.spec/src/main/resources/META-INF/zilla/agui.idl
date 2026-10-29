@@ -74,11 +74,18 @@ scope agui
             string16 parentMessageId = null;
         }
 
+        enum AguiContentType (uint8)
+        {
+            TEXT(0),
+            PARTS(1)
+        }
+
         struct AguiToolResultDataEx
         {
             AguiEventMeta meta;
             string16 messageId;
             string16 toolCallId;
+            AguiContentType content = TEXT;
         }
 
         enum AguiStateType (uint8)
@@ -159,7 +166,7 @@ scope agui
         // Payload by case:
         //   text, reasoning                  text, as UTF-8 fragments
         //   toolCall                         the arguments, as JSON fragments
-        //   toolResult                       the content, as UTF-8 fragments
+        //   toolResult                       TEXT content as UTF-8 fragments, PARTS content as a JSON array of content parts
         //   state, activity, raw, custom     the JSON value (snapshot, patch, event, value)
         //   reasoningEncrypted               the encrypted value, as UTF-8
         //   subagent                         for FINISHED, the JSON members that follow subagentRunId; otherwise none
