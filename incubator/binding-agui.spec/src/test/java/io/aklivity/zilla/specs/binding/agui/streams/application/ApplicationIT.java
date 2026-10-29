@@ -287,4 +287,49 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/run.unauthorized/client",
+        "${app}/run.unauthorized/server"})
+    public void shouldRunUnauthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/run.unavailable/client",
+        "${app}/run.unavailable/server"})
+    public void shouldRunUnavailable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/run.event.invalid/client",
+        "${app}/run.event.invalid/server"})
+    public void shouldRunEventInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/run.sequence.invalid/client",
+        "${app}/run.sequence.invalid/server"})
+    public void shouldRunSequenceInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/run.request.abort/client",
+        "${app}/run.request.abort/server"})
+    public void shouldRunRequestAbort() throws Exception
+    {
+        k3po.finish();
+    }
 }

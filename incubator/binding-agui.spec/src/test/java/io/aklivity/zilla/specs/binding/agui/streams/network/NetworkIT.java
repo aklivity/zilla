@@ -422,4 +422,85 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/response.rejected/client",
+        "${net}/response.rejected/server"})
+    public void shouldResponseRejected() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/response.unauthorized/client",
+        "${net}/response.unauthorized/server"})
+    public void shouldResponseUnauthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/response.unavailable/client",
+        "${net}/response.unavailable/server"})
+    public void shouldResponseUnavailable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/response.event.malformed/client",
+        "${net}/response.event.malformed/server"})
+    public void shouldResponseEventMalformed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/response.event.unknown/client",
+        "${net}/response.event.unknown/server"})
+    public void shouldResponseEventUnknown() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/response.sequence.invalid/client",
+        "${net}/response.sequence.invalid/server"})
+    public void shouldResponseSequenceInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/response.unfinished/client",
+        "${net}/response.unfinished/server"})
+    public void shouldResponseUnfinished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/response.truncated/client",
+        "${net}/response.truncated/server"})
+    public void shouldResponseTruncated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/run.request.abort/client",
+        "${net}/run.request.abort/server"})
+    public void shouldRunRequestAbort() throws Exception
+    {
+        k3po.finish();
+    }
 }
