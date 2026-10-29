@@ -40,6 +40,21 @@ class SelectExamplesTest(unittest.TestCase):
         for path in ('pom.xml', 'cloud/docker-image/pom.xml', '.github/workflows/build.yml', 'examples/.github/test-lib.sh'):
             self.assertEqual(sorted(EXAMPLES), select([path], ['binding-mqtt']), path)
 
+    def test_should_follow_rebuilt_modules_for_lines_only_added_to_image_wiring(self):
+        changes = select_examples.parse_numstat(
+            '12\t0\tcloud/docker-image/pom.xml\n3\t0\tcloud/docker-image/src/main/docker/zpm.json.template\n')
+        self.assertEqual([], select_examples.selectable_files(changes))
+        self.assertEqual(['opaque'], select(select_examples.selectable_files(changes), []))
+
+    def test_should_select_all_for_lines_removed_from_image_wiring(self):
+        changes = select_examples.parse_numstat('2\t1\tcloud/docker-image/pom.xml\n')
+        self.assertEqual(['cloud/docker-image/pom.xml'], select_examples.selectable_files(changes))
+        self.assertEqual(sorted(EXAMPLES), select(select_examples.selectable_files(changes), []))
+
+    def test_should_select_all_for_lines_only_added_to_other_cloud_files(self):
+        changes = select_examples.parse_numstat('4\t0\tcloud/docker-image/src/main/docker/Dockerfile\n')
+        self.assertEqual(sorted(EXAMPLES), select(select_examples.selectable_files(changes), []))
+
     def test_should_select_rebuilt_modules_for_aggregator_pom_change(self):
         for path in ('runtime/pom.xml', 'specs/pom.xml', 'incubator/pom.xml'):
             self.assertEqual(['mqtt.proxy', 'opaque'], select([path], ['binding-mqtt']), path)
