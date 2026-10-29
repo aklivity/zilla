@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Optional;
 
 import io.aklivity.zilla.config.binding.a2a.A2aCacheConfig;
+import io.aklivity.zilla.config.binding.a2a.A2aDiscoveryConfig;
 import io.aklivity.zilla.config.binding.a2a.A2aOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -27,6 +28,7 @@ public final class A2aProxyBindingConfig
 {
     public final long id;
     public final A2aCacheConfig cache;
+    public final A2aDiscoveryConfig discovery;
     public final GuardHandler guard;
     public final List<A2aProxyRouteConfig> routes;
 
@@ -38,6 +40,7 @@ public final class A2aProxyBindingConfig
 
         this.id = binding.id;
         this.cache = options != null ? options.cache : null;
+        this.discovery = options != null ? options.discovery : null;
         this.routes = binding.routes.stream()
             .map(A2aProxyRouteConfig::new)
             .toList();
@@ -53,6 +56,12 @@ public final class A2aProxyBindingConfig
                 .map(binding.resolveId::applyAsLong)
                 .map(context::supplyGuard)
                 .orElse(null));
+    }
+
+    public boolean discovers(
+        String agent)
+    {
+        return discovery != null && discovery.agent.equals(agent);
     }
 
     public A2aProxyResolution resolve(
