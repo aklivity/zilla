@@ -138,6 +138,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
     private static final String MEMBER_REASON = "reason";
     private static final String TYPE_ERROR = "error";
     private static final String TYPE_OTHER = "";
+    private static final String TYPE_OVERSIZE = "oversize";
     private static final String TYPE_TEXT_DELTA = "response.output_text.delta";
     private static final String TYPE_TEXT_DONE = "response.output_text.done";
     private static final String TYPE_PART_ADDED = "response.content_part.added";
@@ -218,6 +219,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
     private static final int PEEK_NONE = 0;
     private static final int PEEK_FOUND = 1;
     private static final int PEEK_PENDING = 2;
+    private static final int PEEK_OVERSIZE = 3;
     private static final int ITEM_STAGE_MAX = 1024;
     private static final int MODE_FULL = 0;
     private static final int MODE_ADDED = 1;
@@ -2960,7 +2962,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            final int peek = http.framing ? peekObject() : PEEK_NONE;
+            final int peek = http.framing ? peekObject(true) : PEEK_NONE;
 
             if (peek != PEEK_PENDING && hasNextEvent())
             {
@@ -2973,6 +2975,10 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                     if (peek == PEEK_FOUND)
                     {
                         onDocumentType(peekedType);
+                    }
+                    else if (peek == PEEK_OVERSIZE)
+                    {
+                        documentType = TYPE_OVERSIZE;
                     }
                 }
                 else
@@ -3011,13 +3017,18 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                 {
                     final CharSequence member = parser.getStringView();
 
-                    if (MEMBER_TYPE.contentEquals(member) && (documentType == null || TYPE_OTHER.equals(documentType)))
+                    if (MEMBER_TYPE.contentEquals(member) &&
+                        (documentType == null || TYPE_OTHER.equals(documentType) || TYPE_OVERSIZE.equals(documentType)))
                     {
                         decoder = decodeType;
                     }
                     else if (documentType == null)
                     {
                         decodeResponseMember(member, decodeRoot);
+                    }
+                    else if (TYPE_OVERSIZE.equals(documentType))
+                    {
+                        skipMember(decodeRoot);
                     }
                     else if (MEMBER_RESPONSE.contentEquals(member))
                     {
@@ -3158,10 +3169,16 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         private void onDocumentType(
             CharSequence type)
         {
+            final boolean oversize = TYPE_OVERSIZE.equals(documentType);
+
             documentType = eventType(type);
 
-            if (TYPE_TEXT_DONE.equals(documentType) || TYPE_PART_DONE.equals(documentType) ||
-                TYPE_REFUSAL_DONE.equals(documentType))
+            if (oversize && !oversizeEcho(documentType))
+            {
+                rejectTypeBound();
+            }
+            else if (TYPE_TEXT_DONE.equals(documentType) || TYPE_PART_DONE.equals(documentType) ||
+                TYPE_REFUSAL_DONE.equals(documentType) || oversize && TYPE_ITEM_DONE.equals(documentType))
             {
                 closeText();
             }
@@ -3172,7 +3189,15 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             }
         }
 
-        private int peekObject()
+        private boolean oversizeEcho(
+            String type)
+        {
+            return TYPE_TEXT_DONE.equals(type) || TYPE_PART_DONE.equals(type) || TYPE_REFUSAL_DONE.equals(type) ||
+                TYPE_ITEM_DONE.equals(type) || TYPE_OTHER.equals(type);
+        }
+
+        private int peekObject(
+            boolean root)
         {
             final DirectBufferEx buffer = decodeInput;
 
@@ -3182,6 +3207,9 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             peekedId = null;
 
             int peek = index < inputLimit && buffer.getByte(index) == '{' ? PEEK_PENDING : PEEK_NONE;
+            int stalledKey = NONE;
+            int stalledKeyEnd = NONE;
+            int stalledValue = NONE;
 
             index++;
 
@@ -3222,6 +3250,9 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
 
                     if (valueEnd == NONE)
                     {
+                        stalledKey = index;
+                        stalledKeyEnd = keyEnd;
+                        stalledValue = valueFrom;
                         break;
                     }
 
@@ -3243,10 +3274,42 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
 
             if (peek == PEEK_PENDING && !inputLast && inputLimit - position() >= holdMax)
             {
-                rejectTypeBound();
+                if (root && peekEchoMember(buffer, stalledKey, stalledKeyEnd, stalledValue))
+                {
+                    peek = PEEK_OVERSIZE;
+                }
+                else
+                {
+                    rejectTypeBound();
+                }
             }
 
             return peek == PEEK_PENDING && (inputLast || parseRejected) ? PEEK_NONE : peek;
+        }
+
+        private boolean peekEchoMember(
+            DirectBufferEx buffer,
+            int key,
+            int keyEnd,
+            int value)
+        {
+            return key != NONE &&
+                (peekKeyEquals(buffer, key, keyEnd, MEMBER_TEXT) ||
+                 peekKeyEquals(buffer, key, keyEnd, MEMBER_PART) ||
+                 peekKeyEquals(buffer, key, keyEnd, MEMBER_REFUSAL) ||
+                 peekKeyEquals(buffer, key, keyEnd, MEMBER_ITEM) && peekFirstMemberIsContent(buffer, value));
+        }
+
+        private boolean peekFirstMemberIsContent(
+            DirectBufferEx buffer,
+            int value)
+        {
+            final int first = peekSeparatorsEnd(buffer, value + 1, inputLimit);
+            final int firstEnd = first < inputLimit && buffer.getByte(first) == '"'
+                ? peekStringEnd(buffer, first, inputLimit)
+                : NONE;
+
+            return firstEnd != NONE && peekKeyEquals(buffer, first, firstEnd, MEMBER_CONTENT);
         }
 
         private void rejectTypeBound()
@@ -3576,7 +3639,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         {
             while (decoder == decodeOutput)
             {
-                final int peek = peekObject();
+                final int peek = peekObject(false);
 
                 if (peek == PEEK_PENDING || !hasNextEvent())
                 {
@@ -3610,7 +3673,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            final int peek = peekObject();
+            final int peek = peekObject(false);
 
             if (peek != PEEK_PENDING && hasNextEvent())
             {

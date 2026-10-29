@@ -449,6 +449,16 @@ public class LlmOpenaiResponsesSortedClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
+        "${app}/openai.responses.text.stream/client",
+        "${net}/openai.responses.sorted.text.stream.done.large/server"})
+    public void shouldForwardOpenaiResponsesSortedTextStreamDoneLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
         "${app}/openai.responses.text.stream.huge.large/client",
         "${net}/openai.responses.text.stream.huge.large/server"})
     public void shouldForwardOpenaiResponsesSortedTextStreamHugeLarge() throws Exception

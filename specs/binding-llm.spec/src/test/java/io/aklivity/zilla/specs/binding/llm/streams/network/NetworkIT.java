@@ -9310,6 +9310,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.responses.sorted.text.stream.done.large/client",
+        "${net}/openai.responses.sorted.text.stream.done.large/server"})
+    public void shouldOpenaiSortedResponsesSortedTextStreamDoneLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.responses.text.stream.huge.large/client",
         "${net}/openai.responses.text.stream.huge.large/server"})
     public void shouldOpenaiSortedResponsesTextStreamHugeLarge() throws Exception
