@@ -95,8 +95,19 @@ public final class A2aPushFixtures
         {
         case "client.example.com" -> address(host, 93, 184, 216, 34);
         case "internal.example.com" -> address(host, 10, 0, 0, 5);
-        default -> throw new UnknownHostException(host);
+        default -> literal(host);
         };
+    }
+
+    private static InetAddress[] literal(
+        String host) throws UnknownHostException
+    {
+        if (!host.matches("[0-9.]+|\\[?[0-9a-f:]+\\]?"))
+        {
+            throw new UnknownHostException(host);
+        }
+
+        return new InetAddress[] {InetAddress.getByName(host)};
     }
 
     private static InetAddress[] address(
