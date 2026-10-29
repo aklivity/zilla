@@ -357,6 +357,15 @@ public class AguiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/run.unavailable/client"})
+    public void shouldRejectRunUnavailable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/run.tool.result.parts/client",
         "${app}/run.tool.result.parts/server"})
     public void shouldRunToolResultParts() throws Exception
