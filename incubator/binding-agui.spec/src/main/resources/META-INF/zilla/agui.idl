@@ -136,6 +136,13 @@ scope agui
             ERROR(2)
         }
 
+        enum AguiSubagentOutcome (uint8)
+        {
+            NONE(0),
+            SUCCESS(1),
+            SUSPENDED(2)
+        }
+
         struct AguiSubagentDataEx
         {
             AguiEventMeta meta;
@@ -148,6 +155,7 @@ scope agui
             string16 parentMessageId = null;
             string16 code = null;
             string16 message = null;
+            AguiSubagentOutcome outcome = NONE;
         }
 
         struct AguiRawDataEx
@@ -169,7 +177,7 @@ scope agui
         //   toolResult                       TEXT content as UTF-8 fragments, PARTS content as a JSON array of content parts
         //   state, activity, raw, custom     the JSON value (snapshot, patch, event, value)
         //   reasoningEncrypted               the encrypted value, as UTF-8
-        //   subagent                         for FINISHED, the JSON members that follow subagentRunId; otherwise none
+        //   subagent                         for FINISHED, the result as a JSON value, absent when the only frame is empty
         //   step                             none
         // The members of the event carried by the init frame extension (timestamp, subagentRunId, metadata) apply to
         // the event emitted for the init frame, with subagentRunId repeated on every event of the message

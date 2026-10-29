@@ -37,6 +37,7 @@
     <module>binding-a2a</module>
     <module>binding-a2a-http</module>
     <module>binding-a2a-openapi</module>
+    <module>binding-agui</module>
     <module>binding-amqp</module>
     <module>binding-pgsql</module>
     <module>binding-pgsql-kafka</module>
@@ -83,6 +84,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-a2a-openapi.conf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-agui</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

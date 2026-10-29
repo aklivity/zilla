@@ -68,9 +68,10 @@ write zilla:data.ext ${agui:dataEx()
                        .subagent()
                            .type("FINISHED")
                            .subagentRunId("sub-1")
+                           .outcome("SUCCESS")
                            .build()
                        .build()}
-write "{\"result\":{\"found\":3}}"
+write "{\"found\":3}"
 write flush
 
 write zilla:data.ext ${agui:dataEx()
