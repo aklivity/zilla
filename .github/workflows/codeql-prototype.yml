@@ -1,0 +1,149 @@
+name: CodeQL prototype
+
+on:
+  push:
+    branches: [ claude/codeql-build-mode-none ]
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.build-mode }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        build-mode: [ autobuild, none ]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v7
+
+    - name: Setup JDK 25
+      uses: actions/setup-java@v5
+      with:
+        distribution: zulu
+        java-version: 25
+
+    - name: Pin maven.packages.aklivity.io to IPv4
+      run: |
+        ipv4=$(getent ahostsv4 maven.packages.aklivity.io | awk 'NR==1{print $1}')
+        if [ -n "$ipv4" ]; then
+          echo "$ipv4 maven.packages.aklivity.io" | sudo tee -a /etc/hosts
+        fi
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v4
+      with:
+        languages: java
+        build-mode: ${{ matrix.build-mode }}
+      env:
+        GITHUB_ACTOR: ${{ github.actor }}
+        GITHUB_TOKEN: ${{ github.token }}
+
+    - name: Cache Maven packages
+      if: ${{ matrix.build-mode == 'autobuild' }}
+      uses: actions/cache@v6
+      with:
+        path: |
+          ~/.m2/repository
+          !~/.m2/repository/io/aklivity/zilla
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+
+    - name: Route Docker Hub pulls through mirror.gcr.io
+      if: ${{ matrix.build-mode == 'autobuild' }}
+      run: |
+        sudo mkdir -p /etc/docker
+        if [ -f /etc/docker/daemon.json ]; then
+          sudo jq '. + {"registry-mirrors": ["https://mirror.gcr.io"]}' /etc/docker/daemon.json > /tmp/daemon.json
+        else
+          echo '{"registry-mirrors": ["https://mirror.gcr.io"]}' > /tmp/daemon.json
+        fi
+        sudo mv /tmp/daemon.json /etc/docker/daemon.json
+        sudo systemctl restart docker
+        timeout 30 sh -c 'until docker info >/dev/null 2>&1; do sleep 1; done'
+
+    - name: Autobuild
+      if: ${{ matrix.build-mode == 'autobuild' }}
+      uses: github/codeql-action/autobuild@v4
+      env:
+        GITHUB_ACTOR: ${{ github.actor }}
+        GITHUB_TOKEN: ${{ github.token }}
+        MAVEN_OPTS: -Dzpm.skip=true
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v4
+      with:
+        category: "/language:java/build-mode:${{ matrix.build-mode }}"
+        upload: never
+        output: sarif-results
+      env:
+        GITHUB_ACTOR: ${{ github.actor }}
+        GITHUB_TOKEN: ${{ github.token }}
+
+    - name: Keep SARIF results
+      uses: actions/upload-artifact@v7
+      with:
+        name: sarif-${{ matrix.build-mode }}
+        path: sarif-results
+        retention-days: 7
+
+  compare:
+    name: Compare alerts
+    needs: analyze
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download SARIF results
+      uses: actions/download-artifact@v8
+      with:
+        pattern: sarif-*
+        path: sarif
+
+    - name: Compare autobuild and none
+      run: |
+        python3 - <<'EOF'
+        import glob, json, os, collections
+
+        def load(mode):
+            keys, files = set(), set()
+            for path in glob.glob(f'sarif/sarif-{mode}/*.sarif'):
+                for run in json.load(open(path)).get('runs', []):
+                    for r in run.get('results', []):
+                        loc = r['locations'][0]['physicalLocation']
+                        uri = loc['artifactLocation']['uri']
+                        line = loc.get('region', {}).get('startLine', 0)
+                        keys.add((r['ruleId'], uri, line))
+                    for a in run.get('artifacts', []) or []:
+                        files.add(a['location']['uri'])
+            return keys, files
+
+        auto, auto_files = load('autobuild')
+        none, none_files = load('none')
+        out = []
+        out.append('| | autobuild | none |')
+        out.append('|---|---|---|')
+        out.append(f'| alerts | {len(auto)} | {len(none)} |')
+        out.append(f'| files in database | {len(auto_files)} | {len(none_files)} |')
+        out.append(f'| alerts in both | {len(auto & none)} | |')
+        out.append(f'| only in this mode | {len(auto - none)} | {len(none - auto)} |')
+        out.append('')
+        for title, keys in (('only in autobuild', auto - none), ('only in none', none - auto)):
+            out.append(f'### {title}')
+            byrule = collections.Counter(k[0] for k in keys)
+            for rule, n in byrule.most_common(15):
+                out.append(f'- `{rule}`: {n}')
+            generated = sum(1 for k in keys if '/target/' in k[1] or k[1].startswith('target/'))
+            out.append(f'- of which under a target/ directory (generated): {generated}')
+            for k in sorted(keys)[:20]:
+                out.append(f'  - `{k[0]}` {k[1]}:{k[2]}')
+            out.append('')
+        auto_gen = sum(1 for f in auto_files if '/target/' in f or f.startswith('target/'))
+        none_gen = sum(1 for f in none_files if '/target/' in f or f.startswith('target/'))
+        out.append(f'Generated files (under target/) in database: autobuild {auto_gen}, none {none_gen}')
+        text = '\n'.join(out)
+        print(text)
+        open(os.environ['GITHUB_STEP_SUMMARY'], 'a').write(text + '\n')
+        EOF
