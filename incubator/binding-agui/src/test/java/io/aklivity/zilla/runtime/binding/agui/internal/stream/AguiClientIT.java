@@ -407,4 +407,24 @@ public class AguiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/run.request.mismatch/client",
+        "${net}/run.request.mismatch/server"})
+    public void shouldRejectRequestMismatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/run.request.malformed/client",
+        "${net}/run.request.malformed/server"})
+    public void shouldRejectRequestMalformed() throws Exception
+    {
+        k3po.finish();
+    }
 }
