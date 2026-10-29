@@ -34,6 +34,7 @@
 
     <module>binding-a2a</module>
     <module>binding-a2a-http</module>
+    <module>binding-a2a-openapi</module>
     <module>binding-amqp</module>
     <module>binding-pgsql</module>
     <module>binding-pgsql-kafka</module>
