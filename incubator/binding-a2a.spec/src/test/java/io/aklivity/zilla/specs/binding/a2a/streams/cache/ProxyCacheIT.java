@@ -152,4 +152,13 @@ public class ProxyCacheIT
         k3po.notifyBarrier("EXPIRED");
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${cache}/cache.hydrate.discovery/client",
+        "${cache}/cache.hydrate.discovery/server"})
+    public void shouldCacheHydrateDiscovery() throws Exception
+    {
+        k3po.finish();
+    }
 }
