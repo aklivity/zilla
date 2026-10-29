@@ -8893,4 +8893,31 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.sorted.mcp.stream/client",
+        "${app}/openai.responses.sorted.mcp.stream/server"})
+    public void shouldOpenaiSortedResponsesMcpStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.sorted.function.call.overflow.stream/client",
+        "${app}/openai.responses.sorted.function.call.overflow.stream/server"})
+    public void shouldOpenaiSortedResponsesFunctionCallOverflowStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.text.stream.huge.large/client",
+        "${app}/openai.responses.text.stream.huge.large/server"})
+    public void shouldOpenaiSortedResponsesTextStreamHugeLarge() throws Exception
+    {
+        k3po.finish();
+    }
 }

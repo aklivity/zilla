@@ -355,4 +355,124 @@ public class LlmOpenaiResponsesSortedClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.text.citations/client",
+        "${net}/openai.responses.sorted.text.citations/server"})
+    public void shouldForwardOpenaiResponsesSortedTextCitations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.text.citations.stream/client",
+        "${net}/openai.responses.sorted.text.citations.stream/server"})
+    public void shouldForwardOpenaiResponsesSortedTextCitationsStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.text.citations.stream/client",
+        "${net}/openai.responses.sorted.text.citations.between.stream/server"})
+    public void shouldForwardOpenaiResponsesSortedTextCitationsBetweenStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.text.citations.stream/client",
+        "${net}/openai.responses.sorted.text.citations.done.stream/server"})
+    public void shouldForwardOpenaiResponsesSortedTextCitationsDoneStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.text.citations.members/client",
+        "${net}/openai.responses.sorted.text.citations.members/server"})
+    public void shouldForwardOpenaiResponsesSortedTextCitationsMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.text.citations.members.stream/client",
+        "${net}/openai.responses.sorted.text.citations.members.stream/server"})
+    public void shouldForwardOpenaiResponsesSortedTextCitationsMembersStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.sorted.mcp.stream/client",
+        "${net}/openai.responses.sorted.mcp.stream/server"})
+    public void shouldForwardOpenaiResponsesSortedMcpStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.text.stream/client",
+        "${net}/openai.responses.text.stream.completed.large/server"})
+    public void shouldForwardOpenaiResponsesSortedTextStreamCompletedLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.text.stream/client",
+        "${net}/openai.responses.sorted.text.stream.completed.large/server"})
+    public void shouldForwardOpenaiResponsesSortedSortedTextStreamCompletedLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.text.stream.huge.large/client",
+        "${net}/openai.responses.text.stream.huge.large/server"})
+    public void shouldForwardOpenaiResponsesSortedTextStreamHugeLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.text.stream.huge.large/client",
+        "${net}/openai.responses.sorted.text.stream.huge.large/server"})
+    public void shouldForwardOpenaiResponsesSortedSortedTextStreamHugeLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.sorted.function.call.overflow.stream/client",
+        "${net}/openai.responses.sorted.function.call.overflow.stream/server"})
+    public void shouldFailOpenaiResponsesSortedFunctionCallOverflowStream() throws Exception
+    {
+        k3po.finish();
+    }
 }
