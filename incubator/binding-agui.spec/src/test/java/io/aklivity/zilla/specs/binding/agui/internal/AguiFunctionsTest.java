@@ -27,6 +27,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiAbortExFW;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiActivityType;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiBeginExFW;
+import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiContentType;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiDataExFW;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiEncryptedSubtype;
 import io.aklivity.zilla.specs.binding.agui.internal.types.stream.AguiEndExFW;
@@ -1212,5 +1213,74 @@ public class AguiFunctionsTest
             .typeId(0x02)
             .build()
             .match(ByteBuffer.wrap(AguiFunctions.resetEx().typeId(0x01).status(422).code("c").message("m").build()));
+    }
+
+    @Test
+    public void shouldGenerateToolResultDataExWithPartsContent()
+    {
+        byte[] bytes = AguiFunctions.dataEx()
+            .typeId(0x01)
+            .toolResult()
+                .messageId("msg-3")
+                .toolCallId("call-1")
+                .content("PARTS")
+                .build()
+            .build();
+
+        AguiDataExFW dataEx = new AguiDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+
+        assertEquals(AguiContentType.PARTS, dataEx.toolResult().content().get());
+    }
+
+    @Test
+    public void shouldGenerateToolResultDataExWithDefaultTextContent()
+    {
+        byte[] bytes = AguiFunctions.dataEx()
+            .typeId(0x01)
+            .toolResult()
+                .messageId("msg-3")
+                .toolCallId("call-1")
+                .build()
+            .build();
+
+        AguiDataExFW dataEx = new AguiDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+
+        assertEquals(AguiContentType.TEXT, dataEx.toolResult().content().get());
+    }
+
+    @Test
+    public void shouldMatchToolResultDataExWithPartsContent() throws Exception
+    {
+        BytesMatcher matcher = AguiFunctions.matchDataEx()
+            .toolResult()
+                .content("PARTS")
+                .build()
+            .build();
+
+        assertNotNull(matcher.match(ByteBuffer.wrap(AguiFunctions.dataEx()
+            .typeId(0x01)
+            .toolResult()
+                .messageId("msg-3")
+                .toolCallId("call-1")
+                .content("PARTS")
+                .build()
+            .build())));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchToolResultDataExWithDifferentContent() throws Exception
+    {
+        AguiFunctions.matchDataEx()
+            .toolResult()
+                .content("PARTS")
+                .build()
+            .build()
+            .match(ByteBuffer.wrap(AguiFunctions.dataEx()
+                .typeId(0x01)
+                .toolResult()
+                    .messageId("msg-3")
+                    .toolCallId("call-1")
+                    .build()
+                .build()));
     }
 }

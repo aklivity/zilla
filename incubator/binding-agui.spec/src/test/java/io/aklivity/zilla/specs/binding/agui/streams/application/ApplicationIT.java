@@ -260,4 +260,13 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/run.tool.result.parts/client",
+        "${app}/run.tool.result.parts/server"})
+    public void shouldRunToolResultParts() throws Exception
+    {
+        k3po.finish();
+    }
 }
