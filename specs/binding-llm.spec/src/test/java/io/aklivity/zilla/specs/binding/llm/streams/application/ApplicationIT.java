@@ -8893,4 +8893,40 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.buffer.exhausted/client",
+        "${app}/openai.response.buffer.exhausted/server"})
+    public void shouldOpenaiResponseBufferExhausted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.response.buffer.exhausted/client",
+        "${app}/anthropic.response.buffer.exhausted/server"})
+    public void shouldAnthropicResponseBufferExhausted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.response.buffer.exhausted/client",
+        "${app}/gemini.response.buffer.exhausted/server"})
+    public void shouldGeminiResponseBufferExhausted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.response.buffer.exhausted/client",
+        "${app}/openai.responses.response.buffer.exhausted/server"})
+    public void shouldOpenaiResponsesResponseBufferExhausted() throws Exception
+    {
+        k3po.finish();
+    }
 }

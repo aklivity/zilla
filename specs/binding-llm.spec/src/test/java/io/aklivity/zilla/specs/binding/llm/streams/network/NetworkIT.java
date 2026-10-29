@@ -9001,4 +9001,40 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.response.buffer.exhausted/client",
+        "${net}/openai.response.buffer.exhausted/server"})
+    public void shouldOpenaiResponseBufferExhausted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.response.buffer.exhausted/client",
+        "${net}/anthropic.response.buffer.exhausted/server"})
+    public void shouldAnthropicResponseBufferExhausted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.response.buffer.exhausted/client",
+        "${net}/gemini.response.buffer.exhausted/server"})
+    public void shouldGeminiResponseBufferExhausted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.response.buffer.exhausted/client",
+        "${net}/openai.responses.response.buffer.exhausted/server"})
+    public void shouldOpenaiResponsesResponseBufferExhausted() throws Exception
+    {
+        k3po.finish();
+    }
 }

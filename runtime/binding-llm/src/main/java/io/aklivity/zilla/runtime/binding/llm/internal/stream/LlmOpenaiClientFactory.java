@@ -1357,7 +1357,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 flushControl(progress);
             }
 
-            return parseRejected ? windowLimit : progress;
+            return parseRejected || decoder == decodeIgnore ? windowLimit : progress;
         }
 
         private int position()
@@ -4011,6 +4011,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private void cleanup(
             long traceId)
         {
+            decoder = decodeIgnore;
             doAppReset(traceId, STATUS_BAD_GATEWAY, null, null);
             doAppAbort(traceId);
             http.doNetAbort(traceId);

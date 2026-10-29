@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_POOL_CAPACITY_NAME;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -3503,6 +3505,18 @@ public class LlmAnthropicClientIT
         "${app}/anthropic.rejected.reset/client",
         "${net}/anthropic.rejected.reset/server"})
     public void shouldResetAnthropicRequestWhenUpstreamResets() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Configure(name = ENGINE_BUFFER_POOL_CAPACITY_NAME, value = "16384")
+    @Specification({
+        "${app}/anthropic.response.buffer.exhausted/client",
+        "${net}/anthropic.response.buffer.exhausted/server"})
+    public void shouldResetAnthropicResponseWhenBufferExhausted() throws Exception
     {
         k3po.finish();
     }
