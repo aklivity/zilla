@@ -404,4 +404,28 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateProxyDiscoveryCache()
+    {
+        JsonObject config = schema.validate("proxy.discovery.cache.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyDiscoveryGuarded()
+    {
+        JsonObject config = schema.validate("proxy.discovery.guarded.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyDiscoveryLimit()
+    {
+        JsonObject config = schema.validate("proxy.discovery.limit.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }
