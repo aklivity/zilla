@@ -48,26 +48,26 @@ public final class A2aPushPolicy
         InetAddress[] resolved)
     {
         final URI target = target(url);
+        final String host = target != null ? hostOf(target) : null;
 
-        boolean permitted = target != null;
+        return host != null &&
+            !ambiguous(host) &&
+            listed(target, host) &&
+            (explicit(target, host) || !restricted(host, resolved));
+    }
 
-        if (permitted)
-        {
-            final String host = hostOf(target);
+    private boolean listed(
+        URI target,
+        String host)
+    {
+        return allow.isEmpty() || allow.stream().anyMatch(a -> a.matches(target, host));
+    }
 
-            permitted = !ambiguous(host);
-        }
-
-        if (permitted)
-        {
-            final String host = hostOf(target);
-            final boolean listed = allow.isEmpty() || allow.stream().anyMatch(a -> a.matches(target, host));
-            final boolean explicit = allow.stream().anyMatch(a -> a.explicit() && a.matches(target, host));
-
-            permitted = listed && (explicit || !restricted(host, resolved));
-        }
-
-        return permitted;
+    private boolean explicit(
+        URI target,
+        String host)
+    {
+        return allow.stream().anyMatch(a -> a.explicit() && a.matches(target, host));
     }
 
     private static URI target(

@@ -21,20 +21,28 @@ import static io.aklivity.zilla.runtime.binding.a2a.internal.config.A2aProxyReso
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.time.Clock;
+import java.time.Duration;
 import java.util.List;
 
 import org.junit.Test;
 
 import io.aklivity.zilla.config.binding.a2a.A2aBindingConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.GenericVaultConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
+import io.aklivity.zilla.config.engine.VaultConfig;
+import io.aklivity.zilla.config.engine.test.internal.vault.config.TestVaultOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.runtime.engine.test.internal.vault.TestVaultHandler;
+import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public class A2aProxyBindingConfigTest
 {
@@ -149,6 +157,104 @@ public class A2aProxyBindingConfigTest
         config.resolveId = name -> 0L;
 
         assertThat(new A2aProxyBindingConfig(config, context).guard, nullValue());
+    }
+
+    @Test
+    public void shouldAttachPush()
+    {
+        when(context.supplyVault(5L)).thenReturn(vault("a2a-push"));
+        when(context.clock()).thenReturn(Clock.systemUTC());
+
+        final A2aProxyBindingConfig binding = new A2aProxyBindingConfig(pushed("a2a-push", "http://localhost:8080/a2a/push"),
+            context);
+
+        assertThat(binding.push, not(nullValue()));
+        assertThat(binding.push.exitId, equalTo(5L));
+    }
+
+    @Test
+    public void shouldNotAttachPushWhenUnconfigured()
+    {
+        final BindingConfig config = A2aBindingConfig.builder()
+            .namespace("test")
+            .name("app0")
+            .kind(KindConfig.PROXY)
+            .options()
+                .build()
+            .build();
+        config.resolveId = name -> 5L;
+
+        assertThat(new A2aProxyBindingConfig(config, context).push, nullValue());
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void shouldNotAttachPushWithUnresolvedKey()
+    {
+        when(context.supplyVault(5L)).thenReturn(vault("a2a-push"));
+
+        new A2aProxyBindingConfig(pushed("unknown", "http://localhost:8080/a2a/push"), context);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void shouldNotAttachPushWithUnresolvedVault()
+    {
+        new A2aProxyBindingConfig(pushed("a2a-push", "http://localhost:8080/a2a/push"), context);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void shouldNotAttachPushWithoutUrl()
+    {
+        when(context.supplyVault(5L)).thenReturn(vault("a2a-push"));
+
+        new A2aProxyBindingConfig(pushed("a2a-push", null), context);
+    }
+
+    private static BindingConfig pushed(
+        String key,
+        String url)
+    {
+        final BindingConfig config = A2aBindingConfig.builder()
+            .namespace("test")
+            .name("app0")
+            .kind(KindConfig.PROXY)
+            .options()
+                .proxyPush()
+                    .url(url)
+                    .vault("secrets0")
+                    .key(key)
+                    .ttl(Duration.ofHours(1))
+                    .maxLength(2048)
+                    .exit("app2")
+                    .build()
+                .build()
+            .route()
+                .exit("app1")
+                .when()
+                    .agent(List.of("weather"))
+                    .build()
+                .build()
+            .build();
+        config.resolveId = name -> 5L;
+        config.routes.get(0).authorized = (authorization, identity) -> true;
+        return config;
+    }
+
+    private static VaultHandler vault(
+        String alias)
+    {
+        final VaultConfig vault = GenericVaultConfig.builder()
+            .namespace("test")
+            .name("secrets0")
+            .type("test")
+            .options(TestVaultOptionsConfig.builder()
+                .wrap(alias,
+                    "-----BEGIN SECRET KEY-----\n" +
+                    "jOl3tg1ZDuqTrzB7WOVaUOEoezst8sz/ywPPbsGE8bA=\n" +
+                    "-----END SECRET KEY-----")
+                .build())
+            .build();
+
+        return new TestVaultHandler(vault);
     }
 
     private A2aProxyBindingConfig routes(
