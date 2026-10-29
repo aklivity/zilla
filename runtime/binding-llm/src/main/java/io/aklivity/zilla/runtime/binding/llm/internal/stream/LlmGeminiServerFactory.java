@@ -2560,7 +2560,9 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                         if (stream != null)
                         {
                             stream.doAppAbort(traceId);
+                            stream.doAppReset(traceId);
                         }
+                        doNetAbort(traceId, initialAuthorization, EMPTY_OCTETS);
                         cleanup(traceId);
                     }
                     else
@@ -3663,7 +3665,9 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             if (stream != null)
             {
                 stream.doAppAbort(traceId);
+                stream.doAppReset(traceId);
             }
+            doNetAbort(traceId, initialAuthorization, EMPTY_OCTETS);
             cleanup(traceId);
         }
 
@@ -3978,6 +3982,11 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             long authorization,
             OctetsFW extension)
         {
+            if (!LlmState.replyOpening(state) && !LlmState.replyClosed(state))
+            {
+                doNetBegin(traceId, authorization, 0L, Integer.toString(STATUS_INTERNAL_SERVER_ERROR), null);
+            }
+
             if (!LlmState.replyClosed(state))
             {
                 final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
@@ -4193,6 +4202,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             else
             {
                 server.doNetReset(traceId);
+                server.doNetAbort(traceId, authorization, EMPTY_OCTETS);
                 server.cleanup(traceId);
             }
         }

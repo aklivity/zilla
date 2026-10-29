@@ -2691,4 +2691,14 @@ public class LlmGeminiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.abort/client",
+        "${net}/gemini.abort/server"})
+    public void shouldGeminiAbort() throws Exception
+    {
+        k3po.finish();
+    }
 }

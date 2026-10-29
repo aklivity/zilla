@@ -1025,6 +1025,8 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             state = LlmState.closeInitial(state);
 
             http.doNetAbort(traceId);
+            doAppAbort(traceId);
+            http.doNetReset(traceId);
             cleanupControlSlot();
             cleanupHeldSlot();
             cleanupHolds();

@@ -2852,4 +2852,14 @@ public class LlmOpenaiResponsesClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.abort/client",
+        "${net}/openai.responses.abort/server"})
+    public void shouldOpenaiResponsesAbort() throws Exception
+    {
+        k3po.finish();
+    }
 }

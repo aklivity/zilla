@@ -942,6 +942,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             state = LlmState.closeInitial(state);
 
             http.doNetAbort(traceId);
+            doAppAbort(traceId);
+            http.doNetReset(traceId);
             cleanupControlSlot();
             http.cleanupEncodeSlot();
             http.cleanupHeldSlot();

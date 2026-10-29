@@ -890,6 +890,8 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             state = LlmState.closeInitial(state);
 
             http.doNetAbort(traceId);
+            doAppAbort(traceId);
+            http.doNetReset(traceId);
             cleanupControlSlot();
             http.cleanupEncodeSlot();
             http.cleanupHeldSlot();

@@ -8929,4 +8929,49 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.abort/client",
+        "${app}/anthropic.abort/server"})
+    public void shouldAnthropicAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.abort/client",
+        "${app}/gemini.abort/server"})
+    public void shouldGeminiAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.abort/client",
+        "${app}/openai.responses.abort/server"})
+    public void shouldOpenaiResponsesAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.abort/client",
+        "${app}/gemini.request.abort/server"})
+    public void shouldGeminiRequestAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.buffer.exhausted/client",
+        "${app}/gemini.request.buffer.exhausted/server"})
+    public void shouldGeminiRequestBufferExhausted() throws Exception
+    {
+        k3po.finish();
+    }
 }

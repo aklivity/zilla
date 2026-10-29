@@ -3520,4 +3520,14 @@ public class LlmAnthropicClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.abort/client",
+        "${net}/anthropic.abort/server"})
+    public void shouldAnthropicAbort() throws Exception
+    {
+        k3po.finish();
+    }
 }

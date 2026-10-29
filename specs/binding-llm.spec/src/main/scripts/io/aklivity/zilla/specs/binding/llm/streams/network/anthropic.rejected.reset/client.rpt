@@ -29,6 +29,8 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
+write "{\"model\":\"claude-3-opus-20240229\""
+
 write aborted
 
 read abort

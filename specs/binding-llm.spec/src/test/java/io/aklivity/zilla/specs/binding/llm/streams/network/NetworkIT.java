@@ -9037,4 +9037,103 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.abort/client",
+        "${net}/openai.request.abort/server"})
+    public void shouldOpenaiRequestAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.buffer.exhausted/client",
+        "${net}/openai.request.buffer.exhausted/server"})
+    public void shouldOpenaiRequestBufferExhausted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.request.abort/client",
+        "${net}/openai.responses.request.abort/server"})
+    public void shouldOpenaiResponsesRequestAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.request.buffer.exhausted/client",
+        "${net}/openai.responses.request.buffer.exhausted/server"})
+    public void shouldOpenaiResponsesRequestBufferExhausted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.abort/client",
+        "${net}/anthropic.request.abort/server"})
+    public void shouldAnthropicRequestAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.buffer.exhausted/client",
+        "${net}/anthropic.request.buffer.exhausted/server"})
+    public void shouldAnthropicRequestBufferExhausted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.abort/client",
+        "${net}/gemini.request.abort/server"})
+    public void shouldGeminiRequestAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.request.buffer.exhausted/client",
+        "${net}/gemini.request.buffer.exhausted/server"})
+    public void shouldGeminiRequestBufferExhausted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.abort/client",
+        "${net}/anthropic.abort/server"})
+    public void shouldAnthropicAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.abort/client",
+        "${net}/gemini.abort/server"})
+    public void shouldGeminiAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.abort/client",
+        "${net}/openai.responses.abort/server"})
+    public void shouldOpenaiResponsesAbort() throws Exception
+    {
+        k3po.finish();
+    }
 }

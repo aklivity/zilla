@@ -30,6 +30,8 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
+read "{"
+
 read abort
 
 write aborted
