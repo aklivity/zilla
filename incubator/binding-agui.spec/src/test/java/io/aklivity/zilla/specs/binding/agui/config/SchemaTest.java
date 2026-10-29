@@ -56,10 +56,62 @@ public class SchemaTest
         schema.validate("server.authorization.credentials.placeholder.invalid.yaml");
     }
 
-    @Test(expected = JsonException.class)
-    public void shouldRejectClientKind()
+    @Test
+    public void shouldValidateClient()
     {
-        schema.validate("client.kind.invalid.yaml");
+        JsonObject config = schema.validate("client.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateClientGuarded()
+    {
+        JsonObject config = schema.validate("client.guarded.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientExitMissing()
+    {
+        schema.validate("client.exit.missing.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientServerMissing()
+    {
+        schema.validate("client.server.missing.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientServerInvalid()
+    {
+        schema.validate("client.server.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientOptionsUnknown()
+    {
+        schema.validate("client.options.unknown.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientRoutes()
+    {
+        schema.validate("client.routes.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientAuthorizationCredentialsPlaceholderMissing()
+    {
+        schema.validate("client.authorization.credentials.placeholder.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientAuthorizationGuardsMultiple()
+    {
+        schema.validate("client.authorization.guards.multiple.invalid.yaml");
     }
 
     @Test(expected = JsonException.class)

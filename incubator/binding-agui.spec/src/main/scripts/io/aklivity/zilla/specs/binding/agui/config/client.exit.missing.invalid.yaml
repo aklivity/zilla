@@ -16,7 +16,8 @@
 ---
 name: test
 bindings:
-  net0:
+  app0:
     type: agui
     kind: client
-    exit: app0
+    options:
+      server: http://localhost:8080/agent
