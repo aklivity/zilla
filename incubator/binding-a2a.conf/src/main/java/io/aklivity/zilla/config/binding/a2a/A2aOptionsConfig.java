@@ -40,7 +40,7 @@ public final class A2aOptionsConfig extends OptionsConfig
         A2aDiscoveryConfig discovery,
         A2aProxyPushConfig proxyPush)
     {
-        super(null, List.of());
+        super(null, discovery != null ? discovery.refs() : null);
         this.url = url;
         this.versions = versions;
         this.serverPush = serverPush;
