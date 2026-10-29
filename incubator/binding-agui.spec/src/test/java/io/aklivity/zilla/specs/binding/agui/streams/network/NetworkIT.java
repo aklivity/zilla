@@ -200,6 +200,69 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/request.thread.missing/client",
+        "${net}/request.thread.missing/server"})
+    public void shouldRejectThreadMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/request.thread.null/client",
+        "${net}/request.thread.null/server"})
+    public void shouldRejectThreadNull() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/request.thread.invalid/client",
+        "${net}/request.thread.invalid/server"})
+    public void shouldRejectThreadInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/request.not.object/client",
+        "${net}/request.not.object/server"})
+    public void shouldRejectNotObject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/request.empty/client",
+        "${net}/request.empty/server"})
+    public void shouldRejectEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/request.truncated/client",
+        "${net}/request.truncated/server"})
+    public void shouldRejectTruncated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/request.too.large/client",
+        "${net}/request.too.large/server"})
+    public void shouldRejectTooLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/run.text.100k/client",
         "${net}/run.text.100k/server"})
     public void shouldRunText100k() throws Exception
