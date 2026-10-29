@@ -14,9 +14,12 @@
 #
 
 
+property authorization 0L
+
 connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
+        option zilla:authorization ${authorization}
 
 write zilla:begin.ext ${agui:beginEx()
                         .typeId(zilla:id("agui"))

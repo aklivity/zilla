@@ -34,7 +34,7 @@ connected
 
 read "{\"threadId\":\"thread-1\",\"runId\":\"run-1\",\"messages\":[{\"id\":\"msg-1\",\"role\":\"user\",\"content\":\"Hello\"}],\"tools\":[],\"context\":[],\"forwardedProps\":{}}"
 
-read closed
+read abort
 
 write zilla:begin.ext ${http:beginEx()
                         .typeId(zilla:id("http"))

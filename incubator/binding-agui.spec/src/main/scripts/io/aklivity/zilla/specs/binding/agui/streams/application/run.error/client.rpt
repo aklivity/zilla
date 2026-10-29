@@ -35,6 +35,7 @@ read zilla:begin.ext ${agui:matchBeginEx()
                        .runId("run-1")
                        .build()}
 
+read option zilla:flags "init"
 read zilla:data.ext ${agui:matchDataEx()
                       .typeId(zilla:id("agui"))
                       .text()
