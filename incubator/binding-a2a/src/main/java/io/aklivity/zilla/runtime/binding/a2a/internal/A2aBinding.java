@@ -19,6 +19,7 @@ import io.aklivity.zilla.config.binding.a2a.A2aDiscoveryConfig;
 import io.aklivity.zilla.config.binding.a2a.A2aOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.ConfigException;
+import io.aklivity.zilla.runtime.binding.a2a.internal.search.A2aAgentSearchIndexFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 
@@ -52,6 +53,21 @@ public final class A2aBinding implements Binding
             if (options.cache == null)
             {
                 throw new ConfigException(String.format("%s: discovery requires options.cache", binding.name));
+            }
+
+            final A2aAgentSearchIndexFactory indexes = new A2aAgentSearchIndexFactory();
+
+            if (discovery.search != null)
+            {
+                discovery.search.indexes.stream()
+                    .map(index -> index.type)
+                    .filter(type -> !indexes.registered(type))
+                    .findFirst()
+                    .ifPresent(type ->
+                    {
+                        throw new ConfigException(String.format(
+                            "%s: discovery search index type %s has no registered factory", binding.name, type));
+                    });
             }
 
             final boolean routed = binding.routes.stream()
