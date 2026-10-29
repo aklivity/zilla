@@ -31,7 +31,7 @@ write zilla:begin.ext ${http:beginEx()
 connected
 
 write "{\"threadId\":\"thread-1\",\"runId\":\"run-1\",\"messages\":[{\"id\":\"msg-1\",\"role\":\"user\",\"content\":\"Hello\"}],\"tools\":[],\"context\":[],\"forwardedProps\":{}}"
-write close
+write aborted
 
 read zilla:begin.ext ${http:matchBeginEx()
                        .typeId(zilla:id("http"))

@@ -28,8 +28,6 @@ read zilla:begin.ext ${agui:matchBeginEx()
 
 connected
 
-read "{\"threadId\":\"thread-1\",\"runId\":\"run-1\",\"messages\":[{\"id\":\"msg-1\",\"role\":\"user\",\"content\":\"Hello\"}],\"tools\":[],\"context\":[],\"forwardedProps\":{}}"
-
 write zilla:reset.ext ${agui:resetEx()
                         .typeId(zilla:id("agui"))
                         .status(422)
