@@ -15,6 +15,7 @@
   [
     "io.aklivity.zilla:binding-a2a",
     "io.aklivity.zilla:binding-a2a-http",
+    "io.aklivity.zilla:binding-a2a-openapi",
     "io.aklivity.zilla:binding-amqp",
     "io.aklivity.zilla:binding-asyncapi",
     "io.aklivity.zilla:binding-echo",
