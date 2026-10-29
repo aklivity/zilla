@@ -201,7 +201,7 @@ jobs:
   cache-images:
     runs-on: ubuntu-latest
     outputs:
-      key: ${{ steps.cache.outputs.cache-primary-key }}
+      key: ${{ steps.key.outputs.key }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -218,12 +218,16 @@ jobs:
           sudo systemctl restart docker
           timeout 30 sh -c 'until docker info >/dev/null 2>&1; do sleep 1; done'
 
+      - name: Compute shared example image cache key
+        id: key
+        run: echo "key=example-images-v2-${{ runner.os }}-${{ hashFiles('examples/**/compose.yaml') }}" >> "$GITHUB_OUTPUT"
+
       - name: Restore shared example image cache
         id: cache
         uses: actions/cache@v6
         with:
           path: ~/docker-images-cache
-          key: example-images-v2-${{ runner.os }}-${{ hashFiles('examples/**/compose.yaml') }}
+          key: ${{ steps.key.outputs.key }}
           restore-keys: |
             example-images-v2-${{ runner.os }}-
 
