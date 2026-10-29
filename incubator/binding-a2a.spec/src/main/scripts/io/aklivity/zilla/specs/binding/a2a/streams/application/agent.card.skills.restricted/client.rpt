@@ -14,12 +14,12 @@
 #
 
 
-property authorization 0L
+property callerAuthorization 0L
 
 connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
-        option zilla:authorization ${authorization}
+        option zilla:authorization ${callerAuthorization}
 
 write zilla:begin.ext ${a2a:beginEx()
                            .typeId(zilla:id("a2a"))
