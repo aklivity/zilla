@@ -120,8 +120,11 @@ module that depends on it.
 - A module that must always build opts out with
   `<maven.build.cache.enabled>false</maven.build.cache.enabled>` in its own
   `<properties>`: `cloud/docker-image` and `cloud/helm-chart` (a cache hit would
-  skip the image build), and modules whose shade plugin installs a
-  dependency-reduced pom (`manager`, `incubator/command-log`)
+  skip the image build)
+- A module that shades its dependencies marks them `<optional>true</optional>`,
+  sets `createDependencyReducedPom` to `false` and `excludeOptional` to `false`
+  on `maven-notice-plugin`, so the installed pom is the source pom and the
+  NOTICE still lists the shaded libraries (`manager`, `incubator/command-log`)
 
 ### Docker
 

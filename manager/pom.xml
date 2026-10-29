@@ -20,8 +20,6 @@
     <jacoco.missed.count>0</jacoco.missed.count>
     <maven.version>3.9.16</maven.version>
     <maven.resolver.version>2.0.3</maven.resolver.version>
-    <!-- shade installs a dependency-reduced pom that a build cache restore does not reproduce -->
-    <maven.build.cache.enabled>false</maven.build.cache.enabled>
   </properties>
 
   <dependencies>
@@ -29,15 +27,18 @@
       <groupId>com.github.rvesse</groupId>
       <artifactId>airline</artifactId>
       <version>2.8.1</version>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.eclipse</groupId>
       <artifactId>yasson</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>common-json</artifactId>
       <version>${project.version}</version>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -79,46 +80,55 @@
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.apache.maven</groupId>
       <artifactId>maven-settings</artifactId>
       <version>${maven.version}</version>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.apache.maven</groupId>
       <artifactId>maven-settings-builder</artifactId>
       <version>${maven.version}</version>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.apache.maven.resolver</groupId>
       <artifactId>maven-resolver-api</artifactId>
       <version>${maven.resolver.version}</version>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.apache.maven.resolver</groupId>
       <artifactId>maven-resolver-connector-basic</artifactId>
       <version>${maven.resolver.version}</version>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.apache.maven.resolver</groupId>
       <artifactId>maven-resolver-impl</artifactId>
       <version>${maven.resolver.version}</version>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.apache.maven.resolver</groupId>
       <artifactId>maven-resolver-util</artifactId>
       <version>${maven.resolver.version}</version>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.apache.maven.resolver</groupId>
       <artifactId>maven-resolver-spi</artifactId>
       <version>${maven.resolver.version}</version>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.apache.maven.resolver</groupId>
       <artifactId>maven-resolver-supplier-mvn3</artifactId>
       <version>${maven.resolver.version}</version>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.sonatype.sisu</groupId>
@@ -130,6 +140,7 @@
           <artifactId>sisu-inject-bean</artifactId>
         </exclusion>
       </exclusions>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
@@ -159,6 +170,9 @@
       <plugin>
         <groupId>org.jasig.maven</groupId>
         <artifactId>maven-notice-plugin</artifactId>
+        <configuration>
+          <excludeOptional>false</excludeOptional>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>com.mycila</groupId>
@@ -234,6 +248,7 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
         <configuration>
+          <createDependencyReducedPom>false</createDependencyReducedPom>
           <filters>
             <filter>
               <artifact>*:*</artifact>
