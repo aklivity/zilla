@@ -14,24 +14,44 @@
  */
 package io.aklivity.zilla.config.binding.a2a.internal;
 
+import java.util.List;
+
 import jakarta.json.JsonException;
 import jakarta.json.JsonObject;
 
 import io.aklivity.zilla.config.binding.a2a.A2aKeywordSearchIndexConfig;
 import io.aklivity.zilla.config.binding.a2a.A2aSearchIndexConfig;
 import io.aklivity.zilla.config.engine.ConfigAdapter;
+import io.aklivity.zilla.config.engine.ConfigExtAdapter;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class A2aSearchIndexConfigAdapter extends ConfigAdapter<A2aSearchIndexConfig, JsonObject>
 {
     private static final String TYPE_NAME = "type";
 
     private final A2aKeywordSearchIndexConfigAdapter keyword = new A2aKeywordSearchIndexConfigAdapter();
+    private final List<ConfigExtAdapter<OptionsConfig>> extensions;
+
+    public A2aSearchIndexConfigAdapter(
+        List<ConfigExtAdapter<OptionsConfig>> extensions)
+    {
+        this.extensions = extensions;
+    }
 
     @Override
     public JsonObject adaptToJson(
         A2aSearchIndexConfig index)
     {
-        return keyword.adaptToJson(index);
+        JsonObject object = A2aKeywordSearchIndexConfig.NAME.equals(index.type)
+            ? keyword.adaptToJson(index)
+            : null;
+
+        for (int i = 0; object == null && i < extensions.size(); i++)
+        {
+            object = extensions.get(i).adaptItemToJson(index.type, index);
+        }
+
+        return object;
     }
 
     @Override
@@ -40,11 +60,20 @@ public final class A2aSearchIndexConfigAdapter extends ConfigAdapter<A2aSearchIn
     {
         String type = object.getString(TYPE_NAME, null);
 
-        if (!A2aKeywordSearchIndexConfig.NAME.equals(type))
+        A2aSearchIndexConfig index = A2aKeywordSearchIndexConfig.NAME.equals(type)
+            ? keyword.adaptFromJson(object)
+            : null;
+
+        for (int i = 0; index == null && i < extensions.size(); i++)
+        {
+            index = (A2aSearchIndexConfig) extensions.get(i).adaptItemFromJson(type, object);
+        }
+
+        if (index == null)
         {
             throw new JsonException(String.format("Unrecognized agent search index type: %s", type));
         }
 
-        return keyword.adaptFromJson(object);
+        return index;
     }
 }
