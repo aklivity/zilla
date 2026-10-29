@@ -62,9 +62,10 @@ read zilla:data.ext ${agui:matchDataEx()
                       .subagent()
                           .type("FINISHED")
                           .subagentRunId("sub-1")
+                          .outcome("SUCCESS")
                           .build()
                       .build()}
-read "{\"result\":{\"found\":3}}"
+read "{\"found\":3}"
 
 read zilla:data.ext ${agui:matchDataEx()
                       .typeId(zilla:id("agui"))

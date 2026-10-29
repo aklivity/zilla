@@ -305,4 +305,31 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/request.method.not.allowed/client",
+        "${net}/request.method.not.allowed/server"})
+    public void shouldRejectMethodNotAllowed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/request.unsupported.media/client",
+        "${net}/request.unsupported.media/server"})
+    public void shouldRejectUnsupportedMedia() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/request.not.acceptable/client",
+        "${net}/request.not.acceptable/server"})
+    public void shouldRejectNotAcceptable() throws Exception
+    {
+        k3po.finish();
+    }
 }
