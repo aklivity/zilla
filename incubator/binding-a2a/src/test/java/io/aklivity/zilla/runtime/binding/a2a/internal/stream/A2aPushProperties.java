@@ -61,6 +61,10 @@ final class A2aPushProperties implements TestRule
             case VALID:
                 notify(A2aPushFixtures.token(HOOK_URL), NONCE, "t-1");
                 break;
+            case UNAUTHORIZED:
+                notify(A2aPushFixtures.token(HOOK_URL), NONCE, "t-1");
+                k3po.scriptProperty("credentials \"wrong-cred\"");
+                break;
             case MISSING_NONCE:
                 k3po.scriptProperty(network ? "path \"/a2a/push/" + A2aPushFixtures.token(HOOK_URL) + "\""
                     : "sealed \"" + A2aPushFixtures.token(HOOK_URL) + "\"");
