@@ -5736,6 +5736,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.responses.text.stream.huge.window/client",
+        "${net}/openai.responses.text.stream.huge.window/server"})
+    public void shouldOpenaiResponsesTextStreamHugeWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.responses.section.tool.call.attributes.last/client",
         "${net}/openai.responses.section.tool.call.attributes.last/server"})
     public void shouldOpenaiResponsesSectionToolCallAttributesLast() throws Exception
