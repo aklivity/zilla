@@ -61,4 +61,22 @@ public class SchemaTest
     {
         schema.validate("client.kind.invalid.yaml");
     }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectServerOptionsUnknown()
+    {
+        schema.validate("server.options.unknown.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectServerRoutes()
+    {
+        schema.validate("server.routes.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectServerAuthorizationGuardsMultiple()
+    {
+        schema.validate("server.authorization.guards.multiple.invalid.yaml");
+    }
 }
