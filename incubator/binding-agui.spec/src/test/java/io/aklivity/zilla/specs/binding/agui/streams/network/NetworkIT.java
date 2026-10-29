@@ -317,6 +317,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/run.unavailable/client",
+        "${net}/run.unavailable/server"})
+    public void shouldRejectRunUnavailable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/run.tool.result.parts/client",
         "${net}/run.tool.result.parts/server"})
     public void shouldRunToolResultParts() throws Exception
