@@ -308,6 +308,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/push.deliver.blocked.resolved/client",
+        "${app}/push.deliver.blocked.resolved/server"})
+    public void shouldPushDeliverBlockedResolved() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/push.deliver.ordered/client",
         "${app}/push.deliver.ordered/server"})
     public void shouldPushDeliverOrdered() throws Exception
@@ -320,6 +329,15 @@ public class ApplicationIT
         "${app}/push.deliver.retry/client",
         "${app}/push.deliver.retry/server"})
     public void shouldPushDeliverRetry() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/push.deliver.slots/client",
+        "${app}/push.deliver.slots/server"})
+    public void shouldPushDeliverSlots() throws Exception
     {
         k3po.finish();
     }

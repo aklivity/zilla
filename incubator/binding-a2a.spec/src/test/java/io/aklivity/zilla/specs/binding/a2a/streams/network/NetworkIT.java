@@ -911,6 +911,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/push.deliver.slots/client",
+        "${net}/push.deliver.slots/server"})
+    public void shouldPushDeliverSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/push.deliver.unreachable/client",
         "${net}/push.deliver.unreachable/server"})
     public void shouldPushDeliverUnreachable() throws Exception
