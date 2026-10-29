@@ -164,6 +164,15 @@ public class A2aServerIT
 
     @Test
     @Specification({
+        "${app}/card.streaming.disabled/client",
+        "${app}/card.streaming.disabled/server"})
+    public void shouldGenerateAgentCardWithoutStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/card.generated/client",
         "${app}/card.generated/server"})
     public void shouldGenerateAgentCard() throws Exception
