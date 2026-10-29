@@ -53,7 +53,7 @@ public final class AguiEventDecoder
     public static final String CODE_INVALID_MESSAGE = "invalid_message";
     public static final String CODE_INVALID_SEQUENCE = "invalid_sequence";
 
-    private static final int EX_MAX = 1024;
+    public static final int EX_MAX = 1024;
     private static final int CARRY_MAX = 16;
     private static final String MEMBER_TYPE = "type";
     private static final String MEMBER_OUTCOME = "outcome";
