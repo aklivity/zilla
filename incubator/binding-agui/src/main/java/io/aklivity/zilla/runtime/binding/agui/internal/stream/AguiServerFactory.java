@@ -668,6 +668,7 @@ public final class AguiServerFactory implements AguiStreamFactory
                 }
 
                 decodeNet(traceId, authorization, budgetId, reserved, buffer, offset, limit);
+                flushNetWindow(traceId, authorization, budgetId);
             }
         }
 
@@ -1206,6 +1207,7 @@ public final class AguiServerFactory implements AguiStreamFactory
             if (decoder != decodeBody && decoder != decodeIgnore && limit - offset >= decodeMax)
             {
                 onDecodeRejected(traceId, authorization, ERROR_REQUEST_TOO_LARGE);
+                progress = limit;
             }
 
             decodedParserProgress += progress - offset;
