@@ -668,7 +668,6 @@ public final class AguiServerFactory implements AguiStreamFactory
                 }
 
                 decodeNet(traceId, authorization, budgetId, reserved, buffer, offset, limit);
-                flushNetWindow(traceId, authorization, budgetId);
             }
         }
 
@@ -1174,8 +1173,6 @@ public final class AguiServerFactory implements AguiStreamFactory
 
                 decodeNet(traceId, authorization, budgetId, reserved, buffer, offset, limit);
             }
-
-            flushNetWindow(traceId, authorization, budgetId);
         }
 
         private void decodeNet(
@@ -1196,17 +1193,16 @@ public final class AguiServerFactory implements AguiStreamFactory
                 {
                     previous = decoder;
                     progress = decoder.decode(this, traceId, authorization, budgetId, reserved, buffer, offset, progress, limit);
+
+                    if (previous == decoder && decoder != decodeBody && decoder != decodeIgnore && limit - offset >= decodeMax)
+                    {
+                        onDecodeRejected(traceId, authorization, ERROR_REQUEST_TOO_LARGE);
+                    }
                 }
             }
             catch (JsonException | IllegalStateException ex)
             {
                 onDecodeMalformed(traceId, authorization);
-                progress = limit;
-            }
-
-            if (decoder != decodeBody && decoder != decodeIgnore && limit - offset >= decodeMax)
-            {
-                onDecodeRejected(traceId, authorization, ERROR_REQUEST_TOO_LARGE);
                 progress = limit;
             }
 
@@ -1237,6 +1233,8 @@ public final class AguiServerFactory implements AguiStreamFactory
             }
 
             doDecodeEnd(traceId, authorization);
+
+            flushNetWindow(traceId, authorization, budgetId);
         }
 
         private void encodeNet(
