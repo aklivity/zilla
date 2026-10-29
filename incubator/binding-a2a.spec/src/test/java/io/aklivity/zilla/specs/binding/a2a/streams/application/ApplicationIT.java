@@ -353,6 +353,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/push.notify.sealed.100k/client",
+        "${app}/push.notify.sealed.100k/server"})
+    public void shouldPushNotifySealed100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/push.notify.sealed.rejected/client",
         "${app}/push.notify.sealed.rejected/server"})
     public void shouldPushNotifySealedRejected() throws Exception
