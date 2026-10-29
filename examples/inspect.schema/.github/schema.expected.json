@@ -2077,6 +2077,7 @@
                     "enum": [
                         "a2a",
                         "a2a-http",
+                        "a2a-openapi",
                         "amqp",
                         "asyncapi",
                         "echo",
@@ -2767,6 +2768,11 @@
                                                 "type": "string",
                                                 "default": "1.0.0"
                                             },
+                                            "streaming": {
+                                                "title": "Streaming",
+                                                "type": "boolean",
+                                                "default": true
+                                            },
                                             "defaultInputModes": {
                                                 "type": "array",
                                                 "items": {
@@ -2995,6 +3001,368 @@
                                         }
                                     }
                                 }
+                            }
+                        ]
+                    }
+                },
+                {
+                    "if": {
+                        "properties": {
+                            "type": {
+                                "const": "a2a-openapi"
+                            }
+                        }
+                    },
+                    "then": {
+                        "properties": {
+                            "type": {
+                                "const": "a2a-openapi"
+                            },
+                            "kind": {
+                                "enum": [
+                                    "proxy"
+                                ]
+                            },
+                            "vault": false,
+                            "entry": false,
+                            "options": {
+                                "properties": {
+                                    "agent": {
+                                        "title": "Agent",
+                                        "type": "object",
+                                        "properties": {
+                                            "name": {
+                                                "title": "Name",
+                                                "type": "string"
+                                            },
+                                            "description": {
+                                                "title": "Description",
+                                                "type": "string"
+                                            },
+                                            "version": {
+                                                "title": "Version",
+                                                "type": "string"
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    },
+                                    "authorization": {
+                                        "title": "Authorization",
+                                        "type": "object",
+                                        "patternProperties": {
+                                            "^[A-Za-z0-9_-]+$": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "credentials": {
+                                                        "title": "Credentials",
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "headers": {
+                                                                "title": "Headers",
+                                                                "type": "object",
+                                                                "patternProperties": {
+                                                                    "^[A-Za-z0-9:-]+$": {
+                                                                        "type": "string"
+                                                                    }
+                                                                },
+                                                                "additionalProperties": false
+                                                            }
+                                                        },
+                                                        "additionalProperties": false
+                                                    }
+                                                },
+                                                "additionalProperties": false
+                                            }
+                                        },
+                                        "additionalProperties": false,
+                                        "maxProperties": 1
+                                    },
+                                    "specs": {
+                                        "title": "Specs",
+                                        "type": "object",
+                                        "patternProperties": {
+                                            "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "server": {
+                                                        "title": "Server",
+                                                        "type": "string"
+                                                    },
+                                                    "catalog": {
+                                                        "title": "Catalog",
+                                                        "type": "object",
+                                                        "patternProperties": {
+                                                            "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "subject": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "version": {
+                                                                        "type": "string",
+                                                                        "default": "latest"
+                                                                    },
+                                                                    "overlay": {
+                                                                        "title": "Overlay",
+                                                                        "type": "object",
+                                                                        "patternProperties": {
+                                                                            "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$": {
+                                                                                "type": "object",
+                                                                                "properties": {
+                                                                                    "subject": {
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    "version": {
+                                                                                        "type": "string",
+                                                                                        "default": "latest"
+                                                                                    }
+                                                                                },
+                                                                                "required": [
+                                                                                    "subject"
+                                                                                ],
+                                                                                "additionalProperties": false
+                                                                            }
+                                                                        },
+                                                                        "additionalProperties": false,
+                                                                        "maxProperties": 1
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "subject"
+                                                                ],
+                                                                "additionalProperties": false
+                                                            }
+                                                        },
+                                                        "additionalProperties": false,
+                                                        "minProperties": 1
+                                                    },
+                                                    "security": {
+                                                        "title": "Security",
+                                                        "type": "object",
+                                                        "patternProperties": {
+                                                            "^[a-zA-Z0-9_\\-]+$": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "additionalProperties": false
+                                                    }
+                                                },
+                                                "required": [
+                                                    "catalog"
+                                                ],
+                                                "additionalProperties": false
+                                            }
+                                        },
+                                        "additionalProperties": false,
+                                        "minProperties": 1
+                                    },
+                                    "skills": {
+                                        "title": "Skills",
+                                        "type": "object",
+                                        "patternProperties": {
+                                            "^[A-Za-z0-9_-]+$": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "title": "Skill Name",
+                                                        "type": "string"
+                                                    },
+                                                    "description": {
+                                                        "title": "Skill Description",
+                                                        "type": "string"
+                                                    },
+                                                    "examples": {
+                                                        "title": "Skill Examples",
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "tags": {
+                                                        "title": "Skill Tags",
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "input": {
+                                                        "title": "Input Schema",
+                                                        "$ref": "#/$defs/models"
+                                                    },
+                                                    "output": {
+                                                        "title": "Output Schema",
+                                                        "$ref": "#/$defs/models"
+                                                    }
+                                                },
+                                                "additionalProperties": false
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    },
+                                    "embedding": {
+                                        "title": "Embedding",
+                                        "type": "string"
+                                    },
+                                    "store": {
+                                        "title": "Store",
+                                        "type": "string"
+                                    },
+                                    "threshold": {
+                                        "title": "Threshold",
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1,
+                                        "default": 0.8
+                                    }
+                                },
+                                "required": [
+                                    "specs",
+                                    "embedding",
+                                    "store"
+                                ],
+                                "additionalProperties": false
+                            },
+                            "routes": {
+                                "title": "Routes",
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "when": {
+                                            "title": "When",
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "skill": {
+                                                        "title": "Skill",
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "additionalProperties": false
+                                            }
+                                        },
+                                        "with": {
+                                            "title": "With",
+                                            "type": "object",
+                                            "properties": {
+                                                "spec": {
+                                                    "title": "Spec",
+                                                    "type": "string"
+                                                },
+                                                "operation": {
+                                                    "title": "Operation Id or glob pattern",
+                                                    "type": "string"
+                                                },
+                                                "tag": {
+                                                    "title": "Tag",
+                                                    "type": "string"
+                                                },
+                                                "params": {
+                                                    "title": "Parameter Bindings",
+                                                    "type": "object",
+                                                    "additionalProperties": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "spec"
+                                            ],
+                                            "additionalProperties": false,
+                                            "not": {
+                                                "required": [
+                                                    "tag",
+                                                    "operation"
+                                                ]
+                                            }
+                                        },
+                                        "guarded": {
+                                            "title": "Guarded",
+                                            "type": "object",
+                                            "patternProperties": {
+                                                "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$": {
+                                                    "title": "Roles",
+                                                    "type": "array",
+                                                    "items": {
+                                                        "title": "Role",
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "exit": {
+                                            "title": "Exit",
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "with"
+                                    ],
+                                    "additionalProperties": false,
+                                    "if": {
+                                        "properties": {
+                                            "with": {
+                                                "required": [
+                                                    "operation"
+                                                ],
+                                                "properties": {
+                                                    "operation": {
+                                                        "pattern": "^[^*]*$"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "else": {
+                                        "properties": {
+                                            "when": {
+                                                "items": {
+                                                    "not": {
+                                                        "required": [
+                                                            "skill"
+                                                        ]
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "required": [
+                            "options",
+                            "routes"
+                        ],
+                        "oneOf": [
+                            {
+                                "properties": {
+                                    "kind": {
+                                        "const": "proxy"
+                                    }
+                                },
+                                "anyOf": [
+                                    {
+                                        "required": [
+                                            "exit"
+                                        ]
+                                    },
+                                    {
+                                        "properties": {
+                                            "routes": {
+                                                "items": {
+                                                    "required": [
+                                                        "exit"
+                                                    ]
+                                                }
+                                            }
+                                        },
+                                        "required": [
+                                            "routes"
+                                        ]
+                                    }
+                                ]
                             }
                         ]
                     }
