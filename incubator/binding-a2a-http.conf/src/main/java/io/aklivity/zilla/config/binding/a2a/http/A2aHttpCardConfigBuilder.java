@@ -22,6 +22,7 @@ import io.aklivity.zilla.config.engine.ConfigBuilder;
 public final class A2aHttpCardConfigBuilder<T> extends ConfigBuilder<T, A2aHttpCardConfigBuilder<T>>
 {
     private static final String VERSION_DEFAULT = "1.0.0";
+    private static final boolean STREAMING_DEFAULT = true;
     private static final List<String> INPUT_MODES_DEFAULT = List.of("text/plain", "application/json");
     private static final List<String> OUTPUT_MODES_DEFAULT = List.of("application/json", "text/plain");
 
@@ -30,6 +31,7 @@ public final class A2aHttpCardConfigBuilder<T> extends ConfigBuilder<T, A2aHttpC
     private String name;
     private String description;
     private String version;
+    private Boolean streaming;
     private List<String> defaultInputModes;
     private List<String> defaultOutputModes;
 
@@ -67,6 +69,13 @@ public final class A2aHttpCardConfigBuilder<T> extends ConfigBuilder<T, A2aHttpC
         return this;
     }
 
+    public A2aHttpCardConfigBuilder<T> streaming(
+        Boolean streaming)
+    {
+        this.streaming = streaming;
+        return this;
+    }
+
     public A2aHttpCardConfigBuilder<T> defaultInputModes(
         List<String> defaultInputModes)
     {
@@ -88,6 +97,7 @@ public final class A2aHttpCardConfigBuilder<T> extends ConfigBuilder<T, A2aHttpC
             name,
             description,
             version != null ? version : VERSION_DEFAULT,
+            streaming != null ? streaming : STREAMING_DEFAULT,
             defaultInputModes != null ? defaultInputModes : INPUT_MODES_DEFAULT,
             defaultOutputModes != null ? defaultOutputModes : OUTPUT_MODES_DEFAULT));
     }
