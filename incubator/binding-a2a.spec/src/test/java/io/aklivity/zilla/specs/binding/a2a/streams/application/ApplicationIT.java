@@ -182,6 +182,33 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/push.config.create.blocked/client",
+        "${app}/push.config.create.blocked/server"})
+    public void shouldPushConfigCreateBlocked() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/push.config.create.sealed/client",
+        "${app}/push.config.create.sealed/server"})
+    public void shouldPushConfigCreateSealed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/push.config.create.too.long/client",
+        "${app}/push.config.create.too.long/server"})
+    public void shouldPushConfigCreateTooLong() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/push.config.delete/client",
         "${app}/push.config.delete/server"})
     public void shouldPushConfigDelete() throws Exception
@@ -200,6 +227,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/push.config.get.sealed/client",
+        "${app}/push.config.get.sealed/server"})
+    public void shouldPushConfigGetSealed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/push.config.list/client",
         "${app}/push.config.list/server"})
     public void shouldPushConfigList() throws Exception
@@ -209,9 +245,45 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/push.config.list.sealed/client",
+        "${app}/push.config.list.sealed/server"})
+    public void shouldPushConfigListSealed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/push.deliver/client",
         "${app}/push.deliver/server"})
     public void shouldPushDeliver() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/push.deliver.100k/client",
+        "${app}/push.deliver.100k/server"})
+    public void shouldPushDeliver100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/push.deliver.blocked/client",
+        "${app}/push.deliver.blocked/server"})
+    public void shouldPushDeliverBlocked() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/push.deliver.ordered/client",
+        "${app}/push.deliver.ordered/server"})
+    public void shouldPushDeliverOrdered() throws Exception
     {
         k3po.finish();
     }
@@ -236,6 +308,24 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/push.message.send/client",
+        "${app}/push.message.send/server"})
+    public void shouldPushMessageSend() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/push.message.send.sealed/client",
+        "${app}/push.message.send.sealed/server"})
+    public void shouldPushMessageSendSealed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/push.notify/client",
         "${app}/push.notify/server"})
     public void shouldPushNotify() throws Exception
@@ -248,6 +338,24 @@ public class ApplicationIT
         "${app}/push.notify.rejected/client",
         "${app}/push.notify.rejected/server"})
     public void shouldPushNotifyRejected() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/push.notify.sealed/client",
+        "${app}/push.notify.sealed/server"})
+    public void shouldPushNotifySealed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/push.notify.sealed.rejected/client",
+        "${app}/push.notify.sealed.rejected/server"})
+    public void shouldPushNotifySealedRejected() throws Exception
     {
         k3po.finish();
     }
