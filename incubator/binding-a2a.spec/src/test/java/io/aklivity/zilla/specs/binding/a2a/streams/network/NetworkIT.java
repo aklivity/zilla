@@ -92,6 +92,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/agent.card.push/client",
+        "${net}/agent.card.push/server"})
+    public void shouldAgentCardPush() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/agent.card.slug/client",
         "${net}/agent.card.slug/server"})
     public void shouldAgentCardSlug() throws Exception

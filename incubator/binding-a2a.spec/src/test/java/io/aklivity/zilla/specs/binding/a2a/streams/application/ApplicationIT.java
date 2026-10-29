@@ -56,6 +56,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/agent.card.push/client",
+        "${app}/agent.card.push/server"})
+    public void shouldAgentCardPush() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/agent.card.slug/client",
         "${app}/agent.card.slug/server"})
     public void shouldAgentCardSlug() throws Exception
