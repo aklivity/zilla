@@ -281,6 +281,24 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/run.subagent.suspended/client",
+        "${net}/run.subagent.suspended/server"})
+    public void shouldRunSubagentSuspended() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/run.subagent.suspended.interrupts/client",
+        "${net}/run.subagent.suspended.interrupts/server"})
+    public void shouldRunSubagentSuspendedInterrupts() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/run.raw.custom/client",
         "${net}/run.raw.custom/server"})
     public void shouldRunRawCustom() throws Exception

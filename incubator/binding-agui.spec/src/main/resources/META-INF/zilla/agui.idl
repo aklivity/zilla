@@ -156,6 +156,7 @@ scope agui
             string16 code = null;
             string16 message = null;
             AguiSubagentOutcome outcome = NONE;
+            string16[] interruptIds;
         }
 
         struct AguiRawDataEx

@@ -17,6 +17,8 @@ package io.aklivity.zilla.specs.binding.agui.internal;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Predicate;
 
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
@@ -724,6 +726,7 @@ public final class AguiFunctions
             private String code;
             private String message;
             private AguiSubagentOutcome outcome = AguiSubagentOutcome.NONE;
+            private final List<String> interruptIds = new ArrayList<>();
 
             private AguiSubagentDataExBuilder()
             {
@@ -799,9 +802,23 @@ public final class AguiFunctions
                 return this;
             }
 
+            public AguiSubagentDataExBuilder interruptId(
+                String interruptId)
+            {
+                interruptIds.add(interruptId);
+                return this;
+            }
+
             public AguiDataExBuilder build()
             {
-                dataExRW.subagent(t -> t
+                dataExRW.subagent(this::buildSubagent);
+                return AguiDataExBuilder.this;
+            }
+
+            private void buildSubagent(
+                AguiSubagentDataExFW.Builder subagent)
+            {
+                subagent
                     .meta(m -> meta(m))
                     .type(x -> x.set(type))
                     .subagentRunId(subagentRunId)
@@ -812,8 +829,9 @@ public final class AguiFunctions
                     .parentMessageId(parentMessageId)
                     .code(code)
                     .message(message)
-                    .outcome(x -> x.set(outcome)));
-                return AguiDataExBuilder.this;
+                    .outcome(x -> x.set(outcome));
+
+                interruptIds.forEach(id -> subagent.interruptIdsItem(i -> i.set(id, UTF_8)));
             }
         }
 
@@ -1476,6 +1494,7 @@ public final class AguiFunctions
             private String code;
             private String message;
             private AguiSubagentOutcome outcome;
+            private List<String> interruptIds;
 
             private AguiSubagentDataExMatcherBuilder()
             {
@@ -1551,6 +1570,18 @@ public final class AguiFunctions
                 return this;
             }
 
+            public AguiSubagentDataExMatcherBuilder interruptId(
+                String interruptId)
+            {
+                if (interruptIds == null)
+                {
+                    interruptIds = new ArrayList<>();
+                }
+
+                interruptIds.add(interruptId);
+                return this;
+            }
+
             public AguiDataExMatcherBuilder build()
             {
                 return AguiDataExMatcherBuilder.this;
@@ -1570,7 +1601,8 @@ public final class AguiFunctions
                     matchParentMessageId(subagent) &&
                     matchCode(subagent) &&
                     matchMessage(subagent) &&
-                    matchOutcome(subagent);
+                    matchOutcome(subagent) &&
+                    matchInterruptIds(subagent);
             }
 
             private boolean matchType(
@@ -1631,6 +1663,14 @@ public final class AguiFunctions
                 AguiSubagentDataExFW subagent)
             {
                 return outcome == null || outcome == subagent.outcome().get();
+            }
+
+            private boolean matchInterruptIds(
+                AguiSubagentDataExFW subagent)
+            {
+                final List<String> actual = new ArrayList<>();
+                subagent.interruptIds().forEach(id -> actual.add(id.asString()));
+                return interruptIds == null || interruptIds.equals(actual);
             }
         }
 
