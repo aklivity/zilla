@@ -4,6 +4,8 @@
 # cache in this run. Everything else is skipped. Pushes, infrastructure changes,
 # examples whose modules cannot be derived, and EXAMPLES_SELECTION=all run every
 # example. An example listed in MODULES_BY_EXAMPLE depends on exactly the modules it matches.
+# Lines only added to the docker image module wiring (WIRING) wire in a module, so selection
+# follows the rebuilt modules for them instead of running every example.
 #
 # environment:
 #   ALL                JSON array of every example directory
@@ -24,6 +26,7 @@ MODULE_BASES = ('runtime', 'incubator')
 MODULES_BY_EXAMPLE = {'inspect.schema': re.compile(r'\.spec$|^command-inspect$')}
 INFRASTRUCTURE = re.compile(
     r'^(pom\.xml|conf/|build/|cloud/|manager/|\.mvn/|mvnw|examples/\.github/|\.github/workflows/build\.yml)')
+WIRING = frozenset(('cloud/docker-image/pom.xml', 'cloud/docker-image/src/main/docker/zpm.json.template'))
 EXAMPLE = re.compile(r'^examples/([^/]+)/')
 KEYED = re.compile(r'^\s*(?:-\s*)?(?:type|model)\s*:\s*["\']?([A-Za-z0-9_.-]+)')
 METRIC = re.compile(r'^\s*-\s*([a-z]+)\.[a-z.]+\s*$')
@@ -72,9 +75,18 @@ def select(examples, configured, files, built, event, mode):
     return sorted(selected), reason
 
 
+def parse_numstat(numstat):
+    return [tuple(reversed(line.split('\t', 2)[1:])) for line in numstat.splitlines()]
+
+
+def selectable_files(changes):
+    return [path for path, deleted in changes if not (path in WIRING and deleted == '0')]
+
+
 def changed_files(base, head):
-    return subprocess.run(['git', 'diff', '--name-only', '%s...%s' % (base, head)],
-                          capture_output=True, text=True, check=True).stdout.split()
+    numstat = subprocess.run(['git', 'diff', '--numstat', '--no-renames', '%s...%s' % (base, head)],
+                             capture_output=True, text=True, check=True).stdout
+    return selectable_files(parse_numstat(numstat))
 
 
 def main():
