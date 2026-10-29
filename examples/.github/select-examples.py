@@ -25,7 +25,6 @@ MODULES_BY_EXAMPLE = {'inspect.schema': re.compile(r'\.spec$|^command-inspect$')
 INFRASTRUCTURE = re.compile(
     r'^(pom\.xml|conf/|build/|cloud/|manager/|\.mvn/|mvnw|examples/\.github/|\.github/workflows/build\.yml|'
     r'(runtime|specs|incubator)/pom\.xml)')
-SOURCE = re.compile(r'^(runtime|specs|incubator)/')
 EXAMPLE = re.compile(r'^examples/([^/]+)/')
 KEYED = re.compile(r'^\s*(?:-\s*)?(?:type|model)\s*:\s*["\']?([A-Za-z0-9_.-]+)')
 METRIC = re.compile(r'^\s*-\s*([a-z]+)\.[a-z.]+\s*$')
@@ -67,8 +66,6 @@ def select(examples, configured, files, built, event, mode):
         selected, reason = set(examples), 'selection disabled or not a pull request'
     elif any(INFRASTRUCTURE.match(f) for f in files):
         selected, reason = set(examples), 'build infrastructure changed'
-    elif any(SOURCE.match(f) for f in files) and not built:
-        selected, reason = set(examples), 'sources changed but no rebuilt modules were reported'
     else:
         changed = {m.group(1) for m in map(EXAMPLE.match, files) if m}
         selected = {e for e in examples if e in changed or affected(e, configured[e], built)}
