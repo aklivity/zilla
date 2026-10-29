@@ -44,7 +44,7 @@ read "{\"type\":\"SUBAGENT_STARTED\",\"subagentRunId\":\"sub-1\",\"name\":\"rese
 read "{\"type\":\"TEXT_MESSAGE_START\",\"messageId\":\"msg-2\",\"role\":\"assistant\",\"subagentRunId\":\"sub-1\"}"
 read "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"msg-2\",\"delta\":\"Found it\",\"subagentRunId\":\"sub-1\"}"
 read "{\"type\":\"TEXT_MESSAGE_END\",\"messageId\":\"msg-2\",\"subagentRunId\":\"sub-1\"}"
-read "{\"type\":\"SUBAGENT_FINISHED\",\"subagentRunId\":\"sub-1\",\"result\":{\"found\":3}}"
+read "{\"type\":\"SUBAGENT_FINISHED\",\"subagentRunId\":\"sub-1\",\"result\":{\"found\":3},\"outcome\":{\"type\":\"success\"}}"
 read "{\"type\":\"SUBAGENT_STARTED\",\"subagentRunId\":\"sub-2\",\"name\":\"writer\"}"
 read "{\"type\":\"SUBAGENT_ERROR\",\"subagentRunId\":\"sub-2\",\"message\":\"boom\",\"code\":\"failed\"}"
 read "{\"type\":\"RUN_FINISHED\",\"threadId\":\"thread-1\",\"runId\":\"run-1\"}"
