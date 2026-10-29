@@ -37,9 +37,15 @@ class SelectExamplesTest(unittest.TestCase):
         self.assertEqual(['opaque'], select(['README.md', 'examples/README.md'], []))
 
     def test_should_select_all_for_build_infrastructure(self):
-        for path in ('pom.xml', 'cloud/docker-image/pom.xml', '.github/workflows/build.yml', 'examples/.github/test-lib.sh',
-                     'runtime/pom.xml'):
+        for path in ('pom.xml', 'cloud/docker-image/pom.xml', '.github/workflows/build.yml', 'examples/.github/test-lib.sh'):
             self.assertEqual(sorted(EXAMPLES), select([path], ['binding-mqtt']), path)
+
+    def test_should_select_rebuilt_modules_for_aggregator_pom_change(self):
+        for path in ('runtime/pom.xml', 'specs/pom.xml', 'incubator/pom.xml'):
+            self.assertEqual(['mqtt.proxy', 'opaque'], select([path], ['binding-mqtt']), path)
+
+    def test_should_skip_examples_for_aggregator_pom_change_without_rebuilt_modules(self):
+        self.assertEqual(['opaque'], select(['incubator/pom.xml'], []))
 
     def test_should_skip_examples_when_sources_changed_without_rebuilt_modules(self):
         self.assertEqual(['opaque'], select(['runtime/binding-mqtt/A.java'], []))
