@@ -227,6 +227,69 @@ public class AguiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/request.thread.missing/client"})
+    public void shouldRejectThreadMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/request.thread.null/client"})
+    public void shouldRejectThreadNull() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/request.thread.invalid/client"})
+    public void shouldRejectThreadInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/request.not.object/client"})
+    public void shouldRejectNotObject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/request.empty/client"})
+    public void shouldRejectEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/request.truncated/client"})
+    public void shouldRejectTruncated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/request.too.large/client"})
+    public void shouldRejectTooLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/run.text.100k/client",
         "${app}/run.text.100k/server"})
     public void shouldRunText100k() throws Exception
