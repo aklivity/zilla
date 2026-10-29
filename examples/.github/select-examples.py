@@ -3,7 +3,7 @@
 # when it changed, or when a module it configures was rebuilt by the Maven build
 # cache in this run. Everything else is skipped. Pushes, infrastructure changes,
 # examples whose modules cannot be derived, and EXAMPLES_SELECTION=all run every
-# example.
+# example. An example listed in MODULES_BY_EXAMPLE depends on exactly the modules it matches.
 #
 # environment:
 #   ALL                JSON array of every example directory
@@ -21,6 +21,7 @@ import sys
 
 KINDS = ('binding', 'guard', 'catalog', 'vault', 'model', 'exporter', 'metrics', 'store', 'resolver', 'classifier', 'embedding')
 MODULE_BASES = ('runtime', 'incubator')
+MODULES_BY_EXAMPLE = {'inspect.schema': re.compile(r'\.spec$|^command-inspect$')}
 INFRASTRUCTURE = re.compile(
     r'^(pom\.xml|conf/|build/|cloud/|manager/|\.mvn/|mvnw|examples/\.github/|\.github/workflows/build\.yml|'
     r'(runtime|specs|incubator)/pom\.xml)')
@@ -56,6 +57,11 @@ def configured_modules(root, example, modules):
     return names & modules
 
 
+def affected(example, configured, built):
+    pattern = MODULES_BY_EXAMPLE.get(example)
+    return any(pattern.search(m) for m in built) if pattern else not configured or bool(configured & built)
+
+
 def select(examples, configured, files, built, event, mode):
     if mode == 'all' or event != 'pull_request':
         selected, reason = set(examples), 'selection disabled or not a pull request'
@@ -63,11 +69,9 @@ def select(examples, configured, files, built, event, mode):
         selected, reason = set(examples), 'build infrastructure changed'
     elif any(SOURCE.match(f) for f in files) and not built:
         selected, reason = set(examples), 'sources changed but no rebuilt modules were reported'
-    elif any(m.startswith('command-') for m in built):
-        selected, reason = set(examples), 'a command module was rebuilt'
     else:
         changed = {m.group(1) for m in map(EXAMPLE.match, files) if m}
-        selected = {e for e in examples if e in changed or not configured[e] or configured[e] & built}
+        selected = {e for e in examples if e in changed or affected(e, configured[e], built)}
         reason = 'changed examples, rebuilt modules and examples without derivable modules'
     return sorted(selected), reason
 

@@ -6,11 +6,12 @@ spec = importlib.util.spec_from_file_location('select_examples', os.path.join(os
 select_examples = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(select_examples)
 
-EXAMPLES = ['http.echo', 'mqtt.proxy', 'kafka.proxy', 'opaque']
+EXAMPLES = ['http.echo', 'inspect.schema', 'mqtt.proxy', 'kafka.proxy', 'opaque']
 CONFIGURED = {
     'http.echo': {'binding-tcp', 'binding-http'},
     'mqtt.proxy': {'binding-tcp', 'binding-mqtt'},
     'kafka.proxy': {'binding-tcp', 'binding-kafka', 'model-json'},
+    'inspect.schema': {'binding-tcp'},
     'opaque': set(),
 }
 
@@ -24,8 +25,10 @@ class SelectExamplesTest(unittest.TestCase):
     def test_should_select_examples_configuring_rebuilt_module(self):
         self.assertEqual(['mqtt.proxy', 'opaque'], select(['runtime/binding-mqtt/A.java'], ['binding-mqtt']))
 
-    def test_should_select_every_example_for_shared_module(self):
-        self.assertEqual(sorted(EXAMPLES), select(['runtime/binding-tcp/A.java'], ['binding-tcp']))
+    def test_should_select_every_configuring_example_for_shared_module(self):
+        self.assertEqual(
+            ['http.echo', 'kafka.proxy', 'mqtt.proxy', 'opaque'],
+            select(['runtime/binding-tcp/A.java'], ['binding-tcp']))
 
     def test_should_select_changed_example(self):
         self.assertEqual(['http.echo', 'opaque'], select(['examples/http.echo/etc/zilla.yaml'], []))
@@ -41,8 +44,15 @@ class SelectExamplesTest(unittest.TestCase):
     def test_should_select_all_when_sources_changed_without_rebuilt_modules(self):
         self.assertEqual(sorted(EXAMPLES), select(['runtime/binding-mqtt/A.java'], []))
 
-    def test_should_select_all_for_rebuilt_command(self):
-        self.assertEqual(sorted(EXAMPLES), select(['incubator/command-dump/A.java'], ['command-dump']))
+    def test_should_select_inspect_schema_for_rebuilt_spec_or_inspect_command(self):
+        for module in ('binding-mqtt.spec', 'engine.spec', 'command-inspect'):
+            self.assertIn('inspect.schema', select(['x/%s/A.java' % module], [module]), module)
+
+    def test_should_skip_inspect_schema_for_rebuilt_runtime_module(self):
+        self.assertNotIn('inspect.schema', select(['runtime/binding-tcp/A.java'], ['binding-tcp']))
+
+    def test_should_skip_examples_for_rebuilt_unused_command(self):
+        self.assertEqual(['opaque'], select(['incubator/command-dump/A.java'], ['command-dump']))
 
     def test_should_select_all_for_push(self):
         self.assertEqual(sorted(EXAMPLES), select([], [], event='push'))
