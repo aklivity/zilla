@@ -26,7 +26,7 @@ write zilla:begin.ext ${a2a:beginEx()
 
 connected
 
-read '{"name":"GitHub","description":"GitHub REST API","version":"1.0.0","capabilities":{"streaming":true,"pushNotifications":false},"defaultInputModes":["text/plain","application/json"],"defaultOutputModes":["application/json","text/plain"],"skills":[{"id":"search_items","name":"Search items","description":"Search items","tags":["items"]},{"id":"read_order","name":"Read an order","description":"Read an order","tags":["orders"],"examples":["show me order 7"]},{"id":"create_pr","name":"Create a pull request","description":"Create a pull request","tags":["pulls"],"examples":["open a pull request"]}]}'
+read '{"name":"GitHub","description":"GitHub REST API","version":"1.0.0","capabilities":{"streaming":true,"pushNotifications":false},"defaultInputModes":["text/plain","application/json"],"defaultOutputModes":["application/json","text/plain"],"skills":[{"id":"watch_events","name":"Watch events","description":"Watch events","tags":["events"]},{"id":"search_items","name":"Search items","description":"Search items","tags":["items"]},{"id":"read_order","name":"Read an order","description":"Read an order","tags":["orders"],"examples":["show me order 7"]},{"id":"create_pr","name":"Create a pull request","description":"Create a pull request","tags":["pulls"],"examples":["open a pull request"]}]}'
 
 read closed
 
