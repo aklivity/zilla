@@ -23,8 +23,7 @@ KINDS = ('binding', 'guard', 'catalog', 'vault', 'model', 'exporter', 'metrics',
 MODULE_BASES = ('runtime', 'incubator')
 MODULES_BY_EXAMPLE = {'inspect.schema': re.compile(r'\.spec$|^command-inspect$')}
 INFRASTRUCTURE = re.compile(
-    r'^(pom\.xml|conf/|build/|cloud/|manager/|\.mvn/|mvnw|examples/\.github/|\.github/workflows/build\.yml|'
-    r'(runtime|specs|incubator)/pom\.xml)')
+    r'^(pom\.xml|conf/|build/|cloud/|manager/|\.mvn/|mvnw|examples/\.github/|\.github/workflows/build\.yml)')
 EXAMPLE = re.compile(r'^examples/([^/]+)/')
 KEYED = re.compile(r'^\s*(?:-\s*)?(?:type|model)\s*:\s*["\']?([A-Za-z0-9_.-]+)')
 METRIC = re.compile(r'^\s*-\s*([a-z]+)\.[a-z.]+\s*$')
