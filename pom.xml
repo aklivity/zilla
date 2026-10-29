@@ -306,6 +306,18 @@
           </executions>
         </plugin>
         <plugin>
+          <groupId>io.aklivity.zilla</groupId>
+          <artifactId>flyweight-maven-plugin</artifactId>
+          <version>${project.version}</version>
+          <dependencies>
+            <dependency>
+              <groupId>io.aklivity.zilla</groupId>
+              <artifactId>flyweight-maven-plugin</artifactId>
+              <version>${project.version}</version>
+            </dependency>
+          </dependencies>
+        </plugin>
+        <plugin>
           <groupId>com.mycila</groupId>
           <artifactId>license-maven-plugin</artifactId>
           <version>4.2</version>
