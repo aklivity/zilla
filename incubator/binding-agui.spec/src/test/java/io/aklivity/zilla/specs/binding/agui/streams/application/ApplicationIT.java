@@ -332,4 +332,13 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/run.text.deltas/client",
+        "${app}/run.text.deltas/server"})
+    public void shouldRunTextDeltas() throws Exception
+    {
+        k3po.finish();
+    }
 }
