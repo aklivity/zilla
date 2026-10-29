@@ -341,4 +341,22 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/run.request.mismatch/client",
+        "${app}/run.request.mismatch/server"})
+    public void shouldRunRequestMismatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/run.request.malformed/client",
+        "${app}/run.request.malformed/server"})
+    public void shouldRunRequestMalformed() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -503,4 +503,22 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/run.request.mismatch/client",
+        "${net}/run.request.mismatch/server"})
+    public void shouldRunRequestMismatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/run.request.malformed/client",
+        "${net}/run.request.malformed/server"})
+    public void shouldRunRequestMalformed() throws Exception
+    {
+        k3po.finish();
+    }
 }
