@@ -11,6 +11,8 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    outputs:
+      rebuilt-modules: ${{ steps.rebuilt.outputs.modules }}
     strategy:
       matrix:
         java: [ 25 ]
@@ -57,6 +59,8 @@ jobs:
         restore-keys: |
           maven-build-cache-${{ runner.os }}-${{ github.base_ref || github.ref_name }}-
           maven-build-cache-${{ runner.os }}-develop-
+    - name: Mark build start
+      run: touch ~/.build-start
     - name: Route Docker Hub pulls through mirror.gcr.io
       run: |
         sudo mkdir -p /etc/docker
@@ -124,6 +128,14 @@ jobs:
         path: ~/docker-cache/docker.tar
         retention-days: 1
 
+    - name: List modules rebuilt by this run
+      id: rebuilt
+      run: |
+        modules=$(find ~/.m2/build-cache -name buildinfo.xml -newer ~/.build-start \
+          | awk -F/ '{print $(NF-3)}' | sort -u | paste -sd, -)
+        echo "Rebuilt modules: $modules"
+        echo "modules=$modules" >> "$GITHUB_OUTPUT"
+
     - name: Conditional Artifact Upload
       uses: actions/upload-artifact@v7
       if: failure()
@@ -140,7 +152,7 @@ jobs:
     needs:
       - build
     outputs:
-      all_directories: ${{ steps.all-files.outputs.folders_no_base_path }}
+      matrix_directories: ${{ steps.select.outputs.matrix_directories }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -163,8 +175,26 @@ jobs:
             ^http.echo$
             ^grpc.kafka.proxy$
 
+      # Pull requests run the examples that changed or configure a module the build
+      # rebuilt; set the repository variable EXAMPLES_SELECTION to "all" to run every example.
+      - name: Test example selection
+        run: python3 examples/.github/test_select_examples.py
+
+      - name: Select examples
+        id: select
+        run: python3 examples/.github/select-examples.py
+        env:
+          ALL: ${{ steps.all-files.outputs.folders_no_base_path }}
+          EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          CHANGED_MODULES: ${{ needs.build.outputs.rebuilt-modules }}
+          MODE: ${{ vars.EXAMPLES_SELECTION }}
+
   cache-images:
     runs-on: ubuntu-latest
+    outputs:
+      key: ${{ steps.key.outputs.key }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -181,42 +211,42 @@ jobs:
           sudo systemctl restart docker
           timeout 30 sh -c 'until docker info >/dev/null 2>&1; do sleep 1; done'
 
+      - name: Compute shared example image cache key
+        id: key
+        run: echo "key=example-images-v2-${{ runner.os }}-${{ hashFiles('examples/**/compose.yaml') }}" >> "$GITHUB_OUTPUT"
+
       - name: Restore shared example image cache
         id: cache
         uses: actions/cache@v6
         with:
-          path: ~/docker-images-cache/images.tar
-          key: example-images-${{ runner.os }}-${{ hashFiles('examples/**/compose.yaml') }}
+          path: ~/docker-images-cache
+          key: ${{ steps.key.outputs.key }}
           restore-keys: |
-            example-images-${{ runner.os }}-
+            example-images-v2-${{ runner.os }}-
 
-      - name: Pull example images and refresh shared cache
+      - name: Pull missing example images and refresh shared cache
         if: ${{ steps.cache.outputs.cache-hit != 'true' }}
         run: |
           mkdir -p ~/docker-images-cache
-          if [ -f ~/docker-images-cache/images.tar ]; then
-            docker load -i ~/docker-images-cache/images.tar || true
-          fi
-          images=$(grep -rhE '^[[:space:]]*image:' examples/*/compose.yaml \
-            | sed -E 's/^[[:space:]]*image:[[:space:]]*//' \
-            | tr -d "\"'" \
-            | sed -E 's/[[:space:]]*#.*$//; s/[[:space:]]+$//' \
-            | grep -v '\$' \
-            | grep -v 'ghcr.io/aklivity/zilla' \
-            | sort -u)
+          examples/.github/example-images.sh examples/*/compose.yaml > ~/images.txt
           echo "Ensuring the following example images are present:"
-          echo "$images"
-          for img in $images; do
-            docker pull "$img" || echo "::warning::failed to pull $img"
+          cut -d' ' -f1 ~/images.txt
+          while read -r image tarball; do
+            if [ ! -f ~/docker-images-cache/"$tarball" ]; then
+              docker pull "$image" && docker save -o ~/docker-images-cache/"$tarball" "$image" \
+                || echo "::warning::failed to cache $image"
+            fi
+          done < ~/images.txt
+          find ~/docker-images-cache -name '*.tar' | while read -r tarball; do
+            grep -q " $(basename "$tarball")$" ~/images.txt || rm -f "$tarball"
           done
-          present=$(for img in $images; do docker image inspect "$img" >/dev/null 2>&1 && echo "$img"; done)
-          docker save -o ~/docker-images-cache/images.tar $present
 
   testing:
     strategy:
       matrix:
-        dir: ${{ fromJson(needs.setup-examples.outputs.all_directories) }}
+        dir: ${{ fromJson(needs.setup-examples.outputs.matrix_directories) }}
       fail-fast: false
+    if: ${{ needs.setup-examples.result == 'success' && needs.setup-examples.outputs.matrix_directories != '[]' }}
     needs:
       - setup-examples
       - cache-images
@@ -256,16 +286,16 @@ jobs:
       - name: Restore shared example image cache
         uses: actions/cache/restore@v6
         with:
-          path: ~/docker-images-cache/images.tar
-          key: example-images-${{ runner.os }}-${{ hashFiles('examples/**/compose.yaml') }}
-          restore-keys: |
-            example-images-${{ runner.os }}-
+          path: ~/docker-images-cache
+          key: ${{ needs.cache-images.outputs.key }}
 
-      - name: Load shared example images
+      - name: Load example images
         run: |
-          if [ -f ~/docker-images-cache/images.tar ]; then
-            docker load -i ~/docker-images-cache/images.tar || true
-          fi
+          examples/.github/example-images.sh examples/${{ matrix.dir }}/compose.yaml | while read -r image tarball; do
+            if [ -f ~/docker-images-cache/"$tarball" ]; then
+              docker load -i ~/docker-images-cache/"$tarball" || true
+            fi
+          done
 
       # mcp.proxy's "everything" toolkit is installed via a live `npx -y` at
       # container start (no baked-in image), so the cold path -- npm resolving
@@ -333,8 +363,26 @@ jobs:
         working-directory: examples/${{ matrix.dir }}
         run: docker compose down --remove-orphans
 
+  examples:
+    name: Examples
+    if: ${{ always() }}
+    needs:
+      - setup-examples
+      - cache-images
+      - testing
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify examples
+        env:
+          SETUP: ${{ needs.setup-examples.result }}
+          CACHE: ${{ needs.cache-images.result }}
+          TESTING: ${{ needs.testing.result }}
+        run: |
+          echo "setup-examples: $SETUP, cache-images: $CACHE, testing: $TESTING"
+          [ "$SETUP" = success ] && [ "$CACHE" = success ] && { [ "$TESTING" = success ] || [ "$TESTING" = skipped ]; }
+
   cleanup:
-    if: success()
+    if: ${{ !failure() && !cancelled() }}
     needs:
       - testing
     runs-on: ubuntu-latest
