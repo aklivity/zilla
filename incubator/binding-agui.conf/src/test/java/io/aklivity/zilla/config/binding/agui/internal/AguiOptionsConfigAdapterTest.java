@@ -55,6 +55,41 @@ public class AguiOptionsConfigAdapterTest
 
         assertThat(options, not(nullValue()));
         assertThat(options.authorization, nullValue());
+        assertThat(options.server, nullValue());
+    }
+
+    @Test
+    public void shouldReadOptionsWithServer()
+    {
+        String text =
+                """
+                server: "http://localhost:8080/agent"
+                """;
+
+        AguiOptionsConfig options = (AguiOptionsConfig) jsonb.fromJson(text, OptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.server, equalTo("http://localhost:8080/agent"));
+        assertThat(options.authorization, nullValue());
+    }
+
+    @Test
+    public void shouldReadOptionsWithServerAndAuthorization()
+    {
+        String text =
+                """
+                server: https://agents.example.com/agent
+                authorization:
+                  oauth:
+                    credentials: Token {credentials}
+                """;
+
+        AguiOptionsConfig options = (AguiOptionsConfig) jsonb.fromJson(text, OptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.server, equalTo("https://agents.example.com/agent"));
+        assertThat(options.authorization.name, equalTo("oauth"));
+        assertThat(options.authorization.credentials, equalTo("Token {credentials}"));
     }
 
     @Test
@@ -150,5 +185,39 @@ public class AguiOptionsConfigAdapterTest
         String text = jsonb.toJson(options);
 
         assertThat(text, equalTo("{}\n"));
+    }
+
+    @Test
+    public void shouldWriteOptionsWithServer()
+    {
+        AguiOptionsConfig options = AguiOptionsConfig.builder()
+                .server("http://localhost:8080/agent")
+                .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, equalTo("server: \"http://localhost:8080/agent\"\n"));
+    }
+
+    @Test
+    public void shouldWriteOptionsWithServerAndAuthorization()
+    {
+        AguiOptionsConfig options = AguiOptionsConfig.builder()
+                .server("http://localhost:8080/agent")
+                .authorization()
+                    .name("oauth")
+                    .credentials("Bearer {credentials}")
+                    .build()
+                .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, equalTo(
+                """
+                server: "http://localhost:8080/agent"
+                authorization:
+                  oauth:
+                    credentials: "Bearer {credentials}"
+                """));
     }
 }
