@@ -200,6 +200,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/push.config.create.slug/client",
+        "${app}/push.config.create.slug/server"})
+    public void shouldPushConfigCreateSlug() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/push.config.create.too.long/client",
         "${app}/push.config.create.too.long/server"})
     public void shouldPushConfigCreateTooLong() throws Exception
@@ -236,6 +245,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/push.config.get.slug/client",
+        "${app}/push.config.get.slug/server"})
+    public void shouldPushConfigGetSlug() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/push.config.list/client",
         "${app}/push.config.list/server"})
     public void shouldPushConfigList() throws Exception
@@ -248,6 +266,15 @@ public class ApplicationIT
         "${app}/push.config.list.sealed/client",
         "${app}/push.config.list.sealed/server"})
     public void shouldPushConfigListSealed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/push.config.list.slug/client",
+        "${app}/push.config.list.slug/server"})
+    public void shouldPushConfigListSlug() throws Exception
     {
         k3po.finish();
     }
