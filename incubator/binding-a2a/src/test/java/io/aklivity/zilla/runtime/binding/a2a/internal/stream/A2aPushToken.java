@@ -29,6 +29,7 @@ import java.lang.annotation.Target;
     {
         CONFIG,
         VALID,
+        UNAUTHORIZED,
         MISSING_NONCE,
         TAMPERED,
         GARBLED,

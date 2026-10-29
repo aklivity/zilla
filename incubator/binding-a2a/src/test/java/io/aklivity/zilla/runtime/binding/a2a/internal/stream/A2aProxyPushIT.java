@@ -218,4 +218,26 @@ public class A2aProxyPushIT
     {
         k3po.finish();
     }
+
+    @Test
+    @A2aPushToken(A2aPushToken.Variant.VALID)
+    @Configuration("proxy.push.guarded.yaml")
+    @Specification({
+        "${app}/push.notify.sealed/client",
+        "${app}/push.deliver/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app2\"")
+    public void shouldRelayPushNotifyWithAuthorizedCredentials() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @A2aPushToken(A2aPushToken.Variant.UNAUTHORIZED)
+    @Configuration("proxy.push.guarded.yaml")
+    @Specification({
+        "${app}/push.notify.sealed.rejected/client"})
+    public void shouldRejectPushNotifyWithUnauthorizedCredentials() throws Exception
+    {
+        k3po.finish();
+    }
 }
