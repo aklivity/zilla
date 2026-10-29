@@ -43,6 +43,13 @@ public class A2aPushCapabilitiesTest
             equalTo(json("{\"name\":\"a\",\"capabilities\":{\"pushNotifications\":true}}")));
     }
 
+    @Test
+    public void shouldAdvertisePushNotificationsWithoutExistingMember()
+    {
+        assertThat(A2aPushCapabilities.advertise(json("{\"capabilities\":{\"streaming\":true},\"name\":\"a\"}")).toString(),
+            equalTo("{\"capabilities\":{\"streaming\":true,\"pushNotifications\":true},\"name\":\"a\"}"));
+    }
+
     private static JsonObject json(
         String text)
     {
