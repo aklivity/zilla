@@ -24,6 +24,7 @@
     <module>binding-a2a-openapi.spec</module>
     <module>binding-a2a-openapi.conf</module>
     <module>binding-agui.spec</module>
+    <module>binding-agui.conf</module>
     <module>binding-amqp.spec</module>
     <module>binding-amqp.conf</module>
     <module>binding-pgsql.spec</module>
@@ -82,6 +83,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-a2a-openapi.conf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-agui.conf</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
