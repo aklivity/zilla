@@ -416,6 +416,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/push.notify.sealed.token.missing/client",
+        "${app}/push.notify.sealed.token.missing/server"})
+    public void shouldPushNotifySealedTokenMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/send.message/client",
         "${app}/send.message/server"})
     public void shouldSendMessage() throws Exception

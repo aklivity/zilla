@@ -983,6 +983,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/push.notify.sealed.token.missing/client",
+        "${net}/push.notify.sealed.token.missing/server"})
+    public void shouldPushNotifySealedTokenMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/reject.bearer.invalid/client",
         "${net}/reject.bearer.invalid/server"})
     public void shouldRejectBearerInvalid() throws Exception
