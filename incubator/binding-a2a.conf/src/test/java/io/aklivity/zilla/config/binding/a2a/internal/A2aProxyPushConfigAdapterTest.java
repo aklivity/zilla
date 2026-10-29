@@ -57,6 +57,7 @@ public class A2aProxyPushConfigAdapterTest
 
         A2aProxyPushConfig push = jsonb.fromJson(text, A2aProxyPushConfig.class);
 
+        assertThat(push.url, nullValue());
         assertThat(push.vault, equalTo("secrets0"));
         assertThat(push.key, equalTo("a2a-push"));
         assertThat(push.ttl, equalTo(Duration.ofHours(24)));
@@ -71,6 +72,7 @@ public class A2aProxyPushConfigAdapterTest
     {
         String text =
             """
+            url: http://localhost:8080/a2a/push
             vault: secrets0
             key: a2a-push
             ttl: PT1H
@@ -86,6 +88,7 @@ public class A2aProxyPushConfigAdapterTest
 
         A2aProxyPushConfig push = jsonb.fromJson(text, A2aProxyPushConfig.class);
 
+        assertThat(push.url, equalTo("http://localhost:8080/a2a/push"));
         assertThat(push.ttl, equalTo(Duration.ofHours(1)));
         assertThat(push.maxLength, equalTo(512));
         assertThat(push.allow, contains("https://*.example.com/hooks/*", "https://hooks.example.org/*"));
@@ -97,6 +100,7 @@ public class A2aProxyPushConfigAdapterTest
     public void shouldWritePush()
     {
         A2aProxyPushConfig push = A2aProxyPushConfig.builder()
+            .url("http://localhost:8080/a2a/push")
             .vault("secrets0")
             .key("a2a-push")
             .ttl(Duration.ofHours(24))
@@ -107,6 +111,7 @@ public class A2aProxyPushConfigAdapterTest
 
         assertThat(jsonb.toJson(push), equalTo(
             """
+            url: "http://localhost:8080/a2a/push"
             vault: secrets0
             key: a2a-push
             ttl: PT24H
