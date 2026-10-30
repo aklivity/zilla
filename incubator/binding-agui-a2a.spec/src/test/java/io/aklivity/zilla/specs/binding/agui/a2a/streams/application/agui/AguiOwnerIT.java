@@ -92,6 +92,15 @@ public class AguiOwnerIT
 
     @Test
     @Specification({
+        "${app}/owner.redirect.begin/client",
+        "${app}/owner.redirect.begin/server"})
+    public void shouldOwnerRedirectBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/owner.redirect/client",
         "${app}/owner.redirect/server"})
     public void shouldOwnerRedirect() throws Exception
