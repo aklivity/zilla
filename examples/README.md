@@ -51,6 +51,13 @@ Make sure you have the `latest` version of Zilla by running the `docker pull ghc
 | [http.kafka.sync](http.kafka.sync)                           | Correlates HTTP requests and responses over separate Kafka topics                         |
 | [http.proxy](http.proxy)                                     | Proxy request sent to the HTTP server from an HTTP client                                 |
 | [inspect.schema](inspect.schema)                             | Prints the fully-merged `zilla.yaml` JSON Schema without starting an engine               |
+| [mcp.http.proxy](mcp.http.proxy)                             | Exposes a REST API as MCP tools and resources, hand-authored over `mcp-http`              |
+| [mcp.kafka.connect.proxy](mcp.kafka.connect.proxy)           | Manages Kafka Connect connectors through MCP tools                                        |
+| [mcp.kafka.proxy](mcp.kafka.proxy)                           | Exposes Kafka topics, ACLs, brokers and a schema registry through MCP tools               |
+| [mcp.openapi.proxy](mcp.openapi.proxy)                       | Exposes an OpenAPI-described REST API as MCP tools and resources                          |
+| [mcp.proxy](mcp.proxy)                                       | Proxies MCP requests to an MCP server, subscribing to resource updates                    |
+| [mcp.proxy.jwt](mcp.proxy.jwt)                               | Filters MCP tools by the scopes of a JWT-authorized MCP client                            |
+| [mcp.proxy.search](mcp.proxy.search)                         | Lists eager tools and searches the rest of a cached MCP tool catalog                      |
 | [mqtt.proxy.jwt](mqtt.proxy.jwt)                             | Proxies request sent to the MQTT server from a JWT-authorized MQTT client                 |
 | [mqtt.kafka.broker](mqtt.kafka.proxy)                        | Forwards MQTT publish messages to Kafka, broadcasting to all subscribed MQTT clients      |
 | [openapi.asyncapi.kakfa.proxy](openapi.asyncapi.kakfa.proxy) | Create an HTTP to Kafka REST proxy using OpenAPI and AsyncAPI schemas                     |
