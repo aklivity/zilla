@@ -1,0 +1,12 @@
+{
+  "name": "url-elicit",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Minimal MCP server demonstrating url-mode elicitation (SEP-1036)",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.29.0",
+    "express": "^5.2.1",
+    "zod": "^3.25.76"
+  }
+}

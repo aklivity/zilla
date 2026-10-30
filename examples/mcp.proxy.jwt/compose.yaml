@@ -1,0 +1,110 @@
+name: ${NAMESPACE:-zilla-mcp-proxy-jwt}
+services:
+  zilla:
+    image: ghcr.io/aklivity/zilla:${ZILLA_VERSION:-latest}
+    restart: unless-stopped
+    hostname: zilla.examples.dev
+    ports:
+      - 7114:7114
+    # start_interval makes `up --wait` return as soon as zilla is ready
+    # instead of after the first full `interval`
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 15
+      start_period: 15s
+      start_interval: 250ms
+      test: ["CMD", "sh", "-c", "test -f /var/run/zilla/ready"]
+    environment:
+      ZILLA_INCUBATOR_ENABLED: "true"
+    volumes:
+      - ./etc:/etc/zilla
+    command: start -v -e
+    depends_on:
+      everything:
+        condition: service_healthy
+      urlelicit:
+        condition: service_healthy
+
+  everything:
+    image: node:20-alpine
+    hostname: everything
+    restart: unless-stopped
+    # Pinned: an unpinned "latest" has silently changed behavior between runs
+    command: ["npx", "-y", "@modelcontextprotocol/server-everything@2026.7.4", "streamableHttp"]
+    environment:
+      PORT: "3001"
+    # Persists npm's download/extract cache across container recreations; CI
+    # restores and saves this same path keyed on the pinned version above
+    volumes:
+      - ./.cache/npm-everything:/root/.npm
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 120
+      start_period: 30s
+      start_interval: 250ms
+      test: ["CMD", "nc", "-z", "127.0.0.1", "3001"]
+
+  # Mock MCP server that sends url-mode elicitation requests and records the
+  # Authorization header of every request it receives
+  urlelicit:
+    image: node:20-alpine
+    hostname: urlelicit
+    restart: unless-stopped
+    working_dir: /app
+    command: ["sh", "-c", "npm install --no-audit --no-fund --silent && node server.mjs"]
+    ports:
+      - 3003:3003
+    environment:
+      PORT: "3003"
+    volumes:
+      - ./url-elicit:/app
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
+      start_interval: 250ms
+      test: ["CMD", "nc", "-z", "127.0.0.1", "3003"]
+
+  # Run on demand, e.g. `docker compose run --rm client mint "urlelicit:authorize"`.
+  # A service distinct from `urlelicit` so a one-off container never claims that
+  # network alias and round-robins zilla's upstream onto itself.
+  client:
+    image: node:20-alpine
+    deploy:
+      replicas: 0
+    working_dir: /app
+    environment:
+      MCP_URL: "http://zilla:7114/mcp"
+    volumes:
+      - ./clients:/app
+      - ./private.pem:/private.pem:ro
+    entrypoint: ["sh", "/app/run.sh"]
+
+  verify:
+    image: node:20-alpine
+    profiles: ["test"]
+    working_dir: /work
+    depends_on:
+      zilla:
+        condition: service_healthy
+    volumes:
+      - ./etc/test:/test:ro
+      - ../.github/test-lib.sh:/test-lib.sh:ro
+      - ./clients:/work/clients
+      - ./private.pem:/private.pem:ro
+    environment:
+      FAIL_FAST: "${FAIL_FAST:-1}"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        apk add --no-cache curl > /dev/null
+        npm install --prefix /work/clients --no-audit --no-fund --silent
+        exec sh /test/verify.sh
+
+networks:
+  default:
+    driver: bridge
