@@ -214,7 +214,7 @@ Under the hood, code-generated flyweights access encoded buffers without unneces
 - **Secure public and private Kafka access.** Connect clients through authenticated, TLS-protected public endpoints or private connectivity across VPCs and AWS accounts, including Amazon MSK and MSK Serverless.
 - **Additional enterprise governance and integrations.** Field-level data protection, Amazon Bedrock integration, advanced OAuth capabilities, distributed stores, and commercial support.
 
-Explore the [Kafka Gateway use cases](https://docs.aklivity.io/latest/kafka-gateway/use-cases/) and [edition comparison](https://docs.aklivity.io/latest/reference/editions/) for details.
+Explore the [Kafka Gateway use cases](https://docs.aklivity.io/latest/kafka-gateway/use-cases/) and [edition comparison](https://www.aklivity.io/pricing) for details.
 
 **Get started with Zilla Plus:** [Request a license key from the Aklivity team](https://www.aklivity.io/contact) or [get Zilla Plus on AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-lqfqftufwpttm).
 
