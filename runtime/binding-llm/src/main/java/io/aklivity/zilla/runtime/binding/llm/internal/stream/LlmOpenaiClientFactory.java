@@ -878,8 +878,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             state = LlmState.closeInitial(state);
 
             http.doNetAbort(traceId);
-            doAppAbort(traceId);
-            http.doNetReset(traceId);
             cleanupControlSlot();
             cleanupHeldSlot();
             http.cleanupEncodeSlot();
@@ -1338,14 +1336,14 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
             parser.wrap(buffer, offset, windowLimit, windowLast);
 
+            int progress = position();
+
             LlmOpenaiResponseDecoder previous = null;
             while (previous != decoder && decoder != decodeEnd && !parseRejected)
             {
                 previous = decoder;
-                decoder.decode(buffer, offset, windowLimit);
+                progress = decoder.decode(buffer, offset, windowLimit);
             }
-
-            int progress = position();
 
             if (decoder == decodeEnd)
             {
@@ -1359,7 +1357,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 flushControl(progress);
             }
 
-            return parseRejected || decoder == decodeIgnore ? windowLimit : progress;
+            return parseRejected ? windowLimit : progress;
         }
 
         private int position()
@@ -2228,8 +2226,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            http.cleanupDecodeSlot();
-
             return limit;
         }
 

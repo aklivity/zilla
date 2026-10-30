@@ -890,8 +890,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             state = LlmState.closeInitial(state);
 
             http.doNetAbort(traceId);
-            doAppAbort(traceId);
-            http.doNetReset(traceId);
             cleanupControlSlot();
             http.cleanupEncodeSlot();
             http.cleanupHeldSlot();
@@ -1340,19 +1338,19 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
             parser.wrap(buffer, offset, windowLimit, windowLast);
 
+            int progress = position();
+
             LlmGeminiResponseDecoder previous = null;
             while (previous != decoder && decoder != decodeEnd && !parseRejected)
             {
                 previous = decoder;
-                decoder.decode(buffer, offset, windowLimit);
+                progress = decoder.decode(buffer, offset, windowLimit);
             }
 
             if (decoder == decodeCapture)
             {
                 flushCapture(buffer);
             }
-
-            int progress = position();
 
             if (decoder == decodeEnd)
             {
@@ -1366,7 +1364,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 flushControl(progress);
             }
 
-            return parseRejected || decoder == decodeIgnore ? windowLimit : progress;
+            return parseRejected ? windowLimit : progress;
         }
 
         private int position()
@@ -2445,8 +2443,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            http.cleanupDecodeSlot();
-
             return limit;
         }
 

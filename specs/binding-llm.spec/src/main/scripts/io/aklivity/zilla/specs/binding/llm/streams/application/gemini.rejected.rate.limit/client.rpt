@@ -44,5 +44,3 @@ read zilla:reset.ext ${llm:matchResetEx()
                            .build()}
 
 write aborted
-
-read abort

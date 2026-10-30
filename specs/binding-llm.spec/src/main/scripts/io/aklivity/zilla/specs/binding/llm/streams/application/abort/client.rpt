@@ -26,4 +26,3 @@ write zilla:begin.ext ${llm:beginEx()
 connected
 
 write abort
-read aborted
