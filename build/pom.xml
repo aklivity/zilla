@@ -17,6 +17,7 @@
   <name>zilla::build</name>
 
   <modules>
+    <module>enforcer-rules</module>
     <module>flyweight-maven-plugin</module>
     <module>zpm-maven-plugin</module>
   </modules>
