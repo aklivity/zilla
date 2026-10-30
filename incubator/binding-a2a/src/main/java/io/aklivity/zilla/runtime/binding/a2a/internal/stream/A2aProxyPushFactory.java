@@ -248,18 +248,18 @@ final class A2aProxyPushFactory
             case EndFW.TYPE_ID:
                 final EndFW end = endRO.wrap(buffer, index, index + length);
                 initialSeq = end.sequence();
-                state = A2aState.closedInitial(state);
+                state = A2aState.closeInitial(state);
                 onAppEnded(end.traceId(), end.authorization());
                 break;
             case AbortFW.TYPE_ID:
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
                 initialSeq = abort.sequence();
-                state = A2aState.closedReply(A2aState.closedInitial(state));
+                state = A2aState.closeReply(A2aState.closeInitial(state));
                 cleanup(abort.traceId(), abort.authorization());
                 break;
             case WindowFW.TYPE_ID:
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                state = A2aState.openedReply(state);
+                state = A2aState.openReply(state);
                 replyAck = window.acknowledge();
                 replyMax = window.maximum();
                 replyBud = window.budgetId();
@@ -269,7 +269,7 @@ final class A2aProxyPushFactory
                 break;
             case ResetFW.TYPE_ID:
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                state = A2aState.closedReply(state);
+                state = A2aState.closeReply(state);
                 cleanup(reset.traceId(), reset.authorization());
                 break;
             default:
@@ -451,7 +451,7 @@ final class A2aProxyPushFactory
         {
             if (!A2aState.replyClosed(state))
             {
-                state = A2aState.closedReply(state);
+                state = A2aState.closeReply(state);
                 proxy.doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
                     extension);
             }
@@ -464,7 +464,7 @@ final class A2aProxyPushFactory
         {
             if (A2aState.replyOpening(state) && !A2aState.replyClosed(state))
             {
-                state = A2aState.closedReply(state);
+                state = A2aState.closeReply(state);
                 proxy.doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
                     extension);
             }
@@ -477,7 +477,7 @@ final class A2aProxyPushFactory
         {
             if (!A2aState.initialClosed(state))
             {
-                state = A2aState.closedInitial(state);
+                state = A2aState.closeInitial(state);
                 proxy.doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, extension);
             }
@@ -1290,7 +1290,7 @@ final class A2aProxyPushFactory
         {
             if (!A2aState.initialClosed(state))
             {
-                state = A2aState.closedInitial(state);
+                state = A2aState.closeInitial(state);
                 proxy.doEnd(net, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
                     null);
             }
@@ -1302,7 +1302,7 @@ final class A2aProxyPushFactory
         {
             if (net != null && !A2aState.initialClosed(state))
             {
-                state = A2aState.closedInitial(state);
+                state = A2aState.closeInitial(state);
                 proxy.doAbort(net, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
                     null);
             }
@@ -1330,7 +1330,7 @@ final class A2aProxyPushFactory
         {
             if (net != null && !A2aState.replyClosed(state))
             {
-                state = A2aState.closedReply(state);
+                state = A2aState.closeReply(state);
                 proxy.doReset(net, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, null);
             }
         }
@@ -1345,7 +1345,7 @@ final class A2aProxyPushFactory
             {
             case BeginFW.TYPE_ID:
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                state = A2aState.openedReply(state);
+                state = A2aState.openReply(state);
                 owner.onNetBegin(begin.traceId(), begin.authorization(), begin.extension());
                 break;
             case DataFW.TYPE_ID:
@@ -1360,12 +1360,12 @@ final class A2aProxyPushFactory
                 break;
             case EndFW.TYPE_ID:
                 final EndFW end = endRO.wrap(buffer, index, index + length);
-                state = A2aState.closedReply(state);
+                state = A2aState.closeReply(state);
                 owner.onNetEnd(end.traceId(), end.authorization(), end.extension());
                 break;
             case AbortFW.TYPE_ID:
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                state = A2aState.closedReply(state);
+                state = A2aState.closeReply(state);
                 owner.onNetAbort(abort.traceId(), abort.authorization(), abort.extension());
                 break;
             case WindowFW.TYPE_ID:
@@ -1378,7 +1378,7 @@ final class A2aProxyPushFactory
                 break;
             case ResetFW.TYPE_ID:
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                state = A2aState.closedInitial(state);
+                state = A2aState.closeInitial(state);
                 owner.onNetReset(reset.traceId(), reset.authorization(), reset.extension());
                 break;
             default:

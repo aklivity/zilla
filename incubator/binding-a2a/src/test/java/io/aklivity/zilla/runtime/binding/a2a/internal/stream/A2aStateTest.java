@@ -28,11 +28,11 @@ public class A2aStateTest
 
         state = A2aState.openingInitial(state);
         assertThat(A2aState.initialOpening(state), equalTo(true));
-        state = A2aState.openedInitial(state);
+        state = A2aState.openInitial(state);
         assertThat(A2aState.initialOpened(state), equalTo(true));
         state = A2aState.closingInitial(state);
         assertThat(A2aState.initialClosing(state), equalTo(true));
-        state = A2aState.closedInitial(state);
+        state = A2aState.closeInitial(state);
         assertThat(A2aState.initialClosed(state), equalTo(true));
         assertThat(A2aState.closed(state), equalTo(false));
     }
@@ -44,11 +44,11 @@ public class A2aStateTest
 
         state = A2aState.openingReply(state);
         assertThat(A2aState.replyOpening(state), equalTo(true));
-        state = A2aState.openedReply(state);
+        state = A2aState.openReply(state);
         assertThat(A2aState.replyOpened(state), equalTo(true));
         state = A2aState.closingReply(state);
         assertThat(A2aState.replyClosing(state), equalTo(true));
-        state = A2aState.closedReply(state);
+        state = A2aState.closeReply(state);
         assertThat(A2aState.replyClosed(state), equalTo(true));
     }
 
@@ -57,10 +57,10 @@ public class A2aStateTest
     {
         int state = 0;
 
-        assertThat(A2aState.replyAborting(state), equalTo(false));
+        assertThat(A2aState.replyAbortDeferred(state), equalTo(false));
         assertThat(A2aState.replyFraming(state), equalTo(false));
-        state = A2aState.abortingReply(state);
-        assertThat(A2aState.replyAborting(state), equalTo(true));
+        state = A2aState.deferReplyAbort(state);
+        assertThat(A2aState.replyAbortDeferred(state), equalTo(true));
         state = A2aState.framingReply(state);
         assertThat(A2aState.replyFraming(state), equalTo(true));
     }
@@ -68,7 +68,7 @@ public class A2aStateTest
     @Test
     public void shouldCloseWhenInitialAndReplyClosed()
     {
-        int state = A2aState.closedReply(A2aState.closedInitial(0));
+        int state = A2aState.closeReply(A2aState.closeInitial(0));
 
         assertThat(A2aState.closed(state), equalTo(true));
     }

@@ -20,11 +20,11 @@ public final class A2aState
     private static final int INITIAL_OPENED = 0x20;
     private static final int INITIAL_CLOSING = 0x40;
     private static final int INITIAL_CLOSED = 0x80;
-    private static final int REPLY_OPENED = 0x01;
-    private static final int REPLY_OPENING = 0x02;
+    private static final int REPLY_OPENED = 0x02;
+    private static final int REPLY_OPENING = 0x01;
     private static final int REPLY_CLOSING = 0x04;
     private static final int REPLY_CLOSED = 0x08;
-    private static final int REPLY_ABORTING = 0x100;
+    private static final int REPLY_ABORT_DEFERRED = 0x100;
     private static final int REPLY_FRAMING = 0x200;
 
     public static int openingInitial(
@@ -33,7 +33,7 @@ public final class A2aState
         return state | INITIAL_OPENING;
     }
 
-    public static int openedInitial(
+    public static int openInitial(
         int state)
     {
         return state | INITIAL_OPENED;
@@ -57,7 +57,7 @@ public final class A2aState
         return state | INITIAL_CLOSING;
     }
 
-    public static int closedInitial(
+    public static int closeInitial(
         int state)
     {
         return state | INITIAL_CLOSED;
@@ -81,7 +81,7 @@ public final class A2aState
         return state | REPLY_OPENING;
     }
 
-    public static int openedReply(
+    public static int openReply(
         int state)
     {
         return state | REPLY_OPENED;
@@ -105,22 +105,22 @@ public final class A2aState
         return state | REPLY_CLOSING;
     }
 
-    public static int closedReply(
+    public static int closeReply(
         int state)
     {
         return state | REPLY_CLOSED;
     }
 
-    public static int abortingReply(
+    public static int deferReplyAbort(
         int state)
     {
-        return state | REPLY_ABORTING;
+        return state | REPLY_ABORT_DEFERRED;
     }
 
-    public static boolean replyAborting(
+    public static boolean replyAbortDeferred(
         int state)
     {
-        return (state & REPLY_ABORTING) != 0;
+        return (state & REPLY_ABORT_DEFERRED) != 0;
     }
 
     public static int framingReply(
