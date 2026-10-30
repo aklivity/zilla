@@ -43,7 +43,7 @@
 
 Connect applications and agents to LLM providers, enterprise tools, and event streams through one high-performance gateway. Zilla handles protocol translation, routing, security, and observability at the edge, without requiring separate proxy services or custom integration code for supported backends.
 
-Use existing AI SDKs to access models across providers. Give agents one governed MCP endpoint for enterprise tools and data. Expose Kafka streams through application-friendly protocols.
+Use existing AI SDKs to access models across providers. Give agents one governed MCP endpoint for enterprise tools and data. Expose Kafka streams through application-friendly protocols. With **Zilla Plus**, securely connect native Kafka clients across networks and tenants through the same gateway architecture.
 
 Zilla composes protocol-native bindings in a lightweight, stateless runtime, configured declaratively in `zilla.yaml`. LLM access, MCP tool connectivity, and event streaming are different uses of the same gateway architecture, not three separately deployed gateways.
 
@@ -63,9 +63,20 @@ Aggregate existing MCP servers, turn HTTP/OpenAPI services into tools, and expos
 
 ### Bring real-time data to applications, services, and devices
 
-Expose Kafka-backed REST APIs and live streams to HTTP, SSE, WebSocket, gRPC, and MQTT clients. Proxy native Kafka traffic and apply protocol-aware authentication, authorization, schema validation, and data policies at the gateway instead of building and operating custom bridges.
+Expose Kafka-backed REST APIs and live streams to HTTP, SSE, WebSocket, gRPC, and MQTT clients. Apply protocol-aware authentication, authorization, schema validation, and data policies at the gateway instead of building and operating custom bridges.
 
 **Try it:** [Kafka REST example](./examples/http.kafka.crud/) | [Kafka Gateway documentation](https://docs.aklivity.io/latest/kafka-gateway/)
+
+### Secure and virtualize native Kafka access (Zilla Plus)
+
+**Zilla Plus adds native Kafka-to-Kafka proxying** through the [`kafka-proxy` binding](https://docs.aklivity.io/latest/reference/2.x/config/bindings/kafka-proxy/). Existing Kafka producers and consumers connect using the Kafka wire protocol through a gateway bootstrap address, while Zilla Plus proxies traffic to the backing brokers. No application-level protocol bridge is needed.
+
+- **[Virtual Kafka clusters](https://docs.aklivity.io/latest/kafka-gateway/use-cases/virtual-kafka-clusters/):** Give teams or tenants their own Kafka cluster endpoints, topic and consumer-group namespaces, ACLs, and quotas on a shared physical cluster.
+- **[Dynamic topic aliases](https://docs.aklivity.io/latest/kafka-gateway/use-cases/dynamic-topic-aliases/):** Let clients use the same external topic name while mapping requests to identity-specific internal topics, without per-client routing entries.
+- **[Secure public access](https://docs.aklivity.io/latest/kafka-gateway/use-cases/secure-public-access/):** Connect external Kafka clients through custom DNS and TLS, with IAM, SASL/SCRAM, or mTLS authentication instead of exposing brokers directly.
+- **[Secure private access](https://docs.aklivity.io/latest/kafka-gateway/use-cases/secure-private-access/):** Connect across VPCs and AWS accounts, including Amazon MSK Serverless, through private endpoints and a unified domain without making the brokers public.
+
+These capabilities run on Zilla's stateless, horizontally scalable gateway architecture. **Explore:** [Kafka Gateway use cases](https://docs.aklivity.io/latest/kafka-gateway/use-cases/) | [Zilla editions](https://docs.aklivity.io/latest/reference/editions/)
 
 ## Get Started
 
@@ -178,6 +189,7 @@ Under the hood, code-generated flyweights access encoded buffers without unneces
 | **MCP connectivity** | Aggregate MCP servers; expose HTTP/OpenAPI and Kafka-backed capabilities as tools without custom wrappers for supported backends |
 | **MCP governance and discovery** | Identity-aware tool listing and invocation; namespaced toolkits; eager and on-demand discovery |
 | **API and event integration** | Expose Kafka through REST and streaming protocols; connect services and devices across supported protocols |
+| **Native Kafka-to-Kafka proxying (Zilla Plus)** | Transparent Kafka client access, virtual Kafka clusters, identity-driven topic aliases, and secure public/private connectivity |
 | **Data validation** | Protocol-appropriate schema validation and supported JSON, Avro, and Protobuf transformations |
 | **Observability** | Gateway and protocol metrics, MCP interaction metrics, and provider-reported LLM token usage and latency; Prometheus/OTLP export |
 | **Deployment** | Docker and Kubernetes/Helm; stateless data-plane scaling, with optional external shared stores where needed |
@@ -189,13 +201,14 @@ Under the hood, code-generated flyweights access encoded buffers without unneces
 - **Models and LLMs:** [LLM overview](https://docs.aklivity.io/latest/ai-gateway/llm-gateway/) · [Model routing](https://docs.aklivity.io/latest/ai-gateway/llm-gateway/model-routing/) · [Guardrails](https://docs.aklivity.io/latest/ai-gateway/guardrails/llm/) · [2.6.0 cross-provider demo](https://github.com/aklivity/zilla-demos/tree/main/llm.gateway)
 - **Agents and tools:** [MCP overview](https://docs.aklivity.io/latest/ai-gateway/mcp-gateway/) · [MCP quickstart](https://docs.aklivity.io/latest/ai-gateway/get-started/) · [Tool discovery](https://docs.aklivity.io/latest/ai-gateway/mcp-gateway/tool-discovery/)
 - **Real-time data:** [Kafka Gateway](https://docs.aklivity.io/latest/kafka-gateway/) · [Examples](./examples/)
+- **Native Kafka connectivity (Zilla Plus):** [Use cases](https://docs.aklivity.io/latest/kafka-gateway/use-cases/) · [Virtual clusters](https://docs.aklivity.io/latest/kafka-gateway/use-cases/virtual-kafka-clusters/) · [Dynamic topic aliases](https://docs.aklivity.io/latest/kafka-gateway/use-cases/dynamic-topic-aliases/) · [Secure public access](https://docs.aklivity.io/latest/kafka-gateway/use-cases/secure-public-access/) · [Secure private access](https://docs.aklivity.io/latest/kafka-gateway/use-cases/secure-private-access/)
 - **Observability:** [Monitoring](https://docs.aklivity.io/latest/ai-gateway/monitoring-observability/)
 
 ## Editions
 
 **Zilla Community** includes multi-protocol event connectivity, MCP capabilities, and core LLM access to OpenAI, Anthropic, and Gemini, including routing, translation, guardrails, and metrics.
 
-**Zilla Plus** adds Amazon Bedrock integration, advanced OAuth capabilities, distributed stores, secure Kafka access, virtual clusters, and commercial support. See [aklivity.io](https://www.aklivity.io/) for commercial options.
+**Zilla Plus** includes everything in Community and adds native Kafka-to-Kafka proxying, virtual Kafka clusters, dynamic topic aliases, secure public and private Kafka access, Amazon Bedrock integration, advanced OAuth capabilities, distributed stores, and commercial support. See the [Kafka Gateway use cases](https://docs.aklivity.io/latest/kafka-gateway/use-cases/) and [editions](https://docs.aklivity.io/latest/reference/editions/) for details.
 
 ## Install with Your Own Configuration
 
