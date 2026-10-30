@@ -1152,13 +1152,9 @@ public final class A2aServerFactory implements A2aStreamFactory
         {
             final long traceId = abort.traceId();
 
-            cleanupDecodeSlot();
+            state = A2aState.closedInitial(state);
 
-            if (stream != null)
-            {
-                stream.doAppAbort(traceId, authorization);
-                stream.doAppReset(traceId, authorization);
-            }
+            cleanupNet(traceId, authorization);
         }
 
         private void onNetFlush(
@@ -1224,13 +1220,9 @@ public final class A2aServerFactory implements A2aStreamFactory
         {
             final long traceId = reset.traceId();
 
-            if (stream != null)
-            {
-                stream.doAppAbort(traceId, authorization);
-                stream.doAppReset(traceId, authorization);
-            }
+            state = A2aState.closedReply(state);
 
-            cleanupEncodeSlot();
+            cleanupNet(traceId, authorization);
         }
 
         private void onDecodeParseError(
@@ -1708,6 +1700,15 @@ public final class A2aServerFactory implements A2aStreamFactory
             long traceId,
             long authorization)
         {
+            if (!A2aState.replyOpening(state) && !A2aState.replyClosed(state))
+            {
+                doNetBegin(traceId, authorization, httpBeginExRW
+                    .wrap(codecBuffer, 0, codecBuffer.capacity())
+                    .typeId(httpTypeId)
+                    .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_502))
+                    .build());
+            }
+
             if (!A2aState.replyClosed(state))
             {
                 state = A2aState.closedReply(state);
@@ -1946,6 +1947,8 @@ public final class A2aServerFactory implements A2aStreamFactory
             long traceId,
             long authorization)
         {
+            decoder = decodeIgnore;
+            cleanupDecodeSlot();
             doNetReset(traceId, authorization);
             doNetAbort(traceId, authorization);
 
