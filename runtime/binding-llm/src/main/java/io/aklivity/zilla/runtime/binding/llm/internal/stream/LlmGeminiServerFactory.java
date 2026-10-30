@@ -2517,6 +2517,8 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
             if (offset < limit)
             {
+                captureFrom = offset;
+
                 int previous;
                 LlmGeminiServerDecoder previousDecoder;
                 do
@@ -2525,7 +2527,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                     previousDecoder = decoder;
                     progress = decodeInput(traceId, authorization, budgetId, reserved, buffer, progress, limit);
                 }
-                while ((progress != previous || decoder != previousDecoder) && progress < limit);
+                while (progress != previous && progress < limit || decoder != previousDecoder);
             }
 
             if (progress < limit)
@@ -2570,10 +2572,10 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
             decodedInput = buffer;
             decodedLast = LlmState.initialClosed(state);
-            decodedWindowLimit = limit;
 
             if (decoder == decodeEnd || decoder == decodeIgnore)
             {
+                decodedWindowLimit = limit;
                 progress = decoder.decode(this, traceId, authorization, budgetId, reserved, buffer, offset, progress, limit);
             }
             else
@@ -2583,71 +2585,58 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
                 if (window >= held + Math.min(MIN_WINDOW, limit - offset - held))
                 {
-                    progress = decodeWindow(traceId, authorization, budgetId, reserved, buffer, offset, offset + window, limit);
+                    final int windowLimit = offset + window;
+
+                    final boolean windowLast = decodedLast && windowLimit == limit;
+
+                    decodedWindowLimit = windowLimit;
+                    decodeTraceId = traceId;
+                    decodeAuthorization = authorization;
+                    holdFrom = offset;
+                    parser.wrap(buffer, offset + retained, windowLimit, windowLast);
+
+                    final LlmGeminiServerDecoder previous = decoder;
+
+                    try
+                    {
+                        progress = decoder.decode(this, traceId, authorization, budgetId, reserved,
+                            buffer, offset, progress, limit);
+                    }
+                    catch (JsonException ex)
+                    {
+                        onDecodeParseError(traceId);
+                    }
+
+                    final boolean stalled = decoder == previous;
+
+                    if (captureOpen)
+                    {
+                        if (stalled)
+                        {
+                            flushCapture(traceId, authorization, false);
+                            progress = position();
+                        }
+                    }
+                    else if (holding)
+                    {
+                        retained = position() - holdFrom;
+                        progress = holdFrom;
+
+                        if (retained > holdMax && holdRejection != null)
+                        {
+                            onDecodeInvalidRequest(traceId, holdRejection);
+                        }
+                        else if (retained > holdMax)
+                        {
+                            onDecodeParseError(traceId);
+                        }
+                    }
+
+                    if (stalled && windowLast && decoder != decodeEnd && decoder != decodeIgnore)
+                    {
+                        onDecodeParseError(traceId);
+                    }
                 }
-            }
-
-            return progress;
-        }
-
-        private int decodeWindow(
-            long traceId,
-            long authorization,
-            long budgetId,
-            int reserved,
-            DirectBufferEx buffer,
-            int offset,
-            int windowLimit,
-            int limit)
-        {
-            final boolean windowLast = decodedLast && windowLimit == limit;
-
-            decodedWindowLimit = windowLimit;
-            decodeTraceId = traceId;
-            decodeAuthorization = authorization;
-            captureFrom = offset;
-            holdFrom = offset;
-            parser.wrap(buffer, offset + retained, windowLimit, windowLast);
-
-            LlmGeminiServerDecoder previous = null;
-            int progress = offset;
-            while (progress <= limit && previous != decoder)
-            {
-                previous = decoder;
-
-                try
-                {
-                    progress = decoder.decode(this, traceId, authorization, budgetId, reserved, buffer, offset, progress, limit);
-                }
-                catch (JsonException ex)
-                {
-                    onDecodeParseError(traceId);
-                }
-            }
-
-            if (captureOpen)
-            {
-                flushCapture(traceId, authorization, false);
-                progress = position();
-            }
-            else if (holding)
-            {
-                retained = position() - holdFrom;
-                progress = holdFrom;
-
-                if (retained > holdMax && holdRejection != null)
-                {
-                    onDecodeInvalidRequest(traceId, holdRejection);
-                }
-                else if (retained > holdMax)
-                {
-                    onDecodeParseError(traceId);
-                }
-            }
-
-            if (windowLast && decoder != decodeEnd && decoder != decodeIgnore)
-            {
-                onDecodeParseError(traceId);
             }
 
             return progress;
