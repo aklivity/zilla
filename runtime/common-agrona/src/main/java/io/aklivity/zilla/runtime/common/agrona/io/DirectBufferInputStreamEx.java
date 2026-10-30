@@ -54,6 +54,17 @@ public final class DirectBufferInputStreamEx extends InputStream
         return buffer;
     }
 
+    public int position()
+    {
+        return position;
+    }
+
+    public void position(
+        int position)
+    {
+        this.position = Math.max(0, Math.min(position, length));
+    }
+
     @Override
     public boolean markSupported()
     {

@@ -2221,6 +2221,10 @@ public final class HttpClientFactory implements HttpStreamFactory
             {
                 newStream = rejectWithStatusCode(sender, begin, HEADERS_431_REQUEST_TOO_LARGE);
             }
+            else if (!HttpState.replyOpened(client.state) && !client.acquireQueueSlotIfNecessary())
+            {
+                newStream = rejectWithStatusCode(sender, begin, HEADERS_503_RETRY_AFTER);
+            }
             else if (queuedRequestLength <= client.availableSlotSize())
             {
                 final HttpPromise promise = client.promises.stream().filter(p -> p.matches(beginEx.headers()))
@@ -4656,12 +4660,14 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
         }
 
-        private void acquireQueueSlotIfNecessary()
+        private boolean acquireQueueSlotIfNecessary()
         {
             if (httpQueueSlot == NO_SLOT)
             {
                 httpQueueSlot = bufferPool.acquire(routedId);
             }
+
+            return httpQueueSlot != NO_SLOT;
         }
 
         private int availableSlotSize()

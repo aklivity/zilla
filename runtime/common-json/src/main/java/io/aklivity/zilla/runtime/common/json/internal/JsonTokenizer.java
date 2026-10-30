@@ -151,12 +151,46 @@ public final class JsonTokenizer
     // (no exception) and advance() routes to onScalarStarved; reset at the top of each advance()
     private boolean starved;
 
+    // the mark rewind() returns to: the scalar parse state, the depth of the parse and path stacks, and the path
+    // frame of the container the mark was taken in, all held in preallocated fields so marking never allocates
+
     // scalar resume state (valid when resumeOp != NONE)
     private ResumeOp resumeOp = ResumeOp.NONE;
     private boolean resumeEscape;
     private int resumeUnicodePending;   // hex digits remaining for backslash-u escape
     private int resumeUnicodeValue;
     private int resumeLiteralIndex;     // chars matched so far for true/false/null
+
+    private Mark mark;
+
+    // the state a mark holds, kept apart so a parser that never marks carries only the reference
+    private static final class Mark
+    {
+        ParseState state;
+        int stackSize;
+        int pathDepth;
+        boolean frameKeySet;
+        int frameIndex;
+        final StringBuilder frameKeyChars = new StringBuilder();
+        long streamOffset;
+        long valueStreamStart;
+        long valueStreamEnd;
+        long documentEndOffset;
+        long line;
+        long column;
+        long valueLine;
+        long valueColumn;
+        long unitLine;
+        long unitColumn;
+        long fragmentStart;
+        long unitStartOffset;
+        NumberState numberState;
+        boolean stringVerbatim;
+        boolean memberSeparated;
+        boolean separatorBefore;
+        boolean segmenting;
+        boolean scalarSegment;
+    }
 
     public JsonTokenizer()
     {
@@ -193,6 +227,10 @@ public final class JsonTokenizer
     public void reset()
     {
         stack.clear();
+        if (mark != null)
+        {
+            mark.state = null;
+        }
         scratch.setLength(0);
         scratchConsumed = 0;
         numberState = NumberState.START;
@@ -246,6 +284,119 @@ public final class JsonTokenizer
     {
         assert state == ParseState.DOC_DONE;
         state = ParseState.DOC_START;
+    }
+
+    // Takes the mark rewind() returns to, between events: no event staged and no token part way scanned, so the
+    // scalar state below is the whole of what a later rewind has to put back. The caller keeps the window and
+    // its bytes, so a rewind lands on the same input.
+    void mark()
+    {
+        if (pendingEvent != null || resumeOp != ResumeOp.NONE || fragmenting)
+        {
+            throw new IllegalStateException("mark requires a whole-token boundary");
+        }
+
+        if (mark == null)
+        {
+            mark = new Mark();
+        }
+
+        mark.state = state;
+        mark.stackSize = stack.size();
+        mark.pathDepth = pathDepth;
+        if (pathDepth > 0)
+        {
+            final int frame = pathDepth - 1;
+            mark.frameKeySet = pathKeySet[frame];
+            mark.frameIndex = pathIndex[frame];
+            mark.frameKeyChars.setLength(0);
+            mark.frameKeyChars.append(pathKeyChars[frame]);
+        }
+        mark.streamOffset = streamOffset;
+        mark.valueStreamStart = valueStreamStart;
+        mark.valueStreamEnd = valueStreamEnd;
+        mark.documentEndOffset = documentEndOffset;
+        mark.line = line;
+        mark.column = column;
+        mark.valueLine = valueLine;
+        mark.valueColumn = valueColumn;
+        mark.unitLine = unitLine;
+        mark.unitColumn = unitColumn;
+        mark.fragmentStart = fragmentStart;
+        mark.unitStartOffset = unitStartOffset;
+        mark.numberState = numberState;
+        mark.stringVerbatim = stringVerbatim;
+        mark.memberSeparated = memberSeparated;
+        mark.separatorBefore = separatorBefore;
+        mark.segmenting = segmenting;
+        mark.scalarSegment = scalarSegment;
+    }
+
+    long markStreamOffset()
+    {
+        return mark != null ? mark.streamOffset : Long.MAX_VALUE;
+    }
+
+    // Returns to the mark: the scan resumes at the marked byte with the state it had there. Only the container
+    // the mark was taken in is put back, so the parse must not have left it; stacks the mark did not cover are
+    // dropped back to the marked depth. Whatever the events since the mark staged or decoded is discarded.
+    void rewind()
+    {
+        if (mark == null || mark.state == null)
+        {
+            throw new IllegalStateException("rewind requires a mark");
+        }
+
+        if (pathDepth < mark.pathDepth || stack.size() < mark.stackSize)
+        {
+            throw new IllegalStateException("rewind requires the parse to remain within the marked container");
+        }
+
+        while (stack.size() > mark.stackSize)
+        {
+            stack.pop();
+        }
+        pathDepth = mark.pathDepth;
+        if (pathDepth > 0)
+        {
+            final int frame = pathDepth - 1;
+            pathKeySet[frame] = mark.frameKeySet;
+            pathIndex[frame] = mark.frameIndex;
+            pathKeyChars[frame].setLength(0);
+            pathKeyChars[frame].append(mark.frameKeyChars);
+        }
+        state = mark.state;
+        streamOffset = mark.streamOffset;
+        valueStreamStart = mark.valueStreamStart;
+        valueStreamEnd = mark.valueStreamEnd;
+        documentEndOffset = mark.documentEndOffset;
+        line = mark.line;
+        column = mark.column;
+        valueLine = mark.valueLine;
+        valueColumn = mark.valueColumn;
+        unitLine = mark.unitLine;
+        unitColumn = mark.unitColumn;
+        fragmentStart = mark.fragmentStart;
+        unitStartOffset = mark.unitStartOffset;
+        numberState = mark.numberState;
+        stringVerbatim = mark.stringVerbatim;
+        memberSeparated = mark.memberSeparated;
+        separatorBefore = mark.separatorBefore;
+        segmenting = mark.segmenting;
+        scalarSegment = mark.scalarSegment;
+
+        scratch.setLength(0);
+        scratchConsumed = 0;
+        pendingEvent = null;
+        pendingString = null;
+        valuePending = false;
+        starved = false;
+        fragmenting = false;
+        resumeOp = ResumeOp.NONE;
+        resumeEscape = false;
+        resumeUnicodePending = 0;
+        resumeUnicodeValue = 0;
+        resumeLiteralIndex = 0;
     }
 
     // Set per input window: when true this window's EOF is the terminal delimiter (one-shot or final
