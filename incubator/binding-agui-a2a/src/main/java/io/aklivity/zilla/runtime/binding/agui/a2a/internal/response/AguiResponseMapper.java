@@ -306,14 +306,22 @@ public final class AguiResponseMapper implements A2aEventSink
 
     @Override
     public void data(
+        int flags,
         DirectBufferEx buffer,
         int offset,
         int limit)
     {
         if (phase == Phase.OPEN && contentTarget())
         {
-            closeMessage();
-            custom(CUSTOM_DATA, buffer, offset, limit);
+            if ((flags & INIT) != 0)
+            {
+                closeMessage();
+                custom(CUSTOM_DATA, flags, buffer, offset, limit);
+            }
+            else
+            {
+                sink.message(flags, null, buffer, offset, limit);
+            }
         }
     }
 
@@ -357,7 +365,7 @@ public final class AguiResponseMapper implements A2aEventSink
             {
                 fileBuffer.putBytes(0, json);
                 closeMessage();
-                custom(CUSTOM_FILE, fileBuffer, 0, json.length);
+                custom(CUSTOM_FILE, INIT | FIN, fileBuffer, 0, json.length);
             }
         }
     }
@@ -520,6 +528,7 @@ public final class AguiResponseMapper implements A2aEventSink
 
     private void custom(
         String name,
+        int flags,
         DirectBufferEx buffer,
         int offset,
         int limit)
@@ -531,7 +540,7 @@ public final class AguiResponseMapper implements A2aEventSink
             .custom(c -> c.meta(this::meta).name(name))
             .build();
 
-        sink.message(INIT | FIN, dataEx, buffer, offset, limit);
+        sink.message(flags, dataEx, buffer, offset, limit);
     }
 
     private void ensureSnapshot()
