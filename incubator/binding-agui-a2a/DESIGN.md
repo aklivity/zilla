@@ -192,7 +192,7 @@ AG-UI and CopilotKit facts that bear on this (verified, section 7): the AG-UI HT
 | OPEN-11 | Which A2UI generation the first content plug-in targets (9.5), post-v1 (F7) | the shape CopilotKit's `a2ui-surface` renderer reads today (`a2ui_operations`, `createSurface` / `updateComponents` operations); v0.8 only if an agent needs it |
 | ~~OPEN-12~~ | resolved (user decision, revision 8) | always start a new context plus implicit compaction by `MESSAGES_SNAPSHOT` (8.4); no `fail`, no 409 `context_lost`, no per-agent flag; conditional on the CopilotKit check, which aligned (9.10) |
 | ~~OPEN-13~~ | resolved (user decision, revision 7) | no store in v1; `options.store` is a documented follow-up (F3) |
-| OPEN-14 | Placement of per-thread state across workers and nodes: how the owner worker of a key is found | **TBD, pending the user's decision** (reopened; revision 10 corrections are on hold). Neither an engine change nor a binding-level property nor an affinity function is decided; the facts are in 8.4 |
+| OPEN-14 | Placement of per-thread state across workers and nodes: how the owner worker of a key is found | **TBD, pending the user's decision.** Four candidates are compared in 8.4 (a hash in the binding, b engine treats a long as a key, c state-carried token, d no routing); (c) is evaluated against source and not recommended; the cheapest unblocking choice is (a) for a single node, with multi-node left to the router decision. Nothing is decided, and no engine change, binding property or issue is filed for it |
 | OPEN-15 | Unverified residue of 9.10 and two accepted limitations: CopilotKit's managed (Intelligence) persistence and other AG-UI clients were not checked; trimmed histories cannot trigger the reset; an agent that returns a `contextId` on every message without memory causes one spurious reset per thread per restart | accept for v1 and keep the informational operator event (it counts resets; it never informs the client); revisit if a managed-mode or channels client shows a different snapshot behaviour |
 | OPEN-16 | Request size bound: the whole request is buffered in one slot (32 KiB by default), so full-history requests are rejected 400 once they outgrow it | v1: document it, map it to 400 `Request too large`, and raise `buffer.slot.capacity` for AG-UI deployments; recommend a history-skipping streaming decode as a follow-up (parse `messages[]` incrementally, keep only the messages since the last assistant turn plus `state`, `context` and `forwardedProps`), since the A2A request needs only those |
 | OPEN-17 | Confirm the three pre-reply rejections: 503 `retention_unavailable` (retention cannot be arranged, retryable), 409 `handle_unknown` (unknown, expired or foreign handle), 400 `reserved_key` (reserved key in `forwardedProps`) | recommended as written in 8.4; not yet answered by the user |
@@ -664,18 +664,64 @@ lazily by read-through on a local miss (the run waits in the decode slot while t
 a2a(proxy)'s card cache); handles are consumed with `getAndDelete`; with a shared store the redirect is needed only for the
 cache hit. v1 keeps the state behind one interface so this can be added without rework.
 
-#### Placement across workers and nodes: mechanism TBD
+#### Placement across workers and nodes: mechanism TBD (candidates evaluated in revision 11)
 
-On hold, pending the user's decision (OPEN-14). Nothing here is decided: not an engine change, not a binding-level property,
-not an affinity function. What the code shows, which any mechanism has to fit: `EngineWorker.resolveRemoteIndex(routedId,
-affinityId)` honours an affinity only when its node byte is the local node and its worker index is below `workers`, else it
-selects round-robin over the binding's affinity mask; `RouterContext.resolveRoutedId(routedId, affinity)` is identity by
-default and the OSS tree has only the test router; mcp needs no placement function because the session id it issues carries
-the affinity of the worker that minted it, extracted by the `session.id.affinity` property, while here the AG-UI client owns
-`threadId` and nothing server-minted comes back. Per the coordinator, zilla-plus's `HazelcastRouterContext.resolveRoutedId`
-(`runtime/router-hazelcast`) treats the node byte as the owner and routes non-local node bytes to the cluster client binding;
-that is unverified here, because no zilla-plus checkout is available. The state itself stays worker-local per node, so cluster
-durability is the store follow-up (F3).
+Nothing here is decided (OPEN-14): not an engine change, not a binding-level property, not an affinity function, not the
+state-carried token. This section records the facts and compares the candidates so the user can decide.
+
+Facts any mechanism has to fit:
+- `EngineWorker.resolveRemoteIndex(routedId, affinityId)` (lines 2309-2316) honours an affinity only when its node byte (`affinityId >>> 24`) equals the local node and its worker index (`affinityId & 0x00ffffff`) is below `config.workers()`; otherwise it falls back to round-robin over the binding's affinity mask. The affinity value is `(nodeId << 24) + workerIndex` (`EngineWorker`, lines 331 and 2313).
+- Consequence for an "arbitrary long as a key" (candidate b): today `supplyInitialId(routedId, hash)` with an arbitrary hash does **not** pin. The node byte of a random hash equals the local node with probability 1/256, and then the index is the low 24 bits, almost always at or above `workers`, so it falls back to round-robin. A hash pins only if the caller shapes it as `(selfNode << 24) + floorMod(hash, workers)`, which is candidate (a), or if `resolveRemoteIndex` itself starts treating the value as a key, which is an engine change.
+- `RouterContext.resolveRoutedId(routedId, affinity)` is identity by default; the OSS tree has only the test router. Per the coordinator, zilla-plus's `HazelcastRouterContext.resolveRoutedId` (`runtime/router-hazelcast`) treats the node byte as the owner and routes non-local node bytes to the cluster client binding; unverified here, no zilla-plus checkout.
+- mcp needs no placement function: the session id it issues carries the affinity of the worker that minted it (`context.affinity()`), extracted by `session.id.affinity`. Here the AG-UI client owns `threadId` and nothing server-minted comes back.
+
+##### Candidate (c): the owner affinity carried in AG-UI `state`
+
+The worker that handles a thread's first run mints `context.affinity()`, plants it in `state` with a `STATE_DELTA` JSON Patch
+`add` at a reserved key, later runs carry it back in `RunAgentInput.state`, and agui-a2a compares it with its own affinity and
+redirects. `context` is not a candidate: it is application-supplied per run (`parameters?.context`, ag-ui `agent.ts` L642),
+description and value pairs meant for the model's grounding ("not bookkeeping for the transport"), never stored on the agent
+or written by server events, so a server cannot plant a value in it.
+
+| # | Question | Finding |
+| --- | --- | --- |
+| 1 | Does CopilotKit round-trip unknown state keys? | Yes in the normal path. The browser sends `structuredClone(this.state)` (ag-ui `agent.ts` L636); the runtime parses the body (`agent-utils.ts` L482-488) and calls `agent.setState(input.state)` (`handlers/handle-run.ts` L112), and the upstream agent sends it on; the schema treating `state` as any JSON is assumed, not opened. The runner stores compacted state events per run (`compact/compact.ts` L440-494: a lone delta passes through unchanged, a window with a snapshot folds into one `STATE_SNAPSHOT`), and `connect` resets with `STATE_SNAPSHOT {}` then replays (`packages/core/src/agent.ts` L738-756), which restores a planted key, except for runs evicted by the in-memory runner's run cap. `CopilotChat` wipes state with `agent.setState({})` when the thread selection changes (`CopilotChat.tsx` L520-528); the deprecated listener merges (`{...agent.state, ...updates}`, `CopilotListeners.tsx` L90); `state-manager.ts` L505-575 keeps its own per-run copies for renderers, merging snapshots there while the live state is replaced. How an application's own `setState` or state hooks treat unknown keys is unverified |
+| 2 | A `STATE_SNAPSHOT` from any producer | the reducer replaces state with the literal snapshot (ag-ui `apply/default.ts` L1013), so the key is wiped. In v1 agui-a2a relays no state events (tier 1), so the proxy would only have to re-plant on the next run; once agent-originated snapshots exist (F2), the proxy would have to re-inject the key into every snapshot it relays, mutating agent-originated state, or emit a delta after each snapshot |
+| 3 | Non-object or null state, patch failures, first run | the client always sends `state` (default `{}`, ag-ui `agent.ts` L636), and a `add /key` delta applies to `{}` (`jsonpatch.applyPatch(state, delta, true, false)`, `default.ts` L1030-1045; a failure only warns). A non-object state (AG-UI allows any JSON but null) makes the `add` fail with a warning, so the proxy must detect it and skip planting, leaving that thread without a hint for good. Planting is self-healing otherwise: any run that arrives without a valid hint plants again |
+| 4 | agui(server) cost of finding the key before it begins the app stream | high, and in practice infeasible. The hint must be on the Begin (the receiver decides before granting window), so agui(server) must scan the body to the reserved key. Member order is not guaranteed; the reference client serializes `threadId, runId, protocolVersion, tools, context, forwardedProps, state, messages, resume` (`agent.ts` L611-650), so `tools`, `context` and `forwardedProps` precede `state`, and a JSON Patch `add` appends the key as the **last** member of `state`, after any large application state. Today `decodeNext` begins at the first non-id key after both ids; scanning on means the decoders never consume (`decodeSkip` returns `offset`), so everything scanned stays in the decode slot, and `decodeNet` rejects with 400 `Request too large` once `limit - offset >= decodeMax` (32 KiB by default). A streaming skip cannot lower that bound, because the scanned prefix must still be retained for the verbatim forward. Many tool schemas or a large state therefore push the key out of reach, and a client that orders `messages` before `state` would buffer the whole history. Payload replay on `Redirect` still works (the prefix is in the slot), within that bound. It needs a nullable opaque member appended to `AguiBeginEx` (for example `string16 hint = null`, parsed only by the receiver), an additive change on PR #2850 like A1 |
+| 5 | Missing, stale, foreign or forged token | the token is a routing hint only and nothing trusts it. Content: opaque, carrying the affinity and a hash of (identity, agent, `threadId`), so a foreign token (state replayed into another thread) is detected and ignored; no authenticity is needed for safety, because state lookups are keyed by (identity, agent, `threadId`) on the worker, so a forged hint can only misroute the forger's own runs. A wrong hint costs the thread its memory: the run lands on a worker without the state, and the implicit-compaction rule fires, with the transcript compacted to the latest message. Every wiped, trimmed or foreign hint therefore becomes context loss, which hashing never causes |
+| 6 | Forwarding | the proxy strips the reserved key before forwarding `state` as the advisory data part, and before deciding whether `state` is non-empty |
+| 7 | Exposure | the worker numbering and node byte become visible to the client, the application and anything that persists state (mcp embeds it in a UUID-looking id); a hex or base64 encoding hides nothing and a seal needs a key |
+| 8 | Interplay | it adds client-visible Zilla-internal detail to AG-UI state (not A2A detail, so the no-A2A-leak principle is not breached, but it is internal detail in application state, the same objection as the rejected "blob in `state`" for the context id in 9.6); it makes the reset rule fire on every lost token; the fail-closed rules are unaffected |
+| 9 | Other clients | terminal and Slack/Teams (channels SDK) are unverified; the AG-UI spec says `state` is "the consumer's last agreed value", which a client is free to reset |
+
+Verdict on (c): **not recommended.** It buys a hash-free, topology-free multi-node story (exactly mcp's trick), but it
+cannot be delivered where the receiver needs it: agui(server) would have to scan to the last member of `state` inside a
+32 KiB slot, which fails for ordinary tool-heavy or state-heavy requests. It also routes by data the application owns and can
+wipe (`setState({})`, thread switches, replay gaps), converting each wipe into visible context loss, and it exposes topology
+and mutates application state.
+
+##### Comparison of the candidates
+
+| | (a) hash(identity, agent, `threadId`) in the binding | (b) the engine treats a long as a key | (c) state-carried token | (d) no routing, local state only |
+| --- | --- | --- | --- | --- |
+| Where the value comes from | the binding hashes the key and shapes `(selfNode << 24) + floorMod(hash, workers)` | the binding passes a key hash; the engine maps it (a new engine operation, or `resolveRemoteIndex` changed to treat the value as a key) | the first worker mints `context.affinity()`; the client echoes it in `state` | none |
+| How early | at Begin (identity from `with.identity`, agent and `threadId` from `AguiBeginEx`) | at Begin | only after agui(server) has scanned to the end of `state`; needs a new nullable `AguiBeginEx` member | n/a |
+| Who needs topology | the binding (`EngineConfiguration.workers()`, `context.affinity()` for the node byte); the node set for multi-node | the engine (and the router for the node set) | nobody | nobody |
+| Multi-node story | needs the node set: a router override or a binding-side function | the router overrides the engine default; the binding is unchanged | natural, as for mcp: the node byte is minted by the owning node | none: each node and worker has its own map |
+| Failure modes | rescale, restart or a changed `workers` rehashes: state lost, then the reset rule | the same | any wiped, trimmed or foreign token: state not found, reset rule fires; scan beyond the slot: 400 `Request too large`; non-object state: no hint | with W workers, a run reaches the owner with probability 1 / W unless the connection is pinned: spurious resets on most turns |
+| Spec, engine, idl impact | none for one node; a router or engine hook for many | an engine change (A11-style), none in idl | `AguiBeginEx` addition (PR #2850), agui(server) decoder change (scan), a reserved `state` key | none |
+| Impact on clients and apps | none | none | application `state` carries an internal key; apps that replace state lose routing | none |
+
+##### Recommendation
+
+Not decided. If the user wants v1 to work with several workers, (a) is the least invasive: it is deterministic, needs no client
+cooperation and no idl change, and for one node the binding needs only `EngineConfiguration.workers()` and `context.affinity()`;
+what it cannot do alone is multi-node, which needs the node set from a router (or the engine, which is (b)). (b) is (a) with
+the topology moved into the engine; it is the only variant that keeps the binding free of placement logic, at the cost of an
+engine change, and the facts above show that "pass any long" does not pin today. (c) is rejected above. (d) is viable only with
+one worker, because every extra worker multiplies spurious resets; it is the baseline, not a plan. The cheapest decision
+that unblocks v1 is (a) for a single node, with multi-node left to the router decision.
 
 #### What the design relies on
 
