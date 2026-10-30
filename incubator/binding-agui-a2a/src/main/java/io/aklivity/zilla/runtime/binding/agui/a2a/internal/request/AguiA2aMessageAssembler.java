@@ -250,7 +250,12 @@ public final class AguiA2aMessageAssembler
         final int last = lastMessage();
         boolean identified = false;
 
-        if (interruptId == null && last != ABSENT && openIndex(last) && parser.nextEvent() == JsonEvent.START_OBJECT)
+        if (interruptId == null && last != ABSENT)
+        {
+            openIndex(last);
+        }
+
+        if (interruptId == null && last != ABSENT && parser.nextEvent() == JsonEvent.START_OBJECT)
         {
             JsonEvent event = parser.nextEvent();
             while (!identified && event != JsonEvent.END_OBJECT)
@@ -302,7 +307,9 @@ public final class AguiA2aMessageAssembler
         int index = retained.indexOf(Kind.MESSAGE);
         while (index != ABSENT)
         {
-            if (openIndex(index) && parser.nextEvent() == JsonEvent.START_OBJECT)
+            openIndex(index);
+
+            if (parser.nextEvent() == JsonEvent.START_OBJECT)
             {
                 JsonEvent event = parser.nextEvent();
                 while (event != JsonEvent.END_OBJECT)
@@ -706,17 +713,22 @@ public final class AguiA2aMessageAssembler
 
         final int index = retained.indexOf(kind);
 
-        return index != ABSENT && openIndex(index);
+        if (index != ABSENT)
+        {
+            openIndex(index);
+        }
+
+        return index != ABSENT;
     }
 
-    private boolean openIndex(
+    private void openIndex(
         int index)
     {
         final int offset = retained.offset(index);
         entryLimit = offset + retained.length(index);
         parser.reset();
         parser.wrap(slot, offset, entryLimit, true);
-        return parser.nextEvent() == JsonEvent.START_DOCUMENT;
+        parser.nextEvent();
     }
 
     private int position()
