@@ -3481,6 +3481,63 @@
                                 },
                                 "then": {
                                     "properties": {
+                                        "routes": {
+                                            "title": "Routes",
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "when": {
+                                                        "title": "When",
+                                                        "type": "array",
+                                                        "maxItems": 1,
+                                                        "items": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "agent": {
+                                                                    "title": "Agent",
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "additionalProperties": false,
+                                                            "required": [
+                                                                "agent"
+                                                            ]
+                                                        }
+                                                    },
+                                                    "with": {
+                                                        "title": "With",
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "path": {
+                                                                "title": "Path",
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "additionalProperties": false,
+                                                        "required": [
+                                                            "path"
+                                                        ]
+                                                    }
+                                                },
+                                                "if": {
+                                                    "required": [
+                                                        "with"
+                                                    ]
+                                                },
+                                                "then": {
+                                                    "required": [
+                                                        "exit",
+                                                        "when"
+                                                    ],
+                                                    "properties": {
+                                                        "when": {
+                                                            "minItems": 1
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
                                         "options": {
                                             "properties": {
                                                 "server": {
@@ -3514,8 +3571,7 @@
                                             "required": [
                                                 "server"
                                             ]
-                                        },
-                                        "routes": false
+                                        }
                                     },
                                     "required": [
                                         "exit",
