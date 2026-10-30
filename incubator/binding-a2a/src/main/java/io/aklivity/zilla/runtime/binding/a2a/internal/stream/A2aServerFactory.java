@@ -184,6 +184,7 @@ public final class A2aServerFactory implements A2aStreamFactory
 
     private final A2aReplyDecoder decodeReplyJson = this::decodeReplyJson;
     private final A2aReplyDecoder decodeReplyEventStart = this::decodeReplyEventStart;
+    private final A2aReplyDecoder decodeReplyEventHead = this::decodeReplyEventHead;
     private final A2aReplyDecoder decodeReplyEvent = this::decodeReplyEvent;
     private final A2aReplyDecoder decodeReplyTranslated = this::decodeReplyTranslated;
     private final A2aReplyDecoder decodeReplyIgnore = this::decodeReplyIgnore;
@@ -2058,7 +2059,6 @@ public final class A2aServerFactory implements A2aStreamFactory
         private int decodeLimit;
         private int decodedDepth;
         private int eventFrom;
-        private int eventFlags;
 
         private A2aStream(
             A2aServer server)
@@ -2115,13 +2115,10 @@ public final class A2aServerFactory implements A2aStreamFactory
             int to,
             int flags)
         {
-            final int eventFlags = this.eventFlags | flags;
-
             server.doEncodeResponseBegin(traceId, authorization, CONTENT_TYPE_EVENT_STREAM);
-            server.doNetEvent(traceId, authorization, eventFlags, buffer, eventFrom, to - eventFrom,
-                (eventFlags & INIT) != 0, (eventFlags & FIN) != 0);
+            server.doNetEvent(traceId, authorization, flags, buffer, eventFrom, to - eventFrom,
+                (flags & INIT) != 0, (flags & FIN) != 0);
 
-            this.eventFlags = 0;
             this.eventFrom = to;
         }
 
@@ -2174,9 +2171,10 @@ public final class A2aServerFactory implements A2aStreamFactory
                     }
                     while (progress != previous && progress < limit || decoder != previousDecoder);
 
-                    if (decoder == decodeReplyEvent && progress > eventFrom)
+                    if ((decoder == decodeReplyEventHead || decoder == decodeReplyEvent) && progress > eventFrom)
                     {
-                        flushEvent(traceId, authorization, buffer, progress, 0);
+                        flushEvent(traceId, authorization, buffer, progress, decoder == decodeReplyEventHead ? INIT : 0);
+                        decoder = decodeReplyEvent;
                     }
                 }
                 catch (JsonException | IllegalStateException ex)
@@ -2702,8 +2700,7 @@ public final class A2aServerFactory implements A2aStreamFactory
             {
                 stream.decodedDepth = 1;
                 stream.eventFrom = offset;
-                stream.eventFlags = INIT;
-                stream.decoder = decodeReplyEvent;
+                stream.decoder = decodeReplyEventHead;
             }
             else
             {
@@ -2714,6 +2711,17 @@ public final class A2aServerFactory implements A2aStreamFactory
         return stream.position();
     }
 
+    private int decodeReplyEventHead(
+        A2aStream stream,
+        long traceId,
+        long authorization,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        return decodeReplyEventMessage(stream, traceId, authorization, buffer);
+    }
+
     private int decodeReplyEvent(
         A2aStream stream,
         long traceId,
@@ -2722,9 +2730,19 @@ public final class A2aServerFactory implements A2aStreamFactory
         int offset,
         int limit)
     {
-        final JsonParserEx parser = stream.parser;
+        return decodeReplyEventMessage(stream, traceId, authorization, buffer);
+    }
 
-        while (stream.decoder == decodeReplyEvent && parser.hasNextEvent())
+    private int decodeReplyEventMessage(
+        A2aStream stream,
+        long traceId,
+        long authorization,
+        DirectBufferEx buffer)
+    {
+        final JsonParserEx parser = stream.parser;
+        final A2aReplyDecoder current = stream.decoder;
+
+        while (stream.decoder == current && parser.hasNextEvent())
         {
             final JsonEvent event = parser.nextEvent();
 
@@ -2740,7 +2758,8 @@ public final class A2aServerFactory implements A2aStreamFactory
             }
             else if (event != JsonEvent.KEY_NAME && stream.decodedDepth == 0)
             {
-                stream.flushEvent(traceId, authorization, buffer, stream.position(), FIN);
+                stream.flushEvent(traceId, authorization, buffer, stream.position(),
+                    current == decodeReplyEventHead ? INIT | FIN : FIN);
                 stream.decoder = decodeReplyEventStart;
             }
         }
@@ -2757,7 +2776,7 @@ public final class A2aServerFactory implements A2aStreamFactory
 
         server.doEncodeResponseBegin(traceId, authorization, CONTENT_TYPE_EVENT_STREAM);
 
-        if (stream.decoder == decodeReplyEvent)
+        if (stream.decoder == decodeReplyEventHead || stream.decoder == decodeReplyEvent)
         {
             server.doNetAbort(traceId, authorization);
         }
