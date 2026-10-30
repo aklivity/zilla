@@ -72,6 +72,8 @@ abstract class LlmAttributeProbe
         declined = false;
         continued = false;
         keys[1] = NO_KEY;
+
+        onRestart();
     }
 
     final LlmSectionAttributes attributes()
@@ -148,6 +150,10 @@ abstract class LlmAttributeProbe
 
     protected abstract void onBegin(
         LlmSectionType type);
+
+    protected void onRestart()
+    {
+    }
 
     protected abstract int onKey(
         int depth,
