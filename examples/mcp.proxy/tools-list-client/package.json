@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Headless MCP client that lists tools through the Zilla mcp proxy, optionally with a bearer token, to observe authorization-filtered tools/list results",
+  "description": "Headless MCP client that lists tools, calls a tool, or reads a resource through the Zilla mcp proxy",
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.29.0"
   }

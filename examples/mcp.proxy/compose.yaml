@@ -7,14 +7,8 @@ services:
     ports:
       - 7114:7114
       - 7190:7190
-      # - 4444:4444
-    # start_interval is what makes `up --wait` return promptly: without it the
-    # first health probe does not run until one full `interval` has elapsed, so a
-    # service that is ready in milliseconds still reports unhealthy for 5s. During
-    # start_period the probe runs every start_interval instead, and the container
-    # is marked healthy on its first success. Measured on this pattern: 13.7s to
-    # healthy without it, 1.6s with. Every fast service below gets the same
-    # treatment; kafka already polls at interval: 1s and needs none.
+    # start_interval makes `up --wait` return as soon as zilla is ready instead of
+    # after one full `interval`
     healthcheck:
       interval: 5s
       timeout: 3s
@@ -24,54 +18,28 @@ services:
       test: ["CMD", "sh", "-c", "test -f /var/run/zilla/ready"]
     environment:
       ZILLA_INCUBATOR_ENABLED: "true"
-      # JAVA_OPTIONS: "-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=*:4444"
     volumes:
       - ./etc:/etc/zilla
-      # - ~/docker-captures:/var/log/zilla-captures
     command: start -v -e
     depends_on:
       everything:
         condition: service_healthy
-      urlelicit:
-        condition: service_healthy
-      ghapi:
-        condition: service_healthy
-      petstore:
-        condition: service_healthy
-      karapace-registry:
-        condition: service_healthy
-      kafka-connect:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-      kafka-init:
-        condition: service_completed_successfully
 
   everything:
     image: node:20-alpine
     hostname: everything
     restart: unless-stopped
-    # Pinned: unpinned "latest" silently changed behavior (e.g. added a new
-    # "tasks" initialize capability) and reintroduced this container's own
-    # npm-registry fetch time into the cache-hydration budget on every test
-    # run, both of which showed up as an intermittent "cache never finished
-    # hydrating" failure for this toolkit specifically.
+    # Pinned: an unpinned "latest" has silently changed the initialize capabilities
+    # between runs
     command: ["npx", "-y", "@modelcontextprotocol/server-everything@2026.7.4", "streamableHttp"]
     environment:
       PORT: "3001"
-    # Persists npm's download/extract cache across container recreations --
-    # CI restores/saves this same path via actions/cache, keyed on the pinned
-    # version above, turning the cold ~2-5 minute install into a few seconds
-    # on a cache hit. Gitignored; harmless if absent (falls back to a fresh,
-    # empty directory and pays the normal cold-install cost once).
+    # npm's download cache; CI restores it keyed on the pinned version above, so a
+    # cold ~2-5 minute install becomes a few seconds. Gitignored.
     volumes:
       - ./.cache/npm-everything:/root/.npm
     healthcheck:
-      # A cold `npx -y` install of this package (no cache volume, so every
-      # container start re-fetches it) has been observed taking anywhere from
-      # ~2 to 5+ minutes depending on npm-registry conditions; retries is
-      # sized with a generous 10-minute ceiling rather than a tight bound on
-      # the slowest observed run.
+      # generous ceiling: a cold `npx -y` install has taken 5+ minutes
       interval: 5s
       timeout: 3s
       retries: 120
@@ -79,254 +47,7 @@ services:
       start_interval: 250ms
       test: ["CMD", "nc", "-z", "127.0.0.1", "3001"]
 
-  urlelicit:
-    image: node:20-alpine
-    hostname: urlelicit
-    restart: unless-stopped
-    working_dir: /app
-    command: ["sh", "-c", "npm install --no-audit --no-fund --silent && node server.mjs"]
-    ports:
-      - 3003:3003
-    environment:
-      PORT: "3003"
-    volumes:
-      - ./url-elicit:/app
-    healthcheck:
-      interval: 5s
-      timeout: 3s
-      retries: 20
-      start_period: 30s
-      start_interval: 250ms
-      test: ["CMD", "nc", "-z", "127.0.0.1", "3003"]
-
-  # Run on demand: `docker compose run --rm urlelicit-client`.
-  # A distinct service so the one-off client container does not claim the
-  # `urlelicit` network alias and round-robin Zilla's upstream resolution onto
-  # itself (which would intermittently break the south connection to the server).
-  urlelicit-client:
-    image: node:20-alpine
-    deploy:
-      replicas: 0
-    working_dir: /app
-    environment:
-      MCP_URL: "http://zilla:7114/mcp"
-    volumes:
-      - ./url-elicit:/app
-    entrypoint: ["node", "/app/client.mjs"]
-
-  # Mock GitHub REST API backing the mcp-http "github" toolkit.
-  ghapi:
-    image: node:20-alpine
-    hostname: ghapi
-    restart: unless-stopped
-    working_dir: /app
-    command: ["sh", "-c", "npm install --no-audit --no-fund --silent && node server.mjs"]
-    environment:
-      PORT: "4001"
-    volumes:
-      - ./ghapi:/app
-    healthcheck:
-      interval: 5s
-      timeout: 3s
-      retries: 20
-      start_period: 30s
-      start_interval: 250ms
-      test: ["CMD", "nc", "-z", "127.0.0.1", "4001"]
-
-  # Mock Petstore REST API backing the mcp-openapi "petstore" toolkit.
-  petstore:
-    image: node:20-alpine
-    hostname: petstore
-    restart: unless-stopped
-    working_dir: /app
-    command: ["sh", "-c", "npm install --no-audit --no-fund --silent && node server.mjs"]
-    environment:
-      PORT: "4002"
-    volumes:
-      - ./petstore:/app
-    healthcheck:
-      interval: 5s
-      timeout: 3s
-      retries: 20
-      start_period: 30s
-      start_interval: 250ms
-      test: ["CMD", "nc", "-z", "127.0.0.1", "4002"]
-
-  # Real single-node Kafka broker (KRaft mode) backing the mcp-kafka "kafka" toolkit.
-  #
-  # authorizer.class.name enables the real DescribeAcls/CreateAcls/DeleteAcls
-  # APIs the kafka__list_acls/create_acls/delete_acls tools call -- without an
-  # authorizer configured, the broker rejects those RPCs outright regardless
-  # of caller scope. allow.everyone.if.no.acl.found keeps every existing
-  # produce_message/consume_messages/admin check in this example working exactly as before:
-  # it only stops applying to a resource once an ACL is actually created for
-  # it (see kafka__create_acls in .github/test.sh, which deliberately targets
-  # a dedicated acl-test-topic rather than the orders topic those other
-  # checks depend on).
-  kafka:
-    image: apache/kafka:4.1.1
-    restart: unless-stopped
-    hostname: kafka.examples.dev
-    ports:
-      - 9092:9092
-    healthcheck:
-      test: /opt/kafka/bin/kafka-cluster.sh cluster-id --bootstrap-server kafka.examples.dev:29092 || exit 1
-      interval: 1s
-      timeout: 60s
-      retries: 60
-    environment:
-      KAFKA_NODE_ID: "1"
-      KAFKA_BROKER_ID: "1"
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
-      KAFKA_PROCESS_ROLES: "broker,controller"
-      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@127.0.0.1:9093"
-      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
-      KAFKA_LISTENERS: "CLIENT://0.0.0.0:9092,INTERNAL://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093"
-      KAFKA_ADVERTISED_LISTENERS: "CLIENT://localhost:9092,INTERNAL://kafka.examples.dev:29092"
-      KAFKA_INTER_BROKER_LISTENER_NAME: "INTERNAL"
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CLIENT:PLAINTEXT,INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT"
-      KAFKA_LOG_DIRS: "/tmp/logs"
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_AUTHORIZER_CLASS_NAME: "org.apache.kafka.metadata.authorizer.StandardAuthorizer"
-      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
-
-  # One-shot topic setup; auto-create also covers this, but an explicit topic
-  # documents intent the same way every other *.kafka.* example in this repo does.
-  kafka-init:
-    image: apache/kafka:4.1.1
-    user: root
-    depends_on:
-      kafka:
-        condition: service_healthy
-        restart: true
-    deploy:
-      restart_policy:
-        condition: none
-        max_attempts: 0
-    entrypoint: ["/bin/sh", "-c"]
-    environment:
-      KAFKA_BOOTSTRAP_SERVER: kafka.examples.dev:29092
-    command:
-      - |
-        echo "Creating kafka topic";
-        /opt/kafka/bin/kafka-topics.sh --bootstrap-server $${KAFKA_BOOTSTRAP_SERVER} --create --if-not-exists --topic orders
-        echo "Successfully created the following topics:";
-        /opt/kafka/bin/kafka-topics.sh --bootstrap-server $${KAFKA_BOOTSTRAP_SERVER} --list --exclude-internal;
-
-  # Real Karapace Schema Registry backing the mcp-schema-registry
-  # "schemaregistry" toolkit -- talks to the same real Kafka broker as the
-  # "kafka" toolkit above, storing schemas in its own _schemas topic.
-  karapace-registry:
-    image: ghcr.io/aiven-open/karapace:3.15.2
-    entrypoint:
-      - /bin/bash
-      - /opt/karapace/start.sh
-      - registry
-    depends_on:
-      kafka:
-        condition: service_healthy
-    ports:
-      - 8081:8081
-    environment:
-      KARAPACE_ADVERTISED_HOSTNAME: karapace-registry
-      KARAPACE_BOOTSTRAP_URI: kafka.examples.dev:29092
-      KARAPACE_PORT: 8081
-      KARAPACE_HOST: 0.0.0.0
-      KARAPACE_CLIENT_ID: karapace
-      KARAPACE_GROUP_ID: karapace-registry
-      KARAPACE_MASTER_ELIGIBILITY: "true"
-      KARAPACE_TOPIC_NAME: _schemas
-      KARAPACE_LOG_LEVEL: WARNING
-      KARAPACE_COMPATIBILITY: BACKWARD
-    # python3 rather than wget/curl: this image ships neither, nor nc -- the
-    # venv's python is the only HTTP client in it, so a probe copied from the
-    # kafka-connect healthcheck below would never succeed and would leave the
-    # container permanently unhealthy. /subjects is the registry's own API, so
-    # this is ready only when it can actually serve a schema request, which
-    # `service_started` could never establish.
-    healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8081/subjects', timeout=3).status == 200 else 1)"]
-      interval: 5s
-      timeout: 5s
-      retries: 60
-      start_period: 60s
-      start_interval: 1s
-
-  # Real Kafka Connect distributed worker backing the mcp-kafka-connect
-  # "kafkaconnect" toolkit -- talks to the same real Kafka broker as the
-  # "kafka" toolkit above, storing its own config/offset/status state in
-  # three internal compacted topics rather than a separate database.
-  # plugin.path is scoped to just connect-file-*.jar, copied out of the broker
-  # distribution's own libs/ directory, rather than pointing at that whole
-  # directory -- that jar alone bundles the FileStreamSource/FileStreamSinkConnector
-  # classes this example's test.sh exercises, so no separate connector plugin
-  # download is needed either way. But plugin.path's isolating classloader scans
-  # and isolates every jar it points at, one at a time, before the worker can
-  # start serving requests; pointed at the ~100-jar libs/ directory (the rest of
-  # Kafka's own runtime, not connector plugins), that scan measured ~140s on this
-  # example's stack before this fix, against ~10s scoped to just the one jar.
-  kafka-connect:
-    image: apache/kafka:4.1.1
-    restart: unless-stopped
-    hostname: kafka-connect
-    ports:
-      - 8083:8083
-    depends_on:
-      kafka:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "-T", "3", "http://127.0.0.1:8083/connectors"]
-      interval: 5s
-      timeout: 5s
-      retries: 60
-      start_period: 60s
-      # 1s rather than the 250ms the fast services use: this is a JVM that takes
-      # tens of seconds either way, so a tighter poll only adds probes
-      start_interval: 1s
-    environment:
-      KAFKA_BOOTSTRAP_SERVER: kafka.examples.dev:29092
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - |
-        cat > /tmp/connect-distributed.properties <<EOF
-        bootstrap.servers=$${KAFKA_BOOTSTRAP_SERVER}
-        group.id=connect-cluster
-        key.converter=org.apache.kafka.connect.json.JsonConverter
-        value.converter=org.apache.kafka.connect.json.JsonConverter
-        key.converter.schemas.enable=false
-        value.converter.schemas.enable=false
-        offset.storage.topic=connect-offsets
-        offset.storage.replication.factor=1
-        config.storage.topic=connect-configs
-        config.storage.replication.factor=1
-        status.storage.topic=connect-status
-        status.storage.replication.factor=1
-        listeners=HTTP://0.0.0.0:8083
-        rest.advertised.host.name=kafka-connect
-        plugin.path=/tmp/connect-plugins
-        EOF
-        mkdir -p /tmp/connect-plugins
-        cp /opt/kafka/libs/connect-file-*.jar /tmp/connect-plugins/
-        echo 'hello from mcp-kafka-connect' > /tmp/kc-source.txt
-        exec /opt/kafka/bin/connect-distributed.sh /tmp/connect-distributed.properties
-
-  # Mints JWTs for the authn_jwt guard. Run on demand, e.g.:
-  #   docker compose run --rm jwt-cli encode --alg RS256 --kid example \
-  #       --iss https://auth.example.com --aud https://api.example.com \
-  #       --exp=+1d --no-iat --payload "scope=github:tools" --secret @/private.pem
-  jwt-cli:
-    image: bitnamilegacy/jwt-cli
-    stdin_open: true
-    tty: true
-    profiles:
-      - on-demand
-    volumes:
-      - ./private.pem:/private.pem
-
-  # Run on demand: `docker compose run --rm -e JWT_TOKEN=$JWT_TOKEN tools-list-client`.
+  # Run on demand: `docker compose run --rm tools-list-client`
   tools-list-client:
     image: node:20-alpine
     deploy:
@@ -338,7 +59,7 @@ services:
       - ./tools-list-client:/app
     entrypoint: ["sh", "-c", "npm install --no-audit --no-fund --silent && node client.mjs"]
 
-  # Run on demand: `docker compose run --rm resource-subscribe-client`.
+  # Run on demand: `docker compose run --rm resource-subscribe-client`
   resource-subscribe-client:
     image: node:20-alpine
     deploy:
@@ -350,28 +71,9 @@ services:
       - ./resource-subscribe-client:/app
     entrypoint: ["sh", "-c", "npm install --no-audit --no-fund --silent && node client.mjs"]
 
-  # One-off verification container -- `docker compose run --rm verify`, which is
-  # all .github/test.sh does once it has minted the caller JWTs. profiles gates
-  # it out of the default set, so a plain `docker compose up` never starts it,
-  # and `docker compose run` enables the profile of the service it targets.
-  #
-  # Depending on zilla alone is enough: zilla already declares every other
-  # component above, so its health transitively covers the mocks, the broker,
-  # the registry and the connect worker.
-  #
-  # The client services above stay as the documented interactive entry points
-  # (README drives them by hand); this mounts the same directories so verify.sh
-  # can run those same client scripts as node processes rather than starting ~48
-  # containers to do it. npm install therefore happens once, here, instead of on
-  # every assertion. url-elicit is not installed: the urlelicit server shares
-  # that bind mount and has already installed into it by the time this runs.
-  #
-  # The docker socket is mounted for exactly one purpose -- two assertions read
-  # another container's log (see service_logs in verify.sh), which has no
-  # equivalent observation point from inside the network. Note that :ro on a
-  # socket mount does not restrict the Docker API; it is the daemon's socket
-  # either way, so this grants full daemon access and is the one real tradeoff
-  # in running the verification inside the stack.
+  # `docker compose run --rm verify`, which .github/test.sh does. Gated by the
+  # test profile so a plain `docker compose up` never starts it. The clients run
+  # here as plain node processes, so npm install happens once.
   verify:
     image: node:20-alpine
     profiles: ["test"]
@@ -384,21 +86,13 @@ services:
       - ../.github/test-lib.sh:/test-lib.sh:ro
       - ./tools-list-client:/work/tools-list-client
       - ./resource-subscribe-client:/work/resource-subscribe-client
-      - ./url-elicit:/work/url-elicit
-      - /var/run/docker.sock:/var/run/docker.sock
-    # verify.sh defaults this to 1 and documents FAIL_FAST=0 as the override, but
-    # `docker compose run` passes no host environment through on its own, so
-    # without declaring it here the override never reaches the container. Fail-fast
-    # stays the default because the workflow copies out zilla's engine directory on
-    # failure: `zilla dump` over it is only useful while the most recent frames are
-    # the failing ones, and ~40 further assertions would bury them.
     environment:
       FAIL_FAST: "${FAIL_FAST:-1}"
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
         set -e
-        apk add --no-cache curl docker-cli > /dev/null
+        apk add --no-cache curl > /dev/null
         npm install --prefix /work/tools-list-client --no-audit --no-fund --silent
         npm install --prefix /work/resource-subscribe-client --no-audit --no-fund --silent
         exec sh /test/verify.sh
