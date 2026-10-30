@@ -84,6 +84,26 @@ public class A2aClientIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/send.message.task.failed/client",
+        "${net}/discover.send.message.task.failed/server"})
+    public void shouldSendMessageTaskFailed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/send.message.task.input.required/client",
+        "${net}/discover.send.message.task.input.required/server"})
+    public void shouldSendMessageTaskInputRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/send.message.100k/client",
         "${net}/discover.send.message.100k/server"})
     public void shouldSendMessage100k() throws Exception
@@ -117,6 +137,66 @@ public class A2aClientIT
         "${app}/stream.message.aborted/client",
         "${net}/discover.stream.message.aborted/server"})
     public void shouldStreamMessageAborted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/stream.message.auth.required/client",
+        "${net}/discover.stream.message.auth.required/server"})
+    public void shouldStreamMessageAuthRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/stream.message.canceled/client",
+        "${net}/discover.stream.message.canceled/server"})
+    public void shouldStreamMessageCanceled() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/stream.message.failed/client",
+        "${net}/discover.stream.message.failed/server"})
+    public void shouldStreamMessageFailed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/stream.message.input.required/client",
+        "${net}/discover.stream.message.input.required/server"})
+    public void shouldStreamMessageInputRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/stream.message.rejected/client",
+        "${net}/discover.stream.message.rejected/server"})
+    public void shouldStreamMessageRejected() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/stream.message.status.message/client",
+        "${net}/discover.stream.message.status.message/server"})
+    public void shouldStreamMessageStatusMessage() throws Exception
     {
         k3po.finish();
     }
