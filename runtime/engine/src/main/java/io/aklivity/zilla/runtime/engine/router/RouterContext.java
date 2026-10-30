@@ -84,6 +84,25 @@ public interface RouterContext
         int labelId);
 
     /**
+     * Resolves the affinity value for the given key hash, e.g. selecting a different node
+     * when placing the key across multiple nodes.
+     * <p>
+     * Identity by default: {@code affinity} unchanged, meaning the engine's own placement
+     * of the key applies.
+     * </p>
+     *
+     * @param keyHash   the hash of the logical key to place
+     * @param affinity  the affinity value the engine would otherwise resolve for the key
+     * @return the affinity value that the logical key resolves to
+     */
+    default long resolveAffinityId(
+        long keyHash,
+        long affinity)
+    {
+        return affinity;
+    }
+
+    /**
      * Resolves the binding id that a stream carrying the given affinity should actually be
      * routed to, e.g. redirecting to a different binding when the affinity designates a
      * remote node.
