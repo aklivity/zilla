@@ -176,9 +176,10 @@ AG-UI and CopilotKit facts that bear on this (verified, section 7): the AG-UI HT
 | ~~OPEN-9~~ | resolved (revision 7) | no context modes; `thread`, `none`, `scoped`, `masked`, `server` are listed as considered and rejected in 9.6 |
 | OPEN-10 | Reply fallback from working status messages (9.2): the latest retained working text is emitted at `COMPLETED` when nothing else was | include as `options.status: reply` default: an empty reply is worse than a late one; the rule assumes cumulative or final-message replies and loses chunks from agents that send incremental fragments, which needs a real agent to confirm |
 | OPEN-11 | Which A2UI generation the first content plug-in targets (9.5) | the shape CopilotKit's `a2ui-surface` renderer reads today (`a2ui_operations`, `createSurface` / `updateComponents` operations); v0.8 operations from the `@ag-ui/a2a` precedent only if an agent needs them |
-| OPEN-12 | The amnesia rule (8.4): (a) fail with 409 `context_lost` when prior assistant turns exist, nothing is remembered and the agent is known to issue contexts (a worker-local learned per-agent flag), otherwise start a new context; or (b) always start a new context and raise a warning event | **held, undecided** (user): worked examples requested, 8.4 text unchanged |
+| ~~OPEN-12~~ | resolved (user decision, revision 8) | always start a new context plus implicit compaction by `MESSAGES_SNAPSHOT` (8.4); no `fail`, no 409 `context_lost`, no per-agent flag; conditional on the CopilotKit check, which aligned (9.10) |
 | ~~OPEN-13~~ | resolved (user decision, revision 7) | no store in v1; `options.store` is a documented follow-up (F3) |
 | OPEN-14 | How the proxy turns a key into an affinity | v1 single node: `(self node bits of affinity()) + floorMod(hash, workers)` from `EngineConfiguration.workers()`; multi-node needs an engine key-to-affinity operation (S8, A11), recommended only when multi-node is on the table |
+| OPEN-15 | Unverified residue of 9.10 and two accepted limitations: CopilotKit's managed (Intelligence) persistence and other AG-UI clients were not checked; trimmed histories cannot trigger the reset; an agent that returns a `contextId` on every message without memory causes one spurious reset per thread per restart | accept for v1 and keep the warning event; revisit if a managed-mode or channels client shows a different snapshot behaviour |
 
 
 ## 3. Config sketch and routing
@@ -359,16 +360,16 @@ A11 and the rest are new.
 | I2 | `binding-agui-a2a.spec: run lifecycle, text, error and routing scenarios` | I1, A6 | Paired `.rpt` scenarios under `streams/application/{agui,a2a}`: slug pass-through and `with.agent` rewrite onto `A2aBeginEx.agent`, null slug, text chunks, append / replace, multi-artifact, `message` reply, non-streaming `messageSend`, `COMPLETED` / `FAILED` / `REJECTED` / `CANCELED`, a2a abort / `A2aErrorResetEx` / bearer reset (502 / 403 per 1.3) -> agui reset / abort | every row of 1.3 and its reset table covered; ITs per side (mirroring `A2aServerIT` / `HttpClientIT`) green |
 | I3 | `binding-agui-a2a.spec: request mapping, interrupt / resume, cancel and card scenarios` | I2, A7 | 1.2 (trailing user messages, binary / url parts, state + context data part, forwardedProps metadata, empty -> 422), `resume` -> `taskId`, `INPUT_REQUIRED` / `AUTH_REQUIRED` -> `INTERRUPT`, cancel with and without `taskId`, card streaming switch, 415, card failure | rows of 1.1, 1.2, 1.6, 1.7 each covered; request bodies checked verbatim |
 | I4 | `binding-agui-a2a: scaffold runtime module and config adapter` | I1 | Module `incubator/binding-agui-a2a` + `.conf` (failing ITs first), factory SPI, config adapter for all `options` of I1 and the routes, `module-info`, the `BindingEvent` catalog (8.0: run routed / finished with `agent`, `threadId`, `runId`, `taskId`, `contextId`, outcome) | config tests; ITs fail for the right reason before I5; `incubator/pom.xml` modules + dependencyManagement |
-| I5 | `binding-agui-a2a: map RunAgentInput to an A2A message` | I3, I4, I11 | Decode slot buffers the request, encode slot builds the v1.0 message JSON and `contentLength`, opens `messageStream` / `messageSend` with the routed slug; the remembered `contextId` (never a client-chosen one) and the amnesia rule of 8.4; `forwardedProps` as top-level `Message.metadata` minus reserved keys, no run ids; `acceptedOutputModes` (9.3); resume -> the `taskId` behind the handle; parse and ignore `tools` and trailing `tool` messages (8.3); mirror `AguiClientFactory`'s run input encoder; decoder states, no phase booleans | 1.1 / 1.2 scenarios pass; oversize request rejected as agui(server) does; slots released on every error path |
-| I11 | `binding-agui-a2a: owner-side state, handles, amnesia rule and affinity redirect` | I4, A9, A10 | The proxy owns the state for (identity, agent, `threadId`) and issues the engine `Redirect`, echoing the Begin extension, when a run reaches the wrong worker, as mcp(server) does (8.4): a worker-local bounded map with TTL sweep through the signaler holding the agent-issued `contextId`, a per-agent issues-context flag, and interrupt / tool-call handles (random 128-bit, `kind` field, single use); the affinity function and a redirect handler stream mirroring `McpRedirectHandler`; the single amnesia rule (409 `context_lost`); no client-held secrets, no `options.context`, no `options.store`; state kept behind one interface so F3 can add a store | scenarios: aligned run, misaligned run answered with `Redirect` echoing the Begin extension, second run of a thread reuses the `contextId`, an agent that returns none stores nothing, resume with a valid / unknown / expired / foreign handle, amnesia rule (fails only for a context-issuing agent with prior assistant turns), TTL expiry and capacity eviction |
-| I6 | `binding-agui-a2a: map A2A events to AG-UI frames` | I5 | Incremental event decoder (mirror `AguiEventDecoder`), `chunks` text framing, `CUSTOM` `agent.data` / `agent.file`, `status.message` mapping with digest dedupe and the fallback reply (9.2), unaccepted-part handling (9.3), neutral `agent_*` error codes and `reason` strings, outcome / abort / reset mapping, opaque interrupt handles with `expiresAt`, flow control honoured both ways; no A2A ids or vocabulary on the client stream | 1.3 scenarios incl. `*.100k` pass; a scenario asserts no `taskId` / `contextId` / `a2a` string appears on the agui side |
+| I5 | `binding-agui-a2a: map RunAgentInput to an A2A message` | I3, I4, I11 | Decode slot buffers the request, encode slot builds the v1.0 message JSON and `contentLength`, opens `messageStream` / `messageSend` with the routed slug; the remembered `contextId` (never a client-chosen one) and, only when a prior assistant turn exists and nothing is remembered, retaining the trailing user messages' byte ranges until the first a2a data frame (8.4); `forwardedProps` as top-level `Message.metadata` minus reserved keys, no run ids; `acceptedOutputModes` (9.3); resume -> the `taskId` behind the handle; parse and ignore `tools` and trailing `tool` messages (8.3); mirror `AguiClientFactory`'s run input encoder; decoder states, no phase booleans | 1.1 / 1.2 scenarios pass; oversize request rejected as agui(server) does; slots released on every error path |
+| I11 | `binding-agui-a2a: owner-side state, handles, implicit compaction and affinity redirect` | I4, A9, A10 | The proxy owns the state for (identity, agent, `threadId`) and issues the engine `Redirect`, echoing the Begin extension, when a run reaches the wrong worker, as mcp(server) does (8.4): a worker-local bounded map with TTL sweep through the signaler holding the agent-issued `contextId` and interrupt / tool-call handles (random 128-bit, `kind` field, single use); the affinity function and a redirect handler stream mirroring `McpRedirectHandler`; no `fail`, no per-agent flag: a new context is always started when none is remembered, and when prior assistant turns exist and the reply carries a fresh `contextId` the proxy emits `MESSAGES_SNAPSHOT` with the trailing user messages first and raises the warning event; no client-held secrets, no `options.context`, no `options.store`; state kept behind one interface so F3 can add a store | scenarios: aligned run, misaligned run answered with `Redirect` echoing the Begin extension, second run of a thread reuses the `contextId`, an agent that returns none stores nothing, resume with a valid / unknown / expired / foreign handle, reset fires (prior assistant turn, nothing remembered, fresh `contextId`: snapshot first, then the reply), reset does not fire (first turn, remembered context, stateless agent, trimmed history), reset on a run that ends `INTERRUPT`, TTL expiry and capacity eviction |
+| I6 | `binding-agui-a2a: map A2A events to AG-UI frames` | I5 | Incremental event decoder (mirror `AguiEventDecoder`), `chunks` text framing, `CUSTOM` `agent.data` / `agent.file`, `status.message` mapping with digest dedupe and the fallback reply (9.2), unaccepted-part handling (9.3), neutral `agent_*` error codes and `reason` strings, outcome / abort / reset mapping, the implicit compaction snapshot ahead of the first reply frame (8.4), opaque interrupt handles with `expiresAt`, flow control honoured both ways; no A2A ids or vocabulary on the client stream | 1.3 scenarios incl. `*.100k` pass; a scenario asserts no `taskId` / `contextId` / `a2a` string appears on the agui side |
 | I7 | `binding-agui-a2a: negotiate with the agent card and fall back to non-streaming` | I6 | `agentCard` pre-step with the routed slug, streaming switch, input-mode check, synthesized events | 1.4 and 1.7 scenarios pass |
 | I8 | `binding-agui-a2a: cancel the A2A task on run abort` | I6 | `tasksCancel` (routed slug + `taskId`) on abort when `options.abort: cancel` (default) and on `resume.cancelled`; detach otherwise; a `TaskNotCancelable` / not-found answer is ignored (A2A cancel is idempotent) | 1.6 scenarios pass |
 | I9 | `build(docker-image): add binding-agui-a2a to the image and the inspect.schema golden` | I7, I8 | **One commit series**: `cloud/docker-image/pom.xml`, `cloud/docker-image/src/main/docker/zpm.json.template`, `incubator/pom.xml` dependencyManagement, `inspect.schema/.github/schema.expected.json` golden (golden must not lead the image, see 53290f62), `NOTICE` regenerated. The golden also carries the agui `routes` schema from A2 / A4 | `./mvnw verify` on `cloud/docker-image`; inspect.schema example green |
 | I10 | `example: AG-UI frontend to an A2A agent through agui-a2a` | I9 | `zilla-examples` entry (section 3 sketch) with `.github/test.sh`; also the OPEN-1 check against the reference agent | example test green; lossiness table documented |
 | F1 | `binding-agui-a2a: map frontend tools through the AG-UI extension` | E1, I10 | Tier 2 only. `tools` declared in `Message.metadata.agui.tools`; a client-executed call arrives as a `{type: tool-call}` data part (the `@ag-ui/a2a` shape, 9.5), becomes `TOOL_CALL_*` with an opaque handle as `toolCallId`, and the run ends `SUCCESS` with `pendingToolCallIds`; the next run's trailing `tool` messages are looked up to one `taskId` and sent as `{type: tool-result}` data parts (8.3) | scenarios: one call, several calls, call plus interrupt, unknown / foreign / expired `toolCallId`, tier-1 agent ignores tools; no `a2a.idl` or `agui.idl` change |
-| F2 | `binding-agui-a2a: state, activity, reasoning, step, subagent and tool-call events` | E1, I10 | Tier 2 only. Tagged `data` / `text` parts and status-message parts -> `STATE_*`, `MESSAGES_SNAPSHOT`, `ACTIVITY_*`, `REASONING_*`, `STEP_*`, `SUBAGENT_*`, agent-executed `TOOL_CALL_*` + `TOOL_CALL_RESULT`, richer `INTERRUPT` (`reason`, `responseSchema`, `toolCallId`); unknown tags dropped with a Zilla warning event | one scenario per event family and per direction |
-| F3 | `binding-agui-a2a: durable state tier` | I11 | Documented follow-up, not v1. `options.store`: the engine store is the authoritative copy and the worker-local map the fast path (8.4); write-through of `contextId` and handles with the store TTL, read-through on a local miss, `getAndDelete` for handle consumption | scenarios: restart restores a thread's context and an open interrupt, store miss, store outage degrades to the amnesia rule |
+| F2 | `binding-agui-a2a: state, activity, reasoning, step, subagent and tool-call events` | E1, I10 | Tier 2 only. Tagged `data` / `text` parts and status-message parts -> `STATE_*`, `MESSAGES_SNAPSHOT` (including agent-originated: agent-side compaction conveyed to the client), `ACTIVITY_*`, `REASONING_*`, `STEP_*`, `SUBAGENT_*`, agent-executed `TOOL_CALL_*` + `TOOL_CALL_RESULT`, richer `INTERRUPT` (`reason`, `responseSchema`, `toolCallId`); unknown tags dropped with a Zilla warning event | one scenario per event family and per direction |
+| F3 | `binding-agui-a2a: durable state tier` | I11 | Documented follow-up, not v1. `options.store`: the engine store is the authoritative copy and the worker-local map the fast path (8.4); write-through of `contextId` and handles with the store TTL, read-through on a local miss, `getAndDelete` for handle consumption | scenarios: restart restores a thread's context and an open interrupt, store miss, store outage degrades to the implicit compaction rule |
 | E1 | `binding-agui-a2a: specify the AG-UI over A2A extension` | I10 | A document (`incubator/binding-agui-a2a/EXTENSION.md`) defining the URI, `params`, the `Message.metadata.agui` carrier (feature members only: no run ids, no `forwardedProps`) and the part tags of 8.2 with tool part shapes aligned to the `@ag-ui/a2a` precedent (9.5), the content plug-in contract of 9.5, and a versioning rule; no code | reviewed against the A2A extension rules (no new fields or enum values, metadata only); the tag table is covered one-to-one by F1 / F2 scenarios |
 | F4 | `binding-agui-a2a: working status messages as activity` | I10 | Tier 1. `statusUpdate` `WORKING` with a text message -> `ACTIVITY_SNAPSHOT` (`activityType` `status`, `replace` true, stable `messageId` per run); opt-in `options.status` (`drop` default, `activity`) | scenario with several working updates replacing one activity; text transcript untouched |
 | F5 | `binding-agui-a2a: subagent events` | F2 | Tier 2 only: tagged `subagent` events -> `SUBAGENT_*` with `subagentRunId` attribution on every event of the subagent | scenario per outcome (success, suspended, error) |
@@ -488,7 +489,7 @@ an extension in its card (`capabilities.extensions[{uri, required, params}]`); a
 | `system` / `developer` instructions | dropped (or advisory (b)) | lossless, agent-controlled authority |
 | `state`, `context` | one advisory `data` part | `metadata.agui.state` / `.context`, with defined semantics |
 | Frontend tools | dropped | declared, called, answered (8.3) |
-| `STATE_*`, `MESSAGES_SNAPSHOT` | none; `data` parts as `agent.data` | tagged parts -> native events |
+| `STATE_*`, `MESSAGES_SNAPSHOT` | proxy-originated `MESSAGES_SNAPSHOT` only on a context reset (8.4); otherwise none, and `data` parts as `agent.data` | tagged parts -> native events, including agent-originated `MESSAGES_SNAPSHOT` (agent-side compaction) |
 | `ACTIVITY_*`, `REASONING_*`, `STEP_*`, `SUBAGENT_*`, agent-side `TOOL_CALL_*` | working status text as `ACTIVITY` only via F4; otherwise none | tagged parts -> native events |
 
 What the extension (E1) must define:
@@ -572,7 +573,6 @@ remembered by the owner under (identity, A2A agent slug, `threadId`) and sent on
 | Entry | Key | Value | Lifetime |
 | --- | --- | --- | --- |
 | context | (identity, A2A agent slug, `threadId`) | the `contextId` the agent issued | `options.state.ttl`, sliding; least-recently-used eviction at `options.state.capacity` |
-| issues-context flag | A2A agent slug | set when the agent has returned a `contextId` on this worker | process lifetime (see the amnesia rule) |
 | interrupt handle | random 128-bit id | `{key, kind: interrupt, taskId, expiresAt}` | `options.state.handle.ttl`; single use; a task interrupted again gets a new handle |
 | tool-call handle (tier 2) | random 128-bit id | `{key, kind: tool, taskId, callId, expiresAt}` | same |
 
@@ -623,25 +623,45 @@ Payload retention and replay are feasible as-is, verified in `AguiServerFactory`
 
 Spec scripts (A9), plain form copied from http `redirect/request.redirect/server.rpt` (receiver: `read advise zilla:redirect 0x...L`, then accept the second stream), not run here: `run.redirect` (the second accept begins with the same ids, matched with `agui:matchBeginEx()`, the request body arrives on it, an ordinary reply follows) and `run.redirect.100k` (body larger than the decode slot).
 
-#### Volatility and the amnesia rule
+#### Volatility and the implicit compaction rule (revision 8)
 
-Worker-local state is lost on restart, rescale or rehash (the placement hash depends on `workers`), TTL expiry and eviction. The
-next run then looks like a first turn and, because only the latest turn is forwarded, the agent would start a new context
-without anyone noticing. mcp avoids this because an unknown MCP session is an error the client recovers from by
-re-initializing; AG-UI has no such contract.
+Worker-local state is lost on restart, rescale or rehash (the placement hash depends on `workers`), TTL expiry and eviction.
+The next run then looks like a first turn and, because only the latest turn is forwarded, the agent starts a new context.
+mcp avoids this because an unknown MCP session is an error the client recovers from by re-initializing; AG-UI has no such
+contract. The proxy does not fail the run and keeps no per-agent flag: it always starts a new context when none is
+remembered, and treats the loss as an **implicit compaction of the agent's memory to the latest message**, conveyed to the
+client with `MESSAGES_SNAPSHOT` so the client's transcript matches what the agent now knows.
 
-One rule, no option: when `messages[]` contains an assistant message ahead of the trailing user turn(s) and no context is
-remembered for the key, and the agent is known to issue contexts, the run is rejected before the reply begins with 409
-`context_lost`. When the history carries no such evidence (a first run, or a history the client trimmed), the run starts a new
-context.
+Trigger, all three:
+1. `messages[]` holds an assistant message ahead of the trailing user turn(s), so this is not a first turn;
+2. no `contextId` is remembered for (identity, agent, `threadId`);
+3. the agent's reply carries a fresh `contextId`: evidence that the agent is stateful and has started a new context. A stateless agent never returns one, so it never triggers.
+
+When it fires, before the first reply text or data frame the proxy emits the state data frame (`AguiStateDataEx` type
+`MESSAGES_SNAPSHOT`) whose payload is the JSON messages array holding **only the trailing user message(s), as received**
+(same ids, full content including multimodal parts), then streams the reply as normal, stores the new `contextId`, and raises
+a Zilla warning event (`context reset`). The existing spec scenario `run.messages.snapshot` (network and application) already
+pins the protocol side, so no new agui script is needed; the encoder writes the payload as the `messages` member
+(`AguiEventEncoder`, JSON member mode).
+
+Why a snapshot: the reference client replaces its local copy with it (verified in 9.10): a user, assistant or tool message not
+in the snapshot is dropped, a message in it is updated in place, and only client-only `activity` / `reasoning` messages are
+kept. The earlier statement that a snapshot only merges was never in this document, and it would be wrong anyway.
 
 | Aspect | Detail |
 | --- | --- |
-| "Known to issue contexts" | a worker-local flag per A2A agent slug, set when the agent first returns a `contextId` on this worker. It is needed because an agent that never returns a `contextId` has no mapping by design, and failing every later run of such an agent would be a false positive; after a restart the flag is empty, so the first post-restart run of an agent proceeds as new (one silent amnesia per agent and worker restart) and later amnesic runs of context-issuing agents fail |
-| Trade-off | failing is honest and lets the application react, but a retry still has no mapping, so the thread stays unusable until the client starts a new thread or sends a history without prior assistant turns; starting a new context keeps the conversation going but silently loses the agent's memory, and the client keeps showing a history the agent has never seen. Failing is chosen because silent loss of context is a correctness problem and the failure is explicit and cheap to handle |
-| Not detectable | a history trimmed by the client (CopilotKit's `messageFilter`) carries no evidence; it needs none while the state is intact, because the state, not the history, carries the context |
+| Holding the first frame | no hold is needed: the proxy writes no agui data frame before the first a2a data frame, whose `A2aTaskDataEx` / `A2aMessageDataEx` / `A2aStatusUpdateDataEx` / `A2aArtifactUpdateDataEx` already carries `contextId`, so conditions 2 and 3 are decided from the extension alone, before any body is parsed. The agui reply Begin (so `RUN_STARTED`) goes out as before; the snapshot is the first data frame after it. An error, abort or reset before the first a2a data frame emits nothing |
+| Re-emitting the user message | condition 1 is known when the request is decoded (the proxy parses `messages[]` to build the A2A message); condition 2 is known at the owner. Only when both hold does the proxy keep the byte ranges of the trailing user message objects in the request it already buffered, by holding that decode slot (no copy) until the first a2a data frame; otherwise it releases the slot at once. The snapshot payload is `[` + those raw objects + `]`, written as state data frames (fragmentable, as `run.state.snapshot.100k`) |
+| Size and slot pressure | the cost is the size of the trailing user messages only, not the history: with inline attachments that is up to the request size the decode slot already bounds, sent to the client once more (full content is required, because the client replaces its copy and the next run echoes it). The slot is held for the time to the first a2a event, only for runs with prior assistant turns and no remembered context, which is rare. If no slot can be held, the run proceeds without the snapshot and raises the warning event |
+| Ordering | the snapshot is emitted before any `TEXT_MESSAGE_START`, never inside a stream. AG-UI's `compactEvents` reorders a snapshot that interrupts a text stream to after the stream's events, which would overwrite the reply on replay; a snapshot ahead of the stream is unaffected, which is why it must precede the first reply frame |
+| Interrupt, tool and handle state | handles are worker-local and not carried in message ids, so the snapshot cannot invalidate them. When the trigger fires the state was lost, so there are no open handles to preserve; a run whose first event is `INPUT_REQUIRED` with a fresh `contextId` emits the snapshot, then ends `INTERRUPT` with a new handle stored under the new `contextId`. A run with `resume` entries whose handles are unknown has them treated as unrecognised (422 `invalid_run` when nothing else is sendable) and emits no snapshot |
+| Why handles stay worker-local | state carried in message ids is fragile: the snapshot replaces ids (only ids in the snapshot survive), so any id-borne handle or context would be erased exactly when it is needed. This is another reason, beside history trimming, for owner-local state |
+| Trimmed histories | a history trimmed by the client (CopilotKit's `messageFilter`) holds no assistant turn, so condition 1 fails and the snapshot never fires; the client's transcript is intact and the agent's lost memory is not conveyed (silent). This is a known limitation: the rule cannot detect what the history does not show, and it needs no detection while the state is intact |
+| Spurious reset | an agent that returns a `contextId` on every message without keeping memory satisfies condition 3 on every run; after a restart, the first run of each thread then triggers one reset that the agent did not need. Known limitation, one per thread per restart |
 | Unknown handle | an unrecognised `resume` or `tool` entry (AG-UI: proceed without it); 422 `invalid_run` when nothing else is sendable |
-| Future knob | I expect operators to ask for graceful degradation (continue as new, or replay history) once restarts bite; not added now, and the store (below) is the real answer |
+
+The agent-side counterpart is tier 2: an agent that compacts its own memory can convey it with a tagged `state` part of type
+`messages`, mapped to `MESSAGES_SNAPSHOT` (8.2); the proxy-originated reset above is its tier-1 form.
 
 #### Durable tier: documented follow-up, not v1
 
@@ -687,7 +707,8 @@ deferred was walked for an idl, `AguiFunctions` or `A2aFunctions` change that is
 | `AguiFunctions` / `A2aFunctions` additions | F1 / F2 / S7 scripts | no: builders and matchers exist for tool call, tool result, state, activity, reasoning, step, subagent, custom, raw, `extensions` and `matchDataEx` of each a2a case |
 
 Net: S6 (optional, a2a scripts) and S7 (required: runtime and two scripts on PR #2850) are what the full design needs; S8 only
-for multi-node. No idl, `AguiFunctions`, `a2a.idl`, `A2aFunctions` or harness change beyond S1.
+for multi-node. No idl, `AguiFunctions`, `a2a.idl`, `A2aFunctions` or harness change beyond S1, and none for the
+implicit compaction: `AguiStateDataEx` already has `MESSAGES_SNAPSHOT` and the scenario `run.messages.snapshot` already exists.
 
 ### 8.6 v1 shape, consolidated
 
@@ -696,16 +717,17 @@ for multi-node. No idl, `AguiFunctions`, `a2a.idl`, `A2aFunctions` or harness ch
 | Binding config | `options.forward`, `.state` (`ttl`, `handle.ttl`, `capacity`), `.abort`, `.extension`, `.status`, `.unaccepted`; routes with `when.agent`, `with.agent`, `with.identity`, `guarded`, `exit`; no `options.context`, no `options.seal`, no `options.store` |
 | Request | trailing user messages, resume to the `taskId` behind the handle, the remembered `contextId` (never a client-chosen one), `state` + `context` as one advisory `data` part, `forwardedProps` as top-level `Message.metadata` (no run ids), `acceptedOutputModes`, `system` / `developer` only if listed in `forward`, `tools` and `tool` messages parsed and ignored |
 | Response | text, `CUSTOM` `agent.data` / `agent.file`, neutral errors, `status.message` text on `COMPLETED` with digest dedupe, `INTERRUPT` with opaque handles, `CANCELLED`, no A2A details on the client stream |
-| State | owner-local map, affinity redirect echoing the Begin extension, volatile; the amnesia rule of 8.4 |
+| State | owner-local map, affinity redirect echoing the Begin extension, volatile; implicit compaction by `MESSAGES_SNAPSHOT` when the context is lost (8.4) |
 | Not in v1 | tier 2 (E1, F1, F2, F5), working status as activity (F4), durable store (F3), reconnect (F6), A2UI plug-in (F7), multi-node placement (A11) |
 | Constraint v1 puts on later work | state behind one interface so a store can sit under it; handles carry `kind`; `metadata.agui` key shared by both tiers; `options.forward` an open enum; `agent.*` custom names reserved |
 
 ### 8.7 Issue changes in this revision
 
-Revision 7: `options.context`, `options.unknown` and `options.seal` are gone; I11 is owner-side state, the amnesia rule and the
-redirect; A9 (two spec scripts) and A10 (agui(server) runtime) carry S7 with no idl, functions or harness change; A11
-(conditional key-to-affinity) is the only engine item; F8 and F9 are removed; F3 is a documented follow-up. The issue table in
-section 5 carries the bodies.
+Revision 8: the amnesia rule is replaced by implicit compaction (always a new context, `MESSAGES_SNAPSHOT` with the trailing user
+messages when the reply carries a fresh `contextId` after prior assistant turns); no `fail`, no per-agent flag, no 409
+`context_lost`; verified against CopilotKit (9.10). Revision 7: `options.context`, `options.unknown` and `options.seal` are gone; I11
+is owner-side state and the redirect; A9 and A10 carry S7; A11 is the only engine item; F8 and F9 are removed; F3 is a
+documented follow-up. No change to the spec-change list in revision 8. The issue table in section 5 carries the bodies.
 
 ## 9. Precedent and revisions (revision 5)
 
@@ -863,15 +885,15 @@ OPEN-1 and OPEN-9 are resolved by this section.
 | (5) metadata hygiene | 1.1 / 1.2 rows, 9.4, E1 |
 | (6) context late-binding | 9.1, 9.6, 8.4 |
 
-### 9.8 Spec changes and issues after revision 7
+### 9.8 Spec changes and issues after revision 8
 
 Spec changes: S1-S5 unchanged; S6 optional (a2a PRs, scripts only); **S7**: agui(server) handles `Redirect`, re-beginning from
 the echoed `redirect.extension()`, plus `run.redirect` and `run.redirect.100k` (PR #2850); no idl, `AguiFunctions` or harness
-change; S8 conditional (engine key-to-affinity operation, multi-node only). No `a2a.idl` or `A2aFunctions` change results
-from revisions 5 to 7. The vault `SecretKeyManager` addition proposed in revision 5 (F9) is withdrawn.
+change; S8 conditional (engine key-to-affinity operation, multi-node only). No `a2a.idl`, `A2aFunctions`, `agui.idl` or `AguiFunctions` change results
+from revisions 5 to 8 (the implicit compaction reuses `run.messages.snapshot`). The vault `SecretKeyManager` addition proposed in revision 5 (F9) is withdrawn.
 
 Issues: removed F8, F9 and the `options.context`, `options.unknown`, `options.seal` and `options.store` references; I11 is
-owner-side state, the amnesia rule and the redirect; A9 (two spec scripts), A10 (agui(server) runtime), A11 (conditional engine
+owner-side state, the implicit compaction and the redirect; A9 (two spec scripts), A10 (agui(server) runtime), A11 (conditional engine
 key-to-affinity); F3 is a documented follow-up; I1, I4, I5, I6, F1 follow; revision 5 items (F7, S4 additions) stand.
 
 ### 9.9 Verified and unverified
@@ -889,3 +911,22 @@ key-to-affinity); F3 is a documented follow-up; I1, I4, I5, I6, F1 follow; revis
 | k3po harness: `read advise zilla:redirect` is `ZillaSource` -> `ZillaStreamFactory.doRedirect` (affinity from exactly 8 bytes, extension = the channel's Begin extension); mcp and http echo the Begin extension; no `RedirectEx` anywhere (`git grep`); `AguiServer.decodedThreadId` / `decodedRunId` / `decodedParentRunId` feed `AguiEventEncoder` | that the redirect scripts for agui run green (not run) |
 | agui(server) request path: decoders return `offset`, `doAppData` is window-bound, `decodeNet` keeps the unforwarded prefix in the decode slot, `onAppWindow` resumes `decodeNet` (`AguiServerFactory`) | behaviour under a redirect that arrives after a partial net End with a large body (covered by `run.redirect.100k`, not run) |
 | engine `StoreHandler` (async `get`, `put`, `putIfAbsent`, `getAndDelete`, TTL) | |
+
+### 9.10 `MESSAGES_SNAPSHOT` in ag-ui and CopilotKit: verified, verdict ALIGNS
+
+Pins: ag-ui-protocol/ag-ui `7e7c1109`, CopilotKit/CopilotKit `621f0ec6`. Verdict: **ALIGNS** with the ag-ui default apply for
+everything the design relies on; the unverified residue is listed at the end.
+
+| Question | Finding (file:line) |
+| --- | --- |
+| ag-ui reducer | `sdks/typescript/packages/client/src/apply/default.ts` `case EventType.MESSAGES_SNAPSHOT` L1059-1150: `messages.filter(m => snapshotMap.has(m.id) \|\| isPreservedClientOnly(m)).map(m => snapshotMap.get(m.id) ?? m)` (about L1119-1127), then new snapshot messages are appended, then `keepToolResultsWithCalls`. User, assistant and tool messages not in the snapshot are dropped; matching ids update in place; `activity` / `reasoning` messages are kept unless the snapshot itself carries that role (L1087-1117) |
+| (a) CopilotKit uses the default apply | the browser agent is an ag-ui `AbstractAgent`; CopilotKit only subscribes: `packages/core/src/core/state-manager.ts` L393-405 `onMessagesSnapshotEvent` calls `handleMessagesSnapshot` (L612-631, associates message ids with runs) and `pruneRawEvents`, neither sets `stopPropagation` or edits `messages`, so the reducer's replacement stands. CopilotKit itself relies on replace semantics: `packages/core/src/agent.ts` L738-756 resets the view for a connect replay with `{MESSAGES_SNAPSHOT, messages: []}`. The React chat state follows `agent.messages` (`react-core/src/v2/hooks/use-agent.tsx` L398 `onMessagesChanged`) |
+| (b) persistence | `InMemoryAgentRunner` stores per run the compacted events (`packages/runtime/src/v2/runtime/runner/in-memory.ts` L966-980, `compactEvents`) and a thread-level `messagesSnapshot = [...request.agent.messages]` after the run (L975-977, replaced at L514-530), where `request.agent.messages` is the post-apply list, so the snapshot replaces rather than duplicates. Replay (`connect`, L1114-1171) re-applies the compacted events of all runs in order, so a replay reaches the same transcript as the live run (the run's `RUN_STARTED.input` messages, then our snapshot, then the reply). `sqlite-runner/src/sqlite-runner.ts` stores events per run the same way |
+| (c) next run's `messages` | the browser's own list, post-snapshot: `AbstractAgent.prepareRunAgentInput` (`sdks/typescript/packages/client/src/agent/agent.ts` L611-631) deep-clones `this.messages`, strips `activity`, re-pairs tool results; CopilotKit's `#prepareOutboundMessages` (`packages/core/src/agent.ts` L335-354) then applies the optional filter to that list. The runner's stored history is not used for the next run (the runtime takes `request.input.messages`; `messagesSnapshot` is served only by the thread-messages endpoint, L1273) |
+| (d) re-injection | none: the filter and `ɵrepairToolCallPairs(kept, full)` are anchored on `full`, the client's post-snapshot list, and restore only tool-call pairs from it; nothing dropped by a snapshot comes back |
+| (e) reasoning and activity | client-only `activity` and `reasoning` messages survive a snapshot that carries none of their role (default.ts L1087-1117); `activity` is stripped from outbound input (agent.ts L628-630); stale local `reasoning` stays and is sent, and agui-a2a ignores both roles (1.2) |
+| compaction order | `compact/compact.ts` L29-32 notes that a snapshot interrupting a text stream is emitted after that stream's events on replay; ours precedes the reply stream, so it is unaffected |
+
+Unverified: CopilotKit's managed (Intelligence) mode persistence, which is platform-side (the client path uses the same
+reducer, but how the platform reconciles a snapshot against its stored thread is not in this repository); other AG-UI
+clients (terminal, Slack and Teams through the channels SDK) were not checked; nothing was run.
