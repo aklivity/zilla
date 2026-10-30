@@ -82,6 +82,7 @@ public final class AguiServerFactory implements AguiStreamFactory
 
     private static final String HTTP_METHOD_POST = "POST";
     private static final String HTTP_HEADER_METHOD = ":method";
+    private static final String HTTP_HEADER_PATH = ":path";
     private static final String HTTP_HEADER_STATUS = ":status";
     private static final String HTTP_HEADER_CONTENT_TYPE = "content-type";
     private static final String HTTP_HEADER_ACCEPT = "accept";
@@ -94,6 +95,8 @@ public final class AguiServerFactory implements AguiStreamFactory
     private static final String STATUS_200 = "200";
     private static final String STATUS_400 = "400";
     private static final String STATUS_401 = "401";
+    private static final String STATUS_403 = "403";
+    private static final String STATUS_404 = "404";
     private static final String STATUS_405 = "405";
     private static final String STATUS_406 = "406";
     private static final String STATUS_415 = "415";
@@ -105,6 +108,8 @@ public final class AguiServerFactory implements AguiStreamFactory
     private static final String ERROR_THREAD_ID_MISSING = "Missing required property: threadId";
     private static final String ERROR_RUN_ID_MISSING = "Missing required property: runId";
     private static final String ERROR_UNAUTHORIZED = "Unauthorized";
+    private static final String ERROR_FORBIDDEN = "Forbidden";
+    private static final String ERROR_NOT_FOUND = "Not Found";
     private static final String ERROR_METHOD_NOT_ALLOWED = "Method Not Allowed";
     private static final String ERROR_NOT_ACCEPTABLE = "Not Acceptable";
     private static final String ERROR_UNSUPPORTED_MEDIA_TYPE = "Unsupported Media Type";
@@ -221,9 +226,8 @@ public final class AguiServerFactory implements AguiStreamFactory
         MessageConsumer newStream = null;
 
         final AguiBindingConfig binding = bindings.get(routedId);
-        final AguiRouteConfig route = binding != null ? binding.resolve(authorization) : null;
 
-        if (route != null)
+        if (binding != null)
         {
             final long traceId = begin.traceId();
             final HttpBeginExFW httpBeginEx = begin.extension().get(httpBeginExRO::wrap);
@@ -231,6 +235,7 @@ public final class AguiServerFactory implements AguiStreamFactory
             final String method = header(httpBeginEx, HTTP_HEADER_METHOD);
             final String contentType = header(httpBeginEx, HTTP_HEADER_CONTENT_TYPE);
             final String accept = header(httpBeginEx, HTTP_HEADER_ACCEPT);
+            final String path = header(httpBeginEx, HTTP_HEADER_PATH);
 
             if (!HTTP_METHOD_POST.equals(method))
             {
@@ -257,8 +262,23 @@ public final class AguiServerFactory implements AguiStreamFactory
                 }
                 else
                 {
-                    newStream = new AguiServer(sender, originId, routedId, initialId, authResult.authorization(),
-                        authResult.deauthorize(), route.id)::onNetMessage;
+                    final AguiRouteConfig route = binding.resolve(authResult.authorization(), path);
+
+                    if (route != null)
+                    {
+                        newStream = new AguiServer(sender, originId, routedId, initialId, authResult.authorization(),
+                            authResult.deauthorize(), route.id, route.agent())::onNetMessage;
+                    }
+                    else if (binding.matches(path))
+                    {
+                        authResult.deauthorize().run();
+                        newStream = new AguiRejectHandler(sender, STATUS_403, ERROR_FORBIDDEN, null, null)::onNetMessage;
+                    }
+                    else
+                    {
+                        authResult.deauthorize().run();
+                        newStream = new AguiRejectHandler(sender, STATUS_404, ERROR_NOT_FOUND, null, null)::onNetMessage;
+                    }
                 }
             }
         }
@@ -510,6 +530,7 @@ public final class AguiServerFactory implements AguiStreamFactory
         private final long replyId;
         private final long authorization;
         private final long resolvedId;
+        private final String agent;
         private Runnable deauthorize;
 
         private long initialSeq;
@@ -551,7 +572,8 @@ public final class AguiServerFactory implements AguiStreamFactory
             long initialId,
             long authorization,
             Runnable deauthorize,
-            long resolvedId)
+            long resolvedId,
+            String agent)
         {
             this.net = sender;
             this.originId = originId;
@@ -561,6 +583,7 @@ public final class AguiServerFactory implements AguiStreamFactory
             this.authorization = authorization;
             this.deauthorize = deauthorize;
             this.resolvedId = resolvedId;
+            this.agent = agent;
             this.decoder = decodeStart;
             this.initialMax = decodeMax;
         }
@@ -859,6 +882,7 @@ public final class AguiServerFactory implements AguiStreamFactory
                 .threadId(decodedThreadId)
                 .runId(decodedRunId)
                 .parentRunId(decodedParentRunId)
+                .agent(agent)
                 .build();
         }
 
