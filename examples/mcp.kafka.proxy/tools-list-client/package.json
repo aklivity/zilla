@@ -1,0 +1,10 @@
+{
+  "name": "tools-list-client",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Headless MCP client that lists tools through the Zilla mcp proxy, or calls one, with an optional bearer token",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.29.0"
+  }
+}
