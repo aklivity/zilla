@@ -66,6 +66,14 @@ abstract class LlmAttributeProbe
         onBegin(type);
     }
 
+    final void restart()
+    {
+        depth = 1;
+        declined = false;
+        continued = false;
+        keys[1] = NO_KEY;
+    }
+
     final LlmSectionAttributes attributes()
     {
         return attributes;
