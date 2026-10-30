@@ -21,11 +21,14 @@ import io.aklivity.zilla.config.engine.ConditionConfig;
 public final class AguiConditionConfig extends ConditionConfig
 {
     public final String path;
+    public final String agent;
 
     AguiConditionConfig(
-        String path)
+        String path,
+        String agent)
     {
         this.path = path;
+        this.agent = agent;
     }
 
     public static AguiConditionConfigBuilder<AguiConditionConfig> builder()

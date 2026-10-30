@@ -25,6 +25,7 @@ import io.aklivity.zilla.config.engine.ConfigAdapter;
 public final class AguiConditionConfigAdapter extends ConfigAdapter<ConditionConfig, JsonObject>
 {
     private static final String PATH_NAME = "path";
+    private static final String AGENT_NAME = "agent";
 
     @Override
     public JsonObject adaptToJson(
@@ -39,6 +40,11 @@ public final class AguiConditionConfigAdapter extends ConfigAdapter<ConditionCon
             object.add(PATH_NAME, aguiCondition.path);
         }
 
+        if (aguiCondition.agent != null)
+        {
+            object.add(AGENT_NAME, aguiCondition.agent);
+        }
+
         return object.build();
     }
 
@@ -50,8 +56,13 @@ public final class AguiConditionConfigAdapter extends ConfigAdapter<ConditionCon
             ? object.getString(PATH_NAME)
             : null;
 
+        final String agent = object.containsKey(AGENT_NAME)
+            ? object.getString(AGENT_NAME)
+            : null;
+
         return AguiConditionConfig.builder()
             .path(path)
+            .agent(agent)
             .build();
     }
 }

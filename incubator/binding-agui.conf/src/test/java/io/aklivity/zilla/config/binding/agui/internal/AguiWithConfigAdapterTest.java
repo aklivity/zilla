@@ -52,6 +52,25 @@ public class AguiWithConfigAdapterTest
     }
 
     @Test
+    public void shouldReadWithPath()
+    {
+        AguiWithConfig with = jsonb.fromJson("{\"path\":\"/agents/support\"}", AguiWithConfig.class);
+
+        assertThat(with.path, equalTo("/agents/support"));
+        assertThat(with.agent, nullValue());
+    }
+
+    @Test
+    public void shouldWriteWithPath()
+    {
+        AguiWithConfig with = AguiWithConfig.builder()
+            .path("/agents/support")
+            .build();
+
+        assertThat(jsonb.toJson(with), equalTo("{\"path\":\"/agents/support\"}"));
+    }
+
+    @Test
     public void shouldWriteWith()
     {
         AguiWithConfig with = AguiWithConfig.builder()

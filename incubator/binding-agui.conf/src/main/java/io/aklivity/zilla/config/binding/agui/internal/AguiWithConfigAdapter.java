@@ -25,6 +25,7 @@ import io.aklivity.zilla.config.engine.WithConfig;
 public final class AguiWithConfigAdapter extends ConfigAdapter<WithConfig, JsonObject>
 {
     private static final String AGENT_NAME = "agent";
+    private static final String PATH_NAME = "path";
 
     @Override
     public JsonObject adaptToJson(
@@ -39,6 +40,11 @@ public final class AguiWithConfigAdapter extends ConfigAdapter<WithConfig, JsonO
             object.add(AGENT_NAME, aguiWith.agent);
         }
 
+        if (aguiWith.path != null)
+        {
+            object.add(PATH_NAME, aguiWith.path);
+        }
+
         return object.build();
     }
 
@@ -50,8 +56,13 @@ public final class AguiWithConfigAdapter extends ConfigAdapter<WithConfig, JsonO
             ? object.getString(AGENT_NAME)
             : null;
 
+        final String path = object.containsKey(PATH_NAME)
+            ? object.getString(PATH_NAME)
+            : null;
+
         return AguiWithConfig.builder()
             .agent(agent)
+            .path(path)
             .build();
     }
 }
