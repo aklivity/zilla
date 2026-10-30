@@ -88,7 +88,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core agui_a2a</scopeNames>
+          <scopeNames>core agui agui_a2a</scopeNames>
           <packageName>io.aklivity.zilla.runtime.binding.agui.a2a.internal.types</packageName>
         </configuration>
         <executions>
