@@ -101,6 +101,24 @@ public class A2aRequestIT
 
     @Test
     @Specification({
+        "${app}/request.state.context.omitted/client",
+        "${app}/request.state.context.omitted/server"})
+    public void shouldRequestStateContextOmitted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/request.state.context.wildcard/client",
+        "${app}/request.state.context.wildcard/server"})
+    public void shouldRequestStateContextWildcard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/request.system.developer.dropped/client",
         "${app}/request.system.developer.dropped/server"})
     public void shouldRequestSystemDeveloperDropped() throws Exception
