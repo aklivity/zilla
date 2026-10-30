@@ -29,7 +29,7 @@ read zilla:begin.ext ${agui:matchBeginEx()
 connected
 
 read advise zilla:redirect 0x00000000000000b1L
-write abort
+write aborted
 
 accepted
 

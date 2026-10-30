@@ -27,7 +27,7 @@ write zilla:begin.ext ${agui:beginEx()
 connected
 
 write advised zilla:redirect 0x00000000000000b1L
-write aborted
+read abort
 
 connect "zilla://streams/app0"
         option zilla:window 8192
