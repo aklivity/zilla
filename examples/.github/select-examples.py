@@ -3,7 +3,9 @@
 # when it changed, or when a module it configures was rebuilt by the Maven build
 # cache in this run. Everything else is skipped. Pushes, infrastructure changes,
 # examples whose modules cannot be derived, and EXAMPLES_SELECTION=all run every
-# example.
+# example. An example listed in MODULES_BY_EXAMPLE depends on exactly the modules it matches.
+# Lines only added to the docker image module wiring (WIRING) wire in a module, so selection
+# follows the rebuilt modules for them instead of running every example.
 #
 # environment:
 #   ALL                JSON array of every example directory
@@ -21,10 +23,10 @@ import sys
 
 KINDS = ('binding', 'guard', 'catalog', 'vault', 'model', 'exporter', 'metrics', 'store', 'resolver', 'classifier', 'embedding')
 MODULE_BASES = ('runtime', 'incubator')
+MODULES_BY_EXAMPLE = {'inspect.schema': re.compile(r'\.spec$|^command-inspect$')}
 INFRASTRUCTURE = re.compile(
-    r'^(pom\.xml|conf/|build/|cloud/|manager/|\.mvn/|mvnw|examples/\.github/|\.github/workflows/build\.yml|'
-    r'(runtime|specs|incubator)/pom\.xml)')
-SOURCE = re.compile(r'^(runtime|specs|incubator)/')
+    r'^(pom\.xml|conf/|build/|cloud/|manager/|\.mvn/|mvnw|examples/\.github/|\.github/workflows/build\.yml)')
+WIRING = frozenset(('cloud/docker-image/pom.xml', 'cloud/docker-image/src/main/docker/zpm.json.template'))
 EXAMPLE = re.compile(r'^examples/([^/]+)/')
 KEYED = re.compile(r'^\s*(?:-\s*)?(?:type|model)\s*:\s*["\']?([A-Za-z0-9_.-]+)')
 METRIC = re.compile(r'^\s*-\s*([a-z]+)\.[a-z.]+\s*$')
@@ -56,25 +58,35 @@ def configured_modules(root, example, modules):
     return names & modules
 
 
+def affected(example, configured, built):
+    pattern = MODULES_BY_EXAMPLE.get(example)
+    return any(pattern.search(m) for m in built) if pattern else not configured or bool(configured & built)
+
+
 def select(examples, configured, files, built, event, mode):
     if mode == 'all' or event != 'pull_request':
         selected, reason = set(examples), 'selection disabled or not a pull request'
     elif any(INFRASTRUCTURE.match(f) for f in files):
         selected, reason = set(examples), 'build infrastructure changed'
-    elif any(SOURCE.match(f) for f in files) and not built:
-        selected, reason = set(examples), 'sources changed but no rebuilt modules were reported'
-    elif any(m.startswith('command-') for m in built):
-        selected, reason = set(examples), 'a command module was rebuilt'
     else:
         changed = {m.group(1) for m in map(EXAMPLE.match, files) if m}
-        selected = {e for e in examples if e in changed or not configured[e] or configured[e] & built}
+        selected = {e for e in examples if e in changed or affected(e, configured[e], built)}
         reason = 'changed examples, rebuilt modules and examples without derivable modules'
     return sorted(selected), reason
 
 
+def parse_numstat(numstat):
+    return [tuple(reversed(line.split('\t', 2)[1:])) for line in numstat.splitlines()]
+
+
+def selectable_files(changes):
+    return [path for path, deleted in changes if not (path in WIRING and deleted == '0')]
+
+
 def changed_files(base, head):
-    return subprocess.run(['git', 'diff', '--name-only', '%s...%s' % (base, head)],
-                          capture_output=True, text=True, check=True).stdout.split()
+    numstat = subprocess.run(['git', 'diff', '--numstat', '--no-renames', '%s...%s' % (base, head)],
+                             capture_output=True, text=True, check=True).stdout
+    return selectable_files(parse_numstat(numstat))
 
 
 def main():

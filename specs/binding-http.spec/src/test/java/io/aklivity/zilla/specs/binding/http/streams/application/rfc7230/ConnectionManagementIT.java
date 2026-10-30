@@ -368,6 +368,15 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
+        "${app}/buffer.pool.exhausted.and.503.response/client",
+        "${app}/buffer.pool.exhausted.and.503.response/server" })
+    public void shouldGive503ResponseWhenBufferPoolExhausted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/http.patch.exchange/client",
         "${app}/http.patch.exchange/server" })
     public void httpPatchExchange() throws Exception

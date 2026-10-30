@@ -133,6 +133,37 @@ public final class JsonParserImpl implements JsonParserEx
         ENDED
     }
 
+    private Mark mark;
+
+    // the state a mark holds, kept apart so a parser that never marks carries only the reference
+    private static final class Mark
+    {
+        Event currentEvent;
+        JsonEvent lastEvent;
+        DocState docState;
+        long segmentStartOffset;
+        int segmentSliceOffset;
+        int segmentSliceLength;
+        int segmentConsumed;
+        int segmentDepth;
+        boolean armNextValue;
+        int stringViewOffset;
+        long verbatimCursor;
+        boolean trimLeadingSeparator;
+        int stepCount;
+        int stepHead;
+        boolean continuation;
+        boolean verbatim;
+        int skipDepth;
+        boolean skipOccupied;
+        long tokenEnd;
+        long tokenEndLine;
+        long tokenEndColumn;
+        long priorTokenEnd;
+        long priorTokenEndLine;
+        long priorTokenEndColumn;
+    }
+
     public JsonParserImpl()
     {
         this(Map.of());
@@ -246,6 +277,85 @@ public final class JsonParserImpl implements JsonParserEx
         lastEvent = null;
         currentEvent = null;
         docState = DocState.NOT_STARTED;
+    }
+
+    @Override
+    public void mark()
+    {
+        if (skipping || fragmentOpen || segmentState != SegmentState.NONE || tokenizer.event() != null)
+        {
+            throw new IllegalStateException("mark requires an event boundary outside a skip, fragment or segment");
+        }
+
+        tokenizer.mark();
+        if (mark == null)
+        {
+            mark = new Mark();
+        }
+
+        mark.currentEvent = currentEvent;
+        mark.lastEvent = lastEvent;
+        mark.docState = docState;
+        mark.segmentStartOffset = segmentStartOffset;
+        mark.segmentSliceOffset = segmentSliceOffset;
+        mark.segmentSliceLength = segmentSliceLength;
+        mark.segmentConsumed = segmentConsumed;
+        mark.segmentDepth = segmentDepth;
+        mark.armNextValue = armNextValue;
+        mark.stringViewOffset = stringViewOffset;
+        mark.verbatimCursor = verbatimCursor;
+        mark.trimLeadingSeparator = trimLeadingSeparator;
+        mark.stepCount = stepCount;
+        mark.stepHead = stepHead;
+        mark.continuation = continuation;
+        mark.verbatim = verbatim;
+        mark.skipDepth = skipDepth;
+        mark.skipOccupied = skipOccupied;
+        mark.tokenEnd = tokenEnd;
+        mark.tokenEndLine = tokenEndLine;
+        mark.tokenEndColumn = tokenEndColumn;
+        mark.priorTokenEnd = priorTokenEnd;
+        mark.priorTokenEndLine = priorTokenEndLine;
+        mark.priorTokenEndColumn = priorTokenEndColumn;
+    }
+
+    @Override
+    public void rewind()
+    {
+        if (tokenizer.markStreamOffset() < frameBaseStreamOffset)
+        {
+            throw new IllegalStateException("rewind requires the window the mark was taken in");
+        }
+
+        tokenizer.rewind();
+        currentEvent = mark.currentEvent;
+        lastEvent = mark.lastEvent;
+        docState = mark.docState;
+        segmentState = SegmentState.NONE;
+        segmentStartOffset = mark.segmentStartOffset;
+        segmentSliceOffset = mark.segmentSliceOffset;
+        segmentSliceLength = mark.segmentSliceLength;
+        segmentConsumed = mark.segmentConsumed;
+        segmentDepth = mark.segmentDepth;
+        armNextValue = mark.armNextValue;
+        stringViewOffset = mark.stringViewOffset;
+        verbatimCursor = mark.verbatimCursor;
+        trimLeadingSeparator = mark.trimLeadingSeparator;
+        stepCount = mark.stepCount;
+        stepHead = mark.stepHead;
+        fragmentOpen = false;
+        continuation = mark.continuation;
+        verbatim = mark.verbatim;
+        skipping = false;
+        skipDepth = mark.skipDepth;
+        skipOccupied = mark.skipOccupied;
+        tokenEnd = mark.tokenEnd;
+        tokenEndLine = mark.tokenEndLine;
+        tokenEndColumn = mark.tokenEndColumn;
+        priorTokenEnd = mark.priorTokenEnd;
+        priorTokenEndLine = mark.priorTokenEndLine;
+        priorTokenEndColumn = mark.priorTokenEndColumn;
+        ownedInput.position((int) (tokenizer.streamOffset() - frameBaseStreamOffset));
     }
 
     @Override

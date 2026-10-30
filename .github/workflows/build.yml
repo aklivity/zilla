@@ -52,13 +52,14 @@ jobs:
         key: zpm-${{ runner.os }}-${{ hashFiles('manager/src/conf/install/zpm.json') }}
         restore-keys: zpm-${{ runner.os }}-
     - name: Restore Maven build cache
-      uses: actions/cache/restore@v6
-      with:
-        path: ~/.m2/build-cache
-        key: maven-build-cache-${{ runner.os }}-${{ github.ref_name }}-${{ github.sha }}
-        restore-keys: |
-          maven-build-cache-${{ runner.os }}-${{ github.base_ref || github.ref_name }}-
-          maven-build-cache-${{ runner.os }}-develop-
+      run: |
+        .github/scripts/build-cache.sh install
+        PATH="$HOME/.local/bin:$PATH" .github/scripts/build-cache.sh restore ~/.m2/build-cache \
+          "ghcr.io/$GITHUB_REPOSITORY/build-cache" "$BRANCH" develop
+      env:
+        BRANCH: ${{ github.base_ref || github.ref_name }}
+        GITHUB_ACTOR: ${{ github.actor }}
+        GITHUB_TOKEN: ${{ github.token }}
     - name: Mark build start
       run: touch ~/.build-start
     - name: Route Docker Hub pulls through mirror.gcr.io
@@ -90,12 +91,18 @@ jobs:
         GITHUB_ACTOR: ${{ github.actor }}
         GITHUB_TOKEN: ${{ github.token }}
 
-    - name: Save Maven build cache
+    - name: Pack Maven build cache
       if: success() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref_name == 'develop' || startsWith(github.ref_name, 'support/'))
-      uses: actions/cache/save@v6
+      run: .github/scripts/build-cache.sh pack ~/.m2/build-cache "$RUNNER_TEMP/build-cache"
+
+    - name: Upload Maven build cache
+      if: success() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref_name == 'develop' || startsWith(github.ref_name, 'support/'))
+      uses: actions/upload-artifact@v7
       with:
-        path: ~/.m2/build-cache
-        key: maven-build-cache-${{ runner.os }}-${{ github.ref_name }}-${{ github.sha }}
+        name: build-cache
+        path: ${{ runner.temp }}/build-cache/build-cache.tar.zst
+        compression-level: 0
+        retention-days: 1
 
     - name: Save base images
       if: always()
@@ -146,6 +153,34 @@ jobs:
           **/target/surefire-reports/
           **/target/zilla-itests/
           **/target/failsafe-reports/
+
+  publish-cache:
+    name: Publish build cache
+    if: ${{ needs.build.result == 'success' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref_name == 'develop' || startsWith(github.ref_name, 'support/')) }}
+    needs:
+      - build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout GitHub sources
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/scripts
+      - name: Download Maven build cache
+        uses: actions/download-artifact@v8
+        with:
+          name: build-cache
+          path: ${{ runner.temp }}/build-cache
+      - name: Publish Maven build cache
+        run: |
+          .github/scripts/build-cache.sh install
+          PATH="$HOME/.local/bin:$PATH" .github/scripts/build-cache.sh push "$RUNNER_TEMP/build-cache" \
+            "ghcr.io/$GITHUB_REPOSITORY/build-cache" "$GITHUB_REF_NAME"
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ github.token }}
 
   setup-examples:
     runs-on: ubuntu-latest

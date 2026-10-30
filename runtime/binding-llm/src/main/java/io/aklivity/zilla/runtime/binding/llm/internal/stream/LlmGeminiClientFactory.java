@@ -527,6 +527,8 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private final LlmGeminiResponseDecoder decodeSkip = this::decodeSkip;
         private final LlmGeminiResponseDecoder decodeEnd = this::decodeEnd;
         private final LlmGeminiResponseDecoder decodeIgnore = this::decodeIgnore;
+        private final LlmGeminiResponseDecoder decodeRejected = this::decodeRejected;
+        private final LlmGeminiResponseDecoder decodeLookahead = this::decodeLookahead;
         private final LlmGeminiResponseDecoder decodeDrainStart = this::decodeDrainStart;
         private final LlmGeminiResponseDecoder decodeDrainRootStart = this::decodeDrainRootStart;
         private final LlmGeminiResponseDecoder decodeDrainRoot = this::decodeDrainRoot;
@@ -562,6 +564,8 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private LlmGeminiResponseDecoder textThen;
         private LlmSectionType textType = LlmSectionType.ASSISTANT_TEXT;
         private int decodeLimit;
+        private boolean decodedLast;
+        private int decodeWindowLimit = NONE;
         private int availableOffset;
         private int availableLimit;
         private boolean availableLast;
@@ -569,9 +573,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private int skipDepth;
         private int candidateOrdinal;
 
-        private boolean scanned;
         private boolean scanError;
-        private boolean parseRejected;
         private boolean draining;
 
         private int documentPromptTokens = NONE;
@@ -625,7 +627,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private byte[] textBytes;
         private UnsafeBufferEx textBuffer;
 
-        private DirectBufferEx decodeInput;
+        private DirectBufferEx decodedInput;
         private final JsonGeneratorEx controlGenerator;
         private byte[] controlBytes;
         private UnsafeBufferEx controlBuffer;
@@ -671,7 +673,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             this.parser = JsonEx.createParser(Map.of(JsonParserEx.STRING_EVENT_POSITIONS, StringEventPositions.QUOTED));
             this.textBytes = new byte[1024];
             this.textBuffer = new UnsafeBufferEx(textBytes);
-            this.decoder = decodeStart;
+            this.decoder = decodeLookahead;
             this.controlGenerator = JsonEx.createGenerator();
             this.controlBytes = new byte[CONTROL_HEADER];
             this.controlBuffer = new UnsafeBufferEx(controlBytes);
@@ -1083,12 +1085,12 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
         private boolean begun()
         {
-            return scanned;
+            return decoder != decodeLookahead && http.errorStatus == NO_ERROR;
         }
 
-        private boolean parseRejected()
+        private boolean rejected()
         {
-            return parseRejected;
+            return decoder == decodeRejected;
         }
 
         private boolean completed()
@@ -1172,159 +1174,34 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private void resetResponse()
         {
             resetDocument();
-            scanned = false;
-            parseRejected = false;
             draining = false;
             sectionOpen = false;
             sectionStarted = false;
             highSurrogate = 0;
             cleanupControlSlot();
-        }
-
-        private int decodeResponse(
-            DirectBufferEx buffer,
-            int offset,
-            int limit,
-            boolean last)
-        {
-            int progress = offset;
-
-            try
-            {
-                if (decoder == decodeEnd || decoder == decodeIgnore)
-                {
-                    progress = decoder.decode(buffer, offset, limit);
-                }
-                else if (draining)
-                {
-                    progress = decodeDrain(buffer, offset, limit, last);
-                }
-                else
-                {
-                    boolean ready = scanned;
-
-                    if (!scanned)
-                    {
-                        final boolean found = scanResponse(buffer, offset, limit, last);
-
-                        if (found || last || limit - offset >= decodeMax)
-                        {
-                            scanned = true;
-                            ready = true;
-
-                            if (!scanError && !parseRejected)
-                            {
-                                doAppBeginSections(http.decodeTraceId);
-                            }
-                        }
-                    }
-
-                    if (parseRejected)
-                    {
-                        progress = limit;
-                    }
-                    else if (ready)
-                    {
-                        progress = decodeAvailable(buffer, offset, limit, last);
-                    }
-                }
-            }
-            catch (JsonException ex)
-            {
-                parseRejected = true;
-                progress = limit;
-            }
-
-            return progress;
+            decoder = decodeLookahead;
         }
 
         private void beginDrain()
         {
             draining = true;
             cancelControl();
-            decoder = decoder == decodeStart ? decodeDrainStart : decodeIgnore;
+            decoder = decoder == decodeStart || decoder == decodeLookahead ? decodeDrainStart : decodeIgnore;
         }
 
-        private int decodeDrain(
-            DirectBufferEx buffer,
-            int offset,
-            int limit,
-            boolean last)
-        {
-            try
-            {
-                decodeWindow(buffer, offset, limit, last);
-            }
-            catch (JsonException ex)
-            {
-                decoder = decodeIgnore;
-            }
-
-            return limit;
-        }
-
-        private void decodeErrorResponse(
-            DirectBufferEx buffer,
-            int offset,
-            int limit,
-            boolean last)
-        {
-            try
-            {
-                decodeWindow(buffer, offset, limit, last);
-            }
-            catch (JsonException ex)
-            {
-                decoder = decodeIgnore;
-            }
-        }
-
-        private int decodeAvailable(
+        private int decodeNet(
             DirectBufferEx buffer,
             int offset,
             int limit,
             boolean last)
         {
             int progress = offset;
-            boolean advanced = true;
+
+            decodeWindowLimit = NONE;
 
             availableOffset = offset;
             availableLimit = limit;
             availableLast = last;
-
-            while (advanced && decoder != decodeEnd && !parseRejected)
-            {
-                final int window = Math.min(limit - progress, replyWindow());
-
-                if (window > 0)
-                {
-                    final int next = decodeWindow(buffer, progress, progress + window, last && progress + window == limit);
-
-                    advanced = next > progress && next < limit;
-                    progress = next;
-                }
-                else
-                {
-                    if (limit == progress)
-                    {
-                        progress = decodeWindow(buffer, progress, progress, last);
-                    }
-
-                    advanced = false;
-                }
-            }
-
-            return progress;
-        }
-
-        private int decodeWindow(
-            DirectBufferEx buffer,
-            int offset,
-            int windowLimit,
-            boolean windowLast)
-        {
-            decodeLimit = windowLimit;
-            decodeInput = buffer;
 
             if (controlFrom != NONE)
             {
@@ -1336,62 +1213,115 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 captureFrom = offset;
             }
 
-            parser.wrap(buffer, offset, windowLimit, windowLast);
-
-            LlmGeminiResponseDecoder previous = null;
-            while (previous != decoder && decoder != decodeEnd && !parseRejected)
+            int previous;
+            LlmGeminiResponseDecoder previousDecoder;
+            do
             {
-                previous = decoder;
-                decoder.decode(buffer, offset, windowLimit);
+                previous = progress;
+                previousDecoder = decoder;
+                progress = decodeInput(buffer, progress, limit, last);
             }
+            while (progress != previous && progress < limit || decoder != previousDecoder);
 
             if (decoder == decodeCapture)
             {
                 flushCapture(buffer);
             }
 
-            int progress = position();
+            flushControl(progress);
 
-            if (decoder == decodeEnd)
-            {
-                while (progress < windowLimit && isWhitespace(buffer.getByte(progress)))
-                {
-                    progress++;
-                }
-            }
-            else
-            {
-                flushControl(progress);
-            }
-
-            return parseRejected ? windowLimit : progress;
+            return progress;
         }
 
-        private int position()
-        {
-            return decodeLimit - parser.remaining();
-        }
-
-        private boolean hasNextEvent()
-        {
-            return parser.hasNextEvent() && (!begun() || draining || eventSlack() >= EVENT_FRAMES * replyPad);
-        }
-
-        private int eventSlack()
-        {
-            final int pending = controlFrom != NONE ? position() - controlFrom + CONTROL_CLOSING : 0;
-
-            return replyMax - (int) (replySeq - replyAck) - controlSlotOffset - pending - parser.remaining() - sectionClosing();
-        }
-
-        private boolean scanResponse(
+        private int decodeInput(
             DirectBufferEx buffer,
             int offset,
             int limit,
             boolean last)
         {
-            parser.reset();
-            parser.wrap(buffer, offset, limit, last);
+            int progress = offset;
+
+            decodedInput = buffer;
+            decodedLast = last;
+
+            final LlmGeminiResponseDecoder previous = decoder;
+            final boolean unconstrained = draining || http.errorStatus != NO_ERROR;
+            final boolean credited = !unconstrained && decoder != decodeLookahead;
+
+            try
+            {
+                if (decoder == decodeEnd || decoder == decodeIgnore || decoder == decodeRejected)
+                {
+                    decodeLimit = limit;
+                    progress = decoder.decode(buffer, offset, limit);
+                }
+                else
+                {
+                    int windowLimit = limit;
+
+                    if (credited)
+                    {
+                        if (decodeWindowLimit == NONE || decodeWindowLimit <= offset)
+                        {
+                            int window = Math.min(limit - offset, replyWindow());
+
+                            decodeWindowLimit = offset + window;
+                        }
+
+                        windowLimit = decodeWindowLimit;
+                    }
+
+                    if (windowLimit > offset || limit == offset)
+                    {
+                        decodeLimit = windowLimit;
+                        parser.wrap(buffer, offset, windowLimit, last && windowLimit == limit);
+
+                        progress = decoder.decode(buffer, offset, windowLimit);
+
+                        if (decoder == decodeEnd)
+                        {
+                            while (progress < windowLimit && isWhitespace(buffer.getByte(progress)))
+                            {
+                                progress++;
+                            }
+                        }
+                        else if (decoder == previous)
+                        {
+                            if (decoder == decodeCapture)
+                            {
+                                flushCapture(buffer);
+                            }
+
+                            flushControl(progress);
+                        }
+
+                        if (decoder == previous)
+                        {
+                            decodeWindowLimit = NONE;
+
+                            if (unconstrained)
+                            {
+                                progress = limit;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                decoder = unconstrained ? decodeIgnore : decodeRejected;
+                progress = limit;
+            }
+
+            return decoder == decodeRejected ? limit : progress;
+        }
+
+        private int decodeLookahead(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            parser.mark();
 
             int scanDepth = 0;
             int memberDepth = 1;
@@ -1443,9 +1373,36 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 }
             }
 
-            parser.reset();
+            parser.rewind();
 
-            return found;
+            if (found || decodedLast || limit - offset >= decodeMax)
+            {
+                decoder = decodeStart;
+
+                if (!scanError)
+                {
+                    doAppBeginSections(http.decodeTraceId);
+                }
+            }
+
+            return position();
+        }
+
+        private int position()
+        {
+            return decodeLimit - parser.remaining();
+        }
+
+        private boolean hasNextEvent()
+        {
+            return parser.hasNextEvent() && (!begun() || draining || eventSlack() >= EVENT_FRAMES * replyPad);
+        }
+
+        private int eventSlack()
+        {
+            final int pending = controlFrom != NONE ? position() - controlFrom + CONTROL_CLOSING : 0;
+
+            return replyMax - (int) (replySeq - replyAck) - controlSlotOffset - pending - parser.remaining() - sectionClosing();
         }
 
         private boolean scanValue(
@@ -1497,7 +1454,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    parseRejected = true;
+                    decoder = decodeRejected;
                 }
             }
 
@@ -1524,7 +1481,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    parseRejected = true;
+                    decoder = decodeRejected;
                 }
             }
 
@@ -2010,8 +1967,8 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
                 if (event == JsonEvent.END_OBJECT)
                 {
-                    endCall();
                     decoder = decodePart;
+                    endCall();
                 }
                 else if (parser.deferredBytes())
                 {
@@ -2104,7 +2061,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 }
                 else if (callName == null)
                 {
-                    parseRejected = true;
+                    decoder = decodeRejected;
                 }
                 else
                 {
@@ -2126,7 +2083,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             {
                 if (callName == null)
                 {
-                    parseRejected = true;
+                    decoder = decodeRejected;
                 }
                 else
                 {
@@ -2431,10 +2388,18 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             {
                 if (!isWhitespace(buffer.getByte(index)))
                 {
-                    parseRejected = true;
+                    decoder = decodeRejected;
                 }
             }
 
+            return limit;
+        }
+
+        private int decodeRejected(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
             return limit;
         }
 
@@ -2443,8 +2408,6 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            http.cleanupDecodeSlot();
-
             return limit;
         }
 
@@ -2929,19 +2892,19 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 if (decoder == decodeControlStream)
                 {
                     doAppFrame(http.decodeTraceId, Flags.NONE, LlmSectionType.CONTROL, controlMessage, null, null,
-                        decodeInput, controlFrom, to - controlFrom);
+                        decodedInput, controlFrom, to - controlFrom);
                 }
                 else
                 {
                     int from = controlFrom;
 
                     while (controlSlotOffset == controlValue && from < to &&
-                        (isWhitespace(decodeInput.getByte(from)) || decodeInput.getByte(from) == ':'))
+                        (isWhitespace(decodedInput.getByte(from)) || decodedInput.getByte(from) == ':'))
                     {
                         from++;
                     }
 
-                    encodePool.buffer(controlSlot).putBytes(controlSlotOffset, decodeInput, from, to - from);
+                    encodePool.buffer(controlSlot).putBytes(controlSlotOffset, decodedInput, from, to - from);
                     controlSlotOffset += to - from;
                 }
 
@@ -3599,7 +3562,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             long traceId,
             int status)
         {
-            if (LlmState.replyOpening(state) || LlmState.replyOpened(state))
+            if (LlmState.replyOpening(state) || LlmState.replyOpened(state) || LlmState.initialClosed(state))
             {
                 doAppAbort(traceId);
             }
@@ -3658,6 +3621,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private void cleanup(
             long traceId)
         {
+            decoder = decodeIgnore;
             doAppReset(traceId, STATUS_BAD_GATEWAY, null, null);
             doAppAbort(traceId);
             http.doNetAbort(traceId);
@@ -4862,15 +4826,9 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private void onNetReset(
             ResetFW reset)
         {
-            final long traceId = reset.traceId();
-
             state = LlmState.closeInitial(state);
-            cleanupEncodeSlot();
-            cleanupHeldSlot();
-            cleanupDecodeSlot();
-            resetDecodeState();
 
-            stream.doAppFailure(traceId, STATUS_BAD_GATEWAY);
+            cleanupNet(reset.traceId());
         }
 
         private void onNetChallenge(
@@ -4958,11 +4916,11 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         {
             final boolean last = LlmState.replyClosing(state);
 
-            int progress = stream.decodeResponse(buffer, offset, limit, last);
+            int progress = stream.decodeNet(buffer, offset, limit, last);
 
             responseStarted = !stream.completed();
 
-            if (stream.parseRejected())
+            if (stream.rejected())
             {
                 stream.resetResponse();
                 cleanupNet(decodeTraceId);
@@ -4987,7 +4945,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
             if (errorStatus != NO_ERROR)
             {
-                stream.decodeErrorResponse(buffer, offset, limit, last);
+                stream.decodeNet(buffer, offset, limit, last);
 
                 if (last)
                 {
@@ -5139,11 +5097,11 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             int to,
             boolean last)
         {
-            final int progress = stream.decodeResponse(decodePool.buffer(decodeSlot), from, to, last);
+            final int progress = stream.decodeNet(decodePool.buffer(decodeSlot), from, to, last);
 
             int tailFrom = to;
 
-            if (stream.parseRejected())
+            if (stream.rejected())
             {
                 stream.resetResponse();
                 cleanupNet(decodeTraceId);
@@ -5198,9 +5156,9 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             int to,
             boolean last)
         {
-            final int progress = stream.decodeResponse(source, from, to, last);
+            final int progress = stream.decodeNet(source, from, to, last);
 
-            if (stream.parseRejected())
+            if (stream.rejected())
             {
                 stream.resetResponse();
                 cleanupNet(decodeTraceId);
@@ -5279,7 +5237,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         {
             if (decodeSlot != NO_SLOT)
             {
-                stream.decodeErrorResponse(decodePool.buffer(decodeSlot), 0, decodeSlotOffset, true);
+                stream.decodeNet(decodePool.buffer(decodeSlot), 0, decodeSlotOffset, true);
                 cleanupDecodeSlot();
             }
 
@@ -5304,6 +5262,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             cleanupEncodeSlot();
             cleanupHeldSlot();
             doNetReset(traceId);
+            doNetAbort(traceId);
             stream.doAppFailure(traceId, STATUS_BAD_GATEWAY);
         }
 

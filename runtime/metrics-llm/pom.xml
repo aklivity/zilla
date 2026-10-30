@@ -42,12 +42,6 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>binding-llm.spec</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
       <artifactId>engine</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
@@ -177,7 +171,7 @@
           </dependency>
           <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>binding-llm.spec</artifactId>
+            <artifactId>metrics-llm.spec</artifactId>
             <version>${project.version}</version>
           </dependency>
         </dependencies>

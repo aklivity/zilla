@@ -504,6 +504,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private final LlmOpenaiResponseDecoder decodeControlStream = this::decodeControlStream;
         private final LlmOpenaiResponseDecoder decodeEnd = this::decodeEnd;
         private final LlmOpenaiResponseDecoder decodeIgnore = this::decodeIgnore;
+        private final LlmOpenaiResponseDecoder decodeRejected = this::decodeRejected;
+        private final LlmOpenaiResponseDecoder decodeLookahead = this::decodeLookahead;
         private final LlmOpenaiResponseDecoder decodeDrainStart = this::decodeDrainStart;
         private final LlmOpenaiResponseDecoder decodeDrainRootStart = this::decodeDrainRootStart;
         private final LlmOpenaiResponseDecoder decodeDrainRoot = this::decodeDrainRoot;
@@ -535,12 +537,12 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private LlmOpenaiResponseDecoder errorThen;
         private LlmOpenaiResponseDecoder usageThen;
         private int decodeLimit;
+        private boolean decodedLast;
+        private int decodeWindowLimit = NONE;
         private int skipDepth;
 
         private boolean messageScope;
-        private boolean scanned;
         private boolean scanError;
-        private boolean parseRejected;
         private boolean draining;
 
         private int documentInputTokens = NONE;
@@ -601,7 +603,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private int encodeSlot = NO_SLOT;
         private int encodeSlotOffset;
 
-        private DirectBufferEx decodeInput;
+        private DirectBufferEx decodedInput;
         private final StringBuilder controlKey = new StringBuilder();
         private final LlmControlSeen controlSeen = new LlmControlSeen();
         private int controlSlot = NO_SLOT;
@@ -659,7 +661,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             this.scanner = new LlmReasoningScanner(LlmReasoningTags.DEFAULTS);
             this.sectionTool = NONE;
             this.calls = new ToolCall[TOOL_CALLS_MAX];
-            this.decoder = decodeStart;
+            this.decoder = decodeLookahead;
 
             for (int index = 0; index < TOOL_CALLS_MAX; index++)
             {
@@ -1081,12 +1083,12 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
         private boolean begun()
         {
-            return scanned;
+            return decoder != decodeLookahead && http.errorStatus == NO_ERROR;
         }
 
-        private boolean parseRejected()
+        private boolean rejected()
         {
-            return parseRejected;
+            return decoder == decodeRejected;
         }
 
         private boolean completed()
@@ -1166,8 +1168,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private void resetResponse()
         {
             resetDocument();
-            scanned = false;
-            parseRejected = false;
             draining = false;
             sectionOpen = false;
             sectionStarted = false;
@@ -1180,226 +1180,142 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             cleanupControlSlot();
             cleanupHeldSlot();
             callCount = 0;
-        }
-
-        private int decodeResponse(
-            DirectBufferEx buffer,
-            int offset,
-            int limit,
-            boolean last)
-        {
-            int progress = offset;
-
-            try
-            {
-                if (decoder == decodeEnd || decoder == decodeIgnore)
-                {
-                    progress = decoder.decode(buffer, offset, limit);
-                }
-                else if (draining)
-                {
-                    progress = decodeDrain(buffer, offset, limit, last);
-                }
-                else
-                {
-                    boolean ready = scanned;
-
-                    if (!scanned)
-                    {
-                        final boolean found = scanResponse(buffer, offset, limit, last);
-
-                        if (found || last || limit - offset >= decodeMax)
-                        {
-                            scanned = true;
-                            ready = true;
-
-                            if (!scanError && !parseRejected)
-                            {
-                                doAppBeginSections(http.decodeTraceId);
-                            }
-                        }
-                    }
-
-                    if (parseRejected)
-                    {
-                        progress = limit;
-                    }
-                    else if (ready)
-                    {
-                        progress = decodeAvailable(buffer, offset, limit, last);
-                    }
-                }
-            }
-            catch (JsonException ex)
-            {
-                parseRejected = true;
-                progress = limit;
-            }
-
-            return progress;
+            decoder = decodeLookahead;
         }
 
         private void beginDrain()
         {
             draining = true;
             cancelControl();
-            decoder = decoder == decodeStart ? decodeDrainStart : decodeIgnore;
+            decoder = decoder == decodeStart || decoder == decodeLookahead ? decodeDrainStart : decodeIgnore;
         }
 
-        private int decodeDrain(
-            DirectBufferEx buffer,
-            int offset,
-            int limit,
-            boolean last)
-        {
-            try
-            {
-                decodeWindow(buffer, offset, limit, last);
-            }
-            catch (JsonException ex)
-            {
-                decoder = decodeIgnore;
-            }
-
-            return limit;
-        }
-
-        private void decodeErrorResponse(
-            DirectBufferEx buffer,
-            int offset,
-            int limit,
-            boolean last)
-        {
-            try
-            {
-                decodeWindow(buffer, offset, limit, last);
-            }
-            catch (JsonException ex)
-            {
-                decoder = decodeIgnore;
-            }
-        }
-
-        private int decodeAvailable(
+        private int decodeNet(
             DirectBufferEx buffer,
             int offset,
             int limit,
             boolean last)
         {
             int progress = offset;
-            boolean advanced = true;
 
-            while (advanced && decoder != decodeEnd && !parseRejected)
-            {
-                int window = Math.min(limit - progress, replyWindow());
-
-                if (window == 0 && limit > progress && encodeSlotOffset > 0 && replyCredit() > 0)
-                {
-                    flushHeld();
-                    window = Math.min(limit - progress, replyWindow());
-                }
-
-                if (window > 0)
-                {
-                    final int next = decodeWindow(buffer, progress, progress + window, last && progress + window == limit);
-
-                    advanced = next > progress && next < limit;
-                    progress = next;
-                }
-                else
-                {
-                    if (limit == progress)
-                    {
-                        progress = decodeWindow(buffer, progress, progress, last);
-                    }
-
-                    advanced = false;
-                }
-            }
-
-            return progress;
-        }
-
-        private int decodeWindow(
-            DirectBufferEx buffer,
-            int offset,
-            int windowLimit,
-            boolean windowLast)
-        {
-            decodeLimit = windowLimit;
-            decodeInput = buffer;
+            decodeWindowLimit = NONE;
 
             if (controlFrom != NONE)
             {
                 controlFrom = offset;
             }
 
-            parser.wrap(buffer, offset, windowLimit, windowLast);
-
-            LlmOpenaiResponseDecoder previous = null;
-            while (previous != decoder && decoder != decodeEnd && !parseRejected)
+            int previous;
+            LlmOpenaiResponseDecoder previousDecoder;
+            do
             {
-                previous = decoder;
-                decoder.decode(buffer, offset, windowLimit);
+                previous = progress;
+                previousDecoder = decoder;
+                progress = decodeInput(buffer, progress, limit, last);
             }
+            while (progress != previous && progress < limit || decoder != previousDecoder);
 
-            int progress = position();
+            flushControl(progress);
 
-            if (decoder == decodeEnd)
-            {
-                while (progress < windowLimit && isWhitespace(buffer.getByte(progress)))
-                {
-                    progress++;
-                }
-            }
-            else
-            {
-                flushControl(progress);
-            }
-
-            return parseRejected ? windowLimit : progress;
+            return progress;
         }
 
-        private int position()
-        {
-            return decodeLimit - parser.remaining();
-        }
-
-        private boolean hasNextEvent()
-        {
-            return parser.hasNextEvent() && (!begun() || draining || eventSlack() >= EVENT_FRAMES * replyPad);
-        }
-
-        private int eventSlack()
-        {
-            final int pending = controlFrom != NONE ? position() - controlFrom + CONTROL_CLOSING : 0;
-
-            return replyMax - (int) (replySeq - replyAck) - encodeSlotOffset - controlSlotOffset - heldPending() - pending -
-                parser.remaining() - sectionClosing();
-        }
-
-        private void flushHeld()
-        {
-            if (encodeSlot != NO_SLOT)
-            {
-                writeSection(encodePool.buffer(encodeSlot), 0, encodeSlotOffset, false);
-                cleanupEncodeSlot();
-            }
-        }
-
-        private boolean scanResponse(
+        private int decodeInput(
             DirectBufferEx buffer,
             int offset,
             int limit,
             boolean last)
         {
-            parser.reset();
-            parser.wrap(buffer, offset, limit, last);
+            int progress = offset;
+
+            decodedInput = buffer;
+            decodedLast = last;
+
+            final LlmOpenaiResponseDecoder previous = decoder;
+            final boolean unconstrained = draining || http.errorStatus != NO_ERROR;
+            final boolean credited = !unconstrained && decoder != decodeLookahead;
+
+            try
+            {
+                if (decoder == decodeEnd || decoder == decodeIgnore || decoder == decodeRejected)
+                {
+                    decodeLimit = limit;
+                    progress = decoder.decode(buffer, offset, limit);
+                }
+                else
+                {
+                    int windowLimit = limit;
+
+                    if (credited)
+                    {
+                        if (decodeWindowLimit == NONE || decodeWindowLimit <= offset)
+                        {
+                            int window = Math.min(limit - offset, replyWindow());
+
+                            if (window == 0 && limit > offset && encodeSlotOffset > 0 && replyCredit() > 0)
+                            {
+                                flushHeld();
+                                window = Math.min(limit - offset, replyWindow());
+                            }
+
+                            decodeWindowLimit = offset + window;
+                        }
+
+                        windowLimit = decodeWindowLimit;
+                    }
+
+                    if (windowLimit > offset || limit == offset)
+                    {
+                        decodeLimit = windowLimit;
+                        parser.wrap(buffer, offset, windowLimit, last && windowLimit == limit);
+
+                        progress = decoder.decode(buffer, offset, windowLimit);
+
+                        if (decoder == decodeEnd)
+                        {
+                            while (progress < windowLimit && isWhitespace(buffer.getByte(progress)))
+                            {
+                                progress++;
+                            }
+                        }
+                        else if (decoder == previous)
+                        {
+                            flushControl(progress);
+                        }
+
+                        if (decoder == previous)
+                        {
+                            decodeWindowLimit = NONE;
+
+                            if (unconstrained)
+                            {
+                                progress = limit;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                decoder = unconstrained ? decodeIgnore : decodeRejected;
+                progress = limit;
+            }
+
+            return decoder == decodeRejected ? limit : progress;
+        }
+
+        private int decodeLookahead(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            parser.mark();
 
             int scanDepth = 0;
             String scanKey = null;
             boolean scanChoices = false;
             boolean found = false;
+            boolean invalid = false;
 
             scanError = false;
 
@@ -1409,7 +1325,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
                 if (scanChoices)
                 {
-                    parseRejected = event != JsonEvent.START_ARRAY;
+                    invalid = event != JsonEvent.START_ARRAY;
                     found = true;
                 }
                 else
@@ -1466,9 +1382,50 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 }
             }
 
-            parser.reset();
+            parser.rewind();
 
-            return found;
+            if (invalid)
+            {
+                decoder = decodeRejected;
+            }
+            else if (found || decodedLast || limit - offset >= decodeMax)
+            {
+                decoder = decodeStart;
+
+                if (!scanError)
+                {
+                    doAppBeginSections(http.decodeTraceId);
+                }
+            }
+
+            return position();
+        }
+
+        private int position()
+        {
+            return decodeLimit - parser.remaining();
+        }
+
+        private boolean hasNextEvent()
+        {
+            return parser.hasNextEvent() && (!begun() || draining || eventSlack() >= EVENT_FRAMES * replyPad);
+        }
+
+        private int eventSlack()
+        {
+            final int pending = controlFrom != NONE ? position() - controlFrom + CONTROL_CLOSING : 0;
+
+            return replyMax - (int) (replySeq - replyAck) - encodeSlotOffset - controlSlotOffset - heldPending() - pending -
+                parser.remaining() - sectionClosing();
+        }
+
+        private void flushHeld()
+        {
+            if (encodeSlot != NO_SLOT)
+            {
+                writeSection(encodePool.buffer(encodeSlot), 0, encodeSlotOffset, false);
+                cleanupEncodeSlot();
+            }
         }
 
         private int decodeStart(
@@ -1500,7 +1457,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    parseRejected = true;
+                    decoder = decodeRejected;
                 }
             }
 
@@ -1618,7 +1575,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    parseRejected = true;
+                    decoder = decodeRejected;
                 }
             }
 
@@ -1956,8 +1913,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
                 if (event == JsonEvent.END_OBJECT)
                 {
-                    registerToolCall();
                     decoder = decodeToolCalls;
+                    registerToolCall();
                 }
                 else if (parser.deferredBytes())
                 {
@@ -2058,8 +2015,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
                 if (event == JsonEvent.END_OBJECT)
                 {
-                    registerToolCall();
                     decoder = decodeToolCall;
+                    registerToolCall();
                 }
                 else if (parser.deferredBytes())
                 {
@@ -2121,13 +2078,13 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                     final boolean deferred = parser.deferredBytes();
                     final boolean stalled = emitArguments(deferred, eventFrom);
 
-                    if (!deferred && !stalled)
-                    {
-                        decoder = decodeFunction;
-                    }
-                    else if (stalled)
+                    if (decoder == decodeRejected || stalled)
                     {
                         break;
+                    }
+                    else if (!deferred)
+                    {
+                        decoder = decodeFunction;
                     }
                 }
                 else
@@ -2214,10 +2171,18 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             {
                 if (!isWhitespace(buffer.getByte(index)))
                 {
-                    parseRejected = true;
+                    decoder = decodeRejected;
                 }
             }
 
+            return limit;
+        }
+
+        private int decodeRejected(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
             return limit;
         }
 
@@ -2226,8 +2191,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            http.cleanupDecodeSlot();
-
             return limit;
         }
 
@@ -3128,7 +3091,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             errorType = ERROR_TOOL_CALLS_TYPE;
             errorMessage = ERROR_TOOL_CALLS_MESSAGE;
-            parseRejected = true;
+            decoder = decodeRejected;
         }
 
         private int argumentsAllowance(
@@ -3369,11 +3332,11 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 if (decoder == decodeControlStream)
                 {
                     doAppFrame(http.decodeTraceId, Flags.NONE, LlmSectionType.CONTROL, controlMessage, null, null, null,
-                        decodeInput, controlFrom, to - controlFrom);
+                        decodedInput, controlFrom, to - controlFrom);
                 }
                 else
                 {
-                    encodePool.buffer(controlSlot).putBytes(controlSlotOffset, decodeInput, controlFrom, to - controlFrom);
+                    encodePool.buffer(controlSlot).putBytes(controlSlotOffset, decodedInput, controlFrom, to - controlFrom);
                     controlSlotOffset += to - controlFrom;
                 }
 
@@ -3953,7 +3916,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             long traceId,
             int status)
         {
-            if (LlmState.replyOpening(state) || LlmState.replyOpened(state))
+            if (LlmState.replyOpening(state) || LlmState.replyOpened(state) || LlmState.initialClosed(state))
             {
                 doAppAbort(traceId);
             }
@@ -4011,6 +3974,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private void cleanup(
             long traceId)
         {
+            decoder = decodeIgnore;
             doAppReset(traceId, STATUS_BAD_GATEWAY, null, null);
             doAppAbort(traceId);
             http.doNetAbort(traceId);
@@ -5238,14 +5202,9 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private void onNetReset(
             ResetFW reset)
         {
-            final long traceId = reset.traceId();
-
             state = LlmState.closeInitial(state);
-            cleanupEncodeSlot();
-            cleanupDecodeSlot();
-            resetDecodeState();
 
-            stream.doAppFailure(traceId, STATUS_BAD_GATEWAY);
+            cleanupNet(reset.traceId());
         }
 
         private void onNetChallenge(
@@ -5333,11 +5292,11 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             final boolean last = LlmState.replyClosing(state);
 
-            int progress = stream.decodeResponse(buffer, offset, limit, last);
+            int progress = stream.decodeNet(buffer, offset, limit, last);
 
             responseStarted = !stream.completed();
 
-            if (stream.parseRejected())
+            if (stream.rejected())
             {
                 stream.resetResponse();
                 cleanupNet(decodeTraceId);
@@ -5362,7 +5321,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
             if (errorStatus != NO_ERROR)
             {
-                stream.decodeErrorResponse(buffer, offset, limit, last);
+                stream.decodeNet(buffer, offset, limit, last);
 
                 if (last)
                 {
@@ -5516,11 +5475,11 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int to,
             boolean last)
         {
-            final int progress = stream.decodeResponse(decodePool.buffer(decodeSlot), from, to, last);
+            final int progress = stream.decodeNet(decodePool.buffer(decodeSlot), from, to, last);
 
             int tailFrom = to;
 
-            if (stream.parseRejected())
+            if (stream.rejected())
             {
                 stream.resetResponse();
                 cleanupNet(decodeTraceId);
@@ -5590,9 +5549,9 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int to,
             boolean last)
         {
-            final int progress = stream.decodeResponse(source, from, to, last);
+            final int progress = stream.decodeNet(source, from, to, last);
 
-            if (stream.parseRejected())
+            if (stream.rejected())
             {
                 stream.resetResponse();
                 cleanupNet(decodeTraceId);
@@ -5671,7 +5630,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             if (decodeSlot != NO_SLOT)
             {
-                stream.decodeErrorResponse(decodePool.buffer(decodeSlot), 0, decodeSlotOffset, true);
+                stream.decodeNet(decodePool.buffer(decodeSlot), 0, decodeSlotOffset, true);
                 cleanupDecodeSlot();
             }
 
@@ -5695,6 +5654,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             resetDecodeState();
             cleanupEncodeSlot();
             doNetReset(traceId);
+            doNetAbort(traceId);
             stream.doAppFailure(traceId, STATUS_BAD_GATEWAY);
         }
 
