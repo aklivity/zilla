@@ -14,6 +14,17 @@
  */
 package io.aklivity.zilla.runtime.binding.a2a.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.a2a.internal.types.stream.A2aBeginExFW.KIND_EXTENDED_AGENT_CARD;
+import static io.aklivity.zilla.runtime.binding.a2a.internal.types.stream.A2aBeginExFW.KIND_MESSAGE_SEND;
+import static io.aklivity.zilla.runtime.binding.a2a.internal.types.stream.A2aBeginExFW.KIND_MESSAGE_STREAM;
+import static io.aklivity.zilla.runtime.binding.a2a.internal.types.stream.A2aBeginExFW.KIND_PUSH_CONFIG_CREATE;
+import static io.aklivity.zilla.runtime.binding.a2a.internal.types.stream.A2aBeginExFW.KIND_PUSH_CONFIG_DELETE;
+import static io.aklivity.zilla.runtime.binding.a2a.internal.types.stream.A2aBeginExFW.KIND_PUSH_CONFIG_GET;
+import static io.aklivity.zilla.runtime.binding.a2a.internal.types.stream.A2aBeginExFW.KIND_PUSH_CONFIG_LIST;
+import static io.aklivity.zilla.runtime.binding.a2a.internal.types.stream.A2aBeginExFW.KIND_TASKS_CANCEL;
+import static io.aklivity.zilla.runtime.binding.a2a.internal.types.stream.A2aBeginExFW.KIND_TASKS_GET;
+import static io.aklivity.zilla.runtime.binding.a2a.internal.types.stream.A2aBeginExFW.KIND_TASKS_LIST;
+import static io.aklivity.zilla.runtime.binding.a2a.internal.types.stream.A2aBeginExFW.KIND_TASKS_SUBSCRIBE;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
@@ -123,6 +134,7 @@ public final class A2aServerFactory implements A2aStreamFactory
     private final WindowFW windowRO = new WindowFW();
     private final ResetFW resetRO = new ResetFW();
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
+    private final A2aBeginExFW a2aBeginExRO = new A2aBeginExFW();
     private final A2aResetExFW a2aResetExRO = new A2aResetExFW();
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBufferEx(), 0, 0);
 
@@ -953,6 +965,7 @@ public final class A2aServerFactory implements A2aStreamFactory
 
         private JsonParserEx decodableJson;
         private String decodedId;
+        private String activatedExtensions;
         private int decodedParamsProgress;
         private int decodedSkipObjectDepth;
 
@@ -1546,12 +1559,18 @@ public final class A2aServerFactory implements A2aStreamFactory
                     state = A2aState.framingReply(state);
                 }
 
-                doNetBegin(traceId, authorization, httpBeginExRW
+                final HttpBeginExFW.Builder builder = httpBeginExRW
                     .wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(httpTypeId)
                     .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
-                    .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(contentType))
-                    .build());
+                    .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(contentType));
+
+                if (activatedExtensions != null)
+                {
+                    builder.headersItem(h -> h.name(HTTP_HEADER_A2A_EXTENSIONS).value(activatedExtensions));
+                }
+
+                doNetBegin(traceId, authorization, builder.build());
             }
         }
 
@@ -2256,6 +2275,16 @@ public final class A2aServerFactory implements A2aStreamFactory
 
             state = A2aState.openingReply(state);
 
+            final OctetsFW extension = begin.extension();
+            final A2aBeginExFW beginEx = extension.sizeof() > 0
+                ? a2aBeginExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit())
+                : null;
+
+            if (beginEx != null)
+            {
+                server.activatedExtensions = extensionsOf(beginEx);
+            }
+
             flushAppWindow(traceId, authorization, 0L, 0, 0, encodeMax);
         }
 
@@ -2432,6 +2461,26 @@ public final class A2aServerFactory implements A2aStreamFactory
 
             server.cleanupNet(traceId, authorization);
         }
+    }
+
+    private static String extensionsOf(
+        A2aBeginExFW beginEx)
+    {
+        return switch (beginEx.kind())
+        {
+        case KIND_MESSAGE_SEND -> beginEx.messageSend().extensions().asString();
+        case KIND_MESSAGE_STREAM -> beginEx.messageStream().extensions().asString();
+        case KIND_TASKS_GET -> beginEx.tasksGet().extensions().asString();
+        case KIND_TASKS_LIST -> beginEx.tasksList().extensions().asString();
+        case KIND_TASKS_CANCEL -> beginEx.tasksCancel().extensions().asString();
+        case KIND_TASKS_SUBSCRIBE -> beginEx.tasksSubscribe().extensions().asString();
+        case KIND_PUSH_CONFIG_CREATE -> beginEx.pushConfigCreate().extensions().asString();
+        case KIND_PUSH_CONFIG_GET -> beginEx.pushConfigGet().extensions().asString();
+        case KIND_PUSH_CONFIG_LIST -> beginEx.pushConfigList().extensions().asString();
+        case KIND_PUSH_CONFIG_DELETE -> beginEx.pushConfigDelete().extensions().asString();
+        case KIND_EXTENDED_AGENT_CARD -> beginEx.extendedAgentCard().extensions().asString();
+        default -> null;
+        };
     }
 
     private void decodeReplyJson(
