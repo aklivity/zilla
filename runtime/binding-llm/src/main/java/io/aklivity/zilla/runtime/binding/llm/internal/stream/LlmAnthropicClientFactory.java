@@ -3813,7 +3813,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             long traceId,
             int status)
         {
-            if (LlmState.replyOpening(state) || LlmState.replyOpened(state))
+            if (LlmState.replyOpening(state) || LlmState.replyOpened(state) || LlmState.initialClosed(state))
             {
                 doAppAbort(traceId);
             }
@@ -5125,16 +5125,9 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private void onNetReset(
             ResetFW reset)
         {
-            final long traceId = reset.traceId();
-
             state = LlmState.closeInitial(state);
-            cleanupEncodeSlot();
-            cleanupHeldSlot();
-            cleanupDecodeSlot();
-            resetDecodeState();
 
-            doNetReset(traceId);
-            stream.doAppFailure(traceId, STATUS_BAD_GATEWAY);
+            cleanupNet(reset.traceId());
         }
 
         private void onNetChallenge(
@@ -5568,6 +5561,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             cleanupEncodeSlot();
             cleanupHeldSlot();
             doNetReset(traceId);
+            doNetAbort(traceId);
             stream.doAppFailure(traceId, STATUS_BAD_GATEWAY);
         }
 

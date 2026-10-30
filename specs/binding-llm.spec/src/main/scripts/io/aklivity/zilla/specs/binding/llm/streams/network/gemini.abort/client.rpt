@@ -31,4 +31,4 @@ connected
 write "{"
 
 write abort
-read abort
+read aborted

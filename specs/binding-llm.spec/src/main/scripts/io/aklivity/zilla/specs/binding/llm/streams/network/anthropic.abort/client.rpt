@@ -32,4 +32,4 @@ connected
 write "{\"model\":\"claude-3-opus-20240229\""
 
 write abort
-read abort
+read aborted

@@ -34,4 +34,4 @@ connected
 read "{\"model\":\"claude-3-opus-20240229\""
 
 read aborted
-write aborted
+write abort
