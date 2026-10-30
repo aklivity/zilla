@@ -179,6 +179,30 @@ public class AguiA2aRequestMappingTest
     }
 
     @Test
+    public void shouldRejectEmptyResumeWithoutUserMessage() throws Exception
+    {
+        assertRejected("{\"threadId\":\"t\",\"runId\":\"r\",\"messages\":[],\"resume\":[]}",
+            AguiA2aRejection.NO_USER_MESSAGE);
+    }
+
+    @Test
+    public void shouldOmitEmptyAndNullMembers() throws Exception
+    {
+        final String input = "{\"threadId\":\"t\",\"runId\":\"r\",\"state\":null,\"context\":[ ]," +
+            "\"forwardedProps\":{ },\"messages\":[{\"id\":\"m\",\"role\":\"user\",\"content\":\"x\"}]}";
+
+        for (int chunk : CHUNKS)
+        {
+            final AguiA2aRequestDecoder decoder = decode(input, chunk, "t", "r", null);
+            assertThat(decoder.status(), equalTo(Status.COMPLETE));
+            assertThat(assemble(decoder, "r", null, null, null, true),
+                equalTo("{\"message\":{\"messageId\":\"m\",\"role\":\"ROLE_USER\",\"parts\":[{\"text\":\"x\"}]}" +
+                    TRAILER));
+            decoder.retained().release();
+        }
+    }
+
+    @Test
     public void shouldRejectReservedKey() throws Exception
     {
         assertRejected("{\"threadId\":\"t\",\"runId\":\"r\",\"messages\":[{\"role\":\"user\",\"content\":\"x\"}]," +
