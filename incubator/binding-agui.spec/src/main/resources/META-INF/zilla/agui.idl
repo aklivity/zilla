@@ -21,6 +21,7 @@ scope agui
             string16 threadId;
             string16 runId;
             string16 parentRunId = null;
+            string16 agent = null;
         }
 
         struct AguiEventMeta
