@@ -115,6 +115,12 @@ module that depends on it.
   `~/.m2` and the module misses entries from a full build
 - Force a full rebuild with `-Dmaven.build.cache.skipCache=true`, or bypass the
   extension with `-Dmaven.build.cache.enabled=false`
+- CI restores `~/.m2/build-cache` from the OCI artifact
+  `ghcr.io/aklivity/zilla/build-cache:<branch>`: a pull request restores its base
+  branch and then `develop`, and a push to `develop` or `support/**` publishes it
+  from a separate job, the only one with `packages: write`
+  (`.github/scripts/build-cache.sh`). A missing artifact is a cold build, never an
+  error
 - Do not add a direct plugin goal (for example `jacoco:report-aggregate`) to a
   cached build command — it disables caching for the whole build
 - A module that must always build opts out with
