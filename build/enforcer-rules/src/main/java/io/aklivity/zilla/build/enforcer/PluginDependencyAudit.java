@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,7 +42,7 @@ final class PluginDependencyAudit
         Collection<Coordinate> pluginDependencies)
     {
         final Set<String> reachable = reachableFrom(project);
-        final List<String> violations = new ArrayList<>();
+        final Set<String> violations = new LinkedHashSet<>();
 
         for (Coordinate dependency : pluginDependencies)
         {
@@ -60,7 +61,7 @@ final class PluginDependencyAudit
             }
         }
 
-        return violations;
+        return new ArrayList<>(violations);
     }
 
     private Set<String> reachableFrom(

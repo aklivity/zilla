@@ -132,6 +132,16 @@ public class PluginDependencyAuditTest
     }
 
     @Test
+    public void shouldReportEachViolationOnce()
+    {
+        PluginDependencyAudit audit = new PluginDependencyAudit(Map.of(
+            "io.aklivity.zilla:echo.spec", emptySet(),
+            "io.aklivity.zilla:engine", emptySet()));
+
+        assertEquals(1, audit.violations("io.aklivity.zilla:echo.spec", asList(ENGINE, ENGINE)).size());
+    }
+
+    @Test
     public void shouldAcceptNoPluginDependencies()
     {
         PluginDependencyAudit audit = new PluginDependencyAudit(Map.of("io.aklivity.zilla:echo.spec", emptySet()));
