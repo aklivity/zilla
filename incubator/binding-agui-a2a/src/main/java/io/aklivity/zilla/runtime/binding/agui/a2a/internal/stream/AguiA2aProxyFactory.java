@@ -137,34 +137,6 @@ public final class AguiA2aProxyFactory implements BindingHandler
         return newStream;
     }
 
-    private void doRedirect(
-        MessageConsumer sender,
-        long originId,
-        long routedId,
-        long streamId,
-        long sequence,
-        long acknowledge,
-        long traceId,
-        long authorization,
-        long affinity,
-        Flyweight extension)
-    {
-        final RedirectFW redirect = redirectRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-            .originId(originId)
-            .routedId(routedId)
-            .streamId(streamId)
-            .sequence(sequence)
-            .acknowledge(acknowledge)
-            .maximum(0)
-            .traceId(traceId)
-            .authorization(authorization)
-            .affinity(affinity)
-            .extension(extension.buffer(), extension.offset(), extension.sizeof())
-            .build();
-
-        sender.accept(redirect.typeId(), redirect.buffer(), redirect.offset(), redirect.sizeof());
-    }
-
     private final class AguiA2aRedirectHandler
     {
         private final MessageConsumer sender;
@@ -219,5 +191,33 @@ public final class AguiA2aProxyFactory implements BindingHandler
 
             events.runRedirected(traceId, bindingId, agent, ownerAffinity);
         }
+    }
+
+    private void doRedirect(
+        MessageConsumer sender,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        long traceId,
+        long authorization,
+        long affinity,
+        Flyweight extension)
+    {
+        final RedirectFW redirect = redirectRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(0)
+            .traceId(traceId)
+            .authorization(authorization)
+            .affinity(affinity)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
+            .build();
+
+        sender.accept(redirect.typeId(), redirect.buffer(), redirect.offset(), redirect.sizeof());
     }
 }
