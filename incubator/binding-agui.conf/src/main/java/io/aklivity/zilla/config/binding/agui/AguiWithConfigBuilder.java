@@ -24,8 +24,9 @@ public final class AguiWithConfigBuilder<T> extends ConfigBuilder<T, AguiWithCon
     private final Function<WithConfig, T> mapper;
 
     private String agent;
+    private String path;
 
-    AguiWithConfigBuilder(
+    public AguiWithConfigBuilder(
         Function<WithConfig, T> mapper)
     {
         this.mapper = mapper;
@@ -35,6 +36,13 @@ public final class AguiWithConfigBuilder<T> extends ConfigBuilder<T, AguiWithCon
         String agent)
     {
         this.agent = agent;
+        return this;
+    }
+
+    public AguiWithConfigBuilder<T> path(
+        String path)
+    {
+        this.path = path;
         return this;
     }
 
@@ -48,6 +56,6 @@ public final class AguiWithConfigBuilder<T> extends ConfigBuilder<T, AguiWithCon
     @Override
     public T build()
     {
-        return mapper.apply(new AguiWithConfig(agent));
+        return mapper.apply(new AguiWithConfig(agent, path));
     }
 }

@@ -52,6 +52,25 @@ public class AguiConditionConfigAdapterTest
     }
 
     @Test
+    public void shouldReadConditionAgent()
+    {
+        AguiConditionConfig condition = jsonb.fromJson("{\"agent\":\"support\"}", AguiConditionConfig.class);
+
+        assertThat(condition.agent, equalTo("support"));
+        assertThat(condition.path, nullValue());
+    }
+
+    @Test
+    public void shouldWriteConditionAgent()
+    {
+        AguiConditionConfig condition = AguiConditionConfig.builder()
+            .agent("support")
+            .build();
+
+        assertThat(jsonb.toJson(condition), equalTo("{\"agent\":\"support\"}"));
+    }
+
+    @Test
     public void shouldWriteCondition()
     {
         AguiConditionConfig condition = AguiConditionConfig.builder()

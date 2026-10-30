@@ -21,11 +21,14 @@ import io.aklivity.zilla.config.engine.WithConfig;
 public final class AguiWithConfig extends WithConfig
 {
     public final String agent;
+    public final String path;
 
     AguiWithConfig(
-        String agent)
+        String agent,
+        String path)
     {
         this.agent = agent;
+        this.path = path;
     }
 
     public static AguiWithConfigBuilder<AguiWithConfig> builder()
