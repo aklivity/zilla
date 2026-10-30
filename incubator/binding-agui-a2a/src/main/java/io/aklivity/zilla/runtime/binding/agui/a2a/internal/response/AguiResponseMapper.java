@@ -64,25 +64,33 @@ public final class AguiResponseMapper implements A2aEventSink
     private static final String MESSAGE_TOO_LARGE = "Event too large";
     private static final String REPLACEMENT_SEPARATOR = "#";
 
-    private enum Phase
+    private interface Content
     {
-        OPEN,
-        ENDED
+        void text(
+            DirectBufferEx buffer,
+            int offset,
+            int limit);
+
+        void data(
+            int flags,
+            DirectBufferEx buffer,
+            int offset,
+            int limit);
+
+        void file(
+            String mediaType,
+            String name,
+            String url,
+            String raw);
     }
 
-    private enum Target
+    private interface ReplyEvents extends A2aEventSink
     {
-        NONE,
-        STATUS,
-        ARTIFACT,
-        REPLY
-    }
+        void streamEnded(
+            boolean error);
 
-    private enum Mode
-    {
-        SKIP,
-        NEW,
-        CONTINUE
+        void streamAborted(
+            String reason);
     }
 
     private final AguiFrameSink sink;
@@ -100,19 +108,29 @@ public final class AguiResponseMapper implements A2aEventSink
     private final Set<String> finished = new HashSet<>();
     private final Set<String> messageIds = new HashSet<>();
     private final Map<String, Integer> artifacts = new HashMap<>();
+    private final Runnable noop = () ->
+    {
+    };
+    private final Runnable closeOpen = this::closeOpenMessage;
+    private final ReplyEvents open = new OpenEvents();
+    private final ReplyEvents ended = new EndedEvents();
+    private final Content ignoreContent = new IgnoreContent();
+    private final Content statusContent = new StatusContent();
+    private final Content statusCompletedContent = new StatusCompletedContent();
+    private final Content newContent = new NewContent();
+    private final Content continueContent = new ContinueContent();
 
-    private Phase phase = Phase.OPEN;
-    private Target target = Target.NONE;
-    private Mode mode = Mode.SKIP;
+    private ReplyEvents events = open;
+    private Content content = ignoreContent;
+    private Runnable closing = noop;
+    private Runnable leading = noop;
     private A2aEventKind kind;
     private A2aTaskState state = A2aTaskState.UNSPECIFIED;
     private Boolean append;
     private String taskId;
     private String contextId;
-    private byte[] snapshot;
     private String artifactId;
     private String messageId;
-    private String openId;
     private String openArtifactId;
     private int statusLength;
     private String statusMessageId;
@@ -152,13 +170,110 @@ public final class AguiResponseMapper implements A2aEventSink
 
     public boolean terminal()
     {
-        return phase == Phase.ENDED;
+        return events == ended;
     }
 
     public void streamEnded(
         boolean error)
     {
-        if (phase == Phase.OPEN)
+        events.streamEnded(error);
+    }
+
+    public void streamAborted(
+        String reason)
+    {
+        events.streamAborted(reason);
+    }
+
+    @Override
+    public void eventStarted(
+        A2aEventKind kind,
+        String taskId,
+        String contextId,
+        A2aTaskState state,
+        Boolean append)
+    {
+        events.eventStarted(kind, taskId, contextId, state, append);
+    }
+
+    @Override
+    public void messageStarted(
+        A2aMessageScope scope,
+        String messageId)
+    {
+        events.messageStarted(scope, messageId);
+    }
+
+    @Override
+    public void artifactStarted(
+        String artifactId)
+    {
+        events.artifactStarted(artifactId);
+    }
+
+    @Override
+    public void text(
+        int flags,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        events.text(flags, buffer, offset, limit);
+    }
+
+    @Override
+    public void data(
+        int flags,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        events.data(flags, buffer, offset, limit);
+    }
+
+    @Override
+    public void file(
+        String mediaType,
+        String name,
+        String url,
+        String raw)
+    {
+        events.file(mediaType, name, url, raw);
+    }
+
+    @Override
+    public void artifactEnded()
+    {
+        events.artifactEnded();
+    }
+
+    @Override
+    public void messageEnded(
+        A2aMessageScope scope)
+    {
+        events.messageEnded(scope);
+    }
+
+    @Override
+    public void eventEnded(
+        boolean lastChunk)
+    {
+        events.eventEnded(lastChunk);
+    }
+
+    @Override
+    public void failed(
+        String code,
+        String message)
+    {
+        events.failed(code, message);
+    }
+
+    private final class OpenEvents implements ReplyEvents
+    {
+        @Override
+        public void streamEnded(
+            boolean error)
         {
             if (error)
             {
@@ -173,223 +288,150 @@ public final class AguiResponseMapper implements A2aEventSink
                 runError(STATUS_BAD_GATEWAY, CODE_INCOMPLETE, null);
             }
         }
-    }
 
-    public void streamAborted(
-        String reason)
-    {
-        if (phase == Phase.OPEN)
+        @Override
+        public void streamAborted(
+            String reason)
         {
             runError(STATUS_BAD_GATEWAY, CODE_ABORTED, reason);
         }
-    }
 
-    @Override
-    public void eventStarted(
-        A2aEventKind kind,
-        String taskId,
-        String contextId,
-        A2aTaskState state,
-        Boolean append)
-    {
-        if (phase == Phase.OPEN)
+        @Override
+        public void eventStarted(
+            A2aEventKind kind,
+            String taskId,
+            String contextId,
+            A2aTaskState state,
+            Boolean append)
         {
-            this.kind = kind;
-            this.append = append;
-            this.target = Target.NONE;
-            this.statusText = null;
-            this.taskId = taskId != null ? taskId : this.taskId;
+            AguiResponseMapper.this.kind = kind;
+            AguiResponseMapper.this.append = append;
+            AguiResponseMapper.this.taskId = taskId != null ? taskId : AguiResponseMapper.this.taskId;
+            content = ignoreContent;
+            statusText = null;
 
-            if (this.contextId == null && contextId != null)
+            if (AguiResponseMapper.this.contextId == null && contextId != null)
             {
-                this.contextId = contextId;
-                this.snapshot = host.snapshot(contextId);
+                AguiResponseMapper.this.contextId = contextId;
+
+                final byte[] json = host.snapshot(contextId);
+
+                if (json != null)
+                {
+                    leading = () -> leadSnapshot(json);
+                }
             }
 
             if (kind == A2aEventKind.TASK || kind == A2aEventKind.STATUS_UPDATE)
             {
-                this.state = state;
+                AguiResponseMapper.this.state = state;
             }
-            else if (kind == A2aEventKind.MESSAGE && this.state == A2aTaskState.UNSPECIFIED)
+            else if (kind == A2aEventKind.MESSAGE && AguiResponseMapper.this.state == A2aTaskState.UNSPECIFIED)
             {
-                this.state = A2aTaskState.COMPLETED;
+                AguiResponseMapper.this.state = A2aTaskState.COMPLETED;
             }
         }
-    }
 
-    @Override
-    public void messageStarted(
-        A2aMessageScope scope,
-        String messageId)
-    {
-        if (phase == Phase.OPEN)
+        @Override
+        public void messageStarted(
+            A2aMessageScope scope,
+            String messageId)
         {
             if (scope == A2aMessageScope.STATUS)
             {
-                target = Target.STATUS;
+                content = state == A2aTaskState.COMPLETED ? statusCompletedContent : statusContent;
                 statusLength = 0;
                 statusMessageId = messageId;
             }
             else
             {
-                closeMessage();
-                target = Target.REPLY;
-                mode = Mode.NEW;
+                closing.run();
+                content = newContent;
                 artifactId = null;
-                this.messageId = messageId;
+                AguiResponseMapper.this.messageId = messageId;
             }
         }
-    }
 
-    @Override
-    public void artifactStarted(
-        String artifactId)
-    {
-        if (phase == Phase.OPEN)
+        @Override
+        public void artifactStarted(
+            String id)
         {
-            final String id = artifactId != null ? artifactId : UUID.randomUUID().toString();
-            final boolean seen = artifacts.containsKey(id);
+            final String artifact = id != null ? id : UUID.randomUUID().toString();
+            final boolean seen = artifacts.containsKey(artifact);
 
-            target = Target.ARTIFACT;
-            this.artifactId = id;
+            artifactId = artifact;
 
             if (!seen)
             {
-                artifacts.put(id, 0);
-                messageId = id;
-                mode = Mode.NEW;
+                artifacts.put(artifact, 0);
+                messageId = artifact;
+                content = newContent;
             }
             else if (kind == A2aEventKind.ARTIFACT_UPDATE)
             {
-                if (!Boolean.FALSE.equals(append) && id.equals(openArtifactId))
+                if (!Boolean.FALSE.equals(append) && artifact.equals(openArtifactId))
                 {
-                    mode = Mode.CONTINUE;
+                    content = continueContent;
                 }
                 else
                 {
-                    messageId = id + REPLACEMENT_SEPARATOR + artifacts.merge(id, 1, Integer::sum);
-                    mode = Mode.NEW;
+                    messageId = artifact + REPLACEMENT_SEPARATOR + artifacts.merge(artifact, 1, Integer::sum);
+                    content = newContent;
                 }
             }
             else
             {
-                mode = Mode.SKIP;
+                content = ignoreContent;
             }
         }
-    }
 
-    @Override
-    public void text(
-        int flags,
-        DirectBufferEx buffer,
-        int offset,
-        int limit)
-    {
-        final int length = limit - offset;
-
-        if (phase == Phase.OPEN && length > 0)
+        @Override
+        public void text(
+            int flags,
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
         {
-            switch (target)
+            if (limit > offset)
             {
-            case STATUS:
-                accumulateStatus(buffer, offset, length);
-                break;
-            case ARTIFACT:
-            case REPLY:
-                textMessage(buffer, offset, limit);
-                break;
-            default:
-                break;
+                content.text(buffer, offset, limit);
             }
         }
-    }
 
-    @Override
-    public void data(
-        int flags,
-        DirectBufferEx buffer,
-        int offset,
-        int limit)
-    {
-        if (phase == Phase.OPEN && contentTarget())
+        @Override
+        public void data(
+            int flags,
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
         {
-            if ((flags & INIT) != 0)
-            {
-                closeMessage();
-                custom(CUSTOM_DATA, flags, buffer, offset, limit);
-            }
-            else
-            {
-                sink.message(flags, null, buffer, offset, limit);
-            }
+            content.data(flags, buffer, offset, limit);
         }
-    }
 
-    @Override
-    public void file(
-        String mediaType,
-        String name,
-        String url,
-        String raw)
-    {
-        if (phase == Phase.OPEN && contentTarget())
+        @Override
+        public void file(
+            String mediaType,
+            String name,
+            String url,
+            String raw)
         {
-            final JsonObjectBuilder builder = Json.createObjectBuilder();
-
-            if (mediaType != null)
-            {
-                builder.add("mimeType", mediaType);
-            }
-
-            if (name != null)
-            {
-                builder.add("name", name);
-            }
-
-            if (url != null)
-            {
-                builder.add("url", url);
-            }
-            else
-            {
-                builder.add("data", raw);
-            }
-
-            final byte[] json = builder.build().toString().getBytes(UTF_8);
-
-            if (json.length > maximum)
-            {
-                tooLarge();
-            }
-            else
-            {
-                fileBuffer.putBytes(0, json);
-                closeMessage();
-                custom(CUSTOM_FILE, INIT | FIN, fileBuffer, 0, json.length);
-            }
+            content.file(mediaType, name, url, raw);
         }
-    }
 
-    @Override
-    public void artifactEnded()
-    {
-        if (phase == Phase.OPEN)
+        @Override
+        public void artifactEnded()
         {
-            if (kind == A2aEventKind.TASK && mode != Mode.SKIP)
+            if (kind == A2aEventKind.TASK && content != ignoreContent)
             {
-                closeMessage();
+                closing.run();
             }
 
-            target = Target.NONE;
-            mode = Mode.SKIP;
+            content = ignoreContent;
         }
-    }
 
-    @Override
-    public void messageEnded(
-        A2aMessageScope scope)
-    {
-        if (phase == Phase.OPEN)
+        @Override
+        public void messageEnded(
+            A2aMessageScope scope)
         {
             if (scope == A2aMessageScope.STATUS)
             {
@@ -397,26 +439,22 @@ public final class AguiResponseMapper implements A2aEventSink
             }
             else
             {
-                closeMessage();
+                closing.run();
             }
 
-            target = Target.NONE;
-            mode = Mode.SKIP;
+            content = ignoreContent;
         }
-    }
 
-    @Override
-    public void eventEnded(
-        boolean lastChunk)
-    {
-        if (phase == Phase.OPEN)
+        @Override
+        public void eventEnded(
+            boolean lastChunk)
         {
             switch (kind)
             {
             case ARTIFACT_UPDATE:
                 if (lastChunk && artifactId != null && artifactId.equals(openArtifactId))
                 {
-                    closeMessage();
+                    closing.run();
                 }
                 break;
             case TASK:
@@ -427,24 +465,275 @@ public final class AguiResponseMapper implements A2aEventSink
                 break;
             }
         }
-    }
 
-    @Override
-    public void failed(
-        String code,
-        String message)
-    {
-        if (phase == Phase.OPEN)
+        @Override
+        public void failed(
+            String code,
+            String message)
         {
             runError(STATUS_BAD_GATEWAY, CODE_INVALID_RESPONSE, message);
         }
     }
 
-    private boolean contentTarget()
+    private final class EndedEvents implements ReplyEvents
     {
-        return target == Target.REPLY ||
-            target == Target.ARTIFACT && mode != Mode.SKIP ||
-            target == Target.STATUS && state == A2aTaskState.COMPLETED;
+        @Override
+        public void streamEnded(
+            boolean error)
+        {
+        }
+
+        @Override
+        public void streamAborted(
+            String reason)
+        {
+        }
+
+        @Override
+        public void eventStarted(
+            A2aEventKind kind,
+            String taskId,
+            String contextId,
+            A2aTaskState state,
+            Boolean append)
+        {
+        }
+
+        @Override
+        public void messageStarted(
+            A2aMessageScope scope,
+            String messageId)
+        {
+        }
+
+        @Override
+        public void artifactStarted(
+            String artifactId)
+        {
+        }
+
+        @Override
+        public void text(
+            int flags,
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+        }
+
+        @Override
+        public void data(
+            int flags,
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+        }
+
+        @Override
+        public void file(
+            String mediaType,
+            String name,
+            String url,
+            String raw)
+        {
+        }
+
+        @Override
+        public void artifactEnded()
+        {
+        }
+
+        @Override
+        public void messageEnded(
+            A2aMessageScope scope)
+        {
+        }
+
+        @Override
+        public void eventEnded(
+            boolean lastChunk)
+        {
+        }
+
+        @Override
+        public void failed(
+            String code,
+            String message)
+        {
+        }
+    }
+
+    private class IgnoreContent implements Content
+    {
+        @Override
+        public void text(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+        }
+
+        @Override
+        public void data(
+            int flags,
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+        }
+
+        @Override
+        public void file(
+            String mediaType,
+            String name,
+            String url,
+            String raw)
+        {
+        }
+    }
+
+    private class StatusContent extends IgnoreContent
+    {
+        @Override
+        public void text(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            accumulateStatus(buffer, offset, limit - offset);
+        }
+    }
+
+    private final class StatusCompletedContent extends StatusContent
+    {
+        @Override
+        public void data(
+            int flags,
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            emitData(flags, buffer, offset, limit);
+        }
+
+        @Override
+        public void file(
+            String mediaType,
+            String name,
+            String url,
+            String raw)
+        {
+            emitFile(mediaType, name, url, raw);
+        }
+    }
+
+    private abstract class MessageContent implements Content
+    {
+        @Override
+        public void data(
+            int flags,
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            emitData(flags, buffer, offset, limit);
+        }
+
+        @Override
+        public void file(
+            String mediaType,
+            String name,
+            String url,
+            String raw)
+        {
+            emitFile(mediaType, name, url, raw);
+        }
+    }
+
+    private final class NewContent extends MessageContent
+    {
+        @Override
+        public void text(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            closing.run();
+            openMessage(buffer, offset, limit);
+            content = continueContent;
+        }
+    }
+
+    private final class ContinueContent extends MessageContent
+    {
+        @Override
+        public void text(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            digestUpdate(buffer, offset, limit);
+            sink.message(0, null, buffer, offset, limit);
+        }
+    }
+
+    private void emitData(
+        int flags,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        if ((flags & INIT) != 0)
+        {
+            closing.run();
+            custom(CUSTOM_DATA, flags, buffer, offset, limit);
+        }
+        else
+        {
+            sink.message(flags, null, buffer, offset, limit);
+        }
+    }
+
+    private void emitFile(
+        String mediaType,
+        String name,
+        String url,
+        String raw)
+    {
+        final JsonObjectBuilder builder = Json.createObjectBuilder();
+
+        if (mediaType != null)
+        {
+            builder.add("mimeType", mediaType);
+        }
+
+        if (name != null)
+        {
+            builder.add("name", name);
+        }
+
+        if (url != null)
+        {
+            builder.add("url", url);
+        }
+        else
+        {
+            builder.add("data", raw);
+        }
+
+        final byte[] json = builder.build().toString().getBytes(UTF_8);
+
+        if (json.length > maximum)
+        {
+            tooLarge();
+        }
+        else
+        {
+            fileBuffer.putBytes(0, json);
+            closing.run();
+            custom(CUSTOM_FILE, INIT | FIN, fileBuffer, 0, json.length);
+        }
     }
 
     private void accumulateStatus(
@@ -463,27 +752,6 @@ public final class AguiResponseMapper implements A2aEventSink
         }
     }
 
-    private void textMessage(
-        DirectBufferEx buffer,
-        int offset,
-        int limit)
-    {
-        switch (mode)
-        {
-        case NEW:
-            closeMessage();
-            openMessage(buffer, offset, limit);
-            mode = Mode.CONTINUE;
-            break;
-        case CONTINUE:
-            digestUpdate(buffer, offset, limit);
-            sink.message(0, null, buffer, offset, limit);
-            break;
-        default:
-            break;
-        }
-    }
-
     private void openMessage(
         DirectBufferEx buffer,
         int offset,
@@ -491,31 +759,29 @@ public final class AguiResponseMapper implements A2aEventSink
     {
         ensureSnapshot();
 
-        openId = unique(messageId);
-        openArtifactId = target == Target.ARTIFACT ? artifactId : null;
+        openArtifactId = artifactId;
+        closing = closeOpen;
 
         digest.reset();
         digestUpdate(buffer, offset, limit);
 
-        sink.message(INIT, textEx(openId), buffer, offset, limit);
+        sink.message(INIT, textEx(unique(messageId)), buffer, offset, limit);
     }
 
-    private void closeMessage()
+    private void closeOpenMessage()
     {
-        if (openId != null)
-        {
-            sink.message(FIN, null, emptyBuffer, 0, 0);
-            finished.add(HexFormat.of().formatHex(digest.digest()));
-            openId = null;
-            openArtifactId = null;
-        }
+        closing = noop;
+        openArtifactId = null;
+
+        sink.message(FIN, null, emptyBuffer, 0, 0);
+        finished.add(HexFormat.of().formatHex(digest.digest()));
     }
 
     private void emitWhole(
         String id,
         byte[] text)
     {
-        closeMessage();
+        closing.run();
         ensureSnapshot();
 
         final DirectBufferEx payload = new UnsafeBufferEx(text);
@@ -545,18 +811,20 @@ public final class AguiResponseMapper implements A2aEventSink
 
     private void ensureSnapshot()
     {
-        if (snapshot != null)
-        {
-            final byte[] json = snapshot;
-            snapshot = null;
+        leading.run();
+    }
 
-            final AguiDataExFW dataEx = dataExRW.wrap(exBuffer, 0, exBuffer.capacity())
-                .typeId(aguiTypeId)
-                .state(s -> s.meta(this::meta).type(t -> t.set(AguiStateType.MESSAGES_SNAPSHOT)))
-                .build();
+    private void leadSnapshot(
+        byte[] json)
+    {
+        leading = noop;
 
-            sink.message(INIT | FIN, dataEx, new UnsafeBufferEx(json), 0, json.length);
-        }
+        final AguiDataExFW dataEx = dataExRW.wrap(exBuffer, 0, exBuffer.capacity())
+            .typeId(aguiTypeId)
+            .state(s -> s.meta(this::meta).type(t -> t.set(AguiStateType.MESSAGES_SNAPSHOT)))
+            .build();
+
+        sink.message(INIT | FIN, dataEx, new UnsafeBufferEx(json), 0, json.length);
     }
 
     private AguiDataExFW textEx(
@@ -652,7 +920,7 @@ public final class AguiResponseMapper implements A2aEventSink
     private void interrupt(
         String reason)
     {
-        closeMessage();
+        closing.run();
         ensureSnapshot();
 
         final InterruptHandle handle = host.interruptHandle(taskId, contextId);
@@ -673,14 +941,14 @@ public final class AguiResponseMapper implements A2aEventSink
             .build()
             .toString();
 
-        phase = Phase.ENDED;
+        events = ended;
         sink.runFinished(AguiOutcomeType.INTERRUPT, detail);
     }
 
     private void runFinished(
         AguiOutcomeType outcome)
     {
-        closeMessage();
+        closing.run();
 
         if (outcome == AguiOutcomeType.SUCCESS && finished.isEmpty() && pendingReplyText != null)
         {
@@ -689,7 +957,7 @@ public final class AguiResponseMapper implements A2aEventSink
 
         ensureSnapshot();
 
-        phase = Phase.ENDED;
+        events = ended;
         sink.runFinished(outcome, null);
     }
 
@@ -698,7 +966,7 @@ public final class AguiResponseMapper implements A2aEventSink
         String code,
         String message)
     {
-        phase = Phase.ENDED;
+        events = ended;
         sink.runError(status, code, message);
     }
 
