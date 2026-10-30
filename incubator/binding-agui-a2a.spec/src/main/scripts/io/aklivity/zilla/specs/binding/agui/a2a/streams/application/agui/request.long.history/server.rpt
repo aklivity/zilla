@@ -50,9 +50,6 @@ write zilla:data.ext ${agui:dataEx()
                                .role("ASSISTANT")
                                .build()
                            .build()}
-write zilla:data.empty
-write flush
-write option zilla:flags "none"
 write "ok"
 write flush
 write option zilla:flags "fin"
