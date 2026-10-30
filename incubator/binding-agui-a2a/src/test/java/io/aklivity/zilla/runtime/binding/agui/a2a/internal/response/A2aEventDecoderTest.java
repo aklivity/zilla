@@ -78,7 +78,7 @@ public class A2aEventDecoderTest
 
         decode(decoder, "{\"message\":{\"messageId\":\"m-1\",\"parts\":[{\"data\":{\"a\": [1, 2.50, \"x}\"]}}]}}", 4096);
 
-        assertTrue(recorder.log.toString(), recorder.log.contains("data {\"a\": [1, 2.50, \"x}\"]}"));
+        assertTrue(recorder.log.toString(), recorder.log.contains("data 3 {\"a\": [1, 2.50, \"x}\"]}"));
     }
 
     @Test
@@ -152,25 +152,35 @@ public class A2aEventDecoderTest
     }
 
     @Test
-    public void shouldFailWhenDataValueLargerThanSlot()
+    public void shouldStreamDataValueLargerThanSlot()
     {
-        final Recorder recorder = new Recorder();
-        final A2aEventDecoder decoder = new A2aEventDecoder(recorder, 64);
+        final ResponseHarness harness = new ResponseHarness(64);
+        final String data = "{\"k\":\"" + "d".repeat(500) + "\"}";
 
-        decode(decoder, "{\"message\":{\"messageId\":\"m-1\",\"parts\":[{\"data\":\"" + "d".repeat(200) + "\"}]}}", 4096);
+        harness.event("{\"message\":{\"messageId\":\"m-1\",\"parts\":[{\"data\":" + data + "}]}}", 23);
 
-        assertEquals("failed invalid_message Event too large", recorder.log.get(recorder.log.size() - 1));
+        final StringBuilder actual = new StringBuilder();
+
+        for (ResponseHarness.Frame frame : harness.frames)
+        {
+            actual.append(frame.payloadText());
+        }
+
+        assertEquals(data, actual.toString());
+        assertEquals(INIT, harness.frames.get(0).flags());
+        assertEquals("custom(agent.data)", harness.frames.get(0).ex());
+        assertEquals(FIN, harness.frames.get(harness.frames.size() - 1).flags() & FIN);
     }
 
     @Test
-    public void shouldDecodeIdentifierLargerThanSlot()
+    public void shouldDecodeIdentifierAfterParts()
     {
         final Recorder recorder = new Recorder();
-        final A2aEventDecoder decoder = new A2aEventDecoder(recorder, 64);
+        final A2aEventDecoder decoder = new A2aEventDecoder(recorder, 1024);
 
-        decode(decoder, "{\"message\":{\"messageId\":\"" + "m".repeat(200) + "\"}}", 17);
+        decode(decoder, "{\"artifactUpdate\":{\"artifact\":{\"parts\":[{\"text\":\"hi\"}],\"artifactId\":\"a-9\"}}}", 11);
 
-        assertEquals("message REPLY " + "m".repeat(200), recorder.log.get(1));
+        assertEquals("artifact a-9", recorder.log.get(1));
     }
 
     @Test
@@ -304,13 +314,14 @@ public class A2aEventDecoderTest
 
         @Override
         public void data(
+            int flags,
             DirectBufferEx buffer,
             int offset,
             int limit)
         {
             final byte[] bytes = new byte[limit - offset];
             buffer.getBytes(offset, bytes);
-            log.add("data " + new String(bytes, UTF_8));
+            log.add("data " + flags + " " + new String(bytes, UTF_8));
         }
 
         @Override
