@@ -42,6 +42,8 @@ public class AguiServerIT
         .countersBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/agui/config")
         .external("app0")
+        .external("app1")
+        .external("app2")
         .clean();
 
     @Rule
@@ -459,6 +461,34 @@ public class AguiServerIT
     @Specification({
         "${net}/request.not.acceptable/client"})
     public void shouldRejectNotAcceptable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.routes.unguarded.yaml")
+    @Specification({
+        "${net}/run.routed/client",
+        "${app}/run.routed/server"})
+    public void shouldRunRouted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.routes.unguarded.yaml")
+    @Specification({
+        "${net}/request.path.not.found/client"})
+    public void shouldRejectRequestPathNotFound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.routes.yaml")
+    @Specification({
+        "${net}/request.path.forbidden/client"})
+    public void shouldRejectRequestPathForbidden() throws Exception
     {
         k3po.finish();
     }
