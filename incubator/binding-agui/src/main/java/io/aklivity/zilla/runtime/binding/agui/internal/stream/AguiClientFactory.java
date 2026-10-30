@@ -354,7 +354,7 @@ public final class AguiClientFactory implements AguiStreamFactory
 
             doNetBegin(traceId, authorization);
 
-            if (net != null)
+            if (AguiState.initialOpening(netState))
             {
                 doAppWindow(traceId, authorization);
             }
@@ -623,7 +623,7 @@ public final class AguiClientFactory implements AguiStreamFactory
             long traceId,
             long authorization)
         {
-            if (net != null && AguiState.initialOpening(netState) && !AguiState.initialClosed(netState))
+            if (AguiState.initialOpening(netState) && !AguiState.initialClosed(netState))
             {
                 netState = AguiState.closedInitial(netState);
                 doEnd(net, routedId, resolvedId, netInitialId, netInitialSeq, netInitialAck, netInitialMax,
@@ -635,7 +635,7 @@ public final class AguiClientFactory implements AguiStreamFactory
             long traceId,
             long authorization)
         {
-            if (net != null && AguiState.initialOpening(netState) && !AguiState.initialClosed(netState))
+            if (AguiState.initialOpening(netState) && !AguiState.initialClosed(netState))
             {
                 netState = AguiState.closedInitial(netState);
                 doAbort(net, routedId, resolvedId, netInitialId, netInitialSeq, netInitialAck, netInitialMax,
@@ -647,7 +647,7 @@ public final class AguiClientFactory implements AguiStreamFactory
             long traceId,
             long authorization)
         {
-            if (net != null && !AguiState.replyClosed(netState))
+            if (AguiState.initialOpening(netState) && !AguiState.replyClosed(netState))
             {
                 netState = AguiState.closedReply(netState);
                 doReset(net, routedId, resolvedId, netReplyId, netReplySeq, netReplyAck, netReplyMax,
@@ -671,7 +671,7 @@ public final class AguiClientFactory implements AguiStreamFactory
             long traceId,
             long authorization)
         {
-            if (net != null && !AguiState.replyClosed(netState) && decoder != null)
+            if (AguiState.replyFraming(netState) && !AguiState.replyClosed(netState))
             {
                 final long netReplyAckMax = Math.max(netReplySeq - replySlotOffset, netReplyAck);
 
@@ -763,6 +763,7 @@ public final class AguiClientFactory implements AguiStreamFactory
             if (netStatus == STATUS_OK && contentType != null && contentType.startsWith(CONTENT_TYPE_EVENT_STREAM))
             {
                 decoder = new AguiEventDecoder(this, aguiTypeId, decodeMax);
+                netState = AguiState.framingReply(netState);
                 netReplyMax = encodeMax;
 
                 doNetWindow(traceId, authorization, REPLY_PADDING, FRAMING_CAPABILITIES_MASK);
@@ -803,7 +804,7 @@ public final class AguiClientFactory implements AguiStreamFactory
                 final int offset = payload != null ? payload.offset() : 0;
                 final int limit = payload != null ? payload.limit() : 0;
 
-                if (decoder != null)
+                if (AguiState.replyFraming(netState))
                 {
                     decodeTraceId = traceId;
                     decoder.decode(data.flags(), buffer, offset, limit);
@@ -848,7 +849,7 @@ public final class AguiClientFactory implements AguiStreamFactory
 
             netState = AguiState.closedReply(netState);
 
-            if (decoder != null)
+            if (AguiState.replyFraming(netState))
             {
                 decodeTraceId = traceId;
                 decoder.finish();
