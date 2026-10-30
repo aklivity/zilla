@@ -27,6 +27,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.binding.agui.AguiConditionConfig;
+import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
 public class AguiConditionConfigAdapterTest
 {
@@ -36,49 +38,60 @@ public class AguiConditionConfigAdapterTest
     public void initJson()
     {
         JsonbConfig config = new JsonbConfig()
-            .withAdapters(new AguiConditionConfigAdapter());
-        jsonb = JsonbBuilder.create(config);
+                .withAdapters(new AguiConditionConfigAdapter());
+        jsonb = JsonbBuilder.newBuilder()
+                .withProvider(YamlJson.provider())
+                .withConfig(config)
+                .build();
     }
 
     @Test
-    public void shouldReadCondition()
+    public void shouldReadWithBothMembers()
     {
-        String text = "{\"path\":\"/agents/{name}\"}";
+        String text =
+                """
+                path: "/agents/a"
+                agent: "agent-0"
+                """;
 
-        AguiConditionConfig condition = jsonb.fromJson(text, AguiConditionConfig.class);
+        AguiConditionConfig config = (AguiConditionConfig) jsonb.fromJson(text, ConditionConfig.class);
 
-        assertThat(condition, not(nullValue()));
-        assertThat(condition.path, equalTo("/agents/{name}"));
+        assertThat(config, not(nullValue()));
+        assertThat(config.path, equalTo("/agents/a"));
+        assertThat(config.agent, equalTo("agent-0"));
     }
 
     @Test
-    public void shouldReadConditionAgent()
+    public void shouldReadWithoutMembers()
     {
-        AguiConditionConfig condition = jsonb.fromJson("{\"agent\":\"support\"}", AguiConditionConfig.class);
+        AguiConditionConfig config = (AguiConditionConfig) jsonb.fromJson("{}", ConditionConfig.class);
 
-        assertThat(condition.agent, equalTo("support"));
-        assertThat(condition.path, nullValue());
+        assertThat(config.path, nullValue());
+        assertThat(config.agent, nullValue());
     }
 
     @Test
-    public void shouldWriteConditionAgent()
+    public void shouldWriteOnlyNonNullMembers()
     {
-        AguiConditionConfig condition = AguiConditionConfig.builder()
-            .agent("support")
+        AguiConditionConfig config = AguiConditionConfig.builder()
+            .path("/agents/a")
             .build();
 
-        assertThat(jsonb.toJson(condition), equalTo("{\"agent\":\"support\"}"));
+        String text = jsonb.toJson(config, ConditionConfig.class);
+
+        assertThat(text, equalTo("path: /agents/a\n"));
     }
 
     @Test
-    public void shouldWriteCondition()
+    public void shouldWriteBothMembers()
     {
-        AguiConditionConfig condition = AguiConditionConfig.builder()
-            .path("/agents/{name}")
+        AguiConditionConfig config = AguiConditionConfig.builder()
+            .path("/agents/a")
+            .agent("agent-0")
             .build();
 
-        String text = jsonb.toJson(condition);
+        String text = jsonb.toJson(config, ConditionConfig.class);
 
-        assertThat(text, equalTo("{\"path\":\"/agents/{name}\"}"));
+        assertThat(text, equalTo("path: /agents/a\nagent: agent-0\n"));
     }
 }
