@@ -1053,7 +1053,7 @@ public final class A2aServerFactory implements A2aStreamFactory
             initialSeq = begin.sequence();
             initialAck = begin.acknowledge();
 
-            state = A2aState.openedInitial(state);
+            state = A2aState.openInitial(state);
 
             doNetWindow(traceId, authorization, 0, 0);
 
@@ -1141,7 +1141,7 @@ public final class A2aServerFactory implements A2aStreamFactory
                 }
 
                 cleanupDecodeSlot();
-                state = A2aState.closedInitial(state);
+                state = A2aState.closeInitial(state);
 
                 if (stream != null)
                 {
@@ -1155,7 +1155,7 @@ public final class A2aServerFactory implements A2aStreamFactory
         {
             final long traceId = abort.traceId();
 
-            state = A2aState.closedInitial(state);
+            state = A2aState.closeInitial(state);
 
             cleanupNet(traceId, authorization);
         }
@@ -1223,7 +1223,7 @@ public final class A2aServerFactory implements A2aStreamFactory
         {
             final long traceId = reset.traceId();
 
-            state = A2aState.closedReply(state);
+            state = A2aState.closeReply(state);
 
             cleanupNet(traceId, authorization);
         }
@@ -1680,7 +1680,7 @@ public final class A2aServerFactory implements A2aStreamFactory
             }
             else
             {
-                state = A2aState.abortingReply(state);
+                state = A2aState.deferReplyAbort(state);
             }
         }
 
@@ -1690,7 +1690,7 @@ public final class A2aServerFactory implements A2aStreamFactory
         {
             if (!A2aState.replyClosed(state))
             {
-                state = A2aState.closedReply(state);
+                state = A2aState.closeReply(state);
                 doEnd(net, originId, routedId, replyId,
                     replySeq, replyAck, replyMax, traceId, authorization);
             }
@@ -1714,7 +1714,7 @@ public final class A2aServerFactory implements A2aStreamFactory
 
             if (!A2aState.replyClosed(state))
             {
-                state = A2aState.closedReply(state);
+                state = A2aState.closeReply(state);
                 doAbort(net, originId, routedId, replyId,
                     replySeq, replyAck, replyMax, traceId, authorization);
             }
@@ -1729,7 +1729,7 @@ public final class A2aServerFactory implements A2aStreamFactory
             long budgetId,
             int padding)
         {
-            state = A2aState.openedInitial(state);
+            state = A2aState.openInitial(state);
 
             doWindow(net, originId, routedId, initialId,
                 initialSeq, initialAck, decodeMax - decodeSlotReserved, traceId, authorization, budgetId, padding,
@@ -1742,7 +1742,7 @@ public final class A2aServerFactory implements A2aStreamFactory
         {
             if (!A2aState.initialClosed(state))
             {
-                state = A2aState.closedInitial(state);
+                state = A2aState.closeInitial(state);
                 doReset(net, originId, routedId, initialId,
                     initialSeq, initialAck, initialMax, traceId, authorization, emptyRO);
             }
@@ -1908,7 +1908,7 @@ public final class A2aServerFactory implements A2aStreamFactory
             {
                 cleanupEncodeSlot();
 
-                if (A2aState.replyAborting(state))
+                if (A2aState.replyAbortDeferred(state))
                 {
                     doNetAbort(traceId, authorization);
                 }
@@ -2286,7 +2286,7 @@ public final class A2aServerFactory implements A2aStreamFactory
                 A2aState.initialClosed(server.state) &&
                 pending == null)
             {
-                state = A2aState.closedInitial(state);
+                state = A2aState.closeInitial(state);
                 doEnd(app, originId, routedId, initialId,
                     initialSeq, initialAck, initialMax,
                     traceId, authorization);
@@ -2302,7 +2302,7 @@ public final class A2aServerFactory implements A2aStreamFactory
             if (A2aState.initialOpening(state) &&
                 !A2aState.initialClosed(state))
             {
-                state = A2aState.closedInitial(state);
+                state = A2aState.closeInitial(state);
                 doAbort(app, originId, routedId, initialId,
                     initialSeq, initialAck, initialMax,
                     traceId, authorization);
@@ -2320,7 +2320,7 @@ public final class A2aServerFactory implements A2aStreamFactory
             long budgetId,
             int padding)
         {
-            state = A2aState.openedReply(state);
+            state = A2aState.openReply(state);
             doWindow(app, originId, routedId, replyId,
                 replySeq, replyAck, replyMax,
                 traceId, authorization, budgetId, padding);
@@ -2332,7 +2332,7 @@ public final class A2aServerFactory implements A2aStreamFactory
         {
             if (!A2aState.replyClosed(state))
             {
-                state = A2aState.closedReply(state);
+                state = A2aState.closeReply(state);
                 cleanupDecodeSlot();
                 doReset(app, originId, routedId, replyId,
                     replySeq, replyAck, replyMax,
@@ -2480,7 +2480,7 @@ public final class A2aServerFactory implements A2aStreamFactory
 
             final boolean replying = !A2aState.replyClosed(state);
 
-            state = A2aState.closedReply(state);
+            state = A2aState.closeReply(state);
 
             if (replying)
             {
@@ -2500,7 +2500,7 @@ public final class A2aServerFactory implements A2aStreamFactory
 
             final boolean replying = !A2aState.replyClosed(state);
 
-            state = A2aState.closedReply(state);
+            state = A2aState.closeReply(state);
 
             cleanupDecodeSlot();
 
@@ -2533,7 +2533,7 @@ public final class A2aServerFactory implements A2aStreamFactory
             initialBud = budgetId;
             initialPad = padding;
 
-            state = A2aState.openedInitial(state);
+            state = A2aState.openInitial(state);
 
             flushPending(traceId, authorization);
 
@@ -2580,7 +2580,7 @@ public final class A2aServerFactory implements A2aStreamFactory
                 server.doEncodeResponseStatus(traceId, authorization, STATUS_502);
             }
 
-            state = A2aState.closedReply(state);
+            state = A2aState.closeReply(state);
             doAppAbort(traceId, authorization);
         }
 
