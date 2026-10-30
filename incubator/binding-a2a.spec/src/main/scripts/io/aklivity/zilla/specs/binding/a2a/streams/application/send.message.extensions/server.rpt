@@ -36,6 +36,12 @@ connected
 
 read '{"message":{"messageId":"m-1","role":"ROLE_USER","parts":[{"text":"What is the weather in New York?"}]}}'
 
+write zilla:begin.ext ${a2a:beginEx()
+                           .typeId(zilla:id("a2a"))
+                           .messageSend()
+                               .extensions("https://example.com/ext/v1")
+                               .build()
+                           .build()}
 write flush
 
 write zilla:data.ext ${a2a:dataEx()
