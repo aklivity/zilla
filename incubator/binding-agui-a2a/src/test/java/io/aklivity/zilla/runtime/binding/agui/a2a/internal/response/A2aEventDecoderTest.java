@@ -152,14 +152,25 @@ public class A2aEventDecoderTest
     }
 
     @Test
-    public void shouldFailWhenValueLargerThanSlot()
+    public void shouldFailWhenDataValueLargerThanSlot()
     {
         final Recorder recorder = new Recorder();
         final A2aEventDecoder decoder = new A2aEventDecoder(recorder, 64);
 
-        decode(decoder, "{\"message\":{\"messageId\":\"" + "m".repeat(200) + "\"}}", 4096);
+        decode(decoder, "{\"message\":{\"messageId\":\"m-1\",\"parts\":[{\"data\":\"" + "d".repeat(200) + "\"}]}}", 4096);
 
         assertEquals("failed invalid_message Event too large", recorder.log.get(recorder.log.size() - 1));
+    }
+
+    @Test
+    public void shouldDecodeIdentifierLargerThanSlot()
+    {
+        final Recorder recorder = new Recorder();
+        final A2aEventDecoder decoder = new A2aEventDecoder(recorder, 64);
+
+        decode(decoder, "{\"message\":{\"messageId\":\"" + "m".repeat(200) + "\"}}", 17);
+
+        assertEquals("message REPLY " + "m".repeat(200), recorder.log.get(1));
     }
 
     @Test
@@ -181,7 +192,7 @@ public class A2aEventDecoderTest
 
         decode(decoder, "{\"message\":{\"messageId\":\"m-1\"}", 4096);
 
-        assertEquals(List.of("failed invalid_message Truncated event"), recorder.log);
+        assertEquals("failed invalid_message Truncated event", recorder.log.get(recorder.log.size() - 1));
     }
 
     @Test
