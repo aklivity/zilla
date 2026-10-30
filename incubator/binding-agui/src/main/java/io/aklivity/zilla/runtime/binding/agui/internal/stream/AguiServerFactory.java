@@ -734,13 +734,9 @@ public final class AguiServerFactory implements AguiStreamFactory
         {
             final long traceId = abort.traceId();
 
-            cleanupDecodeSlot();
+            state = AguiState.closedInitial(state);
 
-            if (stream != null)
-            {
-                stream.doAppAbort(traceId, authorization);
-                stream.doAppReset(traceId, authorization);
-            }
+            cleanupNet(traceId, authorization);
         }
 
         private void onNetFlush(
@@ -806,13 +802,9 @@ public final class AguiServerFactory implements AguiStreamFactory
         {
             final long traceId = reset.traceId();
 
-            if (stream != null)
-            {
-                stream.doAppAbort(traceId, authorization);
-                stream.doAppReset(traceId, authorization);
-            }
+            state = AguiState.closedReply(state);
 
-            cleanupEncodeSlot();
+            cleanupNet(traceId, authorization);
         }
 
         private boolean identifier(
@@ -1364,7 +1356,20 @@ public final class AguiServerFactory implements AguiStreamFactory
             long traceId,
             long authorization)
         {
+            decoder = decodeIgnore;
+
             doNetReset(traceId, authorization);
+
+            if (!AguiState.replyOpening(state) && !AguiState.replyClosed(state))
+            {
+                doNetBegin(traceId, authorization, httpBeginExRW
+                    .wrap(codecBuffer, 0, codecBuffer.capacity())
+                    .typeId(httpTypeId)
+                    .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_500))
+                    .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
+                    .build());
+            }
+
             doNetAbort(traceId, authorization);
 
             if (stream != null)
@@ -1372,6 +1377,8 @@ public final class AguiServerFactory implements AguiStreamFactory
                 stream.doAppAbort(traceId, authorization);
                 stream.doAppReset(traceId, authorization);
             }
+
+            cleanupDecodeSlot();
         }
     }
 
