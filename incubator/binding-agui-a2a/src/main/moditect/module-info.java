@@ -19,4 +19,7 @@ module io.aklivity.zilla.runtime.binding.agui.a2a
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.agui.a2a.internal.AguiA2aBindingFactorySpi;
+
+    provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
+        with io.aklivity.zilla.runtime.binding.agui.a2a.internal.event.AguiA2aEventFormatterFactory;
 }
