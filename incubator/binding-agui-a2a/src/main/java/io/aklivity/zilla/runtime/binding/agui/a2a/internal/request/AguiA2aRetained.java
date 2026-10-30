@@ -25,7 +25,8 @@ public final class AguiA2aRetained
         STATE,
         CONTEXT,
         FORWARDED_PROPS,
-        RESUME
+        RESUME,
+        FORWARDED_VALUE
     }
 
     public enum Append
@@ -60,19 +61,19 @@ public final class AguiA2aRetained
     public Kind kind(
         int index)
     {
-        return KINDS[retention.buffer().getInt(entry(index))];
+        return KINDS[retention.buffer().getInt(slotOf(index))];
     }
 
     public int offset(
         int index)
     {
-        return retention.buffer().getInt(entry(index) + Integer.BYTES);
+        return retention.buffer().getInt(slotOf(index) + Integer.BYTES);
     }
 
     public int length(
         int index)
     {
-        return retention.buffer().getInt(entry(index) + 2 * Integer.BYTES);
+        return retention.buffer().getInt(slotOf(index) + 2 * Integer.BYTES);
     }
 
     public int indexOf(
@@ -98,6 +99,18 @@ public final class AguiA2aRetained
         }
 
         return index < count ? index : -1;
+    }
+
+    public int lastIndexOf(
+        Kind kind)
+    {
+        int index = count - 1;
+        while (index >= 0 && kind(index) != kind)
+        {
+            index--;
+        }
+
+        return index;
     }
 
     public DirectBufferEx buffer()
@@ -145,23 +158,33 @@ public final class AguiA2aRetained
         Kind kind,
         int mark)
     {
+        entry(kind, mark, dataLimit);
+    }
+
+    void entryMembers(
+        Kind kind,
+        int mark)
+    {
         final MutableDirectBufferEx buffer = retention.buffer();
+        final int offset = trimStart(buffer, mark, dataLimit);
+        final int limit = trimEnd(buffer, offset, dataLimit);
 
-        int offset = mark;
-        int limit = dataLimit;
-        while (offset < limit && (isWhitespace(buffer.getByte(offset)) || buffer.getByte(offset) == ':'))
-        {
-            offset++;
-        }
-        while (limit > offset && isWhitespace(buffer.getByte(limit - 1)))
-        {
-            limit--;
-        }
+        entry(kind, offset + 1, limit - 1);
+    }
 
-        final int entry = entry(count);
+    private void entry(
+        Kind kind,
+        int mark,
+        int limit)
+    {
+        final MutableDirectBufferEx buffer = retention.buffer();
+        final int offset = trimStart(buffer, mark, limit);
+        final int length = trimEnd(buffer, offset, limit) - offset;
+
+        final int entry = slotOf(count);
         buffer.putInt(entry, kind.ordinal());
         buffer.putInt(entry + Integer.BYTES, offset);
-        buffer.putInt(entry + 2 * Integer.BYTES, limit - offset);
+        buffer.putInt(entry + 2 * Integer.BYTES, length);
         count++;
     }
 
@@ -173,10 +196,38 @@ public final class AguiA2aRetained
         count = entries;
     }
 
-    private int entry(
+    private int slotOf(
         int index)
     {
         return retention.capacity() - (index + 1) * ENTRY_SIZE;
+    }
+
+    private static int trimStart(
+        MutableDirectBufferEx buffer,
+        int start,
+        int end)
+    {
+        int index = start;
+        while (index < end && (isWhitespace(buffer.getByte(index)) || buffer.getByte(index) == ':'))
+        {
+            index++;
+        }
+
+        return index;
+    }
+
+    private static int trimEnd(
+        MutableDirectBufferEx buffer,
+        int start,
+        int end)
+    {
+        int index = end;
+        while (index > start && isWhitespace(buffer.getByte(index - 1)))
+        {
+            index--;
+        }
+
+        return index;
     }
 
     private static boolean isWhitespace(

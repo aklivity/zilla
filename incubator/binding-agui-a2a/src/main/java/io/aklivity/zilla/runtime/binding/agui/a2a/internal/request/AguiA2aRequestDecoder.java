@@ -111,6 +111,8 @@ public final class AguiA2aRequestDecoder
     private Kind captureKind;
     private int captureFrom;
     private int captureMark;
+    private int captureEvents;
+    private JsonEvent captureFirst;
     private int depth;
     private int historyMark;
     private int historyCount;
@@ -149,10 +151,8 @@ public final class AguiA2aRequestDecoder
             captureFrom = offset;
             parser.wrap(buffer, offset, limit, last);
 
-            Decoder previous = null;
-            while (previous != decoder)
+            while (decoder != decodeDone && decoder != decodeIgnore && parser.hasNextEvent())
             {
-                previous = decoder;
                 decoder.decode();
             }
 
@@ -195,38 +195,32 @@ public final class AguiA2aRequestDecoder
 
     private void decodeStart()
     {
-        while (decoder == decodeStart && parser.hasNextEvent())
+        switch (next())
         {
-            switch (next())
-            {
-            case START_DOCUMENT:
-                break;
-            case START_OBJECT:
-                decoder = decodeMembers;
-                break;
-            default:
-                reject(AguiA2aRejection.MALFORMED);
-                break;
-            }
+        case START_DOCUMENT:
+            break;
+        case START_OBJECT:
+            decoder = decodeMembers;
+            break;
+        default:
+            reject(AguiA2aRejection.MALFORMED);
+            break;
         }
     }
 
     private void decodeMembers()
     {
-        while (decoder == decodeMembers && parser.hasNextEvent())
+        switch (next())
         {
-            switch (next())
-            {
-            case KEY_NAME:
-                decodeKey(current);
-                break;
-            case END_OBJECT:
-                decodeFinish();
-                break;
-            default:
-                reject(AguiA2aRejection.MALFORMED);
-                break;
-            }
+        case KEY_NAME:
+            decodeKey(current);
+            break;
+        case END_OBJECT:
+            decodeFinish();
+            break;
+        default:
+            reject(AguiA2aRejection.MALFORMED);
+            break;
         }
     }
 
@@ -285,6 +279,8 @@ public final class AguiA2aRequestDecoder
         captureFrom = position();
         captureMark = retained.mark();
         depth = 0;
+        captureEvents = 0;
+        captureFirst = null;
         decoder = decodeCapture;
     }
 
@@ -297,96 +293,113 @@ public final class AguiA2aRequestDecoder
         case PARENT_RUN_ID -> parentRunId;
         };
 
-        while (decoder == decodeId && parser.hasNextEvent())
+        switch (next())
         {
-            switch (next())
+        case VALUE_STRING:
+            final CharSequence value = current;
+            if (value != null)
             {
-            case VALUE_STRING:
-                final CharSequence value = current;
-                if (value != null)
+                if (expected != null && matches(value, expected))
                 {
-                    if (expected != null && matches(value, expected))
+                    seen |= switch (identifier)
                     {
-                        seen |= switch (identifier)
-                        {
-                        case THREAD_ID -> SEEN_THREAD_ID;
-                        case RUN_ID -> SEEN_RUN_ID;
-                        case PARENT_RUN_ID -> SEEN_PARENT_RUN_ID;
-                        };
-                        decoder = decodeMembers;
-                    }
-                    else
-                    {
-                        reject(AguiA2aRejection.INVALID_RUN);
-                    }
-                }
-                break;
-            case VALUE_NULL:
-                if (identifier == Identifier.PARENT_RUN_ID && expected == null)
-                {
+                    case THREAD_ID -> SEEN_THREAD_ID;
+                    case RUN_ID -> SEEN_RUN_ID;
+                    case PARENT_RUN_ID -> SEEN_PARENT_RUN_ID;
+                    };
                     decoder = decodeMembers;
                 }
                 else
                 {
-                    reject(identifier == Identifier.PARENT_RUN_ID ? AguiA2aRejection.INVALID_RUN : AguiA2aRejection.MALFORMED);
+                    reject(AguiA2aRejection.INVALID_RUN);
                 }
-                break;
-            default:
-                reject(AguiA2aRejection.MALFORMED);
-                break;
             }
+            break;
+        case VALUE_NULL:
+            if (identifier == Identifier.PARENT_RUN_ID && expected == null)
+            {
+                decoder = decodeMembers;
+            }
+            else
+            {
+                reject(identifier == Identifier.PARENT_RUN_ID ? AguiA2aRejection.INVALID_RUN : AguiA2aRejection.MALFORMED);
+            }
+            break;
+        default:
+            reject(AguiA2aRejection.MALFORMED);
+            break;
         }
     }
 
     private void decodeCapture()
     {
-        while (decoder == decodeCapture && parser.hasNextEvent())
+        final JsonEvent event = next();
+
+        if (captureEvents++ == 0)
         {
-            final JsonEvent event = next();
+            captureFirst = event;
+        }
 
-            switch (event)
+        switch (event)
+        {
+        case START_OBJECT:
+        case START_ARRAY:
+            depth++;
+            break;
+        case END_OBJECT:
+        case END_ARRAY:
+            depth--;
+            break;
+        case KEY_NAME:
+            if (captureKind == Kind.FORWARDED_PROPS && depth == 1)
             {
-            case START_OBJECT:
-            case START_ARRAY:
-                depth++;
-                break;
-            case END_OBJECT:
-            case END_ARRAY:
-                depth--;
-                break;
-            case KEY_NAME:
-                if (captureKind == Kind.FORWARDED_PROPS && depth == 1)
+                final CharSequence key = current;
+                if (key != null && matches(key, KEY_RESERVED))
                 {
-                    final CharSequence key = current;
-                    if (key != null && matches(key, KEY_RESERVED))
-                    {
-                        reject(AguiA2aRejection.RESERVED_KEY);
-                    }
+                    reject(AguiA2aRejection.RESERVED_KEY);
                 }
-                break;
-            default:
-                break;
             }
+            break;
+        default:
+            break;
+        }
 
-            if (decoder == decodeCapture && depth == 0 && event != JsonEvent.KEY_NAME && !parser.deferredBytes())
-            {
-                decodeCaptured();
-            }
+        if (decoder == decodeCapture && depth == 0 && event != JsonEvent.KEY_NAME && !parser.deferredBytes())
+        {
+            decodeCaptured();
         }
     }
 
     private void decodeCaptured()
     {
-        final Append result = retain(captureFrom, position());
+        final boolean container = captureFirst == JsonEvent.START_OBJECT || captureFirst == JsonEvent.START_ARRAY;
+        final boolean empty = captureFirst == JsonEvent.VALUE_NULL || container && captureEvents == 2;
+        final Append result = empty ? Append.OK : retain(captureFrom, position());
 
-        if (result == Append.OK)
+        if (result != Append.OK)
         {
-            retained.entry(captureKind, captureMark);
-            decoder = decodeMembers;
+            rejectAppend(result);
         }
         else
         {
-            rejectAppend(result);
+            if (empty)
+            {
+                retained.truncate(captureMark, retained.count());
+            }
+            else if (captureKind == Kind.FORWARDED_PROPS && captureFirst == JsonEvent.START_OBJECT)
+            {
+                retained.entryMembers(Kind.FORWARDED_PROPS, captureMark);
+            }
+            else if (captureKind == Kind.FORWARDED_PROPS)
+            {
+                retained.entry(Kind.FORWARDED_VALUE, captureMark);
+            }
+            else
+            {
+                retained.entry(captureKind, captureMark);
+            }
+
+            decoder = decodeMembers;
         }
     }
 
@@ -413,27 +426,24 @@ public final class AguiA2aRequestDecoder
 
     private void decodeMessageNext()
     {
-        while (decoder == decodeMessageNext && parser.hasNextEvent())
+        switch (next())
         {
-            switch (next())
+        case START_OBJECT:
+            decodeMessageStart();
+            break;
+        case END_ARRAY:
+            if (oversize > 0)
             {
-            case START_OBJECT:
-                decodeMessageStart();
-                break;
-            case END_ARRAY:
-                if (oversize > 0)
-                {
-                    reject(AguiA2aRejection.TOO_LARGE);
-                }
-                else
-                {
-                    decoder = decodeMembers;
-                }
-                break;
-            default:
-                reject(AguiA2aRejection.MALFORMED);
-                break;
+                reject(AguiA2aRejection.TOO_LARGE);
             }
+            else
+            {
+                decoder = decodeMembers;
+            }
+            break;
+        default:
+            reject(AguiA2aRejection.MALFORMED);
+            break;
         }
     }
 
@@ -448,18 +458,12 @@ public final class AguiA2aRequestDecoder
 
     private void decodeMessageCapture()
     {
-        while (decoder == decodeMessageCapture && parser.hasNextEvent())
-        {
-            decodeMessageEvent(next(), decodeMessageCapture);
-        }
+        decodeMessageEvent(next(), decodeMessageCapture);
     }
 
     private void decodeMessageDrain()
     {
-        while (decoder == decodeMessageDrain && parser.hasNextEvent())
-        {
-            decodeMessageEvent(next(), decodeMessageDrain);
-        }
+        decodeMessageEvent(next(), decodeMessageDrain);
     }
 
     private void decodeMessageEvent(
@@ -498,35 +502,32 @@ public final class AguiA2aRequestDecoder
 
     private void decodeMessageRole()
     {
-        while (decoder == decodeMessageRole && parser.hasNextEvent())
+        final JsonEvent event = next();
+        final CharSequence value = event == JsonEvent.VALUE_STRING ? current : OVERFLOW;
+
+        if (value != null)
         {
-            final JsonEvent event = next();
-            final CharSequence value = event == JsonEvent.VALUE_STRING ? current : OVERFLOW;
-
-            if (value != null)
+            if (event == JsonEvent.VALUE_STRING && matches(value, ROLE_USER))
             {
-                if (event == JsonEvent.VALUE_STRING && matches(value, ROLE_USER))
-                {
-                    messageRole = Role.USER;
-                    decoder = messageDecoder;
-                }
-                else
-                {
-                    messageRole = Role.OTHER;
+                messageRole = Role.USER;
+                decoder = messageDecoder;
+            }
+            else
+            {
+                messageRole = Role.OTHER;
 
-                    if (event == JsonEvent.VALUE_STRING && (matches(value, ROLE_ASSISTANT) || matches(value, ROLE_TOOL)))
-                    {
-                        retained.truncate(historyMark, historyCount);
-                        oversize = 0;
-                        turns++;
-                    }
-                    else if (messageDecoder == decodeMessageCapture)
-                    {
-                        retained.truncate(messageMark, retained.count());
-                    }
-
-                    decoder = decodeMessageDrain;
+                if (event == JsonEvent.VALUE_STRING && (matches(value, ROLE_ASSISTANT) || matches(value, ROLE_TOOL)))
+                {
+                    retained.truncate(historyMark, historyCount);
+                    oversize = 0;
+                    turns++;
                 }
+                else if (messageDecoder == decodeMessageCapture)
+                {
+                    retained.truncate(messageMark, retained.count());
+                }
+
+                decoder = decodeMessageDrain;
             }
         }
     }
