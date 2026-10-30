@@ -26,6 +26,7 @@ public final class AguiState
     private static final int REPLY_CLOSED = 0x08;
     private static final int REPLY_ABORTING = 0x100;
     private static final int REPLY_FRAMING = 0x200;
+    private static final int REDIRECTED = 0x400;
 
     public static int openingInitial(
         int state)
@@ -133,6 +134,18 @@ public final class AguiState
         int state)
     {
         return (state & REPLY_FRAMING) != 0;
+    }
+
+    public static int redirected(
+        int state)
+    {
+        return state | REDIRECTED;
+    }
+
+    public static boolean isRedirected(
+        int state)
+    {
+        return (state & REDIRECTED) != 0;
     }
 
     public static boolean replyClosing(
