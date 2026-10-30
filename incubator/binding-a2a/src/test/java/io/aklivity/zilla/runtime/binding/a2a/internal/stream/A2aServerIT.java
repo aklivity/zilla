@@ -262,6 +262,16 @@ public class A2aServerIT
     @Test
     @Configuration("server.url.yaml")
     @Specification({
+        "${net}/stream.message.client.aborted/client",
+        "${app}/stream.message.client.aborted/server"})
+    public void shouldDetachStreamMessageOnClientAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.url.yaml")
+    @Specification({
         "${net}/stream.message.auth.required/client",
         "${app}/stream.message.auth.required/server"})
     public void shouldStreamMessageAuthRequired() throws Exception
