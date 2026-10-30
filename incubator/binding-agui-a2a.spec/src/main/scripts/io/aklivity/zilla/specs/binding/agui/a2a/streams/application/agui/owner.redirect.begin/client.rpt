@@ -28,6 +28,4 @@ write zilla:begin.ext ${agui:beginEx()
                             .agent("weather")
                             .build()}
 
-connected
-
 write advised zilla:redirect 0x00000000000000b1L
