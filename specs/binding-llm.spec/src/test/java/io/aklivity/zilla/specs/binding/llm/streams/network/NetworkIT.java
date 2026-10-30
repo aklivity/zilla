@@ -5817,6 +5817,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.responses.reasoning.encrypted/client",
+        "${net}/openai.responses.reasoning.encrypted/server"})
+    public void shouldExchangeOpenaiResponsesReasoningEncrypted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.responses.reasoning.id.stream/client",
         "${net}/openai.responses.reasoning.id.stream/server"})
     public void shouldOpenaiResponsesReasoningIdStream() throws Exception

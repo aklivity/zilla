@@ -5592,6 +5592,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.responses.text.captured.padded/client",
+        "${app}/openai.responses.text.captured.padded/server"})
+    public void shouldExchangeOpenaiResponsesTextCapturedPadded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.responses.text.stream.captured/client",
         "${app}/openai.responses.text.stream.captured/server"})
     public void shouldOpenaiResponsesTextStreamCaptured() throws Exception
@@ -6054,6 +6063,15 @@ public class ApplicationIT
         "${app}/openai.responses.reasoning.id/client",
         "${app}/openai.responses.reasoning.id/server"})
     public void shouldOpenaiResponsesReasoningId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.reasoning.encrypted/client",
+        "${app}/openai.responses.reasoning.encrypted/server"})
+    public void shouldExchangeOpenaiResponsesReasoningEncrypted() throws Exception
     {
         k3po.finish();
     }

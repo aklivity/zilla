@@ -339,6 +339,26 @@ public class LlmOpenaiResponsesClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
+        "${app}/openai.responses.text.captured.padded/client",
+        "${net}/openai.responses.text.captured/server"})
+    public void shouldForwardOpenaiResponsesCapturedPadded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.reasoning.encrypted/client",
+        "${net}/openai.responses.reasoning.encrypted/server"})
+    public void shouldForwardOpenaiResponsesReasoningEncrypted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
         "${app}/openai.responses.text.stream.captured/client",
         "${net}/openai.responses.text.stream.captured/server"})
     public void shouldForwardOpenaiResponsesStreamCaptured() throws Exception

@@ -857,7 +857,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
 
         private int replyWindow()
         {
-            return Math.max(0, replyMax - (int) (replySeq - replyAck) - encodeSlotOffset - controlSlotOffset -
+            return Math.max(0, replyMax - (int) (replySeq - replyAck) - encodeSlotOffset - controlSlotOffset - controlPending() -
                 headHeld() - EVENT_FRAMES * replyPad - sectionClosing());
         }
 
@@ -1280,6 +1280,11 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         private boolean completed()
         {
             return decoder == decodeEnd;
+        }
+
+        private boolean eventPending()
+        {
+            return decoder != decodeEnd && decoder != decodeIgnore && decoder != decodeRejected && parser.hasNextEvent();
         }
 
         private String servedModel()
@@ -2909,10 +2914,13 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
 
         private int eventSlack()
         {
-            final int pending = controlFrom != NONE ? position() - controlFrom + CONTROL_CLOSING : 0;
-
-            return replyMax - (int) (replySeq - replyAck) - encodeSlotOffset - controlSlotOffset - pending -
+            return replyMax - (int) (replySeq - replyAck) - encodeSlotOffset - controlSlotOffset - controlPending() -
                 headHeld() - parser.remaining() - sectionClosing();
+        }
+
+        private int controlPending()
+        {
+            return controlFrom != NONE ? position() - controlFrom + CONTROL_CLOSING : 0;
         }
 
         private void flushHeld()
@@ -5551,12 +5559,30 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    encodePool.buffer(controlSlot).putBytes(controlSlotOffset, decodedInput, controlFrom, to - controlFrom);
-                    controlSlotOffset += to - controlFrom;
+                    final int from = controlSlotOffset == controlEntry + CONTROL_HEADER + controlGenerator.length()
+                        ? controlValueFrom(controlFrom, to)
+                        : controlFrom;
+
+                    encodePool.buffer(controlSlot).putBytes(controlSlotOffset, decodedInput, from, to - from);
+                    controlSlotOffset += to - from;
                 }
 
                 controlFrom = to;
             }
+        }
+
+        private int controlValueFrom(
+            int from,
+            int to)
+        {
+            int index = from;
+
+            while (index < to && (isWhitespace(decodedInput.getByte(index)) || decodedInput.getByte(index) == ':'))
+            {
+                index++;
+            }
+
+            return index;
         }
 
         private int controlHoldMax()
@@ -7875,6 +7901,12 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
 
                 doNetWindow(traceId);
             }
+            else if (stream.eventPending())
+            {
+                decodeNet(traceId, emptyBufferRO, 0, 0);
+
+                doNetWindow(traceId);
+            }
             else if (decodeSlot == NO_SLOT && LlmState.replyClosing(state))
             {
                 doAppEnd(pendingEndTraceId);
@@ -7915,7 +7947,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             {
                 cleanupDecodeSlot();
 
-                if (LlmState.replyClosing(state))
+                if (LlmState.replyClosing(state) && !stream.eventPending())
                 {
                     doAppEnd(pendingEndTraceId);
                 }
