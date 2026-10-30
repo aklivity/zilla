@@ -1,0 +1,11 @@
+{
+  "name": "client",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Headless MCP client for the Zilla mcp-openapi proxy example: lists tools and resources, calls a tool or reads a resource, as a caller holding the requested scopes",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.29.0",
+    "jose": "6.1.0"
+  }
+}
