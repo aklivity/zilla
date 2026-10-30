@@ -40,6 +40,7 @@ public interface A2aEventSink
         int limit);
 
     void data(
+        int flags,
         DirectBufferEx buffer,
         int offset,
         int limit);
