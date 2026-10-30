@@ -31,9 +31,9 @@ public final class AguiConditionConfigAdapter extends ConfigAdapter<ConditionCon
     public JsonObject adaptToJson(
         ConditionConfig condition)
     {
-        final AguiConditionConfig aguiCondition = (AguiConditionConfig) condition;
+        AguiConditionConfig aguiCondition = (AguiConditionConfig) condition;
 
-        final JsonObjectBuilder object = Json.createObjectBuilder();
+        JsonObjectBuilder object = Json.createObjectBuilder();
 
         if (aguiCondition.path != null)
         {
@@ -52,17 +52,9 @@ public final class AguiConditionConfigAdapter extends ConfigAdapter<ConditionCon
     public ConditionConfig adaptFromJson(
         JsonObject object)
     {
-        final String path = object.containsKey(PATH_NAME)
-            ? object.getString(PATH_NAME)
-            : null;
-
-        final String agent = object.containsKey(AGENT_NAME)
-            ? object.getString(AGENT_NAME)
-            : null;
-
         return AguiConditionConfig.builder()
-            .path(path)
-            .agent(agent)
+            .path(object.containsKey(PATH_NAME) ? object.getString(PATH_NAME) : null)
+            .agent(object.containsKey(AGENT_NAME) ? object.getString(AGENT_NAME) : null)
             .build();
     }
 }

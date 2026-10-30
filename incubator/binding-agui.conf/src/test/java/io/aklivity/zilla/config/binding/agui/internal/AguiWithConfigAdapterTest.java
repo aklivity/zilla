@@ -27,6 +27,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.binding.agui.AguiWithConfig;
+import io.aklivity.zilla.config.engine.WithConfig;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
 public class AguiWithConfigAdapterTest
 {
@@ -36,49 +38,60 @@ public class AguiWithConfigAdapterTest
     public void initJson()
     {
         JsonbConfig config = new JsonbConfig()
-            .withAdapters(new AguiWithConfigAdapter());
-        jsonb = JsonbBuilder.create(config);
+                .withAdapters(new AguiWithConfigAdapter());
+        jsonb = JsonbBuilder.newBuilder()
+                .withProvider(YamlJson.provider())
+                .withConfig(config)
+                .build();
     }
 
     @Test
-    public void shouldReadWith()
+    public void shouldReadWithBothMembers()
     {
-        String text = "{\"agent\":\"${params.name}\"}";
+        String text =
+                """
+                agent: "agent-0"
+                path: "/routed"
+                """;
 
-        AguiWithConfig with = jsonb.fromJson(text, AguiWithConfig.class);
+        AguiWithConfig config = (AguiWithConfig) jsonb.fromJson(text, WithConfig.class);
 
-        assertThat(with, not(nullValue()));
-        assertThat(with.agent, equalTo("${params.name}"));
+        assertThat(config, not(nullValue()));
+        assertThat(config.agent, equalTo("agent-0"));
+        assertThat(config.path, equalTo("/routed"));
     }
 
     @Test
-    public void shouldReadWithPath()
+    public void shouldReadWithoutMembers()
     {
-        AguiWithConfig with = jsonb.fromJson("{\"path\":\"/agents/support\"}", AguiWithConfig.class);
+        AguiWithConfig config = (AguiWithConfig) jsonb.fromJson("{}", WithConfig.class);
 
-        assertThat(with.path, equalTo("/agents/support"));
-        assertThat(with.agent, nullValue());
+        assertThat(config.agent, nullValue());
+        assertThat(config.path, nullValue());
     }
 
     @Test
-    public void shouldWriteWithPath()
+    public void shouldWriteOnlyNonNullMembers()
     {
-        AguiWithConfig with = AguiWithConfig.builder()
-            .path("/agents/support")
+        AguiWithConfig config = AguiWithConfig.builder()
+            .agent("agent-0")
             .build();
 
-        assertThat(jsonb.toJson(with), equalTo("{\"path\":\"/agents/support\"}"));
+        String text = jsonb.toJson(config, WithConfig.class);
+
+        assertThat(text, equalTo("agent: agent-0\n"));
     }
 
     @Test
-    public void shouldWriteWith()
+    public void shouldWriteBothMembers()
     {
-        AguiWithConfig with = AguiWithConfig.builder()
-            .agent("${params.name}")
+        AguiWithConfig config = AguiWithConfig.builder()
+            .agent("agent-0")
+            .path("/routed")
             .build();
 
-        String text = jsonb.toJson(with);
+        String text = jsonb.toJson(config, WithConfig.class);
 
-        assertThat(text, equalTo("{\"agent\":\"${params.name}\"}"));
+        assertThat(text, equalTo("agent: agent-0\npath: /routed\n"));
     }
 }

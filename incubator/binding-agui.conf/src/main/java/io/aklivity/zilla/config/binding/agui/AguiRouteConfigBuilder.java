@@ -21,7 +21,7 @@ import io.aklivity.zilla.config.engine.RouteConfigBuilder;
 
 public final class AguiRouteConfigBuilder<T> extends RouteConfigBuilder<T, AguiRouteConfigBuilder<T>>
 {
-    public AguiRouteConfigBuilder(
+    AguiRouteConfigBuilder(
         Function<RouteConfig, T> mapper)
     {
         super(mapper);
