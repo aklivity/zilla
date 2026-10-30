@@ -182,6 +182,7 @@ public final class A2aClientFactory implements A2aStreamFactory
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
+    private final A2aBeginExFW.Builder a2aBeginExRW = new A2aBeginExFW.Builder();
     private final A2aDataExFW.Builder a2aDataExRW = new A2aDataExFW.Builder();
     private final A2aResetExFW.Builder a2aResetExRW = new A2aResetExFW.Builder();
 
@@ -1033,10 +1034,18 @@ public final class A2aClientFactory implements A2aStreamFactory
             long traceId,
             long authorization)
         {
+            doAppBegin(traceId, authorization, null);
+        }
+
+        void doAppBegin(
+            long traceId,
+            long authorization,
+            Flyweight extension)
+        {
             state = A2aState.openingReply(state);
 
             doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, affinity);
+                traceId, authorization, affinity, extension);
         }
 
         int replyWindow()
@@ -1215,7 +1224,8 @@ public final class A2aClientFactory implements A2aStreamFactory
 
         void onNetBegin(
             long traceId,
-            long authorization)
+            long authorization,
+            String extensions)
         {
         }
 
@@ -1292,7 +1302,6 @@ public final class A2aClientFactory implements A2aStreamFactory
             beginEx.buffer().getBytes(beginEx.offset(), copy);
             this.beginExBuffer = new UnsafeBufferEx(copy);
 
-            doAppBegin(traceId, authorization);
             doAppWindow(traceId, authorization);
 
             if (binding.serverScheme == null)
@@ -1303,6 +1312,61 @@ public final class A2aClientFactory implements A2aStreamFactory
             {
                 fetchCard(this, binding, agent, resolvedId, traceId, authorization);
             }
+        }
+
+        @Override
+        void onNetBegin(
+            long traceId,
+            long authorization,
+            String extensions)
+        {
+            doAppBegin(traceId, authorization, extensions != null ? replyBeginEx(extensions) : null);
+        }
+
+        private A2aBeginExFW replyBeginEx(
+            String extensions)
+        {
+            final A2aRequestParams params = paramsOf(a2aBeginExRO.wrap(beginExBuffer, 0, beginExBuffer.capacity()));
+            final A2aBeginExFW.Builder builder = a2aBeginExRW.wrap(extBuffer, 0, extBuffer.capacity()).typeId(a2aTypeId);
+
+            switch (kind)
+            {
+            case KIND_MESSAGE_SEND:
+                builder.messageSend(b -> b.extensions(extensions));
+                break;
+            case KIND_MESSAGE_STREAM:
+                builder.messageStream(b -> b.extensions(extensions));
+                break;
+            case KIND_TASKS_GET:
+                builder.tasksGet(b -> b.extensions(extensions).taskId(params.taskId()));
+                break;
+            case KIND_TASKS_LIST:
+                builder.tasksList(b -> b.extensions(extensions));
+                break;
+            case KIND_TASKS_CANCEL:
+                builder.tasksCancel(b -> b.extensions(extensions).taskId(params.taskId()));
+                break;
+            case KIND_TASKS_SUBSCRIBE:
+                builder.tasksSubscribe(b -> b.extensions(extensions).taskId(params.taskId()));
+                break;
+            case KIND_PUSH_CONFIG_CREATE:
+                builder.pushConfigCreate(b -> b.extensions(extensions).taskId(params.taskId()));
+                break;
+            case KIND_PUSH_CONFIG_GET:
+                builder.pushConfigGet(b -> b.extensions(extensions).taskId(params.taskId()).configId(params.configId()));
+                break;
+            case KIND_PUSH_CONFIG_LIST:
+                builder.pushConfigList(b -> b.extensions(extensions).taskId(params.taskId()));
+                break;
+            case KIND_PUSH_CONFIG_DELETE:
+                builder.pushConfigDelete(b -> b.extensions(extensions).taskId(params.taskId()).configId(params.configId()));
+                break;
+            default:
+                builder.extendedAgentCard(b -> b.extensions(extensions));
+                break;
+            }
+
+            return builder.build();
         }
 
         @Override
@@ -2292,7 +2356,8 @@ public final class A2aClientFactory implements A2aStreamFactory
 
         abstract void onNetAccepted(
             long traceId,
-            long authorization);
+            long authorization,
+            String extensions);
 
         abstract void onNetRejected(
             long traceId,
@@ -2405,9 +2470,11 @@ public final class A2aClientFactory implements A2aStreamFactory
             final HttpBeginExFW httpBeginEx = httpBeginExRO.tryWrap(ext.buffer(), ext.offset(), ext.limit());
             String status = null;
             String challenge = null;
+            String extensions = null;
             if (httpBeginEx != null)
             {
                 status = headerOf(httpBeginEx, HTTP_HEADER_STATUS);
+                extensions = headerOf(httpBeginEx, HTTP_HEADER_A2A_EXTENSIONS);
                 challenge = headerOf(httpBeginEx, HTTP_HEADER_WWW_AUTHENTICATE);
 
                 if (CONTENT_TYPE_EVENT_STREAM.equals(headerOf(httpBeginEx, HTTP_HEADER_CONTENT_TYPE)))
@@ -2419,7 +2486,7 @@ public final class A2aClientFactory implements A2aStreamFactory
 
             if (status != null && status.startsWith(STATUS_SUCCESSFUL_PREFIX))
             {
-                onNetAccepted(traceId, authorization);
+                onNetAccepted(traceId, authorization, extensions);
                 flushNetWindow(traceId, authorization, 0L);
             }
             else
@@ -2967,9 +3034,10 @@ public final class A2aClientFactory implements A2aStreamFactory
         @Override
         void onNetAccepted(
             long traceId,
-            long authorization)
+            long authorization,
+            String extensions)
         {
-            call.onNetBegin(traceId, authorization);
+            call.onNetBegin(traceId, authorization, extensions);
         }
 
         @Override
@@ -3135,7 +3203,8 @@ public final class A2aClientFactory implements A2aStreamFactory
         @Override
         void onNetAccepted(
             long traceId,
-            long authorization)
+            long authorization,
+            String extensions)
         {
         }
 
@@ -3268,7 +3337,8 @@ public final class A2aClientFactory implements A2aStreamFactory
         @Override
         void onNetAccepted(
             long traceId,
-            long authorization)
+            long authorization,
+            String extensions)
         {
         }
 
@@ -3606,9 +3676,10 @@ public final class A2aClientFactory implements A2aStreamFactory
         int maximum,
         long traceId,
         long authorization,
-        long affinity)
+        long affinity,
+        Flyweight extension)
     {
-        final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+        final BeginFW.Builder builder = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(originId)
             .routedId(routedId)
             .streamId(streamId)
@@ -3617,8 +3688,14 @@ public final class A2aClientFactory implements A2aStreamFactory
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
-            .affinity(affinity)
-            .build();
+            .affinity(affinity);
+
+        if (extension != null)
+        {
+            builder.extension(extension.buffer(), extension.offset(), extension.sizeof());
+        }
+
+        final BeginFW begin = builder.build();
 
         receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
     }
