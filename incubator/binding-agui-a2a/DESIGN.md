@@ -3,6 +3,20 @@
 Design spike for #2822. Accepts `agui` streams (#2821 / PR #2850 server, #2856 / PR #2857 client), produces `a2a`
 streams (#2814 stream model, PRs #2825-#2835). No code, no `.rpt`, no spec change is made by this document; spec changes it proposes are listed in section 4.
 
+**Final form (revision 10).** Section 10 is the authoritative issue list and supersedes the issue drafts of earlier
+revisions. Scope of v1:
+
+| Decision | v1 |
+| --- | --- |
+| Protocol level | tier 1 only: plain A2A, **no extension declared or activated**. Everything that needs a carrier extension (E1, frontend tools, `STATE_*` / activity / reasoning / tool-call events, an agent-declared history feature, agent-originated `MESSAGES_SNAPSHOT`, handle and part tags) is post-v1. AG-UI and CopilotKit clients consume AG-UI events and never see A2A extensions, so a carrier only changes which A2A agents can opt into a richer mapping; it does not affect client integration |
+| Configuration | no `options` in the binding yaml: routes (`when.agent`, `with.agent`, `with.identity`, `guarded`, `exit`) only. TTLs, capacity and the key-to-affinity function are binding configuration properties in the style of mcp's `session.id` / `session.id.affinity` (8.4) |
+| `system` / `developer` messages | dropped, no option: forwarding them is insecure (8.1) |
+| History | only the latest user turn is forwarded; a documented lossiness (1.2); full-history replay only through a later agent-declared history feature |
+| Abort | always cancel the A2A task once its id is known (1.6) |
+| `WORKING` text | hardcoded: the latest working text becomes the reply at `COMPLETED` only if nothing else was emitted (9.2) |
+| Multi-node | a pluggable `thread.affinity` property, no engine change (8.4) |
+| Reading guide | 8.1 to 8.3 and 9.5 describe post-v1 designs kept so v1 does not block them; sections 6 and 7 are history and sources |
+
 Shape mirrored: `a2a-http` / `mcp-http` (proxy kind adapting one stream type to another) and llm's
 documented-lossiness cross-dialect approach (#2496). Request transform mirrors the inverse of `AguiClientFactory`'s
 run input encoder; response decode mirrors `AguiEventDecoder` (incremental JSON, decode slot, decoder states).
@@ -48,7 +62,7 @@ Legend — lossiness: `none` exact; `lossy` information dropped or approximated;
 | `image` / `audio` / `video` / `document` part, `source: {type: data, value (base64), mimeType}` | `{raw: base64, mediaType}` | none | the AG-UI `ContentPart` types are `text`, `image`, `audio`, `video`, `document`; there is no `binary` type and no filename (revision 1 assumed both) |
 | same part types, `source: {type: url, value, mimeType?}` | `{url, mediaType?}` | none | |
 | same part types, `source: {type: file, value, provider?}` (provider file handle) | dropped | lossy | opaque to anyone but the issuing provider; AG-UI says a peer that cannot use a part skips it and continues; A2A has no equivalent |
-| `state` (non-empty) and `context[]` (non-empty) | one `{data: {state, context}, mediaType: application/json, metadata: {agui: {part: "input"}}}` appended after content parts | lossy (agent may ignore) | controlled by `options.forward` (default `[state, context]`) |
+| `state` (non-empty) and `context[]` (non-empty) | one `{data: {state, context}, mediaType: application/json, metadata: {agui: {part: "input"}}}` appended after content parts | lossy (agent may ignore) | forwarded whenever non-empty, no option |
 | `forwardedProps` | `Message.metadata`, verbatim at the top level (an object is the metadata, minus proxy-reserved keys; a non-object value becomes `{"forwardedProps": value}`) | none, except reserved keys | AG-UI's opaque application-to-agent channel stays an application-to-agent channel; reserved keys are `agui` and any extension URI the proxy activates, rejected, never stripped (400 `reserved_key`), so a client cannot forge proxy-owned or extension-defined metadata and AG-UI's rule that intermediaries MUST NOT alter `forwardedProps` holds (9.4). Not used for routing |
 | `tools[]` | dropped (v1) | lossy | see 1.5 |
 | no trailing user message and no `resume` | reset 422 `invalid_run` before reply begin | n/a | mirrors `run.rejected` |
@@ -71,7 +85,7 @@ Applies to `messageStream` events; `messageSend` uses the same decode on the sin
 | `artifactUpdate` / `task` / `message` non-text part (`data`, `file`) | `CUSTOM` `agent.data` (value = the data JSON) / `agent.file` (value = `{mimeType, name?, url or data}`) | lossy | AG-UI flavoured names and shapes, no A2A vocabulary (8.0); an open text message is closed first. Tier 2 maps tagged parts to native events instead (8.2) |
 | `message` (agent reply with no task) | text message from its text parts (`messageId` = `Message.messageId`), non-text as `CUSTOM`; run ends `SUCCESS` | none | |
 | `statusUpdate` / `task` `COMPLETED` with `status.message` text | text message (`messageId` = the A2A message id, assistant role), deduplicated against text already emitted in the run (9.2) | none | the A2A spec says results SHOULD be artifacts, but agents do put the reply here; the digest rule keeps a repeat of artifact text from showing twice |
-| run reaches `COMPLETED` with no text emitted and a retained working message | the latest retained working text as one text message (9.2, OPEN-10) | lossy | `options.status: reply` (default); `drop` disables it |
+| run reaches `COMPLETED` with no text emitted and a retained working message | the latest retained working text as one text message (9.2, OPEN-10) | lossy | hardcoded, no option |
 | `FAILED` / `REJECTED` `status.message` text | the abort `message` (never the transcript) | none | |
 | `INPUT_REQUIRED` / `AUTH_REQUIRED` `status.message` text | the interrupt `message` (never the transcript) | none | |
 | `CANCELED` `status.message` text | ignored | lossy | `cancelled` has no message |
@@ -111,12 +125,12 @@ Errors before the reply begin (a2a reset on the first stream) map to **reset** o
 
 | Trigger | Proxy action |
 | --- | --- |
-| agui stream abort / reset after `taskId` is known (first `task` / `statusUpdate` / `artifactUpdate` DataEx) | with `options.abort: cancel` (default): open `tasksCancel` (`agent`, `taskId`) on the exit, ignore its result; always abort the `messageStream`. With `detach`: abort the `messageStream` only |
+| agui stream abort / reset after `taskId` is known (first `task` / `statusUpdate` / `artifactUpdate` DataEx) | open `tasksCancel` (`agent`, `taskId`) on the exit, ignore its result; always abort the `messageStream`; there is no detach option |
 | abort before any DataEx (no `taskId` yet) | abort the `messageStream` only; the remote task may keep running (documented lossy) |
 | `resume[].status = cancelled` | `tasksCancel` for the interrupt id, end `CANCELLED` |
 | a2a `CANCELED` state not initiated here | end `CANCELLED` |
 
-AG-UI and CopilotKit facts that bear on this (verified, section 7): the AG-UI HTTP + SSE binding is a POST of `RunAgentInput` to whatever URL the consumer is configured with, and defines no stop / cancel; a consumer that abandons the stream has a *truncated run* and "MUST NOT synthesize a `RUN_FINISHED`", while `cancelled` is a producer's report about a run it stopped (`lifecycle.mdx`). The JS `HttpAgent.abortRun()` is an `AbortController` abort of the fetch. CopilotKit's runtime exposes `POST /agent/:agentId/stop/:threadId` to its own browser client; the handler calls `runner.stop`, which ends in `agent.abortRun()` on the upstream agent, i.e. the same fetch abort. It is thread-wide unless an optional `{runId}` body is sent, and reports the stop to the browser as `RUN_ERROR` with code `STOPPED` (a CopilotKit convention, not AG-UI's `cancelled` outcome). None of that reaches Zilla: Zilla sees only the aborted request. A Stop button and a closed tab are indistinguishable there, so cancelling is a policy (`options.abort`, OPEN-5). `/connect` and `/stop/...` are CopilotKit runtime routes, not AG-UI; with `routes[].when.path` they are unmatched and answered 404. Cancelling by `taskId` is run-scoped, so it avoids a thread-wide stop cancelling the next run.
+AG-UI and CopilotKit facts that bear on this (verified, section 7): the AG-UI HTTP + SSE binding is a POST of `RunAgentInput` to whatever URL the consumer is configured with, and defines no stop / cancel; a consumer that abandons the stream has a *truncated run* and "MUST NOT synthesize a `RUN_FINISHED`", while `cancelled` is a producer's report about a run it stopped (`lifecycle.mdx`). The JS `HttpAgent.abortRun()` is an `AbortController` abort of the fetch. CopilotKit's runtime exposes `POST /agent/:agentId/stop/:threadId` to its own browser client; the handler calls `runner.stop`, which ends in `agent.abortRun()` on the upstream agent, i.e. the same fetch abort. It is thread-wide unless an optional `{runId}` body is sent, and reports the stop to the browser as `RUN_ERROR` with code `STOPPED` (a CopilotKit convention, not AG-UI's `cancelled` outcome). None of that reaches Zilla: Zilla sees only the aborted request. A Stop button and a closed tab are indistinguishable there, so cancelling is the proxy's policy, always cancel and no option (OPEN-5 resolved). `/connect` and `/stop/...` are CopilotKit runtime routes, not AG-UI; with `routes[].when.path` they are unmatched and answered 404. Cancelling by `taskId` is run-scoped, so it avoids a thread-wide stop cancelling the next run.
 
 ### 1.7 Card and capability negotiation
 
@@ -155,7 +169,7 @@ AG-UI and CopilotKit facts that bear on this (verified, section 7): the AG-UI HT
 | 3 Response | per 1.3. Lifecycle is begin / end / abort / reset, not data events. `canceled` -> end `CANCELLED` (the idl has it). `input-required` / `auth-required` -> end `INTERRUPT` with an opaque `interrupts[0].id` handle | `RUN_STARTED` / `STEP_*` are not derived from `working`; `data` / `file` parts -> `CUSTOM` `agent.data` / `agent.file` in v1 (not `STATE_SNAPSHOT`, which needs an A2A convention: tier 2, 8.2); no A2A ids or vocabulary on the client stream (8.0) |
 | 4 Frontend tools | dropped in v1; follow-up via a declared A2A extension | as the issue's candidate, but through the existing `extensions` BeginEx field rather than an unmarked `data` part |
 | 5 Streaming | card-driven: `messageStream` when the card says streaming, else `messageSend` + synthesized events | the issue says "always `SendStreamingMessage`"; since Q7 reads the card anyway, the proxy follows `capabilities.streaming` and streams whenever the card allows it |
-| 6 Cancellation | `tasksCancel` when `taskId` is known and `options.abort: cancel` (default), else abort only. AG-UI has no stop endpoint and treats an abandoned stream as a truncated run, so cancel is this proxy's policy, not a protocol rule (1.6, OPEN-5) | no cancel before the first event, and a2a abort alone is not assumed to cancel |
+| 6 Cancellation | `tasksCancel` when `taskId` is known, else abort only; no option. AG-UI has no stop endpoint and treats an abandoned stream as a truncated run, so cancel is this proxy's policy, not a protocol rule (1.6, OPEN-5) | no cancel before the first event, and a2a abort alone is not assumed to cancel |
 | 7 Card | yes: read card, choose streaming, refuse unsupported input modes with 415 | recommended exit is a2a(proxy) for its shared cache |
 | 8 Authorization | pass the engine `authorization` through; `routes[].guarded` for role gates (now available on agui(server) routes too); no end-user claims in the message; agent-side token rejection is 502, not 401 | `AguiResetEx` cannot carry `WWW-Authenticate` realm / scopes; judged sufficient (candidate (d)) |
 | 9 v1 scope | 1.9. One addition over the recommended scope: `CUSTOM` passthrough of non-text parts and the interrupt / resume path | interrupt / resume is included because the stateless `taskId` design makes it cheap and the idl already has the outcome and `resume` scripts |
@@ -167,20 +181,21 @@ AG-UI and CopilotKit facts that bear on this (verified, section 7): the AG-UI HT
 | --- | --- | --- |
 | ~~OPEN-1~~ | resolved (user decision, revision 7) | one behaviour, no `options.context`: never send a client-chosen `contextId`, remember the agent-issued one per (identity, agent, `threadId`) (8.4, 9.6) |
 | ~~OPEN-2~~ | dropped (user decision, revision 4) | no `result` and no `metadata` ids on RUN_FINISHED: A2A-side details do not leak to the AG-UI side (8.0) |
-| OPEN-3 | `system` / `developer` messages | recommendation in 8.1: drop by default; forward only as an advisory tagged `data` part when the operator lists it in `options.forward`; lossless only through the tier-2 extension, where the agent chooses what authority to grant. Still the user's call |
+| ~~OPEN-3~~ | resolved (user decision, revision 10) | `system` / `developer` messages are dropped with no option; forwarding them is insecure (8.1) |
 | OPEN-4 | agui(client) `with.path`: replace the path of `options.server`, or append to it | replace (an HTTP `:path` of its own, scheme and authority kept from `options.server`), so one client can address `/agent/{agent}/run` style servers and a bare `/agent` server by the same rule; with no routes the `options.server` path is used unchanged |
-| OPEN-5 | Cancel on abort: AG-UI cannot tell a Stop button (CopilotKit's stop ends in `agent.abortRun()`, which aborts the fetch) from a closed tab; both are a truncated run, and an A2A task may be meant to outlive its viewer | `options.abort: cancel` default (an abandoned run has no consumer and A2A tasks have no AG-UI resubscribe path), `detach` for agents whose tasks should finish regardless |
-| OPEN-6 | `messages` is the complete history by AG-UI rules, but only the new turn is sent; an agent with no context for the thread (new `contextId`, or history edited / regenerated client-side) answers without it | v1 as designed; seeding history is not attempted; F3's store lets the proxy know whether the agent holds a thread's context |
+| ~~OPEN-5~~ | resolved (user decision, revision 10) | always cancel, no knob (1.6) |
+| ~~OPEN-6~~ | resolved (user decision, revision 10) | v1 forwards only the latest user turn, a documented lossiness; full-history replay only through a later agent-declared history feature (F8) |
 | OPEN-7 | Interrupt and tool-call ids: where the `taskId` lives | decided by the user: in affinity-owned local state on the proxy, with the proxy issuing the engine `Redirect` (8.4); ids are opaque random handles. Replaces sealed ids, `options.seal`, vault wrap / unwrap and I11-as-sealing. State is volatile in v1; no store (revision 7) |
-| OPEN-8 | Naming: carrier extension URI and metadata key; plug-in URIs | carrier: key `agui` (carrier members only, not `forwardedProps`), URI under an Aklivity-owned namespace; content plug-ins keep their own external URIs and media types (A2UI: `a2ui.org`), so the two layers share no key (9.5) |
+| OPEN-8 | Naming: carrier extension URI and metadata key; plug-in URIs | deferred to E1 (post-v1); v1 declares no extension, and the `agui` key used for the informational part tag stays reserved |
 | ~~OPEN-9~~ | resolved (revision 7) | no context modes; `thread`, `none`, `scoped`, `masked`, `server` are listed as considered and rejected in 9.6 |
-| OPEN-10 | Reply fallback from working status messages (9.2): the latest retained working text is emitted at `COMPLETED` when nothing else was | include as `options.status: reply` default: an empty reply is worse than a late one; the rule assumes cumulative or final-message replies and loses chunks from agents that send incremental fragments, which needs a real agent to confirm |
-| OPEN-11 | Which A2UI generation the first content plug-in targets (9.5) | the shape CopilotKit's `a2ui-surface` renderer reads today (`a2ui_operations`, `createSurface` / `updateComponents` operations); v0.8 operations from the `@ag-ui/a2a` precedent only if an agent needs them |
+| ~~OPEN-10~~ | resolved (user decision, revision 10) | the `WORKING` text fallback reply is hardcoded, no `options.status` (9.2) |
+| OPEN-11 | Which A2UI generation the first content plug-in targets (9.5), post-v1 (F7) | the shape CopilotKit's `a2ui-surface` renderer reads today (`a2ui_operations`, `createSurface` / `updateComponents` operations); v0.8 only if an agent needs it |
 | ~~OPEN-12~~ | resolved (user decision, revision 8) | always start a new context plus implicit compaction by `MESSAGES_SNAPSHOT` (8.4); no `fail`, no 409 `context_lost`, no per-agent flag; conditional on the CopilotKit check, which aligned (9.10) |
 | ~~OPEN-13~~ | resolved (user decision, revision 7) | no store in v1; `options.store` is a documented follow-up (F3) |
-| OPEN-14 | How the proxy turns a key into an affinity | v1 single node: `(self node bits of affinity()) + floorMod(hash, workers)` from `EngineConfiguration.workers()`; multi-node needs an engine key-to-affinity operation (S8, A11), recommended only when multi-node is on the table |
+| ~~OPEN-14~~ | resolved (user decision, revision 10) | a pluggable `thread.affinity` property, no engine change (8.4) |
 | OPEN-15 | Unverified residue of 9.10 and two accepted limitations: CopilotKit's managed (Intelligence) persistence and other AG-UI clients were not checked; trimmed histories cannot trigger the reset; an agent that returns a `contextId` on every message without memory causes one spurious reset per thread per restart | accept for v1 and keep the informational operator event (it counts resets; it never informs the client); revisit if a managed-mode or channels client shows a different snapshot behaviour |
 | OPEN-16 | Request size bound: the whole request is buffered in one slot (32 KiB by default), so full-history requests are rejected 400 once they outgrow it | v1: document it, map it to 400 `Request too large`, and raise `buffer.slot.capacity` for AG-UI deployments; recommend a history-skipping streaming decode as a follow-up (parse `messages[]` incrementally, keep only the messages since the last assistant turn plus `state`, `context` and `forwardedProps`), since the A2A request needs only those |
+| OPEN-17 | Confirm the three pre-reply rejections: 503 `retention_unavailable` (retention cannot be arranged, retryable), 409 `handle_unknown` (unknown, expired or foreign handle), 400 `reserved_key` (reserved key in `forwardedProps`) | recommended as written in 8.4; not yet answered by the user |
 
 
 ## 3. Config sketch and routing
@@ -221,14 +236,6 @@ bindings:
   agui_a2a0:
     type: agui-a2a
     kind: proxy
-    options:
-      forward: [ state, context ]
-      state:                                  # owner-local state (8.4)
-        ttl: P1D
-        handle:
-          ttl: PT15M
-        capacity: 10000
-      abort: cancel                           # tasksCancel when the client aborts (default)
     routes:
       - when:
           - agent: weather                    # AGUI-scoped
@@ -296,7 +303,7 @@ Mirrored implementations:
 Schema (I1 / A2 / A4 / I4 descriptions):
 - `type: agui`, `kind: server`: `routes` becomes allowed (remove `"routes": false`); `routes[].when[]` `{path: string}`, `routes[].with` `{agent: string}`, `guarded`, `exit` required per route; `exit` or `routes`.
 - `type: agui`, `kind: client`: same, `when[]` `{agent: string}`, `with` `{path: string}`; `required` becomes `options` plus `exit` or `routes`.
-- `type: agui-a2a`, `kind: proxy`: `options.forward` (array of `state`, `context`, `forwardedProps`, `system`, `developer`, `tools`; default `state`, `context`), `options.state` (`ttl`, `handle.ttl`, `capacity`), `options.abort` (`cancel` default, `detach`), `options.extension` (`auto` default, `none`); `routes[].when[]` `{agent: string}`, `with` `{agent: string, identity: string}`, `guarded`, `exit`; no `options.agent`; `vault`, `catalog`, `entry` false.
+- `type: agui-a2a`, `kind: proxy`: no `options`; `routes[].when[]` `{agent: string}`, `with` `{agent: string, identity: string}`, `guarded`, `exit`; no `options.agent`; `vault`, `catalog`, `entry` false. TTLs, capacity and the key-to-affinity function are binding configuration properties (8.4), not yaml.
 
 ## 4. Spec changes
 
@@ -311,8 +318,8 @@ The bar is "does the spec support agui-a2a sufficiently well". PR attribution: `
 | S3 | agui(client) routes | same for `kind: client`: `config/client.routes.invalid.yaml` flips to valid `client.routes.yaml`; `required` relaxes to `exit` or `routes`; new paired scenario `run.routed` (application BeginEx `.agent("weather")` -> network request path `/agent/weather/run`) and a `chain` scenario `run.routed` (server routes by path, client routes by agent) | `SchemaTest`, client ITs, chain ITs | PR #2857 |
 | S4 | a2a non-happy task states (flagged in revision 1) | scripts only: `stream.message.failed`, `.rejected`, `.input.required`, `.auth.required`, `.canceled` and `send.message.task.failed` / `.input.required`, asserting the `A2aStatusUpdateDataEx` / `A2aTaskDataEx` `state` tag for each `TASK_STATE_*` string, including the terminal `statusUpdate` followed by end, and `status.message` text on `COMPLETED`, `FAILED`, `INPUT_REQUIRED` and a final `Task` snapshot resend (no current script puts text in `status.message`: replies are artifacts or a task-less `message`). They belong with the a2a spec (the state-string to `A2aTaskState` tag is an a2a(server) / a2a(client) contract that is independent of any proxy) and are driven through the a2a(server) / a2a(client) ITs; agui-a2a adds only its own mapping scripts on top | a2a spec PR + a2a(server) / a2a(client) PRs (#2816 / #2817) | a2a PRs |
 | S5 | client abort is detach (flagged in revision 1) | script `stream.message.client.aborted` (client aborts the application stream; assert the HTTP request is torn down and **no** `tasksCancel` is issued), making "abort = detach, cancel is explicit" an a2a contract rather than an assumption. No idl change | a2a spec PR + a2a(client) PR | a2a PRs |
+| S6 | the reply Begin reports the activated `A2A-Extensions` (**adopted**, user decision) | scripts only plus behaviour, no idl change: the reply Begin carries the existing `extensions` member of the begin case; `send.message.extensions` and `stream.message.extensions` gain a matched reply Begin; a2a(client) reads the `A2A-Extensions` response header into it, a2a(server) writes the header from it (A8) | the a2a spec scripts, `A2aServerIT`, `A2aClientIT` | #2825 (scripts), #2828 (a2a(server)), #2829 (a2a(client)) |
 | S7 | agui(server) handles `Redirect` (agui(server) is the initiator of the `agui` stream) | runtime in `AguiServerFactory` (A10) mirroring http(server) `onRequestRedirect`: re-begin from `redirect.extension()`, the Begin extension the receiver echoed, as http and mcp do; scripts `run.redirect` and `run.redirect.100k` (A9). **No idl, `AguiFunctions` or harness change** (8.4) | the agui(server) ITs | PR #2850 |
-| S8 | engine key-to-affinity operation (conditional, multi-node only) | an `EngineContext` / `RouterContext` operation that maps a logical key to an affinity value; default local, a cluster router may override. Not an idl change; justified by the engine contract alone (A11) | engine tests with the test router | the engine, not an open spec PR |
 
 ### 4.2 Candidates re-evaluated on whether they make agui-a2a work well
 
@@ -336,46 +343,9 @@ The bar is "does the spec support agui-a2a sufficiently well". PR attribution: `
 | `A2aAbortEx.reason`, `A2aEndEx.outcome`, `A2aErrorResetEx.code`, `A2aBearerResetEx.error` | sufficient for the reset / abort rows of 1.3 |
 | input content-part schema and A2A v1.0 part shapes written from memory | verified in revision 3 (section 7) |
 
-## 5. Drafted follow-up issues (stack order)
+## 5. Drafted follow-up issues
 
-Parent: aklivity/zilla-platform#1312. Each is justified by its own binding or contract, with no downstream consumer named
-(`agui`, `a2a` are shared components). Repo rules apply: test-first, Aklivity Community License files and `mvnw` /
-`mvnw.cmd` per new project, `./mvnw license:format`, `./mvnw notice:generate --projects ...`, `module-info`,
-`incubator/pom.xml` modules + dependencyManagement. Items A1-A10 amend existing issues / PRs (commits land in those PRs);
-A11 and the rest are new.
-
-| # | Title | Amends / Depends | Body (summary) | Acceptance criteria |
-| --- | --- | --- | --- | --- |
-| A1 | `binding-agui.spec: add agent to AguiBeginEx` | amends #2821 / PR #2850; none | An AG-UI endpoint serves many agents, addressed by URL; the `agui` stream carries only run ids, so a binding downstream of agui(server) cannot tell which agent a run addresses. Add `agent = null` (S1), the builder / matcher members and tests | idl regenerates; `AguiFunctionsTest` new cases pass; the whole existing `.rpt` suite passes unedited |
-| A2 | `binding-agui.spec: routes on the agui server (when.path, with.agent)` | amends #2821 / PR #2850; A1 | S2: schema, fixtures, network + application scripts | `SchemaTest` incl. flipped fixture; `request.path.not.found`, `request.path.forbidden`, `run.routed` scenarios paired and green |
-| A3 | `binding-agui: resolve agui server routes by path` | amends #2821 / PR #2850; A2 | Runtime: resolve after the method / content-type / accept checks with `route.resolve(authorization, path)`, path-template matcher and `${params.x}` with-resolver mirroring http-kafka, write `agent` in the app BeginEx, 404 / 403 via `AguiRejectHandler`. Test-first: A2 scenarios fail first | A2 scenarios pass in `AguiServerIT`; no-routes behaviour unchanged |
-| A4 | `binding-agui.spec: routes on the agui client (when.agent, with.path)` | amends #2856 / PR #2857; A1 | S3: schema, fixtures, `run.routed` and chain scenarios | `SchemaTest`; `run.routed` and chain `run.routed` green |
-| A5 | `binding-agui: resolve agui client routes by agent` | amends #2856 / PR #2857; A4 | Runtime: read `AguiBeginEx.agent`, template match, resolve `with.path` against `options.server` (OPEN-4), mirroring `a2a-http` route shape | A4 scenarios pass in `AguiClientIT`; no-routes behaviour unchanged |
-| A6 | `binding-a2a.spec: task state scenarios for message send and stream` | amends #2814 family (a2a spec PR, #2816 / #2817 PRs); none | S4 | each state scenario paired and green in the a2a(server) and a2a(client) ITs |
-| A7 | `binding-a2a.spec: a client abort detaches without cancelling` | amends #2814 family (a2a spec PR, #2817 PR); none | S5 | `stream.message.client.aborted` green; a2a(client) issues no `tasksCancel` |
-| A8 | `binding-a2a.spec: reply begin reports the activated extensions` | amends #2814 family (a2a spec PR, #2816 / #2817 PRs); none | S6 (8.5): the reply begin carries the `A2A-Extensions` activation the server echoed, through the existing `extensions` member; scripts only plus the a2a(client) / a2a(server) behaviour. Optional, recommended now | `send.message.extensions` and `stream.message.extensions` gain a matched reply begin; green in the a2a(server) and a2a(client) ITs |
-| A9 | `binding-agui.spec: redirect scenarios` | amends #2821 / PR #2850; A1 | S7 scripts, plain 8-byte form copied from http `request.redirect` (`read advise zilla:redirect <affinity>`): `run.redirect` (the receiver sends `Redirect`, a second accept begins with the same ids and the request body arrives on it) and `run.redirect.100k` (body larger than the decode slot). No idl, functions or harness change | scenarios green in the agui(server) ITs |
-| A10 | `binding-agui: agui server handles Redirect` | amends #2821 / PR #2850; A9 | S7 runtime, mirroring http(server) `onRequestRedirect`: handle `RedirectFW`; reset the old reply, abort the old initial; `resolveRoutedId` + `supplyInitialId(routedId, affinity)`; a new Begin with `redirectedId`, the new affinity and `redirect.extension()`, so no copy of the Begin extension is kept; the unsent request payload stays in the decode slot (already the case, 8.4); `newStream` gains `redirectedId` and `affinity`; a defensive guard (a `Redirect` bit in `AguiState`) aborts the stream, with no status mapping, on a second redirect, after the reply began, or after window, all off-spec for a conformant receiver | A9 scenarios pass; a unit test of the guard only if a test is wanted, never an `.rpt` script |
-| A11 | `engine: map a logical key to an affinity` | amends none; conditional | S8: the `EngineContext.supplyInitialId(routedId, affinityId)` javadoc describes pinning per-key streams, but the only way to obtain an affinity is to mint one with `affinity()` on the owning worker, so a binding cannot derive the owner of a key it did not mint; add a key-to-affinity operation (default: this node's workers, a router may spread over a cluster). Needed only for multi-node placement | covered in the engine tests with the test router; single-node deployments do not need it |
-| I1 | `binding-agui-a2a.spec: scaffold spec module and config schema` | A1 | Module `incubator/binding-agui-a2a.spec` (mirror `binding-a2a-http.spec`: no idl, uses `agui` and `a2a`); schema patch for `type: agui-a2a`, `kind: proxy`: `options.forward` (subset of state, context, forwardedProps, system, developer, tools), `options.state` (`ttl`, `handle.ttl`, `capacity`), `options.abort` (cancel, detach), `options.extension` (auto, none), `options.status` (reply, drop), `options.unaccepted` (custom, drop), `routes[].when.agent`, `routes[].with.agent`, `routes[].with.identity`, `guarded`, `exit` (section 3, 8.6); no `options.agent` | valid / invalid fixtures (`when` unknown member, `with` unknown member, route without `exit`, `forward` unknown value, `state` unknown member, `kind` invalid, unknown option); `SchemaTest` green; `NOTICE` generated; module in `incubator/pom.xml` |
-| I2 | `binding-agui-a2a.spec: run lifecycle, text, error and routing scenarios` | I1, A6 | Paired `.rpt` scenarios under `streams/application/{agui,a2a}`: slug pass-through and `with.agent` rewrite onto `A2aBeginEx.agent`, null slug, text chunks, append / replace, multi-artifact, `message` reply, non-streaming `messageSend`, `COMPLETED` / `FAILED` / `REJECTED` / `CANCELED`, a2a abort / `A2aErrorResetEx` / bearer reset (502 / 403 per 1.3) -> agui reset / abort | every row of 1.3 and its reset table covered; ITs per side (mirroring `A2aServerIT` / `HttpClientIT`) green |
-| I3 | `binding-agui-a2a.spec: request mapping, interrupt / resume, cancel and card scenarios` | I2, A7 | 1.2 (trailing user messages, binary / url parts, state + context data part, forwardedProps metadata, empty -> 422), `resume` -> `taskId`, `INPUT_REQUIRED` / `AUTH_REQUIRED` -> `INTERRUPT`, cancel with and without `taskId`, card streaming switch, 415, card failure | rows of 1.1, 1.2, 1.6, 1.7 each covered; request bodies checked verbatim |
-| I4 | `binding-agui-a2a: scaffold runtime module and config adapter` | I1 | Module `incubator/binding-agui-a2a` + `.conf` (failing ITs first), factory SPI, config adapter for all `options` of I1 and the routes, `module-info`, the `BindingEvent` catalog (8.0: run routed / finished with `agent`, `threadId`, `runId`, `taskId`, `contextId`, outcome) | config tests; ITs fail for the right reason before I5; `incubator/pom.xml` modules + dependencyManagement |
-| I5 | `binding-agui-a2a: map RunAgentInput to an A2A message` | I3, I4, I11 | Decode slot buffers the request, encode slot builds the v1.0 message JSON and `contentLength`, opens `messageStream` / `messageSend` with the routed slug; the remembered `contextId` (never a client-chosen one) and, only when a prior assistant turn exists and nothing is remembered, retaining the trailing user messages' byte ranges until the first a2a data frame, failing the run 503 `retention_unavailable` before the agent is contacted when that cannot be arranged, and 400 `Request too large` beyond the slot (8.4); `forwardedProps` as top-level `Message.metadata` minus reserved keys, no run ids; `acceptedOutputModes` (9.3); resume -> the `taskId` behind the handle; parse and ignore `tools` and trailing `tool` messages (8.3); mirror `AguiClientFactory`'s run input encoder; decoder states, no phase booleans | 1.1 / 1.2 scenarios pass; oversize request rejected as agui(server) does; slots released on every error path |
-| I11 | `binding-agui-a2a: owner-side state, handles, implicit compaction and affinity redirect` | I4, A9, A10 | The proxy owns the state for (identity, agent, `threadId`) and issues the engine `Redirect`, echoing the Begin extension, when a run reaches the wrong worker, as mcp(server) does (8.4): a worker-local bounded map with TTL sweep through the signaler holding the agent-issued `contextId` and interrupt / tool-call handles (random 128-bit, `kind` field, single use); the affinity function and a redirect handler stream mirroring `McpRedirectHandler`; no `fail`, no per-agent flag: a new context is always started when none is remembered, and when prior assistant turns exist and the reply carries a fresh `contextId` the proxy emits `MESSAGES_SNAPSHOT` with the trailing user messages first and records an informational operator-only Zilla event; when a prior assistant turn exists and nothing is remembered the decode slot is retained to the first a2a data frame and, if that cannot be arranged, the run is rejected 503 `retention_unavailable` before the agent is contacted; unknown handles are rejected 409 `handle_unknown`; no client-held secrets, no `options.context`, no `options.store`; state kept behind one interface so F3 can add a store | scenarios: aligned run, misaligned run answered with `Redirect` echoing the Begin extension, second run of a thread reuses the `contextId`, an agent that returns none stores nothing, resume with a valid / unknown / expired / foreign handle, reset fires (prior assistant turn, nothing remembered, fresh `contextId`: snapshot first, then the reply), reset does not fire (first turn, remembered context, stateless agent, trimmed history), reset on a run that ends `INTERRUPT`, retention impossible (a bounded buffer pool in a unit test, since an `.rpt` cannot exhaust a pool) rejected 503 before the agent is contacted, a request larger than the slot rejected 400 with the agent never contacted (an `.rpt` script, mirroring `request.too.large`), unknown handle rejected 409, TTL expiry and capacity eviction |
-| I6 | `binding-agui-a2a: map A2A events to AG-UI frames` | I5 | Incremental event decoder (mirror `AguiEventDecoder`), `chunks` text framing, `CUSTOM` `agent.data` / `agent.file`, `status.message` mapping with digest dedupe and the fallback reply (9.2), unaccepted-part handling (9.3), neutral `agent_*` error codes and `reason` strings, outcome / abort / reset mapping, the implicit compaction snapshot ahead of the first reply frame (8.4), opaque interrupt handles with `expiresAt`, flow control honoured both ways; no A2A ids or vocabulary on the client stream | 1.3 scenarios incl. `*.100k` pass; a scenario asserts no `taskId` / `contextId` / `a2a` string appears on the agui side |
-| I7 | `binding-agui-a2a: negotiate with the agent card and fall back to non-streaming` | I6 | `agentCard` pre-step with the routed slug, streaming switch, input-mode check, synthesized events | 1.4 and 1.7 scenarios pass |
-| I8 | `binding-agui-a2a: cancel the A2A task on run abort` | I6 | `tasksCancel` (routed slug + `taskId`) on abort when `options.abort: cancel` (default) and on `resume.cancelled`; detach otherwise; a `TaskNotCancelable` / not-found answer is ignored (A2A cancel is idempotent) | 1.6 scenarios pass |
-| I9 | `build(docker-image): add binding-agui-a2a to the image and the inspect.schema golden` | I7, I8 | **One commit series**: `cloud/docker-image/pom.xml`, `cloud/docker-image/src/main/docker/zpm.json.template`, `incubator/pom.xml` dependencyManagement, `inspect.schema/.github/schema.expected.json` golden (golden must not lead the image, see 53290f62), `NOTICE` regenerated. The golden also carries the agui `routes` schema from A2 / A4 | `./mvnw verify` on `cloud/docker-image`; inspect.schema example green |
-| I10 | `example: AG-UI frontend to an A2A agent through agui-a2a` | I9 | `zilla-examples` entry (section 3 sketch) with `.github/test.sh`; also the OPEN-1 check against the reference agent | example test green; lossiness table documented |
-| F1 | `binding-agui-a2a: map frontend tools through the AG-UI extension` | E1, I10 | Tier 2 only. `tools` declared in `Message.metadata.agui.tools`; a client-executed call arrives as a `{type: tool-call}` data part (the `@ag-ui/a2a` shape, 9.5), becomes `TOOL_CALL_*` with an opaque handle as `toolCallId`, and the run ends `SUCCESS` with `pendingToolCallIds`; the next run's trailing `tool` messages are looked up to one `taskId` and sent as `{type: tool-result}` data parts (8.3) | scenarios: one call, several calls, call plus interrupt, unknown / foreign / expired `toolCallId`, tier-1 agent ignores tools; no `a2a.idl` or `agui.idl` change |
-| F2 | `binding-agui-a2a: state, activity, reasoning, step, subagent and tool-call events` | E1, I10 | Tier 2 only. Tagged `data` / `text` parts and status-message parts -> `STATE_*`, `MESSAGES_SNAPSHOT` (including agent-originated: agent-side compaction conveyed to the client), `ACTIVITY_*`, `REASONING_*`, `STEP_*`, `SUBAGENT_*`, agent-executed `TOOL_CALL_*` + `TOOL_CALL_RESULT`, richer `INTERRUPT` (`reason`, `responseSchema`, `toolCallId`); unknown tags dropped (AG-UI's processing model strips unrecognised material; informational Zilla event for operators only) | one scenario per event family and per direction |
-| F3 | `binding-agui-a2a: durable state tier` | I11 | Documented follow-up, not v1. `options.store`: the engine store is the authoritative copy and the worker-local map the fast path (8.4); write-through of `contextId` and handles with the store TTL, read-through on a local miss, `getAndDelete` for handle consumption | scenarios: restart restores a thread's context and an open interrupt, store miss, store outage degrades to the implicit compaction rule |
-| E1 | `binding-agui-a2a: specify the AG-UI over A2A extension` | I10 | A document (`incubator/binding-agui-a2a/EXTENSION.md`) defining the URI, `params`, the `Message.metadata.agui` carrier (feature members only: no run ids, no `forwardedProps`) and the part tags of 8.2 with tool part shapes aligned to the `@ag-ui/a2a` precedent (9.5), the content plug-in contract of 9.5, and a versioning rule; no code | reviewed against the A2A extension rules (no new fields or enum values, metadata only); the tag table is covered one-to-one by F1 / F2 scenarios |
-| F4 | `binding-agui-a2a: working status messages as activity` | I10 | Tier 1. `statusUpdate` `WORKING` with a text message -> `ACTIVITY_SNAPSHOT` (`activityType` `status`, `replace` true, stable `messageId` per run); opt-in `options.status` (`drop` default, `activity`) | scenario with several working updates replacing one activity; text transcript untouched |
-| F5 | `binding-agui-a2a: subagent events` | F2 | Tier 2 only: tagged `subagent` events -> `SUBAGENT_*` with `subagentRunId` attribution on every event of the subagent | scenario per outcome (success, suspended, error) |
-| F6 | `binding-agui-a2a: reconnect to a running task` | I10 | Only if an agui connect operation is ever specified: `tasksList` (`contextId`) to find the open task, then `tasksSubscribe` (`taskId`), replay as `MESSAGES_SNAPSHOT` / `STATE_SNAPSHOT`; the a2a stream model already has both operations | n/a until AG-UI defines the operation (8.3) |
-| F7 | `binding-agui-a2a: A2UI content plug-in` | I10 | `options.content.a2ui`: adds `application/json+a2ui` to `acceptedOutputModes`, adds the A2UI extension URI to `extensions` when the card declares it, maps A2UI `data` parts to `ACTIVITY_SNAPSHOT` / `ACTIVITY_DELTA` (`activityType` `a2ui-surface`, content `{a2ui_operations}`, stable `messageId` per surface) and `forwardedProps.a2uiAction` to a `data` part of that media type (9.5). Needs no carrier extension | scenarios: surface create, update, user action round trip, agent that ignores the extension; one per pinned A2UI generation (OPEN-11) |
+Superseded by section 10, which carries the final list (same ids: A = amendment, I = v1 issue, E / F = post-v1).
 
 ## 6. Items to report (not worked around)
 
@@ -400,7 +370,7 @@ All verified from shallow clones of the repositories; paths are repo-relative. P
 | Input content parts | `schema.mdx#contentpart`: `text`, `image`, `audio`, `video`, `document`; `source` is `data {value base64, mimeType}`, `url {value, mimeType?}` or `file {value, provider?, mimeType?}`; no `binary` type, no filename | **corrected** (1.2): revision 1 assumed a `binary` type and a filename |
 | `RUN_FINISHED`: `result` (run's return value), `outcome` `success` / `interrupt` / `cancelled`, `usage`; `RUN_ERROR`: `message` required, `code` optional; a stream starts with `RUN_STARTED` or `RUN_ERROR`; input rejected before the run is an HTTP error with no stream | `schema.mdx#runfinishedevent`, `#runerrorevent`; `docs/spec/1.0/events/lifecycle.mdx`; `basic/transports/http-sse.mdx` | verified; **corrected** `result` use (no A2A ids on RUN_FINISHED at all, OPEN-2 dropped, 8.0) and `message` is always filled |
 | `Interrupt` (`id`, `reason` required, `message`, `toolCallId`, `responseSchema`, `expiresAt`); `ResumeEntry` (`interruptId`, `status` `resolved` / `cancelled`, `payload`, `metadata`); resume list must cover every interrupt; unrecognised entries are ignored with a warning; producers need not keep state across the gap | `schema.mdx#interrupt`, `#resumeentry`; `docs/spec/1.0/basic/patterns/interrupt-resume.mdx` | verified; matches `run.resume` / `run.outcome.interrupt`; small additions (absent payload, unknown ids) in 1.1 |
-| Cancel: no stop in the protocol; an abandoned stream is a truncated run, not a cancelled one; `cancelled` is the producer's report | `lifecycle.mdx` (`### Cancelled runs`), `basic/transports/index.mdx#truncation`, `http-sse.mdx` (`## No resumption`) | verified; makes cancel-on-abort a policy (`options.abort`, OPEN-5) |
+| Cancel: no stop in the protocol; an abandoned stream is a truncated run, not a cancelled one; `cancelled` is the producer's report | `lifecycle.mdx` (`### Cancelled runs`), `basic/transports/index.mdx#truncation`, `http-sse.mdx` (`## No resumption`) | verified; makes cancel-on-abort a policy: always cancel, no option (OPEN-5) |
 | Frontend tool call stops a run as `success` with `pendingToolCallIds`; answered via `tool` messages in the next input | `lifecycle.mdx`, `schema.mdx#runfinishedsuccessoutcome` | verified; recorded for F1 (1.5) |
 | `HttpAgent`: `POST`, `Accept: text/event-stream`, URL is whatever is configured; `abortRun()` aborts the fetch via `AbortController` | ag-ui `sdks/typescript/packages/client/src/agent/http.ts` (lines 45-75) | verified |
 | CopilotKit runtime routes `agent/:agentId/run`, `/connect`, `/suggest`, `/stop/:threadId`, `/info`, matched by path suffix; a single-route mode takes `POST` with a `{method, params, body}` envelope | CopilotKit `packages/runtime/src/v2/runtime/core/fetch-router.ts`, `core/fetch-handler.ts` (`mode: "single-route"`), `endpoints/express-single.ts` | verified; Zilla's `/agent/{agent}/run` path template matches the multi-route shape, the single-route envelope would need body routing and is out of scope |
@@ -423,7 +393,7 @@ All verified from shallow clones of the repositories; paths are repo-relative. P
 | a different response `contextId` is surfaced as `CUSTOM a2a.context` | protocol violation (a conforming server keeps or rejects); abort `agent_protocol` |
 | resume message carries `taskId` and `contextId` | `taskId` only |
 | `task` with artifacts always emits text | emits only unseen `artifactId`s |
-| cancel on abort is the mapping | cancel on abort is a policy (`options.abort`), default `cancel` |
+| cancel on abort is the mapping | cancel on abort is a policy: always cancel, no option |
 | `RunAgentInput.messages` treated as agent-owned history | AG-UI says it is the complete history; sending only the new turn is a documented lossiness (OPEN-6) |
 | CopilotKit issue numbers #6978 / #7149 and PRs from search summaries | the `{runId}` stop body exists in `handle-stop.ts` at the pinned commit; issue / PR states not re-checked |
 
@@ -455,26 +425,28 @@ Zilla event catalog (`BindingEvent`, I4 / I6): run routed (`agent`, `threadId`, 
 `contextId`, a2a state), run failed (code, message), redirected (affinity), handle rejected (reason), context lost (policy), unknown extension tag dropped (tag). These are
 the only places A2A ids appear. The reverse direction is different by design: the only AG-UI details sent to the agent are what the client supplied (`forwardedProps`, as `Message.metadata`) and, in tier 2, the activated feature members of `Message.metadata.agui`; run ids are not sent (9.4).
 
-### 8.1 `system` / `developer` messages (OPEN-3)
+### 8.1 `system` / `developer` messages (decided: dropped, no option)
 
-Who supplies them: AG-UI describes `developer` as instructions from the application developer, but they travel in the
-`RunAgentInput` the consumer assembles, which for a browser consumer is under the control of whoever holds the browser.
-The A2A agent owns its prompt. The proxy sits on the boundary, so forwarding client-supplied instructions means granting
-the client some authority over the agent. The options:
+Dropped, with no option (user decision, revision 10). Trust reason: `system` and `developer` carry elevated authority over an
+agent's behaviour, they arrive in the `RunAgentInput` the consumer assembles, and for a browser consumer that is under the
+control of whoever holds the browser, so the proxy cannot verify their provenance. The A2A agent owns its prompt. Forwarding
+them in any form (a role, a prefix, a data part, metadata) lets the client assert privileged instructions across a trust
+boundary, which is prompt injection with an elevated framing.
 
-| Option | Mapping | Agent's authority model | Trust implication | Verdict |
-| --- | --- | --- | --- | --- |
-| (a) drop | not forwarded | agent-owned prompt only | none; lossy | **default (v1)** |
-| (b) tagged `data` part | one `data` part tagged `metadata.agui.part = "instructions"` with `[{role, content}]`, alongside state / context, enabled by listing `system` / `developer` in `options.forward` | agent-owned; the part is advisory input, same standing as user text | no more power than the user message the same client already controls, provided the agent treats it as input; agents that ignore `data` parts see nothing | v1 opt-in, off by default |
-| (c) text-part prefix (`[system] ...`) | prepended to the user text | none distinguishable: the agent cannot tell it from user-typed text, and a user can type the same prefix | spoofing and prompt injection by construction, no way to verify provenance | **rejected** |
-| (d) `Message.metadata` | `metadata.agui.instructions` | metadata is opaque; an agent only acts on it if its own code does | invisible to an LLM unless the agent reads it; no defined semantics, so no agent can rely on it | used only as the carrier of the tier-2 extension, not on its own |
-| (e) declared A2A extension | `metadata.agui.instructions` with defined semantics, active only when the agent declares and the proxy activates the extension | the agent decides, through `params`, which roles it accepts and whether they are `advisory` or `authoritative` | an explicit opt-in by the agent; the agent can still sanitize, and `required: false` keeps tier-1 callers working | **tier 2** |
+| Option | Verdict |
+| --- | --- |
+| (a) drop | **adopted**, no `options.forward` entry exists |
+| (b) tagged advisory `data` part | rejected: an agent that reads `data` parts would treat client-supplied instructions as input with a privileged label |
+| (c) text-part prefix | rejected: indistinguishable from user text, spoofable |
+| (d) `Message.metadata` | rejected on its own: opaque, no defined semantics |
+| (e) agent-declared extension | post-v1 and not planned for instructions; any future path needs an agent-side declaration and a separate security review |
 
-Recommendation (OPEN-3): drop by default; (b) available to an operator who knows the agent reads it; lossless only through
-(e), where the agent names the authority it grants. v1 consequence: `options.forward` already accepts `system` /
-`developer` (I1), so (b) and (e) need no config rework.
+`state` and `context` are not instructions: they are data the application supplies, forwarded whenever non-empty as one
+advisory `data` part with no option, at the same trust as the user's own message content.
 
-### 8.2 Two-tier architecture
+### 8.2 Two-tier architecture (post-v1 reference design)
+
+In v1 only tier 1 exists: no extension is declared or activated. This section is the design that post-v1 work (E1, F1, F2, F5, F8) builds on; it is kept so v1 does not block it.
 
 Is it the right frame? Yes. A2A's core cannot carry what AG-UI adds, and A2A's extension rules say how to add it without
 forking the protocol: extensions may not add fields or enum values to core types, only use `metadata`; an agent declares
@@ -487,7 +459,7 @@ an extension in its card (`capabilities.extensions[{uri, required, params}]`); a
 | Text, errors, outcomes (success / cancelled / error) | yes | yes |
 | Interrupt and resume (`input-required`, `auth-required`) | yes: plain `input` / `authorization` interrupts | yes, with `reason`, `responseSchema`, `toolCallId` |
 | Cancel | yes | yes |
-| `system` / `developer` instructions | dropped (or advisory (b)) | lossless, agent-controlled authority |
+| `system` / `developer` instructions | dropped, no option | lossless, agent-controlled authority |
 | `state`, `context` | one advisory `data` part | `metadata.agui.state` / `.context`, with defined semantics |
 | Frontend tools | dropped | declared, called, answered (8.3) |
 | `STATE_*`, `MESSAGES_SNAPSHOT` | proxy-originated `MESSAGES_SNAPSHOT` only on a context reset (8.4); otherwise none, and `data` parts as `agent.data` | tagged parts -> native events, including agent-originated `MESSAGES_SNAPSHOT` (agent-side compaction) |
@@ -506,7 +478,7 @@ What the extension (E1) must define:
 | Versioning | breaking changes get a new URI version; the proxy lists the versions it implements |
 
 Negotiation in the proxy, per run, using the card read that 1.7 already performs:
-1. If `options.extension` is `none`, tier 1.
+1. In v1 there is no extension, so every run is tier 1; the steps below are post-v1.
 2. If the card lists the URI (a version the proxy implements), tier 2; `params.features` intersected with what AG-UI sent decides which `metadata.agui` members are written (a feature the agent did not list is never sent).
 3. `extensions` is set on `messageStream` / `messageSend` and on `tasksCancel`.
 4. If the card marks it `required: true` and the proxy cannot meet it, the run is refused 502 before the reply begin.
@@ -525,9 +497,9 @@ extensions), in 8.5.
 
 | Item | Full target design | v1 must | v1 must not |
 | --- | --- | --- | --- |
-| F1 Frontend tools | tier 2, walked through below | parse `tools` and ignore them; accept trailing `tool` messages without failing; issue interrupt handles from the owner-local state now (8.4); keep `tools` in the `options.forward` vocabulary | forward `tools` as text or as `data` in tier 1; treat a `tool` message as a user message |
+| F1 Frontend tools | tier 2, walked through below | parse `tools` and ignore them; accept trailing `tool` messages without failing; issue interrupt handles from the owner-local state now (8.4); ignore `tools` in v1 | forward `tools` as text or as `data` in tier 1; treat a `tool` message as a user message |
 | F2 State, activity, reasoning, step, tool-call events | tier 2: tagged parts to native events (8.2 table); `STATE_DELTA` JSON Patch passes through verbatim; `MESSAGES_SNAPSHOT` for replay | keep text framing as `chunks` (closes on an empty fin frame) and close an open text message before any other event; name `CUSTOM` events `agent.*` | emit events from untagged data; tie the `messageId` of text to anything but the artifact id or message id |
-| Working-status messages | tier 1: `WORKING` status with text -> `ACTIVITY_SNAPSHOT` (`activityType` `status`, `replace` true, one stable `messageId` per run) so it never enters the transcript; tier 2: `step` / `activity` tags | drop them (1.3) | map them to `TEXT_MESSAGE_*`; add a flag to track them (the `options.status` enum in F4 is the additive switch) |
+| Working-status messages | tier 1: `WORKING` status with text -> `ACTIVITY_SNAPSHOT` (`activityType` `status`, `replace` true, one stable `messageId` per run) so it never enters the transcript; tier 2: `step` / `activity` tags | drop them (1.3) | map them to `TEXT_MESSAGE_*`; add a flag to track them (F4 is post-v1) |
 | F3 Durable state | `options.store`: the engine store is the authoritative copy, the worker-local map the fast path (8.4) | keep the owner-local map behind one state interface so a store can sit under it; never expose the A2A `contextId` or `taskId` to the client | write state anywhere but through that interface |
 | Reconnect / resubscribe | AG-UI's HTTP binding has no resumption (`http-sse.mdx`), the base `HttpAgent.connect` throws not-implemented, and CopilotKit's `/connect` is served from its own runner store (`runner.connect`), never forwarded upstream; so nothing reaches agui(server). The a2a stream model already has `tasksSubscribe` and `tasksList` (`contextId`), so a future connect is: list the thread's open task, subscribe, replay as snapshots | nothing | add an `operation` member to `AguiBeginEx` now: appending one later is additive, and no operation exists to put in it. **Not a spec gap on either side** |
 | Non-text parts beyond `CUSTOM` | AG-UI 1.0 assistant messages carry `string` content only and media has no native output event except tool-result parts; `CUSTOM agent.file` stays the carrier until AG-UI adds assistant parts; tier 2 may map an agent-executed `toolResult` with media parts to `TOOL_CALL_RESULT` parts | emit `agent.data` / `agent.file` with the neutral shapes of 8.0 | invent a media event |
@@ -573,8 +545,8 @@ remembered by the owner under (identity, A2A agent slug, `threadId`) and sent on
 
 | Entry | Key | Value | Lifetime |
 | --- | --- | --- | --- |
-| context | (identity, A2A agent slug, `threadId`) | the `contextId` the agent issued | `options.state.ttl`, sliding; least-recently-used eviction at `options.state.capacity` |
-| interrupt handle | random 128-bit id | `{key, kind: interrupt, taskId, expiresAt}` | `options.state.handle.ttl`; single use; a task interrupted again gets a new handle |
+| context | (identity, A2A agent slug, `threadId`) | the `contextId` the agent issued | `thread.ttl`, sliding; least-recently-used eviction at `thread.capacity` (binding configuration properties) |
+| interrupt handle | random 128-bit id | `{key, kind: interrupt, taskId, expiresAt}` | `handle.ttl` (binding configuration property); single use; a task interrupted again gets a new handle |
 | tool-call handle (tier 2) | random 128-bit id | `{key, kind: tool, taskId, callId, expiresAt}` | same |
 
 The map is worker-local (no locks, no cross-thread access), bounded, and swept by a timer on the worker's signaler plus lazily
@@ -588,7 +560,7 @@ that state, which is documented rather than hidden.
 | Step | Detail |
 | --- | --- |
 | Key | identity (route `with.identity`), the A2A slug (after `with.agent`), `threadId` from `AguiBeginEx`; all three are known at Begin |
-| Affinity | `affinityOf(key) = (affinity() with its worker bits cleared) + floorMod(placementHash(key), workers)`. The engine's affinity value is `(nodeId << 24) + workerIndex` (`EngineWorker`, lines 331 and 2313) and `supplyInitialId(routedId, affinityId)` honours a local value below `workers`, so this value pins a stream to one worker; `workers` is `EngineConfiguration.workers()` |
+| Affinity | `affinityOf(key)`: by default `(affinity() with its worker bits cleared) + floorMod(placementHash(key), workers)`, with `workers` from `EngineConfiguration.workers()`; the engine's affinity value is `(nodeId << 24) + workerIndex` (`EngineWorker`, lines 331 and 2313) and `supplyInitialId(routedId, affinityId)` honours a local value below `workers`. A deployment replaces it with the pluggable `thread.affinity` property (multi-node, below). The canonical key string passed to it is the identity, the A2A slug and the `threadId` joined by U+001F (identity empty when unguarded) |
 | Check | in `newStream`, when `affinityOf(key) != context.affinity()`, return a redirect handler that ignores every frame and, on Begin, answers `Redirect(affinity = affinityOf(key), extension = the Begin extension it received)` (below); the shape of `McpRedirectHandler` / `doRedirect` in `McpServerFactory`, with no window granted and no state touched |
 | Difference from mcp | mcp's affinity is embedded in a session id it minted (`defaultSessionIdAffinity` parses the last 8 hex characters); ours is computed from a client-chosen key because `threadId` belongs to the client |
 | Cost | none with one worker (`workers = 1` is always aligned); with W workers and round-robin accept, `(W - 1) / W` of runs take one in-process hop (Begin, Redirect, reset, Begin), the cost mcp pays for sessions on other workers. Same-key runs then execute on one worker, so the state needs no synchronization; they still interleave, and two concurrent first runs of a thread create two agent contexts (the first completion is kept, the other orphaned on the agent), which AG-UI clients normally avoid by serializing runs per thread |
@@ -677,14 +649,14 @@ contacted. The Zilla events are for operators only and never compensate for the 
 | request larger than the slot | rejected 400 `Request too large` |
 | unknown, expired or foreign handle | rejected 409 `handle_unknown` |
 | reserved key in `forwardedProps` | rejected 400 `reserved_key` |
-| part outside `acceptedOutputModes` | delivered as `agent.data` / `agent.file`, or dropped only by an explicit `options.unaccepted: drop` |
+| part outside `acceptedOutputModes` | delivered as `agent.data` / `agent.file`, (no option) |
 | tier-1 `tools` and `tool` messages | documented lossiness (1.2), not a warning-compensated degradation |
 | unknown tier-2 tags | stripped as AG-UI's processing model requires |
 | **undetectable, known limitations** | history trimmed by the client (no assistant turn, so the reset cannot fire and the agent's lost memory is not conveyed); an agent that returns a `contextId` on every message without memory (one spurious reset per thread per restart) |
 
 #### Durable tier: documented follow-up, not v1
 
-`options.store` (F3) would make the engine store (`StoreHandler`: async `get`, `put`, `putIfAbsent`, `getAndDelete`, with TTL)
+A store (F3, post-v1) would make the engine store (`StoreHandler`: async `get`, `put`, `putIfAbsent`, `getAndDelete`, with TTL)
 the authoritative copy and the worker-local map the fast path, for durability across restart and rescale. Keys
 `agui-a2a/ctx/<hash(identity, agent, threadId)>` (value `{contextId}`) and `agui-a2a/h/<handle>` (value `{keyHash, kind,
 taskId, callId?}`); the values hold A2A ids and never reach the client; store TTLs follow the state TTLs. Restart restores
@@ -692,13 +664,20 @@ lazily by read-through on a local miss (the run waits in the decode slot while t
 a2a(proxy)'s card cache); handles are consumed with `getAndDelete`; with a shared store the redirect is needed only for the
 cache hit. v1 keeps the state behind one interface so this can be added without rework.
 
-#### Multi-node
+#### Multi-node: a pluggable `thread.affinity` property (no engine change)
 
-Across engine nodes a router must implement `RouterContext.resolveRoutedId(routedId, affinity)`, identity by default, and the
-key-to-affinity mapping must choose among nodes, which the engine does not expose (S8, A11). The OSS tree has only the test
-router; a cluster router would live outside it (the coordinator named zilla-plus's `router-hazelcast` and its "Reactor Thread
-Safety" guidance for an in-memory fast path with a configured store authoritative), which is unverified here because no
-zilla-plus checkout is available.
+Mirror mcp, whose `McpConfiguration` has pluggable properties `session.id` and `session.id.affinity`: each is decoded from a
+`Class::method` static handle (`decodeSessionIdAffinity` resolves `MethodHandles.publicLookup().findStatic(class, method,
+(String) -> long)`), and the defaults embed and parse the affinity in the session UUID, so a cluster-aware deployment plugs its
+own behaviour with no binding code change. agui-a2a defines the equivalent in the same style: the binding configuration property
+`thread.affinity` (`zilla.binding.agui.a2a.thread.affinity`), a `ToLongFunction<String>` over the canonical key string decoded from
+a `Class::method` static handle of signature `long method(String)`. When it is not set, the binding computes the local default
+above; a cluster deployment plugs a function that also sets the node byte (`affinity >>> 24`). The binding code only uses the
+returned affinity with `context.resolveRoutedId` and `supplyInitialId` and in the `Redirect`; the engine is unchanged (the
+former engine item S8/A11 is dropped). Per the coordinator, zilla-plus's `HazelcastRouterContext.resolveRoutedId`
+(`runtime/router-hazelcast`) treats the node byte as the owner and routes non-local affinities to the cluster client binding;
+that is unverified here, because no zilla-plus checkout is available. The state itself stays worker-local per node, so
+cluster durability is the store follow-up (F3), and the zilla-plus function is F10.
 
 #### What the design relies on
 
@@ -711,42 +690,37 @@ zilla-plus checkout is available.
 ### 8.5 Spec changes re-checked against the full design
 
 S1-S5 stand unchanged (route key in `AguiBeginEx` and the agui routes, a2a task-state scripts, client abort is detach). S6 is
-optional; S7 (agui(server) handling `Redirect`) is new and required; S8 is an engine item. Everything
+optional; S7 (agui(server) handling `Redirect`) is new and required. Everything
 deferred was walked for an idl, `AguiFunctions` or `A2aFunctions` change that is cheaper now than later:
 
 | Candidate | Needed by | Verdict |
 | --- | --- | --- |
-| **S6: reply begin reports the activated `A2A-Extensions`** (scripts and a2a(client) / a2a(server) behaviour only; the reply begin carries the existing `extensions` member of the begin case) | tier 2 activation knowledge, and `required` extensions | **recommended now**: no idl change, a script pair in the a2a spec PR plus behaviour in the a2a(client) / a2a(server) PRs; without it the proxy cannot tell "declared" from "activated". Lands in the a2a spec PR and the a2a(server) / a2a(client) PRs (#2816 / #2817 family; numbers for the coordinator to confirm) |
+| **S6: reply begin reports the activated `A2A-Extensions`** (scripts and a2a(client) / a2a(server) behaviour only; the reply begin carries the existing `extensions` member of the begin case) | extensions are post-v1, but the change is cheap while the a2a PRs are open | **adopted** (user decision): no idl change; scripts in #2825, behaviour in #2828 and #2829 (A8) |
 | **S7: agui(server) handles `Redirect`**, two scripts | owner-local state (8.4) | **required for the state design**: runtime change in `AguiServerFactory` and `run.redirect` / `run.redirect.100k`, PR #2850; **no idl, `AguiFunctions` or harness change** (the Begin extension is echoed, as in http and mcp) |
-| **S8: key-to-affinity operation** | multi-node placement only | conditional, engine contract only |
 | `AguiBeginEx.operation` (run or connect) | reconnect | no: no AG-UI operation exists to name, and appending a member later is additive |
 | `pendingToolCallIds` as an `AguiEndEx` member | F1 | no: `AguiEndEx.detail` already carries any `RUN_FINISHED` member, and the encoder copies `outcome` specifics from it |
 | New `AguiDataEx` cases | F2 | no: every event family is already in `agui.idl` |
 | `A2aArtifactUpdateDataEx` flags, `taskId` in the message begin, `realm` / `scope` in `AguiResetEx` | tier 2 | still no (4.2): tier 2 parses part tags from the body anyway, so the DataEx flags still buy nothing |
 | `AguiFunctions` / `A2aFunctions` additions | F1 / F2 / S7 scripts | no: builders and matchers exist for tool call, tool result, state, activity, reasoning, step, subagent, custom, raw, `extensions` and `matchDataEx` of each a2a case |
 
-Net: S6 (optional, a2a scripts) and S7 (required: runtime and two scripts on PR #2850) are what the full design needs; S8 only
-for multi-node. No idl, `AguiFunctions`, `a2a.idl`, `A2aFunctions` or harness change beyond S1, and none for the
-implicit compaction: `AguiStateDataEx` already has `MESSAGES_SNAPSHOT` and the scenario `run.messages.snapshot` already exists.
+Net: S6 (adopted, a2a scripts and behaviour) and S7 (required: runtime and two scripts on PR #2850) are what the full design
+needs. No idl, `AguiFunctions`, `a2a.idl`, `A2aFunctions`, engine or harness change beyond S1, and none for the implicit
+compaction: `AguiStateDataEx` already has `MESSAGES_SNAPSHOT` and the scenario `run.messages.snapshot` already exists.
 
 ### 8.6 v1 shape, consolidated
 
 | Concern | v1 |
 | --- | --- |
-| Binding config | `options.forward`, `.state` (`ttl`, `handle.ttl`, `capacity`), `.abort`, `.extension`, `.status`, `.unaccepted`; routes with `when.agent`, `with.agent`, `with.identity`, `guarded`, `exit`; no `options.context`, no `options.seal`, no `options.store` |
-| Request | trailing user messages, resume to the `taskId` behind the handle, the remembered `contextId` (never a client-chosen one), `state` + `context` as one advisory `data` part, `forwardedProps` as top-level `Message.metadata` (no run ids), `acceptedOutputModes`, `system` / `developer` only if listed in `forward`, `tools` and `tool` messages parsed and ignored |
+| Binding config | no yaml `options`; routes with `when.agent`, `with.agent`, `with.identity`, `guarded`, `exit`; binding configuration properties `thread.ttl`, `thread.capacity`, `handle.ttl`, `thread.affinity` |
+| Request | trailing user messages only (documented lossiness), resume to the `taskId` behind the handle, the remembered `contextId` (never a client-chosen one), non-empty `state` + `context` as one advisory `data` part, `forwardedProps` as top-level `Message.metadata` (no run ids), `acceptedOutputModes` `text/plain`; `system` / `developer` dropped, `tools` and `tool` messages parsed and ignored |
 | Response | text, `CUSTOM` `agent.data` / `agent.file`, neutral errors, `status.message` text on `COMPLETED` with digest dedupe, `INTERRUPT` with opaque handles, `CANCELLED`, no A2A details on the client stream |
 | State | owner-local map, affinity redirect echoing the Begin extension, volatile; implicit compaction by `MESSAGES_SNAPSHOT` when the context is lost (8.4) |
-| Not in v1 | tier 2 (E1, F1, F2, F5), working status as activity (F4), durable store (F3), reconnect (F6), A2UI plug-in (F7), multi-node placement (A11) |
-| Constraint v1 puts on later work | state behind one interface so a store can sit under it; handles carry `kind`; `metadata.agui` key shared by both tiers; `options.forward` an open enum; `agent.*` custom names reserved |
+| Not in v1 | every extension (E1, F1, F2, F5, F8), working status as activity (F4), durable store (F3), A2UI plug-in (F7), streaming request decode (F9, OPEN-16), the zilla-plus cluster affinity function (F10); reconnect (F6) is not filed |
+| Constraint v1 puts on later work | state behind one interface so a store can sit under it; handles carry `kind`; the `agui` metadata key stays reserved; `agent.*` custom names reserved |
 
 ### 8.7 Issue changes in this revision
 
-Revision 8: the amnesia rule is replaced by implicit compaction (always a new context, `MESSAGES_SNAPSHOT` with the trailing user
-messages when the reply carries a fresh `contextId` after prior assistant turns); no `fail`, no per-agent flag, no 409
-`context_lost`; verified against CopilotKit (9.10). Revision 7: `options.context`, `options.unknown` and `options.seal` are gone; I11
-is owner-side state and the redirect; A9 and A10 carry S7; A11 is the only engine item; F8 and F9 are removed; F3 is a
-documented follow-up. No change to the spec-change list in revision 8. The issue table in section 5 carries the bodies.
+Superseded by section 10, which lists every issue with repository, body, acceptance, dependencies and class.
 
 ## 9. Precedent and revisions (revision 5)
 
@@ -801,8 +775,7 @@ streams, and the run holds the set of finished digests. Then:
 3. A task-less `message` event records its digest.
 4. Fallback: at `COMPLETED`, if no text message was emitted in the run and `pendingReply` exists, emit it once as a text message; discarded on every other end state.
 
-`options.status: reply` (default) applies the table and the fallback; `drop` ignores `status.message` text except as
-interrupt and error messages; F4 adds `activity`. The fallback assumes each working message is cumulative or final: an
+The table and the fallback are hardcoded, with no option; F4 (post-v1) would add `activity`. The fallback assumes each working message is cumulative or final: an
 agent that sends incremental fragments loses the earlier ones (OPEN-10; the precedent assumes cumulative text too, by
 diffing). Spec: a2a scripts for this belong in S4 (scripts only, a2a PRs).
 
@@ -812,8 +785,8 @@ diffing). Spec: a2a scripts for this belong in S4 (scripts only, a2a PRs).
 | --- | --- |
 | Value | `SendMessageConfiguration.acceptedOutputModes` (media types, per `a2a.proto`): `["text/plain"]` by default; each enabled content plug-in (9.5) adds its media type (A2UI: `application/json+a2ui`); nothing is added by default |
 | Source | the proxy's own capabilities, not intersected with the card (the agent tailors; asking for more than an agent offers is harmless) |
-| Option | `options.content.<name>` enables a plug-in (reserved in the schema until F7 lands); no per-mime option, so the accepted set always matches what can be mapped |
-| Unaccepted part | a part whose media type is outside the set (text without a media type is `text/plain`, data without one is `application/json`) is not failed: `options.unaccepted: custom` (default) passes it through as `agent.data` / `agent.file`, `drop` discards it as an explicit operator choice; neither loses data silently, and both record an informational Zilla event for operators |
+| Option | none in v1: the accepted set is `text/plain` only; `options.content.<name>` arrives with F7 (post-v1) |
+| Unaccepted part | a part whose media type is outside the set (text without a media type is `text/plain`, data without one is `application/json`) is not failed and not dropped: it is delivered as `agent.data` / `agent.file`, no option; an informational Zilla event records it for operators |
 | Tier 2 | tagged parts of an activated extension are accepted by that activation and bypass the check |
 
 ### 9.4 `forwardedProps` and metadata hygiene (decided)
@@ -834,8 +807,8 @@ Recommendation: do not be tied to A2UI. Two layers that share nothing:
 
 | Layer | What it is | Who defines it | Opt-in | Negotiation |
 | --- | --- | --- | --- | --- |
-| (a) AG-UI carrier extension (E1) | control and flexibility: tools, state, context, reasoning, activity, steps, interrupts, advisory `system` / `developer` | us (Aklivity-owned URI, metadata key `agui`, 8.2) | `options.extension` | card lists the URI -> `extensions` BeginEx |
-| (b) content plug-ins | a content type an agent produces or consumes, mapped to an AG-UI activity type | the content type's own specification (A2UI first; Open-JSON-UI, MCP Apps later) | `options.content.<name>` | feeds `acceptedOutputModes` (9.3) and adds the plug-in's A2A extension URI to `extensions` when the card declares it |
+| (a) AG-UI carrier extension (E1) | control and flexibility: tools, state, context, reasoning, activity, steps, interrupts, advisory `system` / `developer` | us (Aklivity-owned URI, metadata key `agui`, 8.2) | post-v1 | card lists the URI -> `extensions` BeginEx |
+| (b) content plug-ins | a content type an agent produces or consumes, mapped to an AG-UI activity type | the content type's own specification (A2UI first; Open-JSON-UI, MCP Apps later) | post-v1 (F7) | feeds `acceptedOutputModes` (9.3) and adds the plug-in's A2A extension URI to `extensions` when the card declares it |
 
 A plug-in is defined by: media type(s), A2A extension URI(s) and the version pinned, the AG-UI `activityType`, the mapping in
 both directions, and the prop it consumes (A2UI: `forwardedProps.a2uiAction`). Adding Open-JSON-UI or MCP Apps later needs
@@ -897,23 +870,19 @@ OPEN-1 and OPEN-9 are resolved by this section.
 
 | Item | Landed in |
 | --- | --- |
-| (1) `status.message` | 1.3 rows, 9.2, `options.status`, I6, S4 |
-| (2) A2UI and content types | 9.5, `options.content`, F7, OPEN-11 |
+| (1) `status.message` | 1.3 rows, 9.2, I6, S4 |
+| (2) A2UI and content types | 9.5, F7 (post-v1), OPEN-11 |
 | (3) tool part shapes | 8.2 part tags, 8.3 steps 2 and 6, F1, E1 |
 | (4) `acceptedOutputModes` | 1.2 `SendMessageConfiguration` row, 9.3, I5 |
 | (5) metadata hygiene | 1.1 / 1.2 rows, 9.4, E1 |
 | (6) context late-binding | 9.1, 9.6, 8.4 |
 
-### 9.8 Spec changes and issues after revision 8
+### 9.8 Spec changes after revision 10
 
-Spec changes: S1-S5 unchanged; S6 optional (a2a PRs, scripts only); **S7**: agui(server) handles `Redirect`, re-beginning from
-the echoed `redirect.extension()`, plus `run.redirect` and `run.redirect.100k` (PR #2850); no idl, `AguiFunctions` or harness
-change; S8 conditional (engine key-to-affinity operation, multi-node only). No `a2a.idl`, `A2aFunctions`, `agui.idl` or `AguiFunctions` change results
-from revisions 5 to 8 (the implicit compaction reuses `run.messages.snapshot`). The vault `SecretKeyManager` addition proposed in revision 5 (F9) is withdrawn.
-
-Issues: removed F8, F9 and the `options.context`, `options.unknown`, `options.seal` and `options.store` references; I11 is
-owner-side state, the implicit compaction and the redirect; A9 (two spec scripts), A10 (agui(server) runtime), A11 (conditional engine
-key-to-affinity); F3 is a documented follow-up; I1, I4, I5, I6, F1 follow; revision 5 items (F7, S4 additions) stand.
+S1-S5 unchanged; **S6 adopted** (a2a scripts and behaviour, no idl); **S7**: agui(server) handles `Redirect`, re-beginning from
+the echoed `redirect.extension()`, plus `run.redirect` and `run.redirect.100k` (PR #2850), no idl, `AguiFunctions` or harness
+change. S8 (engine key-to-affinity) and S9 (harness) are dropped. No `a2a.idl`, `A2aFunctions`, `agui.idl` or `AguiFunctions`
+change beyond S1 results from any revision (the implicit compaction reuses `run.messages.snapshot`). The issue list is in section 10.
 
 ### 9.9 Verified and unverified
 
@@ -949,3 +918,114 @@ everything the design relies on; the unverified residue is listed at the end.
 Unverified: CopilotKit's managed (Intelligence) mode persistence, which is platform-side (the client path uses the same
 reducer, but how the platform reconciles a snapshot against its stored thread is not in this repository); other AG-UI
 clients (terminal, Slack and Teams through the channels SDK) were not checked; nothing was run.
+
+## 10. Final issue list (revision 10)
+
+Ready to file from this document. Every issue: type Task, assignee jfallows, parent aklivity/zilla-platform#1312, created in
+the repository named below. "Depends on" ids map to issue numbers at filing. Bodies justify each shared-component change
+only in terms of that component's own contract. Nothing has been filed.
+
+### 10.1 PR and branch mapping (verified from the PRs and branches)
+
+| PR / issue | Branch (base) | Holds | Amended by |
+| --- | --- | --- | --- |
+| #2825 / #2814 | `claude/upbeat-wozniak-d3ubn8` (develop) | `incubator/binding-a2a.spec`: `a2a.idl`, schema patch, 44 fixtures, `A2aFunctions` + test, 47 network, 34 application and 6 cache scenario pairs (94, 68 and 12 `.rpt` files), `NetworkIT`, `ApplicationIT`, `ProxyCacheIT` | A6, A7, A8 scripts |
+| #2826 / #2815 | `claude/a2a-binding-scaffold-2815` | `binding-a2a` scaffold; the base of #2828 | none |
+| #2828 / #2816 | `claude/a2a-server-2816` (the #2826 branch) | a2a(server): `A2aServerIT` 35, `A2aServerVersionIT` 9, `A2aServerCardIT` 4, plus spec-only network scripts added on this branch (`reject.bearer.invalid`, `reject.method.not.allowed`) | A6, A7, A8 behaviour and tests |
+| #2829 / #2817 | `claude/a2a-client-2817` (the #2828 branch) | a2a(client): `A2aClientIT` 49, `A2aChainIT` 2, 48 generated `discover.*` network scenarios, 4 application scenarios | A6, A7, A8 behaviour and tests |
+| #2850 / #2821 | `claude/gifted-pasteur-tkbfge` (the #2834 openapi branch `claude/a2a-openapi-2824`) | agui spec, conf and server runtime, docker image and golden entries | A1, A2, A3, A9, A10 |
+| #2857 / #2856 | `claude/agui-client-2856` (the #2850 branch) | agui(client), `run.text.deltas`, chain scenarios | A4, A5 |
+
+Stack order, from #2850's description: #2814/#2825, #2815/#2826, #2816/#2828, #2817/#2829, #2820/#2830, #2818/#2832, #2819/#2833,
+#2823/#2835, #2824/#2834, #2821/#2850, then #2856/#2857. The coordinator's reading holds with these notes. The a2a runtime tests
+live in the single module `incubator/binding-a2a` (`.../stream/A2aServerIT.java`, `A2aClientIT.java`), not in the spec
+module. The file counts of #2825 follow from its description (scenario pairs times two); the counts for #2828 and #2829's scripts
+were not recounted. Every amendment below is a commit on the named branch; because the user rebases the stack in GitHub, a commit
+on #2825 or #2850 is picked up by every branch above it at the next rebase. Each is also filed as an issue (class
+"amendment") so the work is tracked; the commit references it.
+
+### 10.2 Amendments to existing issues and PRs (v1; repository aklivity/zilla)
+
+| Id | Title | Amends / branch | Depends on |
+| --- | --- | --- | --- |
+| A1 | `binding-agui.spec: add agent to AguiBeginEx` | #2821 / PR #2850, `claude/gifted-pasteur-tkbfge` | none |
+| A2 | `binding-agui.spec: routes on the agui server (when.path, with.agent)` | #2821 / PR #2850 | A1 |
+| A3 | `binding-agui: resolve agui server routes by path` | #2821 / PR #2850 | A2 |
+| A4 | `binding-agui.spec: routes on the agui client (when.agent, with.path)` | #2856 / PR #2857, `claude/agui-client-2856` | A1 |
+| A5 | `binding-agui: resolve agui client routes by agent` | #2856 / PR #2857 | A4 |
+| A6 | `binding-a2a.spec: task state and status message scenarios for message send and stream` | #2814 / PR #2825 (scripts), #2816 / PR #2828 and #2817 / PR #2829 (tests) | none |
+| A7 | `binding-a2a.spec: a client abort detaches without cancelling` | #2814 / PR #2825 (scripts), #2817 / PR #2829 and #2816 / PR #2828 (behaviour and tests) | none |
+| A8 | `binding-a2a.spec: reply begin reports the activated extensions` | #2814 / PR #2825 (scripts), #2816 / PR #2828 and #2817 / PR #2829 (behaviour and tests) | none |
+| A9 | `binding-agui.spec: redirect scenarios` | #2821 / PR #2850 | A1 |
+| A10 | `binding-agui: agui server handles Redirect` | #2821 / PR #2850 | A9 |
+
+| Id | Files | Body | Acceptance criteria |
+| --- | --- | --- | --- |
+| A1 | `incubator/binding-agui.spec/src/main/resources/META-INF/zilla/agui.idl`, `.../internal/AguiFunctions.java`, `incubator/binding-agui.spec/src/test/java/io/aklivity/zilla/specs/binding/agui/internal/AguiFunctionsTest.java` | An AG-UI endpoint serves many agents, addressed by URL, but the `agui` stream carries only run ids, so a binding downstream of agui(server) cannot tell which agent a run addresses. Add `string16 agent = null` as the last member of `AguiBeginEx` (the same shape as `agent = null` on every `A2aBeginEx`), `agent(String)` on the begin builder, `agent(String)` and `matchAgent` on the begin matcher (null means unconstrained) | idl regenerates; `shouldGenerateBeginExWithAgent`, `...WithAgentWithoutParentRunId`, `shouldMatchBeginExWithAgent` pass; the whole existing spec suite passes with no `.rpt` edited |
+| A2 | `.../agui/schema/agui.schema.patch.json`, `.../agui/config/server.routes.invalid.yaml` (flipped to valid `server.routes.yaml`, new invalid fixtures), `.../streams/network/request.path.not.found`, `.../request.path.forbidden`, `run.routed` (network and application), `NetworkIT`, `ApplicationIT`, `SchemaTest`, `examples/inspect.schema/.github/schema.expected.json` in the same commit series | The agui server resolves a single exit by authorization only. Enable `routes[].when.path` (an HTTP path template with `{name}` and `*`), `with.agent` (static or `${params.name}`), `guarded`, `exit`, mirroring http-kafka's route shape; a path that matches nothing is 404 and a matched path with no authorized route is 403 | fixtures valid and invalid cases pass `SchemaTest`; `request.path.not.found`, `request.path.forbidden`, `run.routed` paired and green; golden matches `zilla inspect schema` |
+| A3 | `incubator/binding-agui/src/main/java/io/aklivity/zilla/runtime/binding/agui/internal/stream/AguiServerFactory.java`, `.../internal/config/AguiBindingConfig.java`, `AguiRouteConfig.java`, the route adapters in `incubator/binding-agui.conf/src/main/java/io/aklivity/zilla/config/binding/agui/internal/` with tests, `AguiServerIT` | Runtime for A2: resolve the route after the existing method, content-type and accept checks with a path-template matcher and `${params.x}` with-resolver mirroring `HttpKafkaConditionMatcher` and `HttpKafkaWithResolver`, write `agent` in the app Begin, reject 404 and 403 through `AguiRejectHandler`; no routes keeps today's behaviour | A2 scenarios pass in `AguiServerIT`; no-routes behaviour unchanged |
+| A4 | the client halves of the same schema patch and fixtures (`client.routes.invalid.yaml` flipped), `run.routed` network and a `chain/run.routed` scenario, `ChainIT`, golden | The agui client resolves a single exit. Enable `routes[].when.agent` (a template), `with.path` (resolved against `options.server`, replacing its path), `guarded`, `exit`, mirroring the a2a-http route shape (a protocol-scoped `when`, an HTTP-scoped `with`) | fixtures and scenarios green; golden matches |
+| A5 | `.../stream/AguiClientFactory.java`, `AguiClientBindingConfig`, conf adapters, `AguiClientIT`, `AguiChainIT` | Runtime for A4: read `AguiBeginEx.agent`, template-match, resolve `with.path` against `options.server`; no routes keeps the `options.server` path | A4 scenarios pass in `AguiClientIT` and `AguiChainIT` |
+| A6 | `incubator/binding-a2a.spec/src/main/scripts/io/aklivity/zilla/specs/binding/a2a/streams/{application,network}/` (`stream.message.failed`, `.rejected`, `.input.required`, `.auth.required`, `.canceled`, `.status.message`, `send.message.task.failed`, `.input.required`), `NetworkIT` / `ApplicationIT` in the spec; new methods in `incubator/binding-a2a/src/test/java/io/aklivity/zilla/runtime/binding/a2a/internal/stream/A2aServerIT.java` and `A2aClientIT.java` | The mapping of the `TASK_STATE_*` strings to the `A2aTaskDataEx` / `A2aStatusUpdateDataEx` `state` tag, the stream end at terminal and interrupted states, and the placement of text in `status.message` on `COMPLETED`, `FAILED`, `INPUT_REQUIRED` and a final `Task` snapshot are a2a(server) and a2a(client) contracts, and only the happy path is scripted today | each scenario pair green; the pass-through methods green in both ITs |
+| A7 | `.../streams/application/stream.message.client.aborted` and the network pair (#2825); `A2aClientFactory` behaviour (#2829), `A2aServerFactory` (#2828); methods in `A2aClientIT`, `A2aServerIT` | When a caller aborts a message stream, the a2a(client) must tear the HTTP request down and must not issue `CancelTask`; the a2a(server) must abort the application stream when the caller aborts. Today only a server-initiated abort is scripted, so detach versus cancel is an assumption | script pairs green; a2a(client) issues no `tasksCancel` on abort; a2a(server) aborts the application stream |
+| A8 | `.../streams/application/send.message.extensions`, `stream.message.extensions` and the network pairs (#2825); `A2aClientFactory` (#2829), `A2aServerFactory` (#2828); methods in both ITs | The A2A specification says a response SHOULD echo the activated `A2A-Extensions`, but the stream model has no way to report it. Let the reply Begin carry the existing `extensions` member of the begin case: a2a(client) reads the response header into it, a2a(server) writes the header from it. No idl change | the extension scripts gain a matched reply Begin; green in `A2aServerIT` and `A2aClientIT` |
+| A9 | `.../streams/application/run.redirect`, `run.redirect.100k` (and network pairs as the spec ITs require) in `incubator/binding-agui.spec` | agui(server) is the initiator of the `agui` stream and a receiver may answer with the engine `Redirect`. Scenarios copied from http `redirect/request.redirect` (receiver: `read advise zilla:redirect <affinity>`, then accept the second stream): `run.redirect` (the second Begin carries the same ids and the request body arrives on it) and `run.redirect.100k` (body larger than the decode slot). No script asserts behaviour for a second or late redirect: a conformant receiver never does that. No idl, `AguiFunctions` or harness change | scenarios green in the agui(server) ITs |
+| A10 | `AguiServerFactory`, `AguiState`, `AguiServerIT` | Mirror http(server) `onRequestRedirect`: handle `RedirectFW`; reset the old reply and abort the old initial; `context.resolveRoutedId` and `context.supplyInitialId(routedId, affinity)`; a new Begin with `redirectedId`, the new affinity and `redirect.extension()` (no copy of the Begin extension is kept); the unsent request payload stays in the decode slot; a `Redirect` bit in `AguiState` (no boolean); `newStream` gains `redirectedId` and `affinity`. Defensive guard: a second redirect, a redirect after the reply began or after window aborts the stream with no status mapping, covered by a unit test if any, never by a script | A9 scenarios pass; the guard aborts and releases the decode slot |
+
+### 10.3 New v1 issues
+
+| Id | Repo | Title | Depends on |
+| --- | --- | --- | --- |
+| I1 | aklivity/zilla | `binding-agui-a2a.spec: scaffold spec module and config schema` | A1 |
+| I2 | aklivity/zilla | `binding-agui-a2a.spec: run lifecycle, text, error and routing scenarios` | I1, A6 |
+| I3 | aklivity/zilla | `binding-agui-a2a.spec: request mapping, interrupt and resume, cancel, card and context reset scenarios` | I2, A7 |
+| I4 | aklivity/zilla | `binding-agui-a2a: scaffold runtime and conf modules, configuration properties and events` | I1 |
+| I5 | aklivity/zilla | `binding-agui-a2a: map RunAgentInput to an A2A message` | I3, I4, I11 |
+| I6 | aklivity/zilla | `binding-agui-a2a: map A2A events to AG-UI frames` | I5 |
+| I7 | aklivity/zilla | `binding-agui-a2a: negotiate with the agent card and fall back to non-streaming` | I6 |
+| I8 | aklivity/zilla | `binding-agui-a2a: cancel the A2A task on run abort` | I6 |
+| I9 | aklivity/zilla | `build(docker-image): add binding-agui-a2a to the image and the inspect.schema golden` | I7, I8 |
+| I10 | aklivity/zilla-examples (not among the three repositories named for this work; confirm) | `example: AG-UI frontend to an A2A agent through agui-a2a` | I9 |
+| I11 | aklivity/zilla | `binding-agui-a2a: owner-side state, handles, implicit compaction and affinity redirect` | I4, A9, A10 |
+
+| Id | Body | Acceptance criteria |
+| --- | --- | --- |
+| I1 | New module `incubator/binding-agui-a2a.spec` mirroring `binding-a2a-http.spec` (no idl; uses `agui` and `a2a`), with `COPYRIGHT`, `LICENSE`, `NOTICE.template`, generated `NOTICE`, `mvnw`, `mvnw.cmd`, registered in `incubator/pom.xml`. Schema patch for `type: agui-a2a`, `kind: proxy`: no `options`; `routes[].when[].agent`, `routes[].with.agent`, `routes[].with.identity`, `guarded`, `exit`; `vault`, `catalog`, `entry` false | valid and invalid fixtures (unknown `when` / `with` member, route without `exit`, any `options`, `kind` invalid); `SchemaTest` green; `./mvnw license:format` and notice generation clean |
+| I2 | Paired scenarios under `streams/application/{agui,a2a}` run by one IT per side, mirroring `A2aServerIT` and `HttpClientIT` of `binding-a2a-http.spec`: slug pass-through, `with.agent` rewrite, null slug; text chunks, append and replace, several artifacts, a task-less `message`; non-streaming `messageSend`; `COMPLETED`, `FAILED`, `REJECTED`, `CANCELED`; `status.message` on `COMPLETED`, `FAILED`, `INPUT_REQUIRED`, a final `Task` resend and the working-text fallback; a2a abort, `A2aErrorResetEx` and bearer reset mapped to agui reset or abort (502, 403, 404, 422) | every row of 1.3 and the reset table has a scenario; `./mvnw verify -pl incubator/binding-agui-a2a.spec` green |
+| I3 | Scenarios for 1.2 (trailing user messages only, binary and url parts, `file` handles dropped, non-empty `state` and `context` as one data part, `forwardedProps` as metadata, `reserved_key` 400, no user message 422, `system` / `developer` dropped), resume to the handle's `taskId`, `INPUT_REQUIRED` and `AUTH_REQUIRED` to `INTERRUPT`, cancel with and without `taskId`, the card streaming switch, 415, card failure, the context reset (`run.messages.snapshot` reused for the protocol side), a misaligned run answered with `Redirect` (mirroring mcp `lifecycle.redirect.session`), request larger than the slot 400 | each row of 1.1, 1.2, 1.6, 1.7 and 8.4 covered; request bodies checked verbatim |
+| I4 | New modules `incubator/binding-agui-a2a` and `incubator/binding-agui-a2a.conf` (failing ITs first), binding factory SPI, `module-info`, route adapters, `AguiA2aConfiguration` with properties `thread.ttl`, `thread.capacity`, `handle.ttl` and `thread.affinity` (a `Class::method` static handle, mirroring `McpConfiguration` `session.id.affinity`), the `BindingEvent` catalog (run routed, finished, failed, redirected, context reset, handle rejected) | config tests; ITs fail for the right reason before I5; `incubator/pom.xml` modules and dependencyManagement |
+| I5 | Decode slot buffers the request, encode slot builds the v1.0 message JSON and `contentLength`, opens `messageStream` or `messageSend` with the routed slug; the remembered `contextId` (never a client-chosen one); `forwardedProps` as top-level `Message.metadata` and 400 `reserved_key`; `acceptedOutputModes` `["text/plain"]`; resume to the `taskId` behind the handle; `tools` and `tool` messages parsed and ignored; `system` / `developer` dropped; when a prior assistant turn exists and nothing is remembered, retain the trailing user messages' byte ranges until the first a2a data frame, rejecting 503 `retention_unavailable` before the agent is contacted when that cannot be arranged; 400 `Request too large` beyond the slot. Mirror `AguiClientFactory`'s run input encoder; decoder states, no phase booleans | I3 scenarios pass; slots released on every error path; the retention failure is covered by a unit test with a bounded buffer pool |
+| I6 | Incremental event decoder (mirror `AguiEventDecoder`), `chunks` text framing, `CUSTOM` `agent.data` / `agent.file`, `status.message` mapping with digest dedupe and the hardcoded fallback reply, neutral `agent_*` error codes and `reason` strings, outcome, abort and reset mapping, the implicit compaction snapshot ahead of the first reply frame, opaque interrupt handles with `expiresAt`, flow control honoured both ways | I2 and I3 scenarios incl. `*.100k` pass; a scenario asserts no `taskId`, `contextId` or `a2a` string reaches the agui side |
+| I7 | `agentCard` pre-step with the routed slug, the streaming switch, the input-mode check (415), synthesized events for `messageSend` | 1.4 and 1.7 scenarios pass |
+| I8 | `tasksCancel` (routed slug and `taskId`) on abort once the id is known, always, no option; `resume` entries with status `cancelled` cancel the interrupted task; a `TaskNotCancelable` or not-found answer is ignored | 1.6 scenarios pass |
+| I9 | One commit series: `cloud/docker-image/pom.xml`, `cloud/docker-image/src/main/docker/zpm.json.template`, `incubator/pom.xml` dependencyManagement, `examples/inspect.schema/.github/schema.expected.json` (the golden must not lead the image), `NOTICE` regenerated | `./mvnw verify` on `cloud/docker-image`; the inspect.schema example is green |
+| I10 | A `zilla-examples` entry for the section 3 sketch (tcp, http, agui server with a path route, agui-a2a, a2a proxy, a2a client) with `.github/test.sh`; checks the client-chosen-id behaviour against a reference agent | example test green; the lossiness table is documented |
+| I11 | The proxy owns the state for (identity, agent, `threadId`) and issues the engine `Redirect`, echoing the Begin extension, when a run reaches the wrong worker, as mcp(server) does: a worker-local bounded map with a TTL sweep through the signaler holding the agent-issued `contextId` and interrupt handles (random 128-bit, a `kind` field, single use); the affinity function (`thread.affinity` or the local default) and a redirect handler mirroring `McpRedirectHandler`; a new context is always started when none is remembered; when a prior assistant turn exists and the reply carries a fresh `contextId`, `MESSAGES_SNAPSHOT` with the trailing user messages comes first, plus an informational operator-only Zilla event; unknown handles rejected 409 `handle_unknown`; state kept behind one interface so a store (F3) can sit under it | scenarios: aligned run, misaligned run answered with `Redirect` echoing the Begin extension, a second run reuses the `contextId`, an agent that returns none stores nothing, resume with a valid, unknown, expired or foreign handle, reset fires (snapshot first) and does not fire (first turn, remembered context, stateless agent, trimmed history), reset on a run that ends `INTERRUPT`, TTL expiry and capacity eviction |
+
+### 10.4 Post-v1 follow-ups
+
+| Id | Repo | Title | Depends on | Notes |
+| --- | --- | --- | --- | --- |
+| E1 | aklivity/zilla | `binding-agui-a2a: specify the AG-UI over A2A extension` | I10 | document `incubator/binding-agui-a2a/EXTENSION.md`; OPEN-8 naming decided here |
+| F1 | aklivity/zilla | `binding-agui-a2a: map frontend tools through the AG-UI extension` | E1 | 8.3; tool part shapes aligned to `@ag-ui/a2a`; no idl change |
+| F2 | aklivity/zilla | `binding-agui-a2a: state, activity, reasoning, step and tool-call events` | E1 | includes agent-originated `MESSAGES_SNAPSHOT` (agent-side compaction) |
+| F3 | aklivity/zilla | `binding-agui-a2a: durable state tier` | I11 | `options.store`; the engine store authoritative, the worker-local map the fast path (8.4) |
+| F4 | aklivity/zilla | `binding-agui-a2a: working status messages as activity` | I10 | `ACTIVITY_SNAPSHOT` `status` instead of the hardcoded fallback |
+| F5 | aklivity/zilla | `binding-agui-a2a: subagent events` | F2 | tagged `subagent` events |
+| F7 | aklivity/zilla | `binding-agui-a2a: A2UI content plug-in` | I10 | `a2ui-surface`, content `{a2ui_operations}`; OPEN-11 pins the A2UI generation; needs no carrier |
+| F8 | aklivity/zilla | `binding-agui-a2a: agent-declared history feature` | E1 | full-history replay, only when the agent declares it |
+| F9 | aklivity/zilla | `binding-agui-a2a: streaming request decode` | I5 | conditional on OPEN-16: parse `messages[]` incrementally, keep only the messages since the last assistant turn plus `state`, `context` and `forwardedProps`, lifting the slot-sized request bound |
+| F10 | aklivity/zilla-plus | `agui-a2a: cluster-aware thread.affinity function` | I11 | conditional on multi-node: a function that sets the node byte, the equivalent of the `session.id.affinity` plug-in; unverified against zilla-plus (no checkout) |
+
+Not filed: reconnect (F6): AG-UI's HTTP binding defines no connect operation (8.3).
+
+### 10.5 Counts
+
+| | aklivity/zilla | aklivity/zilla-examples | aklivity/zilla-plus | aklivity/zilla-platform | Total |
+| --- | --- | --- | --- | --- | --- |
+| Amendments, v1 (A1-A10) | 10 | 0 | 0 | 0 | 10 |
+| New, v1 (I1-I11) | 10 | 1 | 0 | 0 | 11 |
+| Post-v1 follow-ups (E1, F1-F5, F7-F10) | 9 | 0 | 1 | 0 | 10 |
+| Total | 29 | 1 | 1 | 0 | 31 |
+
+aklivity/zilla-platform holds only the parent #1312. Amendments are 10, new issues 21, v1 issues 21, post-v1 10.
