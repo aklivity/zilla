@@ -3389,8 +3389,7 @@
                             },
                             "catalog": false,
                             "vault": false,
-                            "entry": false,
-                            "routes": false
+                            "entry": false
                         },
                         "allOf": [
                             {
@@ -3427,6 +3426,47 @@
                                                 }
                                             },
                                             "additionalProperties": false
+                                        },
+                                        "routes": {
+                                            "title": "Routes",
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "when": {
+                                                        "title": "When",
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "path": {
+                                                                    "title": "Path",
+                                                                    "type": "string",
+                                                                    "pattern": "^/"
+                                                                }
+                                                            },
+                                                            "additionalProperties": false
+                                                        }
+                                                    },
+                                                    "with": {
+                                                        "title": "With",
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "agent": {
+                                                                "title": "Agent",
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "agent"
+                                                        ],
+                                                        "additionalProperties": false
+                                                    }
+                                                },
+                                                "required": [
+                                                    "with"
+                                                ]
+                                            }
                                         }
                                     }
                                 }
@@ -3474,7 +3514,8 @@
                                             "required": [
                                                 "server"
                                             ]
-                                        }
+                                        },
+                                        "routes": false
                                     },
                                     "required": [
                                         "exit",
