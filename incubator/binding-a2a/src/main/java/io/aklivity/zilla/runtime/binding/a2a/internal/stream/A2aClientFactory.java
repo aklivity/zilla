@@ -934,7 +934,7 @@ public final class A2aClientFactory implements A2aStreamFactory
             assert acknowledge <= initialAck;
 
             initialSeq = sequence;
-            state = A2aState.closedInitial(state);
+            state = A2aState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -960,7 +960,7 @@ public final class A2aClientFactory implements A2aStreamFactory
             assert acknowledge <= initialAck;
 
             initialSeq = sequence;
-            state = A2aState.closedReply(A2aState.closedInitial(state));
+            state = A2aState.closeReply(A2aState.closeInitial(state));
 
             assert initialAck <= initialSeq;
 
@@ -1010,7 +1010,7 @@ public final class A2aClientFactory implements A2aStreamFactory
             assert acknowledge >= replyAck;
             assert maximum + acknowledge >= replyMax + replyAck;
 
-            state = A2aState.openedReply(state);
+            state = A2aState.openReply(state);
             replyAck = acknowledge;
             replyMax = maximum;
             replyBud = budgetId;
@@ -1044,7 +1044,7 @@ public final class A2aClientFactory implements A2aStreamFactory
             assert sequence <= replySeq;
             assert acknowledge >= replyAck;
 
-            state = A2aState.closedReply(state);
+            state = A2aState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -1126,7 +1126,7 @@ public final class A2aClientFactory implements A2aStreamFactory
         {
             if (!A2aState.replyClosed(state))
             {
-                state = A2aState.closedReply(state);
+                state = A2aState.closeReply(state);
                 doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
             }
         }
@@ -1137,7 +1137,7 @@ public final class A2aClientFactory implements A2aStreamFactory
         {
             if (A2aState.replyOpening(state) && !A2aState.replyClosed(state))
             {
-                state = A2aState.closedReply(state);
+                state = A2aState.closeReply(state);
                 doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
             }
         }
@@ -1149,7 +1149,7 @@ public final class A2aClientFactory implements A2aStreamFactory
         {
             if (!A2aState.initialClosed(state))
             {
-                state = A2aState.closedInitial(state);
+                state = A2aState.closeInitial(state);
                 doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, extension);
             }
@@ -2680,7 +2680,7 @@ public final class A2aClientFactory implements A2aStreamFactory
                 decodeSlot == NO_SLOT &&
                 !A2aState.replyClosed(state))
             {
-                state = A2aState.closedReply(state);
+                state = A2aState.closeReply(state);
                 onNetCompleted(traceId, authorization);
             }
         }
@@ -2706,7 +2706,7 @@ public final class A2aClientFactory implements A2aStreamFactory
 
             if (decodeSlot == NO_SLOT && !A2aState.replyClosed(state))
             {
-                state = A2aState.closedReply(state);
+                state = A2aState.closeReply(state);
                 onNetCompleted(traceId, authorization);
             }
         }
@@ -2742,7 +2742,7 @@ public final class A2aClientFactory implements A2aStreamFactory
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = A2aState.closedReply(state);
+            state = A2aState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -2764,7 +2764,7 @@ public final class A2aClientFactory implements A2aStreamFactory
             assert acknowledge >= initialAck;
             assert maximum + acknowledge >= initialMax + initialAck;
 
-            state = A2aState.openedInitial(state);
+            state = A2aState.openInitial(state);
             initialAck = acknowledge;
             initialMax = maximum;
 
@@ -2802,7 +2802,7 @@ public final class A2aClientFactory implements A2aStreamFactory
             assert acknowledge <= initialAck;
 
             initialAck = acknowledge;
-            state = A2aState.closedInitial(state);
+            state = A2aState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -2835,7 +2835,7 @@ public final class A2aClientFactory implements A2aStreamFactory
             long budgetId,
             int padding)
         {
-            state = A2aState.openedReply(state);
+            state = A2aState.openReply(state);
 
             doWindow(net, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, budgetId, padding, FRAMING_CAPABILITIES_MASK);
@@ -2889,7 +2889,7 @@ public final class A2aClientFactory implements A2aStreamFactory
                 if (!A2aState.initialClosed(state) &&
                     encodeSlot == NO_SLOT)
                 {
-                    state = A2aState.closedInitial(state);
+                    state = A2aState.closeInitial(state);
                     doEnd(net, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
 
                     cleanupEncodeSlot();
@@ -2903,7 +2903,7 @@ public final class A2aClientFactory implements A2aStreamFactory
         {
             if (net != null && !A2aState.initialClosed(state))
             {
-                state = A2aState.closedInitial(state);
+                state = A2aState.closeInitial(state);
                 doAbort(net, originId, routedId, initialId, 0L, 0L, 0, traceId, authorization);
 
                 cleanupEncodeSlot();
@@ -2916,7 +2916,7 @@ public final class A2aClientFactory implements A2aStreamFactory
         {
             if (net != null && !A2aState.replyClosed(state))
             {
-                state = A2aState.closedReply(state);
+                state = A2aState.closeReply(state);
                 doReset(net, originId, routedId, replyId, 0L, 0L, 0, traceId, authorization, null);
 
                 cleanupDecodeSlot();
