@@ -63,7 +63,7 @@ Legend — lossiness: `none` exact; `lossy` information dropped or approximated;
 | `image` / `audio` / `video` / `document` part, `source: {type: data, value (base64), mimeType}` | `{raw: base64, mediaType}` | none | the AG-UI `ContentPart` types are `text`, `image`, `audio`, `video`, `document`; there is no `binary` type and no filename (revision 1 assumed both) |
 | same part types, `source: {type: url, value, mimeType?}` | `{url, mediaType?}` | none | |
 | same part types, `source: {type: file, value, provider?}` (provider file handle) | dropped | lossy | opaque to anyone but the issuing provider; AG-UI says a peer that cannot use a part skips it and continues; A2A has no equivalent |
-| `state` (non-empty) and `context[]` (non-empty) | one `{data: {state, context}, mediaType: application/json, metadata: {agui: {part: "input"}}}` appended after content parts | lossy (agent may ignore) | forwarded whenever non-empty, no option |
+| `state` (non-empty) and `context[]` (non-empty) | one `{data: {state, context}, mediaType: application/json, metadata: {agui: {part: "input"}}}` appended after content parts | lossy (agent may ignore) | forwarded whenever non-empty and the card accepts `application/json` (wildcards honoured); dropped silently, with no event, when it does not (1.7), no option |
 | `forwardedProps` | `Message.metadata`, verbatim at the top level (an object is the metadata, minus proxy-reserved keys; a non-object value becomes `{"forwardedProps": value}`) | none, except reserved keys | AG-UI's opaque application-to-agent channel stays an application-to-agent channel; reserved keys are `agui` and any extension URI the proxy activates, rejected, never stripped (400 `reserved_key`), so a client cannot forge proxy-owned or extension-defined metadata and AG-UI's rule that intermediaries MUST NOT alter `forwardedProps` holds (9.4). Not used for routing |
 | `tools[]` | dropped (v1) | lossy | see 1.5 |
 | no trailing user message and no `resume` | reset 422 `invalid_run` before reply begin | n/a | mirrors `run.rejected` |
@@ -139,7 +139,7 @@ AG-UI and CopilotKit facts that bear on this (verified, section 7): the AG-UI HT
 | --- | --- |
 | Before opening the message stream | open `agentCard` (`agent` = slug) on the same exit, parse the card body |
 | `capabilities.streaming` | selects `messageStream` vs `messageSend` (1.4) |
-| `defaultInputModes` (and skill input modes when the card lists them) | non-text parts whose `mediaType` is not accepted (wildcards honoured) -> reset 415 `unsupported_media`; text is always accepted |
+| `defaultInputModes` (and skill input modes when the card lists them) | non-text parts supplied by the client whose `mediaType` is not accepted (wildcards honoured) -> reset 415 `unsupported_media`; text is always accepted. The proxy-authored `state` / `context` data part is never refused: it is advisory, so when the card does not accept `application/json` the proxy drops it silently, emitting no event, and the run proceeds with the client's parts only |
 | `defaultOutputModes` | informational, not enforced (text is rendered; others become `CUSTOM`) |
 | Card cost | none extra when the exit is a2a(proxy) (store-backed per-agent cache owned there); direct to a2a(client) the card is fetched per run, which is acceptable for v1 and makes a2a(proxy) the recommended exit |
 | Card failure | a2a reset on `agentCard` mapped by the 1.3 reset table |
@@ -442,8 +442,9 @@ boundary, which is prompt injection with an elevated framing.
 | (d) `Message.metadata` | rejected on its own: opaque, no defined semantics |
 | (e) agent-declared extension | post-v1 and not planned for instructions; any future path needs an agent-side declaration and a separate security review |
 
-`state` and `context` are not instructions: they are data the application supplies, forwarded whenever non-empty as one
-advisory `data` part with no option, at the same trust as the user's own message content.
+`state` and `context` are not instructions: they are data the application supplies, forwarded whenever non-empty, and
+when the card accepts `application/json`, as one advisory `data` part with no option, at the same trust as the user's own
+message content; when the card does not accept it the part is dropped silently (1.7).
 
 ### 8.2 Two-tier architecture (post-v1 reference design)
 
