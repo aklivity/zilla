@@ -176,7 +176,7 @@
           </dependency>
           <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>binding-http.spec</artifactId>
+            <artifactId>metrics-http.spec</artifactId>
             <version>${project.version}</version>
           </dependency>
         </dependencies>

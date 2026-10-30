@@ -110,6 +110,35 @@
   <build>
     <plugins>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>enforce-declared-plugin-dependencies</id>
+            <phase>validate</phase>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireDeclaredPluginDependencies implementation="io.aklivity.zilla.build.enforcer.RequireDeclaredPluginDependencies">
+                  <plugins>
+                    <plugin>io.aklivity.k3po:k3po-maven-plugin</plugin>
+                  </plugins>
+                </requireDeclaredPluginDependencies>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+        <dependencies>
+          <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>enforcer-rules</artifactId>
+            <version>${project.version}</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+      <plugin>
         <groupId>org.jasig.maven</groupId>
         <artifactId>maven-notice-plugin</artifactId>
       </plugin>
