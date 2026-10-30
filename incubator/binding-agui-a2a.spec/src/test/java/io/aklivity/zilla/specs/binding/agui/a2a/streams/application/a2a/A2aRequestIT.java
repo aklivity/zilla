@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.specs.binding.agui.a2a.streams.agui;
+package io.aklivity.zilla.specs.binding.agui.a2a.streams.application.a2a;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -26,10 +26,10 @@ import org.junit.rules.Timeout;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 
-public class AguiRequestIT
+public class A2aRequestIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/agui/a2a/streams/agui");
+        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/agui/a2a/streams/application/a2a");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
@@ -65,15 +65,6 @@ public class AguiRequestIT
 
     @Test
     @Specification({
-        "${app}/request.no.user.message/client",
-        "${app}/request.no.user.message/server"})
-    public void shouldRequestNoUserMessage() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/request.part.binary/client",
         "${app}/request.part.binary/server"})
     public void shouldRequestPartBinary() throws Exception
@@ -101,15 +92,6 @@ public class AguiRequestIT
 
     @Test
     @Specification({
-        "${app}/request.reserved.key/client",
-        "${app}/request.reserved.key/server"})
-    public void shouldRequestReservedKey() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/request.state.context/client",
         "${app}/request.state.context/server"})
     public void shouldRequestStateContext() throws Exception
@@ -119,27 +101,9 @@ public class AguiRequestIT
 
     @Test
     @Specification({
-        "${app}/request.state.too.large/client",
-        "${app}/request.state.too.large/server"})
-    public void shouldRequestStateTooLarge() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/request.system.developer.dropped/client",
         "${app}/request.system.developer.dropped/server"})
     public void shouldRequestSystemDeveloperDropped() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/request.too.large/client",
-        "${app}/request.too.large/server"})
-    public void shouldRequestTooLarge() throws Exception
     {
         k3po.finish();
     }
