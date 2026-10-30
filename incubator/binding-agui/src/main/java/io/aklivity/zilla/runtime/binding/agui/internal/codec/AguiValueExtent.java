@@ -33,7 +33,6 @@ final class AguiValueExtent
     private boolean inString;
     private boolean escaped;
     private boolean complete;
-    private boolean malformed;
 
     void reset()
     {
@@ -42,7 +41,6 @@ final class AguiValueExtent
         inString = false;
         escaped = false;
         complete = false;
-        malformed = false;
     }
 
     boolean complete()
@@ -61,6 +59,7 @@ final class AguiValueExtent
         int limit)
     {
         int progress = offset;
+        boolean malformed = false;
 
         if (kind == Kind.UNSET && progress < limit)
         {
