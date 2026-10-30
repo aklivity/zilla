@@ -320,7 +320,7 @@ public final class A2aDiscoveryFactory
             final long authorization = end.authorization();
 
             initialSeq = end.sequence();
-            state = A2aState.closedInitial(state);
+            state = A2aState.closeInitial(state);
 
             if (decodeSlot != NO_SLOT)
             {
@@ -370,7 +370,7 @@ public final class A2aDiscoveryFactory
             AbortFW abort)
         {
             initialSeq = abort.sequence();
-            state = A2aState.closedReply(A2aState.closedInitial(state));
+            state = A2aState.closeReply(A2aState.closeInitial(state));
             cleanup();
         }
 
@@ -381,7 +381,7 @@ public final class A2aDiscoveryFactory
             replyMax = window.maximum();
             replyBud = window.budgetId();
             replyPad = window.padding();
-            state = A2aState.openedReply(state);
+            state = A2aState.openReply(state);
 
             if (replyBuffer != null)
             {
@@ -392,7 +392,7 @@ public final class A2aDiscoveryFactory
         private void onAppReset(
             ResetFW reset)
         {
-            state = A2aState.closedReply(state);
+            state = A2aState.closeReply(state);
             cleanup();
         }
 
@@ -492,7 +492,7 @@ public final class A2aDiscoveryFactory
         {
             if (!A2aState.replyClosed(state))
             {
-                state = A2aState.closedReply(state);
+                state = A2aState.closeReply(state);
                 doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, null);
             }
         }
@@ -520,7 +520,7 @@ public final class A2aDiscoveryFactory
 
             if (!A2aState.initialClosed(state))
             {
-                state = A2aState.closedInitial(state);
+                state = A2aState.closeInitial(state);
                 doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, resetEx);
             }
