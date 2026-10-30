@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.router;
 
+import java.util.function.LongBinaryOperator;
+
 import io.aklivity.zilla.config.engine.RouterConfig;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.router.RouteableContext;
@@ -63,5 +65,14 @@ public final class TestRouterContext implements RouterContext
         int labelId)
     {
         return router.supplyLabel(labelId);
+    }
+
+    @Override
+    public long resolveAffinityId(
+        long keyHash,
+        long affinity)
+    {
+        final LongBinaryOperator resolver = TestRouter.affinityResolver;
+        return resolver != null ? resolver.applyAsLong(keyHash, affinity) : affinity;
     }
 }
