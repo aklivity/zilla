@@ -382,7 +382,7 @@ public final class AguiClientFactory implements AguiStreamFactory
 
             if (initialSeq > initialAck + initialMax)
             {
-                cleanupApp(traceId, authorization);
+                cleanup(traceId, authorization);
             }
             else
             {
@@ -549,7 +549,7 @@ public final class AguiClientFactory implements AguiStreamFactory
 
                 if (encodeSlotOffset + limit - offset > encodeMax)
                 {
-                    cleanupApp(traceId, authorization);
+                    cleanup(traceId, authorization);
                 }
                 else
                 {
@@ -599,7 +599,7 @@ public final class AguiClientFactory implements AguiStreamFactory
 
                 if (encodeSlot == NO_SLOT)
                 {
-                    cleanupApp(traceId, authorization);
+                    cleanup(traceId, authorization);
                 }
                 else
                 {
@@ -794,7 +794,7 @@ public final class AguiClientFactory implements AguiStreamFactory
 
             if (netReplySeq > netReplyAck + netReplyMax)
             {
-                cleanupNet(traceId, authorization);
+                cleanup(traceId, authorization);
             }
             else
             {
@@ -870,17 +870,7 @@ public final class AguiClientFactory implements AguiStreamFactory
 
             netState = AguiState.closedReply(netState);
 
-            if (AguiState.replyOpening(state))
-            {
-                doAppAbortTerminal(traceId, authorization, abortEx(CODE_AGENT_ABORTED, MESSAGE_AGENT_ABORTED));
-            }
-            else
-            {
-                doAppResetRejected(traceId, authorization, STATUS_BAD_GATEWAY, null, ERROR_BAD_GATEWAY);
-            }
-
-            doNetAbort(traceId, authorization);
-            cleanupDecodeSlot();
+            cleanup(traceId, authorization);
         }
 
         private void onNetFlush(
@@ -927,17 +917,7 @@ public final class AguiClientFactory implements AguiStreamFactory
 
             netState = AguiState.closedInitial(netState);
 
-            if (AguiState.replyOpening(state))
-            {
-                doAppAbortTerminal(traceId, authorization, abortEx(CODE_AGENT_ABORTED, MESSAGE_AGENT_ABORTED));
-            }
-            else
-            {
-                doAppResetRejected(traceId, authorization, STATUS_BAD_GATEWAY, null, ERROR_BAD_GATEWAY);
-            }
-
-            doNetReset(traceId, authorization);
-            cleanupEncodeSlot();
+            cleanup(traceId, authorization);
         }
 
         @Override
@@ -1051,7 +1031,7 @@ public final class AguiClientFactory implements AguiStreamFactory
 
                 if (replySlotOffset + limit - offset > encodeMax)
                 {
-                    cleanupNet(traceId, authorization);
+                    cleanup(traceId, authorization);
                 }
                 else
                 {
@@ -1093,7 +1073,7 @@ public final class AguiClientFactory implements AguiStreamFactory
 
                 if (replySlot == NO_SLOT)
                 {
-                    cleanupNet(traceId, authorization);
+                    cleanup(traceId, authorization);
                 }
                 else
                 {
@@ -1268,28 +1248,15 @@ public final class AguiClientFactory implements AguiStreamFactory
             return body;
         }
 
-        private void cleanupApp(
+        private void cleanup(
             long traceId,
             long authorization)
         {
-            doAppResetRejected(traceId, authorization, STATUS_BAD_GATEWAY, null, ERROR_BAD_GATEWAY);
-            doAppAbortTerminal(traceId, authorization, abortEx(CODE_AGENT_ABORTED, MESSAGE_AGENT_ABORTED));
-
             doNetAbort(traceId, authorization);
             doNetReset(traceId, authorization);
 
-            cleanupSlots();
-        }
-
-        private void cleanupNet(
-            long traceId,
-            long authorization)
-        {
-            doNetReset(traceId, authorization);
-            doNetAbort(traceId, authorization);
-
-            doAppAbortTerminal(traceId, authorization, abortEx(CODE_AGENT_ABORTED, MESSAGE_AGENT_ABORTED));
             doAppResetRejected(traceId, authorization, STATUS_BAD_GATEWAY, null, ERROR_BAD_GATEWAY);
+            doAppAbortTerminal(traceId, authorization, abortEx(CODE_AGENT_ABORTED, MESSAGE_AGENT_ABORTED));
 
             cleanupSlots();
         }
