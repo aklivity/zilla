@@ -22,7 +22,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
-public class AguiA2aAgentCardParserTest
+public class AguiA2aAgentCardDecoderTest
 {
     private static final String CARD_PREFIX = "{\"name\":\"Weather Agent\",\"description\":\"Answers weather questions\"," +
         "\"supportedInterfaces\":[{\"url\":\"http://localhost:9090/a2a\",\"protocolBinding\":\"JSONRPC\"," +
@@ -30,7 +30,7 @@ public class AguiA2aAgentCardParserTest
     private static final String CARD_SUFFIX = ",\"defaultOutputModes\":[\"text/plain\"],\"skills\":[{\"id\":\"weather\"," +
         "\"name\":\"Weather\",\"description\":\"Current weather\",\"tags\":[\"weather\"]}]}";
 
-    private final AguiA2aAgentCardParser parser = new AguiA2aAgentCardParser();
+    private final AguiA2aAgentCardDecoder decoder = new AguiA2aAgentCardDecoder();
     private final UnsafeBufferEx input = new UnsafeBufferEx(new byte[8192]);
 
     @Test
@@ -173,21 +173,31 @@ public class AguiA2aAgentCardParserTest
     }
 
     @Test
-    public void shouldParseWindowedCardAssembled()
+    public void shouldDecodeCardSplitAtEveryOffset()
     {
         final byte[] bytes = card("{\"streaming\":true}", "[\"text/plain\",\"image/*\"]").getBytes(UTF_8);
-        final int split = bytes.length / 2;
-        input.putBytes(0, bytes, 0, split);
-        input.putBytes(split, bytes, split, bytes.length - split);
 
-        final AguiA2aAgentCard card = parser.parse(input, 0, bytes.length);
+        for (int split = 1; split < bytes.length; split++)
+        {
+            decoder.reset();
+            input.putBytes(0, bytes, 0, split);
+            final int progress = decoder.decode(input, 0, split, false);
 
-        assertThat(card.operation(), is(AguiA2aOperation.MESSAGE_STREAM));
-        assertThat(card.acceptsInput("image/png"), is(true));
+            final int tail = split - progress;
+            input.putBytes(0, bytes, progress, tail + bytes.length - split);
+            decoder.decode(input, 0, tail + bytes.length - split, true);
+
+            assertThat("split " + split, decoder.complete(), is(true));
+            assertThat("split " + split, decoder.failed(), is(false));
+            final AguiA2aAgentCard card = decoder.card();
+            assertThat("split " + split, card.operation(), is(AguiA2aOperation.MESSAGE_STREAM));
+            assertThat("split " + split, card.acceptsInput("image/png"), is(true));
+            assertThat("split " + split, card.acceptsInput("audio/wav"), is(false));
+        }
     }
 
     @Test
-    public void shouldReuseParserAcrossCards()
+    public void shouldReuseDecoderAcrossCards()
     {
         parse(card("{\"streaming\":true}", "[\"image/*\"]"));
         final AguiA2aAgentCard card = parse(card("{}", "[\"text/plain\"]"));
@@ -196,12 +206,62 @@ public class AguiA2aAgentCardParserTest
         assertThat(card.acceptsInput("image/png"), is(false));
     }
 
+    @Test
+    public void shouldIgnoreWrongTypedMembers()
+    {
+        final AguiA2aAgentCard card = parse("{\"capabilities\":null,\"defaultInputModes\":{\"a\":[1]}," +
+            "\"skills\":[1,{\"inputModes\":\"x\",\"id\":\"s\"}],\"name\":[{\"streaming\":true}]}");
+
+        assertThat(decoder.failed(), is(false));
+        assertThat(card.operation(), is(AguiA2aOperation.MESSAGE_SEND));
+        assertThat(card.acceptsAdvisory(), is(false));
+    }
+
+    @Test
+    public void shouldFailTruncatedCard()
+    {
+        final byte[] bytes = card("{\"streaming\":true}", "[\"text/plain\"]").getBytes(UTF_8);
+        input.putBytes(0, bytes);
+
+        decoder.reset();
+        decoder.decode(input, 0, bytes.length - 5, true);
+
+        assertThat(decoder.complete(), is(false));
+        assertThat(decoder.failed(), is(true));
+    }
+
+    @Test
+    public void shouldFailTrailingContent()
+    {
+        final byte[] bytes = (card("{}", "[\"text/plain\"]") + " x").getBytes(UTF_8);
+        input.putBytes(0, bytes);
+
+        decoder.reset();
+        decoder.decode(input, 0, bytes.length, true);
+
+        assertThat(decoder.failed(), is(true));
+    }
+
+    @Test
+    public void shouldFailNonObjectCard()
+    {
+        final byte[] bytes = "[]".getBytes(UTF_8);
+        input.putBytes(0, bytes);
+
+        decoder.reset();
+        decoder.decode(input, 0, bytes.length, true);
+
+        assertThat(decoder.failed(), is(true));
+    }
+
     private AguiA2aAgentCard parse(
         String json)
     {
         final byte[] bytes = json.getBytes(UTF_8);
         input.putBytes(0, bytes);
-        return parser.parse(input, 0, bytes.length);
+        decoder.reset();
+        decoder.decode(input, 0, bytes.length, true);
+        return decoder.card();
     }
 
     private static String card(
