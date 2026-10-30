@@ -1611,6 +1611,8 @@ public final class AguiServerFactory implements AguiStreamFactory
 
             assert replyAck <= replySeq;
 
+            state = AguiState.openingReply(state);
+
             final AguiBeginExFW beginEx = extension.sizeof() > 0 ? extension.get(aguiBeginExRO::tryWrap) : null;
 
             encoder = beginEx != null
@@ -1934,7 +1936,7 @@ public final class AguiServerFactory implements AguiStreamFactory
 
             state = AguiState.closedReply(state);
 
-            if (replying && encoder != null)
+            if (replying && AguiState.replyOpening(state))
             {
                 final AguiEndExFW endEx = extension.sizeof() > 0 ? extension.get(aguiEndExRO::tryWrap) : null;
 
@@ -1969,7 +1971,7 @@ public final class AguiServerFactory implements AguiStreamFactory
 
             state = AguiState.closedReply(state);
 
-            if (replying && encoder != null)
+            if (replying && AguiState.replyOpening(state))
             {
                 final AguiAbortExFW abortEx = extension.sizeof() > 0 ? extension.get(aguiAbortExRO::tryWrap) : null;
                 final String message = abortEx != null && abortEx.error().message().asString() != null
