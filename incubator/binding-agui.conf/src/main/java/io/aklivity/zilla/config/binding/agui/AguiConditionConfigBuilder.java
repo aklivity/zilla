@@ -24,8 +24,9 @@ public final class AguiConditionConfigBuilder<T> extends ConfigBuilder<T, AguiCo
     private final Function<ConditionConfig, T> mapper;
 
     private String path;
+    private String agent;
 
-    AguiConditionConfigBuilder(
+    public AguiConditionConfigBuilder(
         Function<ConditionConfig, T> mapper)
     {
         this.mapper = mapper;
@@ -35,6 +36,13 @@ public final class AguiConditionConfigBuilder<T> extends ConfigBuilder<T, AguiCo
         String path)
     {
         this.path = path;
+        return this;
+    }
+
+    public AguiConditionConfigBuilder<T> agent(
+        String agent)
+    {
+        this.agent = agent;
         return this;
     }
 
@@ -48,6 +56,6 @@ public final class AguiConditionConfigBuilder<T> extends ConfigBuilder<T, AguiCo
     @Override
     public T build()
     {
-        return mapper.apply(new AguiConditionConfig(path));
+        return mapper.apply(new AguiConditionConfig(path, agent));
     }
 }
