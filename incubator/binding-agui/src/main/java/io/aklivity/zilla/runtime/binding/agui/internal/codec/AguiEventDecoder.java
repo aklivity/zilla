@@ -71,6 +71,7 @@ public final class AguiEventDecoder
     {
         IDLE,
         ASSEMBLING,
+        STARTING,
         STREAMING,
         TAIL,
         FAILED
@@ -154,7 +155,6 @@ public final class AguiEventDecoder
     private int pendingExLength;
     private int holdLength;
     private int carryLength;
-    private boolean streamFirst;
 
     public AguiEventDecoder(
         AguiEventSink sink,
@@ -307,9 +307,8 @@ public final class AguiEventDecoder
             streamMode = prepare(eventType, true);
 
             extent.reset();
-            streamFirst = true;
             carryLength = 0;
-            state = State.STREAMING;
+            state = State.STARTING;
 
             if (start >= before)
             {
@@ -349,12 +348,13 @@ public final class AguiEventDecoder
         }
         else
         {
+            final boolean first = state == State.STARTING;
             final boolean text = streamMode == PayloadMode.TEXT;
             final boolean complete = extent.complete();
-            final int from = offset + (text && streamFirst ? 1 : 0);
+            final int from = offset + (text && first ? 1 : 0);
             final int to = offset + consumed - (text && complete ? 1 : 0);
 
-            final int flags = (streamFirst ? INIT : 0) | (complete ? FIN : 0);
+            final int flags = (first ? INIT : 0) | (complete ? FIN : 0);
             final int length = text ? unescapeChunk(buffer, from, to, complete) : to - from;
 
             if (length != AguiJsonUnescape.MALFORMED)
@@ -364,10 +364,9 @@ public final class AguiEventDecoder
                     final DirectBufferEx payload = text ? payloadBuffer : buffer;
                     final int payloadOffset = text ? 0 : from;
 
-                    sink.message(flags, streamFirst ? pendingEx() : null, payload, payloadOffset, payloadOffset + length);
+                    sink.message(flags, first ? pendingEx() : null, payload, payloadOffset, payloadOffset + length);
                 }
 
-                streamFirst = false;
                 pendingExLength = 0;
                 state = complete ? State.TAIL : State.STREAMING;
             }
