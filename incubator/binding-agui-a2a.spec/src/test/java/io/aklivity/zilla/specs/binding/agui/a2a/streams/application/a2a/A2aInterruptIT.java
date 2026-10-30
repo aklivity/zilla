@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.specs.binding.agui.a2a.streams.agui;
+package io.aklivity.zilla.specs.binding.agui.a2a.streams.application.a2a;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -26,10 +26,10 @@ import org.junit.rules.Timeout;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 
-public class AguiOwnerIT
+public class A2aInterruptIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/agui/a2a/streams/agui");
+        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/agui/a2a/streams/application/a2a");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
@@ -38,63 +38,63 @@ public class AguiOwnerIT
 
     @Test
     @Specification({
-        "${app}/owner.context.none/client",
-        "${app}/owner.context.none/server"})
-    public void shouldOwnerContextNone() throws Exception
+        "${app}/interrupt.auth.required/client",
+        "${app}/interrupt.auth.required/server"})
+    public void shouldInterruptAuthRequired() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/owner.context.remembered/client",
-        "${app}/owner.context.remembered/server"})
-    public void shouldOwnerContextRemembered() throws Exception
+        "${app}/interrupt.input.required/client",
+        "${app}/interrupt.input.required/server"})
+    public void shouldInterruptInputRequired() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/owner.context.reset/client",
-        "${app}/owner.context.reset/server"})
-    public void shouldOwnerContextReset() throws Exception
+        "${app}/interrupt.resume/client",
+        "${app}/interrupt.resume/server"})
+    public void shouldInterruptResume() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/owner.context.reset.first.turn/client",
-        "${app}/owner.context.reset.first.turn/server"})
-    public void shouldOwnerContextResetFirstTurn() throws Exception
+        "${app}/interrupt.resume.cancelled/client",
+        "${app}/interrupt.resume.cancelled/server"})
+    public void shouldInterruptResumeCancelled() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/owner.context.reset.interrupt/client",
-        "${app}/owner.context.reset.interrupt/server"})
-    public void shouldOwnerContextResetInterrupt() throws Exception
+        "${app}/interrupt.resume.empty/client",
+        "${app}/interrupt.resume.empty/server"})
+    public void shouldInterruptResumeEmpty() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/owner.context.reset.stateless/client",
-        "${app}/owner.context.reset.stateless/server"})
-    public void shouldOwnerContextResetStateless() throws Exception
+        "${app}/interrupt.resume.foreign/client",
+        "${app}/interrupt.resume.foreign/server"})
+    public void shouldInterruptResumeForeign() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/owner.redirect/client",
-        "${app}/owner.redirect/server"})
-    public void shouldOwnerRedirect() throws Exception
+        "${app}/interrupt.resume.text/client",
+        "${app}/interrupt.resume.text/server"})
+    public void shouldInterruptResumeText() throws Exception
     {
         k3po.finish();
     }
