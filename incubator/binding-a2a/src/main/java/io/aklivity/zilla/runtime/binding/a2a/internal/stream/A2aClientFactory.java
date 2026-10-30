@@ -250,6 +250,7 @@ public final class A2aClientFactory implements A2aStreamFactory
             int limit);
     }
 
+    private final HttpResponseDecoder decodeEvent = this::decodeEvent;
     private final HttpResponseDecoder decodeJsonRpc = this::decodeJsonRpc;
     private final HttpResponseDecoder decodeJsonRpcStart = this::decodeJsonRpcStart;
     private final HttpResponseDecoder decodeJsonRpcNext = this::decodeJsonRpcNext;
@@ -279,6 +280,25 @@ public final class A2aClientFactory implements A2aStreamFactory
     private final ResultDecoder decodeResultStart = this::decodeResultStart;
     private final ResultDecoder decodeResultStream = this::decodeResultStream;
     private final ResultDecoder decodeResultBuffer = this::decodeResultBuffer;
+
+    private int decodeEvent(
+        HttpStream http,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        if (progress < limit)
+        {
+            http.decoder = decodeJsonRpc;
+        }
+
+        return progress;
+    }
 
     private int decodeJsonRpc(
         HttpStream http,
@@ -539,7 +559,7 @@ public final class A2aClientFactory implements A2aStreamFactory
         final int decodedOffset = offset + http.decodedResultProgress - http.decodedParserProgress;
         final int decodedLimit = offset + decodedErrorLimit - http.decodedParserProgress;
 
-        http.decoder = decodeIgnore;
+        http.decoder = http.decodedMessageThen;
         http.onDecodeResponseError(traceId, authorization, buffer, decodedOffset, decodedLimit);
 
         return limit;
@@ -628,7 +648,7 @@ public final class A2aClientFactory implements A2aStreamFactory
 
             parser.close();
             http.decodableJson = null;
-            http.decoder = decodeIgnore;
+            http.decoder = http.decodedMessageThen;
 
             progress = offset + (int) (parser.getLocation().getStreamOffset() - http.decodedParserProgress);
         }
@@ -2336,7 +2356,7 @@ public final class A2aClientFactory implements A2aStreamFactory
         protected int decodedResultProgress;
         protected int decodedSkipDepth;
         protected HttpResponseDecoder decodedSkipThen;
-        protected boolean sseMode;
+        protected HttpResponseDecoder decodedMessageThen = decodeIgnore;
 
         HttpStream(
             long originId,
@@ -2479,8 +2499,8 @@ public final class A2aClientFactory implements A2aStreamFactory
 
                 if (CONTENT_TYPE_EVENT_STREAM.equals(headerOf(httpBeginEx, HTTP_HEADER_CONTENT_TYPE)))
                 {
-                    decoder = decodeIgnore;
-                    sseMode = true;
+                    decoder = decodeEvent;
+                    decodedMessageThen = decodeEvent;
                 }
             }
 
@@ -2543,27 +2563,12 @@ public final class A2aClientFactory implements A2aStreamFactory
                     decodableJson.wrap(buffer, offset + delta, limit);
                 }
 
-                if (sseMode)
-                {
-                    onEventFrame(data);
-                }
-
                 decodeNet(traceId, authorization, budgetId, reserved, buffer, offset, limit);
 
-                if (sseMode && hasFin(data.flags()))
+                if (decodedMessageThen == decodeEvent && hasFin(data.flags()))
                 {
                     onEventEnd(traceId, authorization);
                 }
-            }
-        }
-
-        private void onEventFrame(
-            DataFW data)
-        {
-            final OctetsFW payload = data.payload();
-            if (payload != null && payload.sizeof() > 0 && decoder == decodeIgnore)
-            {
-                decoder = decodeJsonRpc;
             }
         }
 
@@ -2571,7 +2576,7 @@ public final class A2aClientFactory implements A2aStreamFactory
             long traceId,
             long authorization)
         {
-            if (decoder != decodeIgnore && decodeSlot == NO_SLOT)
+            if (decoder != decodeEvent && decoder != decodeIgnore && decodeSlot == NO_SLOT)
             {
                 onDecodeParseError(traceId, authorization);
             }
