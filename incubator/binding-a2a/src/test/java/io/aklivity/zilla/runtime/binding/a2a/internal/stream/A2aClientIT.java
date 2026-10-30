@@ -144,6 +144,16 @@ public class A2aClientIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/stream.message.client.aborted/client",
+        "${net}/discover.stream.message.client.aborted/server"})
+    public void shouldStreamMessageClientAborted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/stream.message.auth.required/client",
         "${net}/discover.stream.message.auth.required/server"})
     public void shouldStreamMessageAuthRequired() throws Exception
