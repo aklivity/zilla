@@ -135,10 +135,7 @@ public final class A2aClientFactory implements A2aStreamFactory
     private static final String VERSION_LEGACY = "0.3";
     private static final String JSON_NULL = "null";
     private static final int ERROR_CODE_FORBIDDEN = 403;
-    private static final int PEEK_NO = 0;
-    private static final int PEEK_YES = 1;
-    private static final int PEEK_MORE = -1;
-    private static final byte[] PEEK_MESSAGE = "\"message\"".getBytes(StandardCharsets.US_ASCII);
+    private static final String MEMBER_MESSAGE = "message";
 
     private static final int ERROR_CODE_NOT_FOUND = 404;
     private static final int ERROR_CODE_BAD_GATEWAY = 502;
@@ -257,29 +254,13 @@ public final class A2aClientFactory implements A2aStreamFactory
     private final HttpResponseDecoder decodeJsonRpcEnd = this::decodeJsonRpcEnd;
     private final HttpResponseDecoder decodeJsonRpcSkipValue = this::decodeJsonRpcSkipValue;
     private final HttpResponseDecoder decodeJsonRpcResultStart = this::decodeJsonRpcResultStart;
-    private final HttpResponseDecoder decodeJsonRpcResultEnd = this::decodeJsonRpcResultEnd;
+    private final HttpResponseDecoder decodeJsonRpcResultStream = this::decodeJsonRpcResultStream;
+    private final HttpResponseDecoder decodeJsonRpcResultBuffer = this::decodeJsonRpcResultBuffer;
     private final HttpResponseDecoder decodeJsonRpcErrorStart = this::decodeJsonRpcErrorStart;
     private final HttpResponseDecoder decodeJsonRpcErrorEnd = this::decodeJsonRpcErrorEnd;
     private final HttpResponseDecoder decodeJsonRpcSkipObject = this::decodeJsonRpcSkipObject;
     private final HttpResponseDecoder decodeHold = this::decodeHold;
     private final HttpResponseDecoder decodeIgnore = this::decodeIgnore;
-
-    @FunctionalInterface
-    private interface ResultDecoder
-    {
-        int decode(
-            HttpCallStream http,
-            long traceId,
-            long authorization,
-            DirectBufferEx buffer,
-            int offset,
-            int limit,
-            boolean endOfInput);
-    }
-
-    private final ResultDecoder decodeResultStart = this::decodeResultStart;
-    private final ResultDecoder decodeResultStream = this::decodeResultStream;
-    private final ResultDecoder decodeResultBuffer = this::decodeResultBuffer;
 
     private int decodeEvent(
         HttpStream http,
@@ -444,6 +425,8 @@ public final class A2aClientFactory implements A2aStreamFactory
     {
         final JsonParserEx parser = http.decodableJson;
 
+        parser.mark();
+
         decode:
         if (parser.hasNext())
         {
@@ -452,28 +435,47 @@ public final class A2aClientFactory implements A2aStreamFactory
             {
             case START_OBJECT:
             case START_ARRAY:
-                http.decodedResultProgress = (int) parser.getLocation().getStreamOffset() - 1;
-                http.decodedSkipDepth = 1;
-                http.decodedSkipThen = decodeJsonRpcResultEnd;
-                http.decoder = decodeJsonRpcSkipObject;
+                HttpResponseDecoder then = decodeJsonRpcResultBuffer;
+                boolean lookahead = false;
+
+                if (event == JsonParser.Event.START_OBJECT && http.peeksMessage())
+                {
+                    lookahead = !parser.hasNext();
+                    if (!lookahead && parser.next() == JsonParser.Event.KEY_NAME &&
+                        MEMBER_MESSAGE.equals(parser.getString()))
+                    {
+                        then = decodeJsonRpcResultStream;
+                    }
+                }
+
+                parser.rewind();
+
+                if (!lookahead)
+                {
+                    parser.next();
+                    http.decodedResultProgress = (int) parser.getLocation().getStreamOffset() - 1;
+                    http.decodedSkipDepth = 1;
+                    http.decoder = then;
+                    progress = offset + http.decodedResultProgress - http.decodedParserProgress;
+                }
                 break;
             case VALUE_NULL:
                 http.decodedResultProgress = (int) parser.getLocation().getStreamOffset() - "null".length();
-                http.decoder = decodeJsonRpcResultEnd;
+                http.decodedSkipDepth = 0;
+                http.decoder = decodeJsonRpcResultBuffer;
+                progress = offset + http.decodedResultProgress - http.decodedParserProgress;
                 break;
             default:
                 http.onDecodeParseError(traceId, authorization);
                 http.decoder = decodeIgnore;
                 break decode;
             }
-
-            progress = offset + http.decodedResultProgress - http.decodedParserProgress;
         }
 
         return progress;
     }
 
-    private int decodeJsonRpcResultEnd(
+    private int decodeJsonRpcResultStream(
         HttpStream http,
         long traceId,
         long authorization,
@@ -484,27 +486,63 @@ public final class A2aClientFactory implements A2aStreamFactory
         int progress,
         int limit)
     {
+        return decodeJsonRpcResult(http, traceId, authorization, buffer, offset);
+    }
+
+    private int decodeJsonRpcResultBuffer(
+        HttpStream http,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return decodeJsonRpcResult(http, traceId, authorization, buffer, offset);
+    }
+
+    private int decodeJsonRpcResult(
+        HttpStream http,
+        long traceId,
+        long authorization,
+        DirectBufferEx buffer,
+        int offset)
+    {
         final JsonParserEx parser = http.decodableJson;
+
+        while (http.decodedSkipDepth > 0 && parser.hasNext())
+        {
+            final JsonParser.Event event = parser.next();
+            if (event == JsonParser.Event.START_OBJECT || event == JsonParser.Event.START_ARRAY)
+            {
+                http.decodedSkipDepth++;
+            }
+            else if (event == JsonParser.Event.END_OBJECT || event == JsonParser.Event.END_ARRAY)
+            {
+                http.decodedSkipDepth--;
+            }
+        }
 
         final int decodedResultLimit = (int) parser.getLocation().getStreamOffset();
         if (decodedResultLimit > http.decodedResultProgress)
         {
             final int decodedOffset = offset + http.decodedResultProgress - http.decodedParserProgress;
             final int decodedLimit = offset + decodedResultLimit - http.decodedParserProgress;
+            final boolean endOfInput = http.decodedSkipDepth == 0;
             final int decodedProgress =
-                http.onDecodeResponseResult(traceId, authorization, buffer, decodedOffset, decodedLimit, true);
+                http.onDecodeResponseResult(traceId, authorization, buffer, decodedOffset, decodedLimit, endOfInput);
 
             http.decodedResultProgress = decodedProgress - offset + http.decodedParserProgress;
         }
 
-        progress = offset + http.decodedResultProgress - http.decodedParserProgress;
-
-        if (http.decodedResultProgress == decodedResultLimit)
+        if (http.decodedSkipDepth == 0 && http.decodedResultProgress == decodedResultLimit)
         {
             http.decoder = decodeJsonRpcNext;
         }
 
-        return progress;
+        return offset + http.decodedResultProgress - http.decodedParserProgress;
     }
 
     private int decodeJsonRpcErrorStart(
@@ -596,23 +634,7 @@ public final class A2aClientFactory implements A2aStreamFactory
             }
         }
 
-        if (http.decodedSkipThen == decodeJsonRpcResultEnd)
-        {
-            final int decodedResultLimit = (int) parser.getLocation().getStreamOffset();
-            if (decodedResultLimit > http.decodedResultProgress)
-            {
-                final int decodedOffset = offset + http.decodedResultProgress - http.decodedParserProgress;
-                final int decodedLimit = offset + decodedResultLimit - http.decodedParserProgress;
-                final boolean endOfInput = http.decoder == decodeJsonRpcResultEnd;
-                final int decodedProgress =
-                    http.onDecodeResponseResult(traceId, authorization, buffer, decodedOffset, decodedLimit, endOfInput);
-
-                http.decodedResultProgress = decodedProgress - offset + http.decodedParserProgress;
-            }
-
-            progress = offset + http.decodedResultProgress - http.decodedParserProgress;
-        }
-        else if (http.decodedSkipThen == decodeJsonRpcErrorEnd)
+        if (http.decodedSkipThen == decodeJsonRpcErrorEnd)
         {
             progress = offset + http.decodedResultProgress - http.decodedParserProgress;
         }
@@ -2418,6 +2440,11 @@ public final class A2aClientFactory implements A2aStreamFactory
             return limit;
         }
 
+        boolean peeksMessage()
+        {
+            return false;
+        }
+
         void onDecodeResponseError(
             long traceId,
             long authorization,
@@ -2986,7 +3013,6 @@ public final class A2aClientFactory implements A2aStreamFactory
         private final A2aAgentInterface selected;
         private final A2aDialect dialect;
 
-        private ResultDecoder resultDecoder = decodeResultStart;
         private int resultDelivered;
 
         HttpCallStream(
@@ -3106,7 +3132,18 @@ public final class A2aClientFactory implements A2aStreamFactory
             int limit,
             boolean endOfInput)
         {
-            return resultDecoder.decode(this, traceId, authorization, buffer, offset, limit, endOfInput);
+            return decoder == decodeJsonRpcResultStream
+                ? decodeResultStream(this, traceId, authorization, buffer, offset, limit, endOfInput)
+                : decodeResultBuffer(this, traceId, authorization, buffer, offset, limit, endOfInput);
+        }
+
+        @Override
+        boolean peeksMessage()
+        {
+            final int kind = call.kind;
+
+            return (kind == KIND_MESSAGE_SEND || kind == KIND_MESSAGE_STREAM || kind == KIND_TASKS_SUBSCRIBE) &&
+                dialect.verbatim();
         }
 
         @Override
@@ -3412,30 +3449,6 @@ public final class A2aClientFactory implements A2aStreamFactory
         }
     }
 
-    private int decodeResultStart(
-        HttpCallStream http,
-        long traceId,
-        long authorization,
-        DirectBufferEx buffer,
-        int offset,
-        int limit,
-        boolean endOfInput)
-    {
-        final int kind = http.call.kind;
-        final boolean wrapped = kind == KIND_MESSAGE_SEND || kind == KIND_MESSAGE_STREAM || kind == KIND_TASKS_SUBSCRIBE;
-        final int peek = wrapped && http.dialect.verbatim() ? peekMessage(buffer, offset, limit) : PEEK_NO;
-
-        int progress = offset;
-
-        if (peek != PEEK_MORE || endOfInput)
-        {
-            http.resultDecoder = peek == PEEK_YES ? decodeResultStream : decodeResultBuffer;
-            progress = http.resultDecoder.decode(http, traceId, authorization, buffer, offset, limit, endOfInput);
-        }
-
-        return progress;
-    }
-
     private int decodeResultStream(
         HttpCallStream http,
         long traceId,
@@ -3459,7 +3472,6 @@ public final class A2aClientFactory implements A2aStreamFactory
         if (endOfInput && progress == limit)
         {
             http.resultDelivered = 0;
-            http.resultDecoder = decodeResultStart;
         }
 
         return progress;
@@ -3520,7 +3532,6 @@ public final class A2aClientFactory implements A2aStreamFactory
                 if (delivered == resultLimit)
                 {
                     http.resultDelivered = 0;
-                    http.resultDecoder = decodeResultStart;
                     progress = limit;
                 }
             }
@@ -3532,41 +3543,6 @@ public final class A2aClientFactory implements A2aStreamFactory
         }
 
         return progress;
-    }
-
-    private int peekMessage(
-        DirectBufferEx buffer,
-        int offset,
-        int limit)
-    {
-        int peek = PEEK_NO;
-        int index = offset;
-
-        if (index < limit && buffer.getByte(index) == '{')
-        {
-            index++;
-
-            while (index < limit && Character.isWhitespace((char) buffer.getByte(index)))
-            {
-                index++;
-            }
-
-            if (limit - index < PEEK_MESSAGE.length)
-            {
-                peek = PEEK_MORE;
-            }
-            else
-            {
-                boolean match = true;
-                for (int i = 0; match && i < PEEK_MESSAGE.length; i++)
-                {
-                    match = buffer.getByte(index + i) == PEEK_MESSAGE[i];
-                }
-                peek = match ? PEEK_YES : PEEK_NO;
-            }
-        }
-
-        return peek;
     }
 
     private A2aDataExFW dataExOf(
