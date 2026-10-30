@@ -163,6 +163,26 @@ public interface EngineContext
         long affinityId);
 
     /**
+     * Resolves the affinity value for the given key hash, such that the same key hash
+     * always resolves to the same affinity and distinct key hashes are distributed across
+     * the available workers. The result is a valid {@code affinityId} for
+     * {@link #supplyInitialId(long, long)}, so streams for the same logical key can be
+     * pinned to the same worker.
+     * <p>
+     * Returns {@link #affinity()} by default: no placement by key applies, meaning every
+     * key stays on the current worker.
+     * </p>
+     *
+     * @param keyHash  the hash of the logical key to place
+     * @return the affinity value that the logical key resolves to
+     */
+    default long resolveAffinityId(
+        long keyHash)
+    {
+        return affinity();
+    }
+
+    /**
      * Resolves the binding id that a stream carrying the given affinity should actually be
      * routed to, e.g. redirecting to a different binding when the affinity designates a
      * remote engine node. Identity by default: {@code routedId} unchanged, meaning no
