@@ -124,7 +124,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        ProxyBindingConfig proxyBinding = new ProxyBindingConfig(binding);
+        ProxyBindingConfig proxyBinding = new ProxyBindingConfig(binding, resolveHost);
         router.attach(proxyBinding);
     }
 

@@ -18,7 +18,9 @@ package io.aklivity.zilla.runtime.binding.proxy.internal.config;
 import static java.util.function.UnaryOperator.identity;
 import static java.util.stream.Collectors.toList;
 
+import java.net.InetAddress;
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.config.binding.proxy.ProxyConditionConfig;
@@ -34,12 +36,13 @@ public final class ProxyRouteConfig
     private final LongObjectPredicate<UnaryOperator<String>> authorized;
 
     public ProxyRouteConfig(
-        RouteConfig route)
+        RouteConfig route,
+        Function<String, InetAddress[]> resolveHost)
     {
         this.id = route.id;
         this.when = route.when.stream()
             .map(ProxyConditionConfig.class::cast)
-            .map(ProxyConditionMatcher::new)
+            .map(w -> new ProxyConditionMatcher(w, resolveHost))
             .collect(toList());
         this.authorized = route.authorized;
     }
