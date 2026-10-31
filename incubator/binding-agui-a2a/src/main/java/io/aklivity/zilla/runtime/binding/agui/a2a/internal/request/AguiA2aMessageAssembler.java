@@ -63,6 +63,12 @@ public final class AguiA2aMessageAssembler
     private static final DirectBufferEx DATA_EMPTY = literal("{\"data\":{}}");
     private static final DirectBufferEx FORWARDED_PROPS = literal("\"forwardedProps\":");
     private static final DirectBufferEx AGUI_OPEN = literal("\"agui\":{");
+    private static final DirectBufferEx AGUI_TOOLS = literal("\"tools\":");
+    private static final DirectBufferEx TOOL_RESULT_OPEN = literal("{\"data\":{\"type\":\"tool-result\",\"toolCallId\":");
+    private static final DirectBufferEx TOOL_RESULT_PAYLOAD = literal(",\"payload\":");
+    private static final DirectBufferEx TOOL_RESULT_ERROR = literal(",\"error\":");
+    private static final DirectBufferEx TOOL_RESULT_CLOSE = literal("},\"mediaType\":\"application/json\"," +
+        "\"metadata\":{\"agui\":{\"event\":\"toolResult\"}}}");
     private static final DirectBufferEx AGUI_STATE = literal("\"state\":");
     private static final DirectBufferEx AGUI_RESUME = literal("\"resume\":");
     private static final DirectBufferEx AGUI_CLOSE = literal("}");
@@ -170,6 +176,7 @@ public final class AguiA2aMessageAssembler
         if (interruptId != null)
         {
             emitResumeParts();
+            emitToolResults();
         }
         else
         {
@@ -245,8 +252,75 @@ public final class AguiA2aMessageAssembler
         {
             final Kind kind = retained.kind(index);
 
-            index = kind == Kind.PART_TEXT || kind == Kind.PART_RAW || kind == Kind.PART_URL ? emitPart(index, kind) : index + 1;
+            if (kind == Kind.PART_TEXT || kind == Kind.PART_RAW || kind == Kind.PART_URL)
+            {
+                index = emitPart(index, kind);
+            }
+            else
+            {
+                if (kind == Kind.TOOL_RESULT && toolsEnabled())
+                {
+                    emitToolResult(index);
+                }
+
+                index++;
+            }
         }
+    }
+
+    private void emitToolResults()
+    {
+        for (int index = retained.indexOf(Kind.TOOL_RESULT); toolsEnabled() && index != -1;
+            index = retained.indexOf(Kind.TOOL_RESULT, index + 1))
+        {
+            emitToolResult(index);
+        }
+    }
+
+    private void emitToolResult(
+        int result)
+    {
+        int handle = result - 1;
+        int content = ABSENT;
+        int error = ABSENT;
+
+        while (handle >= 0 && retained.kind(handle) != Kind.MESSAGE && retained.kind(handle) != Kind.TOOL_RESULT &&
+            retained.kind(handle) != Kind.TOOL_CALL_ID)
+        {
+            content = retained.kind(handle) == Kind.TOOL_CONTENT ? handle : content;
+            error = retained.kind(handle) == Kind.TOOL_ERROR ? handle : error;
+            handle--;
+        }
+
+        final String callId = handle >= 0 && retained.kind(handle) == Kind.TOOL_CALL_ID
+            ? toolCalls.apply(slot.getStringWithoutLengthUtf8(retained.offset(handle) + 1, retained.length(handle) - 2))
+            : null;
+
+        if (callId != null)
+        {
+            separate();
+            write(TOOL_RESULT_OPEN);
+            writeString(callId);
+
+            if (content != ABSENT)
+            {
+                write(TOOL_RESULT_PAYLOAD);
+                writeEntry(content);
+            }
+
+            if (error != ABSENT)
+            {
+                write(TOOL_RESULT_ERROR);
+                writeEntry(error);
+            }
+
+            write(TOOL_RESULT_CLOSE);
+        }
+    }
+
+    private boolean toolsEnabled()
+    {
+        return extension != null && extension.enabled(AguiA2aExtension.FEATURE_TOOLS);
     }
 
     private int emitPart(
@@ -345,8 +419,10 @@ public final class AguiA2aMessageAssembler
         final Resume resume = interruptId != null ? retained.resumeFor(interruptId) : null;
         final boolean resumed = resume != null && resume.metadataEnd != ABSENT && resume.metadataEvent != JsonEvent.VALUE_NULL;
         final boolean state = stateInMetadata();
+        final boolean tools = toolsEnabled() && retained.indexOf(Kind.TOOLS) != ABSENT;
+        final boolean agui = resumed || state || tools;
 
-        if (members != ABSENT || value != ABSENT || resumed || state)
+        if (members != ABSENT || value != ABSENT || agui)
         {
             write(METADATA_OPEN);
 
@@ -360,7 +436,7 @@ public final class AguiA2aMessageAssembler
                 writeEntry(value);
             }
 
-            if (resumed || state)
+            if (agui)
             {
                 if (members != ABSENT || value != ABSENT)
                 {
@@ -369,15 +445,26 @@ public final class AguiA2aMessageAssembler
 
                 write(AGUI_OPEN);
 
+                if (tools)
+                {
+                    write(AGUI_TOOLS);
+                    writeEntry(retained.indexOf(Kind.TOOLS));
+                }
+
                 if (state)
                 {
+                    if (tools)
+                    {
+                        write(COMMA);
+                    }
+
                     write(AGUI_STATE);
                     writeEntry(retained.indexOf(Kind.STATE));
                 }
 
                 if (resumed)
                 {
-                    if (state)
+                    if (tools || state)
                     {
                         write(COMMA);
                     }
