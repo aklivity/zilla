@@ -81,4 +81,14 @@ public class FlowControlIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/server.connection.window.bounded/client",
+        "${app}/connection.window.bounded/server" })
+    public void serverConnectionWindowBounded() throws Exception
+    {
+        k3po.finish();
+    }
 }
