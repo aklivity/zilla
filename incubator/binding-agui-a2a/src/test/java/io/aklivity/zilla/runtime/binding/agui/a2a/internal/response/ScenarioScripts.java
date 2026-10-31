@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.A2aDataExFW;
+
 final class ScenarioScripts
 {
     private static final String ROOT = "/io/aklivity/zilla/specs/binding/agui/a2a/streams/application/";
@@ -40,6 +42,7 @@ final class ScenarioScripts
     private static final Pattern REASON = Pattern.compile("\\.reason\\(\"([^\"]*)\"\\)");
 
     final List<String> events = new ArrayList<>();
+    final List<A2aExSpec> exs = new ArrayList<>();
     final List<ResponseHarness.Frame> expected = new ArrayList<>();
     boolean error;
     boolean abort;
@@ -67,13 +70,30 @@ final class ScenarioScripts
 
         final String stream = script.substring(start);
 
-        for (String line : stream.split("\n"))
-        {
-            final Matcher payload = PAYLOAD_SINGLE.matcher(line.trim());
+        final String[] lines = stream.split("\n");
+        String chain = null;
 
-            if (payload.matches())
+        for (int index = 0; index < lines.length; index++)
+        {
+            final String line = lines[index].trim();
+            final Matcher payload = PAYLOAD_SINGLE.matcher(line);
+
+            if (line.startsWith("write zilla:data.ext ${a2a:dataEx()"))
+            {
+                final StringBuilder builder = new StringBuilder(line);
+
+                while (!lines[index].trim().endsWith(".build()}"))
+                {
+                    builder.append(lines[++index].trim());
+                }
+
+                chain = builder.toString();
+            }
+            else if (payload.matches())
             {
                 events.add(payload.group(1));
+                exs.add(chain != null ? a2aExOf(chain) : null);
+                chain = null;
             }
         }
 
@@ -151,6 +171,35 @@ final class ScenarioScripts
                 expectedMessage = message.find() ? message.group(1) : null;
             }
         }
+    }
+
+    private static A2aExSpec a2aExOf(
+        String chain)
+    {
+        final int kind = chain.contains(".task()") ? A2aDataExFW.KIND_TASK :
+            chain.contains(".statusUpdate()") ? A2aDataExFW.KIND_STATUS_UPDATE :
+            chain.contains(".message()") ? A2aDataExFW.KIND_MESSAGE : A2aDataExFW.KIND_ARTIFACT_UPDATE;
+
+        return new A2aExSpec(kind, member(chain, "taskId"), member(chain, "contextId"), member(chain, "state"),
+            member(chain, "messageId"), member(chain, "artifactId"), flag(chain, "append"), flag(chain, "lastChunk"));
+    }
+
+    private static String member(
+        String chain,
+        String name)
+    {
+        final Matcher matcher = Pattern.compile("\\." + name + "\\(\"([^\"]*)\"\\)").matcher(chain);
+
+        return matcher.find() ? matcher.group(1) : null;
+    }
+
+    private static Boolean flag(
+        String chain,
+        String name)
+    {
+        final Matcher matcher = Pattern.compile("\\." + name + "\\((true|false)\\)").matcher(chain);
+
+        return matcher.find() ? Boolean.valueOf(matcher.group(1)) : null;
     }
 
     private static int flagsOf(

@@ -29,6 +29,7 @@ import java.util.List;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.A2aTaskState;
+import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.A2aDataExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 public class A2aEventDecoderTest
@@ -51,6 +52,48 @@ public class A2aEventDecoderTest
             "text 3 hi",
             "artifactEnded",
             "ended true"), recorder.log);
+    }
+
+    @Test
+    public void shouldTakeHeadFromDataEx()
+    {
+        final Recorder recorder = new Recorder();
+        final A2aEventDecoder decoder = new A2aEventDecoder(recorder, 1024);
+        final A2aExSpec spec = new A2aExSpec(A2aDataExFW.KIND_ARTIFACT_UPDATE, "t-7", "c-7", null, null, "a-7",
+            Boolean.TRUE, Boolean.TRUE);
+
+        decode(decoder, "{\"artifactUpdate\":{\"taskId\":\"t-9\",\"contextId\":\"c-9\",\"artifact\":{\"artifactId\":\"a-9\"," +
+            "\"parts\":[{\"text\":\"hi\"}]},\"append\":false,\"lastChunk\":false}}", spec, 17);
+
+        assertEquals("started ARTIFACT_UPDATE t-7 c-7 UNSPECIFIED true", recorder.log.get(0));
+        assertEquals("artifact a-7", recorder.log.get(1));
+        assertEquals("ended true", recorder.log.get(recorder.log.size() - 1));
+    }
+
+    @Test
+    public void shouldTreatUnspecifiedFlagsAsFalse()
+    {
+        final Recorder recorder = new Recorder();
+        final A2aEventDecoder decoder = new A2aEventDecoder(recorder, 1024);
+        final A2aExSpec spec = new A2aExSpec(A2aDataExFW.KIND_ARTIFACT_UPDATE, "t-1", "c-1", null, null, "a-1", null, null);
+
+        decode(decoder, "{\"artifactUpdate\":{\"artifact\":{\"artifactId\":\"a-1\",\"parts\":[]},\"append\":true," +
+            "\"lastChunk\":true}}", spec, 4096);
+
+        assertEquals("started ARTIFACT_UPDATE t-1 c-1 UNSPECIFIED false", recorder.log.get(0));
+        assertEquals("ended false", recorder.log.get(recorder.log.size() - 1));
+    }
+
+    @Test
+    public void shouldPassNoIdentifierWhenDataExHasNone()
+    {
+        final Recorder recorder = new Recorder();
+        final A2aEventDecoder decoder = new A2aEventDecoder(recorder, 1024);
+        final A2aExSpec spec = new A2aExSpec(A2aDataExFW.KIND_MESSAGE, null, null, null, null, null, null, null);
+
+        decode(decoder, "{\"message\":{\"messageId\":\"m-1\",\"parts\":[]}}", spec, 4096);
+
+        assertEquals("message REPLY null", recorder.log.get(1));
     }
 
     @Test
@@ -163,7 +206,7 @@ public class A2aEventDecoderTest
         decode(decoder, "{\"artifactUpdate\":{\"taskId\":\"t-1\",\"contextId\":\"c-1\",\"artifact\":{\"artifactId\":\"a-1\"," +
             "\"parts\":[{\"text\":\"" + "x".repeat(500) + "\"}]},\"append\":true,\"lastChunk\":true}}", 40);
 
-        assertEquals("started ARTIFACT_UPDATE t-1 c-1 UNSPECIFIED null", recorder.log.get(0));
+        assertEquals("started ARTIFACT_UPDATE t-1 c-1 UNSPECIFIED true", recorder.log.get(0));
         assertEquals("x".repeat(500), recorder.text());
         assertEquals("ended true", recorder.log.get(recorder.log.size() - 1));
     }
@@ -228,7 +271,7 @@ public class A2aEventDecoderTest
         final Recorder recorder = new Recorder();
         final A2aEventDecoder decoder = new A2aEventDecoder(recorder, 1024);
 
-        decoder.decode(FIN, new io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx(new byte[1]), 0, 1);
+        decoder.decode(FIN, null, new io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx(new byte[1]), 0, 1);
 
         assertEquals(List.of("failed invalid_message Malformed event"), recorder.log);
     }
@@ -240,10 +283,10 @@ public class A2aEventDecoderTest
         final A2aEventDecoder decoder = new A2aEventDecoder(recorder, 1024);
         final byte[] bytes = "{\"message\":{".getBytes(UTF_8);
 
-        decoder.decode(INIT, new io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx(bytes), 0, bytes.length);
+        decoder.decode(INIT, null, new io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx(bytes), 0, bytes.length);
         decoder.finish();
 
-        assertEquals(List.of("failed invalid_message Truncated event"), recorder.log);
+        assertEquals("failed invalid_message Truncated event", recorder.log.get(recorder.log.size() - 1));
     }
 
     private static void decode(
@@ -251,8 +294,18 @@ public class A2aEventDecoderTest
         String json,
         int window)
     {
+        decode(decoder, json, A2aExSpec.of(json), window);
+    }
+
+    private static void decode(
+        A2aEventDecoder decoder,
+        String json,
+        A2aExSpec spec,
+        int window)
+    {
         final byte[] bytes = json.getBytes(UTF_8);
         final DirectBufferEx buffer = new io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx(bytes);
+        final A2aDataExFW dataEx = spec.build();
 
         int progress = 0;
 
@@ -260,7 +313,8 @@ public class A2aEventDecoderTest
         {
             final int limit = Math.min(progress + window, bytes.length);
 
-            decoder.decode((progress == 0 ? INIT : 0) | (limit == bytes.length ? FIN : 0), buffer, progress, limit);
+            decoder.decode((progress == 0 ? INIT : 0) | (limit == bytes.length ? FIN : 0), progress == 0 ? dataEx : null,
+                buffer, progress, limit);
             progress = limit;
         }
         while (progress < bytes.length);

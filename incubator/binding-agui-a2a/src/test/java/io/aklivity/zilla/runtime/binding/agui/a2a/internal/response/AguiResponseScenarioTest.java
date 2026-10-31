@@ -156,9 +156,9 @@ public class AguiResponseScenarioTest
             harness.snapshot = first.payloadText();
         }
 
-        for (String event : scripts.events)
+        for (int index = 0; index < scripts.events.size(); index++)
         {
-            harness.event(event, window);
+            harness.event(scripts.events.get(index), scripts.exs.get(index), window);
         }
 
         if (scripts.abort)
