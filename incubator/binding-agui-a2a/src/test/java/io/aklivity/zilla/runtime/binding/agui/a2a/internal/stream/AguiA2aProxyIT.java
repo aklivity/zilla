@@ -835,4 +835,59 @@ public class AguiA2aProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.active/client",
+        "${agent}/extension.active/server"})
+    public void shouldRunExtensionActive() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.echo.absent/client",
+        "${agent}/extension.echo.absent/server"})
+    public void shouldRunExtensionEchoAbsent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.versions/client",
+        "${agent}/extension.versions/server"})
+    public void shouldRunExtensionVersions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.required.unsupported/client",
+        "${agent}/extension.required.unsupported/server"})
+    public void shouldRunExtensionRequiredUnsupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.cancel/client",
+        "${agent}/extension.cancel/server"})
+    public void shouldRunExtensionCancel() throws Exception
+    {
+        k3po.finish();
+    }
 }
