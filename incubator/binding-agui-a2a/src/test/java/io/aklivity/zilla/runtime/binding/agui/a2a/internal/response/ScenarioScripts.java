@@ -43,6 +43,7 @@ final class ScenarioScripts
     private static final Pattern CODE = Pattern.compile("\\.code\\(\"([^\"]*)\"\\)");
     private static final Pattern MESSAGE = Pattern.compile("\\.message\\(\"([^\"]*)\"\\)");
     private static final Pattern FEATURES = Pattern.compile("\"features\":\\[([^\\]]*)\\]");
+    private static final Pattern DETAIL = Pattern.compile("\\.detail\\(\"((?:[^\"\\\\]|\\\\.)*)\"\\)");
     private static final Pattern REASON = Pattern.compile("\\.reason\\(\"([^\"]*)\"\\)");
 
     final List<String> events = new ArrayList<>();
@@ -53,6 +54,7 @@ final class ScenarioScripts
     boolean abort;
     String abortReason;
     String expectedOutcome;
+    String expectedDetail;
     String expectedCode;
     String expectedMessage;
 
@@ -178,8 +180,10 @@ final class ScenarioScripts
                 final Matcher outcome = OUTCOME.matcher(chain);
                 final Matcher code = CODE.matcher(chain);
                 final Matcher message = MESSAGE.matcher(chain);
+                final Matcher detail = DETAIL.matcher(chain);
 
                 expectedOutcome = outcome.find() ? outcome.group(1) : line.startsWith("write zilla:end.ext") ? "NONE" : null;
+                expectedDetail = detail.find() ? detail.group(1).replace("\\\"", "\"") : null;
                 expectedCode = code.find() ? code.group(1) : null;
                 expectedMessage = message.find() ? message.group(1) : null;
             }

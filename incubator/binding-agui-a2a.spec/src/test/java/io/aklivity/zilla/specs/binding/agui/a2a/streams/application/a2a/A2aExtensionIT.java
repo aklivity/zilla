@@ -233,4 +233,22 @@ public class A2aExtensionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/extension.tools.call/client",
+        "${app}/extension.tools.call/server"})
+    public void shouldRunExtensionToolsCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/extension.tools.call.text/client",
+        "${app}/extension.tools.call.text/server"})
+    public void shouldRunExtensionToolsCallText() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -90,7 +90,7 @@ read zilla:data.ext ${a2a:matchDataEx()
                              .lastChunk(true)
                              .build()
                          .build()}
-read '{"artifactUpdate":{"taskId":"t-1","contextId":"c-1","artifact":{"artifactId":"a-2","parts":[{"metadata":{"agui":{"event":"toolCall"}},"data":{"type":"tool-call","id":"call-9","name":"get_location","arguments":{}}}]},"append":false,"lastChunk":true}}'
+read '{"artifactUpdate":{"taskId":"t-1","contextId":"c-1","artifact":{"artifactId":"a-2","parts":[{"metadata":{"agui":{"event":"futureTag"}},"data":{"b":2}}]},"append":false,"lastChunk":true}}'
 
 read zilla:data.ext ${a2a:matchDataEx()
                          .typeId(zilla:id("a2a"))
