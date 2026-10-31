@@ -17,7 +17,9 @@ package io.aklivity.zilla.runtime.binding.proxy.internal.config;
 
 import static java.util.stream.Collectors.toList;
 
+import java.net.InetAddress;
 import java.util.List;
+import java.util.function.Function;
 
 import io.aklivity.zilla.config.binding.proxy.ProxyOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
@@ -33,13 +35,16 @@ public final class ProxyBindingConfig
     public final List<ProxyRouteConfig> routes;
 
     public ProxyBindingConfig(
-        BindingConfig binding)
+        BindingConfig binding,
+        Function<String, InetAddress[]> resolveHost)
     {
         this.id = binding.id;
         this.name = binding.name;
         this.kind = binding.kind;
         this.options = ProxyOptionsConfig.class.cast(binding.options);
-        this.routes = binding.routes.stream().map(ProxyRouteConfig::new).collect(toList());
+        this.routes = binding.routes.stream()
+            .map(r -> new ProxyRouteConfig(r, resolveHost))
+            .collect(toList());
     }
 
     public ProxyRouteConfig resolve(
