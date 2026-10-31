@@ -714,4 +714,81 @@ public class AguiA2aProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/card.failure/client",
+        "${agent}/card.failure/server"})
+    public void shouldCardFailure() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/card.input.modes/client",
+        "${agent}/card.input.modes/server"})
+    public void shouldCardInputModes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/card.input.modes.wildcard/client",
+        "${agent}/card.input.modes.wildcard/server"})
+    public void shouldCardInputModesWildcard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/card.streaming/client",
+        "${agent}/card.streaming/server"})
+    public void shouldCardStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/card.streaming.absent/client",
+        "${agent}/card.streaming.absent/server"})
+    public void shouldCardStreamingAbsent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/card.streaming.disabled/client",
+        "${agent}/card.streaming.disabled/server"})
+    public void shouldCardStreamingDisabled() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/card.unsupported.media/client",
+        "${agent}/card.unsupported.media/server"})
+    public void shouldCardUnsupportedMedia() throws Exception
+    {
+        k3po.finish();
+    }
 }

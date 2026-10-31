@@ -19,6 +19,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.Arrays;
 import java.util.Map;
+import java.util.function.Predicate;
 
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.request.AguiA2aRetained.Kind;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -146,6 +147,8 @@ public final class AguiA2aMessageAssembler
     private String taskId;
     private String interruptId;
     private boolean acceptsJson;
+    private Predicate<String> acceptedMediaType = mediaType -> true;
+    private String unacceptedMediaType;
     private AguiA2aBodySink sink;
     private Walk walker = walkDone;
     private int partCount;
@@ -187,8 +190,22 @@ public final class AguiA2aMessageAssembler
         return this;
     }
 
+    public AguiA2aMessageAssembler accepting(
+        Predicate<String> acceptedMediaType)
+    {
+        this.acceptedMediaType = acceptedMediaType;
+        return this;
+    }
+
+    public String unacceptedMediaType()
+    {
+        return unacceptedMediaType;
+    }
+
     public int contentLength()
     {
+        unacceptedMediaType = null;
+
         gatherCount = 0;
         gatherIndex = 0;
         gatherProgress = 0;
@@ -794,6 +811,14 @@ public final class AguiA2aMessageAssembler
 
             if (rangeStart[RANGE_MIME_TYPE] != ABSENT)
             {
+                final String mediaType = slot.getStringWithoutLengthUtf8(rangeStart[RANGE_MIME_TYPE] + 1,
+                    rangeEnd[RANGE_MIME_TYPE] - rangeStart[RANGE_MIME_TYPE] - 2);
+
+                if (unacceptedMediaType == null && !acceptedMediaType.test(mediaType))
+                {
+                    unacceptedMediaType = mediaType;
+                }
+
                 write(MEDIA_TYPE);
                 writeRange(RANGE_MIME_TYPE);
             }
