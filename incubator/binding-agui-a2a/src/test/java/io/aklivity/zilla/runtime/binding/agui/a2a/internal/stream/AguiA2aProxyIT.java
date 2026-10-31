@@ -1088,4 +1088,15 @@ public class AguiA2aProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.tools.round.trip/client",
+        "${agent}/extension.tools.round.trip/server"})
+    public void shouldRunExtensionToolsRoundTrip() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -251,4 +251,13 @@ public class AguiExtensionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/extension.tools.round.trip/client",
+        "${app}/extension.tools.round.trip/server"})
+    public void shouldRunExtensionToolsRoundTrip() throws Exception
+    {
+        k3po.finish();
+    }
 }
