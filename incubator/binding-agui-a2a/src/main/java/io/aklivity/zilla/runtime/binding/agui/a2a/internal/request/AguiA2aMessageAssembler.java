@@ -202,26 +202,6 @@ public final class AguiA2aMessageAssembler
         return gatherIndex == gatherCount;
     }
 
-    public int resumeCount(
-        AguiA2aRetained retained)
-    {
-        return retained.resumeCount();
-    }
-
-    public String resumeInterruptId(
-        AguiA2aRetained retained,
-        int index)
-    {
-        return retained.resumeInterruptId(index);
-    }
-
-    public ResumeStatus resumeStatus(
-        AguiA2aRetained retained,
-        int index)
-    {
-        return retained.resumeStatus(index);
-    }
-
     private void emitMessageId()
     {
         final int last = interruptId == null ? retained.lastIndexOf(Kind.MESSAGE) : ABSENT;
