@@ -150,5 +150,6 @@ there is no incremental text.
   running. A Stop button and a closed tab look the same to Zilla.
 - Frontend tools, `STATE_*`, activity, reasoning and tool call events, and the A2A extensions that would carry them
   are not mapped. The proxy declares no A2A extension.
+- An agent slug with no route on `agui-a2a`, such as `/agents/unknown` here, is answered 502 because nothing can be reached.
 - `routes[].when.path` on `agui` is the only way to pick an agent; CopilotKit's `/connect` and `/stop` routes are
   not AG-UI and are answered 404.
