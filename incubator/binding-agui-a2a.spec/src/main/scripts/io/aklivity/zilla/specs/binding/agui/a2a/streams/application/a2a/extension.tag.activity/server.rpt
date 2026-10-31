@@ -82,7 +82,7 @@ write zilla:data.ext ${a2a:dataEx()
                               .lastChunk(true)
                               .build()
                           .build()}
-write '{"artifactUpdate":{"taskId":"t-1","contextId":"c-1","artifact":{"artifactId":"a-1","parts":[{"metadata":{"agui":{"event":"activity","type":"snapshot","activityType":"progress","messageId":"act-1"}},"data":{"percent":50}}]},"append":false,"lastChunk":true}}'
+write '{"artifactUpdate":{"taskId":"t-1","contextId":"c-1","artifact":{"artifactId":"a-1","parts":[{"metadata":{"agui":{"event":"activity","type":"snapshot","activityType":"progress","messageId":"progress-1"}},"data":{"percent":50}}]},"append":false,"lastChunk":true}}'
 write flush
 
 write zilla:data.ext ${a2a:dataEx()
@@ -95,7 +95,7 @@ write zilla:data.ext ${a2a:dataEx()
                               .lastChunk(true)
                               .build()
                           .build()}
-write '{"artifactUpdate":{"taskId":"t-1","contextId":"c-1","artifact":{"artifactId":"a-2","parts":[{"metadata":{"agui":{"event":"activity","type":"delta","activityType":"progress","messageId":"act-1","replace":false}},"data":[{"op":"replace","path":"/percent","value":75}]}]},"append":false,"lastChunk":true}}'
+write '{"artifactUpdate":{"taskId":"t-1","contextId":"c-1","artifact":{"artifactId":"a-2","parts":[{"metadata":{"agui":{"event":"activity","type":"delta","activityType":"progress","messageId":"progress-1","replace":false}},"data":[{"op":"replace","path":"/percent","value":75}]}]},"append":false,"lastChunk":true}}'
 write flush
 
 write zilla:data.ext ${a2a:dataEx()

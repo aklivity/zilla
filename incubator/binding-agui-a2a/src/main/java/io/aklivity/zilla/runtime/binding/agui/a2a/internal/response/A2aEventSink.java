@@ -51,6 +51,18 @@ public interface A2aEventSink
         String url,
         String raw);
 
+    void tagStarted(
+        A2aPartTag tag);
+
+    void tagEnded();
+
+    void tagDropped(
+        String event);
+
+    void tagMalformed(
+        String event,
+        String detail);
+
     void artifactEnded();
 
     void messageEnded(

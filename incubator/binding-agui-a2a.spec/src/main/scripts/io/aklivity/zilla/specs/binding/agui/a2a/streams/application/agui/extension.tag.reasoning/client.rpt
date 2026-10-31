@@ -62,7 +62,6 @@ read 'ZW5jcnlwdGVk'
 read option zilla:flags "fin"
 read zilla:data.empty
 
-read option zilla:flags "auto"
 read zilla:end.ext ${agui:matchEndEx()
                      .typeId(zilla:id("agui"))
                      .outcome("SUCCESS")

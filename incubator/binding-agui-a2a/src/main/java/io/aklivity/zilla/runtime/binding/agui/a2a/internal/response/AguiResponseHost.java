@@ -22,4 +22,11 @@ public interface AguiResponseHost
     InterruptHandle interruptHandle(
         String taskId,
         String contextId);
+
+    void tagDropped(
+        String tag);
+
+    void tagMalformed(
+        String tag,
+        String detail);
 }
