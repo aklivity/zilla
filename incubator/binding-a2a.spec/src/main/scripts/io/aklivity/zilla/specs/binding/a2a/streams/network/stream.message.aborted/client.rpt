@@ -42,5 +42,6 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 read '{"jsonrpc":"2.0","id":1,"result":{"task":{"id":"t-1","contextId":"c-1","status":{"state":"TASK_STATE_SUBMITTED"}}}}'
 read '{"jsonrpc":"2.0","id":1,"result":{"statusUpdate":{"taskId":"t-1","contextId":"c-1","status":{"state":"TASK_STATE_WORKING"}}}}'
+read notify EVENTS_DELIVERED
 
 read aborted
