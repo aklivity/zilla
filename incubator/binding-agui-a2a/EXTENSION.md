@@ -25,8 +25,8 @@ This extension lets an **agent** opt into a richer mapping (tier 2) without fork
 
 | Item | Value |
 | --- | --- |
-| Extension URI | `https://aklivity.io/a2a-extension/agui/v1` |
-| URI pattern | `https://aklivity.io/a2a-extension/<name>/v<major>`, the path shape other A2A extensions use. The name is `agui`. It is not `a2ui`: A2UI is a different project, and its content plug-in is a separate extension (section 12) |
+| Extension URI | `https://a2a.aklivity.io/ext/agui/v1` |
+| URI pattern | `https://a2a.aklivity.io/ext/<name>/v<major>`. The host scopes every A2A extension Aklivity publishes, the name is `agui` and the major version is part of the URI. It is not `a2ui`: A2UI is a different project, and its content plug-in is a separate extension (section 12) |
 | Namespace | Aklivity-owned. The `https://a2a-protocol.org/extensions/` prefix is reserved for the A2A organization and MUST NOT be used |
 | Header | `A2A-Extensions`, as the A2A specification defines it. The A2UI extension documents `X-A2A-Extensions` for older clients; the proxy sends `A2A-Extensions` and reads the echo of `A2A-Extensions`, which the a2a stream reports in the reply begin |
 | Metadata key | `agui` |
@@ -64,7 +64,7 @@ The agent adds one entry to `capabilities.extensions[]` of its agent card:
     "streaming": true,
     "extensions": [
       {
-        "uri": "https://aklivity.io/a2a-extension/agui/v1",
+        "uri": "https://a2a.aklivity.io/ext/agui/v1",
         "description": "Maps this agent's tasks to AG-UI events",
         "required": false,
         "params": {
@@ -409,7 +409,7 @@ Where the source design was silent or contradicted itself, these decisions were 
 
 | # | Point | Decision |
 | --- | --- | --- |
-| 1 | The URI | `https://aklivity.io/a2a-extension/agui/v1`: host `aklivity.io`, path `a2a-extension/<name>/<version>` (section 2) |
+| 1 | The URI | `https://a2a.aklivity.io/ext/agui/v1`: host `a2a.aklivity.io`, path `ext/<name>/v<major>` (section 2) |
 | 2 | `instructions` | reserved name, not defined (sections 3, 12) |
 | 3 | `history` | reserved name, not defined (sections 3, 12) |
 | 4 | `custom` and `raw` tags | enabled by a feature named `custom` (section 4.1) |
