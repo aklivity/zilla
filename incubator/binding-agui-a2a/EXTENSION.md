@@ -344,6 +344,21 @@ A tag in a tier 1 run is never a tool call: `tool` messages are ignored there.
 6. **Working status.** Tagged parts of a `WORKING` `status.message` map like artifact parts. Untagged working text keeps the
    tier 1 behavior, an `ACTIVITY_SNAPSHOT` of type `status`.
 
+### 8.1 Reading tagged parts
+
+The proxy decodes the A2A event once, as it arrives, and finds a part's tag before it maps the part.
+
+1. The tag, and for `toolCall` and `toolResult` the `id`, `name` and `toolCallId` members of `data`, MUST be readable
+   inside the proxy's decode window. A `metadata` member and a `data` member may appear in either order, but a part whose
+   tag is not readable inside the window, such as a `data` value larger than the window that precedes `metadata`, is not
+   recognized as tagged and maps as `agent.data`.
+2. The `data` of `toolCall` maps to the `TOOL_CALL_ARGS` of its `arguments` member and the `data` of `toolResult` to the
+   content of its `payload` member. Both members are carried as their JSON text, so a string payload keeps its quotes.
+3. `reasoning` and `reasoning.encrypted` map the `text` of the part; `step` maps no content.
+4. A tag for a feature that is not enabled is plain data (section 9). The features the proxy enables are the ones it
+   implements: `subagents` and `interrupts` are not enabled yet, so their tags map as `agent.data`. An unknown `event`
+   and a client-executed `toolCall` are dropped and recorded by the Zilla event `binding.agui.a2a.tag.dropped`.
+
 ## 9. Error handling
 
 | Condition | Behavior |
