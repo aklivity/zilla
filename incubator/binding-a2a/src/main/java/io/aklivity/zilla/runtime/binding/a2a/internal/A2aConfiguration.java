@@ -23,12 +23,17 @@ public class A2aConfiguration extends Configuration
     private static final ConfigurationDef A2A_CONFIG;
 
     public static final PropertyDef<Duration> A2A_CACHE_LEASE_TTL;
+    public static final IntPropertyDef A2A_PUSH_DELIVERY_RETRIES;
+    public static final PropertyDef<Duration> A2A_PUSH_DELIVERY_BACKOFF;
 
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.a2a");
         A2A_CACHE_LEASE_TTL = config.property(Duration.class, "cache.lease.ttl",
             (c, v) -> Duration.parse(v), "PT30S");
+        A2A_PUSH_DELIVERY_RETRIES = config.property("push.delivery.retries", 2);
+        A2A_PUSH_DELIVERY_BACKOFF = config.property(Duration.class, "push.delivery.backoff",
+            (c, v) -> Duration.parse(v), "PT1S");
         A2A_CONFIG = config;
     }
 
@@ -41,5 +46,15 @@ public class A2aConfiguration extends Configuration
     public Duration cacheLeaseTtl()
     {
         return A2A_CACHE_LEASE_TTL.get(this);
+    }
+
+    public int pushDeliveryRetries()
+    {
+        return A2A_PUSH_DELIVERY_RETRIES.getAsInt(this);
+    }
+
+    public Duration pushDeliveryBackoff()
+    {
+        return A2A_PUSH_DELIVERY_BACKOFF.get(this);
     }
 }

@@ -21,6 +21,7 @@ import io.aklivity.zilla.config.binding.a2a.A2aCacheConfig;
 import io.aklivity.zilla.config.binding.a2a.A2aDiscoveryConfig;
 import io.aklivity.zilla.config.binding.a2a.A2aOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.runtime.binding.a2a.internal.push.A2aProxyPush;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
@@ -29,6 +30,7 @@ public final class A2aProxyBindingConfig
     public final long id;
     public final A2aCacheConfig cache;
     public final A2aDiscoveryConfig discovery;
+    public final A2aProxyPush push;
     public final GuardHandler guard;
     public final List<A2aProxyRouteConfig> routes;
 
@@ -41,6 +43,7 @@ public final class A2aProxyBindingConfig
         this.id = binding.id;
         this.cache = options != null ? options.cache : null;
         this.discovery = options != null ? options.discovery : null;
+        this.push = options != null ? A2aProxyPush.of(binding, options.proxyPush, context) : null;
         this.routes = binding.routes.stream()
             .map(A2aProxyRouteConfig::new)
             .toList();

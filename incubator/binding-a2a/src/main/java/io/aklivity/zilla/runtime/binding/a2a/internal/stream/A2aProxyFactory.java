@@ -111,6 +111,7 @@ public final class A2aProxyFactory implements A2aStreamFactory
     private final Long2ObjectHashMap<A2aProxyBindingConfig> bindings = new Long2ObjectHashMap<>();
     private final Long2ObjectHashMap<A2aAgentCache> caches = new Long2ObjectHashMap<>();
     private final A2aDiscoveryFactory discovery;
+    private final A2aProxyPushFactory push;
 
     public A2aProxyFactory(
         A2aConfiguration config,
@@ -128,6 +129,7 @@ public final class A2aProxyFactory implements A2aStreamFactory
         this.a2aTypeId = context.supplyTypeId(A2A_TYPE_NAME);
         this.decodeMax = decodePool.slotCapacity();
         this.discovery = new A2aDiscoveryFactory(config, context);
+        this.push = new A2aProxyPushFactory(this, context);
     }
 
     public A2aAgentCards cards(
@@ -193,7 +195,15 @@ public final class A2aProxyFactory implements A2aStreamFactory
         {
             final A2aBeginExFW beginEx = a2aBeginExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
 
-            if (beginEx != null)
+            final MessageConsumer pushStream = beginEx != null
+                ? push.newStream(binding, beginEx, authorization, sender, originId, routedId, initialId)
+                : null;
+
+            if (pushStream != null)
+            {
+                newStream = pushStream;
+            }
+            else if (beginEx != null)
             {
                 final String agent = agentOf(beginEx);
 
@@ -1370,7 +1380,7 @@ public final class A2aProxyFactory implements A2aStreamFactory
         }
     }
 
-    private MessageConsumer newStream(
+    MessageConsumer newStream(
         MessageConsumer sender,
         long originId,
         long routedId,
@@ -1407,7 +1417,7 @@ public final class A2aProxyFactory implements A2aStreamFactory
         return receiver;
     }
 
-    private void doBegin(
+    void doBegin(
         MessageConsumer receiver,
         long originId,
         long routedId,
@@ -1441,7 +1451,7 @@ public final class A2aProxyFactory implements A2aStreamFactory
         receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
     }
 
-    private void doData(
+    void doData(
         MessageConsumer receiver,
         long originId,
         long routedId,
@@ -1483,7 +1493,7 @@ public final class A2aProxyFactory implements A2aStreamFactory
         receiver.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
     }
 
-    private void doFlush(
+    void doFlush(
         MessageConsumer receiver,
         long originId,
         long routedId,
@@ -1519,7 +1529,7 @@ public final class A2aProxyFactory implements A2aStreamFactory
         receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
     }
 
-    private void doEnd(
+    void doEnd(
         MessageConsumer receiver,
         long originId,
         long routedId,
@@ -1551,7 +1561,7 @@ public final class A2aProxyFactory implements A2aStreamFactory
         receiver.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
     }
 
-    private void doAbort(
+    void doAbort(
         MessageConsumer receiver,
         long originId,
         long routedId,
@@ -1583,7 +1593,7 @@ public final class A2aProxyFactory implements A2aStreamFactory
         receiver.accept(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
     }
 
-    private void doReset(
+    void doReset(
         MessageConsumer receiver,
         long originId,
         long routedId,
@@ -1615,7 +1625,7 @@ public final class A2aProxyFactory implements A2aStreamFactory
         receiver.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 
-    private void doWindow(
+    void doWindow(
         MessageConsumer receiver,
         long originId,
         long routedId,

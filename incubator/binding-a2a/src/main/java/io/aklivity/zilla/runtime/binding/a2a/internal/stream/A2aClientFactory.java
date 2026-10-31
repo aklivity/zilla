@@ -32,8 +32,12 @@ import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
 
 import java.io.ByteArrayInputStream;
+import java.net.InetAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -91,6 +95,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
+import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class A2aClientFactory implements A2aStreamFactory
@@ -129,7 +134,7 @@ public final class A2aClientFactory implements A2aStreamFactory
     private static final String VERSION_CANONICAL = "1.0";
     private static final String VERSION_LEGACY = "0.3";
     private static final String JSON_NULL = "null";
-    private static final int PUSH_DELIVERY_RETRIES = 2;
+    private static final int ERROR_CODE_FORBIDDEN = 403;
     private static final int PEEK_NO = 0;
     private static final int PEEK_YES = 1;
     private static final int PEEK_MORE = -1;
@@ -200,6 +205,7 @@ public final class A2aClientFactory implements A2aStreamFactory
     private final int encodeMax;
 
     private final Long2ObjectHashMap<A2aClientBindingConfig> bindings = new Long2ObjectHashMap<>();
+    private final Map<String, Deque<A2aDeliverStream>> deliveries = new HashMap<>();
     private final A2aDialects dialects = new A2aDialects(null);
     private final A2aRequestEncoder requestEncoder = new A2aRequestEncoder();
     private final A2aAgentCardParser cardParser = new A2aAgentCardParser();
@@ -921,6 +927,13 @@ public final class A2aClientFactory implements A2aStreamFactory
             }
 
             cleanupDecodeSlot();
+            onAppClosed(traceId, authorization);
+        }
+
+        void onAppClosed(
+            long traceId,
+            long authorization)
+        {
         }
 
         private void onAppFlush(
@@ -998,6 +1011,7 @@ public final class A2aClientFactory implements A2aStreamFactory
             }
 
             cleanupDecodeSlot();
+            onAppClosed(traceId, authorization);
         }
 
         private String resolveCredentials(
@@ -1721,6 +1735,7 @@ public final class A2aClientFactory implements A2aStreamFactory
 
     private final class A2aDeliverStream extends A2aStream
     {
+        private String configId;
         private String url;
         private String token;
         private String scheme;
@@ -1728,6 +1743,8 @@ public final class A2aClientFactory implements A2aStreamFactory
         private int contentLength;
         private int attempts;
         private int bodyReceived;
+        private long retryId = Signaler.NO_CANCEL_ID;
+        private Deque<A2aDeliverStream> turn;
 
         A2aDeliverStream(
             MessageConsumer sender,
@@ -1748,33 +1765,39 @@ public final class A2aClientFactory implements A2aStreamFactory
         {
             final var pushNotify = beginEx.pushNotify();
 
+            this.configId = pushNotify.configId().asString();
             this.url = pushNotify.url().asString();
             this.token = pushNotify.token().asString();
             this.scheme = pushNotify.scheme().asString();
             this.pushCredentials = pushNotify.credentials().asString();
             this.contentLength = pushNotify.contentLength();
 
-            if (url == null || contentLength < 0)
+            if (url == null || contentLength < 0 || hostOf(url) == null)
             {
                 doAppResetError(traceId, authorization, ERROR_CODE_INVALID_PARAMS, ERROR_MESSAGE_INVALID_PARAMS);
             }
-            else if (contentLength > decodeMax)
+            else if (retains() && !acquireDecodeSlot())
             {
-                doAppResetError(traceId, authorization, ERROR_CODE_PAYLOAD_TOO_LARGE, ERROR_MESSAGE_PAYLOAD_TOO_LARGE);
+                doAppResetError(traceId, authorization, ERROR_CODE_BAD_GATEWAY, ERROR_MESSAGE_BAD_GATEWAY);
             }
             else
             {
-                decodeSlot = decodePool.acquire(initialId);
+                doAppBegin(traceId, authorization);
 
-                if (decodeSlot == NO_SLOT)
+                if (configId != null)
                 {
-                    doAppResetError(traceId, authorization, ERROR_CODE_BAD_GATEWAY, ERROR_MESSAGE_BAD_GATEWAY);
+                    turn = deliveries.computeIfAbsent(deliveryKey(), key -> new ArrayDeque<>());
+                    turn.addLast(this);
                 }
-                else
+
+                if (retains())
                 {
-                    doAppBegin(traceId, authorization);
-                    deliver(traceId, authorization);
                     doAppWindow(traceId, authorization);
+                }
+
+                if (inTurn())
+                {
+                    onTurn(traceId, authorization);
                 }
             }
         }
@@ -1791,45 +1814,25 @@ public final class A2aClientFactory implements A2aStreamFactory
             {
                 cleanupApp(traceId, authorization);
             }
-            else
+            else if (retains())
             {
                 final MutableDirectBufferEx slotBuffer = decodePool.buffer(decodeSlot);
                 slotBuffer.putBytes(decodeSlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
                 decodeSlotOffset += payload.sizeof();
 
-                if (http != null)
+                if (bodyReceived == contentLength && inTurn())
                 {
-                    http.doEncodeRequestData(traceId, authorization, payload.buffer(), payload.offset(), payload.limit());
-
-                    if (bodyReceived == contentLength)
-                    {
-                        http.doEncodeRequestEnd(traceId, authorization);
-                    }
-                }
-                else if (bodyReceived == contentLength)
-                {
-                    deliver(traceId, authorization);
+                    onTurn(traceId, authorization);
                 }
             }
-        }
-
-        private void deliver(
-            long traceId,
-            long authorization)
-        {
-            final HttpDeliverStream delivery = new HttpDeliverStream(this, url);
-            this.http = delivery;
-
-            delivery.doEncodeRequestBegin(traceId, authorization, contentLength);
-
-            if (decodeSlotOffset > 0)
+            else if (http != null)
             {
-                delivery.doEncodeRequestData(traceId, authorization, decodePool.buffer(decodeSlot), 0, decodeSlotOffset);
-            }
+                http.doEncodeRequestData(traceId, authorization, payload.buffer(), payload.offset(), payload.limit());
 
-            if (bodyReceived == contentLength)
-            {
-                delivery.doEncodeRequestEnd(traceId, authorization);
+                if (bodyReceived == contentLength)
+                {
+                    http.doEncodeRequestEnd(traceId, authorization);
+                }
             }
         }
 
@@ -1852,6 +1855,7 @@ public final class A2aClientFactory implements A2aStreamFactory
         {
             cleanupDecodeSlot();
             doAppEnd(traceId, authorization);
+            releaseTurn(traceId, authorization);
         }
 
         @Override
@@ -1867,8 +1871,7 @@ public final class A2aClientFactory implements A2aStreamFactory
             }
             else
             {
-                cleanupDecodeSlot();
-                doAppRejected(traceId, authorization, status, null, null);
+                giveUp(traceId, authorization, status);
             }
         }
 
@@ -1888,25 +1891,13 @@ public final class A2aClientFactory implements A2aStreamFactory
             onDeliveryFailed(traceId, authorization, 0);
         }
 
-        private void onDeliveryFailed(
+        @Override
+        void onAppClosed(
             long traceId,
-            long authorization,
-            int status)
+            long authorization)
         {
-            http = null;
-
-            if (attempts++ < PUSH_DELIVERY_RETRIES)
-            {
-                if (bodyReceived == contentLength)
-                {
-                    deliver(traceId, authorization);
-                }
-            }
-            else
-            {
-                cleanupDecodeSlot();
-                doAppRejected(traceId, authorization, status, null, null);
-            }
+            cancelRetry();
+            releaseTurn(traceId, authorization);
         }
 
         @Override
@@ -1921,7 +1912,194 @@ public final class A2aClientFactory implements A2aStreamFactory
             }
 
             super.cleanupApp(traceId, authorization);
+            onAppClosed(traceId, authorization);
         }
+
+        private boolean retains()
+        {
+            return contentLength <= retainedMax(binding, decodeMax);
+        }
+
+        private boolean inTurn()
+        {
+            return turn == null || turn.peekFirst() == this;
+        }
+
+        private String deliveryKey()
+        {
+            return binding.id + "/" + configId;
+        }
+
+        private boolean acquireDecodeSlot()
+        {
+            if (decodeSlot == NO_SLOT)
+            {
+                decodeSlot = decodePool.acquire(initialId);
+            }
+
+            return decodeSlot != NO_SLOT;
+        }
+
+        private void onTurn(
+            long traceId,
+            long authorization)
+        {
+            if (!retains())
+            {
+                attempt(traceId, authorization);
+                doAppWindow(traceId, authorization);
+            }
+            else if (bodyReceived == contentLength)
+            {
+                attempt(traceId, authorization);
+            }
+        }
+
+        private void attempt(
+            long traceId,
+            long authorization)
+        {
+            InetAddress[] addresses = null;
+
+            try
+            {
+                addresses = context.resolveHost(hostOf(url));
+            }
+            catch (Exception ex)
+            {
+                addresses = null;
+            }
+
+            if (addresses == null)
+            {
+                onDeliveryFailed(traceId, authorization, 0);
+            }
+            else if (!binding.pushPolicy.permits(url, addresses))
+            {
+                giveUp(traceId, authorization, ERROR_CODE_FORBIDDEN);
+            }
+            else
+            {
+                deliver(traceId, authorization);
+            }
+        }
+
+        private void deliver(
+            long traceId,
+            long authorization)
+        {
+            final HttpDeliverStream delivery = new HttpDeliverStream(this, url);
+            this.http = delivery;
+
+            delivery.doEncodeRequestBegin(traceId, authorization, contentLength);
+
+            if (retains())
+            {
+                if (decodeSlotOffset > 0)
+                {
+                    delivery.doEncodeRequestData(traceId, authorization, decodePool.buffer(decodeSlot), 0, decodeSlotOffset);
+                }
+
+                delivery.doEncodeRequestEnd(traceId, authorization);
+            }
+            else if (bodyReceived == contentLength)
+            {
+                delivery.doEncodeRequestEnd(traceId, authorization);
+            }
+        }
+
+        private void onDeliveryFailed(
+            long traceId,
+            long authorization,
+            int status)
+        {
+            http = null;
+
+            if (retains() && attempts < config.pushDeliveryRetries())
+            {
+                final long delay = config.pushDeliveryBackoff().toMillis() << attempts;
+
+                attempts++;
+                retryId = context.signaler().signalAt(context.clock().millis() + delay, 0, id -> onRetry());
+            }
+            else
+            {
+                giveUp(traceId, authorization, status);
+            }
+        }
+
+        private void onRetry()
+        {
+            retryId = Signaler.NO_CANCEL_ID;
+            attempt(context.supplyTraceId(), authorization);
+        }
+
+        private void giveUp(
+            long traceId,
+            long authorization,
+            int status)
+        {
+            cleanupDecodeSlot();
+            doAppRejected(traceId, authorization, status, null, null);
+            releaseTurn(traceId, authorization);
+        }
+
+        private void cancelRetry()
+        {
+            if (retryId != Signaler.NO_CANCEL_ID)
+            {
+                context.signaler().cancel(retryId);
+                retryId = Signaler.NO_CANCEL_ID;
+            }
+        }
+
+        private void releaseTurn(
+            long traceId,
+            long authorization)
+        {
+            final Deque<A2aDeliverStream> queue = turn;
+
+            if (queue != null)
+            {
+                final boolean head = queue.peekFirst() == this;
+
+                turn = null;
+                queue.remove(this);
+
+                if (queue.isEmpty())
+                {
+                    deliveries.remove(deliveryKey());
+                }
+                else if (head)
+                {
+                    queue.peekFirst().onTurn(traceId, authorization);
+                }
+            }
+        }
+    }
+
+    private static int retainedMax(
+        A2aClientBindingConfig binding,
+        int decodeMax)
+    {
+        return binding.pushMaxLength > 0 ? Math.min(binding.pushMaxLength, decodeMax) : decodeMax;
+    }
+
+    private static String hostOf(
+        String url)
+    {
+        String host = null;
+
+        try
+        {
+            host = URI.create(url).getHost();
+        }
+        catch (IllegalArgumentException ex)
+        {
+            host = null;
+        }
+
+        return host;
     }
 
     private void fetchCard(

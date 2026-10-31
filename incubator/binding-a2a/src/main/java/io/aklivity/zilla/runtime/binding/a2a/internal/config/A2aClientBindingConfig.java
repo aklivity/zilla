@@ -22,6 +22,7 @@ import java.util.List;
 import io.aklivity.zilla.config.binding.a2a.A2aAuthorizationConfig;
 import io.aklivity.zilla.config.binding.a2a.A2aOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.runtime.binding.a2a.internal.push.A2aPushPolicy;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
@@ -39,6 +40,8 @@ public final class A2aClientBindingConfig
     public final String serverScheme;
     public final String serverAuthority;
     public final String serverPath;
+    public final A2aPushPolicy pushPolicy;
+    public final int pushMaxLength;
 
     private final List<A2aClientRouteConfig> routes;
 
@@ -63,6 +66,9 @@ public final class A2aClientBindingConfig
         this.serverScheme = server != null ? server.getScheme() : null;
         this.serverAuthority = server != null ? authorityOf(server) : null;
         this.serverPath = server != null ? pathOf(server) : null;
+
+        this.pushPolicy = new A2aPushPolicy(options != null && options.clientPush != null ? options.clientPush.allow : null);
+        this.pushMaxLength = options != null && options.clientPush != null ? options.clientPush.maxLength : -1;
 
         this.routes = binding.routes.stream()
             .map(A2aClientRouteConfig::new)
