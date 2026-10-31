@@ -119,6 +119,10 @@ AG-UI and A2A do not model the same things. What the proxy drops or approximates
 | artifact text, `append: false` on a streamed artifact | a new text message; streamed text cannot be retracted | lossy |
 | `lastChunk`, or a terminal or interrupt state | `TEXT_MESSAGE_END` | none |
 | `data` and `file` parts | `CUSTOM` events `agent.data` and `agent.file` | lossy |
+| tagged `state`, `activity`, `reasoning`, `step`, agent-executed `toolCall` and `toolResult`, `custom` and `raw` parts, from an agent that declared and echoed the AG-UI extension | the matching `STATE_*`, `ACTIVITY_*`, `REASONING_*`, `STEP_*`, `TOOL_CALL_*` and `CUSTOM` or `RAW` events | none |
+| a tagged part whose feature is not enabled, or any tagged part without the echo | `CUSTOM` `agent.data` or `agent.file`, as an untagged part | lossy |
+| a tag the proxy does not interpret, including a client-executed `toolCall` | dropped, recorded in a Zilla event | lossy |
+| a tagged part of the wrong shape | `RUN_ERROR` 502 `agent_protocol` | n/a |
 | `COMPLETED` | `RUN_FINISHED`; the task and context ids are not placed on the stream | none |
 | `COMPLETED` with a message | a text message, de-duplicated against artifact text | none |
 | `FAILED` | `RUN_ERROR` 502 `agent_failed` | lossy |
@@ -148,8 +152,10 @@ there is no incremental text.
   `handle_unknown` before the agent is contacted.
 - Aborting a run cancels the A2A task once its id is known. Before the first event the remote task may keep
   running. A Stop button and a closed tab look the same to Zilla.
-- Frontend tools, `STATE_*`, reasoning and tool call events, activity other than the working status, and the A2A
-  extensions that would carry them are not mapped. The proxy declares no A2A extension.
+- Frontend tools, client-executed tool calls, subagent events and the interrupt tag are not mapped yet. The proxy
+  requests the `https://a2a.aklivity.io/ext/agui/v1` extension when the agent card lists it, and interprets tags only
+  when the agent echoes it. A tagged part is recognized only when its tag is readable inside the decode window, so a
+  `data` value larger than the window must follow its `metadata` member.
 - An agent slug with no route on `agui-a2a`, such as `/agents/unknown` here, is answered 502 because nothing can be reached.
 - `routes[].when.path` on `agui` is the only way to pick an agent; CopilotKit's `/connect` and `/stop` routes are
   not AG-UI and are answered 404.
