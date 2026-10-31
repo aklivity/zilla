@@ -25,11 +25,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.agui.a2a.internal.card.AguiA2aExtension;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.request.AguiA2aMessageAssembler.ResumeStatus;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.request.AguiA2aRequestDecoder.Status;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -130,6 +133,25 @@ public class AguiA2aRequestMappingTest
     public void shouldMapResumeEmpty() throws Exception
     {
         assertScenario("interrupt.resume.empty", 1, 1, null, "t-1", "h-1", true);
+    }
+
+    @Test
+    public void shouldMapToolDeclarations() throws Exception
+    {
+        assertScenario("extension.tools.declared", 0, 0, null, null, null, true, extension("tools"), Map.of());
+    }
+
+    @Test
+    public void shouldOmitToolDeclarationsWhenToolsNotEnabled() throws Exception
+    {
+        assertScenario("extension.tools.disabled", 0, 0, null, null, null, true, extension("state"), Map.of());
+    }
+
+    @Test
+    public void shouldMapToolResult() throws Exception
+    {
+        assertScenario("extension.tools.result", 0, 0, null, "t-1", null, true, extension("tools", "toolCalls"),
+            Map.of("h-1", "call-7"));
     }
 
     @Test
@@ -450,6 +472,12 @@ public class AguiA2aRequestMappingTest
         assertThat(assembler.unacceptedMediaType(), equalTo(null));
     }
 
+    private static AguiA2aExtension extension(
+        String... features)
+    {
+        return new AguiA2aExtension(AguiA2aExtension.URI_V1, false, Set.of(features));
+    }
+
     private static void assertScenario(
         String name,
         int inputIndex,
@@ -458,6 +486,20 @@ public class AguiA2aRequestMappingTest
         String taskId,
         String interruptId,
         boolean acceptsJson) throws IOException
+    {
+        assertScenario(name, inputIndex, bodyIndex, contextId, taskId, interruptId, acceptsJson, null, Map.of());
+    }
+
+    private static void assertScenario(
+        String name,
+        int inputIndex,
+        int bodyIndex,
+        String contextId,
+        String taskId,
+        String interruptId,
+        boolean acceptsJson,
+        AguiA2aExtension extension,
+        Map<String, String> toolCalls) throws IOException
     {
         final String client = script(SCRIPTS + "agui/" + name + "/client.rpt");
         final String server = script(SCRIPTS + "a2a/" + name + "/server.rpt");
@@ -475,10 +517,12 @@ public class AguiA2aRequestMappingTest
             assertThat(name + " chunk " + chunk, decoder.status(), equalTo(Status.COMPLETE));
 
             final AguiA2aMessageAssembler assembler = new AguiA2aMessageAssembler()
-                .wrap(decoder.retained(), runId, contextId, taskId, interruptId, acceptsJson);
+                .wrap(decoder.retained(), runId, contextId, taskId, interruptId, acceptsJson)
+                .extension(extension)
+                .toolCalls(toolCalls::get);
 
-            assertThat(name + " chunk " + chunk, assemble(decoder, runId, contextId, taskId, interruptId, acceptsJson),
-                equalTo(expected));
+            assertThat(name + " chunk " + chunk, assemble(decoder, runId, contextId, taskId, interruptId, acceptsJson,
+                extension, toolCalls), equalTo(expected));
             assertThat(name + " length", String.valueOf(assembler.contentLength()), equalTo(length));
             decoder.retained().release();
         }
@@ -504,9 +548,24 @@ public class AguiA2aRequestMappingTest
         String interruptId,
         boolean acceptsJson)
     {
+        return assemble(decoder, runId, contextId, taskId, interruptId, acceptsJson, null, Map.of());
+    }
+
+    private static String assemble(
+        AguiA2aRequestDecoder decoder,
+        String runId,
+        String contextId,
+        String taskId,
+        String interruptId,
+        boolean acceptsJson,
+        AguiA2aExtension extension,
+        Map<String, String> toolCalls)
+    {
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         new AguiA2aMessageAssembler()
             .wrap(decoder.retained(), runId, contextId, taskId, interruptId, acceptsJson)
+            .extension(extension)
+            .toolCalls(toolCalls::get)
             .emit((buffer, offset, length) ->
             {
                 final byte[] bytes = new byte[length];
