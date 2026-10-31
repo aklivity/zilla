@@ -106,4 +106,14 @@ public class FlowControlIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/client.connection.window.bounded/client",
+        "${net}/client.connection.window.bounded/server",
+    })
+    public void clientConnectionWindowBounded() throws Exception
+    {
+        k3po.finish();
+    }
 }

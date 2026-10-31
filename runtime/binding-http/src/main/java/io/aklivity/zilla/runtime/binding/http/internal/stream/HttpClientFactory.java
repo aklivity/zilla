@@ -223,6 +223,8 @@ public final class HttpClientFactory implements HttpStreamFactory
     private static final String16FW TRANSFER_ENCODING_CHUNKED = new String16FW("chunked");
 
     private static final int CAPABILITY_FRAMING_MASK = 1 << Capability.FRAMING.ordinal();
+    private static final int INITIAL_CONNECTION_WINDOW = 65_535;
+    private static final int MAXIMUM_CONNECTION_WINDOW = Integer.MAX_VALUE >> 1;
 
     private static final byte[] CONTENT_TYPE_EVENT_STREAM = "text/event-stream".getBytes(UTF_8);
     private static final byte[] EVENT_STREAM_BOM = "\ufeff".getBytes(UTF_8);
@@ -1976,6 +1978,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
             else
             {
+                client.localSharedBudget -= http2Data.length();
                 client.decodableDataBytes = http2Data.dataLength();
                 progress = http2Data.dataOffset();
 
@@ -2373,6 +2376,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         private byte decodedFlags;
         private int continuationStreamId;
         private int remoteSharedBudget;
+        private int localSharedBudget = INITIAL_CONNECTION_WINDOW;
         private int maxClientStreamId = -1;
         private int decodableDataBytes;
         private MessageConsumer network;
@@ -3440,11 +3444,18 @@ public final class HttpClientFactory implements HttpStreamFactory
                 int streamId,
                 int size)
         {
-            final int frameOffset = http2WindowUpdateRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            final int sharedSize = Math.min(size, MAXIMUM_CONNECTION_WINDOW - localSharedBudget);
+
+            int frameOffset = 0;
+            if (sharedSize > 0)
+            {
+                frameOffset = http2WindowUpdateRW.wrap(frameBuffer, 0, frameBuffer.capacity())
                     .streamId(0)
-                    .size(size)
+                    .size(sharedSize)
                     .build()
                     .limit();
+                localSharedBudget += sharedSize;
+            }
 
             final int frameLimit = http2WindowUpdateRW
                     .wrap(frameBuffer, frameOffset, frameBuffer.capacity())

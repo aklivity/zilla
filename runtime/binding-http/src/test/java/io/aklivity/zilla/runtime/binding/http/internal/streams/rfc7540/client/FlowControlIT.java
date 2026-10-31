@@ -97,4 +97,15 @@ public class FlowControlIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/connection.window.bounded/client",
+        "${net}/client.connection.window.bounded/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    public void clientConnectionWindowBounded() throws Exception
+    {
+        k3po.finish();
+    }
 }
