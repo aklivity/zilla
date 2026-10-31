@@ -42,6 +42,8 @@ public class AguiClientIT
         .countersBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/agui/config")
         .external("net0")
+        .external("net1")
+        .external("net2")
         .clean();
 
     @Rule
@@ -424,6 +426,17 @@ public class AguiClientIT
         "${app}/run.request.malformed/client",
         "${net}/run.request.malformed/server"})
     public void shouldRejectRequestMalformed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.routes.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/net2\"")
+    @Specification({
+        "${app}/run.client.routed/client",
+        "${net}/run.client.routed/server"})
+    public void shouldRunClientRouted() throws Exception
     {
         k3po.finish();
     }
