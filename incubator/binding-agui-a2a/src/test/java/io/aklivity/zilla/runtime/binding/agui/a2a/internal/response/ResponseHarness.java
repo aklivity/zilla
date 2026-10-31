@@ -132,6 +132,7 @@ final class ResponseHarness implements AguiFrameSink, AguiResponseHost
         malformed.add(tag + ": " + detail);
     }
 
+    @Override
     public String toolCallHandle(
         String taskId,
         String callId)
