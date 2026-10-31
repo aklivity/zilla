@@ -9199,4 +9199,13 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.response.stalled/client",
+        "${net}/openai.response.stalled/server"})
+    public void shouldOpenaiResponseStalled() throws Exception
+    {
+        k3po.finish();
+    }
 }

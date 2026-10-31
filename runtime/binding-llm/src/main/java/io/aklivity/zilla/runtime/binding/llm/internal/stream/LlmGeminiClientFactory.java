@@ -5379,7 +5379,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 .streamId(replyId)
                 .sequence(replySeq)
                 .acknowledge(replyAck)
-                .maximum(decodeMax - buffered)
+                .maximum(decodeMax)
                 .traceId(traceId)
                 .budgetId(0L)
                 .padding(framing ? QUEUE_ENTRY_PADDING : 0)
