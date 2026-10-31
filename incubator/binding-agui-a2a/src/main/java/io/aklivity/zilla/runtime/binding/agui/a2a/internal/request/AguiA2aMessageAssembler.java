@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.agui.a2a.internal.request;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.Arrays;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.card.AguiA2aExtension;
@@ -88,6 +89,7 @@ public final class AguiA2aMessageAssembler
     private String interruptId;
     private boolean acceptsJson;
     private AguiA2aExtension extension;
+    private Function<String, String> toolCalls = handle -> null;
     private Predicate<String> acceptedMediaType = mediaType -> true;
     private String unacceptedMediaType;
     private int partCount;
@@ -114,6 +116,13 @@ public final class AguiA2aMessageAssembler
         AguiA2aExtension extension)
     {
         this.extension = extension;
+        return this;
+    }
+
+    public AguiA2aMessageAssembler toolCalls(
+        Function<String, String> toolCalls)
+    {
+        this.toolCalls = toolCalls;
         return this;
     }
 
