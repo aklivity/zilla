@@ -18,6 +18,7 @@ import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.event.AguiA2aContextResetExFW;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.event.AguiA2aEventExFW;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.event.AguiA2aHandleRejectedExFW;
+import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.event.AguiA2aHistoryOmittedExFW;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.event.AguiA2aRunFailedExFW;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.event.AguiA2aRunFinishedExFW;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.event.AguiA2aRunRedirectedExFW;
@@ -87,6 +88,12 @@ public final class AguiA2aEventFormatter implements EventFormatterSpi
             AguiA2aHandleRejectedExFW ex = extension.handleRejected();
             result = String.format("Handle rejected for agent (%s) with code (%s).",
                 asString(ex.agent()), asString(ex.code()));
+            break;
+        }
+        case HISTORY_OMITTED:
+        {
+            AguiA2aHistoryOmittedExFW ex = extension.historyOmitted();
+            result = String.format("History omitted for agent (%s): %s.", asString(ex.agent()), asString(ex.reason()));
             break;
         }
         case TAG_DROPPED:

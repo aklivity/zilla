@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.agui.a2a.internal.event;
 
 import static io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.event.AguiA2aEventType.CONTEXT_RESET;
 import static io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.event.AguiA2aEventType.HANDLE_REJECTED;
+import static io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.event.AguiA2aEventType.HISTORY_OMITTED;
 import static io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.event.AguiA2aEventType.RUN_FAILED;
 import static io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.event.AguiA2aEventType.RUN_FINISHED;
 import static io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.event.AguiA2aEventType.RUN_REDIRECTED;
@@ -49,6 +50,7 @@ public class AguiA2aEventContext
     private final int contextResetId;
     private final int handleRejectedId;
     private final int tagDroppedId;
+    private final int historyOmittedId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
 
@@ -63,6 +65,7 @@ public class AguiA2aEventContext
         this.contextResetId = context.supplyEventId("binding.agui.a2a.context.reset");
         this.handleRejectedId = context.supplyEventId("binding.agui.a2a.handle.rejected");
         this.tagDroppedId = context.supplyEventId("binding.agui.a2a.tag.dropped");
+        this.historyOmittedId = context.supplyEventId("binding.agui.a2a.history.omitted");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
     }
@@ -244,6 +247,31 @@ public class AguiA2aEventContext
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .id(tagDroppedId)
+            .timestamp(clock.millis())
+            .traceId(traceId)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
+            .build();
+        eventWriter.accept(aguiA2aTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void historyOmitted(
+        long traceId,
+        long bindingId,
+        String agent,
+        String reason)
+    {
+        AguiA2aEventExFW extension = aguiA2aEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .historyOmitted(e -> e
+                .typeId(HISTORY_OMITTED.value())
+                .agent(agent)
+                .reason(reason)
+            )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(historyOmittedId)
             .timestamp(clock.millis())
             .traceId(traceId)
             .namespacedId(bindingId)
