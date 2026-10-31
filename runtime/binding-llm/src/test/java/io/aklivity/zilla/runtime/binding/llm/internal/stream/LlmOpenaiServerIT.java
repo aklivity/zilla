@@ -542,6 +542,15 @@ public class LlmOpenaiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.rejected.json.malformed.window/client"})
+    public void shouldRejectOpenaiJsonMalformedWithReplyWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.section.rejected.trailing.content/client",
         "${app}/openai.section.rejected.trailing.content/server"})
     public void shouldDecodeOpenaiSectionRejectedTrailingContent() throws Exception

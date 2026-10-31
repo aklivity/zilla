@@ -3700,7 +3700,10 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             if (encodeSlot == NO_SLOT && available > 0 && length <= available)
             {
                 doNetData(traceId, authorization, flags, budgetId, length + replyPad, attributes, buffer, offset, length);
-                stream.ackReply(traceId);
+                if (stream != null)
+                {
+                    stream.ackReply(traceId);
+                }
             }
             else
             {

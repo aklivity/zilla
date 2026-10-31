@@ -723,6 +723,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.rejected.json.malformed.window/client",
+        "${net}/openai.rejected.json.malformed.window/server"})
+    public void shouldOpenaiRejectedJsonMalformedWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.section.rejected.trailing.content/client",
         "${net}/openai.section.rejected.trailing.content/server"})
     public void shouldOpenaiSectionRejectedTrailingContent() throws Exception
@@ -996,6 +1005,15 @@ public class NetworkIT
         "${net}/anthropic.section.rejected.json.malformed/client",
         "${net}/anthropic.section.rejected.json.malformed/server"})
     public void shouldAnthropicSectionRejectedJsonMalformed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.rejected.json.malformed.window/client",
+        "${net}/anthropic.rejected.json.malformed.window/server"})
+    public void shouldAnthropicRejectedJsonMalformedWindow() throws Exception
     {
         k3po.finish();
     }
@@ -4992,6 +5010,15 @@ public class NetworkIT
         "${net}/openai.responses.rejected.error.param/client",
         "${net}/openai.responses.rejected.error.param/server"})
     public void shouldOpenaiResponsesRejectedErrorParam() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.rejected.json.malformed.window/client",
+        "${net}/openai.responses.rejected.json.malformed.window/server"})
+    public void shouldOpenaiResponsesRejectedJsonMalformedWindow() throws Exception
     {
         k3po.finish();
     }

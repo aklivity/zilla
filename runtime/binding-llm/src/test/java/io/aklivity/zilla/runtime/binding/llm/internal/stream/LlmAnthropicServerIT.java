@@ -353,6 +353,15 @@ public class LlmAnthropicServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/anthropic.rejected.json.malformed.window/client"})
+    public void shouldRejectAnthropicJsonMalformedWithReplyWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/anthropic.section.rejected.messages.not.array/client",
         "${app}/anthropic.section.rejected.messages.not.array/server"})
     public void shouldDecodeAnthropicSectionRejectedMessagesNotArray() throws Exception

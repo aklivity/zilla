@@ -322,6 +322,15 @@ public class LlmOpenaiResponsesServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.responses.rejected.json.malformed.window/client"})
+    public void shouldRejectOpenaiResponsesJsonMalformedWithReplyWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.responses.rejected.rate.limit/client",
         "${app}/openai.responses.rejected.rate.limit/server"})
     public void shouldRejectOpenaiResponsesRequestRateLimited() throws Exception
