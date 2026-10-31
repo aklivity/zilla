@@ -53,19 +53,6 @@ public class A2aStateTest
     }
 
     @Test
-    public void shouldTrackReplyAbortAndFraming()
-    {
-        int state = 0;
-
-        assertThat(A2aState.replyAbortDeferred(state), equalTo(false));
-        assertThat(A2aState.replyFraming(state), equalTo(false));
-        state = A2aState.deferReplyAbort(state);
-        assertThat(A2aState.replyAbortDeferred(state), equalTo(true));
-        state = A2aState.framingReply(state);
-        assertThat(A2aState.replyFraming(state), equalTo(true));
-    }
-
-    @Test
     public void shouldImplyOpeningAndClosingWhenOpenedAndClosed()
     {
         assertThat(A2aState.initialOpening(A2aState.openInitial(0)), equalTo(true));

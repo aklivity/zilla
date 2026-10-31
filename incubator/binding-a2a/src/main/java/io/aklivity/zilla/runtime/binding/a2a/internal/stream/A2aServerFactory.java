@@ -961,6 +961,7 @@ public final class A2aServerFactory implements A2aStreamFactory
         private int decodeSlotReserved;
         private int decodedParserProgress;
 
+        private boolean sseUpgrade;
         private int encodeSlot = NO_SLOT;
         private int encodeSlotOffset;
         private long encodeSlotTraceId;
@@ -1560,7 +1561,7 @@ public final class A2aServerFactory implements A2aStreamFactory
             {
                 if (CONTENT_TYPE_EVENT_STREAM.equals(contentType))
                 {
-                    state = A2aState.framingReply(state);
+                    sseUpgrade = true;
                 }
 
                 final HttpBeginExFW.Builder builder = httpBeginExRW
@@ -1682,14 +1683,7 @@ public final class A2aServerFactory implements A2aStreamFactory
             long traceId,
             long authorization)
         {
-            if (encodeSlot == NO_SLOT)
-            {
-                doNetAbort(traceId, authorization);
-            }
-            else
-            {
-                state = A2aState.deferReplyAbort(state);
-            }
+            doNetAbort(traceId, authorization);
         }
 
         private void doNetEnd(
@@ -1868,7 +1862,7 @@ public final class A2aServerFactory implements A2aStreamFactory
             final int maxLength = limit - offset;
             final int length;
 
-            if (A2aState.replyFraming(state))
+            if (sseUpgrade)
             {
                 length = doDataEvents(net, originId, routedId, replyId, replySeq, replyAck, replyMax, replyPad, replyBud,
                     traceId, authorization, (MutableDirectBufferEx) buffer, offset, limit);
@@ -1916,11 +1910,7 @@ public final class A2aServerFactory implements A2aStreamFactory
             {
                 cleanupEncodeSlot();
 
-                if (A2aState.replyAbortDeferred(state))
-                {
-                    doNetAbort(traceId, authorization);
-                }
-                else if (A2aState.replyClosing(state))
+                if (A2aState.replyClosing(state))
                 {
                     doNetEnd(traceId, authorization);
                 }
