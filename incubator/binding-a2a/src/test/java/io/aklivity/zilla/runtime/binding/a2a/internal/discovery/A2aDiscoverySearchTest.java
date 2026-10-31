@@ -36,6 +36,8 @@ import io.aklivity.zilla.config.binding.a2a.A2aKeywordSearchIndexConfig;
 import io.aklivity.zilla.runtime.binding.a2a.internal.cache.A2aAgentCards;
 import io.aklivity.zilla.runtime.binding.a2a.internal.cache.A2aCachedAgent;
 import io.aklivity.zilla.runtime.binding.a2a.internal.cache.A2aCachedAgents;
+import io.aklivity.zilla.runtime.binding.a2a.internal.search.A2aCountingAgentSearchIndex;
+import io.aklivity.zilla.runtime.binding.a2a.internal.search.A2aCountingSearchIndexConfig;
 import io.aklivity.zilla.runtime.binding.a2a.internal.search.A2aFailingSearchIndexConfig;
 import io.aklivity.zilla.runtime.binding.a2a.internal.search.A2aUnregisteredSearchIndexConfig;
 import io.aklivity.zilla.runtime.binding.a2a.search.A2aAgentSearchIndex.CompletionCallback;
@@ -166,6 +168,40 @@ public class A2aDiscoverySearchTest
 
         assertThat(first.failure == null, equalTo(false));
         assertThat(second.failure == null, equalTo(false));
+    }
+
+    @Test
+    public void shouldNotRestartBuildWhenCompletionReentersTheView()
+    {
+        A2aCountingAgentSearchIndex.INDEXED.set(0);
+
+        final A2aDiscoverySearchConfig config = A2aDiscoverySearchConfig.builder()
+            .limit(5)
+            .fields(List.of("name"))
+            .index(new A2aCountingSearchIndexConfig())
+            .build();
+        final A2aDiscoverySearch search = new A2aDiscoverySearch(context, cards, config);
+        final Outcome nested = new Outcome();
+
+        search.find(PERMITTED, "weather", 0, new CompletionCallback<>()
+        {
+            @Override
+            public void completed(
+                List<A2aDiscoveryMatch> matches)
+            {
+                search.find(PERMITTED, "travel", 0, nested);
+            }
+
+            @Override
+            public void failed(
+                Throwable ex)
+            {
+                nested.failed(ex);
+            }
+        });
+
+        assertThat(nested.slugs(), empty());
+        assertThat(A2aCountingAgentSearchIndex.INDEXED.get(), equalTo(1));
     }
 
     @Test
