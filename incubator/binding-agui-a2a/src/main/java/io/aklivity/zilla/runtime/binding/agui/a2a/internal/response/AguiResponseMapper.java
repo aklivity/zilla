@@ -53,7 +53,6 @@ public final class AguiResponseMapper implements A2aEventSink
     public static final String CODE_REJECTED = "agent_rejected";
     public static final String CODE_INCOMPLETE = "agent_incomplete";
     public static final String CODE_ABORTED = "agent_aborted";
-    public static final String CODE_INVALID_RESPONSE = "agent_invalid_response";
     public static final String CODE_PROTOCOL = "agent_protocol";
 
     public static final String CUSTOM_DATA = "agent.data";
@@ -553,7 +552,7 @@ public final class AguiResponseMapper implements A2aEventSink
             String code,
             String message)
         {
-            runError(STATUS_BAD_GATEWAY, CODE_INVALID_RESPONSE, message);
+            runError(STATUS_BAD_GATEWAY, CODE_PROTOCOL, message);
         }
     }
 
@@ -1293,7 +1292,7 @@ public final class AguiResponseMapper implements A2aEventSink
 
     private void tooLarge()
     {
-        runError(STATUS_BAD_GATEWAY, CODE_INVALID_RESPONSE, MESSAGE_TOO_LARGE);
+        runError(STATUS_BAD_GATEWAY, CODE_PROTOCOL, MESSAGE_TOO_LARGE);
     }
 
     private void digestUpdate(
