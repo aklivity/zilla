@@ -82,6 +82,8 @@ write zilla:data.ext ${a2a:dataEx()
                               .taskId("t-1")
                               .contextId("c-1")
                               .artifactId("a-1")
+                              .append(false)
+                              .lastChunk(false)
                               .build()
                           .build()}
 write '{"artifactUpdate":{"taskId":"t-1","contextId":"c-1","artifact":{"artifactId":"a-1","parts":[{"text":"Hello"}]},"append":false,"lastChunk":false}}'
@@ -93,6 +95,8 @@ write zilla:data.ext ${a2a:dataEx()
                               .taskId("t-1")
                               .contextId("c-1")
                               .artifactId("a-1")
+                              .append(true)
+                              .lastChunk(false)
                               .build()
                           .build()}
 write '{"artifactUpdate":{"taskId":"t-1","contextId":"c-1","artifact":{"artifactId":"a-1","parts":[{"text":" world"}]},"append":true,"lastChunk":false}}'
@@ -104,6 +108,8 @@ write zilla:data.ext ${a2a:dataEx()
                               .taskId("t-1")
                               .contextId("c-1")
                               .artifactId("a-1")
+                              .append(true)
+                              .lastChunk(true)
                               .build()
                           .build()}
 write '{"artifactUpdate":{"taskId":"t-1","contextId":"c-1","artifact":{"artifactId":"a-1","parts":[]},"append":true,"lastChunk":true}}'

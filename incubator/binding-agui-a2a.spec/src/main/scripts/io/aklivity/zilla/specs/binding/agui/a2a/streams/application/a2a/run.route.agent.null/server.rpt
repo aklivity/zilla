@@ -60,6 +60,8 @@ write zilla:data.ext ${a2a:dataEx()
                               .taskId("t-1")
                               .contextId("c-1")
                               .artifactId("a-1")
+                              .append(false)
+                              .lastChunk(true)
                               .build()
                           .build()}
 write '{"artifactUpdate":{"taskId":"t-1","contextId":"c-1","artifact":{"artifactId":"a-1","parts":[{"text":"Hello"}]},"append":false,"lastChunk":true}}'

@@ -71,6 +71,8 @@ write zilla:data.ext ${a2a:dataEx()
                               .taskId("t-1")
                               .contextId("c-1")
                               .artifactId("a-1")
+                              .append(false)
+                              .lastChunk(false)
                               .build()
                           .build()}
 write '{"artifactUpdate":{"taskId":"t-1","contextId":"c-1","artifact":{"artifactId":"a-1","parts":[{"text":"Hello"}]},"append":false,"lastChunk":false}}'
@@ -82,6 +84,8 @@ write zilla:data.ext ${a2a:dataEx()
                               .taskId("t-1")
                               .contextId("c-1")
                               .artifactId("a-2")
+                              .append(false)
+                              .lastChunk(true)
                               .build()
                           .build()}
 write '{"artifactUpdate":{"taskId":"t-1","contextId":"c-1","artifact":{"artifactId":"a-2","parts":[{"data":{"temperature":72}}]},"append":false,"lastChunk":true}}'
@@ -93,6 +97,8 @@ write zilla:data.ext ${a2a:dataEx()
                               .taskId("t-1")
                               .contextId("c-1")
                               .artifactId("a-3")
+                              .append(false)
+                              .lastChunk(true)
                               .build()
                           .build()}
 write '{"artifactUpdate":{"taskId":"t-1","contextId":"c-1","artifact":{"artifactId":"a-3","parts":[{"url":"https://example.com/forecast.png","mediaType":"image/png","filename":"forecast.png"}]},"append":false,"lastChunk":true}}'
