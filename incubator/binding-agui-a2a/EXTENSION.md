@@ -19,13 +19,16 @@ This extension lets an **agent** opt into a richer mapping (tier 2) without fork
   only decides which A2A agents can opt into a richer mapping; it does not change how a client integrates.
 - Content plug-ins, such as an A2UI surface, are separate extensions owned by their content type. They share nothing with
   this carrier (section 12).
+- The `timestamp` and event `metadata` of an AG-UI event are out of scope: no tag carries them.
 
 ## 2. Identification and versioning
 
 | Item | Value |
 | --- | --- |
-| Extension URI | `https://www.aklivity.io/a2a/extensions/agui/v1` |
+| Extension URI | `https://aklivity.io/a2a-extension/agui/v1` |
+| URI pattern | `https://aklivity.io/a2a-extension/<name>/v<major>`, the path shape other A2A extensions use. The name is `agui`. It is not `a2ui`: A2UI is a different project, and its content plug-in is a separate extension (section 12) |
 | Namespace | Aklivity-owned. The `https://a2a-protocol.org/extensions/` prefix is reserved for the A2A organization and MUST NOT be used |
+| Header | `A2A-Extensions`, as the A2A specification defines it. The A2UI extension documents `X-A2A-Extensions` for older clients; the proxy sends `A2A-Extensions` and reads the echo of `A2A-Extensions`, which the a2a stream reports in the reply begin |
 | Metadata key | `agui` |
 | Required by default | no (`required: false`) |
 
@@ -61,7 +64,7 @@ The agent adds one entry to `capabilities.extensions[]` of its agent card:
     "streaming": true,
     "extensions": [
       {
-        "uri": "https://www.aklivity.io/a2a/extensions/agui/v1",
+        "uri": "https://aklivity.io/a2a-extension/agui/v1",
         "description": "Maps this agent's tasks to AG-UI events",
         "required": false,
         "params": {
@@ -391,30 +394,32 @@ The extension gives each deferred item a place; it does not specify the implemen
 
 | Follow-up | Place in this document |
 | --- | --- |
-| frontend tools | feature `tools` and `toolCalls`; `metadata.agui.tools`; `toolCall` and `toolResult` tags; section 7.4 |
-| state, activity, reasoning, step and tool-call events | features `state`, `activity`, `reasoning`, `steps`, `toolCalls`; section 7.3 |
-| subagent events | feature `subagents`; `subagent` tag and the `subagentRunId` member |
-| working status as activity | tier 1 behavior of an untagged `WORKING` message; in tier 2 the `activity` and `step` tags |
-| agent-declared history feature | feature name `history` is reserved. It will let an agent that declares it receive the full history. It is not defined by `v1` and needs no change to the other features |
+| #2885 working status messages as activity | tier 1 behavior of an untagged `WORKING` message; in tier 2 the `activity` and `step` tags |
+| #2886 A2UI content plug-in | not part of this extension. A plug-in is its own A2A extension owned by its content type; it adds its media type to `acceptedOutputModes` and its URI to `A2A-Extensions` when the card declares it, and maps to an AG-UI activity type. Adding one needs no change to this carrier |
+| #2887 durable state tier | not part of the protocol: handles and contexts stay owner-local on the proxy, behind the state interface |
+| #2888 frontend tools through the extension | features `tools` and `toolCalls`; `metadata.agui.tools`; `toolCall` and `toolResult` tags; section 7.4 |
+| #2889 state, activity, reasoning, step and tool-call events | features `state`, `activity`, `reasoning`, `steps`, `toolCalls`, `custom`; section 7.3 |
+| #2890 agent-declared history feature | feature name `history` is reserved. It will let an agent that declares it receive the full history. It is not defined by `v1` and needs no change to the other features |
+| #2891 subagent events | feature `subagents`; `subagent` tag and the `subagentRunId` member |
 | `instructions` (`system` / `developer`) | feature name reserved and not defined. The proxy drops those roles because forwarding them lets a client assert privileged instructions across a trust boundary. Any definition needs its own security review and is not planned |
-| durable state tier | not part of the protocol: handles and contexts stay owner-local on the proxy, behind the state interface |
-| A2UI and other content plug-ins | not part of this extension. A plug-in is its own A2A extension owned by its content type; it adds its media type to `acceptedOutputModes` and its URI to `A2A-Extensions` when the card declares it, and maps to an AG-UI activity type. Adding one needs no change to this carrier |
 
-## 13. Open points
+## 13. Decisions
 
-Where the source design is silent or contradicts itself, this document states a proposal and marks it here. Each needs a
-decision before the post-v1 work that implements it.
+Where the source design was silent or contradicted itself, these decisions were taken and are reflected above.
 
-| # | Point | Proposal in this document |
+| # | Point | Decision |
 | --- | --- | --- |
-| 1 | The URI host and path: the design only gives `https://www.aklivity.io/a2a/extensions/agui/v1` as an example | used as the URI (section 2) |
-| 2 | `instructions`: the design lists it as a feature with `params.instructions` `{roles, mode}`, and also decides `system` / `developer` are dropped with no option and no planned path | reserved name, not defined (sections 3, 12) |
-| 3 | `history` is mentioned as an agent-declared feature (full-history replay) but is not in the feature list | reserved name, not defined |
-| 4 | `custom` / `raw` tags exist in the design but no feature name enables them | feature `custom` added (section 4.1) |
-| 5 | Whether tags are honored on the request alone or only after the reply echo | only after the echo (section 5, step 6) |
-| 6 | Whether tier 2 `state` / `context` replace the tier 1 advisory data part | replace, per enabled feature (section 6.1) |
-| 7 | The A2A part that carries the `interrupt` enrichment (`reason`, `responseSchema`, `toolCallId`) | a `data` part in the `status.message` (section 7.3) |
-| 8 | Part value for `step` (no content), `reasoning.encrypted` and agent-executed `toolResult` (TEXT or PARTS) | `{}`, the encrypted text, and the `tool-result` data part (section 7.3) |
-| 9 | A tagged part whose value is malformed | abort 502 `agent_protocol` (section 9) |
-| 10 | The error when the card requires the extension and the proxy cannot activate it: a status without a code | 502 with no further code (section 5.1) |
-| 11 | `timestamp` and event `metadata` of `AguiEventMeta` are not carried by any tag | not carried |
+| 1 | The URI | `https://aklivity.io/a2a-extension/agui/v1`: host `aklivity.io`, path `a2a-extension/<name>/<version>` (section 2) |
+| 2 | `instructions` | reserved name, not defined (sections 3, 12) |
+| 3 | `history` | reserved name, not defined (sections 3, 12) |
+| 4 | `custom` and `raw` tags | enabled by a feature named `custom` (section 4.1) |
+| 5 | Request alone vs the reply echo | tags are honored only after the reply echoes the URI (section 5, step 6) |
+| 6 | Tier 2 `state` / `context` vs the tier 1 advisory part | they replace it, per enabled feature (section 6.1) |
+| 7 | The part carrying the `interrupt` enrichment | a `data` part in `status.message` (section 7.3) |
+| 8 | Part values for `step`, `reasoning.encrypted` and agent-executed `toolResult` | `{}`, the encrypted text, and the `tool-result` data part (section 7.3) |
+| 9 | A malformed tagged part | the run aborts 502 `agent_protocol` (section 9) |
+| 10 | The card requires the extension and the proxy cannot activate it | 502 before the reply begin (section 5.1) |
+| 11 | `AguiEventMeta` `timestamp` and `metadata` | not carried, out of scope for the extension (section 1) |
+| 12 | The header name | `A2A-Extensions` (section 2) |
+
+Unresolved: none.
