@@ -66,6 +66,14 @@ public class A2aStateTest
     }
 
     @Test
+    public void shouldImplyOpeningAndClosingWhenOpenedAndClosed()
+    {
+        assertThat(A2aState.initialOpening(A2aState.openInitial(0)), equalTo(true));
+        assertThat(A2aState.initialClosing(A2aState.closeInitial(0)), equalTo(true));
+        assertThat(A2aState.replyClosing(A2aState.closeReply(0)), equalTo(true));
+    }
+
+    @Test
     public void shouldCloseWhenInitialAndReplyClosed()
     {
         int state = A2aState.closeReply(A2aState.closeInitial(0));
