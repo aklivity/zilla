@@ -99,6 +99,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private static final String STATUS_UNAUTHORIZED = "401";
     private static final int NO_MAX_OUTPUT_TOKENS = -1;
     private static final int STATUS_BAD_REQUEST = 400;
+    private static final int STATUS_NOT_FOUND = 404;
     private static final int STATUS_UNSUPPORTED_MEDIA_TYPE = 415;
     private static final int STATUS_INTERNAL_SERVER_ERROR = 500;
     private static final String CONTENT_TYPE_JSON = "application/json";
@@ -109,6 +110,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
     private static final String MESSAGE_PARSE_ERROR = "There was an error parsing the body";
     private static final String MESSAGE_MODEL_MISSING = "model: Field required";
+    private static final String MESSAGE_MODEL_NOT_FOUND = "model: %s";
     private static final String MESSAGE_MODEL_ORDER =
         "model: must precede messages, system and tools in a request that does not fit the decode buffer";
     private static final String MESSAGE_ROLE_MISSING = "messages.%d.role: Field required";
@@ -368,7 +370,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                                 originId,
                                 routedId,
                                 initialId,
-                                route.id,
+                                binding,
                                 authResult.authorization(),
                                 contentType,
                                 beta,
@@ -2381,7 +2383,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private final long routedId;
         private final long initialId;
         private final long replyId;
-        private final long exitId;
+        private final LlmBindingConfig binding;
+        private long exitId;
         private final long initialAuthorization;
         private final String contentType;
         private final String beta;
@@ -2502,7 +2505,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             long originId,
             long routedId,
             long initialId,
-            long exitId,
+            LlmBindingConfig binding,
             long authorization,
             String contentType,
             String beta,
@@ -2513,7 +2516,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.exitId = exitId;
+            this.binding = binding;
             this.initialAuthorization = authorization;
             this.contentType = contentType;
             this.beta = beta;
@@ -3207,11 +3210,21 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             long authorization,
             String model)
         {
-            decoder = decodeRoot;
-            stream = new LlmAnthropicStream(this);
-            stream.doAppBegin(traceId, authorization, model);
+            final LlmRouteConfig route = binding.resolve(initialAuthorization, NAME, model);
 
-            decoder = decodeStart;
+            if (route != null)
+            {
+                exitId = route.id;
+                decoder = decodeRoot;
+                stream = new LlmAnthropicStream(this);
+                stream.doAppBegin(traceId, authorization, model);
+
+                decoder = decodeStart;
+            }
+            else
+            {
+                onDecodeModelNotFound(traceId, model);
+            }
         }
 
         private void onDecodeBlock(
@@ -3490,12 +3503,27 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             long traceId,
             String message)
         {
+            onDecodeRejected(traceId, STATUS_BAD_REQUEST, message);
+        }
+
+        private void onDecodeModelNotFound(
+            long traceId,
+            String model)
+        {
+            onDecodeRejected(traceId, STATUS_NOT_FOUND, MESSAGE_MODEL_NOT_FOUND.formatted(model));
+        }
+
+        private void onDecodeRejected(
+            long traceId,
+            int status,
+            String message)
+        {
             decoder = decodeIgnore;
             heldPending = false;
 
             initialAck = initialSeq;
             doNetWindow(traceId);
-            doNetError(traceId, initialAuthorization, STATUS_BAD_REQUEST, message);
+            doNetError(traceId, initialAuthorization, status, message);
             if (stream != null)
             {
                 stream.doAppAbort(traceId);

@@ -92,7 +92,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private static final String HEADER_API_KEY = "x-goog-api-key";
     private static final String METHOD_POST = "POST";
     private static final Pattern PATH_OPERATION =
-        Pattern.compile("^/v1(?:beta)?/models/((?:[^/?%]|%[0-9A-Fa-f]{2})+):" +
+        Pattern.compile("^/(v1(?:beta)?)/models/((?:[^/?%]|%[0-9A-Fa-f]{2})+):" +
             "(generateContent|streamGenerateContent)(?:\\?(.*))?$");
     private static final String OPERATION_STREAM = "streamGenerateContent";
     private static final String QUERY_ALT_SSE = "alt=sse";
@@ -110,6 +110,8 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         "UNAUTHENTICATED", "PERMISSION_DENIED", "NOT_FOUND", "ABORTED", "ALREADY_EXISTS", "RESOURCE_EXHAUSTED", "CANCELLED",
         "DATA_LOSS", "UNKNOWN", "INTERNAL", "UNIMPLEMENTED", "UNAVAILABLE", "DEADLINE_EXCEEDED");
 
+    private static final String MESSAGE_MODEL_NOT_FOUND =
+        "models/%s is not found for API version %s, or is not supported for %s.";
     private static final String MESSAGE_FORBIDDEN = "Method doesn't allow unregistered callers (callers without " +
         "established identity). Please use API Key or other form of API consumer identity to call this API.";
     private static final String MESSAGE_API_KEY_INVALID = "API key not valid. Please pass a valid API key.";
@@ -388,7 +390,8 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    final LlmRouteConfig route = binding.resolve(authResult.authorization());
+                    final String model = model(operation.group(2));
+                    final LlmRouteConfig route = binding.resolve(authResult.authorization(), NAME, model);
 
                     if (route != null)
                     {
@@ -400,14 +403,23 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                                 route.id,
                                 authResult.authorization(),
                                 contentType,
-                                model(operation.group(1)),
-                                operation.group(2),
+                                model,
                                 operation.group(3),
+                                operation.group(4),
                                 authResult.deauthorize())::onNetMessage;
                     }
                     else
                     {
+                        final boolean authorizedForRoutes = binding.resolve(authResult.authorization()) != null;
                         authResult.deauthorize().run();
+
+                        if (authorizedForRoutes)
+                        {
+                            newStream = new LlmGeminiRejectHandler(network, originId, routedId, initialId,
+                                Integer.toString(STATUS_NOT_FOUND),
+                                errorBody(STATUS_NOT_FOUND, null, MESSAGE_MODEL_NOT_FOUND.formatted(
+                                    model, operation.group(1), operation.group(3))))::onNetMessage;
+                        }
                     }
                 }
             }

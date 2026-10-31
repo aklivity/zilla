@@ -9073,4 +9073,40 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/openai.route.model/client",
+        "${app}/openai.route.model/server"})
+    public void shouldOpenaiRouteModel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.route.model/client",
+        "${app}/openai.responses.route.model/server"})
+    public void shouldOpenaiResponsesRouteModel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.route.model/client",
+        "${app}/anthropic.route.model/server"})
+    public void shouldAnthropicRouteModel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.route.model/client",
+        "${app}/gemini.route.model/server"})
+    public void shouldGeminiRouteModel() throws Exception
+    {
+        k3po.finish();
+    }
 }

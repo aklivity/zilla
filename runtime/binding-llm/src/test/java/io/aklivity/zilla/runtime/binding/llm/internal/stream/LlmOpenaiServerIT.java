@@ -45,6 +45,7 @@ public class LlmOpenaiServerIT
         .countersBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/llm/config")
         .external("app0")
+        .external("app1")
         .clean();
 
     @Rule
@@ -1856,6 +1857,35 @@ public class LlmOpenaiServerIT
     @Specification({
         "${net}/openai.request.buffer.exhausted/client"})
     public void shouldOpenaiRequestBufferExhausted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.openai.route.model.yaml")
+    @Specification({
+        "${net}/openai.route.model/client",
+        "${app}/openai.route.model/server"})
+    public void shouldRouteOpenaiRequestByModel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.openai.route.model.glob.yaml")
+    @Specification({
+        "${net}/openai.route.model/client",
+        "${app}/openai.route.model/server"})
+    public void shouldRouteOpenaiRequestByModelGlob() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.openai.route.model.yaml")
+    @Specification({
+        "${net}/openai.route.model.unmatched/client"})
+    public void shouldRejectOpenaiRequestWithUnmatchedModel() throws Exception
     {
         k3po.finish();
     }
