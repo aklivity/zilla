@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.agui.a2a.internal.request;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
@@ -400,16 +401,16 @@ public class AguiA2aRequestMappingTest
     @Test
     public void shouldEmitBodyInWindows() throws Exception
     {
-        final String input = "{\"threadId\":\"t\",\"runId\":\"r\",\"state\":{\"s\":1},\"context\":[{\"a\":\"b\"}]," +
+        final String input = "{\"threadId\":\"t\",\"runId\":\"r\\\"1\",\"state\":{\"s\":1},\"context\":[{\"a\":\"b\"}]," +
             "\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"h\\u00e9llo\"}]}]," +
             "\"forwardedProps\":{\"k\":\"v\"}}";
-        final AguiA2aRequestDecoder decoder = decode(input, 16, "t", "r", null);
-        final String body = assemble(decoder, "r", "c\\1", null, null, true);
+        final AguiA2aRequestDecoder decoder = decode(input, 16, "t", "r\"1", null);
+        final String body = assemble(decoder, "r\"1", "c\\1", "t\"1", null, true);
 
         for (int window : new int[] {1, 3, 16, 100, 1 << 20})
         {
             final AguiA2aMessageAssembler assembler = new AguiA2aMessageAssembler()
-                .wrap(decoder.retained(), "r", "c\\1", null, null, true);
+                .wrap(decoder.retained(), "r\"1", "c\\1", "t\"1", null, true);
             final ByteArrayOutputStream out = new ByteArrayOutputStream();
 
             assertThat(assembler.contentLength(), equalTo(body.getBytes(UTF_8).length));
@@ -426,6 +427,10 @@ public class AguiA2aRequestMappingTest
 
             assertThat("window " + window, out.toString(UTF_8), equalTo(body));
         }
+
+        assertThat(body, containsString("\"messageId\":\"r\\\"1\""));
+        assertThat(body, containsString("\"contextId\":\"c\\\\1\""));
+        assertThat(body, containsString("\"taskId\":\"t\\\"1\""));
     }
 
     @Test
