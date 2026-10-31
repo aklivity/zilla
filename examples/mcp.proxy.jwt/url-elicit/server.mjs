@@ -50,14 +50,15 @@ const createServer = () =>
 };
 
 const transports = {};
+const requests = new Set();
 const app = express();
 app.use(express.json());
 
 const handle = async (req, res, body) =>
 {
-    // Zilla's south_mcp_client_urlelicit forwards the caller's own JWT here via
-    // options.authorization; logged so .github/test.sh can confirm it arrived.
-    console.log(`authorization: ${req.headers["authorization"] ?? "(none)"}`);
+    const request = `${body?.method ?? req.method} ${req.headers["authorization"] ?? "(no authorization)"}`;
+    console.log(`request: ${request}`);
+    requests.add(request);
 
     const sessionId = req.headers["mcp-session-id"];
     let transport = sessionId ? transports[sessionId] : undefined;
@@ -90,6 +91,8 @@ const handle = async (req, res, body) =>
 app.post("/mcp", (req, res) => handle(req, res, req.body));
 app.get("/mcp", (req, res) => handle(req, res));
 app.delete("/mcp", (req, res) => handle(req, res));
+
+app.get("/requests", (req, res) => res.type("text/plain").send([...requests].join("\n")));
 
 app.get("/authorize", (req, res) =>
     res.set("content-type", "text/html").send(

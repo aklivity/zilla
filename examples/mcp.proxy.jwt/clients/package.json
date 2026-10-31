@@ -1,0 +1,11 @@
+{
+  "name": "mcp-proxy-jwt-clients",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Headless MCP clients and a JWT minter for exercising the Zilla mcp proxy",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.29.0",
+    "jose": "6.2.14"
+  }
+}

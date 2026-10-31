@@ -41,8 +41,7 @@ app.get("/pets/featured", (req, res) => res.json(pets.filter((pet) => FEATURED_I
 // The OpenAPI "tag" query param arrives as ?tag= regardless of what the tool
 // argument is named -- the mcp-openapi route's with.params renames it from
 // the caller-facing "category" back to "tag" before this request is built.
-// Logged (rather than asserted on the MCP response) so .github/test.sh can
-// confirm the rename reached this service exactly as configured.
+// An unrenamed argument would arrive without a tag and match every pet.
 app.get("/pets/search", (req, res) =>
 {
     const { tag } = req.query;
