@@ -1011,4 +1011,26 @@ public class AguiA2aProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.request.state/client",
+        "${agent}/extension.request.state/server"})
+    public void shouldRunExtensionRequestState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.request.state.only/client",
+        "${agent}/extension.request.state.only/server"})
+    public void shouldRunExtensionRequestStateOnly() throws Exception
+    {
+        k3po.finish();
+    }
 }

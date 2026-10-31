@@ -179,4 +179,22 @@ public class AguiExtensionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/extension.request.state/client",
+        "${app}/extension.request.state/server"})
+    public void shouldRunExtensionRequestState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/extension.request.state.only/client",
+        "${app}/extension.request.state.only/server"})
+    public void shouldRunExtensionRequestStateOnly() throws Exception
+    {
+        k3po.finish();
+    }
 }
