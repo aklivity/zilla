@@ -22,14 +22,17 @@ import subprocess
 import sys
 
 KINDS = ('binding', 'guard', 'catalog', 'vault', 'model', 'exporter', 'metrics', 'store', 'resolver', 'classifier', 'embedding')
+IMPLICIT_KINDS = ('metrics', 'resolver')
+CORE_MODELS = frozenset(('boolean', 'bytes', 'double', 'float', 'int32', 'int64', 'string'))
 MODULE_BASES = ('runtime', 'incubator')
 MODULES_BY_EXAMPLE = {'inspect.schema': re.compile(r'\.spec$|^command-inspect$')}
 INFRASTRUCTURE = re.compile(
     r'^(pom\.xml|conf/|build/|cloud/|manager/|\.mvn/|mvnw|examples/\.github/|\.github/workflows/build\.yml)')
 WIRING = frozenset(('cloud/docker-image/pom.xml', 'cloud/docker-image/src/main/docker/zpm.json.template'))
 EXAMPLE = re.compile(r'^examples/([^/]+)/')
-KEYED = re.compile(r'^\s*(?:-\s*)?(?:type|model)\s*:\s*["\']?([A-Za-z0-9_.-]+)')
+KEYED = re.compile(r'^\s*(?:-\s*)?(type|model)\s*:\s*["\']?([A-Za-z0-9_.-]+)')
 METRIC = re.compile(r'^\s*-\s*([a-z]+)\.[a-z.]+\s*$')
+RESOLVER = re.compile(r'\$\{\{\s*([a-z][a-z0-9-]*)\.')
 
 
 def list_modules(root):
@@ -52,9 +55,12 @@ def configured_modules(root, example, modules):
                         keyed = KEYED.match(line)
                         metric = METRIC.match(line)
                         if keyed:
-                            names.update('%s-%s' % (kind, keyed.group(1)) for kind in KINDS if kind != 'metrics')
+                            names.update('%s-%s' % (kind, keyed.group(2)) for kind in KINDS if kind not in IMPLICIT_KINDS)
+                            if keyed.group(1) == 'model' and keyed.group(2) in CORE_MODELS:
+                                names.add('model-core')
                         if metric:
                             names.add('metrics-%s' % metric.group(1))
+                        names.update('resolver-%s' % prefix for prefix in RESOLVER.findall(line))
     return names & modules
 
 
