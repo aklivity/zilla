@@ -24,8 +24,6 @@ public final class A2aState
     private static final int REPLY_OPENING = 0x01;
     private static final int REPLY_CLOSING = 0x04;
     private static final int REPLY_CLOSED = 0x08;
-    private static final int REPLY_ABORT_DEFERRED = 0x100;
-    private static final int REPLY_FRAMING = 0x200;
 
     static int openingInitial(
         int state)
@@ -109,30 +107,6 @@ public final class A2aState
         int state)
     {
         return closingReply(state) | REPLY_CLOSED;
-    }
-
-    static int deferReplyAbort(
-        int state)
-    {
-        return state | REPLY_ABORT_DEFERRED;
-    }
-
-    static boolean replyAbortDeferred(
-        int state)
-    {
-        return (state & REPLY_ABORT_DEFERRED) != 0;
-    }
-
-    static int framingReply(
-        int state)
-    {
-        return state | REPLY_FRAMING;
-    }
-
-    static boolean replyFraming(
-        int state)
-    {
-        return (state & REPLY_FRAMING) != 0;
     }
 
     static boolean replyClosing(
