@@ -8,11 +8,13 @@
 
 - Engine worker crash: KafkaCacheClientProduceFan credits a released budget slot \(IndexOutOfBoundsException index=-56 in DefaultBudgetCreditor.credit\) — FLUSH path lacks \#1303's guard [\#2179](https://github.com/aklivity/zilla/issues/2179) ([joelmsanto](https://github.com/joelmsanto))
 - engine: typed structured configuration properties via JsonPropertyDef [\#2806](https://github.com/aklivity/zilla/issues/2806) ([jfallows](https://github.com/jfallows))
+- binding-llm: llm\(server\) resolves its route by dialect and model, as llm\(proxy\) does [\#2807](https://github.com/aklivity/zilla/issues/2807) ([jfallows](https://github.com/jfallows))
 
 **Merged pull requests:**
 
 - fix\(binding-kafka\): reset produce members when the cache client fan reply closes [\#2204](https://github.com/aklivity/zilla/pull/2204) ([ankitk-me](https://github.com/ankitk-me))
 - Add JSON property definition support with schema validation [\#2808](https://github.com/aklivity/zilla/pull/2808) ([jfallows](https://github.com/jfallows))
+- feat\(binding-llm\): resolve llm server route by dialect and model [\#2809](https://github.com/aklivity/zilla/pull/2809) ([jfallows](https://github.com/jfallows))
 - fix\(binding-http\): keep queued HTTP/1.1 requests queued while an exchange is in flight [\#2812](https://github.com/aklivity/zilla/pull/2812) ([ankitk-me](https://github.com/ankitk-me))
 - fix\(binding-llm\): decode openai/rs members that precede type [\#2813](https://github.com/aklivity/zilla/pull/2813) ([jfallows](https://github.com/jfallows))
 - test\(binding-mcp-openapi\): cover catalog overlay and deprecated peer overlay [\#2831](https://github.com/aklivity/zilla/pull/2831) ([jfallows](https://github.com/jfallows))
