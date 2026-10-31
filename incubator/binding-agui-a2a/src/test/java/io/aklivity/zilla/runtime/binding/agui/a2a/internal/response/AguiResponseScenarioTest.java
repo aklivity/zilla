@@ -111,15 +111,19 @@ public class AguiResponseScenarioTest
             assertEquals(scripts.expectedOutcome, harness.outcome);
         }
 
-        if (scripts.expectedDetail != null)
-        {
-            assertEquals(scripts.expectedDetail, harness.detail);
-        }
         else
         {
             assertEquals(scripts.expectedCode, harness.errorCode);
             assertEquals(scripts.expectedMessage, harness.errorMessage);
         }
+    }
+
+    @Test
+    public void shouldReportPendingToolCallIds() throws IOException
+    {
+        final ResponseHarness harness = run(ScenarioScripts.load("extension.tools.call"), Integer.MAX_VALUE);
+
+        assertEquals("{\"pendingToolCallIds\":[\"h-1\"]}", harness.detail);
     }
 
     @Test

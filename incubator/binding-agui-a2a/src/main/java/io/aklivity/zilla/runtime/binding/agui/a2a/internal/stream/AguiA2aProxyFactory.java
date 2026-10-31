@@ -841,6 +841,14 @@ public final class AguiA2aProxyFactory implements BindingHandler
         }
 
         @Override
+        public String toolCallHandle(
+            String taskId,
+            String callId)
+        {
+            return owners.issueHandle(key, AguiA2aHandleKind.TOOL, taskId, callId);
+        }
+
+        @Override
         public InterruptHandle interruptHandle(
             String taskId,
             String contextId)

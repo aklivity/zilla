@@ -48,6 +48,5 @@ read '{}'
 read zilla:end.ext ${agui:matchEndEx()
                      .typeId(zilla:id("agui"))
                      .outcome("SUCCESS")
-                     .detail("{\"pendingToolCallIds\":[\"h-1\"]}")
                      .build()}
 read closed

@@ -19,6 +19,10 @@ public interface AguiResponseHost
     byte[] snapshot(
         String contextId);
 
+    String toolCallHandle(
+        String taskId,
+        String callId);
+
     InterruptHandle interruptHandle(
         String taskId,
         String contextId);
