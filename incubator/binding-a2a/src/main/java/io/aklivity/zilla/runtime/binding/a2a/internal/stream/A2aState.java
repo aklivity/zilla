@@ -20,134 +20,108 @@ public final class A2aState
     private static final int INITIAL_OPENED = 0x20;
     private static final int INITIAL_CLOSING = 0x40;
     private static final int INITIAL_CLOSED = 0x80;
-    private static final int REPLY_OPENED = 0x01;
-    private static final int REPLY_OPENING = 0x02;
+    private static final int REPLY_OPENED = 0x02;
+    private static final int REPLY_OPENING = 0x01;
     private static final int REPLY_CLOSING = 0x04;
     private static final int REPLY_CLOSED = 0x08;
-    private static final int REPLY_ABORTING = 0x100;
-    private static final int REPLY_FRAMING = 0x200;
 
-    public static int openingInitial(
+    static int openingInitial(
         int state)
     {
         return state | INITIAL_OPENING;
     }
 
-    public static int openedInitial(
+    static int openInitial(
         int state)
     {
-        return state | INITIAL_OPENED;
+        return openingInitial(state) | INITIAL_OPENED;
     }
 
-    public static boolean initialOpening(
+    static boolean initialOpening(
         int state)
     {
         return (state & INITIAL_OPENING) != 0;
     }
 
-    public static boolean initialOpened(
+    static boolean initialOpened(
         int state)
     {
         return (state & INITIAL_OPENED) != 0;
     }
 
-    public static int closingInitial(
+    static int closingInitial(
         int state)
     {
         return state | INITIAL_CLOSING;
     }
 
-    public static int closedInitial(
+    static int closeInitial(
         int state)
     {
-        return state | INITIAL_CLOSED;
+        return closingInitial(state) | INITIAL_CLOSED;
     }
 
-    public static boolean initialClosing(
+    static boolean initialClosing(
         int state)
     {
         return (state & INITIAL_CLOSING) != 0;
     }
 
-    public static boolean initialClosed(
+    static boolean initialClosed(
         int state)
     {
         return (state & INITIAL_CLOSED) != 0;
     }
 
-    public static int openingReply(
+    static int openingReply(
         int state)
     {
         return state | REPLY_OPENING;
     }
 
-    public static int openedReply(
+    static int openReply(
         int state)
     {
         return state | REPLY_OPENED;
     }
 
-    public static boolean replyOpening(
+    static boolean replyOpening(
         int state)
     {
         return (state & REPLY_OPENING) != 0;
     }
 
-    public static boolean replyOpened(
+    static boolean replyOpened(
         int state)
     {
         return (state & REPLY_OPENED) != 0;
     }
 
-    public static int closingReply(
+    static int closingReply(
         int state)
     {
         return state | REPLY_CLOSING;
     }
 
-    public static int closedReply(
+    static int closeReply(
         int state)
     {
-        return state | REPLY_CLOSED;
+        return closingReply(state) | REPLY_CLOSED;
     }
 
-    public static int abortingReply(
-        int state)
-    {
-        return state | REPLY_ABORTING;
-    }
-
-    public static boolean replyAborting(
-        int state)
-    {
-        return (state & REPLY_ABORTING) != 0;
-    }
-
-    public static int framingReply(
-        int state)
-    {
-        return state | REPLY_FRAMING;
-    }
-
-    public static boolean replyFraming(
-        int state)
-    {
-        return (state & REPLY_FRAMING) != 0;
-    }
-
-    public static boolean replyClosing(
+    static boolean replyClosing(
         int state)
     {
         return (state & REPLY_CLOSING) != 0;
     }
 
-    public static boolean replyClosed(
+    static boolean replyClosed(
         int state)
     {
         return (state & REPLY_CLOSED) != 0;
     }
 
-    public static boolean closed(
+    static boolean closed(
         int state)
     {
         return initialClosed(state) && replyClosed(state);

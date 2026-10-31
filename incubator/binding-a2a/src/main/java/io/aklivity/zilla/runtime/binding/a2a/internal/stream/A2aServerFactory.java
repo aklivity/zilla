@@ -75,8 +75,10 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.io.DirectBufferInputStreamEx;
+import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx.StringEventPositions;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -181,7 +183,9 @@ public final class A2aServerFactory implements A2aStreamFactory
     private final A2aServerDecoder decodeIgnore = this::decodeIgnore;
 
     private final A2aReplyDecoder decodeReplyJson = this::decodeReplyJson;
-    private final A2aReplyDecoder decodeReplyEvents = this::decodeReplyEvents;
+    private final A2aReplyDecoder decodeReplyEventStart = this::decodeReplyEventStart;
+    private final A2aReplyDecoder decodeReplyEventHead = this::decodeReplyEventHead;
+    private final A2aReplyDecoder decodeReplyEvent = this::decodeReplyEvent;
     private final A2aReplyDecoder decodeReplyTranslated = this::decodeReplyTranslated;
     private final A2aReplyDecoder decodeReplyIgnore = this::decodeReplyIgnore;
 
@@ -458,7 +462,7 @@ public final class A2aServerFactory implements A2aStreamFactory
     @FunctionalInterface
     private interface A2aReplyDecoder
     {
-        void decode(
+        int decode(
             A2aStream stream,
             long traceId,
             long authorization,
@@ -957,6 +961,7 @@ public final class A2aServerFactory implements A2aStreamFactory
         private int decodeSlotReserved;
         private int decodedParserProgress;
 
+        private boolean sseUpgrade;
         private int encodeSlot = NO_SLOT;
         private int encodeSlotOffset;
         private long encodeSlotTraceId;
@@ -1050,7 +1055,7 @@ public final class A2aServerFactory implements A2aStreamFactory
             initialSeq = begin.sequence();
             initialAck = begin.acknowledge();
 
-            state = A2aState.openedInitial(state);
+            state = A2aState.openInitial(state);
 
             doNetWindow(traceId, authorization, 0, 0);
 
@@ -1138,7 +1143,7 @@ public final class A2aServerFactory implements A2aStreamFactory
                 }
 
                 cleanupDecodeSlot();
-                state = A2aState.closedInitial(state);
+                state = A2aState.closeInitial(state);
 
                 if (stream != null)
                 {
@@ -1152,13 +1157,9 @@ public final class A2aServerFactory implements A2aStreamFactory
         {
             final long traceId = abort.traceId();
 
-            cleanupDecodeSlot();
+            state = A2aState.closeInitial(state);
 
-            if (stream != null)
-            {
-                stream.doAppAbort(traceId, authorization);
-                stream.doAppReset(traceId, authorization);
-            }
+            cleanupNet(traceId, authorization);
         }
 
         private void onNetFlush(
@@ -1224,13 +1225,9 @@ public final class A2aServerFactory implements A2aStreamFactory
         {
             final long traceId = reset.traceId();
 
-            if (stream != null)
-            {
-                stream.doAppAbort(traceId, authorization);
-                stream.doAppReset(traceId, authorization);
-            }
+            state = A2aState.closeReply(state);
 
-            cleanupEncodeSlot();
+            cleanupNet(traceId, authorization);
         }
 
         private void onDecodeParseError(
@@ -1557,7 +1554,7 @@ public final class A2aServerFactory implements A2aStreamFactory
             {
                 if (CONTENT_TYPE_EVENT_STREAM.equals(contentType))
                 {
-                    state = A2aState.framingReply(state);
+                    sseUpgrade = true;
                 }
 
                 final HttpBeginExFW.Builder builder = httpBeginExRW
@@ -1679,14 +1676,7 @@ public final class A2aServerFactory implements A2aStreamFactory
             long traceId,
             long authorization)
         {
-            if (encodeSlot == NO_SLOT)
-            {
-                doNetAbort(traceId, authorization);
-            }
-            else
-            {
-                state = A2aState.abortingReply(state);
-            }
+            doNetAbort(traceId, authorization);
         }
 
         private void doNetEnd(
@@ -1695,7 +1685,7 @@ public final class A2aServerFactory implements A2aStreamFactory
         {
             if (!A2aState.replyClosed(state))
             {
-                state = A2aState.closedReply(state);
+                state = A2aState.closeReply(state);
                 doEnd(net, originId, routedId, replyId,
                     replySeq, replyAck, replyMax, traceId, authorization);
             }
@@ -1708,9 +1698,18 @@ public final class A2aServerFactory implements A2aStreamFactory
             long traceId,
             long authorization)
         {
+            if (!A2aState.replyOpening(state) && !A2aState.replyClosed(state))
+            {
+                doNetBegin(traceId, authorization, httpBeginExRW
+                    .wrap(codecBuffer, 0, codecBuffer.capacity())
+                    .typeId(httpTypeId)
+                    .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_502))
+                    .build());
+            }
+
             if (!A2aState.replyClosed(state))
             {
-                state = A2aState.closedReply(state);
+                state = A2aState.closeReply(state);
                 doAbort(net, originId, routedId, replyId,
                     replySeq, replyAck, replyMax, traceId, authorization);
             }
@@ -1725,7 +1724,7 @@ public final class A2aServerFactory implements A2aStreamFactory
             long budgetId,
             int padding)
         {
-            state = A2aState.openedInitial(state);
+            state = A2aState.openInitial(state);
 
             doWindow(net, originId, routedId, initialId,
                 initialSeq, initialAck, decodeMax - decodeSlotReserved, traceId, authorization, budgetId, padding,
@@ -1738,7 +1737,7 @@ public final class A2aServerFactory implements A2aStreamFactory
         {
             if (!A2aState.initialClosed(state))
             {
-                state = A2aState.closedInitial(state);
+                state = A2aState.closeInitial(state);
                 doReset(net, originId, routedId, initialId,
                     initialSeq, initialAck, initialMax, traceId, authorization, emptyRO);
             }
@@ -1856,7 +1855,7 @@ public final class A2aServerFactory implements A2aStreamFactory
             final int maxLength = limit - offset;
             final int length;
 
-            if (A2aState.replyFraming(state))
+            if (sseUpgrade)
             {
                 length = doDataEvents(net, originId, routedId, replyId, replySeq, replyAck, replyMax, replyPad, replyBud,
                     traceId, authorization, (MutableDirectBufferEx) buffer, offset, limit);
@@ -1904,11 +1903,7 @@ public final class A2aServerFactory implements A2aStreamFactory
             {
                 cleanupEncodeSlot();
 
-                if (A2aState.replyAborting(state))
-                {
-                    doNetAbort(traceId, authorization);
-                }
-                else if (A2aState.replyClosing(state))
+                if (A2aState.replyClosing(state))
                 {
                     doNetEnd(traceId, authorization);
                 }
@@ -1946,6 +1941,8 @@ public final class A2aServerFactory implements A2aStreamFactory
             long traceId,
             long authorization)
         {
+            decoder = decodeIgnore;
+            cleanupDecodeSlot();
             doNetReset(traceId, authorization);
             doNetAbort(traceId, authorization);
 
@@ -2018,9 +2015,10 @@ public final class A2aServerFactory implements A2aStreamFactory
         private final long routedId;
         private final long initialId;
         private final long replyId;
-        private final A2aReplyDecoder replyDecoder;
         private final A2aReplyEnd replyEnd;
-        private final A2aJsonScanner scanner = new A2aJsonScanner();
+        private final JsonParserEx parser;
+
+        private A2aReplyDecoder decoder;
 
         private MessageConsumer app;
         private DirectBufferEx pending;
@@ -2041,6 +2039,10 @@ public final class A2aServerFactory implements A2aStreamFactory
         private int decodeSlot = NO_SLOT;
         private int decodeSlotOffset;
 
+        private int decodeLimit;
+        private int decodedDepth;
+        private int eventFrom;
+
         private A2aStream(
             A2aServer server)
         {
@@ -2050,26 +2052,159 @@ public final class A2aServerFactory implements A2aStreamFactory
             this.initialId = supplyInitialId.applyAsLong(server.resolvedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
 
+            JsonParserEx parser = null;
+
             if (server.start == startPush)
             {
-                this.replyDecoder = decodeReplyIgnore;
+                this.decoder = decodeReplyIgnore;
                 this.replyEnd = endReplyPush;
             }
             else if (server.operation == null || server.operation == A2aOperation.EXTENDED_AGENT_CARD ||
                 !server.dialect.verbatim())
             {
-                this.replyDecoder = decodeReplyTranslated;
+                parser = createReplyParser();
+                this.decoder = decodeReplyTranslated;
                 this.replyEnd = endReplyTranslated;
             }
             else if (server.operation.streaming())
             {
-                this.replyDecoder = decodeReplyEvents;
+                parser = createReplyParser();
+                this.decoder = decodeReplyEventStart;
                 this.replyEnd = endReplyEvents;
             }
             else
             {
-                this.replyDecoder = decodeReplyJson;
+                this.decoder = decodeReplyJson;
                 this.replyEnd = endReplyJson;
+            }
+
+            this.parser = parser;
+        }
+
+        private JsonParserEx createReplyParser()
+        {
+            return JsonEx.createParser(Map.of(JsonParserEx.STRING_EVENT_POSITIONS, StringEventPositions.QUOTED));
+        }
+
+        private int position()
+        {
+            return decodeLimit - parser.remaining();
+        }
+
+        private void flushEvent(
+            long traceId,
+            long authorization,
+            DirectBufferEx buffer,
+            int to,
+            int flags)
+        {
+            server.doEncodeResponseBegin(traceId, authorization, CONTENT_TYPE_EVENT_STREAM);
+            server.doNetEvent(traceId, authorization, flags, buffer, eventFrom, to - eventFrom,
+                (flags & INIT) != 0, (flags & FIN) != 0);
+
+            this.eventFrom = to;
+        }
+
+        private void decodeReply(
+            long traceId,
+            long authorization,
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            final int length = limit - offset;
+            final boolean carried = decodeSlot != NO_SLOT;
+
+            if (carried && decodeSlotOffset + length > encodeMax)
+            {
+                cleanupApp(traceId, authorization);
+            }
+            else
+            {
+                if (carried)
+                {
+                    final MutableDirectBufferEx slot = encodePool.buffer(decodeSlot);
+                    slot.putBytes(decodeSlotOffset, buffer, offset, length);
+                    decodeSlotOffset += length;
+
+                    buffer = slot;
+                    offset = 0;
+                    limit = decodeSlotOffset;
+                }
+
+                decodeLimit = limit;
+                eventFrom = offset;
+
+                if (parser != null)
+                {
+                    parser.wrap(buffer, offset, limit, false);
+                }
+
+                int progress = offset;
+                int previous;
+                A2aReplyDecoder previousDecoder;
+
+                try
+                {
+                    do
+                    {
+                        previous = progress;
+                        previousDecoder = decoder;
+                        progress = decoder.decode(this, traceId, authorization, buffer, progress, limit);
+                    }
+                    while (progress != previous && progress < limit || decoder != previousDecoder);
+
+                    if ((decoder == decodeReplyEventHead || decoder == decodeReplyEvent) && progress > eventFrom)
+                    {
+                        flushEvent(traceId, authorization, buffer, progress, decoder == decodeReplyEventHead ? INIT : 0);
+                        decoder = decodeReplyEvent;
+                    }
+                }
+                catch (JsonException | IllegalStateException ex)
+                {
+                    cleanupApp(traceId, authorization);
+                }
+
+                if (decoder != decodeReplyIgnore)
+                {
+                    carryDecode(traceId, authorization, buffer, progress, limit, carried);
+                }
+            }
+        }
+
+        private void carryDecode(
+            long traceId,
+            long authorization,
+            DirectBufferEx buffer,
+            int progress,
+            int limit,
+            boolean carried)
+        {
+            final int remaining = limit - progress;
+
+            if (remaining == 0)
+            {
+                cleanupDecodeSlot();
+            }
+            else if (decodeSlot == NO_SLOT && (decodeSlot = encodePool.acquire(replyId)) == NO_SLOT)
+            {
+                cleanupApp(traceId, authorization);
+            }
+            else
+            {
+                final MutableDirectBufferEx slot = encodePool.buffer(decodeSlot);
+
+                if (carried)
+                {
+                    codecBuffer.putBytes(0, slot, progress, remaining);
+                    slot.putBytes(0, codecBuffer, 0, remaining);
+                }
+                else
+                {
+                    slot.putBytes(0, buffer, progress, remaining);
+                }
+
+                decodeSlotOffset = remaining;
             }
         }
 
@@ -2139,7 +2274,7 @@ public final class A2aServerFactory implements A2aStreamFactory
                 A2aState.initialClosed(server.state) &&
                 pending == null)
             {
-                state = A2aState.closedInitial(state);
+                state = A2aState.closeInitial(state);
                 doEnd(app, originId, routedId, initialId,
                     initialSeq, initialAck, initialMax,
                     traceId, authorization);
@@ -2155,7 +2290,7 @@ public final class A2aServerFactory implements A2aStreamFactory
             if (A2aState.initialOpening(state) &&
                 !A2aState.initialClosed(state))
             {
-                state = A2aState.closedInitial(state);
+                state = A2aState.closeInitial(state);
                 doAbort(app, originId, routedId, initialId,
                     initialSeq, initialAck, initialMax,
                     traceId, authorization);
@@ -2173,7 +2308,7 @@ public final class A2aServerFactory implements A2aStreamFactory
             long budgetId,
             int padding)
         {
-            state = A2aState.openedReply(state);
+            state = A2aState.openReply(state);
             doWindow(app, originId, routedId, replyId,
                 replySeq, replyAck, replyMax,
                 traceId, authorization, budgetId, padding);
@@ -2185,7 +2320,7 @@ public final class A2aServerFactory implements A2aStreamFactory
         {
             if (!A2aState.replyClosed(state))
             {
-                state = A2aState.closedReply(state);
+                state = A2aState.closeReply(state);
                 cleanupDecodeSlot();
                 doReset(app, originId, routedId, replyId,
                     replySeq, replyAck, replyMax,
@@ -2311,7 +2446,7 @@ public final class A2aServerFactory implements A2aStreamFactory
             }
             else if (payload != null && !A2aState.replyClosed(state))
             {
-                replyDecoder.decode(this, traceId, authorization, payload.buffer(), payload.offset(), payload.limit());
+                decodeReply(traceId, authorization, payload.buffer(), payload.offset(), payload.limit());
                 flushAppWindow(traceId, authorization, 0L, 0, server.encodeSlotOffset, encodeMax);
             }
         }
@@ -2333,7 +2468,7 @@ public final class A2aServerFactory implements A2aStreamFactory
 
             final boolean replying = !A2aState.replyClosed(state);
 
-            state = A2aState.closedReply(state);
+            state = A2aState.closeReply(state);
 
             if (replying)
             {
@@ -2353,7 +2488,7 @@ public final class A2aServerFactory implements A2aStreamFactory
 
             final boolean replying = !A2aState.replyClosed(state);
 
-            state = A2aState.closedReply(state);
+            state = A2aState.closeReply(state);
 
             cleanupDecodeSlot();
 
@@ -2386,7 +2521,7 @@ public final class A2aServerFactory implements A2aStreamFactory
             initialBud = budgetId;
             initialPad = padding;
 
-            state = A2aState.openedInitial(state);
+            state = A2aState.openInitial(state);
 
             flushPending(traceId, authorization);
 
@@ -2433,7 +2568,7 @@ public final class A2aServerFactory implements A2aStreamFactory
                 server.doEncodeResponseStatus(traceId, authorization, STATUS_502);
             }
 
-            state = A2aState.closedReply(state);
+            state = A2aState.closeReply(state);
             doAppAbort(traceId, authorization);
         }
 
@@ -2451,6 +2586,7 @@ public final class A2aServerFactory implements A2aStreamFactory
             long traceId,
             long authorization)
         {
+            decoder = decodeReplyIgnore;
             cleanupDecodeSlot();
             doAppReset(traceId, authorization);
             doAppAbort(traceId, authorization);
@@ -2479,7 +2615,7 @@ public final class A2aServerFactory implements A2aStreamFactory
         };
     }
 
-    private void decodeReplyJson(
+    private int decodeReplyJson(
         A2aStream stream,
         long traceId,
         long authorization,
@@ -2499,6 +2635,8 @@ public final class A2aServerFactory implements A2aStreamFactory
 
             server.doNetData(traceId, authorization, buffer, offset, limit);
         }
+
+        return limit;
     }
 
     private void endReplyJson(
@@ -2519,7 +2657,7 @@ public final class A2aServerFactory implements A2aStreamFactory
         server.doEncodeResponseEnd(traceId, authorization);
     }
 
-    private void decodeReplyEvents(
+    private int decodeReplyEventStart(
         A2aStream stream,
         long traceId,
         long authorization,
@@ -2527,22 +2665,84 @@ public final class A2aServerFactory implements A2aStreamFactory
         int offset,
         int limit)
     {
-        final A2aServer server = stream.server;
+        final JsonParserEx parser = stream.parser;
 
-        int progress = offset;
-        while (progress < limit)
+        parser.reset();
+        parser.wrap(buffer, offset, limit, false);
+
+        if (parser.hasNextEvent() && parser.nextEvent() == JsonEvent.START_DOCUMENT && parser.hasNextEvent())
         {
-            server.doEncodeResponseBegin(traceId, authorization, CONTENT_TYPE_EVENT_STREAM);
+            final JsonEvent event = parser.nextEvent();
 
-            final boolean initial = !stream.scanner.inMessage();
-            final int messageEnd = stream.scanner.scan(buffer, progress, limit);
-            final int chunkLimit = messageEnd >= 0 ? messageEnd : limit;
-            final int flags = (initial ? INIT : 0) | (messageEnd >= 0 ? FIN : 0);
-
-            server.doNetEvent(traceId, authorization, flags, buffer, progress, chunkLimit - progress, initial, messageEnd >= 0);
-
-            progress = chunkLimit;
+            if (event == JsonEvent.START_OBJECT || event == JsonEvent.START_ARRAY)
+            {
+                stream.decodedDepth = 1;
+                stream.eventFrom = offset;
+                stream.decoder = decodeReplyEventHead;
+            }
+            else
+            {
+                stream.cleanupApp(traceId, authorization);
+            }
         }
+
+        return stream.position();
+    }
+
+    private int decodeReplyEventHead(
+        A2aStream stream,
+        long traceId,
+        long authorization,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        return decodeReplyEventMessage(stream, traceId, authorization, buffer);
+    }
+
+    private int decodeReplyEvent(
+        A2aStream stream,
+        long traceId,
+        long authorization,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        return decodeReplyEventMessage(stream, traceId, authorization, buffer);
+    }
+
+    private int decodeReplyEventMessage(
+        A2aStream stream,
+        long traceId,
+        long authorization,
+        DirectBufferEx buffer)
+    {
+        final JsonParserEx parser = stream.parser;
+        final A2aReplyDecoder current = stream.decoder;
+
+        while (stream.decoder == current && parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+
+            stream.decodedDepth += nesting(event);
+
+            if (event == JsonEvent.KEY_NAME && parser.deferredBytes())
+            {
+                parser.consumed(0);
+            }
+            else if ((event == JsonEvent.VALUE_STRING || event == JsonEvent.VALUE_NUMBER) && parser.deferredBytes())
+            {
+                parser.consumed(parser.getStringView().length());
+            }
+            else if (event != JsonEvent.KEY_NAME && stream.decodedDepth == 0)
+            {
+                stream.flushEvent(traceId, authorization, buffer, stream.position(),
+                    current == decodeReplyEventHead ? INIT | FIN : FIN);
+                stream.decoder = decodeReplyEventStart;
+            }
+        }
+
+        return stream.position();
     }
 
     private void endReplyEvents(
@@ -2554,7 +2754,7 @@ public final class A2aServerFactory implements A2aStreamFactory
 
         server.doEncodeResponseBegin(traceId, authorization, CONTENT_TYPE_EVENT_STREAM);
 
-        if (stream.scanner.inMessage())
+        if (stream.decoder == decodeReplyEventHead || stream.decoder == decodeReplyEvent)
         {
             server.doNetAbort(traceId, authorization);
         }
@@ -2564,7 +2764,7 @@ public final class A2aServerFactory implements A2aStreamFactory
         }
     }
 
-    private void decodeReplyTranslated(
+    private int decodeReplyTranslated(
         A2aStream stream,
         long traceId,
         long authorization,
@@ -2572,45 +2772,54 @@ public final class A2aServerFactory implements A2aStreamFactory
         int offset,
         int limit)
     {
-        if (limit > offset)
+        final JsonParserEx parser = stream.parser;
+
+        parser.reset();
+        parser.wrap(buffer, offset, limit, false);
+
+        int progress = offset;
+        int depth = 0;
+        boolean started = false;
+
+        while (stream.decoder == decodeReplyTranslated && parser.hasNextEvent() && (!started || depth > 0))
         {
-            if (stream.decodeSlot == NO_SLOT)
+            final JsonEvent event = parser.nextEvent();
+
+            started |= event != JsonEvent.START_DOCUMENT;
+            depth += nesting(event);
+
+            if (deferred(parser, event))
             {
-                stream.decodeSlot = encodePool.acquire(stream.replyId);
-            }
-
-            if (stream.decodeSlot == NO_SLOT || stream.decodeSlotOffset + limit - offset > encodeMax)
-            {
-                stream.cleanupApp(traceId, authorization);
-            }
-            else
-            {
-                final MutableDirectBufferEx slot = encodePool.buffer(stream.decodeSlot);
-
-                int scanned = stream.decodeSlotOffset;
-                slot.putBytes(stream.decodeSlotOffset, buffer, offset, limit - offset);
-                stream.decodeSlotOffset += limit - offset;
-
-                int messageEnd = stream.scanner.scan(slot, scanned, stream.decodeSlotOffset);
-                while (messageEnd >= 0)
-                {
-                    doEncodeTranslated(stream, traceId, authorization, slot, 0, messageEnd);
-
-                    final int remaining = stream.decodeSlotOffset - messageEnd;
-                    codecBuffer.putBytes(0, slot, messageEnd, remaining);
-                    slot.putBytes(0, codecBuffer, 0, remaining);
-                    stream.decodeSlotOffset = remaining;
-
-                    scanned = 0;
-                    messageEnd = stream.scanner.scan(slot, scanned, stream.decodeSlotOffset);
-                }
-
-                if (stream.decodeSlotOffset == 0)
-                {
-                    stream.cleanupDecodeSlot();
-                }
+                parser.consumed(event == JsonEvent.KEY_NAME ? 0 : parser.getStringView().length());
             }
         }
+
+        if (started && depth == 0 && stream.decoder == decodeReplyTranslated)
+        {
+            progress = stream.position();
+            doEncodeTranslated(stream, traceId, authorization, buffer, offset, progress);
+        }
+
+        return progress;
+    }
+
+    private static boolean deferred(
+        JsonParserEx parser,
+        JsonEvent event)
+    {
+        return (event == JsonEvent.KEY_NAME || event == JsonEvent.VALUE_STRING || event == JsonEvent.VALUE_NUMBER) &&
+            parser.deferredBytes();
+    }
+
+    private static int nesting(
+        JsonEvent event)
+    {
+        return switch (event)
+        {
+        case START_OBJECT, START_ARRAY -> 1;
+        case END_OBJECT, END_ARRAY -> -1;
+        default -> 0;
+        };
     }
 
     private void doEncodeTranslated(
@@ -2707,7 +2916,7 @@ public final class A2aServerFactory implements A2aStreamFactory
         }
     }
 
-    private void decodeReplyIgnore(
+    private int decodeReplyIgnore(
         A2aStream stream,
         long traceId,
         long authorization,
@@ -2715,6 +2924,7 @@ public final class A2aServerFactory implements A2aStreamFactory
         int offset,
         int limit)
     {
+        return limit;
     }
 
     private void endReplyPush(
