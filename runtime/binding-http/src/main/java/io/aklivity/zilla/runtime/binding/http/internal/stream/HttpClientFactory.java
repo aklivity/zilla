@@ -1889,7 +1889,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             if (client.applicationHeadersProcessed.size() < config.maxConcurrentApplicationHeaders())
             {
                 final HttpExchange exchange = client.exchanges.get(streamId);
-                if (HttpState.replyOpening(exchange.state))
+                if (exchange != null && HttpState.replyOpening(exchange.state))
                 {
                     client.onDecodeHttp2Trailers(traceId, authorization, http2Headers);
                 }
@@ -3635,7 +3635,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             {
                 doEncodeHttp2Headers(traceId, authorization, streamId, headersDecoder.httpErrorHeader, EMPTY_OVERRIDES, true);
             }
-            else
+            else if (exchanges.containsKey(streamId))
             {
                 final Map<String, String> headers = headersDecoder.headers;
                 final HttpExchange exchange = exchanges.get(streamId);
