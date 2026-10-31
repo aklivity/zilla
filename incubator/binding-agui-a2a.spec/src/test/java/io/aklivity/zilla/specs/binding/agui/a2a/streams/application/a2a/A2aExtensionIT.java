@@ -80,4 +80,94 @@ public class A2aExtensionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/extension.tag.state/client",
+        "${app}/extension.tag.state/server"})
+    public void shouldRunExtensionTagState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/extension.tag.activity/client",
+        "${app}/extension.tag.activity/server"})
+    public void shouldRunExtensionTagActivity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/extension.tag.reasoning/client",
+        "${app}/extension.tag.reasoning/server"})
+    public void shouldRunExtensionTagReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/extension.tag.step/client",
+        "${app}/extension.tag.step/server"})
+    public void shouldRunExtensionTagStep() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/extension.tag.tool.call/client",
+        "${app}/extension.tag.tool.call/server"})
+    public void shouldRunExtensionTagToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/extension.tag.custom/client",
+        "${app}/extension.tag.custom/server"})
+    public void shouldRunExtensionTagCustom() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/extension.tag.disabled/client",
+        "${app}/extension.tag.disabled/server"})
+    public void shouldRunExtensionTagDisabled() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/extension.tag.echo.absent/client",
+        "${app}/extension.tag.echo.absent/server"})
+    public void shouldRunExtensionTagEchoAbsent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/extension.tag.dropped/client",
+        "${app}/extension.tag.dropped/server"})
+    public void shouldRunExtensionTagDropped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/extension.tag.malformed/client",
+        "${app}/extension.tag.malformed/server"})
+    public void shouldRunExtensionTagMalformed() throws Exception
+    {
+        k3po.finish();
+    }
 }
