@@ -88,6 +88,7 @@ public final class AguiA2aRequestDecoder
     private final Decoder decodeMessageDrain = this::decodeMessageDrain;
     private final Decoder decodeMessageRole = this::decodeMessageRole;
     private final Decoder decodeDone = this::decodeDone;
+    private final Decoder decodeReject = this::decodeReject;
     private final Decoder decodeIgnore = this::decodeIgnore;
 
     private final JsonParserEx parser;
@@ -119,6 +120,7 @@ public final class AguiA2aRequestDecoder
     private int messageMark;
     private Role messageRole = Role.UNKNOWN;
     private int oversize;
+    private int rejectDepth;
     private int turns;
 
     public AguiA2aRequestDecoder(
@@ -378,7 +380,7 @@ public final class AguiA2aRequestDecoder
 
         if (result != Append.OK)
         {
-            rejectAppend(result);
+            rejectAppend(result, 1);
         }
         else
         {
@@ -434,7 +436,7 @@ public final class AguiA2aRequestDecoder
         case END_ARRAY:
             if (oversize > 0)
             {
-                reject(AguiA2aRejection.TOO_LARGE);
+                rejectTooLarge(1);
             }
             else
             {
@@ -540,7 +542,7 @@ public final class AguiA2aRequestDecoder
 
             if (result == Append.UNAVAILABLE)
             {
-                rejectAppend(result);
+                rejectAppend(result, 0);
             }
             else
             {
@@ -584,6 +586,28 @@ public final class AguiA2aRequestDecoder
     {
     }
 
+    private void decodeReject()
+    {
+        switch (next())
+        {
+        case START_OBJECT:
+        case START_ARRAY:
+            rejectDepth++;
+            break;
+        case END_OBJECT:
+        case END_ARRAY:
+            rejectDepth--;
+            break;
+        default:
+            break;
+        }
+
+        if (rejectDepth == 0)
+        {
+            decoder = decodeIgnore;
+        }
+    }
+
     private void decodeIgnore()
     {
     }
@@ -599,11 +623,11 @@ public final class AguiA2aRequestDecoder
             {
                 if (decoder == decodeCapture)
                 {
-                    rejectAppend(result);
+                    rejectAppend(result, 1 + depth);
                 }
                 else if (result == Append.UNAVAILABLE)
                 {
-                    rejectAppend(result);
+                    rejectAppend(result, 0);
                 }
                 else
                 {
@@ -676,9 +700,26 @@ public final class AguiA2aRequestDecoder
     }
 
     private void rejectAppend(
-        Append result)
+        Append result,
+        int nesting)
     {
-        reject(result == Append.UNAVAILABLE ? AguiA2aRejection.RETENTION_UNAVAILABLE : AguiA2aRejection.TOO_LARGE);
+        if (result == Append.UNAVAILABLE)
+        {
+            reject(AguiA2aRejection.RETENTION_UNAVAILABLE);
+        }
+        else
+        {
+            rejectTooLarge(nesting);
+        }
+    }
+
+    private void rejectTooLarge(
+        int nesting)
+    {
+        this.rejection = AguiA2aRejection.TOO_LARGE;
+        this.rejectDepth = nesting;
+        this.decoder = decodeReject;
+        retained.release();
     }
 
     private void reject(

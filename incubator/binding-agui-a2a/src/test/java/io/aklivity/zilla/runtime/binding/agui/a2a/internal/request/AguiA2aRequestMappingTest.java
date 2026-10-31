@@ -251,6 +251,28 @@ public class AguiA2aRequestMappingTest
     }
 
     @Test
+    public void shouldSkipRestOfRequestAfterOversizeState() throws Exception
+    {
+        final String head = "{\"threadId\":\"t\",\"runId\":\"r\",\"state\":{\"blob\":\"" + "x".repeat(2 * SLOT);
+        final String tail = "\"},\"tools\":[{\"name\":\"n\"}],\"messages\":[{\"role\":\"user\",\"content\":\"x\"}]}";
+        final DefaultBufferPool pool = new DefaultBufferPool(SLOT, SLOT);
+        final AguiA2aRequestDecoder decoder =
+            new AguiA2aRequestDecoder(1L, "t", "r", null, new AguiA2aRetention(pool));
+
+        final byte[] first = head.getBytes(UTF_8);
+        final int progress = decoder.decode(new UnsafeBufferEx(first), 0, first.length, false);
+
+        assertThat(decoder.status(), equalTo(Status.PENDING));
+        assertThat(decoder.rejection(), equalTo(AguiA2aRejection.TOO_LARGE));
+
+        final byte[] second = (new String(first, progress, first.length - progress, UTF_8) + tail).getBytes(UTF_8);
+        decoder.decode(new UnsafeBufferEx(second), 0, second.length, true);
+
+        assertThat(decoder.status(), equalTo(Status.REJECTED));
+        assertThat(decoder.rejection(), equalTo(AguiA2aRejection.TOO_LARGE));
+    }
+
+    @Test
     public void shouldRejectOversizeTrailingMessage() throws Exception
     {
         assertRejected("{\"threadId\":\"t\",\"runId\":\"r\",\"messages\":[{\"role\":\"assistant\",\"content\":\"a\"}," +
