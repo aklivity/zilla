@@ -35,6 +35,7 @@ write '{"message":{"messageId":"m-1","role":"ROLE_USER","parts":[{"text":"What i
 read zilla:data.ext ${a2a:matchDataEx()
                          .typeId(zilla:id("a2a"))
                          .message()
+                             .messageId("m-2")
                              .build()
                          .build()}
 read '{"message":{"messageId":"m-2","role":"ROLE_AGENT","parts":[{"text":"Partly cloudy, 72F"}]}}'

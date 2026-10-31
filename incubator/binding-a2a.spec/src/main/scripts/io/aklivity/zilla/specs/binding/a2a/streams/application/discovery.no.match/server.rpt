@@ -41,6 +41,7 @@ write flush
 write zilla:data.ext ${a2a:dataEx()
                           .typeId(zilla:id("a2a"))
                           .message()
+                              .messageId("discovery-m-1")
                               .build()
                           .build()}
 write '{"message":{"messageId":"discovery-m-1","role":"ROLE_AGENT","parts":[{"text":"No agents found"},{"data":{"agents":[]}}]}}'
