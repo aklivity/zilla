@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.agui.a2a.internal.stream;
 
-import java.security.SecureRandom;
-
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
@@ -76,7 +74,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
         this.state = new AguiA2aLocalOwnerState(
             context.signaler(),
             () -> context.clock().millis(),
-            new SecureRandom(),
+            config.handleIdSupplier(),
             config.threadTtl().toMillis(),
             config.handleTtl().toMillis(),
             config.threadCapacity());
