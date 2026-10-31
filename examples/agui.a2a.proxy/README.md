@@ -105,6 +105,7 @@ AG-UI and A2A do not model the same things. What the proxy drops or approximates
 | `image`, `audio`, `video`, `document` with `data` or `url` source | `raw` or `url` part | none |
 | the same parts with a provider `file` source | dropped | lossy |
 | non-empty `state` and `context` | one `application/json` data part, only when the agent card accepts `application/json` | lossy, the agent may ignore it |
+| non-empty `state`, when the agent declared the `state` feature of the AG-UI extension | `Message.metadata.agui.state`, instead of the data part | lossy, the agent may ignore it |
 | `forwardedProps` | `Message.metadata` | none, `agui` is a reserved key |
 | `tools` | dropped | lossy |
 
