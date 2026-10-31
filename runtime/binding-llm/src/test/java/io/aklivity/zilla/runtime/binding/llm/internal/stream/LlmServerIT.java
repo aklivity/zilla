@@ -41,6 +41,7 @@ public class LlmServerIT
         .countersBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/llm/config")
         .external("app0")
+        .external("app1")
         .clean();
 
     @Rule
@@ -96,6 +97,16 @@ public class LlmServerIT
     @Specification({
         "${net}/reject.gemini.dialect/client"})
     public void shouldRejectGeminiRequestWhenDialectsOmitGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.route.dialect.yaml")
+    @Specification({
+        "${net}/openai/client",
+        "${app}/openai/server"})
+    public void shouldRouteOpenaiRequestByDialect() throws Exception
     {
         k3po.finish();
     }

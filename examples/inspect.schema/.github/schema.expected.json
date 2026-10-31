@@ -4130,7 +4130,9 @@
                                             "items": {
                                                 "type": "object",
                                                 "properties": {
-                                                    "when": false,
+                                                    "when": {
+                                                        "$ref": "#/$defs/binding-ext/llm/when"
+                                                    },
                                                     "with": false
                                                 }
                                             }
@@ -4195,47 +4197,7 @@
                                                 "type": "object",
                                                 "properties": {
                                                     "when": {
-                                                        "title": "When",
-                                                        "type": "array",
-                                                        "items": {
-                                                            "type": "object",
-                                                            "properties": {
-                                                                "dialect": {
-                                                                    "title": "Dialect",
-                                                                    "description": "Matches when the request's resolved dialect equals this value. A vendor name such as openai also matches every dialect of that vendor.",
-                                                                    "$ref": "#/$defs/binding-ext/llm/dialect"
-                                                                },
-                                                                "api": {
-                                                                    "title": "API",
-                                                                    "description": "Matches when the request's resolved dialect is the named API of the openai dialect, from chat/completions and responses. Omit to match every API of the dialect. Requires dialect to be openai.",
-                                                                    "$ref": "#/$defs/binding-ext/llm/openai-api"
-                                                                },
-                                                                "model": {
-                                                                    "title": "Model",
-                                                                    "description": "Matches when the request's extracted model is admitted by this allow-set. Accepts exact model names or * glob patterns.",
-                                                                    "type": "array",
-                                                                    "items": {
-                                                                        "type": "string"
-                                                                    }
-                                                                }
-                                                            },
-                                                            "if": {
-                                                                "required": [
-                                                                    "api"
-                                                                ]
-                                                            },
-                                                            "then": {
-                                                                "properties": {
-                                                                    "dialect": {
-                                                                        "const": "openai"
-                                                                    }
-                                                                },
-                                                                "required": [
-                                                                    "dialect"
-                                                                ]
-                                                            },
-                                                            "additionalProperties": false
-                                                        }
+                                                        "$ref": "#/$defs/binding-ext/llm/when"
                                                     },
                                                     "with": {
                                                         "title": "With",
@@ -7942,6 +7904,49 @@
                     "uniqueItems": true,
                     "items": {
                         "$ref": "#/$defs/binding-ext/llm/openai-api"
+                    }
+                },
+                "when": {
+                    "title": "When",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "dialect": {
+                                "title": "Dialect",
+                                "description": "Matches when the request's resolved dialect equals this value. A vendor name such as openai also matches every dialect of that vendor.",
+                                "$ref": "#/$defs/binding-ext/llm/dialect"
+                            },
+                            "api": {
+                                "title": "API",
+                                "description": "Matches when the request's resolved dialect is the named API of the openai dialect, from chat/completions and responses. Omit to match every API of the dialect. Requires dialect to be openai.",
+                                "$ref": "#/$defs/binding-ext/llm/openai-api"
+                            },
+                            "model": {
+                                "title": "Model",
+                                "description": "Matches when the request's extracted model is admitted by this allow-set. Accepts exact model names or * glob patterns.",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "if": {
+                            "required": [
+                                "api"
+                            ]
+                        },
+                        "then": {
+                            "properties": {
+                                "dialect": {
+                                    "const": "openai"
+                                }
+                            },
+                            "required": [
+                                "dialect"
+                            ]
+                        },
+                        "additionalProperties": false
                     }
                 },
                 "dialect-entry": {
