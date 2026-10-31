@@ -93,6 +93,10 @@ public final class AguiA2aProxyFactory implements BindingHandler
     private static final String CODE_HANDLE_UNKNOWN = "handle_unknown";
     private static final String MESSAGE_HANDLE_UNKNOWN = "Interrupt no longer available";
     private static final String MESSAGE_INTERNAL_ERROR = "Internal error";
+    private static final String MESSAGE_BAD_GATEWAY = "Bad Gateway";
+    private static final int STATUS_UNSUPPORTED_MEDIA = 415;
+    private static final String CODE_UNSUPPORTED_MEDIA = "unsupported_media";
+    private static final String MESSAGE_UNSUPPORTED_MEDIA = "Unsupported media type";
 
     private static final int RECORD_HEADER = 3 * Integer.BYTES;
 
@@ -662,11 +666,22 @@ public final class AguiA2aProxyFactory implements BindingHandler
         {
             final String contextId = resumeTaskId == null ? rememberedContextId : null;
             assembler.wrap(requestDecoder.retained(), runId, contextId, resumeTaskId, resumeInterruptId,
-                card.acceptsAdvisory());
+                card.acceptsAdvisory())
+                .accepting(card::acceptsInput);
 
-            final A2aMessage message = new A2aMessage(this, card.operation(), assembler.contentLength());
-            a2aStreams.add(message);
-            message.doA2aBegin(traceId);
+            final int contentLength = assembler.contentLength();
+
+            if (assembler.unacceptedMediaType() != null)
+            {
+                doAguiReset(traceId, STATUS_UNSUPPORTED_MEDIA, CODE_UNSUPPORTED_MEDIA, MESSAGE_UNSUPPORTED_MEDIA);
+                cleanup(traceId);
+            }
+            else
+            {
+                final A2aMessage message = new A2aMessage(this, card.operation(), contentLength);
+                a2aStreams.add(message);
+                message.doA2aBegin(traceId);
+            }
         }
 
         private void onA2aReset(
@@ -948,9 +963,10 @@ public final class AguiA2aProxyFactory implements BindingHandler
         {
             if (!AguiA2aState.initialClosed(state))
             {
+                final String text = message != null || status != STATUS_BAD_GATEWAY ? message : MESSAGE_BAD_GATEWAY;
                 final AguiResetExFW resetEx = aguiResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(aguiTypeId)
-                    .error(e -> e.status(status).code(code).message(message))
+                    .error(e -> e.status(status).code(code).message(text))
                     .build();
 
                 doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId,
@@ -1251,11 +1267,12 @@ public final class AguiA2aProxyFactory implements BindingHandler
         }
 
         @Override
-        void doA2aBegin(
-            long traceId)
+        void onA2aBegin(
+            BeginFW begin)
         {
-            super.doA2aBegin(traceId);
-            doA2aEnd(traceId);
+            super.onA2aBegin(begin);
+
+            doA2aEnd(begin.traceId());
         }
 
         @Override
