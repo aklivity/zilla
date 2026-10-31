@@ -41,6 +41,7 @@ import io.aklivity.zilla.runtime.binding.agui.a2a.internal.request.AguiA2aRetain
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.request.AguiA2aRetained.Kind;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.request.AguiA2aRetention;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.response.A2aEventDecoder;
+import io.aklivity.zilla.runtime.binding.agui.a2a.internal.response.A2aEventRoot;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.response.AguiFrameSink;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.response.AguiReset;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.response.AguiResponseHost;
@@ -630,7 +631,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
             else
             {
                 this.assembler = resolver;
-                openReply(traceId);
+                openReply(cancelled);
 
                 if (cancelled)
                 {
@@ -654,10 +655,11 @@ public final class AguiA2aProxyFactory implements BindingHandler
         }
 
         private void openReply(
-            long traceId)
+            boolean cancelled)
         {
             this.mapper = new AguiResponseMapper(this, this, aguiTypeId, decodePool.slotCapacity());
-            this.eventDecoder = new A2aEventDecoder(mapper, decodePool.slotCapacity());
+            this.eventDecoder = new A2aEventDecoder(mapper, decodePool.slotCapacity(),
+                cancelled ? A2aEventRoot.TASK : A2aEventRoot.EVENT);
         }
 
         private void onCardDecoded(
