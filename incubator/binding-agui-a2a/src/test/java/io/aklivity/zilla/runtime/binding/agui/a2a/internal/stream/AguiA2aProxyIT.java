@@ -1000,4 +1000,15 @@ public class AguiA2aProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.messages.reset/client",
+        "${agent}/extension.messages.reset/server"})
+    public void shouldRunExtensionMessagesReset() throws Exception
+    {
+        k3po.finish();
+    }
 }

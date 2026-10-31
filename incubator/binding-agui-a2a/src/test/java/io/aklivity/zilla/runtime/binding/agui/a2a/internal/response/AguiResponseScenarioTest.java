@@ -65,6 +65,7 @@ public class AguiResponseScenarioTest
             "interrupt.input.required",
             "interrupt.auth.required",
             "owner.context.reset.interrupt",
+            "extension.messages.reset",
             "extension.tag.state",
             "extension.tag.activity",
             "extension.tag.reasoning",
