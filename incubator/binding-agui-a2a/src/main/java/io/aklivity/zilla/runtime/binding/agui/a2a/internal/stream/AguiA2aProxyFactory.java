@@ -28,6 +28,7 @@ import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.AguiA2aConfiguration;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.card.AguiA2aAgentCard;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.card.AguiA2aAgentCardDecoder;
+import io.aklivity.zilla.runtime.binding.agui.a2a.internal.card.AguiA2aExtension;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.card.AguiA2aOperation;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.config.AguiA2aBindingConfig;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.config.AguiA2aRouteConfig;
@@ -116,6 +117,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
     private final ChallengeFW challengeRO = new ChallengeFW();
     private final AguiBeginExFW aguiBeginExRO = new AguiBeginExFW();
     private final A2aResetExFW a2aResetExRO = new A2aResetExFW();
+    private final A2aBeginExFW a2aBeginExRO = new A2aBeginExFW();
     private final A2aEndExFW a2aEndExRO = new A2aEndExFW();
     private final A2aDataExFW a2aDataExRO = new A2aDataExFW();
     private final A2aAbortExFW a2aAbortExRO = new A2aAbortExFW();
@@ -332,6 +334,8 @@ public final class AguiA2aProxyFactory implements BindingHandler
         private AguiResponseMapper mapper;
         private A2aEventDecoder eventDecoder;
         private String rememberedContextId;
+        private AguiA2aExtension offered;
+        private AguiA2aExtension active;
         private String resumeTaskId;
         private String resumeInterruptId;
         private long eventTraceId;
@@ -693,7 +697,14 @@ public final class AguiA2aProxyFactory implements BindingHandler
 
             final int contentLength = assembler.contentLength();
 
-            if (assembler.unacceptedMediaType() != null)
+            this.offered = card.extension();
+
+            if (card.refused())
+            {
+                doAguiReset(traceId, STATUS_BAD_GATEWAY, null, null);
+                cleanup(traceId);
+            }
+            else if (assembler.unacceptedMediaType() != null)
             {
                 doAguiReset(traceId, STATUS_UNSUPPORTED_MEDIA, CODE_UNSUPPORTED_MEDIA, MESSAGE_UNSUPPORTED_MEDIA);
                 cleanup(traceId);
@@ -704,6 +715,34 @@ public final class AguiA2aProxyFactory implements BindingHandler
                 a2aStreams.add(message);
                 message.doA2aBegin(traceId);
             }
+        }
+
+        private void onExtensionEcho(
+            OctetsFW extension)
+        {
+            final A2aBeginExFW beginEx = extension.sizeof() > 0
+                ? a2aBeginExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit())
+                : null;
+
+            if (offered != null && beginEx != null && beginEx.typeId() == a2aTypeId)
+            {
+                final String echoed = switch (beginEx.kind())
+                {
+                case A2aBeginExFW.KIND_MESSAGE_STREAM -> beginEx.messageStream().extensions().asString();
+                case A2aBeginExFW.KIND_MESSAGE_SEND -> beginEx.messageSend().extensions().asString();
+                default -> null;
+                };
+
+                if (offered.uri().equals(echoed))
+                {
+                    active = offered;
+                }
+            }
+        }
+
+        String extensions()
+        {
+            return offered != null ? offered.uri() : null;
         }
 
         private void onA2aReset(
@@ -1442,6 +1481,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
             BeginFW begin)
         {
             proxy.doAguiBegin(begin.traceId());
+            proxy.onExtensionEcho(begin.extension());
 
             super.onA2aBegin(begin);
         }
@@ -1544,8 +1584,12 @@ public final class AguiA2aProxyFactory implements BindingHandler
             final A2aBeginExFW.Builder builder = a2aBeginExRW.wrap(extBuffer, 0, extBuffer.capacity()).typeId(a2aTypeId);
 
             return operation == AguiA2aOperation.MESSAGE_STREAM
-                ? builder.messageStream(m -> m.agent(proxy.agent).contentLength(bodyLength)).build()
-                : builder.messageSend(m -> m.agent(proxy.agent).contentLength(bodyLength)).build();
+                ? builder.messageStream(m -> m.agent(proxy.agent)
+                    .extensions(proxy.extensions())
+                    .contentLength(bodyLength)).build()
+                : builder.messageSend(m -> m.agent(proxy.agent)
+                    .extensions(proxy.extensions())
+                    .contentLength(bodyLength)).build();
         }
 
         @Override
@@ -1587,7 +1631,9 @@ public final class AguiA2aProxyFactory implements BindingHandler
         {
             return a2aBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(a2aTypeId)
-                .tasksCancel(t -> t.agent(proxy.agent).taskId(proxy.resumeTaskId))
+                .tasksCancel(t -> t.agent(proxy.agent)
+                    .extensions(proxy.extensions())
+                    .taskId(proxy.resumeTaskId))
                 .build();
         }
 
@@ -1621,7 +1667,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
         {
             return a2aBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(a2aTypeId)
-                .tasksCancel(t -> t.agent(proxy.agent).taskId(taskId))
+                .tasksCancel(t -> t.agent(proxy.agent).extensions(proxy.extensions()).taskId(taskId))
                 .build();
         }
 
