@@ -25,6 +25,8 @@ public record AguiA2aExtension(
     public static final String URI_V1 = "https://a2a.aklivity.io/ext/agui/v1";
     public static final String URI_PREFIX = "https://a2a.aklivity.io/ext/agui/v";
 
+    public static final String FEATURE_STATE = "state";
+
     static final List<String> IMPLEMENTED = List.of(URI_V1);
     static final Set<String> FEATURES = Set.of("state", "activity", "reasoning", "steps", "toolCalls", "custom");
 
