@@ -170,4 +170,13 @@ public class A2aExtensionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/extension.messages.reset/client",
+        "${app}/extension.messages.reset/server"})
+    public void shouldRunExtensionMessagesReset() throws Exception
+    {
+        k3po.finish();
+    }
 }
