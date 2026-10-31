@@ -25,10 +25,7 @@ write zilla:begin.ext ${agui:beginEx()
                             .agent("weather")
                             .build()}
 
-connected
-
 write advised zilla:redirect 0x00000000000000b1L
-read abort
 
 connect "zilla://streams/app0"
         option zilla:window 8192

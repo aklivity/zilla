@@ -23,7 +23,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
 import java.time.Instant;
-import java.util.Random;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.IntConsumer;
 
 import org.junit.Before;
@@ -39,6 +39,7 @@ public class AguiA2aLocalOwnerStateTest
 
     private final AguiA2aThreadKey key = new AguiA2aThreadKey("alice", "weather", "thread-1");
 
+    private final AtomicLong handleCount = new AtomicLong();
     private final ManualSignaler signaler = new ManualSignaler();
     private long now;
     private AguiA2aLocalOwnerState state;
@@ -47,7 +48,8 @@ public class AguiA2aLocalOwnerStateTest
     public void init()
     {
         now = 1_000_000L;
-        state = new AguiA2aLocalOwnerState(signaler, () -> now, new Random(1L), THREAD_TTL, HANDLE_TTL, 2);
+        state = new AguiA2aLocalOwnerState(signaler, () -> now, () -> String.format("%032x", handleCount.incrementAndGet()),
+            THREAD_TTL, HANDLE_TTL, 2);
     }
 
     @Test
