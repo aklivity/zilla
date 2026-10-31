@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.agui.a2a.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.agui.a2a.internal.AguiA2aConfigurationTest.AGUI_A2A_HANDLE_ID_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_ROUTER;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -22,6 +23,7 @@ import static org.junit.rules.RuleChain.outerRule;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -30,6 +32,7 @@ import org.junit.rules.ExternalResource;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 
+import io.aklivity.k3po.runtime.junit.annotation.ScriptProperty;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.state.AguiA2aKeyHash;
@@ -37,14 +40,16 @@ import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 import io.aklivity.zilla.runtime.engine.test.internal.router.TestRouter;
 
-public class AguiA2aOwnerRedirectIT
+public class AguiA2aRedirectIT
 {
     private static final long OWNER_AFFINITY = 0x00000000000000b1L;
 
     private final List<Long> keyHashes = new CopyOnWriteArrayList<>();
+    private final AtomicInteger resolutions = new AtomicInteger();
 
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("agui", "io/aklivity/zilla/specs/binding/agui/a2a/streams/application/agui");
+        .addScriptRoot("agui", "io/aklivity/zilla/specs/binding/agui/a2a/streams/application/agui")
+        .addScriptRoot("agent", "io/aklivity/zilla/specs/binding/agui/a2a/streams/application/a2a");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
@@ -52,7 +57,9 @@ public class AguiA2aOwnerRedirectIT
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
         .configure(ENGINE_ROUTER, TestRouter.NAME)
+        .configure(AGUI_A2A_HANDLE_ID_NAME, "%s::handleId".formatted(AguiA2aProxyIT.class.getName()))
         .configurationRoot("io/aklivity/zilla/runtime/binding/agui/a2a/internal/stream")
+        .external("a2a0")
         .clean();
 
     private final ExternalResource router = new ExternalResource()
@@ -63,7 +70,7 @@ public class AguiA2aOwnerRedirectIT
             TestRouter.affinityResolver = (keyHash, affinity) ->
             {
                 keyHashes.add(keyHash);
-                return OWNER_AFFINITY;
+                return resolutions.getAndIncrement() == 0 ? OWNER_AFFINITY : affinity;
             };
         }
 
@@ -86,5 +93,16 @@ public class AguiA2aOwnerRedirectIT
         k3po.finish();
 
         assertThat(keyHashes, contains(AguiA2aKeyHash.hash("test", "weather", "thread-1")));
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/owner.redirect/client",
+        "${agent}/owner.redirect/server"})
+    public void shouldRedirectRunToOwnerThenRun() throws Exception
+    {
+        k3po.finish();
     }
 }
