@@ -170,7 +170,10 @@ public final class A2aDiscoverySearch
         private final Collection<A2aAgentSearchDocument> documents = new ArrayList<>();
         private final A2aAgentSearchIndex index;
 
-        private List<CompletionCallback<Void>> pending = new ArrayList<>();
+        private final List<CompletionCallback<Void>> pending = new ArrayList<>();
+
+        private boolean building;
+        private boolean built;
 
         View(
             List<A2aCachedAgent> visible)
@@ -233,7 +236,7 @@ public final class A2aDiscoverySearch
             {
                 callback.failed(new IllegalStateException("No search index factory registered for configured type"));
             }
-            else if (pending == null)
+            else if (built)
             {
                 callback.completed(null);
             }
@@ -241,17 +244,17 @@ public final class A2aDiscoverySearch
             {
                 pending.add(callback);
 
-                if (pending.size() == 1)
+                if (!building)
                 {
+                    building = true;
                     index.index(documents, new CompletionCallback<>()
                     {
                         @Override
                         public void completed(
                             Void result)
                         {
-                            final List<CompletionCallback<Void>> settled = pending;
-                            pending = null;
-                            settled.forEach(callback -> callback.completed(null));
+                            built = true;
+                            settle(callback -> callback.completed(null));
                         }
 
                         @Override
