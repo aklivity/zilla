@@ -693,6 +693,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
             final String contextId = resumeTaskId == null ? rememberedContextId : null;
             assembler.wrap(requestDecoder.retained(), runId, contextId, resumeTaskId, resumeInterruptId,
                 card.acceptsAdvisory())
+                .extension(card.extension())
                 .accepting(card::acceptsInput);
 
             final int contentLength = assembler.contentLength();
