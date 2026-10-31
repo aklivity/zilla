@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
@@ -151,6 +152,24 @@ public class AguiA2aRequestDecoderTest
             assertThat("chunk " + chunk, assemble(decoder, "r", "t-1", "h-3"),
                 equalTo("{\"message\":{\"messageId\":\"r\",\"role\":\"ROLE_USER\",\"taskId\":\"t-1\"," +
                     "\"parts\":[{\"text\":\"text\"}]}" + TRAILER));
+            decoder.retained().release();
+        }
+    }
+
+    @Test
+    public void shouldNotMatchOverLimitInterruptId()
+    {
+        final String overLimit = "h".repeat(512);
+        final String input = "{\"threadId\":\"t\",\"runId\":\"r\",\"messages\":[],\"resume\":[" +
+            "{\"interruptId\":\"" + overLimit + "\",\"status\":\"resolved\"}]}";
+
+        for (int chunk : CHUNKS)
+        {
+            final AguiA2aRequestDecoder decoder = decode(input, chunk);
+
+            assertThat("chunk " + chunk, decoder.status(), equalTo(Status.COMPLETE));
+            assertThat("chunk " + chunk, decoder.retained().resumeCount(), equalTo(1));
+            assertThat("chunk " + chunk, decoder.retained().resumeInterruptId(0), not(equalTo("h".repeat(32))));
             decoder.retained().release();
         }
     }
