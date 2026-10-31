@@ -74,13 +74,6 @@ read zilla:data.ext ${a2a:matchDataEx()
                          .build()}
 read '{"task":{"id":"t-1","contextId":"c-1","status":{"state":"TASK_STATE_SUBMITTED"}}}'
 
-read zilla:begin.ext ${a2a:matchBeginEx()
-                          .typeId(zilla:id("a2a"))
-                          .messageStream()
-                              .extensions("https://a2a.aklivity.io/ext/agui/v1")
-                              .build()
-                          .build()}
-
 read zilla:data.ext ${a2a:matchDataEx()
                          .typeId(zilla:id("a2a"))
                          .statusUpdate()
@@ -156,13 +149,6 @@ read zilla:data.ext ${a2a:matchDataEx()
                          .build()}
 read '{"task":{"id":"t-1","contextId":"c-1","status":{"state":"TASK_STATE_SUBMITTED"}}}'
 
-read zilla:begin.ext ${a2a:matchBeginEx()
-                          .typeId(zilla:id("a2a"))
-                          .messageStream()
-                              .extensions("https://a2a.aklivity.io/ext/agui/v1")
-                              .build()
-                          .build()}
-
 read zilla:data.ext ${a2a:matchDataEx()
                          .typeId(zilla:id("a2a"))
                          .artifactUpdate()
@@ -172,13 +158,6 @@ read zilla:data.ext ${a2a:matchDataEx()
                              .build()
                          .build()}
 read '{"artifactUpdate":{"taskId":"t-1","contextId":"c-1","artifact":{"artifactId":"a-1","parts":[{"text":"ok"}]}}}'
-
-read zilla:begin.ext ${a2a:matchBeginEx()
-                          .typeId(zilla:id("a2a"))
-                          .messageStream()
-                              .extensions("https://a2a.aklivity.io/ext/agui/v1")
-                              .build()
-                          .build()}
 
 read zilla:data.ext ${a2a:matchDataEx()
                          .typeId(zilla:id("a2a"))
