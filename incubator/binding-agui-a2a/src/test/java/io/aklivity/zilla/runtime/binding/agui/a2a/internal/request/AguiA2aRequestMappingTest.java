@@ -406,6 +406,25 @@ public class AguiA2aRequestMappingTest
         }
     }
 
+    @Test
+    public void shouldReportUnacceptedMediaType() throws Exception
+    {
+        final String input = "{\"threadId\":\"t\",\"runId\":\"r\",\"messages\":[{\"role\":\"user\",\"content\":[" +
+            "{\"type\":\"text\",\"text\":\"d\"},{\"type\":\"image\",\"source\":{\"type\":\"data\"," +
+            "\"value\":\"aGVsbG8=\",\"mimeType\":\"image/png\"}}]}]}";
+        final AguiA2aRequestDecoder decoder = decode(input, 16, "t", "r", null);
+        final AguiA2aMessageAssembler assembler = new AguiA2aMessageAssembler()
+            .wrap(decoder.retained(), "r", null, null, null, true)
+            .accepting("text/plain"::equals);
+
+        assembler.contentLength();
+
+        assertThat(assembler.unacceptedMediaType(), equalTo("image/png"));
+        assertThat(assembler.accepting("image/png"::equals).wrap(decoder.retained(), "r", null, null, null, true)
+            .contentLength() > 0, equalTo(true));
+        assertThat(assembler.unacceptedMediaType(), equalTo(null));
+    }
+
     private static void assertScenario(
         String name,
         int inputIndex,
