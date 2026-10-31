@@ -14,7 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.agui.a2a.internal.card;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public final class AguiA2aAgentCard
 {
@@ -22,13 +24,53 @@ public final class AguiA2aAgentCard
 
     private final boolean streaming;
     private final List<String> inputModes;
+    private final List<AguiA2aExtension> extensions;
 
     AguiA2aAgentCard(
         boolean streaming,
-        List<String> inputModes)
+        List<String> inputModes,
+        List<AguiA2aExtension> extensions)
     {
         this.streaming = streaming;
         this.inputModes = inputModes;
+        this.extensions = extensions;
+    }
+
+    public AguiA2aExtension extension()
+    {
+        AguiA2aExtension negotiated = null;
+
+        for (int i = 0; negotiated == null && i < AguiA2aExtension.IMPLEMENTED.size(); i++)
+        {
+            final String uri = AguiA2aExtension.IMPLEMENTED.get(i);
+
+            for (AguiA2aExtension declared : extensions)
+            {
+                if (negotiated == null && uri.equals(declared.uri()))
+                {
+                    final Set<String> features = new HashSet<>(declared.features());
+                    features.retainAll(AguiA2aExtension.FEATURES);
+                    negotiated = new AguiA2aExtension(uri, declared.required(), features);
+                }
+            }
+        }
+
+        return negotiated;
+    }
+
+    public boolean refused()
+    {
+        boolean refused = false;
+
+        if (extension() == null)
+        {
+            for (AguiA2aExtension declared : extensions)
+            {
+                refused |= declared.required() && declared.uri().startsWith(AguiA2aExtension.URI_PREFIX);
+            }
+        }
+
+        return refused;
     }
 
     public AguiA2aOperation operation()
