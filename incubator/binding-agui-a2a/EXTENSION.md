@@ -357,7 +357,11 @@ The proxy decodes the A2A event once, as it arrives, and finds a part's tag befo
 3. `reasoning` and `reasoning.encrypted` map the `text` of the part; `step` maps no content.
 4. A tag for a feature that is not enabled is plain data (section 9). The features the proxy enables are the ones it
    implements: `subagents` and `interrupts` are not enabled yet, so their tags map as `agent.data`. An unknown `event`
-   and a client-executed `toolCall` are dropped and recorded by the Zilla event `binding.agui.a2a.tag.dropped`.
+   is dropped and recorded by the Zilla event `binding.agui.a2a.tag.dropped`.
+5. A `toolCall` with `executor` `client` (the default) maps to `TOOL_CALL_START`, `TOOL_CALL_ARGS` and `TOOL_CALL_END`
+   with a handle as `toolCallId`. When the task then reaches `INPUT_REQUIRED` with no untagged text in its status message,
+   the run ends `SUCCESS` and the end detail is `{"pendingToolCallIds": [...]}`, the handles in call order. With untagged
+   text the run ends as an interrupt.
 
 ## 9. Error handling
 
