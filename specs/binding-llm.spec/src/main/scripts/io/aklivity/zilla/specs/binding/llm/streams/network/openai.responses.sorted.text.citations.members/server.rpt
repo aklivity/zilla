@@ -1,0 +1,44 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+accept "zilla://streams/net0"
+       option zilla:window 8192
+       option zilla:transmission "half-duplex"
+
+accepted
+
+read zilla:begin.ext ${http:matchBeginEx()
+                           .typeId(zilla:id("http"))
+                           .header(":method", "POST")
+                           .header(":scheme", "http")
+                           .header(":authority", "example.com:8080")
+                           .header(":path", "/v1/responses")
+                           .header("content-type", "application/json")
+                           .build()}
+
+connected
+
+read "{\"model\":\"gpt-4\",\"input\":[{\"role\":\"user\",\"content\":\"Think about it\"}]}"
+
+read closed
+
+write zilla:begin.ext ${http:beginEx()
+                            .typeId(zilla:id("http"))
+                            .header(":status", "200")
+                            .header("content-type", "application/json")
+                            .build()}
+
+write "{\"id\":\"resp_1\",\"model\":\"gpt-4\",\"object\":\"response\",\"output\":[{\"content\":[{\"annotations\":[{\"end_index\":8,\"start_index\":0,\"title\":\"Sky colour\",\"type\":\"url_citation\",\"url\":\"https://example.com/sky?utm_source=openai\"},{\"file_id\":\"file_1\",\"filename\":\"a.pdf\",\"index\":0,\"type\":\"file_citation\"},{\"container_id\":\"cntr_1\",\"end_index\":5,\"file_id\":\"cfile_1\",\"filename\":\"b.png\",\"start_index\":1,\"type\":\"container_file_citation\"},{\"file_id\":\"file_2\",\"index\":3,\"type\":\"file_path\"}],\"logprobs\":[],\"text\":\"The sky is blue.\",\"type\":\"output_text\"}],\"id\":\"msg_1\",\"role\":\"assistant\",\"status\":\"completed\",\"type\":\"message\"}],\"status\":\"completed\",\"usage\":{\"input_tokens\":25,\"output_tokens\":15,\"total_tokens\":40}}"
+write close

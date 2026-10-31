@@ -25,6 +25,8 @@ scope internal
             int64 budgetId;
             int32 reserved;
             uint8 flags = 3;
+            int32 sourceOffset = -1;
+            int32 sourceLength = 0;
             int32 payloadLength;
             octets[payloadLength] payload = null;
         }

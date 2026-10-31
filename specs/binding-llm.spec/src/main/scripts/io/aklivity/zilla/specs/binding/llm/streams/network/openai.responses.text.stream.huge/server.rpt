@@ -79,7 +79,9 @@ write zilla:data.ext ${http:dataEx()
                            .typeId(zilla:id("http"))
                            .header("type", "response.content_part.done")
                            .build()}
-write "{\"type\":\"response.content_part.done\",\"content_index\":0,\"item_id\":\"msg_1\",\"output_index\":0,\"part\":{\"type\":\"output_text\",\"annotations\":[],\"logprobs\":[],\"text\":\"\"},\"sequence_number\":6}"
+write "{\"type\":\"response.content_part.done\",\"content_index\":0,\"item_id\":\"msg_1\",\"output_index\":0,\"part\":{\"type\":\"output_text\",\"annotations\":[],\"logprobs\":[],\"text\":\""
+      ${core:randomBase64(3600)}
+      "\"},\"sequence_number\":6}"
 write zilla:data.ext ${http:dataEx()
                            .typeId(zilla:id("http"))
                            .header("type", "response.output_item.done")
@@ -91,5 +93,7 @@ write zilla:data.ext ${http:dataEx()
                            .typeId(zilla:id("http"))
                            .header("type", "response.completed")
                            .build()}
-write "{\"type\":\"response.completed\",\"response\":{\"id\":\"resp_1\",\"object\":\"response\",\"model\":\"gpt-4\",\"output\":[{\"id\":\"msg_1\",\"type\":\"message\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"annotations\":[],\"logprobs\":[],\"text\":\"\"}],\"role\":\"assistant\"}],\"status\":\"completed\",\"usage\":{\"input_tokens\":25,\"output_tokens\":15,\"total_tokens\":40}},\"sequence_number\":8}"
+write "{\"type\":\"response.completed\",\"response\":{\"id\":\"resp_1\",\"object\":\"response\",\"model\":\"gpt-4\",\"output\":[{\"id\":\"msg_1\",\"type\":\"message\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"annotations\":[],\"logprobs\":[],\"text\":\""
+      ${core:randomBase64(3600)}
+      "\"}],\"role\":\"assistant\"}],\"status\":\"completed\",\"usage\":{\"input_tokens\":25,\"output_tokens\":15,\"total_tokens\":40}},\"sequence_number\":8}"
 write close

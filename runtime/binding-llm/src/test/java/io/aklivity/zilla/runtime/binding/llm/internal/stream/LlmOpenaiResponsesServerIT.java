@@ -943,6 +943,16 @@ public class LlmOpenaiResponsesServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.responses.text.stream.huge.window/client",
+        "${app}/openai.responses.text.stream.huge/server"})
+    public void shouldEncodeOpenaiResponsesTextStreamHugeWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.responses.section.tool.call.attributes.last/client",
         "${app}/openai.responses.section.tool.call.attributes.last/server"})
     public void shouldDecodeOpenaiResponsesSectionToolCallAttributesLast() throws Exception

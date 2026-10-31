@@ -70,7 +70,9 @@ read zilla:data.ext ${http:matchDataEx()
                           .typeId(zilla:id("http"))
                           .header("type", "response.output_item.done")
                           .build()}
-read "{\"type\":\"response.output_item.done\",\"item\":{\"id\":\"fc_1\",\"type\":\"function_call\",\"status\":\"completed\",\"arguments\":\"\",\"call_id\":\"call_1\",\"name\":\"get_weather\"},\"output_index\":0,\"sequence_number\":5}"
+read "{\"type\":\"response.output_item.done\",\"item\":{\"id\":\"fc_1\",\"type\":\"function_call\",\"status\":\"completed\",\"arguments\":\"{\\\"city\\\":\\\""
+      ${core:randomBase64(3600)}
+      "\\\"}\",\"call_id\":\"call_1\",\"name\":\"get_weather\"},\"output_index\":0,\"sequence_number\":5}"
 read zilla:data.ext ${http:matchDataEx()
                           .typeId(zilla:id("http"))
                           .header("type", "response.completed")
