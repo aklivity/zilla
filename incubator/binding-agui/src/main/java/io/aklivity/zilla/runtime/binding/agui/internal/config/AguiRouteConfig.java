@@ -16,8 +16,12 @@ package io.aklivity.zilla.runtime.binding.agui.internal.config;
 
 import static java.util.function.UnaryOperator.identity;
 
+import java.util.List;
+import java.util.Optional;
 import java.util.function.UnaryOperator;
 
+import io.aklivity.zilla.config.binding.agui.AguiConditionConfig;
+import io.aklivity.zilla.config.binding.agui.AguiWithConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 
@@ -25,13 +29,35 @@ public final class AguiRouteConfig
 {
     public final long id;
 
+    private final List<AguiConditionMatcher> when;
+    private final AguiWithResolver with;
     private final LongObjectPredicate<UnaryOperator<String>> authorized;
 
     public AguiRouteConfig(
         RouteConfig route)
     {
         this.id = route.id;
+        this.with = Optional.ofNullable(route.with)
+            .map(AguiWithConfig.class::cast)
+            .map(AguiWithResolver::new)
+            .orElse(null);
+        this.when = route.when.stream()
+            .map(AguiConditionConfig.class::cast)
+            .map(AguiConditionMatcher::new)
+            .peek(m -> Optional.ofNullable(with).ifPresent(w -> m.observe(w::onConditionMatched)))
+            .toList();
         this.authorized = route.authorized;
+    }
+
+    public boolean matches(
+        CharSequence path)
+    {
+        return when.isEmpty() || path != null && when.stream().anyMatch(m -> m.matches(path));
+    }
+
+    public String agent()
+    {
+        return with != null ? with.resolveAgent() : null;
     }
 
     public boolean authorized(
