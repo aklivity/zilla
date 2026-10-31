@@ -25,6 +25,8 @@ import java.util.List;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.A2aDataExFW;
+
 public class AguiResponseMapperTest
 {
     private static final int MAXIMUM = 1024;
@@ -132,6 +134,22 @@ public class AguiResponseMapperTest
         assertTrue(reply, reply.startsWith("text("));
         assertNotEquals("text(a-1,ASSISTANT)=two|fin", reply);
         assertTrue(reply, reply.endsWith(",ASSISTANT)=two|fin"));
+    }
+
+    @Test
+    public void shouldGenerateIdWhenDataExHasNoMessageId()
+    {
+        final ResponseHarness harness = new ResponseHarness(MAXIMUM);
+        final String json = "{\"message\":{\"messageId\":\"m-2\",\"role\":\"ROLE_AGENT\",\"parts\":[{\"text\":\"hi\"}]}}";
+
+        harness.event(json, new A2aExSpec(A2aDataExFW.KIND_MESSAGE, null, null, null, null, null, null, null), 4096);
+        harness.mapper.streamEnded(false);
+
+        final String reply = harness.logical().get(0);
+
+        assertTrue(reply, reply.startsWith("text("));
+        assertNotEquals("text(m-2,ASSISTANT)=hi|fin", reply);
+        assertTrue(reply, reply.endsWith(",ASSISTANT)=hi|fin"));
     }
 
     @Test
