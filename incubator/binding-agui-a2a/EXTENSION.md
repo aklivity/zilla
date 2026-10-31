@@ -222,7 +222,7 @@ message the proxy writes one `data` part in the continuation message:
 
 ```json
 {
-  "data": { "type": "tool-result", "toolCallId": "call-7", "payload": { "lat": 40.7, "lon": -74.0 } },
+  "data": { "type": "tool-result", "toolCallId": "call-7", "payload": "{\"lat\":40.7,\"lon\":-74.0}" },
   "mediaType": "application/json",
   "metadata": { "agui": { "event": "toolResult" } }
 }
@@ -232,7 +232,7 @@ message the proxy writes one `data` part in the continuation message:
 | --- | --- |
 | `data.type` | `tool-result` |
 | `data.toolCallId` | **the agent's own call id**, not the handle the AG-UI client saw |
-| `data.payload` | the `tool` message content |
+| `data.payload` | the `tool` message content, copied verbatim as a JSON string; an agent that expects an object parses it |
 | `data.error` | present only when the AG-UI `tool` message carries an error |
 
 The message is `ROLE_USER` and carries the `taskId` of the interrupted task and **no** `contextId`, because A2A requires the
