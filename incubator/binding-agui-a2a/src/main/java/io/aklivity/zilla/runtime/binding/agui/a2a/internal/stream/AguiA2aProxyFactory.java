@@ -736,6 +736,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
                 if (offered.uri().equals(echoed))
                 {
                     active = offered;
+                    eventDecoder.activate(active);
                 }
             }
         }
@@ -772,6 +773,22 @@ public final class AguiA2aProxyFactory implements BindingHandler
             retention.release();
 
             return json;
+        }
+
+        @Override
+        public void tagDropped(
+            String tag)
+        {
+            events.tagDropped(eventTraceId, binding.id, agent, mapper.taskId(), tag);
+        }
+
+        @Override
+        public void tagMalformed(
+            String tag,
+            String detail)
+        {
+            events.runFailed(eventTraceId, binding.id, agent, mapper.taskId(), AguiResponseMapper.CODE_PROTOCOL,
+                String.format("Malformed %s tag: %s", tag, detail));
         }
 
         @Override

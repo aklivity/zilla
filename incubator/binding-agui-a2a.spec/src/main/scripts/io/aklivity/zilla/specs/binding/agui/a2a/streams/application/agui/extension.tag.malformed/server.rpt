@@ -44,4 +44,4 @@ write zilla:abort.ext ${agui:abortEx()
                        .code("agent_protocol")
                        .message("Agent response invalid")
                        .build()}
-write aborted
+write abort

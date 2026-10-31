@@ -53,6 +53,8 @@ final class ResponseHarness implements AguiFrameSink, AguiResponseHost
 
     final List<Frame> frames = new ArrayList<>();
     final List<String> failures = new ArrayList<>();
+    final List<String> dropped = new ArrayList<>();
+    final List<String> malformed = new ArrayList<>();
     final AguiResponseMapper mapper;
     final A2aEventDecoder decoder;
 
@@ -112,6 +114,21 @@ final class ResponseHarness implements AguiFrameSink, AguiResponseHost
         String contextId)
     {
         return snapshot != null ? snapshot.getBytes(UTF_8) : null;
+    }
+
+    @Override
+    public void tagDropped(
+        String tag)
+    {
+        dropped.add(tag);
+    }
+
+    @Override
+    public void tagMalformed(
+        String tag,
+        String detail)
+    {
+        malformed.add(tag + ": " + detail);
     }
 
     @Override
@@ -226,7 +243,9 @@ final class ResponseHarness implements AguiFrameSink, AguiResponseHost
             }
             else if ((frame.flags() & FIN) != 0)
             {
-                logical.add(header + "=" + open + frame.payloadText() + (header.startsWith("custom") ? "" : "|fin"));
+                final boolean message = header.startsWith("text") || header.startsWith("reasoning");
+
+                logical.add(header + "=" + open + frame.payloadText() + (message ? "|fin" : ""));
                 open = null;
             }
             else
