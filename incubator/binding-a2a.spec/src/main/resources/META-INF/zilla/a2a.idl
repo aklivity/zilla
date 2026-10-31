@@ -27,6 +27,13 @@ scope a2a
         AUTH_REQUIRED(8)
     }
 
+    enum A2aFlag (uint8)
+    {
+        UNSPECIFIED(0),
+        FALSE(1),
+        TRUE(2)
+    }
+
     scope stream
     {
         union A2aBeginEx switch (uint8) extends core::stream::Extension
@@ -176,12 +183,14 @@ scope a2a
             string16 taskId;
             string16 contextId = null;
             A2aTaskState state = UNSPECIFIED;
+            string16 messageId = null;
         }
 
         struct A2aMessageDataEx
         {
             string16 taskId = null;
             string16 contextId = null;
+            string16 messageId = null;
         }
 
         struct A2aStatusUpdateDataEx
@@ -189,6 +198,7 @@ scope a2a
             string16 taskId;
             string16 contextId = null;
             A2aTaskState state = UNSPECIFIED;
+            string16 messageId = null;
         }
 
         struct A2aArtifactUpdateDataEx
@@ -196,6 +206,8 @@ scope a2a
             string16 taskId;
             string16 contextId = null;
             string16 artifactId = null;
+            A2aFlag append = UNSPECIFIED;
+            A2aFlag lastChunk = UNSPECIFIED;
         }
 
         enum A2aBearerError (uint8)
