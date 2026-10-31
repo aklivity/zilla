@@ -51,5 +51,6 @@ read zilla:data.ext ${a2a:matchDataEx()
                          .build()}
 read '{"statusUpdate":{"taskId":"t-1","contextId":"c-1","status":{"state":"TASK_STATE_WORKING"}}}'
 
-write abort
 read abort
+
+write close

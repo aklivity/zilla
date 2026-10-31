@@ -59,5 +59,6 @@ write zilla:data.ext ${a2a:dataEx()
 write '{"statusUpdate":{"taskId":"t-1","contextId":"c-1","status":{"state":"TASK_STATE_WORKING"}}}'
 write flush
 
-read aborted
 write aborted
+
+read closed
