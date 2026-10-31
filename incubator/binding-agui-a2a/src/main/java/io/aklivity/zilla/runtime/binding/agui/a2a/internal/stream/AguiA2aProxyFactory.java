@@ -863,11 +863,6 @@ public final class AguiA2aProxyFactory implements BindingHandler
             return encodeSlot != NO_SLOT;
         }
 
-        private int encodeRoom()
-        {
-            return encodePool.slotCapacity() - encodeSlotOffset;
-        }
-
         private void flushReply(
             long traceId)
         {
@@ -1103,7 +1098,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
         abstract void flushInitial(
             long traceId);
 
-        abstract int replyCredit();
+        abstract int replyBacklog();
 
         void doA2aBegin(
             long traceId)
@@ -1196,10 +1191,17 @@ public final class AguiA2aProxyFactory implements BindingHandler
         void doA2aWindow(
             long traceId)
         {
-            replyMax = replyCredit();
+            final long replyAckMax = Math.max(replySeq - replyBacklog(), 0L);
+            final int replyMaxMin = decodePool.slotCapacity();
 
-            doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId,
-                proxy.authorization, 0L, 0);
+            if (replyAckMax > replyAck || replyMaxMin > replyMax)
+            {
+                replyAck = replyAckMax;
+                replyMax = Math.max(replyMaxMin, replyMax);
+
+                doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId,
+                    proxy.authorization, 0L, 0);
+            }
         }
 
         void doA2aData(
@@ -1284,9 +1286,9 @@ public final class AguiA2aProxyFactory implements BindingHandler
         }
 
         @Override
-        int replyCredit()
+        int replyBacklog()
         {
-            return decodePool.slotCapacity();
+            return decodeSlotOffset;
         }
 
         @Override
@@ -1303,7 +1305,6 @@ public final class AguiA2aProxyFactory implements BindingHandler
                 decodeCard(traceId, payload.buffer(), payload.offset(), payload.sizeof());
             }
 
-            replyAck = replySeq - decodeSlotOffset;
             doA2aWindow(traceId);
         }
 
@@ -1430,9 +1431,9 @@ public final class AguiA2aProxyFactory implements BindingHandler
         }
 
         @Override
-        int replyCredit()
+        int replyBacklog()
         {
-            return proxy.encodeRoom();
+            return proxy.encodeSlotOffset;
         }
 
         @Override
@@ -1452,7 +1453,6 @@ public final class AguiA2aProxyFactory implements BindingHandler
 
             proxy.flushReply(traceId);
 
-            replyAck = replySeq;
             doA2aWindow(traceId);
         }
 
