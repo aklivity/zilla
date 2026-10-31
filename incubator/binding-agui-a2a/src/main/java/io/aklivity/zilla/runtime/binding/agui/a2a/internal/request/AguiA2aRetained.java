@@ -14,8 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.agui.a2a.internal.request;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import io.aklivity.zilla.runtime.binding.agui.a2a.internal.request.AguiA2aMessageAssembler.ResumeStatus;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonEvent;
 
 public final class AguiA2aRetained
 {
@@ -26,7 +31,13 @@ public final class AguiA2aRetained
         CONTEXT,
         FORWARDED_PROPS,
         RESUME,
-        FORWARDED_VALUE
+        FORWARDED_VALUE,
+        MESSAGE_ID,
+        PART_TEXT,
+        PART_RAW,
+        PART_URL,
+        PART_MIME,
+        PART_METADATA
     }
 
     public enum Append
@@ -39,8 +50,41 @@ public final class AguiA2aRetained
     private static final Kind[] KINDS = Kind.values();
     private static final int ENTRY_SIZE = 3 * Integer.BYTES;
 
+    static final class Resume
+    {
+        final String interruptId;
+        final ResumeStatus status;
+        final int payloadStart;
+        final int payloadEnd;
+        final JsonEvent payloadEvent;
+        final int metadataStart;
+        final int metadataEnd;
+        final JsonEvent metadataEvent;
+
+        Resume(
+            String interruptId,
+            ResumeStatus status,
+            int payloadStart,
+            int payloadEnd,
+            JsonEvent payloadEvent,
+            int metadataStart,
+            int metadataEnd,
+            JsonEvent metadataEvent)
+        {
+            this.interruptId = interruptId;
+            this.status = status;
+            this.payloadStart = payloadStart;
+            this.payloadEnd = payloadEnd;
+            this.payloadEvent = payloadEvent;
+            this.metadataStart = metadataStart;
+            this.metadataEnd = metadataEnd;
+            this.metadataEvent = metadataEvent;
+        }
+    }
+
     private final AguiA2aRetention retention;
     private final long streamId;
+    private final List<Resume> resumes = new ArrayList<>();
 
     private int dataLimit;
     private int count;
@@ -56,6 +100,23 @@ public final class AguiA2aRetained
     public int count()
     {
         return count;
+    }
+
+    public int resumeCount()
+    {
+        return resumes.size();
+    }
+
+    public String resumeInterruptId(
+        int index)
+    {
+        return resumes.get(index).interruptId;
+    }
+
+    public ResumeStatus resumeStatus(
+        int index)
+    {
+        return resumes.get(index).status;
     }
 
     public Kind kind(
@@ -123,11 +184,37 @@ public final class AguiA2aRetained
         retention.release();
         dataLimit = 0;
         count = 0;
+        resumes.clear();
     }
 
     int mark()
     {
         return dataLimit;
+    }
+
+    boolean accommodates(
+        int entries)
+    {
+        return dataLimit + (count + entries) * ENTRY_SIZE <= retention.capacity();
+    }
+
+    void resume(
+        Resume resume)
+    {
+        resumes.add(resume);
+    }
+
+    Resume resumeFor(
+        String interruptId)
+    {
+        Resume found = null;
+        for (int index = 0; found == null && index < resumes.size(); index++)
+        {
+            final Resume candidate = resumes.get(index);
+            found = interruptId.equals(candidate.interruptId) ? candidate : null;
+        }
+
+        return found;
     }
 
     Append append(
@@ -159,6 +246,27 @@ public final class AguiA2aRetained
         int mark)
     {
         entry(kind, mark, dataLimit);
+    }
+
+    void range(
+        Kind kind,
+        int start,
+        int end)
+    {
+        final MutableDirectBufferEx buffer = retention.buffer();
+        final int offset = trimStart(buffer, start, end);
+        final int entry = slotOf(count);
+        buffer.putInt(entry, kind.ordinal());
+        buffer.putInt(entry + Integer.BYTES, offset);
+        buffer.putInt(entry + 2 * Integer.BYTES, end - offset);
+        count++;
+    }
+
+    int valueStart(
+        int start,
+        int end)
+    {
+        return trimStart(retention.buffer(), start, end);
     }
 
     void entryMembers(
