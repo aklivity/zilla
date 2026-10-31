@@ -546,6 +546,7 @@ public final class AguiServerFactory implements AguiStreamFactory
         private int replyPad;
 
         private int state;
+        private boolean sseUpgrade;
 
         private int decodeSlot = NO_SLOT;
         private int decodeSlotOffset;
@@ -950,7 +951,7 @@ public final class AguiServerFactory implements AguiStreamFactory
         {
             if (!AguiState.replyOpening(state))
             {
-                state = AguiState.framingReply(state);
+                sseUpgrade = true;
 
                 doNetBegin(traceId, authorization, httpBeginExRW
                     .wrap(codecBuffer, 0, codecBuffer.capacity())
@@ -1265,7 +1266,7 @@ public final class AguiServerFactory implements AguiStreamFactory
             final int maxLength = limit - offset;
             final int length;
 
-            if (AguiState.replyFraming(state))
+            if (sseUpgrade)
             {
                 length = doDataEvents(net, originId, routedId, replyId, replySeq, replyAck, replyMax, replyPad, replyBud,
                     traceId, authorization, (MutableDirectBufferEx) buffer, offset, limit);
