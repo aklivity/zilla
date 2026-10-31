@@ -113,7 +113,7 @@ AG-UI and A2A do not model the same things. What the proxy drops or approximates
 | A2A | AG-UI | Lossiness |
 | --- | --- | --- |
 | task `SUBMITTED`, `WORKING` without a message | nothing | lossy |
-| `WORKING` with a message | kept as the reply only when the run completes with no other text | lossy |
+| `WORKING` with a message | `ACTIVITY_SNAPSHOT` of type `status`, content `{"text": ...}`, one message id for the run and each later message replacing the last; never a transcript message | lossy |
 | artifact text, first chunk | `TEXT_MESSAGE_START` and `TEXT_MESSAGE_CONTENT` | none |
 | artifact text, `append: true` | `TEXT_MESSAGE_CONTENT` | none |
 | artifact text, `append: false` on a streamed artifact | a new text message; streamed text cannot be retracted | lossy |
@@ -148,8 +148,8 @@ there is no incremental text.
   `handle_unknown` before the agent is contacted.
 - Aborting a run cancels the A2A task once its id is known. Before the first event the remote task may keep
   running. A Stop button and a closed tab look the same to Zilla.
-- Frontend tools, `STATE_*`, activity, reasoning and tool call events, and the A2A extensions that would carry them
-  are not mapped. The proxy declares no A2A extension.
+- Frontend tools, `STATE_*`, reasoning and tool call events, activity other than the working status, and the A2A
+  extensions that would carry them are not mapped. The proxy declares no A2A extension.
 - An agent slug with no route on `agui-a2a`, such as `/agents/unknown` here, is answered 502 because nothing can be reached.
 - `routes[].when.path` on `agui` is the only way to pick an agent; CopilotKit's `/connect` and `/stop` routes are
   not AG-UI and are answered 404.
