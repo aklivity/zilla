@@ -654,8 +654,8 @@ public class LlmSchemaValidationTest
         reader.read(text);
     }
 
-    @Test(expected = RuntimeException.class)
-    public void shouldRejectServerRouteWhen()
+    @Test
+    public void shouldAcceptServerRouteWhenDialect()
     {
         String text =
             """
@@ -670,7 +670,30 @@ public class LlmSchemaValidationTest
                     exit: app0
             """;
 
-        reader.read(text);
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptServerRouteWhenModelGlob()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: server
+                routes:
+                  - when:
+                      - model: [ gpt-4*, o1 ]
+                    exit: app0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
     }
 
     @Test

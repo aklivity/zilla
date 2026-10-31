@@ -9550,4 +9550,85 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.route.model/client",
+        "${net}/openai.route.model/server"})
+    public void shouldOpenaiRouteModel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.route.model.unmatched/client",
+        "${net}/openai.route.model.unmatched/server"})
+    public void shouldOpenaiRouteModelUnmatched() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.route.model/client",
+        "${net}/openai.responses.route.model/server"})
+    public void shouldOpenaiResponsesRouteModel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.route.model.unmatched/client",
+        "${net}/openai.responses.route.model.unmatched/server"})
+    public void shouldOpenaiResponsesRouteModelUnmatched() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.route.model/client",
+        "${net}/anthropic.route.model/server"})
+    public void shouldAnthropicRouteModel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.route.model.unmatched/client",
+        "${net}/anthropic.route.model.unmatched/server"})
+    public void shouldAnthropicRouteModelUnmatched() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.route.model/client",
+        "${net}/gemini.route.model/server"})
+    public void shouldGeminiRouteModel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.route.model.unmatched/client",
+        "${net}/gemini.route.model.unmatched/server"})
+    public void shouldGeminiRouteModelUnmatched() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.route.model.unmatched.guarded/client",
+        "${net}/gemini.route.model.unmatched.guarded/server"})
+    public void shouldGeminiRouteModelUnmatchedGuarded() throws Exception
+    {
+        k3po.finish();
+    }
 }

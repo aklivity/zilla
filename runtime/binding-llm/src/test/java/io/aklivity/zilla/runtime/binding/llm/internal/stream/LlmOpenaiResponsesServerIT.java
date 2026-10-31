@@ -45,6 +45,7 @@ public class LlmOpenaiResponsesServerIT
         .countersBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/llm/config")
         .external("app0")
+        .external("app1")
         .clean();
 
     @Rule
@@ -2273,6 +2274,25 @@ public class LlmOpenaiResponsesServerIT
     @Specification({
         "${net}/openai.responses.request.buffer.exhausted/client"})
     public void shouldOpenaiResponsesRequestBufferExhausted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.openai.responses.route.model.yaml")
+    @Specification({
+        "${net}/openai.responses.route.model/client",
+        "${app}/openai.responses.route.model/server"})
+    public void shouldRouteOpenaiResponsesRequestByModel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.openai.responses.route.model.yaml")
+    @Specification({
+        "${net}/openai.responses.route.model.unmatched/client"})
+    public void shouldRejectOpenaiResponsesRequestWithUnmatchedModel() throws Exception
     {
         k3po.finish();
     }

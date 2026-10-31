@@ -99,6 +99,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private static final String STATUS_UNAUTHORIZED = "401";
     private static final int NO_MAX_OUTPUT_TOKENS = -1;
     private static final int STATUS_BAD_REQUEST = 400;
+    private static final int STATUS_NOT_FOUND = 404;
     private static final int STATUS_UNSUPPORTED_MEDIA_TYPE = 415;
     private static final int STATUS_INTERNAL_SERVER_ERROR = 500;
     private static final String CONTENT_TYPE_JSON = "application/json";
@@ -109,6 +110,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
 
     private static final String MESSAGE_PARSE_ERROR = "We could not parse the JSON body of your request.";
     private static final String MESSAGE_MODEL_MISSING = "Missing required parameter: 'model'.";
+    private static final String MESSAGE_MODEL_NOT_FOUND = "The model `%s` does not exist or you do not have access to it.";
+    private static final String CODE_MODEL_NOT_FOUND = "model_not_found";
     private static final String MESSAGE_MODEL_ORDER =
         "The 'model' parameter must precede 'input' in a request that does not fit the decode buffer.";
     private static final String MESSAGE_ROLE_MISSING = "Missing required parameter: 'role'.";
@@ -397,7 +400,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                                 originId,
                                 routedId,
                                 initialId,
-                                route.id,
+                                binding,
                                 authResult.authorization(),
                                 contentType,
                                 authResult.deauthorize())::onNetMessage;
@@ -2750,7 +2753,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private final long routedId;
         private final long initialId;
         private final long replyId;
-        private final long exitId;
+        private final LlmBindingConfig binding;
+        private long exitId;
         private final long initialAuthorization;
         private final String contentType;
         private final Runnable deauthorize;
@@ -2871,7 +2875,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             long originId,
             long routedId,
             long initialId,
-            long exitId,
+            LlmBindingConfig binding,
             long authorization,
             String contentType,
             Runnable deauthorize)
@@ -2881,7 +2885,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.exitId = exitId;
+            this.binding = binding;
             this.initialAuthorization = authorization;
             this.contentType = contentType;
             this.deauthorize = deauthorize;
@@ -3808,11 +3812,21 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             long authorization,
             String model)
         {
-            decoder = decodeRoot;
-            stream = new LlmOpenaiResponsesStream(this);
-            stream.doAppBegin(traceId, authorization, model);
+            final LlmRouteConfig route = binding.resolve(initialAuthorization, NAME, model);
 
-            decoder = decodeStart;
+            if (route != null)
+            {
+                exitId = route.id;
+                decoder = decodeRoot;
+                stream = new LlmOpenaiResponsesStream(this);
+                stream.doAppBegin(traceId, authorization, model);
+
+                decoder = decodeStart;
+            }
+            else
+            {
+                onDecodeModelNotFound(traceId, model);
+            }
         }
 
         private int onDecodeText(
@@ -4279,11 +4293,27 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             long traceId,
             String message)
         {
+            onDecodeRejected(traceId, STATUS_BAD_REQUEST, null, message);
+        }
+
+        private void onDecodeModelNotFound(
+            long traceId,
+            String model)
+        {
+            onDecodeRejected(traceId, STATUS_NOT_FOUND, CODE_MODEL_NOT_FOUND, MESSAGE_MODEL_NOT_FOUND.formatted(model));
+        }
+
+        private void onDecodeRejected(
+            long traceId,
+            int status,
+            String code,
+            String message)
+        {
             decoder = decodeIgnore;
 
             initialAck = initialSeq;
             doNetWindow(traceId);
-            doNetError(traceId, initialAuthorization, STATUS_BAD_REQUEST, message);
+            doNetError(traceId, initialAuthorization, status, null, null, code, message);
             if (stream != null)
             {
                 stream.doAppAbort(traceId);

@@ -45,6 +45,7 @@ public class LlmGeminiServerIT
         .countersBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/llm/config")
         .external("app0")
+        .external("app1")
         .clean();
 
     @Rule
@@ -1781,6 +1782,44 @@ public class LlmGeminiServerIT
         "${net}/gemini.request.buffer.exhausted/client",
         "${app}/gemini.request.buffer.exhausted/server"})
     public void shouldGeminiRequestBufferExhausted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.gemini.route.model.yaml")
+    @Specification({
+        "${net}/gemini.route.model/client",
+        "${app}/gemini.route.model/server"})
+    public void shouldRouteGeminiRequestByModel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.gemini.route.model.glob.yaml")
+    @Specification({
+        "${net}/gemini.route.model/client",
+        "${app}/gemini.route.model/server"})
+    public void shouldRouteGeminiRequestByModelGlob() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.gemini.route.model.yaml")
+    @Specification({
+        "${net}/gemini.route.model.unmatched/client"})
+    public void shouldRejectGeminiRequestWithUnmatchedModel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.guarded.route.model.yaml")
+    @Specification({
+        "${net}/gemini.route.model.unmatched.guarded/client"})
+    public void shouldRejectGeminiRequestWithUnmatchedModelForGuardedRoute() throws Exception
     {
         k3po.finish();
     }

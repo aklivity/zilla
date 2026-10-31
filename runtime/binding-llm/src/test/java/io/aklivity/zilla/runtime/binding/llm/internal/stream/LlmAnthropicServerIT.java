@@ -45,6 +45,7 @@ public class LlmAnthropicServerIT
         .countersBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/llm/config")
         .external("app0")
+        .external("app1")
         .clean();
 
 
@@ -2216,6 +2217,25 @@ public class LlmAnthropicServerIT
     @Specification({
         "${net}/anthropic.request.buffer.exhausted/client"})
     public void shouldAnthropicRequestBufferExhausted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.anthropic.route.model.yaml")
+    @Specification({
+        "${net}/anthropic.route.model/client",
+        "${app}/anthropic.route.model/server"})
+    public void shouldRouteAnthropicRequestByModel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.anthropic.route.model.yaml")
+    @Specification({
+        "${net}/anthropic.route.model.unmatched/client"})
+    public void shouldRejectAnthropicRequestWithUnmatchedModel() throws Exception
     {
         k3po.finish();
     }
