@@ -89,6 +89,26 @@ public class A2aServerIT
     @Test
     @Configuration("server.url.yaml")
     @Specification({
+        "${net}/send.message.task.failed/client",
+        "${app}/send.message.task.failed/server"})
+    public void shouldSendMessageReturningTaskFailed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.url.yaml")
+    @Specification({
+        "${net}/send.message.task.input.required/client",
+        "${app}/send.message.task.input.required/server"})
+    public void shouldSendMessageReturningTaskInputRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.url.yaml")
+    @Specification({
         "${net}/send.message.extensions/client",
         "${app}/send.message.extensions/server"})
     public void shouldSendMessageWithExtensions() throws Exception
@@ -235,6 +255,66 @@ public class A2aServerIT
         "${net}/stream.message.aborted/client",
         "${app}/stream.message.aborted/server"})
     public void shouldAbortStreamMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.url.yaml")
+    @Specification({
+        "${net}/stream.message.auth.required/client",
+        "${app}/stream.message.auth.required/server"})
+    public void shouldStreamMessageAuthRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.url.yaml")
+    @Specification({
+        "${net}/stream.message.canceled/client",
+        "${app}/stream.message.canceled/server"})
+    public void shouldStreamMessageCanceled() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.url.yaml")
+    @Specification({
+        "${net}/stream.message.failed/client",
+        "${app}/stream.message.failed/server"})
+    public void shouldStreamMessageFailed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.url.yaml")
+    @Specification({
+        "${net}/stream.message.input.required/client",
+        "${app}/stream.message.input.required/server"})
+    public void shouldStreamMessageInputRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.url.yaml")
+    @Specification({
+        "${net}/stream.message.rejected/client",
+        "${app}/stream.message.rejected/server"})
+    public void shouldStreamMessageRejected() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.url.yaml")
+    @Specification({
+        "${net}/stream.message.status.message/client",
+        "${app}/stream.message.status.message/server"})
+    public void shouldStreamMessageStatusMessage() throws Exception
     {
         k3po.finish();
     }
