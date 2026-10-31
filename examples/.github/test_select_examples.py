@@ -1,5 +1,8 @@
+import glob
 import importlib.util
+import json
 import os
+import tempfile
 import unittest
 
 spec = importlib.util.spec_from_file_location('select_examples', os.path.join(os.path.dirname(__file__), 'select-examples.py'))
@@ -83,6 +86,48 @@ class SelectExamplesTest(unittest.TestCase):
 
     def test_should_select_all_when_selection_disabled(self):
         self.assertEqual(sorted(EXAMPLES), select(['README.md'], [], mode='all'))
+
+
+MODULES = {'metrics-http', 'model-avro', 'model-core', 'resolver-env', 'binding-tcp'}
+CORE_MODEL_SCHEMAS = os.path.join(
+    os.path.dirname(__file__), '..', '..', 'specs', 'model-core.spec', 'src', 'main', 'scripts', 'io', 'aklivity', 'zilla',
+    'specs', 'model', 'core', 'schema', '*.schema.patch.json')
+
+
+def configured(files):
+    with tempfile.TemporaryDirectory() as root:
+        for name, text in files.items():
+            path = os.path.join(root, 'examples', 'sample', name)
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, 'w') as out:
+                out.write(text)
+        return select_examples.configured_modules(root, 'sample', MODULES)
+
+
+class ConfiguredModulesTest(unittest.TestCase):
+
+    def test_should_configure_resolver_named_by_expression_prefix(self):
+        for expression in ('${{env.PORT}}', '${{ env.PORT }}', 'host: "${{env.HOST}}:8080"'):
+            self.assertEqual({'resolver-env'}, configured({'zilla.yaml': 'port: %s\n' % expression}), expression)
+
+    def test_should_not_configure_resolver_for_type(self):
+        self.assertEqual(set(), configured({'zilla.yaml': 'type: env\n'}))
+
+    def test_should_configure_core_model_for_every_core_model(self):
+        for model in sorted(select_examples.CORE_MODELS):
+            self.assertEqual({'model-core'}, configured({'zilla.yaml': 'value:\n  model: %s\n' % model}), model)
+
+    def test_should_not_configure_core_model_for_other_models_or_schema_types(self):
+        self.assertEqual({'model-avro'}, configured({'zilla.yaml': 'value:\n  model: avro\n'}))
+        self.assertEqual(set(), configured({'zilla.yaml': 'schema:\n  type: string\n'}))
+
+    @unittest.skipUnless(glob.glob(CORE_MODEL_SCHEMAS), 'model-core.spec schema patches not checked out')
+    def test_should_know_every_model_the_core_schema_declares(self):
+        declared = set()
+        for patch in glob.glob(CORE_MODEL_SCHEMAS):
+            with open(patch) as schema:
+                declared.update(op['value'] for op in json.load(schema) if op['path'].endswith('/enum/-'))
+        self.assertEqual(declared, set(select_examples.CORE_MODELS))
 
 
 if __name__ == '__main__':
