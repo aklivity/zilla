@@ -514,14 +514,20 @@ class JsonParserTest
     }
 
     @Test
-    void shouldRejectStreamWithoutMarkSupport()
+    void shouldAcceptStreamWithoutMarkSupport()
     {
+        // the tokenizer only ever scans a resident buffer, so a one-shot InputStream is read fully into
+        // one up front regardless of mark/reset support — unlike the earlier InputStream-pull tokenizer,
+        // this no longer requires markSupported()
         InputStream in = new InputStream()
         {
+            private int index;
+            private final byte[] bytes = "{}".getBytes(UTF_8);
+
             @Override
             public int read()
             {
-                return -1;
+                return index < bytes.length ? bytes[index++] & 0xff : -1;
             }
 
             @Override
@@ -531,7 +537,10 @@ class JsonParserTest
             }
         };
 
-        assertThrows(IllegalArgumentException.class, () -> JsonEx.createParser(in));
+        JsonParser parser = JsonEx.createParser(in);
+        assertEquals(START_OBJECT, parser.next());
+        assertEquals(END_OBJECT, parser.next());
+        assertFalse(parser.hasNext());
     }
 
     @Test
