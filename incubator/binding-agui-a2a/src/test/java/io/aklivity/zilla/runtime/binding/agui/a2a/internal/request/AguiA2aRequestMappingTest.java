@@ -375,6 +375,37 @@ public class AguiA2aRequestMappingTest
         assertThat(assembler.contentLength(), equalTo(body.getBytes(UTF_8).length));
     }
 
+    @Test
+    public void shouldEmitBodyInWindows() throws Exception
+    {
+        final String input = "{\"threadId\":\"t\",\"runId\":\"r\",\"state\":{\"s\":1},\"context\":[{\"a\":\"b\"}]," +
+            "\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"h\\u00e9llo\"}]}]," +
+            "\"forwardedProps\":{\"k\":\"v\"}}";
+        final AguiA2aRequestDecoder decoder = decode(input, 16, "t", "r", null);
+        final String body = assemble(decoder, "r", "c\\1", null, null, true);
+
+        for (int window : new int[] {1, 3, 16, 100, 1 << 20})
+        {
+            final AguiA2aMessageAssembler assembler = new AguiA2aMessageAssembler()
+                .wrap(decoder.retained(), "r", "c\\1", null, null, true);
+            final ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+            assertThat(assembler.contentLength(), equalTo(body.getBytes(UTF_8).length));
+
+            while (!assembler.emitted())
+            {
+                assembler.emit((buffer, offset, length) ->
+                {
+                    final byte[] bytes = new byte[length];
+                    buffer.getBytes(offset, bytes);
+                    out.write(bytes, 0, length);
+                }, window);
+            }
+
+            assertThat("window " + window, out.toString(UTF_8), equalTo(body));
+        }
+    }
+
     private static void assertScenario(
         String name,
         int inputIndex,

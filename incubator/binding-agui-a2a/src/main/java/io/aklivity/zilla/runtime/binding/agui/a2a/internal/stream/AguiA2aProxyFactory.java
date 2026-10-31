@@ -94,8 +94,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
     private static final String MESSAGE_HANDLE_UNKNOWN = "Interrupt no longer available";
     private static final String MESSAGE_INTERNAL_ERROR = "Internal error";
 
-    private static final int PART_FRAMES = 2;
-    private static final int PART_INPUT_MIN = 11;
+    private static final int RECORD_HEADER = 3 * Integer.BYTES;
 
     private static final byte[] SNAPSHOT_OPEN = "[".getBytes();
     private static final byte[] SNAPSHOT_SEPARATOR = ",".getBytes();
@@ -139,6 +138,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
     private final MutableDirectBufferEx bodyBuffer;
     private final BufferPool decodePool;
     private final BufferPool retentionPool;
+    private final BufferPool encodePool;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -160,6 +160,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
         this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.decodePool = context.bufferPool();
         this.retentionPool = context.bufferPool().duplicate();
+        this.encodePool = context.bufferPool().duplicate();
         this.bodyBuffer = new UnsafeBufferEx(new byte[context.bufferPool().slotCapacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
@@ -326,13 +327,17 @@ public final class AguiA2aProxyFactory implements BindingHandler
         private String rememberedContextId;
         private String resumeTaskId;
         private String resumeInterruptId;
-        private AguiA2aRejection rejection;
-        private int snapshotReserve;
         private long eventTraceId;
         private int state;
 
+        private Runnable replyEnd = this::noReplyEnd;
+
         private int decodeSlot = NO_SLOT;
         private int decodeSlotOffset;
+
+        private int encodeSlot = NO_SLOT;
+        private int encodeSlotOffset;
+        private int recordProgress;
 
         private long initialSeq;
         private long initialAck;
@@ -397,7 +402,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
                 onAguiAbort(abortRO.wrap(buffer, index, index + length));
                 break;
             case FlushFW.TYPE_ID:
-                onAguiFlush(flushRO.wrap(buffer, index, index + length));
+                flushRO.wrap(buffer, index, index + length);
                 break;
             case WindowFW.TYPE_ID:
                 onAguiWindow(windowRO.wrap(buffer, index, index + length));
@@ -469,14 +474,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
                 }
             }
 
-            rejectRequest(traceId);
             cleanupDecodeSlot();
-        }
-
-        private void onAguiFlush(
-            FlushFW flush)
-        {
-            rejectRequest(flush.traceId());
         }
 
         private void onAguiAbort(
@@ -494,6 +492,8 @@ public final class AguiA2aProxyFactory implements BindingHandler
             replyAck = window.acknowledge();
             replyMax = window.maximum();
             replyPad = window.padding();
+
+            flushReply(window.traceId());
 
             a2aStreams.forEach(s -> s.flushReplyWindow(window.traceId()));
         }
@@ -581,22 +581,8 @@ public final class AguiA2aProxyFactory implements BindingHandler
             long traceId,
             AguiA2aRejection rejection)
         {
-            this.rejection = rejection;
-
-            if (AguiA2aState.initialClosing(state))
-            {
-                rejectRequest(traceId);
-            }
-        }
-
-        private void rejectRequest(
-            long traceId)
-        {
-            if (rejection != null)
-            {
-                doAguiReset(traceId, rejection.status(), rejection.code(), rejection.message());
-                cleanup(traceId);
-            }
+            doAguiReset(traceId, rejection.status(), rejection.code(), rejection.message());
+            cleanup(traceId);
         }
 
         private void onRequestDecoded(
@@ -678,10 +664,6 @@ public final class AguiA2aProxyFactory implements BindingHandler
             assembler.wrap(requestDecoder.retained(), runId, contextId, resumeTaskId, resumeInterruptId,
                 card.acceptsAdvisory());
 
-            snapshotReserve = requestDecoder.priorTurn() && rememberedContextId == null && resumeTaskId == null
-                ? snapshotLength(requestDecoder.retained())
-                : 0;
-
             final A2aMessage message = new A2aMessage(this, card.operation(), assembler.contentLength());
             a2aStreams.add(message);
             message.doA2aBegin(traceId);
@@ -710,7 +692,6 @@ public final class AguiA2aProxyFactory implements BindingHandler
                 json = snapshotOf(requestDecoder.retained());
             }
 
-            snapshotReserve = 0;
             owners.rememberContext(key, contextId);
             retention.release();
 
@@ -737,12 +718,32 @@ public final class AguiA2aProxyFactory implements BindingHandler
         {
             doAguiBegin(eventTraceId);
 
+            final int exLength = dataEx != null ? dataEx.sizeof() : 0;
             final int length = limit - offset;
-            final int reserved = length + replyPad;
+            final int record = RECORD_HEADER + exLength + length;
 
-            doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, eventTraceId, authorization,
-                flags, 0L, reserved, dataEx, payload, offset, length);
-            replySeq += reserved;
+            if (acquireEncodeSlot() && encodeSlotOffset + record <= encodePool.slotCapacity())
+            {
+                final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
+
+                slot.putInt(encodeSlotOffset, flags);
+                slot.putInt(encodeSlotOffset + Integer.BYTES, exLength);
+                slot.putInt(encodeSlotOffset + 2 * Integer.BYTES, length);
+
+                if (exLength > 0)
+                {
+                    slot.putBytes(encodeSlotOffset + RECORD_HEADER, dataEx.buffer(), dataEx.offset(), exLength);
+                }
+
+                slot.putBytes(encodeSlotOffset + RECORD_HEADER + exLength, payload, offset, length);
+                encodeSlotOffset += record;
+
+                flushReply(eventTraceId);
+            }
+            else
+            {
+                cleanup(eventTraceId);
+            }
         }
 
         @Override
@@ -752,26 +753,9 @@ public final class AguiA2aProxyFactory implements BindingHandler
         {
             doAguiBegin(eventTraceId);
 
-            if (!AguiA2aState.replyClosed(state))
-            {
-                final AguiEndExFW.Builder builder = aguiEndExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                    .typeId(aguiTypeId)
-                    .outcome(o -> o.set(outcome));
+            replyEnd = () -> doAguiEnd(eventTraceId, outcome, detail);
 
-                if (detail != null)
-                {
-                    final byte[] bytes = detail.getBytes();
-                    builder.detailLength(bytes.length).detail(new UnsafeBufferEx(bytes), 0, bytes.length);
-                }
-
-                final AguiEndExFW endEx = builder.build();
-
-                doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, eventTraceId, authorization,
-                    endEx);
-                state = AguiA2aState.closeReply(state);
-            }
-
-            retention.release();
+            flushReply(eventTraceId);
         }
 
         @Override
@@ -791,6 +775,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
         {
             if (AguiA2aState.replyOpened(state))
             {
+                cleanupEncodeSlot();
                 doAguiAbort(traceId, status, code, message);
             }
             else
@@ -814,6 +799,125 @@ public final class AguiA2aProxyFactory implements BindingHandler
                 doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
                     proxyAffinity, beginEx);
                 state = AguiA2aState.openReply(state);
+            }
+        }
+
+        private void doAguiEnd(
+            long traceId,
+            AguiOutcomeType outcome,
+            String detail)
+        {
+            replyEnd = this::noReplyEnd;
+
+            if (!AguiA2aState.replyClosed(state))
+            {
+                final AguiEndExFW.Builder builder = aguiEndExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(aguiTypeId)
+                    .outcome(o -> o.set(outcome));
+
+                if (detail != null)
+                {
+                    final byte[] bytes = detail.getBytes();
+                    builder.detailLength(bytes.length).detail(new UnsafeBufferEx(bytes), 0, bytes.length);
+                }
+
+                final AguiEndExFW endEx = builder.build();
+
+                doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
+                    endEx);
+                state = AguiA2aState.closeReply(state);
+            }
+
+            cleanupEncodeSlot();
+            retention.release();
+        }
+
+        private void noReplyEnd()
+        {
+        }
+
+        private boolean acquireEncodeSlot()
+        {
+            if (encodeSlot == NO_SLOT)
+            {
+                encodeSlot = encodePool.acquire(replyId);
+            }
+
+            return encodeSlot != NO_SLOT;
+        }
+
+        private int encodeRoom()
+        {
+            return encodePool.slotCapacity() - encodeSlotOffset;
+        }
+
+        private void flushReply(
+            long traceId)
+        {
+            if (AguiA2aState.replyOpened(state) && !AguiA2aState.replyClosed(state))
+            {
+                if (encodeSlot != NO_SLOT)
+                {
+                    final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
+                    int progress = 0;
+                    boolean blocked = false;
+
+                    while (!blocked && progress < encodeSlotOffset)
+                    {
+                        final int flags = slot.getInt(progress);
+                        final int exLength = slot.getInt(progress + Integer.BYTES);
+                        final int length = slot.getInt(progress + 2 * Integer.BYTES);
+                        final int remaining = length - recordProgress;
+                        final int available = replyMax - (int) (replySeq - replyAck) - replyPad;
+                        final int piece = Math.min(remaining, Math.max(available, 0));
+
+                        if (available < 0 || remaining > 0 && piece == 0)
+                        {
+                            blocked = true;
+                        }
+                        else
+                        {
+                            final boolean first = recordProgress == 0;
+                            final int frameFlags = (first ? flags & INIT : 0) | (piece == remaining ? flags & FIN : 0);
+                            final int dataOffset = progress + RECORD_HEADER + exLength + recordProgress;
+
+                            doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId,
+                                authorization, frameFlags, 0L, piece + replyPad,
+                                first && exLength > 0 ? slot : null, progress + RECORD_HEADER, exLength,
+                                slot, dataOffset, piece);
+                            replySeq += piece + replyPad;
+                            recordProgress += piece;
+
+                            if (recordProgress == length)
+                            {
+                                progress += RECORD_HEADER + exLength + length;
+                                recordProgress = 0;
+                            }
+                        }
+                    }
+
+                    if (progress > 0)
+                    {
+                        encodeSlotOffset -= progress;
+                        slot.putBytes(0, slot, progress, encodeSlotOffset);
+                    }
+                }
+
+                if (encodeSlotOffset == 0)
+                {
+                    replyEnd.run();
+                }
+            }
+        }
+
+        private void cleanupEncodeSlot()
+        {
+            if (encodeSlot != NO_SLOT)
+            {
+                encodePool.release(encodeSlot);
+                encodeSlot = NO_SLOT;
+                encodeSlotOffset = 0;
+                recordProgress = 0;
             }
         }
 
@@ -888,6 +992,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
             a2aStreams.forEach(s -> s.cleanup(traceId));
 
             cleanupDecodeSlot();
+            cleanupEncodeSlot();
             retention.release();
         }
 
@@ -901,24 +1006,17 @@ public final class AguiA2aProxyFactory implements BindingHandler
             }
         }
 
-        private int snapshotLength(
-            AguiA2aRetained retained)
-        {
-            int length = SNAPSHOT_OPEN.length + SNAPSHOT_CLOSE.length;
-            int messages = 0;
-
-            for (int index = retained.indexOf(Kind.MESSAGE); index != -1; index = retained.indexOf(Kind.MESSAGE, index + 1))
-            {
-                length += retained.length(index) + (messages++ > 0 ? SNAPSHOT_SEPARATOR.length : 0);
-            }
-
-            return length;
-        }
-
         private byte[] snapshotOf(
             AguiA2aRetained retained)
         {
-            final int length = snapshotLength(retained);
+            int length = SNAPSHOT_OPEN.length + SNAPSHOT_CLOSE.length;
+            int count = 0;
+
+            for (int index = retained.indexOf(Kind.MESSAGE); index != -1; index = retained.indexOf(Kind.MESSAGE, index + 1))
+            {
+                length += retained.length(index) + (count++ > 0 ? SNAPSHOT_SEPARATOR.length : 0);
+            }
+
             final byte[] json = new byte[length];
             System.arraycopy(SNAPSHOT_OPEN, 0, json, 0, SNAPSHOT_OPEN.length);
 
@@ -940,20 +1038,6 @@ public final class AguiA2aProxyFactory implements BindingHandler
             System.arraycopy(SNAPSHOT_CLOSE, 0, json, progress, SNAPSHOT_CLOSE.length);
 
             return json;
-        }
-
-        private long replyAvailable()
-        {
-            return Math.max(replyMax - (replySeq - replyAck), 0L);
-        }
-
-        private int replyWindow()
-        {
-            final int frames = PART_FRAMES * replyPad;
-            final int growth = 1 + (frames + PART_INPUT_MIN - 1) / PART_INPUT_MIN;
-            final long credit = replyAvailable() - frames - snapshotReserve;
-
-            return (int) Math.min(Math.max(credit, 0L) / growth, decodePool.slotCapacity());
         }
     }
 
@@ -1110,7 +1194,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
             final int reserved = length + initialPad;
 
             doData(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId,
-                proxy.authorization, flags, 0L, reserved, null, buffer, offset, length);
+                proxy.authorization, flags, 0L, reserved, null, 0, 0, buffer, offset, length);
             initialSeq += reserved;
         }
 
@@ -1329,7 +1413,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
         @Override
         int replyCredit()
         {
-            return proxy.replyWindow();
+            return proxy.encodeRoom();
         }
 
         @Override
@@ -1346,6 +1430,8 @@ public final class AguiA2aProxyFactory implements BindingHandler
             {
                 proxy.eventDecoder.decode(data.flags(), payload.buffer(), payload.offset(), payload.limit());
             }
+
+            proxy.flushReply(traceId);
 
             replyAck = replySeq;
             doA2aWindow(traceId);
@@ -1390,7 +1476,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
     {
         private final AguiA2aOperation operation;
         private final int bodyLength;
-        private final BodySlice slice = new BodySlice();
+        private final BodyChunk chunk = new BodyChunk();
 
         private int bodyProgress;
 
@@ -1420,21 +1506,20 @@ public final class AguiA2aProxyFactory implements BindingHandler
         {
             int available = initialMax - (int) (initialSeq - initialAck) - initialPad;
 
-            while (!AguiA2aState.initialClosing(state) && bodyProgress < bodyLength && available > 0)
+            while (!AguiA2aState.initialClosing(state) && !proxy.assembler.emitted() && available > 0)
             {
-                final int length = Math.min(Math.min(available, bodyLength - bodyProgress), bodyBuffer.capacity());
+                chunk.reset();
 
-                slice.wrap(bodyProgress, length);
-                proxy.assembler.emit(slice);
+                final int length = proxy.assembler.emit(chunk, Math.min(available, bodyBuffer.capacity()));
+                final int flags = (bodyProgress == 0 ? INIT : 0) | (proxy.assembler.emitted() ? FIN : 0);
 
-                final int flags = (bodyProgress == 0 ? INIT : 0) | (bodyProgress + length == bodyLength ? FIN : 0);
                 doA2aData(traceId, flags, bodyBuffer, 0, length);
 
                 bodyProgress += length;
                 available = initialMax - (int) (initialSeq - initialAck) - initialPad;
             }
 
-            if (bodyProgress == bodyLength)
+            if (proxy.assembler.emitted())
             {
                 proxy.onRequestSent();
 
@@ -1474,19 +1559,13 @@ public final class AguiA2aProxyFactory implements BindingHandler
         }
     }
 
-    private final class BodySlice implements AguiA2aBodySink
+    private final class BodyChunk implements AguiA2aBodySink
     {
-        private int from;
-        private int to;
         private int position;
 
-        private void wrap(
-            int offset,
-            int length)
+        private void reset()
         {
-            this.from = offset;
-            this.to = offset + length;
-            this.position = 0;
+            position = 0;
         }
 
         @Override
@@ -1495,14 +1574,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
             int offset,
             int length)
         {
-            final int start = Math.max(position, from);
-            final int end = Math.min(position + length, to);
-
-            if (start < end)
-            {
-                bodyBuffer.putBytes(start - from, buffer, offset + start - position, end - start);
-            }
-
+            bodyBuffer.putBytes(position, buffer, offset, length);
             position += length;
         }
     }
@@ -1638,7 +1710,9 @@ public final class AguiA2aProxyFactory implements BindingHandler
         int flags,
         long budgetId,
         int reserved,
-        Flyweight extension,
+        DirectBufferEx extension,
+        int extensionOffset,
+        int extensionLength,
         DirectBufferEx buffer,
         int offset,
         int length)
@@ -1659,7 +1733,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
 
         if (extension != null)
         {
-            builder.extension(extension.buffer(), extension.offset(), extension.sizeof());
+            builder.extension(extension, extensionOffset, extensionLength);
         }
 
         final DataFW data = builder.build();

@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.agui.a2a.internal.request;
 import static io.aklivity.zilla.runtime.binding.agui.a2a.internal.request.AguiA2aText.matches;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.util.Arrays;
 import java.util.Map;
 
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.request.AguiA2aRetained.Kind;
@@ -124,6 +125,18 @@ public final class AguiA2aMessageAssembler
     private final int[] rangeEnd = new int[RANGE_COUNT];
     private final JsonEvent[] rangeEvent = new JsonEvent[RANGE_COUNT];
 
+    private final AguiA2aBodySink gather = this::gather;
+    private final UnsafeBufferEx scratch = new UnsafeBufferEx(new byte[0]);
+
+    private DirectBufferEx[] gatherBuffers = new DirectBufferEx[16];
+    private int[] gatherOffsets = new int[16];
+    private int[] gatherLengths = new int[16];
+    private byte[] scratchBytes = new byte[256];
+    private int gatherCount;
+    private int gatherIndex;
+    private int gatherProgress;
+    private int gatherLength;
+    private int scratchLength;
     private byte[] escapeBytes = new byte[256];
     private AguiA2aRetained retained;
     private DirectBufferEx slot;
@@ -176,12 +189,56 @@ public final class AguiA2aMessageAssembler
 
     public int contentLength()
     {
-        final int[] length = new int[1];
-        emit((buffer, offset, count) -> length[0] += count);
-        return length[0];
+        gatherCount = 0;
+        gatherIndex = 0;
+        gatherProgress = 0;
+        gatherLength = 0;
+        scratchLength = 0;
+
+        walk(gather);
+
+        return gatherLength;
     }
 
     public void emit(
+        AguiA2aBodySink sink)
+    {
+        contentLength();
+        emit(sink, Integer.MAX_VALUE);
+    }
+
+    public int emit(
+        AguiA2aBodySink sink,
+        int limit)
+    {
+        int emitted = 0;
+
+        while (gatherIndex < gatherCount && emitted < limit)
+        {
+            final int length = Math.min(gatherLengths[gatherIndex] - gatherProgress, limit - emitted);
+            final DirectBufferEx buffer = gatherBuffers[gatherIndex] != null ? gatherBuffers[gatherIndex] : scratch;
+
+            sink.write(buffer, gatherOffsets[gatherIndex] + gatherProgress, length);
+
+            emitted += length;
+            gatherProgress += length;
+
+            if (gatherProgress == gatherLengths[gatherIndex])
+            {
+                gatherIndex++;
+                gatherProgress = 0;
+            }
+        }
+
+        return emitted;
+    }
+
+    public boolean emitted()
+    {
+        return gatherIndex == gatherCount;
+    }
+
+    private void walk(
         AguiA2aBodySink sink)
     {
         this.sink = sink;
@@ -889,6 +946,46 @@ public final class AguiA2aMessageAssembler
         if (partCount++ > 0)
         {
             write(COMMA);
+        }
+    }
+
+    private void gather(
+        DirectBufferEx buffer,
+        int offset,
+        int length)
+    {
+        if (length > 0)
+        {
+            if (gatherCount == gatherBuffers.length)
+            {
+                gatherBuffers = Arrays.copyOf(gatherBuffers, gatherCount << 1);
+                gatherOffsets = Arrays.copyOf(gatherOffsets, gatherCount << 1);
+                gatherLengths = Arrays.copyOf(gatherLengths, gatherCount << 1);
+            }
+
+            if (buffer == escapeBuffer)
+            {
+                if (scratchLength + length > scratchBytes.length)
+                {
+                    scratchBytes = Arrays.copyOf(scratchBytes, Math.max(scratchBytes.length << 1, scratchLength + length));
+                }
+
+                buffer.getBytes(offset, scratchBytes, scratchLength, length);
+                scratch.wrap(scratchBytes);
+
+                gatherBuffers[gatherCount] = null;
+                gatherOffsets[gatherCount] = scratchLength;
+                scratchLength += length;
+            }
+            else
+            {
+                gatherBuffers[gatherCount] = buffer;
+                gatherOffsets[gatherCount] = offset;
+            }
+
+            gatherLengths[gatherCount] = length;
+            gatherCount++;
+            gatherLength += length;
         }
     }
 
