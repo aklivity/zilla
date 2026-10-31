@@ -803,6 +803,16 @@ public class LlmAnthropicServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/anthropic.reply.shared.budget/client",
+        "${app}/anthropic/server"})
+    public void shouldForwardAnthropicNonstreamingWithReplySharedBudget() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/anthropic.section.tool.definition.name.last/client",
         "${app}/anthropic.section.tool.definition.name.last/server"})
     public void shouldDecodeAnthropicSectionToolDefinitionNameLast() throws Exception

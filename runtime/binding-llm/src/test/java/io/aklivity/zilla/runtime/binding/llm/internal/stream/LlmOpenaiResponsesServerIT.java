@@ -61,6 +61,16 @@ public class LlmOpenaiResponsesServerIT
     }
 
     @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.reply.shared.budget/client",
+        "${app}/openai.responses.text/server"})
+    public void shouldForwardOpenaiResponsesWithReplySharedBudget() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.openai.yaml")
     @Specification({
         "${net}/openai.responses.text/client",

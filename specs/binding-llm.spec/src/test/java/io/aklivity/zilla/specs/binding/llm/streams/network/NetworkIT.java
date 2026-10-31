@@ -129,6 +129,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.reply.shared.budget/client",
+        "${net}/openai.reply.shared.budget/server"})
+    public void shouldEncodeOpenaiNonstreamingWithReplySharedBudget() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.request.padded/client",
         "${net}/openai.request.padded/server"})
     public void shouldEncodeOpenaiRequestWithReplyPadding() throws Exception
@@ -9160,6 +9169,33 @@ public class NetworkIT
         "${net}/openai.responses.abort/client",
         "${net}/openai.responses.abort/server"})
     public void shouldOpenaiResponsesAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.reply.shared.budget/client",
+        "${net}/anthropic.reply.shared.budget/server"})
+    public void shouldEncodeAnthropicNonstreamingWithReplySharedBudget() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.reply.shared.budget/client",
+        "${net}/gemini.reply.shared.budget/server"})
+    public void shouldEncodeGeminiNonstreamingWithReplySharedBudget() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.reply.shared.budget/client",
+        "${net}/openai.responses.reply.shared.budget/server"})
+    public void shouldEncodeOpenaiResponsesWithReplySharedBudget() throws Exception
     {
         k3po.finish();
     }
