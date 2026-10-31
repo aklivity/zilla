@@ -59,6 +59,7 @@ final class ResponseHarness implements AguiFrameSink, AguiResponseHost
     final A2aEventDecoder decoder;
 
     String snapshot;
+    int toolHandles;
     String outcome;
     String detail;
     int errorStatus;
@@ -129,6 +130,13 @@ final class ResponseHarness implements AguiFrameSink, AguiResponseHost
         String detail)
     {
         malformed.add(tag + ": " + detail);
+    }
+
+    public String toolCallHandle(
+        String taskId,
+        String callId)
+    {
+        return "h-" + ++toolHandles;
     }
 
     @Override

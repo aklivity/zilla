@@ -66,6 +66,8 @@ public class AguiResponseScenarioTest
             "interrupt.auth.required",
             "owner.context.reset.interrupt",
             "extension.messages.reset",
+            "extension.tools.call",
+            "extension.tools.call.text",
             "extension.tag.state",
             "extension.tag.activity",
             "extension.tag.reasoning",
@@ -107,6 +109,11 @@ public class AguiResponseScenarioTest
         if (scripts.expectedOutcome != null)
         {
             assertEquals(scripts.expectedOutcome, harness.outcome);
+        }
+
+        if (scripts.expectedDetail != null)
+        {
+            assertEquals(scripts.expectedDetail, harness.detail);
         }
         else
         {
