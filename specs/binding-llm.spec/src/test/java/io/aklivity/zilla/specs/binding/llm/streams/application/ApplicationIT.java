@@ -5592,6 +5592,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.responses.text.captured.padded/client",
+        "${app}/openai.responses.text.captured.padded/server"})
+    public void shouldExchangeOpenaiResponsesTextCapturedPadded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.responses.text.stream.captured/client",
         "${app}/openai.responses.text.stream.captured/server"})
     public void shouldOpenaiResponsesTextStreamCaptured() throws Exception
@@ -6054,6 +6063,15 @@ public class ApplicationIT
         "${app}/openai.responses.reasoning.id/client",
         "${app}/openai.responses.reasoning.id/server"})
     public void shouldOpenaiResponsesReasoningId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.reasoning.encrypted/client",
+        "${app}/openai.responses.reasoning.encrypted/server"})
+    public void shouldExchangeOpenaiResponsesReasoningEncrypted() throws Exception
     {
         k3po.finish();
     }
@@ -8836,6 +8854,222 @@ public class ApplicationIT
         "${app}/openai.response.controls.message.stream/client",
         "${app}/openai.response.controls.message.stream/server"})
     public void shouldOpenaiResponseControlsMessageStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.sorted.code.interpreter/client",
+        "${app}/openai.responses.sorted.code.interpreter/server"})
+    public void shouldOpenaiSortedResponsesCodeInterpreter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.reply.reset/client",
+        "${app}/openai.reply.reset/server"})
+    public void shouldOpenaiReplyReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.sorted.code.interpreter.stream/client",
+        "${app}/openai.responses.sorted.code.interpreter.stream/server"})
+    public void shouldOpenaiSortedResponsesCodeInterpreterStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.reply.reset/client",
+        "${app}/openai.responses.reply.reset/server"})
+    public void shouldOpenaiResponsesReplyReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.sorted.mcp/client",
+        "${app}/openai.responses.sorted.mcp/server"})
+    public void shouldOpenaiSortedResponsesMcp() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.reply.reset/client",
+        "${app}/anthropic.reply.reset/server"})
+    public void shouldAnthropicReplyReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.sorted.response.controls/client",
+        "${app}/openai.responses.sorted.response.controls/server"})
+    public void shouldOpenaiSortedResponsesResponseControls() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.reply.reset/client",
+        "${app}/gemini.reply.reset/server"})
+    public void shouldGeminiReplyReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.sorted.web.search/client",
+        "${app}/openai.responses.sorted.web.search/server"})
+    public void shouldOpenaiSortedResponsesWebSearch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.rejected.reset/client",
+        "${app}/anthropic.rejected.reset/server"})
+    public void shouldRejectAnthropicReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.sorted.web.search.stream/client",
+        "${app}/openai.responses.sorted.web.search.stream/server"})
+    public void shouldOpenaiSortedResponsesWebSearchStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.rejected.reset/client",
+        "${app}/gemini.rejected.reset/server"})
+    public void shouldRejectGeminiReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.sorted.mcp.stream/client",
+        "${app}/openai.responses.sorted.mcp.stream/server"})
+    public void shouldOpenaiSortedResponsesMcpStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.buffer.exhausted/client",
+        "${app}/openai.response.buffer.exhausted/server"})
+    public void shouldOpenaiResponseBufferExhausted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.sorted.function.call.overflow.stream/client",
+        "${app}/openai.responses.sorted.function.call.overflow.stream/server"})
+    public void shouldOpenaiSortedResponsesFunctionCallOverflowStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.response.buffer.exhausted/client",
+        "${app}/anthropic.response.buffer.exhausted/server"})
+    public void shouldAnthropicResponseBufferExhausted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.text.stream.huge.large/client",
+        "${app}/openai.responses.text.stream.huge.large/server"})
+    public void shouldOpenaiSortedResponsesTextStreamHugeLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.response.buffer.exhausted/client",
+        "${app}/gemini.response.buffer.exhausted/server"})
+    public void shouldGeminiResponseBufferExhausted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.response.buffer.exhausted/client",
+        "${app}/openai.responses.response.buffer.exhausted/server"})
+    public void shouldOpenaiResponsesResponseBufferExhausted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.abort/client",
+        "${app}/anthropic.abort/server"})
+    public void shouldAnthropicAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.abort/client",
+        "${app}/gemini.abort/server"})
+    public void shouldGeminiAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.responses.abort/client",
+        "${app}/openai.responses.abort/server"})
+    public void shouldOpenaiResponsesAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.abort/client",
+        "${app}/gemini.request.abort/server"})
+    public void shouldGeminiRequestAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.request.buffer.exhausted/client",
+        "${app}/gemini.request.buffer.exhausted/server"})
+    public void shouldGeminiRequestBufferExhausted() throws Exception
     {
         k3po.finish();
     }

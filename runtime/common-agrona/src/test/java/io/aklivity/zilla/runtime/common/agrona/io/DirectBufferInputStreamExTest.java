@@ -198,6 +198,38 @@ class DirectBufferInputStreamExTest
     }
 
     @Test
+    void shouldReadFromSetPosition()
+    {
+        UnsafeBufferEx buffer = new UnsafeBufferEx("abcdef".getBytes(UTF_8));
+        DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
+        in.wrap(buffer, 0, buffer.capacity());
+        in.skip(4);
+
+        assertEquals(4, in.position());
+
+        in.position(1);
+
+        assertEquals(1, in.position());
+        assertEquals('b', in.read());
+    }
+
+    @Test
+    void shouldClampSetPositionToWindow()
+    {
+        UnsafeBufferEx buffer = new UnsafeBufferEx("abc".getBytes(UTF_8));
+        DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
+        in.wrap(buffer, 0, buffer.capacity());
+
+        in.position(99);
+
+        assertEquals(3, in.position());
+
+        in.position(-5);
+
+        assertEquals(0, in.position());
+    }
+
+    @Test
     void shouldSupportClose() throws Exception
     {
         DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();

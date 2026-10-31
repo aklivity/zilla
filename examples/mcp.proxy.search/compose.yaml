@@ -1,0 +1,83 @@
+name: ${NAMESPACE:-zilla-mcp-proxy-search}
+services:
+  zilla:
+    image: ghcr.io/aklivity/zilla:${ZILLA_VERSION:-latest}
+    restart: unless-stopped
+    hostname: zilla.examples.dev
+    ports:
+      - 7114:7114
+      - 7190:7190
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 15
+      start_period: 15s
+      start_interval: 250ms
+      test: ["CMD", "sh", "-c", "test -f /var/run/zilla/ready"]
+    environment:
+      ZILLA_INCUBATOR_ENABLED: "true"
+    volumes:
+      - ./etc:/etc/zilla
+    command: start -v -e
+    depends_on:
+      everything:
+        condition: service_healthy
+
+  everything:
+    image: node:20-alpine
+    hostname: everything
+    restart: unless-stopped
+    command: ["npx", "-y", "@modelcontextprotocol/server-everything@2026.7.4", "streamableHttp"]
+    environment:
+      PORT: "3001"
+    # Persists npm's download cache across container recreations; CI restores the
+    # same path keyed on the pinned version. Gitignored, harmless if absent.
+    volumes:
+      - ./.cache/npm-everything:/root/.npm
+    healthcheck:
+      # A cold `npx -y` install takes 2 to 5+ minutes depending on registry conditions.
+      interval: 5s
+      timeout: 3s
+      retries: 120
+      start_period: 30s
+      start_interval: 250ms
+      test: ["CMD", "nc", "-z", "127.0.0.1", "3001"]
+
+  # Run on demand: `docker compose run --rm tools-list-client`.
+  tools-list-client:
+    image: node:20-alpine
+    deploy:
+      replicas: 0
+    working_dir: /app
+    environment:
+      MCP_URL: "http://zilla:7114/mcp"
+    volumes:
+      - ./tools-list-client:/app
+    entrypoint: ["sh", "-c", "npm install --no-audit --no-fund --silent && node client.mjs"]
+
+  # One-off verification: `docker compose run --rm verify`, which is all
+  # .github/test.sh does. profiles keeps it out of a plain `docker compose up`.
+  verify:
+    image: node:20-alpine
+    profiles: ["test"]
+    working_dir: /work
+    depends_on:
+      zilla:
+        condition: service_healthy
+    volumes:
+      - ./etc/test:/test:ro
+      - ../.github/test-lib.sh:/test-lib.sh:ro
+      - ./tools-list-client:/work/tools-list-client
+    environment:
+      FAIL_FAST: "${FAIL_FAST:-1}"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        apk add --no-cache curl > /dev/null
+        npm install --prefix /work/tools-list-client --no-audit --no-fund --silent
+        exec sh /test/verify.sh
+
+networks:
+  default:
+    driver: bridge

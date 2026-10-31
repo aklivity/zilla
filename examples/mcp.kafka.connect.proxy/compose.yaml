@@ -1,0 +1,137 @@
+name: ${NAMESPACE:-zilla-mcp-kafka-connect-proxy}
+services:
+  zilla:
+    image: ghcr.io/aklivity/zilla:${ZILLA_VERSION:-latest}
+    restart: unless-stopped
+    hostname: zilla.examples.dev
+    ports:
+      - 7114:7114
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 15
+      start_period: 15s
+      start_interval: 250ms
+      test: ["CMD", "sh", "-c", "test -f /var/run/zilla/ready"]
+    environment:
+      ZILLA_INCUBATOR_ENABLED: "true"
+    volumes:
+      - ./etc:/etc/zilla
+    command: start -v -e
+    depends_on:
+      kafka-connect:
+        condition: service_healthy
+
+  kafka:
+    image: apache/kafka:4.1.1
+    restart: unless-stopped
+    hostname: kafka.examples.dev
+    ports:
+      - 9092:9092
+    healthcheck:
+      test: /opt/kafka/bin/kafka-cluster.sh cluster-id --bootstrap-server kafka.examples.dev:29092 || exit 1
+      interval: 1s
+      timeout: 60s
+      retries: 60
+    environment:
+      KAFKA_NODE_ID: "1"
+      KAFKA_BROKER_ID: "1"
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@127.0.0.1:9093"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_LISTENERS: "CLIENT://0.0.0.0:9092,INTERNAL://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093"
+      KAFKA_ADVERTISED_LISTENERS: "CLIENT://localhost:9092,INTERNAL://kafka.examples.dev:29092"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "INTERNAL"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CLIENT:PLAINTEXT,INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_LOG_DIRS: "/tmp/logs"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+
+  # plugin.path is scoped to a directory holding only connect-file-*.jar, which
+  # bundles the FileStream source/sink connectors used here. Pointing it at the
+  # whole /opt/kafka/libs makes the isolating classloader scan ~100 jars before
+  # the REST port opens: ~140s of startup against ~10s scoped to one jar.
+  kafka-connect:
+    image: apache/kafka:4.1.1
+    restart: unless-stopped
+    hostname: kafka-connect
+    depends_on:
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "-T", "3", "http://127.0.0.1:8083/connectors"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 60s
+      start_interval: 1s
+    environment:
+      KAFKA_BOOTSTRAP_SERVER: kafka.examples.dev:29092
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        cat > /tmp/connect-distributed.properties <<EOF
+        bootstrap.servers=$${KAFKA_BOOTSTRAP_SERVER}
+        group.id=connect-cluster
+        key.converter=org.apache.kafka.connect.json.JsonConverter
+        value.converter=org.apache.kafka.connect.json.JsonConverter
+        key.converter.schemas.enable=false
+        value.converter.schemas.enable=false
+        offset.storage.topic=connect-offsets
+        offset.storage.replication.factor=1
+        config.storage.topic=connect-configs
+        config.storage.replication.factor=1
+        status.storage.topic=connect-status
+        status.storage.replication.factor=1
+        listeners=HTTP://0.0.0.0:8083
+        rest.advertised.host.name=kafka-connect
+        plugin.path=/tmp/connect-plugins
+        EOF
+        mkdir -p /tmp/connect-plugins
+        cp /opt/kafka/libs/connect-file-*.jar /tmp/connect-plugins/
+        echo 'hello from mcp-kafka-connect' > /tmp/kc-source.txt
+        exec /opt/kafka/bin/connect-distributed.sh /tmp/connect-distributed.properties
+
+  # On demand: mint a JWT or call the gateway as an MCP client, e.g.
+  #   docker compose run --rm -T mcp-client mint.mjs "kafka_connect:tools"
+  #   docker compose run --rm -e JWT_TOKEN=$JWT_TOKEN mcp-client client.mjs
+  mcp-client:
+    image: node:20-alpine
+    deploy:
+      replicas: 0
+    working_dir: /app
+    environment:
+      MCP_URL: "http://zilla:7114/mcp"
+    volumes:
+      - ./client:/app
+      - ./private.pem:/private.pem:ro
+    entrypoint: ["sh", "-c", "npm install --no-audit --no-fund --loglevel=error >&2 && exec node \"$$@\"", "sh"]
+    command: ["client.mjs"]
+
+  verify:
+    image: node:20-alpine
+    profiles: ["test"]
+    working_dir: /work
+    depends_on:
+      zilla:
+        condition: service_healthy
+    volumes:
+      - ./etc/test:/test:ro
+      - ../.github/test-lib.sh:/test-lib.sh:ro
+      - ./client:/work/client
+      - ./private.pem:/private.pem:ro
+    environment:
+      FAIL_FAST: "${FAIL_FAST:-1}"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        npm install --prefix /work/client --no-audit --no-fund --loglevel=error
+        exec sh /test/verify.sh
+
+networks:
+  default:
+    driver: bridge

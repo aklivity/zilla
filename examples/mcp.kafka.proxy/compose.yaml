@@ -1,0 +1,172 @@
+name: ${NAMESPACE:-zilla-mcp-kafka-proxy}
+services:
+  zilla:
+    image: ghcr.io/aklivity/zilla:${ZILLA_VERSION:-latest}
+    restart: unless-stopped
+    hostname: zilla.examples.dev
+    ports:
+      - 7114:7114
+    # start_interval lets `up --wait` return as soon as /var/run/zilla/ready exists
+    # instead of waiting a full `interval` for the first probe
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 15
+      start_period: 15s
+      start_interval: 250ms
+      test: ["CMD", "sh", "-c", "test -f /var/run/zilla/ready"]
+    environment:
+      ZILLA_INCUBATOR_ENABLED: "true"
+    volumes:
+      - ./etc:/etc/zilla
+    command: start -v -e
+    depends_on:
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      karapace-registry:
+        condition: service_healthy
+
+  # Single-node KRaft broker behind the mcp-kafka "kafka" toolkit.
+  # The authorizer backs the DescribeAcls/CreateAcls/DeleteAcls APIs the ACL tools
+  # call; allow.everyone.if.no.acl.found keeps every topic open until an ACL is
+  # created for it, so the ACL scenario targets a dedicated topic, not orders.
+  kafka:
+    image: apache/kafka:4.1.1
+    restart: unless-stopped
+    hostname: kafka.examples.dev
+    ports:
+      - 9092:9092
+    healthcheck:
+      test: /opt/kafka/bin/kafka-cluster.sh cluster-id --bootstrap-server kafka.examples.dev:29092 || exit 1
+      interval: 1s
+      timeout: 60s
+      retries: 60
+    environment:
+      KAFKA_NODE_ID: "1"
+      KAFKA_BROKER_ID: "1"
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@127.0.0.1:9093"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_LISTENERS: "CLIENT://0.0.0.0:9092,INTERNAL://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093"
+      KAFKA_ADVERTISED_LISTENERS: "CLIENT://localhost:9092,INTERNAL://kafka.examples.dev:29092"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "INTERNAL"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CLIENT:PLAINTEXT,INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_LOG_DIRS: "/tmp/logs"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTHORIZER_CLASS_NAME: "org.apache.kafka.metadata.authorizer.StandardAuthorizer"
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
+
+  kafka-init:
+    image: apache/kafka:4.1.1
+    user: root
+    depends_on:
+      kafka:
+        condition: service_healthy
+        restart: true
+    deploy:
+      restart_policy:
+        condition: none
+        max_attempts: 0
+    entrypoint: ["/bin/sh", "-c"]
+    environment:
+      KAFKA_BOOTSTRAP_SERVER: kafka.examples.dev:29092
+    command:
+      - |
+        echo "Creating kafka topic";
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server $${KAFKA_BOOTSTRAP_SERVER} --create --if-not-exists --topic orders
+        echo "Successfully created the following topics:";
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server $${KAFKA_BOOTSTRAP_SERVER} --list --exclude-internal;
+
+  # Real Schema Registry behind the mcp-schema-registry "kafka_sr" toolkit, storing
+  # schemas in its own _schemas topic on the same broker.
+  karapace-registry:
+    image: ghcr.io/aiven-open/karapace:3.15.2
+    entrypoint:
+      - /bin/bash
+      - /opt/karapace/start.sh
+      - registry
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - 8081:8081
+    environment:
+      KARAPACE_ADVERTISED_HOSTNAME: karapace-registry
+      KARAPACE_BOOTSTRAP_URI: kafka.examples.dev:29092
+      KARAPACE_PORT: 8081
+      KARAPACE_HOST: 0.0.0.0
+      KARAPACE_CLIENT_ID: karapace
+      KARAPACE_GROUP_ID: karapace-registry
+      KARAPACE_MASTER_ELIGIBILITY: "true"
+      KARAPACE_TOPIC_NAME: _schemas
+      KARAPACE_LOG_LEVEL: WARNING
+      KARAPACE_COMPATIBILITY: BACKWARD
+    # the image ships neither curl, wget nor nc, only the venv's python
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8081/subjects', timeout=3).status == 200 else 1)"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 60s
+      start_interval: 1s
+
+  # Mints JWTs for the authn_jwt guard. Run on demand, e.g.:
+  #   docker compose run --rm jwt-cli encode --alg RS256 --kid example \
+  #       --iss https://auth.example.com --aud https://api.example.com \
+  #       --exp=+1d --no-iat --payload "scope=kafka:tools" --secret @/private.pem
+  jwt-cli:
+    image: bitnamilegacy/jwt-cli
+    stdin_open: true
+    tty: true
+    profiles:
+      - on-demand
+    volumes:
+      - ./private.pem:/private.pem
+
+  # Run on demand: `docker compose run --rm -e JWT_TOKEN=$JWT_TOKEN tools-list-client`.
+  tools-list-client:
+    image: node:20-alpine
+    deploy:
+      replicas: 0
+    working_dir: /app
+    environment:
+      MCP_URL: "http://zilla:7114/mcp"
+    volumes:
+      - ./tools-list-client:/app
+    entrypoint: ["sh", "-c", "npm install --no-audit --no-fund --silent && node client.mjs"]
+
+  # One-off verification container, run by .github/test.sh. The profile keeps it out
+  # of a plain `docker compose up`; zilla already depends on every other service, so
+  # waiting on its health covers the whole topology.
+  verify:
+    image: node:20-alpine
+    profiles: ["test"]
+    working_dir: /work
+    depends_on:
+      zilla:
+        condition: service_healthy
+    volumes:
+      - ./etc/test:/test:ro
+      - ../.github/test-lib.sh:/test-lib.sh:ro
+      - ./private.pem:/private.pem:ro
+      - ./tools-list-client:/work/tools-list-client
+    environment:
+      FAIL_FAST: "${FAIL_FAST:-1}"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        cp /test/mint-jwt.mjs /test/package.json /work/
+        npm install --prefix /work --no-audit --no-fund --silent
+        npm install --prefix /work/tools-list-client --no-audit --no-fund --silent
+        exec sh /test/verify.sh
+
+networks:
+  default:
+    driver: bridge

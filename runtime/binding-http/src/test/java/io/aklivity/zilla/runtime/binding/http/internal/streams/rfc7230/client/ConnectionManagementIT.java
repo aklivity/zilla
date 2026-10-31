@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7230.client;
 
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_POOL_CAPACITY_NAME;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -29,6 +31,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class ConnectionManagementIT
 {
@@ -296,4 +299,15 @@ public class ConnectionManagementIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("client.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Configure(name = ENGINE_BUFFER_POOL_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${app}/buffer.pool.exhausted.and.503.response/client",
+        "${net}/buffer.pool.exhausted.and.503.response/server" })
+    public void shouldGive503ResponseWhenBufferPoolExhausted() throws Exception
+    {
+        k3po.finish();
+    }
 }

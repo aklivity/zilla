@@ -30,4 +30,17 @@ public interface LlmDialectHandler extends BindingHandler
      */
     boolean detect(
         JsonEnvelope headers);
+
+    /**
+     * Scores how specifically an inbound request is of this dialect, for choosing between dialects that all
+     * {@linkplain #detect detect} the same request. The highest score wins; equal highest scores are ambiguous.
+     *
+     * @param headers  the headers of the inbound request
+     * @return the score, higher for a more specific match; {@code 1} by default for a detected request
+     */
+    default int score(
+        JsonEnvelope headers)
+    {
+        return detect(headers) ? 1 : 0;
+    }
 }

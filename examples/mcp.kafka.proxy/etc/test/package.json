@@ -1,0 +1,9 @@
+{
+  "name": "verify",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "jose": "5.10.0"
+  }
+}

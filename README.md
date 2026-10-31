@@ -47,6 +47,19 @@ Use existing AI SDKs to access models across providers. Give agents one governed
 
 Zilla composes protocol-native bindings in a lightweight, stateless runtime, configured declaratively in `zilla.yaml`. LLM access, MCP tool connectivity, and event streaming are different uses of the same gateway architecture, not three separately deployed gateways.
 
+## Contents
+
+- [What You Can Build](#what-you-can-build)
+- [Get Started](#get-started)
+- [Why Zilla?](#why-zilla)
+- [How It Works](#how-it-works)
+- [Capabilities](#capabilities)
+- [Explore the Documentation](#explore-the-documentation)
+- [Zilla Plus](#zilla-plus)
+- [Install with Your Own Configuration](#install-with-your-own-configuration)
+- [Resources](#resources)
+- [License](#license)
+
 ## What You Can Build
 
 ### Connect applications to LLMs
@@ -63,7 +76,7 @@ Aggregate existing MCP servers, turn HTTP/OpenAPI services into tools, and expos
 
 ### Bring real-time data to applications, services, and devices
 
-Expose Kafka-backed REST APIs and live streams to HTTP, SSE, WebSocket, gRPC, and MQTT clients. Proxy native Kafka traffic and apply protocol-aware authentication, authorization, schema validation, and data policies at the gateway instead of building and operating custom bridges.
+Expose Kafka-backed REST APIs and live streams to HTTP, SSE, WebSocket, gRPC, and MQTT clients. Apply protocol-aware authentication, authorization, schema validation, and data policies at the gateway instead of building and operating custom bridges.
 
 **Try it:** [Kafka REST example](./examples/http.kafka.crud/) | [Kafka Gateway documentation](https://docs.aklivity.io/latest/kafka-gateway/)
 
@@ -191,11 +204,19 @@ Under the hood, code-generated flyweights access encoded buffers without unneces
 - **Real-time data:** [Kafka Gateway](https://docs.aklivity.io/latest/kafka-gateway/) · [Examples](./examples/)
 - **Observability:** [Monitoring](https://docs.aklivity.io/latest/ai-gateway/monitoring-observability/)
 
-## Editions
+## Zilla Plus
 
-**Zilla Community** includes multi-protocol event connectivity, MCP capabilities, and core LLM access to OpenAI, Anthropic, and Gemini, including routing, translation, guardrails, and metrics.
+**Zilla Plus** builds on Zilla Community with additional capabilities for enterprise Kafka and AI deployments:
 
-**Zilla Plus** adds Amazon Bedrock integration, advanced OAuth capabilities, distributed stores, secure Kafka access, virtual clusters, and commercial support. See [aklivity.io](https://www.aklivity.io/) for commercial options.
+- **Native Kafka-to-Kafka proxying.** Transparently connect existing Kafka producers, consumers, and Kafka Connect clients to Kafka clusters using the native Kafka protocol, without application changes.
+- **Virtual Kafka clusters.** Give teams and tenants isolated Kafka endpoints, topic and consumer-group namespaces, and access controls on shared Kafka infrastructure.
+- **Dynamic topic aliasing.** Map the same client-facing topic name to different internal topics based on client identity.
+- **Secure public and private Kafka access.** Connect clients through authenticated, TLS-protected public endpoints or private connectivity across VPCs and AWS accounts, including Amazon MSK and MSK Serverless.
+- **Additional enterprise governance and integrations.** Field-level data protection, Amazon Bedrock integration, advanced OAuth capabilities, distributed stores, and commercial support.
+
+Explore the [Kafka Gateway use cases](https://docs.aklivity.io/latest/kafka-gateway/use-cases/) and [edition comparison](https://www.aklivity.io/pricing) for details.
+
+**Get started with Zilla Plus:** [Request a license key from the Aklivity team](https://www.aklivity.io/contact) or [get Zilla Plus on AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-lqfqftufwpttm).
 
 ## Install with Your Own Configuration
 
@@ -230,17 +251,16 @@ Choose chart settings and gateway image version appropriate for your deployment.
 
 ## Resources
 
-- [📖 Documentation](https://docs.aklivity.io/latest)  
-- [✨ AI Gateway](https://docs.aklivity.io/latest/ai-gateway/)  
-- [⚡ Quickstart](https://docs.aklivity.io/latest/ai-gateway/get-started/)  
+- [📖 Documentation](https://docs.aklivity.io/latest)
+- [✨ AI Gateway](https://docs.aklivity.io/latest/ai-gateway/)
+- [⚡ Quickstart](https://docs.aklivity.io/latest/ai-gateway/get-started/)
 - [🧪 Examples](https://github.com/aklivity/zilla/tree/develop/examples)
-- [🎬 Demos](https://github.com/aklivity/zilla-demos)  
-- [🗺️ Roadmap](https://github.com/orgs/aklivity/projects/4/views/1)  
-- [💬 Discord Server](https://discord.gg/RbUeKPsxq)  
-- [💬 Community Slack](https://www.aklivity.io/slack)  
-- [🐛 GitHub Issues](https://github.com/aklivity/zilla/issues)  
+- [🎬 Demos](https://github.com/aklivity/zilla-demos)
+- [🗺️ Roadmap](https://github.com/orgs/aklivity/projects/4/views/1)
+- [💬 Discord Server](https://discord.gg/RbUeKPsxq)
+- [💬 Community Slack](https://www.aklivity.io/slack)
+- [🐛 GitHub Issues](https://github.com/aklivity/zilla/issues)
 - [🦎 Contributing](https://github.com/aklivity/zilla/blob/develop/.github/CONTRIBUTING.md)
-
 
 ## License
 

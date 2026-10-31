@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_POOL_CAPACITY_NAME;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -935,6 +936,16 @@ public class LlmOpenaiResponsesServerIT
         "${net}/openai.responses.text.stream.huge/client",
         "${app}/openai.responses.text.stream.huge/server"})
     public void shouldEncodeOpenaiResponsesTextStreamHuge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.text.stream.huge.window/client",
+        "${app}/openai.responses.text.stream.huge/server"})
+    public void shouldEncodeOpenaiResponsesTextStreamHugeWindow() throws Exception
     {
         k3po.finish();
     }
@@ -2232,6 +2243,36 @@ public class LlmOpenaiResponsesServerIT
         "${net}/openai.responses.response.controls.grouped/client",
         "${app}/openai.responses.response.controls.grouped/server"})
     public void shouldEncodeOpenaiResponsesResponseControlsGrouped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.reply.reset/client",
+        "${app}/openai.responses.reply.reset/server"})
+    public void shouldOpenaiResponsesReplyReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.request.abort/client"})
+    public void shouldOpenaiResponsesRequestAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Configure(name = ENGINE_BUFFER_POOL_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/openai.responses.request.buffer.exhausted/client"})
+    public void shouldOpenaiResponsesRequestBufferExhausted() throws Exception
     {
         k3po.finish();
     }
