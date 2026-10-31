@@ -169,6 +169,7 @@ public final class A2aDiscoveryFactory
         private DirectBufferEx replyBuffer;
         private int replyLimit;
         private int replyDelivered;
+        private String replyMessageId;
 
         A2aDiscoveryStream(
             MessageConsumer sender,
@@ -246,7 +247,7 @@ public final class A2aDiscoveryFactory
                 initialMax = decodeMax;
                 doAppBegin(traceId, authorization);
                 doAppWindow(traceId, authorization);
-                doReply(traceId, authorization, A2aDiscoveryCard.BYTES);
+                doReply(traceId, authorization, A2aDiscoveryCard.BYTES, null);
                 break;
             case KIND_MESSAGE_SEND:
             case KIND_MESSAGE_STREAM:
@@ -347,7 +348,8 @@ public final class A2aDiscoveryFactory
                         public void completed(
                             List<A2aDiscoveryMatch> matches)
                         {
-                            onFound(traceId, authorization, A2aDiscoveryResponse.render(request.messageId, matches));
+                            onFound(traceId, authorization, A2aDiscoveryResponse.messageIdOf(request.messageId),
+                                A2aDiscoveryResponse.render(request.messageId, matches));
                         }
 
                         @Override
@@ -398,11 +400,12 @@ public final class A2aDiscoveryFactory
         private void onFound(
             long traceId,
             long authorization,
+            String messageId,
             byte[] response)
         {
             if (!A2aState.replyClosed(state))
             {
-                doReply(traceId, authorization, response);
+                doReply(traceId, authorization, response, messageId);
             }
         }
 
@@ -419,11 +422,13 @@ public final class A2aDiscoveryFactory
         private void doReply(
             long traceId,
             long authorization,
-            byte[] response)
+            byte[] response,
+            String messageId)
         {
             replyBuffer = new UnsafeBufferEx(response);
             replyLimit = response.length;
             replyDelivered = 0;
+            replyMessageId = messageId;
 
             if (A2aState.replyOpened(state))
             {
@@ -445,7 +450,7 @@ public final class A2aDiscoveryFactory
                 final Flyweight extension = replyDelivered == 0 && kind != KIND_AGENT_CARD
                     ? a2aDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(a2aTypeId)
-                        .message(m -> m.contextId((String) null))
+                        .message(m -> m.contextId((String) null).messageId(replyMessageId))
                         .build()
                     : null;
 

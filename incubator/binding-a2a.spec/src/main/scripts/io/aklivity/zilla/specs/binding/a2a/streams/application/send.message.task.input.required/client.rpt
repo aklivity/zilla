@@ -37,6 +37,7 @@ read zilla:data.ext ${a2a:matchDataEx()
                              .taskId("t-1")
                              .contextId("c-1")
                              .state("INPUT_REQUIRED")
+                             .messageId("m-2")
                              .build()
                          .build()}
 read '{"task":{"id":"t-1","contextId":"c-1","status":{"state":"TASK_STATE_INPUT_REQUIRED","message":{"messageId":"m-2","role":"ROLE_AGENT","parts":[{"text":"Which New York?"}]}}}}'

@@ -23,10 +23,10 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.a2a.internal.types.A2aFlag;
 import io.aklivity.zilla.runtime.binding.a2a.internal.types.stream.A2aDataExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
@@ -38,9 +38,42 @@ public class A2aResultInspectorTest
     @Test
     public void shouldInspectMessage()
     {
-        assertThat(inspect(KIND_MESSAGE_SEND, "{\"message\":{\"messageId\":\"m-2\",\"taskId\":\"ignored\"}}"), is(true));
+        assertThat(inspect(KIND_MESSAGE_SEND,
+            "{\"message\":{\"messageId\":\"m-2\",\"taskId\":\"t-1\",\"contextId\":\"c-1\"}}"), is(true));
         assertThat(inspector.kind, equalTo(A2aDataExFW.KIND_MESSAGE));
-        assertThat(inspector.taskId, nullValue());
+        assertThat(inspector.messageId, equalTo("m-2"));
+        assertThat(inspector.taskId, equalTo("t-1"));
+        assertThat(inspector.contextId, equalTo("c-1"));
+    }
+
+    @Test
+    public void shouldInspectTaskStatusMessage()
+    {
+        assertThat(inspect(KIND_MESSAGE_SEND,
+            "{\"task\":{\"id\":\"t-1\",\"status\":{\"state\":\"TASK_STATE_COMPLETED\"," +
+            "\"message\":{\"messageId\":\"m-3\",\"parts\":[{\"messageId\":\"deep\"}]}}}}"), is(true));
+        assertThat(inspector.kind, equalTo(A2aDataExFW.KIND_TASK));
+        assertThat(inspector.messageId, equalTo("m-3"));
+    }
+
+    @Test
+    public void shouldInspectStatusUpdateMessage()
+    {
+        assertThat(inspect(KIND_MESSAGE_STREAM,
+            "{\"statusUpdate\":{\"taskId\":\"t-1\",\"status\":{\"state\":\"TASK_STATE_WORKING\"," +
+            "\"message\":{\"messageId\":\"m-4\"}}}}"), is(true));
+        assertThat(inspector.kind, equalTo(A2aDataExFW.KIND_STATUS_UPDATE));
+        assertThat(inspector.messageId, equalTo("m-4"));
+    }
+
+    @Test
+    public void shouldInspectArtifactUpdateFlags()
+    {
+        assertThat(inspect(KIND_MESSAGE_STREAM,
+            "{\"artifactUpdate\":{\"taskId\":\"t-1\",\"artifact\":{\"artifactId\":\"a-1\"}," +
+            "\"append\":true,\"lastChunk\":false}}"), is(true));
+        assertThat(inspector.append, equalTo(A2aFlag.TRUE));
+        assertThat(inspector.lastChunk, equalTo(A2aFlag.FALSE));
     }
 
     @Test
