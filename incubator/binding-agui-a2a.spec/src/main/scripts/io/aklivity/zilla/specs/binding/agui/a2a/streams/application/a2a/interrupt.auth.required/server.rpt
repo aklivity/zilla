@@ -76,6 +76,7 @@ write zilla:data.ext ${a2a:dataEx()
                               .taskId("t-1")
                               .contextId("c-1")
                               .state("AUTH_REQUIRED")
+                              .messageId("m-2")
                               .build()
                           .build()}
 write '{"statusUpdate":{"taskId":"t-1","contextId":"c-1","status":{"state":"TASK_STATE_AUTH_REQUIRED","message":{"messageId":"m-2","role":"ROLE_AGENT","parts":[{"text":"Sign in to continue"}]}}}}'
