@@ -34,6 +34,22 @@ public interface AguiA2aOwnerState
         AguiA2aHandleKind kind,
         String handle);
 
+    default void restoreContext(
+        AguiA2aThreadKey key,
+        Runnable ready)
+    {
+        ready.run();
+    }
+
+    default void restoreHandle(
+        AguiA2aThreadKey key,
+        AguiA2aHandleKind kind,
+        String handle,
+        Runnable ready)
+    {
+        ready.run();
+    }
+
     default String issueHandle(
         AguiA2aThreadKey key,
         AguiA2aHandleKind kind,
