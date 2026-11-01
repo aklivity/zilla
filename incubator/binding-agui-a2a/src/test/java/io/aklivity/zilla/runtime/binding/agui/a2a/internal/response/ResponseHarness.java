@@ -24,6 +24,7 @@ import java.util.List;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.card.AguiA2aExtension;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.A2aDataExFW;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.AguiDataExFW;
+import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.AguiEventMetaFW;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.AguiOutcomeType;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -204,10 +205,17 @@ final class ResponseHarness implements AguiFrameSink, AguiResponseHost
             case AguiDataExFW.KIND_RAW:
                 ex = String.format("raw(%s)", dataEx.raw().source().asString());
                 break;
+            case AguiDataExFW.KIND_SUBAGENT:
+                ex = String.format("subagent(%s,%s,%s)", dataEx.subagent().type().get(),
+                    dataEx.subagent().subagentRunId().asString(), dataEx.subagent().outcome().get());
+                break;
             default:
                 ex = "kind" + dataEx.kind();
                 break;
             }
+
+            final String subagentRunId = subagentRunId(dataEx);
+            ex = subagentRunId != null && dataEx.kind() != AguiDataExFW.KIND_SUBAGENT ? ex + "@" + subagentRunId : ex;
         }
 
         frames.add(new Frame(flags, ex, exBytes, bytes));
@@ -231,6 +239,27 @@ final class ResponseHarness implements AguiFrameSink, AguiResponseHost
         this.errorStatus = status;
         this.errorCode = code;
         this.errorMessage = message;
+    }
+
+    private static String subagentRunId(
+        AguiDataExFW dataEx)
+    {
+        final AguiEventMetaFW meta = switch (dataEx.kind())
+        {
+        case AguiDataExFW.KIND_TEXT -> dataEx.text().meta();
+        case AguiDataExFW.KIND_REASONING -> dataEx.reasoning().meta();
+        case AguiDataExFW.KIND_REASONING_ENCRYPTED -> dataEx.reasoningEncrypted().meta();
+        case AguiDataExFW.KIND_TOOL_CALL -> dataEx.toolCall().meta();
+        case AguiDataExFW.KIND_TOOL_RESULT -> dataEx.toolResult().meta();
+        case AguiDataExFW.KIND_STATE -> dataEx.state().meta();
+        case AguiDataExFW.KIND_ACTIVITY -> dataEx.activity().meta();
+        case AguiDataExFW.KIND_STEP -> dataEx.step().meta();
+        case AguiDataExFW.KIND_RAW -> dataEx.raw().meta();
+        case AguiDataExFW.KIND_CUSTOM -> dataEx.custom().meta();
+        default -> null;
+        };
+
+        return meta != null ? meta.subagentRunId().asString() : null;
     }
 
     List<String> logical()

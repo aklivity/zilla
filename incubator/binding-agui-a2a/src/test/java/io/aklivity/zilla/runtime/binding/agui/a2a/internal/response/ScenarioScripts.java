@@ -43,6 +43,7 @@ final class ScenarioScripts
     private static final Pattern CODE = Pattern.compile("\\.code\\(\"([^\"]*)\"\\)");
     private static final Pattern MESSAGE = Pattern.compile("\\.message\\(\"([^\"]*)\"\\)");
     private static final Pattern FEATURES = Pattern.compile("\"features\":\\[([^\\]]*)\\]");
+    private static final Pattern SUBAGENT = Pattern.compile("\\.subagent\\(\"([^\"]*)\"\\)");
     private static final Pattern REASON = Pattern.compile("\\.reason\\(\"([^\"]*)\"\\)");
 
     final List<String> events = new ArrayList<>();
@@ -230,6 +231,15 @@ final class ScenarioScripts
     private static String exOf(
         String chain)
     {
+        final String ex = kindOf(chain);
+        final Matcher subagent = SUBAGENT.matcher(chain);
+
+        return ex != null && !chain.contains(".subagent()") && subagent.find() ? ex + "@" + subagent.group(1) : ex;
+    }
+
+    private static String kindOf(
+        String chain)
+    {
         final Matcher id = MESSAGE_ID.matcher(chain);
         final Matcher name = NAME.matcher(chain);
         final Matcher type = TYPE.matcher(chain);
@@ -247,6 +257,13 @@ final class ScenarioScripts
         else if (chain.contains(".activity()") && type.find() && id.find(0) && activityType.find())
         {
             ex = String.format("activity(%s,%s,%s)", type.group(1), id.group(1), activityType.group(1));
+        }
+        else if (chain.contains(".subagent()") && type.find())
+        {
+            final Matcher outcome = OUTCOME.matcher(chain);
+
+            ex = String.format("subagent(%s,%s,%s)", type.group(1), member(chain, "subagentRunId"),
+                outcome.find() ? outcome.group(1) : "NONE");
         }
         else if (chain.contains(".state()") && type.find())
         {

@@ -1176,4 +1176,81 @@ public class AguiA2aProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.subagent.started.finished/client",
+        "${agent}/extension.subagent.started.finished/server"})
+    public void shouldRunExtensionSubagentStartedFinished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.subagent.error/client",
+        "${agent}/extension.subagent.error/server"})
+    public void shouldRunExtensionSubagentError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.subagent.suspended/client",
+        "${agent}/extension.subagent.suspended/server"})
+    public void shouldRunExtensionSubagentSuspended() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.subagent.scoped.text/client",
+        "${agent}/extension.subagent.scoped.text/server"})
+    public void shouldRunExtensionSubagentScopedText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.subagent.tool.call/client",
+        "${agent}/extension.subagent.tool.call/server"})
+    public void shouldRunExtensionSubagentToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.subagent.not.enabled/client",
+        "${agent}/extension.subagent.not.enabled/server"})
+    public void shouldRunExtensionSubagentNotEnabled() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.catch.all.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.subagent.malformed/client",
+        "${agent}/extension.subagent.malformed/server"})
+    public void shouldRunExtensionSubagentMalformed() throws Exception
+    {
+        k3po.finish();
+    }
 }
