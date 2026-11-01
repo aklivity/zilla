@@ -1,0 +1,79 @@
+/*
+ * Copyright 2021-2026 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+scope agui_a2a
+{
+    scope event
+    {
+        enum AguiA2aEventType (uint8)
+        {
+            RUN_ROUTED (1),
+            RUN_FINISHED (2),
+            RUN_FAILED (3),
+            RUN_REDIRECTED (4),
+            CONTEXT_RESET (5),
+            HANDLE_REJECTED (6)
+        }
+
+        struct AguiA2aRunRoutedEx extends core::stream::Extension
+        {
+            string16 agent;
+            string16 taskId;
+        }
+
+        struct AguiA2aRunFinishedEx extends core::stream::Extension
+        {
+            string16 agent;
+            string16 taskId;
+            string16 contextId;
+            string16 outcome;
+        }
+
+        struct AguiA2aRunFailedEx extends core::stream::Extension
+        {
+            string16 agent;
+            string16 taskId;
+            string16 code;
+            string16 detail;
+        }
+
+        struct AguiA2aRunRedirectedEx extends core::stream::Extension
+        {
+            string16 agent;
+            int64 affinity;
+        }
+
+        struct AguiA2aContextResetEx extends core::stream::Extension
+        {
+            string16 agent;
+            string16 contextId;
+        }
+
+        struct AguiA2aHandleRejectedEx extends core::stream::Extension
+        {
+            string16 agent;
+            string16 code;
+        }
+
+        union AguiA2aEventEx switch (AguiA2aEventType)
+        {
+            case RUN_ROUTED: AguiA2aRunRoutedEx runRouted;
+            case RUN_FINISHED: AguiA2aRunFinishedEx runFinished;
+            case RUN_FAILED: AguiA2aRunFailedEx runFailed;
+            case RUN_REDIRECTED: AguiA2aRunRedirectedEx runRedirected;
+            case CONTEXT_RESET: AguiA2aContextResetEx contextReset;
+            case HANDLE_REJECTED: AguiA2aHandleRejectedEx handleRejected;
+        }
+    }
+}
