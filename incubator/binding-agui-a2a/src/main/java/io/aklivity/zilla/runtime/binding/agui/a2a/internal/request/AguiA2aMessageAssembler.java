@@ -125,6 +125,12 @@ public final class AguiA2aMessageAssembler
         return this;
     }
 
+    public AguiA2aMessageAssembler history(
+        AguiA2aRetained history)
+    {
+        return this;
+    }
+
     public AguiA2aMessageAssembler toolCalls(
         Function<String, String> toolCalls)
     {

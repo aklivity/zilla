@@ -1099,4 +1099,81 @@ public class AguiA2aProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.history.declared/client",
+        "${agent}/extension.history.declared/server"})
+    public void shouldRunExtensionHistoryDeclared() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.history.not.declared/client",
+        "${agent}/extension.history.not.declared/server"})
+    public void shouldRunExtensionHistoryNotDeclared() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.history.not.accepted/client",
+        "${agent}/extension.history.not.accepted/server"})
+    public void shouldRunExtensionHistoryNotAccepted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.history.omitted.too.large/client",
+        "${agent}/extension.history.omitted.too.large/server"})
+    public void shouldRunExtensionHistoryOmittedTooLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.history.always/client",
+        "${agent}/extension.history.always/server"})
+    public void shouldRunExtensionHistoryAlways() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.history.context/client",
+        "${agent}/extension.history.context/server"})
+    public void shouldRunExtensionHistoryContext() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
+    @Specification({
+        "${agui}/extension.history.continuation/client",
+        "${agent}/extension.history.continuation/server"})
+    public void shouldRunExtensionHistoryContinuation() throws Exception
+    {
+        k3po.finish();
+    }
 }

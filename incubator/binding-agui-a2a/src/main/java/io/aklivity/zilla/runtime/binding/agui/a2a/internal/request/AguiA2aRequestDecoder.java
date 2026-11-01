@@ -221,6 +221,17 @@ public final class AguiA2aRequestDecoder
         String parentRunId,
         AguiA2aRetention retention)
     {
+        this(streamId, threadId, runId, parentRunId, retention, null);
+    }
+
+    public AguiA2aRequestDecoder(
+        long streamId,
+        String threadId,
+        String runId,
+        String parentRunId,
+        AguiA2aRetention retention,
+        AguiA2aRetention archiveRetention)
+    {
         this.parser = JsonEx.createParser(Map.of(JsonParserEx.STRING_EVENT_POSITIONS, StringEventPositions.QUOTED));
         this.threadId = threadId;
         this.runId = runId;
@@ -279,6 +290,20 @@ public final class AguiA2aRequestDecoder
     public AguiA2aRetained retained()
     {
         return retained;
+    }
+
+    public AguiA2aRetained archive()
+    {
+        return null;
+    }
+
+    public String archiveOmitted()
+    {
+        return null;
+    }
+
+    public void releaseArchive()
+    {
     }
 
     public boolean priorTurn()
