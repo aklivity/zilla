@@ -134,4 +134,29 @@ public class FlowControlIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/server.sent.padded.connection.window.topup/client",
+        "${net}/server.sent.padded.connection.window.topup/server" })
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_CONNECTION_WINDOW_NAME, value = "100000")
+    public void shouldServerSentPaddedConnectionWindowTopup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/server.sent.padding.only.stream.window.update/client",
+        "${net}/server.sent.padding.only.stream.window.update/server" })
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    public void shouldServerSentPaddingOnlyStreamWindowUpdate() throws Exception
+    {
+        k3po.finish();
+    }
 }

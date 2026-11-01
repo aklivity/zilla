@@ -62,17 +62,14 @@ public class Http2DataFW extends Http2FrameFW
         return  padding() ? payloadOffset + 1 : payloadOffset;
     }
 
+    public int paddingLength()
+    {
+        return padding() && length() > 0 ? buffer().getByte(offset() + PAYLOAD_OFFSET) & 0xff : 0;
+    }
+
     public int dataLength()
     {
-        if (padding())
-        {
-            int paddingLength = buffer().getByte(offset() + PAYLOAD_OFFSET) & 0xff;
-            return length() - paddingLength - 1;
-        }
-        else
-        {
-            return length();
-        }
+        return padding() ? length() - paddingLength() - 1 : length();
     }
 
 

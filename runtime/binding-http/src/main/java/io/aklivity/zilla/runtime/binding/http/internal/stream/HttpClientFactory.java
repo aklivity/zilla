@@ -368,6 +368,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final HttpClientDecoder decodeHttp2Continuation = this::decodeHttp2Continuation;
     private final HttpClientDecoder decodeHttp2Data = this::decodeHttp2Data;
     private final HttpClientDecoder decodeHttp2DataPayload = this::decodeHttp2DataPayload;
+    private final HttpClientDecoder decodeHttp2DataPadding = this::decodeHttp2DataPadding;
     private final HttpClientDecoder decodeHttp2PushPromise = this::decodeHttp2PusPromise;
     private final HttpClientDecoder decodeHttp2Priority = this::decodeHttp2Priority;
     private final HttpClientDecoder decodeHttp2RstStream = this::decodeHttp2RstStream;
@@ -1975,6 +1976,11 @@ public final class HttpClientFactory implements HttpStreamFactory
             Http2ErrorCode error = Http2ErrorCode.NO_ERROR;
             Http2DataFW http2Data = http2DataRO.wrap(buffer, offset, limit);
 
+            if (http2Data.dataLength() < 0)
+            {
+                error = Http2ErrorCode.PROTOCOL_ERROR;
+            }
+
             if (error != Http2ErrorCode.NO_ERROR)
             {
                 client.onDecodeHttp2Error(traceId, authorization, error);
@@ -1988,7 +1994,10 @@ public final class HttpClientFactory implements HttpStreamFactory
                     client.doEncodeHttp2ConnectionWindow(traceId, authorization);
                 }
 
+                client.onDecodeHttp2DataPadding(traceId, authorization, http2Data);
+
                 client.decodableDataBytes = http2Data.dataLength();
+                client.decodablePaddingBytes = http2Data.paddingLength();
                 progress = http2Data.dataOffset();
 
                 client.decoder = decodeHttp2DataPayload;
@@ -2032,10 +2041,32 @@ public final class HttpClientFactory implements HttpStreamFactory
 
         if (client.decodableDataBytes == 0)
         {
-            client.decoder = decodeHttp2FrameType;
+            client.decoder = client.decodablePaddingBytes > 0 ? decodeHttp2DataPadding : decodeHttp2FrameType;
         }
 
         return progress;
+    }
+
+    private int decodeHttp2DataPadding(
+        HttpClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        final int skipped = Math.min(limit - offset, client.decodablePaddingBytes);
+
+        client.decodablePaddingBytes -= skipped;
+
+        if (client.decodablePaddingBytes == 0)
+        {
+            client.decoder = decodeHttp2FrameType;
+        }
+
+        return offset + skipped;
     }
 
     private int decodeHttp2PusPromise(
@@ -2388,6 +2419,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         private int localSharedBudget = INITIAL_CONNECTION_WINDOW;
         private int maxClientStreamId = -1;
         private int decodableDataBytes;
+        private int decodablePaddingBytes;
         private MessageConsumer network;
         private int decodeSlot;
         private int decodeSlotOffset;
@@ -3510,6 +3542,25 @@ public final class HttpClientFactory implements HttpStreamFactory
                 if (parentStream == streamId)
                 {
                     doEncodeHttp2RstStream(traceId, streamId, Http2ErrorCode.PROTOCOL_ERROR);
+                }
+            }
+        }
+
+        private void onDecodeHttp2DataPadding(
+            long traceId,
+            long authorization,
+            Http2DataFW http2Data)
+        {
+            final HttpExchange exchange = exchanges.get(http2Data.streamId());
+            final int padding = http2Data.length() - http2Data.dataLength();
+
+            if (exchange != null && padding > 0)
+            {
+                exchange.localBudget -= padding;
+
+                if (http2Data.dataLength() == 0)
+                {
+                    exchange.flushResponseWindowUpdate(traceId, authorization);
                 }
             }
         }

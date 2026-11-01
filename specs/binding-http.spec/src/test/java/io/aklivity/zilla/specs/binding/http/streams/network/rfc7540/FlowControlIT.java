@@ -156,4 +156,44 @@ public class FlowControlIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/client.sent.padded.connection.window.topup/client",
+        "${net}/client.sent.padded.connection.window.topup/server",
+    })
+    public void shouldClientSentPaddedConnectionWindowTopup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.padded.connection.window.topup/client",
+        "${net}/server.sent.padded.connection.window.topup/server",
+    })
+    public void shouldServerSentPaddedConnectionWindowTopup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.sent.padding.only.stream.window.update/client",
+        "${net}/client.sent.padding.only.stream.window.update/server",
+    })
+    public void shouldClientSentPaddingOnlyStreamWindowUpdate() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.padding.only.stream.window.update/client",
+        "${net}/server.sent.padding.only.stream.window.update/server",
+    })
+    public void shouldServerSentPaddingOnlyStreamWindowUpdate() throws Exception
+    {
+        k3po.finish();
+    }
 }
