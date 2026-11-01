@@ -17,12 +17,18 @@ jobs:
   prepare:
     name: Prepare ${{ inputs.version }}
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
     - name: Restrict workflow to maintainers/admins
-      uses: skjnldsv/check-actor-permission@v3.0
-      with:
-        require: admin
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        permission="$(gh api "repos/$GITHUB_REPOSITORY/collaborators/$GITHUB_ACTOR/permission" --jq .permission)"
+        if [[ "$permission" != "admin" ]]; then
+          echo "::error::$GITHUB_ACTOR has $permission permission on $GITHUB_REPOSITORY, and this workflow requires admin"
+          exit 1
+        fi
 
     - name: Validate release version is semantic
       env:
@@ -160,6 +166,7 @@ jobs:
   deploy:
     name: Deploy ${{ inputs.version }}
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     needs: prepare
 
     steps:
@@ -298,6 +305,7 @@ jobs:
   finalize:
     name: Finalize ${{ inputs.version }}
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: deploy
 
     steps:
