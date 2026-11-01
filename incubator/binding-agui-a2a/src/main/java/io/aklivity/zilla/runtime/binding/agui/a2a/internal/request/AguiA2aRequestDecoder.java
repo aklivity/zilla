@@ -17,7 +17,9 @@ package io.aklivity.zilla.runtime.binding.agui.a2a.internal.request;
 import static io.aklivity.zilla.runtime.binding.agui.a2a.internal.request.AguiA2aText.matches;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import jakarta.json.JsonException;
 
@@ -137,6 +139,7 @@ public final class AguiA2aRequestDecoder
     private static final String KEY_PAYLOAD = "payload";
     private static final String STATUS_CANCELLED = "cancelled";
     private static final String KEY_RESERVED = "agui";
+    private static final String KEY_A2UI_CAPABILITIES = "a2uiClientCapabilities";
     private static final String ROLE_USER = "user";
     private static final String ROLE_ASSISTANT = "assistant";
     private static final String ROLE_TOOL = "tool";
@@ -218,6 +221,8 @@ public final class AguiA2aRequestDecoder
     private int oversize;
     private int rejectDepth;
     private int turns;
+    private final Set<String> a2uiVersions = new HashSet<>();
+    private boolean capabilities;
     private AguiA2aRetained archive;
     private String archiveOmitted;
     private int archiveFrom = ABSENT;
@@ -304,6 +309,11 @@ public final class AguiA2aRequestDecoder
     public AguiA2aRetained retained()
     {
         return retained;
+    }
+
+    public Set<String> a2uiVersions()
+    {
+        return a2uiVersions;
     }
 
     public AguiA2aRetained archive()
@@ -495,12 +505,23 @@ public final class AguiA2aRequestDecoder
             depth--;
             break;
         case KEY_NAME:
-            if (captureKind == Kind.FORWARDED_PROPS && depth == 1)
+            if (captureKind == Kind.FORWARDED_PROPS)
             {
                 final CharSequence key = current;
-                if (key != null && matches(key, KEY_RESERVED))
+
+                if (depth == 1)
                 {
-                    reject(AguiA2aRejection.RESERVED_KEY);
+                    capabilities = key != null && matches(key, KEY_A2UI_CAPABILITIES);
+
+                    if (key != null && matches(key, KEY_RESERVED))
+                    {
+                        reject(AguiA2aRejection.RESERVED_KEY);
+                    }
+                }
+                else if (depth == 2 && capabilities && key != null && key.length() > 1 && key.charAt(0) == 'v' &&
+                    Character.isDigit(key.charAt(1)))
+                {
+                    a2uiVersions.add(key.toString());
                 }
             }
             break;
