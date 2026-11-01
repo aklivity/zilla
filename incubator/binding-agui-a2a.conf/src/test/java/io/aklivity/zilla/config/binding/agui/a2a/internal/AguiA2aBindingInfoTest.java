@@ -41,9 +41,9 @@ public class AguiA2aBindingInfoTest
     }
 
     @Test
-    public void shouldNotResolveOptionsAdapter()
+    public void shouldResolveOptionsAdapter()
     {
-        assertThat(info.options(), nullValue());
+        assertThat(info.options(), instanceOf(AguiA2aOptionsConfigAdapter.class));
     }
 
     @Test

@@ -60,4 +60,20 @@ public class AguiA2aBindingConfigBuilderTest
         assertThat(((AguiA2aWithConfig) binding.routes.get(0).with).agent, equalTo("agent1"));
         assertThat(((AguiA2aWithConfig) binding.routes.get(0).with).identity, equalTo("${guarded['test0'].identity}"));
     }
+
+    @Test
+    public void shouldBuildProxyBindingWithStore()
+    {
+        AguiA2aBindingConfig binding = AguiA2aBindingConfig.builder()
+            .namespace("test")
+            .name("app0")
+            .kind(KindConfig.PROXY)
+            .options()
+                .store("memory0")
+                .build()
+            .build();
+
+        assertThat(binding.options, instanceOf(AguiA2aOptionsConfig.class));
+        assertThat(((AguiA2aOptionsConfig) binding.options).store, equalTo("memory0"));
+    }
 }

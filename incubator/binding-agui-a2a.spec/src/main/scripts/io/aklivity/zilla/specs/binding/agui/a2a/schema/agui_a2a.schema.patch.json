@@ -28,7 +28,20 @@
                     "catalog": false,
                     "vault": false,
                     "entry": false,
-                    "options": false,
+                    "options": {
+                        "title": "Options",
+                        "type": "object",
+                        "properties": {
+                            "store": {
+                                "title": "Store",
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "store"
+                        ],
+                        "additionalProperties": false
+                    },
                     "routes": {
                         "title": "Routes",
                         "type": "array",
