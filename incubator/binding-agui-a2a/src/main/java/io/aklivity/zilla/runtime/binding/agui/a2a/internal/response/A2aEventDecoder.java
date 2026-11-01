@@ -21,7 +21,13 @@ import java.util.Map;
 
 import jakarta.json.JsonException;
 
+import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.A2aFlag;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.A2aTaskState;
+import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.A2aArtifactUpdateDataExFW;
+import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.A2aDataExFW;
+import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.A2aMessageDataExFW;
+import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.A2aStatusUpdateDataExFW;
+import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.A2aTaskDataExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -37,7 +43,6 @@ public final class A2aEventDecoder
     private static final String ERROR_MALFORMED = "Malformed event";
     private static final String ERROR_TOO_LARGE = "Event too large";
     private static final String ERROR_TRUNCATED = "Truncated event";
-    private static final String STATE_PREFIX = "TASK_STATE_";
 
     private enum PartMember
     {
@@ -55,7 +60,6 @@ public final class A2aEventDecoder
 
     private final A2aEventDecoderState decodeIdle = this::decodeIdle;
     private final A2aEventDecoderState decodeStart = this::decodeStart;
-    private final A2aEventDecoderState decodeLookahead = this::decodeLookahead;
     private final A2aEventDecoderState decodeRootStart = this::decodeRootStart;
     private final A2aEventDecoderState decodeRoot = this::decodeRoot;
     private final A2aEventDecoderState decodeRootEnd = this::decodeRootEnd;
@@ -67,8 +71,6 @@ public final class A2aEventDecoder
     private final A2aEventDecoderState decodeStatusUpdate = this::decodeStatusUpdate;
     private final A2aEventDecoderState decodeArtifactUpdateStart = this::decodeArtifactUpdateStart;
     private final A2aEventDecoderState decodeArtifactUpdate = this::decodeArtifactUpdate;
-    private final A2aEventDecoderState decodeAppendValue = this::decodeAppendValue;
-    private final A2aEventDecoderState decodeLastChunkValue = this::decodeLastChunkValue;
     private final A2aEventDecoderState decodeReplyStart = this::decodeReplyStart;
     private final A2aEventDecoderState decodeReplyEnd = this::decodeReplyEnd;
     private final A2aEventDecoderState decodeStatusValue = this::decodeStatusValue;
@@ -88,6 +90,7 @@ public final class A2aEventDecoder
     private final A2aEventDecoderState decodeTextFragment = this::decodeTextFragment;
     private final A2aEventDecoderState decodePartValue = this::decodePartValue;
     private final A2aEventDecoderState decodeData = this::decodeData;
+    private final A2aEventDecoderState decodeDataSeparator = this::decodeDataSeparator;
 
     private final A2aEventSink sink;
     private final int maximum;
@@ -98,8 +101,6 @@ public final class A2aEventDecoder
 
     private final A2aEventDecoderState rootStart;
     private final A2aEventDecoderState taskThen;
-    private final A2aEventKind rootKind;
-    private final int rootShift;
 
     private A2aEventDecoderState decoder = decodeIdle;
     private A2aEventDecoderState statusThen;
@@ -108,7 +109,6 @@ public final class A2aEventDecoder
     private A2aEventDecoderState partsThen;
     private A2aMessageScope messageScope;
     private PartMember partMember;
-    private A2aEventKind kind;
     private String taskId;
     private String contextId;
     private A2aTaskState state;
@@ -144,14 +144,13 @@ public final class A2aEventDecoder
         this.maximum = maximum;
         this.rootStart = root == A2aEventRoot.TASK ? decodeTaskStart : decodeRootStart;
         this.taskThen = root == A2aEventRoot.TASK ? decodeRootEnd : decodeRoot;
-        this.rootKind = root == A2aEventRoot.TASK ? A2aEventKind.TASK : null;
-        this.rootShift = root == A2aEventRoot.TASK ? 1 : 0;
         this.slotBuffer = new UnsafeBufferEx(new byte[maximum]);
         this.textBuffer = new UnsafeBufferEx(new byte[maximum + 4]);
     }
 
     public void decode(
         int flags,
+        A2aDataExFW dataEx,
         DirectBufferEx buffer,
         int offset,
         int limit)
@@ -163,6 +162,7 @@ public final class A2aEventDecoder
         {
             parser.reset();
             carryLength = 0;
+            head(dataEx);
             decoder = decodeStart;
         }
         else if (decoder == decodeIdle || init && decoder != decodeIgnore)
@@ -264,13 +264,61 @@ public final class A2aEventDecoder
         return position();
     }
 
+    private void head(
+        A2aDataExFW dataEx)
+    {
+        taskId = null;
+        contextId = null;
+        state = A2aTaskState.UNSPECIFIED;
+        append = Boolean.FALSE;
+        lastChunk = false;
+        headEntityId = null;
+
+        if (dataEx != null)
+        {
+            switch (dataEx.kind())
+            {
+            case A2aDataExFW.KIND_TASK:
+                final A2aTaskDataExFW task = dataEx.task();
+                taskId = task.taskId().asString();
+                contextId = task.contextId().asString();
+                state = task.state().get();
+                headEntityId = task.messageId().asString();
+                break;
+            case A2aDataExFW.KIND_STATUS_UPDATE:
+                final A2aStatusUpdateDataExFW statusUpdate = dataEx.statusUpdate();
+                taskId = statusUpdate.taskId().asString();
+                contextId = statusUpdate.contextId().asString();
+                state = statusUpdate.state().get();
+                headEntityId = statusUpdate.messageId().asString();
+                break;
+            case A2aDataExFW.KIND_MESSAGE:
+                final A2aMessageDataExFW message = dataEx.message();
+                taskId = message.taskId().asString();
+                contextId = message.contextId().asString();
+                headEntityId = message.messageId().asString();
+                break;
+            case A2aDataExFW.KIND_ARTIFACT_UPDATE:
+                final A2aArtifactUpdateDataExFW artifactUpdate = dataEx.artifactUpdate();
+                taskId = artifactUpdate.taskId().asString();
+                contextId = artifactUpdate.contextId().asString();
+                headEntityId = artifactUpdate.artifactId().asString();
+                append = artifactUpdate.append().get() == A2aFlag.TRUE;
+                lastChunk = artifactUpdate.lastChunk().get() == A2aFlag.TRUE;
+                break;
+            default:
+                break;
+            }
+        }
+    }
+
     private int decodeStart()
     {
         if (parser.hasNextEvent())
         {
             if (parser.nextEvent() == JsonEvent.START_DOCUMENT)
             {
-                decoder = decodeLookahead;
+                decoder = rootStart;
             }
             else
             {
@@ -279,193 +327,6 @@ public final class A2aEventDecoder
         }
 
         return position();
-    }
-
-    private int decodeLookahead()
-    {
-        parser.mark();
-
-        kind = rootKind;
-        taskId = null;
-        contextId = null;
-        state = A2aTaskState.UNSPECIFIED;
-        append = null;
-        lastChunk = false;
-        headEntityId = null;
-
-        int depth = 0;
-        String member = null;
-
-        while (decoder == decodeLookahead && parser.hasNextEvent())
-        {
-            final JsonEvent event = parser.nextEvent();
-            final boolean deferred = parser.deferredBytes();
-
-            switch (event)
-            {
-            case START_OBJECT:
-                depth++;
-                break;
-            case END_OBJECT:
-                depth--;
-                if (depth == 0)
-                {
-                    append = append != null ? append : Boolean.FALSE;
-                    decoder = rootStart;
-                }
-                break;
-            case KEY_NAME:
-                if (deferred)
-                {
-                    parser.consumed(0);
-                }
-                else
-                {
-                    member = lookaheadMember(depth);
-                }
-                break;
-            case VALUE_STRING:
-                if (deferred)
-                {
-                    parser.consumed(0);
-                }
-                else
-                {
-                    lookaheadString(member);
-                }
-                member = null;
-                break;
-            case VALUE_TRUE:
-            case VALUE_FALSE:
-                lookaheadFlag(member, event == JsonEvent.VALUE_TRUE);
-                member = null;
-                break;
-            default:
-                member = null;
-                break;
-            }
-        }
-
-        if (decoder != decodeIgnore)
-        {
-            parser.rewind();
-
-            if (decoder == decodeLookahead && (windowLimit == maximum || windowLast))
-            {
-                decoder = rootStart;
-            }
-        }
-
-        return position();
-    }
-
-    private String lookaheadMember(
-        int depth)
-    {
-        final CharSequence key = parser.getStringView();
-        final int level = depth + rootShift;
-        String member = null;
-
-        if (level == 1)
-        {
-            kind = kindOf(key);
-
-            if (kind == null)
-            {
-                parser.skipValue();
-            }
-        }
-        else if (level == 2)
-        {
-            member = lookaheadEventMember(key);
-        }
-        else if (level == 3 && matches(key, "state") && kind != A2aEventKind.ARTIFACT_UPDATE)
-        {
-            member = "state";
-        }
-        else if (level == 3 && matches(key, "artifactId") && kind == A2aEventKind.ARTIFACT_UPDATE)
-        {
-            member = "entityId";
-        }
-        else if (level == 3 && matches(key, "message") && kind != A2aEventKind.ARTIFACT_UPDATE)
-        {
-            member = null;
-        }
-        else if (level == 4 && matches(key, "messageId"))
-        {
-            member = "entityId";
-        }
-        else
-        {
-            parser.skipValue();
-        }
-
-        return member;
-    }
-
-    private String lookaheadEventMember(
-        CharSequence key)
-    {
-        String member = null;
-
-        if (matches(key, "taskId") || matches(key, "contextId") || matches(key, "id") ||
-            matches(key, "append") || matches(key, "lastChunk"))
-        {
-            member = key.toString();
-        }
-        else if (matches(key, "messageId") && kind == A2aEventKind.MESSAGE)
-        {
-            member = "entityId";
-        }
-        else if (!(matches(key, "status") && kind != A2aEventKind.MESSAGE ||
-            matches(key, "artifact") && kind == A2aEventKind.ARTIFACT_UPDATE))
-        {
-            parser.skipValue();
-        }
-
-        return member;
-    }
-
-    private void lookaheadString(
-        String member)
-    {
-        if (member != null)
-        {
-            switch (member)
-            {
-            case "taskId":
-                taskId = parser.getString();
-                break;
-            case "id":
-                taskId = kind == A2aEventKind.TASK ? parser.getString() : taskId;
-                break;
-            case "contextId":
-                contextId = parser.getString();
-                break;
-            case "state":
-                state = stateOf(parser.getString());
-                break;
-            case "entityId":
-                headEntityId = parser.getString();
-                break;
-            default:
-                break;
-            }
-        }
-    }
-
-    private void lookaheadFlag(
-        String member,
-        boolean value)
-    {
-        if ("append".equals(member))
-        {
-            append = value;
-        }
-        else if ("lastChunk".equals(member))
-        {
-            lastChunk = value;
-        }
     }
 
     private boolean lookaheadEntityId(
@@ -735,14 +596,6 @@ public final class A2aEventDecoder
                 {
                     decoder = decodeArtifactValue;
                 }
-                else if (matches(key, "append"))
-                {
-                    decoder = decodeAppendValue;
-                }
-                else if (matches(key, "lastChunk"))
-                {
-                    decoder = decodeLastChunkValue;
-                }
                 else
                 {
                     parser.skipValue();
@@ -756,40 +609,6 @@ public final class A2aEventDecoder
                 fail(ERROR_MALFORMED);
                 break;
             }
-        }
-
-        return position();
-    }
-
-    private int decodeAppendValue()
-    {
-        if (parser.hasNextEvent())
-        {
-            final JsonEvent event = parser.nextEvent();
-
-            if (event == JsonEvent.VALUE_TRUE || event == JsonEvent.VALUE_FALSE)
-            {
-                append = event == JsonEvent.VALUE_TRUE;
-            }
-
-            decoder = decodeArtifactUpdate;
-        }
-
-        return position();
-    }
-
-    private int decodeLastChunkValue()
-    {
-        if (parser.hasNextEvent())
-        {
-            final JsonEvent event = parser.nextEvent();
-
-            if (event == JsonEvent.VALUE_TRUE || event == JsonEvent.VALUE_FALSE)
-            {
-                lastChunk = event == JsonEvent.VALUE_TRUE;
-            }
-
-            decoder = decodeArtifactUpdate;
         }
 
         return position();
@@ -1117,7 +936,7 @@ public final class A2aEventDecoder
                 dataFrom = position();
                 dataLength = 0;
                 dataDepth = 0;
-                decoder = decodeData;
+                decoder = decodeDataSeparator;
             }
             else if (matches(key, "url"))
             {
@@ -1242,6 +1061,19 @@ public final class A2aEventDecoder
             {
                 decoder = decodePart;
             }
+        }
+
+        return position();
+    }
+
+    private int decodeDataSeparator()
+    {
+        final int start = valueStart(slotBuffer, dataFrom, windowLimit);
+
+        if (start < windowLimit)
+        {
+            dataFrom = start;
+            decoder = decodeData;
         }
 
         return position();
@@ -1421,52 +1253,46 @@ public final class A2aEventDecoder
         sink.failed(CODE_INVALID_MESSAGE, message);
     }
 
+    private static int valueStart(
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        int index = skipWhitespace(buffer, offset, limit);
+
+        if (index < limit && buffer.getByte(index) == ':')
+        {
+            index = skipWhitespace(buffer, index + 1, limit);
+        }
+
+        return index;
+    }
+
+    private static int skipWhitespace(
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        int index = offset;
+
+        while (index < limit && isWhitespace(buffer.getByte(index)))
+        {
+            index++;
+        }
+
+        return index;
+    }
+
+    private static boolean isWhitespace(
+        byte value)
+    {
+        return value == ' ' || value == '\t' || value == '\r' || value == '\n';
+    }
+
     private static boolean matches(
         CharSequence value,
         String name)
     {
         return name.contentEquals(value);
-    }
-
-    private static A2aEventKind kindOf(
-        CharSequence key)
-    {
-        A2aEventKind kind = null;
-
-        if (matches(key, "task"))
-        {
-            kind = A2aEventKind.TASK;
-        }
-        else if (matches(key, "message"))
-        {
-            kind = A2aEventKind.MESSAGE;
-        }
-        else if (matches(key, "statusUpdate"))
-        {
-            kind = A2aEventKind.STATUS_UPDATE;
-        }
-        else if (matches(key, "artifactUpdate"))
-        {
-            kind = A2aEventKind.ARTIFACT_UPDATE;
-        }
-
-        return kind;
-    }
-
-    private static A2aTaskState stateOf(
-        String value)
-    {
-        A2aTaskState state;
-
-        try
-        {
-            state = A2aTaskState.valueOf(value.startsWith(STATE_PREFIX) ? value.substring(STATE_PREFIX.length()) : value);
-        }
-        catch (IllegalArgumentException ex)
-        {
-            state = A2aTaskState.UNSPECIFIED;
-        }
-
-        return state;
     }
 }

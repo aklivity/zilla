@@ -57,6 +57,7 @@ import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.A2aAbortExFW;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.A2aBeginExFW;
+import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.A2aDataExFW;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.A2aEndExFW;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.A2aOutcome;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.A2aResetExFW;
@@ -116,6 +117,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
     private final AguiBeginExFW aguiBeginExRO = new AguiBeginExFW();
     private final A2aResetExFW a2aResetExRO = new A2aResetExFW();
     private final A2aEndExFW a2aEndExRO = new A2aEndExFW();
+    private final A2aDataExFW a2aDataExRO = new A2aDataExFW();
     private final A2aAbortExFW a2aAbortExRO = new A2aAbortExFW();
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
@@ -1468,7 +1470,12 @@ public final class AguiA2aProxyFactory implements BindingHandler
 
             if (payload != null)
             {
-                proxy.eventDecoder.decode(data.flags(), payload.buffer(), payload.offset(), payload.limit());
+                final OctetsFW extension = data.extension();
+                final A2aDataExFW dataEx = extension.sizeof() > 0
+                    ? a2aDataExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit())
+                    : null;
+
+                proxy.eventDecoder.decode(data.flags(), dataEx, payload.buffer(), payload.offset(), payload.limit());
             }
 
             proxy.flushReply(traceId);
