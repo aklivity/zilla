@@ -18,7 +18,9 @@ package io.aklivity.zilla.runtime.binding.proxy.internal.config;
 import static java.util.function.UnaryOperator.identity;
 import static java.util.stream.Collectors.toList;
 
+import java.net.InetAddress;
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.config.binding.proxy.ProxyConditionConfig;
@@ -51,8 +53,9 @@ public final class ProxyRouteConfig
     }
 
     boolean matches(
-        ProxyBeginExFW beginEx)
+        ProxyBeginExFW beginEx,
+        Function<String, InetAddress[]> resolveHost)
     {
-        return when.isEmpty() || when.stream().anyMatch(c -> c.matches(beginEx));
+        return when.isEmpty() || when.stream().anyMatch(c -> c.matches(beginEx, resolveHost));
     }
 }

@@ -33,14 +33,13 @@ import static java.lang.Integer.parseInt;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.agrona.LangUtil;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.MutableInteger;
 
@@ -62,246 +61,261 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public final class ProxyConditionMatcher
 {
-    private final Predicate<ProxyAddressFW> matchAddress;
+    private final AddressMatcher matchAddress;
     private final Predicate<Array32FW<ProxyInfoFW>> matchInfos;
 
     public ProxyConditionMatcher(
         ProxyConditionConfig condition)
     {
-        Predicate<ProxyAddressFW> matchAddress = null;
+        AddressMatcher matchAddress = null;
 
         if (condition.family != null)
         {
-            Predicate<ProxyAddressFW> matchFamily = matchFamily(condition.family);
+            AddressMatcher matchFamily = matchFamily(condition.family);
             matchAddress = matchAddress != null ? matchAddress.and(matchFamily) : matchFamily;
         }
 
         if (condition.source != null)
         {
-            Predicate<ProxyAddressFW> matchSource = matchSource(condition.source);
+            AddressMatcher matchSource = matchSource(condition.source);
             matchAddress = matchAddress != null ? matchAddress.and(matchSource) : matchSource;
         }
 
         if (condition.destination != null)
         {
-            Predicate<ProxyAddressFW> matchDestination = matchDestination(condition.destination);
+            AddressMatcher matchDestination = matchDestination(condition.destination);
             matchAddress = matchAddress != null ? matchAddress.and(matchDestination) : matchDestination;
         }
 
         if (condition.transport != null)
         {
-            Predicate<ProxyAddressFW> matchTransport = matchTransport(condition.transport);
+            AddressMatcher matchTransport = matchTransport(condition.transport);
             matchAddress = matchAddress != null ? matchAddress.and(matchTransport) : matchTransport;
         }
 
-        this.matchAddress = matchAddress != null ? matchAddress : a -> true;
+        this.matchAddress = matchAddress != null ? matchAddress : (a, r) -> true;
         this.matchInfos = condition.info != null ? matchInfos(condition.info) : i -> true;
     }
 
     public boolean matches(
-        ProxyBeginExFW beginEx)
+        ProxyBeginExFW beginEx,
+        Function<String, InetAddress[]> resolveHost)
     {
-        return matchAddress.test(beginEx.address()) && matchInfos.test(beginEx.infos());
+        return matchAddress.test(beginEx.address(), resolveHost) && matchInfos.test(beginEx.infos());
     }
 
-    private static Predicate<ProxyAddressFW> matchFamily(
+    @FunctionalInterface
+    private interface AddressMatcher
+    {
+        boolean test(
+            ProxyAddressFW address,
+            Function<String, InetAddress[]> resolveHost);
+
+        default AddressMatcher and(
+            AddressMatcher other)
+        {
+            return (a, r) -> test(a, r) && other.test(a, r);
+        }
+    }
+
+    private static AddressMatcher matchFamily(
         String family)
     {
         ProxyAddressFamily expected = ProxyAddressFamily.valueOf(family.toUpperCase());
-        return a -> a.kind() == expected;
+        return (a, r) -> a.kind() == expected;
     }
 
-    private static Predicate<ProxyAddressFW> matchSource(
+    private static AddressMatcher matchSource(
         ProxyAddressConfig address)
     {
-        Map<ProxyAddressFamily, Predicate<ProxyAddressFW>> matchers = new EnumMap<>(ProxyAddressFamily.class);
+        Map<ProxyAddressFamily, AddressMatcher> matchers = new EnumMap<>(ProxyAddressFamily.class);
         matchers.put(INET, matchInetSource(address));
         matchers.put(INET4, matchInet4Source(address));
         matchers.put(INET6, matchInet6Source(address));
         matchers.put(UNIX, matchUnixSource(address));
-        Predicate<ProxyAddressFW> reject = a -> false;
-        return a -> matchers.getOrDefault(a.kind(), reject).test(a);
+        AddressMatcher reject = (a, r) -> false;
+        return (a, r) -> matchers.getOrDefault(a.kind(), reject).test(a, r);
     }
 
-    private static Predicate<ProxyAddressFW> matchInetSource(
+    private static AddressMatcher matchInetSource(
         ProxyAddressConfig address)
     {
-        Predicate<ProxyAddressFW> matchAddress = null;
+        AddressMatcher matchAddress = null;
 
         if (address.host != null)
         {
             final String regex = address.host.replaceAll("\\*", ".*").replaceAll("\\.", "\\.");
             final Matcher matcher = Pattern.compile(regex).matcher("");
-            Predicate<ProxyAddressFW> matchHost = a -> matcher.reset(a.inet().source().asString()).matches();
+            AddressMatcher matchHost = (a, r) -> matcher.reset(a.inet().source().asString()).matches();
             matchAddress = matchAddress != null ? matchAddress.and(matchHost) : matchHost;
         }
 
         if (address.port != null)
         {
-            Predicate<ProxyAddressFW> matchPort = a -> a.inet().sourcePort() == address.port;
+            AddressMatcher matchPort = (a, r) -> a.inet().sourcePort() == address.port;
             matchAddress = matchAddress != null ? matchAddress.and(matchPort) : matchPort;
         }
 
-        return matchAddress != null ? matchAddress : a -> true;
+        return matchAddress != null ? matchAddress : (a, r) -> true;
     }
 
-    private static Predicate<ProxyAddressFW> matchInet4Source(
+    private static AddressMatcher matchInet4Source(
         ProxyAddressConfig address)
     {
-        Predicate<ProxyAddressFW> matchAddress = null;
+        AddressMatcher matchAddress = null;
 
         if (address.host != null)
         {
             final String[] cidr = address.host.split("/");
-            final byte[] prefix = resolveHost(cidr[0]).getAddress();
             final int length = cidr.length == 2 ? parseInt(cidr[1]) : 32;
-            Predicate<ProxyAddressFW> matchHost = a -> matchesAddressPrefix(a.inet4().source(), prefix, length);
+            AddressMatcher matchHost = (a, r) ->
+                matchesAddressPrefix(a.inet4().source(), r.apply(cidr[0])[0].getAddress(), length);
             matchAddress = matchAddress != null ? matchAddress.and(matchHost) : matchHost;
         }
 
         if (address.port != null)
         {
             final int port = address.port;
-            Predicate<ProxyAddressFW> matchPort = a -> a.inet4().sourcePort() == port;
+            AddressMatcher matchPort = (a, r) -> a.inet4().sourcePort() == port;
             matchAddress = matchAddress != null ? matchAddress.and(matchPort) : matchPort;
         }
 
-        return matchAddress != null ? matchAddress : a -> true;
+        return matchAddress != null ? matchAddress : (a, r) -> true;
     }
 
-    private static Predicate<ProxyAddressFW> matchInet6Source(
+    private static AddressMatcher matchInet6Source(
         ProxyAddressConfig address)
     {
-        Predicate<ProxyAddressFW> matchAddress = null;
+        AddressMatcher matchAddress = null;
 
         if (address.host != null)
         {
             final String[] cidr = address.host.split("/");
-            final byte[] prefix = resolveHost(cidr[0]).getAddress();
             final int length = cidr.length == 2 ? parseInt(cidr[1]) : 32;
-            Predicate<ProxyAddressFW> matchHost = a -> matchesAddressPrefix(a.inet6().source(), prefix, length);
+            AddressMatcher matchHost = (a, r) ->
+                matchesAddressPrefix(a.inet6().source(), r.apply(cidr[0])[0].getAddress(), length);
             matchAddress = matchAddress != null ? matchAddress.and(matchHost) : matchHost;
         }
 
         if (address.port != null)
         {
-            Predicate<ProxyAddressFW> matchPort = a -> a.inet6().sourcePort() == address.port;
+            AddressMatcher matchPort = (a, r) -> a.inet6().sourcePort() == address.port;
             matchAddress = matchAddress != null ? matchAddress.and(matchPort) : matchPort;
         }
 
-        return matchAddress != null ? matchAddress : a -> true;
+        return matchAddress != null ? matchAddress : (a, r) -> true;
     }
 
-    private static Predicate<ProxyAddressFW> matchUnixSource(
+    private static AddressMatcher matchUnixSource(
         ProxyAddressConfig address)
     {
-        Predicate<ProxyAddressFW> matchAddress = null;
+        AddressMatcher matchAddress = null;
 
         if (address.host != null)
         {
             final byte[] prefix = address.host.getBytes(UTF_8);
             final int length = prefix.length;
-            Predicate<ProxyAddressFW> matchHost = a -> matchesAddressPrefix(a.unix().source(), prefix, length);
+            AddressMatcher matchHost = (a, r) -> matchesAddressPrefix(a.unix().source(), prefix, length);
             matchAddress = matchAddress != null ? matchAddress.and(matchHost) : matchHost;
         }
 
-        return matchAddress != null ? matchAddress : a -> true;
+        return matchAddress != null ? matchAddress : (a, r) -> true;
     }
 
-    private static Predicate<ProxyAddressFW> matchDestination(
+    private static AddressMatcher matchDestination(
         ProxyAddressConfig address)
     {
-        Map<ProxyAddressFamily, Predicate<ProxyAddressFW>> matchers = new EnumMap<>(ProxyAddressFamily.class);
+        Map<ProxyAddressFamily, AddressMatcher> matchers = new EnumMap<>(ProxyAddressFamily.class);
         matchers.put(INET, matchInetDestination(address));
         matchers.put(INET4, matchInet4Destination(address));
         matchers.put(INET6, matchInet6Destination(address));
         matchers.put(UNIX, matchUnixDestination(address));
-        Predicate<ProxyAddressFW> reject = a -> false;
-        return a -> matchers.getOrDefault(a.kind(), reject).test(a);
+        AddressMatcher reject = (a, r) -> false;
+        return (a, r) -> matchers.getOrDefault(a.kind(), reject).test(a, r);
     }
 
-    private static Predicate<ProxyAddressFW> matchInetDestination(
+    private static AddressMatcher matchInetDestination(
         ProxyAddressConfig address)
     {
-        Predicate<ProxyAddressFW> matchAddress = null;
+        AddressMatcher matchAddress = null;
 
         if (address.host != null)
         {
             final String regex = address.host.replaceAll("\\*", ".*").replaceAll("\\.", "\\.");
             final Matcher matcher = Pattern.compile(regex).matcher("");
-            Predicate<ProxyAddressFW> matchHost = a -> matcher.reset(a.inet().destination().asString()).matches();
+            AddressMatcher matchHost = (a, r) -> matcher.reset(a.inet().destination().asString()).matches();
             matchAddress = matchAddress != null ? matchAddress.and(matchHost) : matchHost;
         }
 
         if (address.port != null)
         {
-            Predicate<ProxyAddressFW> matchPort = a -> a.inet().destinationPort() == address.port;
+            AddressMatcher matchPort = (a, r) -> a.inet().destinationPort() == address.port;
             matchAddress = matchAddress != null ? matchAddress.and(matchPort) : matchPort;
         }
 
-        return matchAddress != null ? matchAddress : a -> true;
+        return matchAddress != null ? matchAddress : (a, r) -> true;
     }
 
-    private static Predicate<ProxyAddressFW> matchInet4Destination(
+    private static AddressMatcher matchInet4Destination(
         ProxyAddressConfig address)
     {
-        Predicate<ProxyAddressFW> matchAddress = null;
+        AddressMatcher matchAddress = null;
 
         if (address.host != null)
         {
             final String[] cidr = address.host.split("/");
-            final byte[] prefix = resolveHost(cidr[0]).getAddress();
             final int length = cidr.length == 2 ? parseInt(cidr[1]) : 32;
-            Predicate<ProxyAddressFW> matchHost = a -> matchesAddressPrefix(a.inet4().destination(), prefix, length);
+            AddressMatcher matchHost = (a, r) ->
+                matchesAddressPrefix(a.inet4().destination(), r.apply(cidr[0])[0].getAddress(), length);
             matchAddress = matchAddress != null ? matchAddress.and(matchHost) : matchHost;
         }
 
         if (address.port != null)
         {
-            Predicate<ProxyAddressFW> matchPort = a -> a.inet4().destinationPort() == address.port;
+            AddressMatcher matchPort = (a, r) -> a.inet4().destinationPort() == address.port;
             matchAddress = matchAddress != null ? matchAddress.and(matchPort) : matchPort;
         }
 
-        return matchAddress != null ? matchAddress : a -> true;
+        return matchAddress != null ? matchAddress : (a, r) -> true;
     }
 
-    private static Predicate<ProxyAddressFW> matchInet6Destination(
+    private static AddressMatcher matchInet6Destination(
         ProxyAddressConfig address)
     {
-        Predicate<ProxyAddressFW> matchAddress = null;
+        AddressMatcher matchAddress = null;
 
         if (address.host != null)
         {
             final String[] cidr = address.host.split("/");
-            final byte[] prefix = resolveHost(cidr[0]).getAddress();
             final int length = cidr.length == 2 ? parseInt(cidr[1]) : 32;
-            Predicate<ProxyAddressFW> matchHost = a -> matchesAddressPrefix(a.inet6().destination(), prefix, length);
+            AddressMatcher matchHost = (a, r) ->
+                matchesAddressPrefix(a.inet6().destination(), r.apply(cidr[0])[0].getAddress(), length);
             matchAddress = matchAddress != null ? matchAddress.and(matchHost) : matchHost;
         }
 
         if (address.port != null)
         {
-            Predicate<ProxyAddressFW> matchPort = a -> a.inet6().destinationPort() == address.port;
+            AddressMatcher matchPort = (a, r) -> a.inet6().destinationPort() == address.port;
             matchAddress = matchAddress != null ? matchAddress.and(matchPort) : matchPort;
         }
 
-        return matchAddress != null ? matchAddress : a -> true;
+        return matchAddress != null ? matchAddress : (a, r) -> true;
     }
 
-    private static Predicate<ProxyAddressFW> matchUnixDestination(
+    private static AddressMatcher matchUnixDestination(
         ProxyAddressConfig address)
     {
-        Predicate<ProxyAddressFW> matchAddress = null;
+        AddressMatcher matchAddress = null;
 
         if (address.host != null)
         {
             final byte[] prefix = address.host.getBytes(UTF_8);
             final int length = prefix.length;
-            Predicate<ProxyAddressFW> matchHost = a -> matchesAddressPrefix(a.unix().destination(), prefix, length);
+            AddressMatcher matchHost = (a, r) -> matchesAddressPrefix(a.unix().destination(), prefix, length);
             matchAddress = matchAddress != null ? matchAddress.and(matchHost) : matchHost;
         }
 
-        return matchAddress != null ? matchAddress : a -> true;
+        return matchAddress != null ? matchAddress : (a, r) -> true;
     }
 
     private static boolean matchesAddressPrefix(
@@ -324,41 +338,41 @@ public final class ProxyConditionMatcher
         return match;
     }
 
-    private static Predicate<ProxyAddressFW> matchTransport(
+    private static AddressMatcher matchTransport(
         String transport)
     {
         ProxyAddressProtocol protocol = ProxyAddressProtocol.valueOf(transport.toUpperCase());
-        Map<ProxyAddressFamily, Predicate<ProxyAddressFW>> matchers = new EnumMap<>(ProxyAddressFamily.class);
+        Map<ProxyAddressFamily, AddressMatcher> matchers = new EnumMap<>(ProxyAddressFamily.class);
         matchers.put(INET, matchInetTransport(protocol));
         matchers.put(INET4, matchInet4Transport(protocol));
         matchers.put(INET6, matchInet6Transport(protocol));
         matchers.put(UNIX, matchUnixTransport(protocol));
-        Predicate<ProxyAddressFW> reject = a -> false;
-        return a -> matchers.getOrDefault(a.kind(), reject).test(a);
+        AddressMatcher reject = (a, r) -> false;
+        return (a, r) -> matchers.getOrDefault(a.kind(), reject).test(a, r);
     }
 
-    private static Predicate<ProxyAddressFW> matchInetTransport(
+    private static AddressMatcher matchInetTransport(
         ProxyAddressProtocol protocol)
     {
-        return a -> a.inet().protocol().get() == protocol;
+        return (a, r) -> a.inet().protocol().get() == protocol;
     }
 
-    private static Predicate<ProxyAddressFW> matchInet4Transport(
+    private static AddressMatcher matchInet4Transport(
         ProxyAddressProtocol protocol)
     {
-        return a -> a.inet4().protocol().get() == protocol;
+        return (a, r) -> a.inet4().protocol().get() == protocol;
     }
 
-    private static Predicate<ProxyAddressFW> matchInet6Transport(
+    private static AddressMatcher matchInet6Transport(
         ProxyAddressProtocol protocol)
     {
-        return a -> a.inet6().protocol().get() == protocol;
+        return (a, r) -> a.inet6().protocol().get() == protocol;
     }
 
-    private static Predicate<ProxyAddressFW> matchUnixTransport(
+    private static AddressMatcher matchUnixTransport(
         ProxyAddressProtocol protocol)
     {
-        return a -> a.unix().protocol().get() == protocol;
+        return (a, r) -> a.unix().protocol().get() == protocol;
     }
 
     private static Predicate<Array32FW<ProxyInfoFW>> matchInfos(
@@ -439,22 +453,5 @@ public final class ProxyConditionMatcher
     {
         ProxyInfoType kind = info.kind();
         return kind == SECURE ? info.secure().kind().value() : kind.value();
-    }
-
-    private static InetAddress resolveHost(
-        String host)
-    {
-        InetAddress address = null;
-
-        try
-        {
-            address = InetAddress.getByName(host);
-        }
-        catch (UnknownHostException ex)
-        {
-            LangUtil.rethrowUnchecked(ex);
-        }
-
-        return address;
     }
 }
