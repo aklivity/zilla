@@ -58,6 +58,27 @@ public final class AguiA2aAgentCard
         return negotiated;
     }
 
+    public String a2ui(
+        Set<String> versions)
+    {
+        String selected = null;
+
+        for (int i = 0; selected == null && i < AguiA2aExtension.A2UI_IMPLEMENTED.size(); i++)
+        {
+            final String uri = AguiA2aExtension.A2UI_IMPLEMENTED.get(i);
+
+            if (versions.contains(uri.substring(uri.lastIndexOf('/') + 1)))
+            {
+                for (AguiA2aExtension declared : extensions)
+                {
+                    selected = selected == null && uri.equals(declared.uri()) ? uri : selected;
+                }
+            }
+        }
+
+        return selected;
+    }
+
     public boolean refused()
     {
         boolean refused = false;

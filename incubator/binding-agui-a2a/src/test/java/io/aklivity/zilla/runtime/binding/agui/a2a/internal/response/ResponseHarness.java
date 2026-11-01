@@ -77,9 +77,18 @@ final class ResponseHarness implements AguiFrameSink, AguiResponseHost
         int maximum,
         AguiA2aExtension extension)
     {
+        this(maximum, extension, false);
+    }
+
+    ResponseHarness(
+        int maximum,
+        AguiA2aExtension extension,
+        boolean a2ui)
+    {
         this.mapper = new AguiResponseMapper(this, this, AGUI_TYPE_ID, maximum);
         this.decoder = new A2aEventDecoder(mapper, maximum);
         this.decoder.activate(extension);
+        this.decoder.activateA2ui(a2ui);
     }
 
     void event(

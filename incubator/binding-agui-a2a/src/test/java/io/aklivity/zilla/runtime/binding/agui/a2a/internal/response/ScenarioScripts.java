@@ -50,6 +50,7 @@ final class ScenarioScripts
     final List<A2aExSpec> exs = new ArrayList<>();
     final List<ResponseHarness.Frame> expected = new ArrayList<>();
     AguiA2aExtension extension;
+    boolean a2ui;
     boolean error;
     boolean abort;
     String abortReason;
@@ -111,6 +112,7 @@ final class ScenarioScripts
                 Set.of(features.group(1).replace("\"", "").split(",")));
         }
 
+        a2ui = stream.contains("a2ui.org/a2a-extension/a2ui/");
         abort = stream.contains("zilla:abort.ext");
         error = stream.contains("outcome(\"ERROR\")");
 
