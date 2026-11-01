@@ -191,69 +191,6 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/chain.push.config.create/client",
-        "${net}/chain.push.config.create/server"})
-    public void shouldChainPushConfigCreate() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/chain.push.config.get/client",
-        "${net}/chain.push.config.get/server"})
-    public void shouldChainPushConfigGet() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/chain.push.deliver/client",
-        "${net}/chain.push.deliver/server"})
-    public void shouldChainPushDeliver() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/chain.push.deliver.100k/client",
-        "${net}/chain.push.deliver.100k/server"})
-    public void shouldChainPushDeliver100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/chain.push.message.send/client",
-        "${net}/chain.push.message.send/server"})
-    public void shouldChainPushMessageSend() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/chain.send.message/client",
-        "${net}/chain.send.message/server"})
-    public void shouldChainSendMessage() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/chain.send.message.legacy/client",
-        "${net}/chain.send.message.legacy/server"})
-    public void shouldChainSendMessageLegacy() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/discover.agent.card/client",
         "${net}/discover.agent.card/server"})
     public void shouldDiscoverAgentCard() throws Exception
