@@ -43,6 +43,7 @@ write zilla:data.ext ${a2a:dataEx()
                               .taskId("t-1")
                               .contextId("c-1")
                               .state("REJECTED")
+                              .messageId("m-2")
                               .build()
                           .build()}
 write '{"task":{"id":"t-1","contextId":"c-1","status":{"state":"TASK_STATE_REJECTED","message":{"messageId":"m-2","role":"ROLE_AGENT","parts":[{"text":"Cannot answer weather questions"}]}}}}'

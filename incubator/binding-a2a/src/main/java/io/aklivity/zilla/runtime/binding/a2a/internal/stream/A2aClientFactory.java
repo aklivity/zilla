@@ -136,6 +136,9 @@ public final class A2aClientFactory implements A2aStreamFactory
     private static final String JSON_NULL = "null";
     private static final int ERROR_CODE_FORBIDDEN = 403;
     private static final String MEMBER_MESSAGE = "message";
+    private static final String MEMBER_MESSAGE_ID = "messageId";
+    private static final String MEMBER_TASK_ID = "taskId";
+    private static final String MEMBER_CONTEXT_ID = "contextId";
 
     private static final int ERROR_CODE_NOT_FOUND = 404;
     private static final int ERROR_CODE_BAD_GATEWAY = 502;
@@ -445,6 +448,7 @@ public final class A2aClientFactory implements A2aStreamFactory
                         MEMBER_MESSAGE.equals(parser.getString()))
                     {
                         then = decodeJsonRpcResultStream;
+                        lookaheadMessage(http, parser);
                     }
                 }
 
@@ -473,6 +477,72 @@ public final class A2aClientFactory implements A2aStreamFactory
         }
 
         return progress;
+    }
+
+    private void lookaheadMessage(
+        HttpStream http,
+        JsonParserEx parser)
+    {
+        http.decodedMessageId = null;
+        http.decodedMessageTaskId = null;
+        http.decodedMessageContextId = null;
+
+        if (parser.hasNext() && parser.next() == JsonParser.Event.START_OBJECT)
+        {
+            int depth = 1;
+            String member = null;
+
+            while (depth > 0 && parser.hasNext())
+            {
+                final JsonParser.Event event = parser.next();
+
+                switch (event)
+                {
+                case START_OBJECT:
+                case START_ARRAY:
+                    depth++;
+                    break;
+                case END_OBJECT:
+                case END_ARRAY:
+                    depth--;
+                    break;
+                case KEY_NAME:
+                    member = depth == 1 ? parser.getString() : null;
+                    break;
+                case VALUE_STRING:
+                    if (member != null && depth == 1 && !parser.deferredBytes())
+                    {
+                        lookaheadMember(http, member, parser.getString());
+                    }
+                    member = null;
+                    break;
+                default:
+                    member = null;
+                    break;
+                }
+            }
+        }
+    }
+
+    private static void lookaheadMember(
+        HttpStream http,
+        String member,
+        String value)
+    {
+        switch (member)
+        {
+        case MEMBER_MESSAGE_ID:
+            http.decodedMessageId = value;
+            break;
+        case MEMBER_TASK_ID:
+            http.decodedMessageTaskId = value;
+            break;
+        case MEMBER_CONTEXT_ID:
+            http.decodedMessageContextId = value;
+            break;
+        default:
+            break;
+        }
     }
 
     private int decodeJsonRpcResultStream(
@@ -2379,6 +2449,9 @@ public final class A2aClientFactory implements A2aStreamFactory
         protected int decodedSkipDepth;
         protected HttpResponseDecoder decodedSkipThen;
         protected HttpResponseDecoder decodedMessageThen = decodeIgnore;
+        protected String decodedMessageId;
+        protected String decodedMessageTaskId;
+        protected String decodedMessageContextId;
 
         HttpStream(
             long originId,
@@ -3461,7 +3534,8 @@ public final class A2aClientFactory implements A2aStreamFactory
         final A2aDataExFW dataEx = http.resultDelivered == 0
             ? a2aDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(a2aTypeId)
-                .message(m -> m.contextId((String) null))
+                .message(m -> m.taskId(http.decodedMessageTaskId).contextId(http.decodedMessageContextId)
+                    .messageId(http.decodedMessageId))
                 .build()
             : null;
 
@@ -3551,6 +3625,7 @@ public final class A2aClientFactory implements A2aStreamFactory
         final A2aDataExFW.Builder builder = a2aDataExRW.wrap(extBuffer, 0, extBuffer.capacity()).typeId(a2aTypeId);
         final String taskId = inspector.taskId;
         final String contextId = inspector.contextId;
+        final String messageId = inspector.messageId;
         final A2aTaskState taskState = taskStateOf(inspector.state);
 
         A2aDataExFW dataEx = null;
@@ -3558,22 +3633,25 @@ public final class A2aClientFactory implements A2aStreamFactory
         switch (inspector.kind)
         {
         case A2aDataExFW.KIND_MESSAGE:
-            dataEx = builder.message(m -> m.contextId((String) null)).build();
+            dataEx = builder.message(m -> m.taskId(taskId).contextId(contextId).messageId(messageId)).build();
             break;
         case A2aDataExFW.KIND_TASK:
             dataEx = taskId != null
-                ? builder.task(t -> t.taskId(taskId).contextId(contextId).state(s -> s.set(taskState))).build()
+                ? builder.task(t -> t.taskId(taskId).contextId(contextId).state(s -> s.set(taskState))
+                    .messageId(messageId)).build()
                 : null;
             break;
         case A2aDataExFW.KIND_STATUS_UPDATE:
             dataEx = taskId != null
-                ? builder.statusUpdate(t -> t.taskId(taskId).contextId(contextId).state(s -> s.set(taskState))).build()
+                ? builder.statusUpdate(t -> t.taskId(taskId).contextId(contextId).state(s -> s.set(taskState))
+                    .messageId(messageId)).build()
                 : null;
             break;
         case A2aDataExFW.KIND_ARTIFACT_UPDATE:
             final String artifactId = inspector.artifactId;
             dataEx = taskId != null
-                ? builder.artifactUpdate(t -> t.taskId(taskId).contextId(contextId).artifactId(artifactId)).build()
+                ? builder.artifactUpdate(t -> t.taskId(taskId).contextId(contextId).artifactId(artifactId)
+                    .append(a -> a.set(inspector.append)).lastChunk(l -> l.set(inspector.lastChunk))).build()
                 : null;
             break;
         default:
