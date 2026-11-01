@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.function.LongFunction;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.runtime.binding.agui.a2a.internal.state.AguiA2aOwnerState;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class AguiA2aBindingConfig
@@ -27,13 +28,16 @@ public final class AguiA2aBindingConfig
     public final long id;
     public final String name;
     public final List<AguiA2aRouteConfig> routes;
+    public final AguiA2aOwnerState owners;
 
     public AguiA2aBindingConfig(
         BindingConfig binding,
-        LongFunction<GuardHandler> supplyGuard)
+        LongFunction<GuardHandler> supplyGuard,
+        AguiA2aOwnerState owners)
     {
         this.id = binding.id;
         this.name = binding.name;
+        this.owners = owners;
         this.routes = binding.routes.stream().map(r -> new AguiA2aRouteConfig(r, supplyGuard)).collect(toList());
     }
 
