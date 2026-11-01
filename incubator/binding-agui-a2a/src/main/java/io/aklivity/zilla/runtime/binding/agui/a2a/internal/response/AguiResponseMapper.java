@@ -44,6 +44,8 @@ import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.AguiOutc
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.AguiRole;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.AguiStateType;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.AguiStepType;
+import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.AguiSubagentOutcome;
+import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.AguiSubagentType;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -148,6 +150,7 @@ public final class AguiResponseMapper implements A2aEventSink
     private TagContent tagContent = ignoreTag;
     private A2aPartTag tag;
     private String tagCallId;
+    private String metaSubagentRunId;
     private Runnable closing = noop;
     private Runnable leading = noop;
     private A2aEventKind kind;
@@ -1061,8 +1064,12 @@ public final class AguiResponseMapper implements A2aEventSink
         case A2aPartTag.EVENT_STEP:
             next = stepTag;
             break;
+        case A2aPartTag.EVENT_SUBAGENT:
+            next = "finished".equals(tag.type) ? dataTagNew : stepTag;
+            break;
         case A2aPartTag.EVENT_REASONING:
         case A2aPartTag.EVENT_REASONING_ENCRYPTED:
+        case A2aPartTag.EVENT_TEXT:
             next = textTagNew;
             break;
         default:
@@ -1089,8 +1096,28 @@ public final class AguiResponseMapper implements A2aEventSink
     {
         final AguiDataExFW.Builder builder = dataExRW.wrap(exBuffer, 0, exBuffer.capacity()).typeId(aguiTypeId);
 
+        metaSubagentRunId = tag.subagentRunId;
+
         switch (tag.event)
         {
+        case A2aPartTag.EVENT_SUBAGENT:
+            builder.subagent(a -> a.meta(this::meta)
+                .type(t -> t.set(subagentType(tag.type)))
+                .subagentRunId(tag.subagentRunId)
+                .name(tag.name)
+                .description(tag.description)
+                .parentSubagentRunId(tag.parentSubagentRunId)
+                .parentToolCallId(tag.parentToolCallId)
+                .parentMessageId(tag.parentMessageId)
+                .code(tag.code)
+                .message(tag.message)
+                .outcome(o -> o.set(subagentOutcome(tag.outcome))));
+            break;
+        case A2aPartTag.EVENT_TEXT:
+            builder.text(t -> t.meta(this::meta)
+                .messageId(unique(tag.messageId != null ? tag.messageId : messageId))
+                .role(r -> r.set(AguiRole.ASSISTANT)));
+            break;
         case A2aPartTag.EVENT_STATE:
             builder.state(s -> s.meta(this::meta).type(t -> t.set(stateType(tag.type))));
             break;
@@ -1136,7 +1163,33 @@ public final class AguiResponseMapper implements A2aEventSink
             break;
         }
 
-        return builder.build();
+        final AguiDataExFW dataEx = builder.build();
+
+        metaSubagentRunId = null;
+
+        return dataEx;
+    }
+
+    private static AguiSubagentType subagentType(
+        String type)
+    {
+        return switch (type)
+        {
+        case "finished" -> AguiSubagentType.FINISHED;
+        case "error" -> AguiSubagentType.ERROR;
+        default -> AguiSubagentType.STARTED;
+        };
+    }
+
+    private static AguiSubagentOutcome subagentOutcome(
+        String outcome)
+    {
+        return switch (String.valueOf(outcome))
+        {
+        case "success" -> AguiSubagentOutcome.SUCCESS;
+        case "suspended" -> AguiSubagentOutcome.SUSPENDED;
+        default -> AguiSubagentOutcome.NONE;
+        };
     }
 
     private static AguiStateType stateType(
@@ -1180,7 +1233,7 @@ public final class AguiResponseMapper implements A2aEventSink
     private AguiEventMetaFW.Builder meta(
         AguiEventMetaFW.Builder meta)
     {
-        return meta.timestamp(-1).subagentRunId((String) null);
+        return meta.timestamp(-1).subagentRunId(metaSubagentRunId);
     }
 
     private String unique(

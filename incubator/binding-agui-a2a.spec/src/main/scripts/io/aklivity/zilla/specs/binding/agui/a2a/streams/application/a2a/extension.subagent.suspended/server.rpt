@@ -95,7 +95,7 @@ write zilla:data.ext ${a2a:dataEx()
                               .lastChunk(true)
                               .build()
                           .build()}
-write '{"artifactUpdate":{"taskId":"t-1","contextId":"c-1","artifact":{"artifactId":"a-2","parts":[{"metadata":{"agui":{"event":"subagent","type":"finished","subagentRunId":"sub-1","outcome":"suspended"}},"data":{}}]},"append":false,"lastChunk":true}}'
+write '{"artifactUpdate":{"taskId":"t-1","contextId":"c-1","artifact":{"artifactId":"a-2","parts":[{"metadata":{"agui":{"event":"subagent","type":"finished","subagentRunId":"sub-1","outcome":"suspended"}}}]},"append":false,"lastChunk":true}}'
 write flush
 
 write zilla:data.ext ${a2a:dataEx()
