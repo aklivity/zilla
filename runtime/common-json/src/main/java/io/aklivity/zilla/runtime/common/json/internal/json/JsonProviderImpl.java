@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.common.json.internal.json;
 
-import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
@@ -76,7 +75,7 @@ public final class JsonProviderImpl extends JsonProvider
     public JsonParser createParser(
         InputStream in)
     {
-        return new JsonParserImpl(marked(in), config);
+        return new JsonParserImpl(in, config);
     }
 
     @Override
@@ -293,11 +292,5 @@ public final class JsonProviderImpl extends JsonProvider
         Number value)
     {
         return JsonValues.number(value);
-    }
-
-    private static InputStream marked(
-        InputStream in)
-    {
-        return in.markSupported() ? in : new BufferedInputStream(in);
     }
 }
