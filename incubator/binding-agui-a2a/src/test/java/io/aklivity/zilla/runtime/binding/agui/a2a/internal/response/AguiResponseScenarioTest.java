@@ -64,7 +64,18 @@ public class AguiResponseScenarioTest
             "cancel.canceled",
             "interrupt.input.required",
             "interrupt.auth.required",
-            "owner.context.reset.interrupt");
+            "owner.context.reset.interrupt",
+            "extension.messages.reset",
+            "extension.tag.state",
+            "extension.tag.activity",
+            "extension.tag.reasoning",
+            "extension.tag.step",
+            "extension.tag.tool.call",
+            "extension.tag.custom",
+            "extension.tag.disabled",
+            "extension.tag.echo.absent",
+            "extension.tag.dropped",
+            "extension.tag.malformed");
     }
 
     private final String scenario;
@@ -147,7 +158,7 @@ public class AguiResponseScenarioTest
         ScenarioScripts scripts,
         int window)
     {
-        final ResponseHarness harness = new ResponseHarness(MAXIMUM);
+        final ResponseHarness harness = new ResponseHarness(MAXIMUM, scripts.extension);
 
         final ResponseHarness.Frame first = scripts.expected.isEmpty() ? null : scripts.expected.get(0);
 

@@ -15,8 +15,10 @@
 package io.aklivity.zilla.runtime.binding.agui.a2a.internal.card;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import jakarta.json.JsonException;
 
@@ -29,6 +31,8 @@ public final class AguiA2aAgentCardDecoder
 {
     private final JsonParserEx parser = JsonEx.createParser(Map.of());
     private final List<String> inputModes = new ArrayList<>();
+    private final List<AguiA2aExtension> extensions = new ArrayList<>();
+    private final Set<String> extensionFeatures = new HashSet<>();
 
     private final AguiA2aAgentCardDecode decodeStart = this::decodeStart;
     private final AguiA2aAgentCardDecode decodeRootStart = this::decodeRootStart;
@@ -36,6 +40,15 @@ public final class AguiA2aAgentCardDecoder
     private final AguiA2aAgentCardDecode decodeCapabilitiesStart = this::decodeCapabilitiesStart;
     private final AguiA2aAgentCardDecode decodeCapabilities = this::decodeCapabilities;
     private final AguiA2aAgentCardDecode decodeStreaming = this::decodeStreaming;
+    private final AguiA2aAgentCardDecode decodeExtensionsStart = this::decodeExtensionsStart;
+    private final AguiA2aAgentCardDecode decodeExtensions = this::decodeExtensions;
+    private final AguiA2aAgentCardDecode decodeExtension = this::decodeExtension;
+    private final AguiA2aAgentCardDecode decodeExtensionUri = this::decodeExtensionUri;
+    private final AguiA2aAgentCardDecode decodeExtensionRequired = this::decodeExtensionRequired;
+    private final AguiA2aAgentCardDecode decodeParamsStart = this::decodeParamsStart;
+    private final AguiA2aAgentCardDecode decodeParams = this::decodeParams;
+    private final AguiA2aAgentCardDecode decodeFeaturesStart = this::decodeFeaturesStart;
+    private final AguiA2aAgentCardDecode decodeFeatures = this::decodeFeatures;
     private final AguiA2aAgentCardDecode decodeInputModesStart = this::decodeInputModesStart;
     private final AguiA2aAgentCardDecode decodeInputModes = this::decodeInputModes;
     private final AguiA2aAgentCardDecode decodeSkillsStart = this::decodeSkillsStart;
@@ -51,6 +64,8 @@ public final class AguiA2aAgentCardDecoder
     private AguiA2aAgentCardDecode skipThen;
     private int skipDepth;
     private boolean streaming;
+    private String extensionUri;
+    private boolean extensionRequired;
     private boolean failed;
 
     public int decode(
@@ -108,13 +123,17 @@ public final class AguiA2aAgentCardDecoder
 
     public AguiA2aAgentCard card()
     {
-        return new AguiA2aAgentCard(streaming, List.copyOf(inputModes));
+        return new AguiA2aAgentCard(streaming, List.copyOf(inputModes), List.copyOf(extensions));
     }
 
     public void reset()
     {
         parser.reset();
         inputModes.clear();
+        extensions.clear();
+        extensionFeatures.clear();
+        extensionUri = null;
+        extensionRequired = false;
         decoder = decodeStart;
         skipThen = null;
         skipDepth = 0;
@@ -237,6 +256,10 @@ public final class AguiA2aAgentCardDecoder
                     {
                         decoder = decodeStreaming;
                     }
+                    else if ("extensions".contentEquals(parser.getStringView()))
+                    {
+                        decoder = decodeExtensionsStart;
+                    }
                     else
                     {
                         skip(decodeCapabilities);
@@ -272,6 +295,266 @@ public final class AguiA2aAgentCardDecoder
             else
             {
                 skipUnexpected(event, decodeCapabilities);
+            }
+        }
+
+        return position(limit);
+    }
+
+    private int decodeExtensionsStart(
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        if (parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            if (event == JsonEvent.START_ARRAY)
+            {
+                decoder = decodeExtensions;
+            }
+            else
+            {
+                skipUnexpected(event, decodeCapabilities);
+            }
+        }
+
+        return position(limit);
+    }
+
+    private int decodeExtensions(
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        if (parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            switch (event)
+            {
+            case START_OBJECT:
+                extensionUri = null;
+                extensionRequired = false;
+                extensionFeatures.clear();
+                decoder = decodeExtension;
+                break;
+            case END_ARRAY:
+                decoder = decodeCapabilities;
+                break;
+            default:
+                skipUnexpected(event, decodeExtensions);
+                break;
+            }
+        }
+
+        return position(limit);
+    }
+
+    private int decodeExtension(
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        decode:
+        if (parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            switch (event)
+            {
+            case KEY_NAME:
+                if (!parser.deferredBytes())
+                {
+                    final CharSequence key = parser.getStringView();
+                    if ("uri".contentEquals(key))
+                    {
+                        decoder = decodeExtensionUri;
+                    }
+                    else if ("required".contentEquals(key))
+                    {
+                        decoder = decodeExtensionRequired;
+                    }
+                    else if ("params".contentEquals(key))
+                    {
+                        decoder = decodeParamsStart;
+                    }
+                    else
+                    {
+                        skip(decodeExtension);
+                    }
+                }
+                break;
+            case END_OBJECT:
+                if (extensionUri != null)
+                {
+                    extensions.add(new AguiA2aExtension(extensionUri, extensionRequired, Set.copyOf(extensionFeatures)));
+                }
+                decoder = decodeExtensions;
+                break;
+            default:
+                onDecodeParseError();
+                break decode;
+            }
+        }
+
+        return position(limit);
+    }
+
+    private int decodeExtensionUri(
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        if (parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            if (event == JsonEvent.VALUE_STRING)
+            {
+                if (!parser.deferredBytes())
+                {
+                    extensionUri = parser.getString();
+                }
+                decoder = decodeExtension;
+            }
+            else
+            {
+                skipUnexpected(event, decodeExtension);
+            }
+        }
+
+        return position(limit);
+    }
+
+    private int decodeExtensionRequired(
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        if (parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            if (event == JsonEvent.VALUE_TRUE || event == JsonEvent.VALUE_FALSE)
+            {
+                extensionRequired = event == JsonEvent.VALUE_TRUE;
+                decoder = decodeExtension;
+            }
+            else
+            {
+                skipUnexpected(event, decodeExtension);
+            }
+        }
+
+        return position(limit);
+    }
+
+    private int decodeParamsStart(
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        if (parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            if (event == JsonEvent.START_OBJECT)
+            {
+                decoder = decodeParams;
+            }
+            else
+            {
+                skipUnexpected(event, decodeExtension);
+            }
+        }
+
+        return position(limit);
+    }
+
+    private int decodeParams(
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        decode:
+        if (parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            switch (event)
+            {
+            case KEY_NAME:
+                if (!parser.deferredBytes())
+                {
+                    if ("features".contentEquals(parser.getStringView()))
+                    {
+                        decoder = decodeFeaturesStart;
+                    }
+                    else
+                    {
+                        skip(decodeParams);
+                    }
+                }
+                break;
+            case END_OBJECT:
+                decoder = decodeExtension;
+                break;
+            default:
+                onDecodeParseError();
+                break decode;
+            }
+        }
+
+        return position(limit);
+    }
+
+    private int decodeFeaturesStart(
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        if (parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            if (event == JsonEvent.START_ARRAY)
+            {
+                decoder = decodeFeatures;
+            }
+            else
+            {
+                skipUnexpected(event, decodeParams);
+            }
+        }
+
+        return position(limit);
+    }
+
+    private int decodeFeatures(
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        if (parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            switch (event)
+            {
+            case VALUE_STRING:
+                if (!parser.deferredBytes())
+                {
+                    extensionFeatures.add(parser.getString());
+                }
+                break;
+            case END_ARRAY:
+                decoder = decodeParams;
+                break;
+            default:
+                skipUnexpected(event, decoder);
+                break;
             }
         }
 

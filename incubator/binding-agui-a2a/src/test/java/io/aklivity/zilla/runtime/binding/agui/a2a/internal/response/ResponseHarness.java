@@ -21,6 +21,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.aklivity.zilla.runtime.binding.agui.a2a.internal.card.AguiA2aExtension;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.A2aDataExFW;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.AguiDataExFW;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.AguiOutcomeType;
@@ -52,6 +53,8 @@ final class ResponseHarness implements AguiFrameSink, AguiResponseHost
 
     final List<Frame> frames = new ArrayList<>();
     final List<String> failures = new ArrayList<>();
+    final List<String> dropped = new ArrayList<>();
+    final List<String> malformed = new ArrayList<>();
     final AguiResponseMapper mapper;
     final A2aEventDecoder decoder;
 
@@ -65,8 +68,16 @@ final class ResponseHarness implements AguiFrameSink, AguiResponseHost
     ResponseHarness(
         int maximum)
     {
+        this(maximum, null);
+    }
+
+    ResponseHarness(
+        int maximum,
+        AguiA2aExtension extension)
+    {
         this.mapper = new AguiResponseMapper(this, this, AGUI_TYPE_ID, maximum);
         this.decoder = new A2aEventDecoder(mapper, maximum);
+        this.decoder.activate(extension);
     }
 
     void event(
@@ -103,6 +114,21 @@ final class ResponseHarness implements AguiFrameSink, AguiResponseHost
         String contextId)
     {
         return snapshot != null ? snapshot.getBytes(UTF_8) : null;
+    }
+
+    @Override
+    public void tagDropped(
+        String tag)
+    {
+        dropped.add(tag);
+    }
+
+    @Override
+    public void tagMalformed(
+        String tag,
+        String detail)
+    {
+        malformed.add(tag + ": " + detail);
     }
 
     @Override
@@ -146,6 +172,28 @@ final class ResponseHarness implements AguiFrameSink, AguiResponseHost
                 break;
             case AguiDataExFW.KIND_STATE:
                 ex = String.format("state(%s)", dataEx.state().type().get());
+                break;
+            case AguiDataExFW.KIND_REASONING:
+                ex = String.format("reasoning(%s,%s)", dataEx.reasoning().messageId().asString(),
+                    dataEx.reasoning().groupId().asString());
+                break;
+            case AguiDataExFW.KIND_REASONING_ENCRYPTED:
+                ex = String.format("reasoningEncrypted(%s,%s)", dataEx.reasoningEncrypted().subtype().get().name(),
+                    dataEx.reasoningEncrypted().entityId().asString());
+                break;
+            case AguiDataExFW.KIND_TOOL_CALL:
+                ex = String.format("toolCall(%s,%s)", dataEx.toolCall().toolCallId().asString(),
+                    dataEx.toolCall().toolCallName().asString());
+                break;
+            case AguiDataExFW.KIND_TOOL_RESULT:
+                ex = String.format("toolResult(%s,%s)", dataEx.toolResult().messageId().asString(),
+                    dataEx.toolResult().toolCallId().asString());
+                break;
+            case AguiDataExFW.KIND_STEP:
+                ex = String.format("step(%s,%s)", dataEx.step().type().get(), dataEx.step().stepName().asString());
+                break;
+            case AguiDataExFW.KIND_RAW:
+                ex = String.format("raw(%s)", dataEx.raw().source().asString());
                 break;
             default:
                 ex = "kind" + dataEx.kind();
@@ -195,7 +243,9 @@ final class ResponseHarness implements AguiFrameSink, AguiResponseHost
             }
             else if ((frame.flags() & FIN) != 0)
             {
-                logical.add(header + "=" + open + frame.payloadText() + (header.startsWith("custom") ? "" : "|fin"));
+                final boolean message = header.startsWith("text") || header.startsWith("reasoning");
+
+                logical.add(header + "=" + open + frame.payloadText() + (message ? "|fin" : ""));
                 open = null;
             }
             else

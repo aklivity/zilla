@@ -19,6 +19,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.util.Arrays;
 import java.util.function.Predicate;
 
+import io.aklivity.zilla.runtime.binding.agui.a2a.internal.card.AguiA2aExtension;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.request.AguiA2aRetained.Kind;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.request.AguiA2aRetained.Resume;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -60,8 +61,10 @@ public final class AguiA2aMessageAssembler
     private static final DirectBufferEx DATA_PAYLOAD_OPEN = literal("{\"data\":");
     private static final DirectBufferEx DATA_EMPTY = literal("{\"data\":{}}");
     private static final DirectBufferEx FORWARDED_PROPS = literal("\"forwardedProps\":");
-    private static final DirectBufferEx AGUI_RESUME_OPEN = literal("\"agui\":{\"resume\":");
-    private static final DirectBufferEx AGUI_RESUME_CLOSE = literal("}");
+    private static final DirectBufferEx AGUI_OPEN = literal("\"agui\":{");
+    private static final DirectBufferEx AGUI_STATE = literal("\"state\":");
+    private static final DirectBufferEx AGUI_RESUME = literal("\"resume\":");
+    private static final DirectBufferEx AGUI_CLOSE = literal("}");
     private static final DirectBufferEx QUOTE = literal("\"");
 
     private final UnsafeBufferEx escapeBuffer = new UnsafeBufferEx(new byte[0]);
@@ -84,6 +87,7 @@ public final class AguiA2aMessageAssembler
     private String taskId;
     private String interruptId;
     private boolean acceptsJson;
+    private AguiA2aExtension extension;
     private Predicate<String> acceptedMediaType = mediaType -> true;
     private String unacceptedMediaType;
     private int partCount;
@@ -103,6 +107,13 @@ public final class AguiA2aMessageAssembler
         this.taskId = taskId;
         this.interruptId = interruptId;
         this.acceptsJson = acceptsJson;
+        return this;
+    }
+
+    public AguiA2aMessageAssembler extension(
+        AguiA2aExtension extension)
+    {
+        this.extension = extension;
         return this;
     }
 
@@ -265,7 +276,7 @@ public final class AguiA2aMessageAssembler
 
     private void emitDataPart()
     {
-        final int state = retained.indexOf(Kind.STATE);
+        final int state = stateInMetadata() ? ABSENT : retained.indexOf(Kind.STATE);
         final int context = retained.indexOf(Kind.CONTEXT);
 
         if (acceptsJson && (state != ABSENT || context != ABSENT))
@@ -324,8 +335,9 @@ public final class AguiA2aMessageAssembler
         final int value = retained.indexOf(Kind.FORWARDED_VALUE);
         final Resume resume = interruptId != null ? retained.resumeFor(interruptId) : null;
         final boolean resumed = resume != null && resume.metadataEnd != ABSENT && resume.metadataEvent != JsonEvent.VALUE_NULL;
+        final boolean state = stateInMetadata();
 
-        if (members != ABSENT || value != ABSENT || resumed)
+        if (members != ABSENT || value != ABSENT || resumed || state)
         {
             write(METADATA_OPEN);
 
@@ -339,20 +351,42 @@ public final class AguiA2aMessageAssembler
                 writeEntry(value);
             }
 
-            if (resumed)
+            if (resumed || state)
             {
                 if (members != ABSENT || value != ABSENT)
                 {
                     write(COMMA);
                 }
 
-                write(AGUI_RESUME_OPEN);
-                writeRange(resume.metadataStart, resume.metadataEnd);
-                write(AGUI_RESUME_CLOSE);
+                write(AGUI_OPEN);
+
+                if (state)
+                {
+                    write(AGUI_STATE);
+                    writeEntry(retained.indexOf(Kind.STATE));
+                }
+
+                if (resumed)
+                {
+                    if (state)
+                    {
+                        write(COMMA);
+                    }
+
+                    write(AGUI_RESUME);
+                    writeRange(resume.metadataStart, resume.metadataEnd);
+                }
+
+                write(AGUI_CLOSE);
             }
 
             write(METADATA_CLOSE);
         }
+    }
+
+    private boolean stateInMetadata()
+    {
+        return extension != null && extension.enabled(AguiA2aExtension.FEATURE_STATE) && retained.indexOf(Kind.STATE) != ABSENT;
     }
 
     private void separate()
