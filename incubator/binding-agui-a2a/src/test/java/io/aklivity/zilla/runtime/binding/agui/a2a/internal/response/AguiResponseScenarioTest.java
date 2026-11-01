@@ -66,6 +66,19 @@ public class AguiResponseScenarioTest
             "interrupt.auth.required",
             "owner.context.reset.interrupt",
             "extension.messages.reset",
+            "a2ui.surface",
+            "a2ui.two.surfaces",
+            "a2ui.media.type",
+            "a2ui.v08",
+            "a2ui.both.uris",
+            "a2ui.no.capabilities",
+            "a2ui.not.declared",
+            "a2ui.no.surface.id",
+            "a2ui.with.agui",
+            "a2ui.client.v08",
+            "a2ui.no.overlap",
+            "a2ui.capabilities.no.version",
+            "a2ui.data.model.only",
             "extension.subagent.started.finished",
             "extension.subagent.error",
             "extension.subagent.suspended",
@@ -176,7 +189,7 @@ public class AguiResponseScenarioTest
         ScenarioScripts scripts,
         int window)
     {
-        final ResponseHarness harness = new ResponseHarness(MAXIMUM, scripts.extension);
+        final ResponseHarness harness = new ResponseHarness(MAXIMUM, scripts.extension, scripts.a2ui);
 
         final ResponseHarness.Frame first = scripts.expected.isEmpty() ? null : scripts.expected.get(0);
 
