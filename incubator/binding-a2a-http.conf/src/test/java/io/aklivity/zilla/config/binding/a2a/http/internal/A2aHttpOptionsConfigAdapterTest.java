@@ -141,6 +141,33 @@ public class A2aHttpOptionsConfigAdapterTest
     }
 
     @Test
+    public void shouldDefaultCardStreaming()
+    {
+        A2aHttpOptionsConfig options = jsonb.fromJson(YAML, A2aHttpOptionsConfig.class);
+
+        assertThat(options.card.streaming, equalTo(true));
+    }
+
+    @Test
+    public void shouldReadAndWriteCardStreamingDisabled()
+    {
+        String yaml =
+            """
+            embedding: embedding0
+            store: store0
+            card:
+              streaming: false
+            """;
+
+        A2aHttpOptionsConfig options = jsonb.fromJson(yaml, A2aHttpOptionsConfig.class);
+        A2aHttpOptionsConfig again = jsonb.fromJson(jsonb.toJson(options), A2aHttpOptionsConfig.class);
+
+        assertThat(options.card.streaming, equalTo(false));
+        assertThat(jsonb.toJson(options), containsString("streaming: false"));
+        assertThat(again.card.streaming, equalTo(false));
+    }
+
+    @Test
     public void shouldWriteOptions()
     {
         A2aHttpOptionsConfig options = jsonb.fromJson(YAML, A2aHttpOptionsConfig.class);

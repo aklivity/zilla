@@ -45,6 +45,7 @@ public final class A2aHttpOptionsConfigAdapter extends ConfigAdapter<OptionsConf
     private static final String NAME_NAME = "name";
     private static final String DESCRIPTION_NAME = "description";
     private static final String VERSION_NAME = "version";
+    private static final String STREAMING_NAME = "streaming";
     private static final String DEFAULT_INPUT_MODES_NAME = "defaultInputModes";
     private static final String DEFAULT_OUTPUT_MODES_NAME = "defaultOutputModes";
     private static final String AUTHORIZATION_NAME = "authorization";
@@ -212,6 +213,7 @@ public final class A2aHttpOptionsConfigAdapter extends ConfigAdapter<OptionsConf
         }
 
         object.add(VERSION_NAME, card.version);
+        object.add(STREAMING_NAME, card.streaming);
         object.add(DEFAULT_INPUT_MODES_NAME, strings(card.defaultInputModes));
         object.add(DEFAULT_OUTPUT_MODES_NAME, strings(card.defaultOutputModes));
 
@@ -225,6 +227,7 @@ public final class A2aHttpOptionsConfigAdapter extends ConfigAdapter<OptionsConf
             .name(object.getString(NAME_NAME, null))
             .description(object.getString(DESCRIPTION_NAME, null))
             .version(object.getString(VERSION_NAME, null))
+            .streaming(object.containsKey(STREAMING_NAME) ? object.getBoolean(STREAMING_NAME) : null)
             .defaultInputModes(object.containsKey(DEFAULT_INPUT_MODES_NAME)
                 ? strings(object.getJsonArray(DEFAULT_INPUT_MODES_NAME))
                 : null)

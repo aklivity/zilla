@@ -61,6 +61,11 @@
                                         "type": "string",
                                         "default": "1.0.0"
                                     },
+                                    "streaming": {
+                                        "title": "Streaming",
+                                        "type": "boolean",
+                                        "default": true
+                                    },
                                     "defaultInputModes": {
                                         "type": "array",
                                         "items": {
