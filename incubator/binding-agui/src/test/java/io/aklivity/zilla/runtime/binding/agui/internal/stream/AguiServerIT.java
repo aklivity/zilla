@@ -172,6 +172,26 @@ public class AguiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/run.request.ids.last/client",
+        "${app}/run.redirect/server"})
+    public void shouldRunRedirect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/run.request.100k/client",
+        "${app}/run.redirect.100k/server"})
+    public void shouldRunRedirect100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/run.state.snapshot.100k/client",
         "${app}/run.state.snapshot.100k/server"})
     public void shouldRunStateSnapshot100k() throws Exception

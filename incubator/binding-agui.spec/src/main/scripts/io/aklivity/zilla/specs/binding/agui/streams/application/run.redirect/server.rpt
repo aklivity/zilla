@@ -15,7 +15,7 @@
 
 
 accept "zilla://streams/app0"
-       option zilla:window 8192
+       option zilla:window 0
        option zilla:transmission "half-duplex"
 
 accepted
@@ -40,6 +40,8 @@ read zilla:begin.ext ${agui:matchBeginEx()
                        .build()}
 
 connected
+
+read option zilla:window 8192
 
 read "{\"messages\":[{\"id\":\"msg-1\",\"role\":\"user\",\"content\":\"Hello\"}],\"threadId\":\"thread-1\",\"runId\":\"run-1\"}"
 
