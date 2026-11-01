@@ -35,6 +35,7 @@ final class ScenarioScripts
     private static final Pattern FLAGS = Pattern.compile("^write option zilla:flags \"(\\w+)\"$");
     private static final Pattern MESSAGE_ID = Pattern.compile("\\.messageId\\(\"([^\"]*)\"\\)");
     private static final Pattern NAME = Pattern.compile("\\.name\\(\"([^\"]*)\"\\)");
+    private static final Pattern ACTIVITY_TYPE = Pattern.compile("\\.activityType\\(\"([^\"]*)\"\\)");
     private static final Pattern TYPE = Pattern.compile("\\.type\\(\"([^\"]*)\"\\)");
     private static final Pattern OUTCOME = Pattern.compile("\\.outcome\\(\"([^\"]*)\"\\)");
     private static final Pattern CODE = Pattern.compile("\\.code\\(\"([^\"]*)\"\\)");
@@ -220,6 +221,7 @@ final class ScenarioScripts
         final Matcher id = MESSAGE_ID.matcher(chain);
         final Matcher name = NAME.matcher(chain);
         final Matcher type = TYPE.matcher(chain);
+        final Matcher activityType = ACTIVITY_TYPE.matcher(chain);
         String ex = null;
 
         if (chain.contains(".text()") && id.find())
@@ -229,6 +231,10 @@ final class ScenarioScripts
         else if (chain.contains(".custom()") && name.find())
         {
             ex = String.format("custom(%s)", name.group(1));
+        }
+        else if (chain.contains(".activity()") && type.find() && id.find(0) && activityType.find())
+        {
+            ex = String.format("activity(%s,%s,%s)", type.group(1), id.group(1), activityType.group(1));
         }
         else if (chain.contains(".state()") && type.find())
         {

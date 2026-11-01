@@ -263,9 +263,9 @@ public class AguiRunIT
 
     @Test
     @Specification({
-        "${app}/run.status.working.fallback/client",
-        "${app}/run.status.working.fallback/server"})
-    public void shouldRunStatusWorkingFallback() throws Exception
+        "${app}/run.status.working.activity/client",
+        "${app}/run.status.working.activity/server"})
+    public void shouldRunStatusWorkingActivity() throws Exception
     {
         k3po.finish();
     }
