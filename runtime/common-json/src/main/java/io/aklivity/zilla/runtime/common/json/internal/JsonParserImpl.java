@@ -285,6 +285,14 @@ public final class JsonParserImpl implements JsonParserEx
     public void reset()
     {
         tokenizer.reset();
+        // force the next syncInput() to re-wrap unconditionally: a caller that reuses the same
+        // (buffer, offset, length) across reset() cycles -- the long-lived-parser pattern
+        // JsonSchemaBM's own validators exercise -- would otherwise see no apparent change and
+        // skip re-wrapping, leaving the tokenizer's buffer cursor stale at the end of the prior
+        // document while reset() has already zeroed its streamOffset/state
+        syncedBuffer = null;
+        syncedOffset = -1;
+        syncedLength = -1;
         segmentState = SegmentState.NONE;
         segmentDepth = 0;
         segmentConsumed = 0;
