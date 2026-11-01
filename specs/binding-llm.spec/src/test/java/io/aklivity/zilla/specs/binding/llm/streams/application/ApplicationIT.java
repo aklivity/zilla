@@ -9109,4 +9109,13 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.stalled/client",
+        "${app}/openai.response.stalled/server"})
+    public void shouldOpenaiResponseStalled() throws Exception
+    {
+        k3po.finish();
+    }
 }

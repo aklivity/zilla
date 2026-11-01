@@ -172,6 +172,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private static final int CAPABILITY_CHALLENGE_MASK = 1 << Capability.CHALLENGE.ordinal();
     private static final int CAPABILITY_FRAMING_MASK = 1 << Capability.FRAMING.ordinal();
     private static final int EVENT_FIELD_VALUE_MAX = 255;
+    private static final int INITIAL_CONNECTION_WINDOW = 65_535;
     private static final String8FW HEADER_CONTENT_TYPE = new String8FW("content-type");
     private static final byte[] CONTENT_TYPE_EVENT_STREAM = "text/event-stream".getBytes(UTF_8);
     private static final byte[] CONTENT_TYPE_PARAMETER_SPACE = "space=1".getBytes(UTF_8);
@@ -547,6 +548,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final Http2ServerDecoder decodeHttp2Continuation = this::decodeHttp2Continuation;
     private final Http2ServerDecoder decodeHttp2Data = this::decodeHttp2Data;
     private final Http2ServerDecoder decodeHttp2DataPayload = this::decodeHttp2DataPayload;
+    private final Http2ServerDecoder decodeHttp2DataPadding = this::decodeHttp2DataPadding;
     private final Http2ServerDecoder decodeHttp2Priority = this::decodePriority;
     private final Http2ServerDecoder decodeHttp2RstStream = this::decodeHttp2RstStream;
     private final Http2ServerDecoder decodeHttp2IgnoreOne = this::decodeHttp2IgnoreOne;
@@ -576,6 +578,8 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final Http2HeadersEncoder headersEncoder = new Http2HeadersEncoder();
 
     private final HttpConfiguration config;
+    private final int connectionWindow;
+    private final int connectionWindowLowMark;
     private final MutableDirectBufferEx codecBuffer;
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx frameBuffer;
@@ -614,6 +618,8 @@ public final class HttpServerFactory implements HttpStreamFactory
         EngineContext context)
     {
         this.config = config;
+        this.connectionWindow = config.connectionWindow();
+        this.connectionWindowLowMark = connectionWindow >> 1;
         this.context = context;
         this.writeBuffer = context.writeBuffer();
         this.bufferPool = context.bufferPool();
@@ -4174,7 +4180,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             Http2DataFW http2Data = http2DataRO.wrap(buffer, offset, limit);
             final int streamId = http2Data.streamId();
 
-            if ((streamId & 0x01) != 0x01)
+            if ((streamId & 0x01) != 0x01 || http2Data.dataLength() < 0)
             {
                 error = Http2ErrorCode.PROTOCOL_ERROR;
             }
@@ -4186,7 +4192,16 @@ public final class HttpServerFactory implements HttpStreamFactory
             }
             else
             {
+                server.localSharedBudget -= http2Data.length();
+                if (server.localSharedBudget < connectionWindowLowMark)
+                {
+                    server.doEncodeConnectionWindow(traceId, authorization);
+                }
+
+                server.onDecodeDataPadding(traceId, authorization, http2Data);
+
                 server.decodableDataBytes = http2Data.dataLength();
+                server.decodablePaddingBytes = http2Data.paddingLength();
                 progress = http2Data.dataOffset();
 
                 server.decoder = decodeHttp2DataPayload;
@@ -4229,10 +4244,31 @@ public final class HttpServerFactory implements HttpStreamFactory
 
         if (server.decodableDataBytes == 0)
         {
-            server.decoder = decodeHttp2FrameType;
+            server.decoder = server.decodablePaddingBytes > 0 ? decodeHttp2DataPadding : decodeHttp2FrameType;
         }
 
         return progress;
+    }
+
+    private int decodeHttp2DataPadding(
+        Http2Server server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        final int skipped = Math.min(limit - offset, server.decodablePaddingBytes);
+
+        server.decodablePaddingBytes -= skipped;
+
+        if (server.decodablePaddingBytes == 0)
+        {
+            server.decoder = decodeHttp2FrameType;
+        }
+
+        return offset + skipped;
     }
 
     private int decodePriority(
@@ -4411,6 +4447,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         private int replySharedBudget;
 
         private int remoteSharedBudget;
+        private int localSharedBudget = INITIAL_CONNECTION_WINDOW;
         private int responseSharedBudget;
         private BudgetCredit responseCredit;
         private BudgetDebit replyDebit;
@@ -4449,6 +4486,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         private int decodedStreamId;
         private byte decodedFlags;
         private int decodableDataBytes;
+        private int decodablePaddingBytes;
 
         private Http2Server(
             HttpBindingConfig binding,
@@ -5260,6 +5298,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             Http2PrefaceFW http2Preface)
         {
             doEncodeSettings(traceId, authorization);
+            doEncodeConnectionWindow(traceId, authorization);
         }
 
         private void onDecodeSettings(
@@ -5809,6 +5848,25 @@ public final class HttpServerFactory implements HttpStreamFactory
             }
         }
 
+        private void onDecodeDataPadding(
+            long traceId,
+            long authorization,
+            Http2DataFW http2Data)
+        {
+            final Http2Exchange exchange = streams.get(http2Data.streamId());
+            final int padding = http2Data.length() - http2Data.dataLength();
+
+            if (exchange != null && padding > 0)
+            {
+                exchange.localBudget -= padding;
+
+                if (http2Data.dataLength() == 0)
+                {
+                    exchange.flushRequestWindowUpdate(traceId, authorization);
+                }
+            }
+        }
+
         private int onDecodeData(
             long traceId,
             long authorization,
@@ -6225,20 +6283,32 @@ public final class HttpServerFactory implements HttpStreamFactory
             int streamId,
             int size)
         {
-            final int frameOffset = http2WindowUpdateRW.wrap(frameBuffer, 0, frameBuffer.capacity())
-                    .streamId(0)
-                    .size(size)
-                    .build()
-                    .limit();
-
-            final int frameLimit = http2WindowUpdateRW
-                    .wrap(frameBuffer, frameOffset, frameBuffer.capacity())
+            final int frameLimit = http2WindowUpdateRW.wrap(frameBuffer, 0, frameBuffer.capacity())
                     .streamId(streamId)
                     .size(size)
                     .build()
                     .limit();
 
             doNetworkReservedData(traceId, authorization, 0L, frameBuffer, 0, frameLimit);
+        }
+
+        private void doEncodeConnectionWindow(
+            long traceId,
+            long authorization)
+        {
+            final int credit = connectionWindow - localSharedBudget;
+
+            if (credit > 0)
+            {
+                final int frameLimit = http2WindowUpdateRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+                        .streamId(0)
+                        .size(credit)
+                        .build()
+                        .limit();
+
+                doNetworkReservedData(traceId, authorization, 0L, frameBuffer, 0, frameLimit);
+                localSharedBudget = connectionWindow;
+            }
         }
 
         private void cleanupNetwork(

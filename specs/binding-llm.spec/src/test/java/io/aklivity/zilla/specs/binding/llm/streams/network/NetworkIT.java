@@ -129,6 +129,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.reply.shared.budget/client",
+        "${net}/openai.reply.shared.budget/server"})
+    public void shouldEncodeOpenaiNonstreamingWithReplySharedBudget() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.request.padded/client",
         "${net}/openai.request.padded/server"})
     public void shouldEncodeOpenaiRequestWithReplyPadding() throws Exception
@@ -723,6 +732,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.rejected.json.malformed.window/client",
+        "${net}/openai.rejected.json.malformed.window/server"})
+    public void shouldOpenaiRejectedJsonMalformedWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.section.rejected.trailing.content/client",
         "${net}/openai.section.rejected.trailing.content/server"})
     public void shouldOpenaiSectionRejectedTrailingContent() throws Exception
@@ -996,6 +1014,15 @@ public class NetworkIT
         "${net}/anthropic.section.rejected.json.malformed/client",
         "${net}/anthropic.section.rejected.json.malformed/server"})
     public void shouldAnthropicSectionRejectedJsonMalformed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.rejected.json.malformed.window/client",
+        "${net}/anthropic.rejected.json.malformed.window/server"})
+    public void shouldAnthropicRejectedJsonMalformedWindow() throws Exception
     {
         k3po.finish();
     }
@@ -4992,6 +5019,15 @@ public class NetworkIT
         "${net}/openai.responses.rejected.error.param/client",
         "${net}/openai.responses.rejected.error.param/server"})
     public void shouldOpenaiResponsesRejectedErrorParam() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.rejected.json.malformed.window/client",
+        "${net}/openai.responses.rejected.json.malformed.window/server"})
+    public void shouldOpenaiResponsesRejectedJsonMalformedWindow() throws Exception
     {
         k3po.finish();
     }
@@ -9628,6 +9664,42 @@ public class NetworkIT
         "${net}/gemini.route.model.unmatched.guarded/client",
         "${net}/gemini.route.model.unmatched.guarded/server"})
     public void shouldGeminiRouteModelUnmatchedGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.reply.shared.budget/client",
+        "${net}/anthropic.reply.shared.budget/server"})
+    public void shouldEncodeAnthropicNonstreamingWithReplySharedBudget() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.reply.shared.budget/client",
+        "${net}/gemini.reply.shared.budget/server"})
+    public void shouldEncodeGeminiNonstreamingWithReplySharedBudget() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.reply.shared.budget/client",
+        "${net}/openai.responses.reply.shared.budget/server"})
+    public void shouldEncodeOpenaiResponsesWithReplySharedBudget() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.response.stalled/client",
+        "${net}/openai.response.stalled/server"})
+    public void shouldOpenaiResponseStalled() throws Exception
     {
         k3po.finish();
     }

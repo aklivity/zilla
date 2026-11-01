@@ -96,4 +96,104 @@ public class FlowControlIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/server.connection.window.bounded/client",
+        "${net}/server.connection.window.bounded/server",
+    })
+    public void serverConnectionWindowBounded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.connection.window.bounded/client",
+        "${net}/client.connection.window.bounded/server",
+    })
+    public void clientConnectionWindowBounded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.sent.connection.window.topup/client",
+        "${net}/client.sent.connection.window.topup/server",
+    })
+    public void shouldClientSentConnectionWindowTopup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.connection.window.topup/client",
+        "${net}/server.sent.connection.window.topup/server",
+    })
+    public void shouldServerSentConnectionWindowTopup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.sent.unknown.stream.connection.window.topup/client",
+        "${net}/client.sent.unknown.stream.connection.window.topup/server",
+    })
+    public void shouldClientSentUnknownStreamConnectionWindowTopup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.unknown.stream.connection.window.topup/client",
+        "${net}/server.sent.unknown.stream.connection.window.topup/server",
+    })
+    public void shouldServerSentUnknownStreamConnectionWindowTopup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.sent.padded.connection.window.topup/client",
+        "${net}/client.sent.padded.connection.window.topup/server",
+    })
+    public void shouldClientSentPaddedConnectionWindowTopup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.padded.connection.window.topup/client",
+        "${net}/server.sent.padded.connection.window.topup/server",
+    })
+    public void shouldServerSentPaddedConnectionWindowTopup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.sent.padding.only.stream.window.update/client",
+        "${net}/client.sent.padding.only.stream.window.update/server",
+    })
+    public void shouldClientSentPaddingOnlyStreamWindowUpdate() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.padding.only.stream.window.update/client",
+        "${net}/server.sent.padding.only.stream.window.update/server",
+    })
+    public void shouldServerSentPaddingOnlyStreamWindowUpdate() throws Exception
+    {
+        k3po.finish();
+    }
 }

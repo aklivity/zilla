@@ -188,4 +188,13 @@ public class MessageFormatIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/data.padding.length.error/client" })
+    public void shouldDataPaddingLengthError() throws Exception
+    {
+        k3po.finish();
+    }
 }

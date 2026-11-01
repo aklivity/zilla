@@ -76,6 +76,7 @@ import io.aklivity.zilla.runtime.common.json.JsonParserEx.StringEventPositions;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.util.Flags;
 
@@ -185,6 +186,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final LlmEndExFW llmEndExRO = new LlmEndExFW();
     private final LlmAbortExFW llmAbortExRO = new LlmAbortExFW();
 
+    private final EngineContext context;
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
     private final Matcher contentTypeMatcher;
@@ -242,6 +244,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     public LlmOpenaiServerFactory(
         EngineContext context)
     {
+        this.context = context;
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.contentTypeMatcher = CONTENT_TYPE.matcher("");
@@ -2207,6 +2210,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private long replyAck;
         private int replyMax;
         private int replyPad;
+        private long replyBudgetId;
+        private BudgetDebit replyDebit;
 
         private int state;
         private boolean deauthorized;
@@ -2222,6 +2227,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private int encodeSlotOffset;
         private int encodeSlotRawOffset;
         private int encodeSent;
+        private boolean encodeFlushing;
 
         private long pendingReplyEndTraceId;
         private long pendingReplyEndAuthorization;
@@ -3407,7 +3413,17 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             replyAck = acknowledge;
             replyMax = maximum;
             replyPad = window.padding();
+            replyBudgetId = window.budgetId();
             state = LlmState.openReply(state);
+
+            if (replyBudgetId != 0L)
+            {
+                if (replyDebit == null)
+                {
+                    replyDebit = context.supplyDebit(replyId, replyBudgetId, this::flushEncodeSlot);
+                }
+                replyDebit.declare(traceId, replyPad, 0);
+            }
 
             flushEncodeSlot(traceId);
         }
@@ -3459,10 +3475,14 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         {
             final long available = replyMax - (replySeq - replyAck) - replyPad;
 
-            if (encodeSlot == NO_SLOT && available > 0 && length <= available)
+            if (encodeSlot == NO_SLOT && available > 0 && length <= available &&
+                claimReply(traceId, length, length) == length)
             {
                 doNetData(traceId, authorization, flags, budgetId, length + replyPad, attributes, buffer, offset, length);
-                stream.ackReply(traceId);
+                if (stream != null)
+                {
+                    stream.ackReply(traceId);
+                }
             }
             else
             {
@@ -3531,7 +3551,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 .traceId(traceId)
                 .authorization(authorization)
                 .flags(flags)
-                .budgetId(budgetId)
+                .budgetId(replyBudgetId)
                 .reserved(reserved)
                 .payload(buffer, offset, length);
 
@@ -3555,16 +3575,26 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             replySeq += reserved;
         }
 
+        private int claimReply(
+            long traceId,
+            int minimum,
+            int maximum)
+        {
+            return replyDebit != null ? replyDebit.claim(traceId, minimum, maximum) : maximum;
+        }
+
         private void flushEncodeSlot(
             long traceId)
         {
-            if (encodeSlot == NO_SLOT)
+            if (encodeSlot == NO_SLOT || encodeFlushing)
             {
                 return;
             }
 
+            encodeFlushing = true;
+
             final MutableDirectBufferEx buffer = encodePool.buffer(encodeSlot);
-            while (encodeSlotOffset > 0)
+            while (encodeSlot != NO_SLOT && encodeSlotOffset > 0)
             {
                 final long available = replyMax - (replySeq - replyAck) - replyPad;
                 if (available <= 0)
@@ -3575,7 +3605,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 final LlmQueueEntryFW entry = queueEntryRO.wrap(buffer, 0, encodeSlotOffset);
                 final OctetsFW payload = entry.payload();
                 final int remaining = payload.sizeof() - encodeSent;
-                final int sliceLength = (int) Math.min(remaining, available);
+                final int sliceMax = (int) Math.min(remaining, available);
+                final int sliceLength = sliceMax > 0 ? claimReply(traceId, 1, sliceMax) : sliceMax;
                 if (sliceLength <= 0 && remaining > 0)
                 {
                     break;
@@ -3591,7 +3622,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 doNetData(entry.traceId(), entry.authorization(), flags, entry.budgetId(),
                     sliceLength + replyPad, init ? entry.extension() : EMPTY_OCTETS, buffer, sliceOffset, sliceLength);
 
-                if (encodeSent >= payload.sizeof())
+                if (encodeSlot != NO_SLOT && encodeSent >= payload.sizeof())
                 {
                     final int size = entry.sizeof();
 
@@ -3605,7 +3636,9 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 }
             }
 
-            if (encodeSlotOffset == 0)
+            encodeFlushing = false;
+
+            if (encodeSlot != NO_SLOT && encodeSlotOffset == 0)
             {
                 encodePool.release(encodeSlot);
                 encodeSlot = NO_SLOT;

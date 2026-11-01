@@ -382,4 +382,13 @@ public class ConnectionManagementIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/ignore.server.headers.after.rst.stream/client",
+        "${app}/ignore.server.headers.after.rst.stream/server" })
+    public void shouldIgnoreServerHeadersAfterRstStream() throws Exception
+    {
+        k3po.finish();
+    }
 }
