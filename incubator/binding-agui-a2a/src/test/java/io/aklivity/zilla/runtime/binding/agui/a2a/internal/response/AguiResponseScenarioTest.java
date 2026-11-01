@@ -66,6 +66,8 @@ public class AguiResponseScenarioTest
             "interrupt.auth.required",
             "owner.context.reset.interrupt",
             "extension.messages.reset",
+            "extension.tools.call",
+            "extension.tools.call.text",
             "extension.tag.state",
             "extension.tag.activity",
             "extension.tag.reasoning",
@@ -108,11 +110,20 @@ public class AguiResponseScenarioTest
         {
             assertEquals(scripts.expectedOutcome, harness.outcome);
         }
+
         else
         {
             assertEquals(scripts.expectedCode, harness.errorCode);
             assertEquals(scripts.expectedMessage, harness.errorMessage);
         }
+    }
+
+    @Test
+    public void shouldReportPendingToolCallIds() throws IOException
+    {
+        final ResponseHarness harness = run(ScenarioScripts.load("extension.tools.call"), Integer.MAX_VALUE);
+
+        assertEquals("{\"pendingToolCallIds\":[\"h-1\"]}", harness.detail);
     }
 
     @Test

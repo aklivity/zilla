@@ -37,7 +37,12 @@ public final class AguiA2aRetained
         PART_RAW,
         PART_URL,
         PART_MIME,
-        PART_METADATA
+        PART_METADATA,
+        TOOLS,
+        TOOL_CALL_ID,
+        TOOL_CONTENT,
+        TOOL_ERROR,
+        TOOL_RESULT
     }
 
     public enum Append
@@ -117,6 +122,37 @@ public final class AguiA2aRetained
         int index)
     {
         return resumes.get(index).status;
+    }
+
+    public int toolResultCount()
+    {
+        int results = 0;
+
+        for (int index = indexOf(Kind.TOOL_RESULT); index != -1; index = indexOf(Kind.TOOL_RESULT, index + 1))
+        {
+            results++;
+        }
+
+        return results;
+    }
+
+    public String toolCallHandle(
+        int result)
+    {
+        int index = indexOf(Kind.TOOL_RESULT);
+
+        for (int skip = result; skip > 0; skip--)
+        {
+            index = indexOf(Kind.TOOL_RESULT, index + 1);
+        }
+
+        int handle = index - 1;
+        while (handle >= 0 && kind(handle) != Kind.TOOL_CALL_ID)
+        {
+            handle--;
+        }
+
+        return retention.buffer().getStringWithoutLengthUtf8(offset(handle) + 1, length(handle) - 2);
     }
 
     public Kind kind(
