@@ -38,9 +38,6 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class ProxyMatcherTest
 {
-    // literal IP addresses only (never a real hostname), so this never performs real DNS --
-    // mirrors the resolveHost function ProxyClientFactory/ProxyServerFactory thread into
-    // ProxyConditionMatcher from EngineContext.resolveHost in production
     private static final Function<String, InetAddress[]> RESOLVE_HOST = ProxyMatcherTest::resolveHostAddresses;
 
     private ProxyBeginExFW.Builder builder;
