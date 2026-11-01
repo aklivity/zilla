@@ -546,6 +546,7 @@ public final class AguiServerFactory implements AguiStreamFactory
         private int replyPad;
 
         private int state;
+        private boolean sseUpgrade;
 
         private int decodeSlot = NO_SLOT;
         private int decodeSlotOffset;
@@ -734,13 +735,9 @@ public final class AguiServerFactory implements AguiStreamFactory
         {
             final long traceId = abort.traceId();
 
-            cleanupDecodeSlot();
+            state = AguiState.closedInitial(state);
 
-            if (stream != null)
-            {
-                stream.doAppAbort(traceId, authorization);
-                stream.doAppReset(traceId, authorization);
-            }
+            cleanupNet(traceId, authorization);
         }
 
         private void onNetFlush(
@@ -806,13 +803,9 @@ public final class AguiServerFactory implements AguiStreamFactory
         {
             final long traceId = reset.traceId();
 
-            if (stream != null)
-            {
-                stream.doAppAbort(traceId, authorization);
-                stream.doAppReset(traceId, authorization);
-            }
+            state = AguiState.closedReply(state);
 
-            cleanupEncodeSlot();
+            cleanupNet(traceId, authorization);
         }
 
         private boolean identifier(
@@ -958,7 +951,7 @@ public final class AguiServerFactory implements AguiStreamFactory
         {
             if (!AguiState.replyOpening(state))
             {
-                state = AguiState.framingReply(state);
+                sseUpgrade = true;
 
                 doNetBegin(traceId, authorization, httpBeginExRW
                     .wrap(codecBuffer, 0, codecBuffer.capacity())
@@ -1273,7 +1266,7 @@ public final class AguiServerFactory implements AguiStreamFactory
             final int maxLength = limit - offset;
             final int length;
 
-            if (AguiState.replyFraming(state))
+            if (sseUpgrade)
             {
                 length = doDataEvents(net, originId, routedId, replyId, replySeq, replyAck, replyMax, replyPad, replyBud,
                     traceId, authorization, (MutableDirectBufferEx) buffer, offset, limit);
@@ -1364,7 +1357,20 @@ public final class AguiServerFactory implements AguiStreamFactory
             long traceId,
             long authorization)
         {
+            decoder = decodeIgnore;
+
             doNetReset(traceId, authorization);
+
+            if (!AguiState.replyOpening(state) && !AguiState.replyClosed(state))
+            {
+                doNetBegin(traceId, authorization, httpBeginExRW
+                    .wrap(codecBuffer, 0, codecBuffer.capacity())
+                    .typeId(httpTypeId)
+                    .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_500))
+                    .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
+                    .build());
+            }
+
             doNetAbort(traceId, authorization);
 
             if (stream != null)
@@ -1372,6 +1378,8 @@ public final class AguiServerFactory implements AguiStreamFactory
                 stream.doAppAbort(traceId, authorization);
                 stream.doAppReset(traceId, authorization);
             }
+
+            cleanupDecodeSlot();
         }
     }
 
@@ -1603,6 +1611,8 @@ public final class AguiServerFactory implements AguiStreamFactory
             replyAck = acknowledge;
 
             assert replyAck <= replySeq;
+
+            state = AguiState.openingReply(state);
 
             final AguiBeginExFW beginEx = extension.sizeof() > 0 ? extension.get(aguiBeginExRO::tryWrap) : null;
 
@@ -1927,7 +1937,7 @@ public final class AguiServerFactory implements AguiStreamFactory
 
             state = AguiState.closedReply(state);
 
-            if (replying && encoder != null)
+            if (replying && AguiState.replyOpening(state))
             {
                 final AguiEndExFW endEx = extension.sizeof() > 0 ? extension.get(aguiEndExRO::tryWrap) : null;
 
@@ -1962,7 +1972,7 @@ public final class AguiServerFactory implements AguiStreamFactory
 
             state = AguiState.closedReply(state);
 
-            if (replying && encoder != null)
+            if (replying && AguiState.replyOpening(state))
             {
                 final AguiAbortExFW abortEx = extension.sizeof() > 0 ? extension.get(aguiAbortExRO::tryWrap) : null;
                 final String message = abortEx != null && abortEx.error().message().asString() != null
