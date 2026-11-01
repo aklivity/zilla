@@ -11,6 +11,7 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     outputs:
       rebuilt-modules: ${{ steps.rebuilt.outputs.modules }}
     strategy:
@@ -160,6 +161,7 @@ jobs:
     needs:
       - build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
       packages: write
@@ -185,15 +187,24 @@ jobs:
       # Admin role for this repository under the package's Manage Actions access, and must not fail the publish.
       - name: Prune untagged build cache versions
         continue-on-error: true
-        uses: actions/delete-package-versions@v5
-        with:
-          package-name: ${{ github.event.repository.name }}/build-cache
-          package-type: container
-          delete-only-untagged-versions: 'true'
-          min-versions-to-keep: 3
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KEEP: 3
+        run: |
+          package="${GITHUB_REPOSITORY#*/}%2Fbuild-cache"
+          versions="/orgs/$GITHUB_REPOSITORY_OWNER/packages/container/$package/versions"
+          stale="$(gh api --paginate "$versions?per_page=100" | jq -s 'add' \
+            | jq -r --argjson keep "$KEEP" '[.[] | select((.metadata.container.tags | length) == 0)] | sort_by(.created_at) | reverse | .[$keep:][] | .id')"
+          for id in $stale; do
+            gh api --method DELETE "$versions/$id"
+            echo "deleted package version $id"
+          done
+          echo "pruned $(echo "$stale" | wc -w) untagged versions, kept the latest $KEEP"
 
   setup-examples:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs:
       - build
     outputs:
@@ -238,6 +249,7 @@ jobs:
 
   cache-images:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     outputs:
       key: ${{ steps.key.outputs.key }}
     steps:
@@ -296,6 +308,7 @@ jobs:
       - setup-examples
       - cache-images
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     env:
       ZILLA_VERSION: develop-SNAPSHOT
     steps:
@@ -361,6 +374,7 @@ jobs:
 
       - name: Start Zilla and wait for it to be healthy
         working-directory: examples/${{ matrix.dir }}
+        timeout-minutes: 20
         run: docker compose up -d --wait
 
       - name: Execute Test
@@ -379,9 +393,12 @@ jobs:
 
       - name: Collect docker logs on failure
         if: failure()
-        uses: jwalton/gh-docker-logs@v2
-        with:
-          dest: "./logs"
+        run: |
+          mkdir -p logs
+          for container in $(docker ps --all --quiet); do
+            name="$(docker inspect --format '{{.Name}}' "$container" | tr -d /)"
+            docker logs "$container" > "logs/$name.log" 2>&1 || true
+          done
       # `zilla dump` reads a collected engine directory, so ship it with the logs.
       # Copied out rather than bind-mounted: a host mount over /var/run/zilla can
       # collide with the container user's ownership of it and break the example
@@ -416,6 +433,7 @@ jobs:
       - cache-images
       - testing
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Verify examples
         env:
@@ -431,6 +449,7 @@ jobs:
     needs:
       - testing
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Delete Docker image artifact
         uses: actions/github-script@v9
