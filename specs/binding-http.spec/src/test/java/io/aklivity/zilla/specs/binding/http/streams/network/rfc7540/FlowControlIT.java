@@ -206,4 +206,14 @@ public class FlowControlIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/client.sent.data.on.closed.stream.after.flow.control.error/client",
+        "${net}/client.sent.data.on.closed.stream.after.flow.control.error/server"
+    })
+    public void shouldClientSentDataOnClosedStreamAfterFlowControlError() throws Exception
+    {
+        k3po.finish();
+    }
 }

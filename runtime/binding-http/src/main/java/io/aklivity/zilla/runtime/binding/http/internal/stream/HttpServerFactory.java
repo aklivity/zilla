@@ -5896,7 +5896,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 {
                     exchange.cleanup(traceId);
                     doEncodeRstStream(traceId, streamId, error);
-                    progress += payloadRemaining.value;
+                    progress += payload.capacity();
                 }
                 else
                 {
