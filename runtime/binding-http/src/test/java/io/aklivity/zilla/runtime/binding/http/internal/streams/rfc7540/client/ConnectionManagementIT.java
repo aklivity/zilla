@@ -382,4 +382,15 @@ public class ConnectionManagementIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/ignore.server.headers.after.rst.stream/client",
+        "${net}/ignore.server.headers.after.rst.stream/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    public void shouldIgnoreServerHeadersAfterRstStream() throws Exception
+    {
+        k3po.finish();
+    }
 }

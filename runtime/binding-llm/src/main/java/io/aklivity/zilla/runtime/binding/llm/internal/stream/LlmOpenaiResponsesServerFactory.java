@@ -78,6 +78,7 @@ import io.aklivity.zilla.runtime.common.json.JsonParserEx.StringEventPositions;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.util.Flags;
 
@@ -236,6 +237,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private final LlmEndExFW llmEndExRO = new LlmEndExFW();
     private final LlmAbortExFW llmAbortExRO = new LlmAbortExFW();
 
+    private final EngineContext context;
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
     private final Matcher contentTypeMatcher;
@@ -305,6 +307,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     public LlmOpenaiResponsesServerFactory(
         EngineContext context)
     {
+        this.context = context;
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.contentTypeMatcher = CONTENT_TYPE.matcher("");
@@ -2774,6 +2777,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private long replyAck;
         private int replyMax;
         private int replyPad;
+        private long replyBudgetId;
+        private BudgetDebit replyDebit;
 
         private int state;
         private boolean deauthorized;
@@ -2789,6 +2794,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private int encodeSlotOffset;
         private int encodeSlotRawOffset;
         private int encodeSent;
+        private boolean encodeFlushing;
 
         private long pendingReplyEndTraceId;
         private long pendingReplyEndAuthorization;
@@ -4472,7 +4478,17 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             replyAck = acknowledge;
             replyMax = maximum;
             replyPad = window.padding();
+            replyBudgetId = window.budgetId();
             state = LlmState.openReply(state);
+
+            if (replyBudgetId != 0L)
+            {
+                if (replyDebit == null)
+                {
+                    replyDebit = context.supplyDebit(replyId, replyBudgetId, this::flushEncodeSlot);
+                }
+                replyDebit.declare(traceId, replyPad, 0);
+            }
 
             flushEncodeSlot(traceId);
         }
@@ -4524,10 +4540,14 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         {
             final long available = replyMax - (replySeq - replyAck) - replyPad;
 
-            if (encodeSlot == NO_SLOT && available > 0 && length <= available)
+            if (encodeSlot == NO_SLOT && available > 0 && length <= available &&
+                claimReply(traceId, length, length) == length)
             {
                 doNetData(traceId, authorization, flags, budgetId, length + replyPad, attributes, buffer, offset, length);
-                stream.ackReply(traceId);
+                if (stream != null)
+                {
+                    stream.ackReply(traceId);
+                }
             }
             else
             {
@@ -4627,7 +4647,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 .traceId(traceId)
                 .authorization(authorization)
                 .flags(flags)
-                .budgetId(budgetId)
+                .budgetId(replyBudgetId)
                 .reserved(reserved)
                 .payload(buffer, offset, length);
 
@@ -4651,16 +4671,26 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             replySeq += reserved;
         }
 
+        private int claimReply(
+            long traceId,
+            int minimum,
+            int maximum)
+        {
+            return replyDebit != null ? replyDebit.claim(traceId, minimum, maximum) : maximum;
+        }
+
         private void flushEncodeSlot(
             long traceId)
         {
-            if (encodeSlot == NO_SLOT)
+            if (encodeSlot == NO_SLOT || encodeFlushing)
             {
                 return;
             }
 
+            encodeFlushing = true;
+
             final MutableDirectBufferEx buffer = encodePool.buffer(encodeSlot);
-            while (encodeSlotOffset > 0)
+            while (encodeSlot != NO_SLOT && encodeSlotOffset > 0)
             {
                 final long available = replyMax - (replySeq - replyAck) - replyPad;
                 if (available <= 0)
@@ -4675,7 +4705,8 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 final DirectBufferEx source = sourceLength > 0 ? stream.accumulator.buffer() : buffer;
                 final int base = sourceLength > 0 ? entry.sourceOffset() : payload.offset();
                 final int remaining = dataLength - encodeSent;
-                final int sliceLength = (int) Math.min(remaining, available);
+                final int sliceMax = (int) Math.min(remaining, available);
+                final int sliceLength = sliceMax > 0 ? claimReply(traceId, 1, sliceMax) : sliceMax;
                 if (sliceLength <= 0 && remaining > 0)
                 {
                     break;
@@ -4691,7 +4722,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 doNetData(entry.traceId(), entry.authorization(), flags, entry.budgetId(),
                     sliceLength + replyPad, init ? entry.extension() : EMPTY_OCTETS, source, sliceOffset, sliceLength);
 
-                if (encodeSent >= dataLength)
+                if (encodeSlot != NO_SLOT && encodeSent >= dataLength)
                 {
                     final int size = entry.sizeof();
 
@@ -4705,7 +4736,9 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                 }
             }
 
-            if (encodeSlotOffset == 0)
+            encodeFlushing = false;
+
+            if (encodeSlot != NO_SLOT && encodeSlotOffset == 0)
             {
                 encodePool.release(encodeSlot);
                 encodeSlot = NO_SLOT;

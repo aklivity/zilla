@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.client;
 
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CONCURRENT_STREAMS;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_CONNECTION_WINDOW_NAME;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_STREAM_INITIAL_WINDOW_NAME;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -94,6 +95,67 @@ public class FlowControlIT
     @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void clientServer100kMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/connection.window.bounded/client",
+        "${net}/client.connection.window.bounded/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    public void clientConnectionWindowBounded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/server.sent.connection.window.topup/client",
+        "${net}/server.sent.connection.window.topup/server" })
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_CONNECTION_WINDOW_NAME, value = "100000")
+    public void shouldServerSentConnectionWindowTopup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/server.sent.unknown.stream.connection.window.topup/client",
+        "${net}/server.sent.unknown.stream.connection.window.topup/server" })
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
+    @Configure(name = HTTP_CONNECTION_WINDOW_NAME, value = "100000")
+    public void shouldServerSentUnknownStreamConnectionWindowTopup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/server.sent.padded.connection.window.topup/client",
+        "${net}/server.sent.padded.connection.window.topup/server" })
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_CONNECTION_WINDOW_NAME, value = "100000")
+    public void shouldServerSentPaddedConnectionWindowTopup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/server.sent.padding.only.stream.window.update/client",
+        "${net}/server.sent.padding.only.stream.window.update/server" })
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    public void shouldServerSentPaddingOnlyStreamWindowUpdate() throws Exception
     {
         k3po.finish();
     }

@@ -194,4 +194,24 @@ public class MessageFormatIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/data.padding.length.error/client",
+        "${net}/data.padding.length.error/server",
+    })
+    public void shouldDataPaddingLengthError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.data.padding.length.error/client",
+        "${net}/client.data.padding.length.error/server",
+    })
+    public void shouldClientDataPaddingLengthError() throws Exception
+    {
+        k3po.finish();
+    }
 }

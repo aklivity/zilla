@@ -181,6 +181,16 @@ jobs:
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ github.token }}
+      # Each publish moves the tag and leaves the previous version untagged. Deleting a container version needs the
+      # Admin role for this repository under the package's Manage Actions access, and must not fail the publish.
+      - name: Prune untagged build cache versions
+        continue-on-error: true
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: ${{ github.event.repository.name }}/build-cache
+          package-type: container
+          delete-only-untagged-versions: 'true'
+          min-versions-to-keep: 3
 
   setup-examples:
     runs-on: ubuntu-latest

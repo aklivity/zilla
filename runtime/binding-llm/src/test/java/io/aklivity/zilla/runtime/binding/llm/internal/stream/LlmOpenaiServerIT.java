@@ -83,6 +83,16 @@ public class LlmOpenaiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.reply.shared.budget/client",
+        "${app}/openai.reply.padded/server"})
+    public void shouldForwardOpenaiNonstreamingWithReplySharedBudget() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.10k/client",
         "${app}/openai.10k/server"})
     public void shouldForwardOpenai10k() throws Exception
@@ -536,6 +546,15 @@ public class LlmOpenaiServerIT
         "${net}/openai.section.rejected.json.malformed/client",
         "${app}/openai.section.rejected.json.malformed/server"})
     public void shouldDecodeOpenaiSectionRejectedJsonMalformed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.rejected.json.malformed.window/client"})
+    public void shouldRejectOpenaiJsonMalformedWithReplyWindow() throws Exception
     {
         k3po.finish();
     }

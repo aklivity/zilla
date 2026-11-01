@@ -63,6 +63,16 @@ public class LlmGeminiServerIT
 
     @Test
     @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.reply.shared.budget/client",
+        "${app}/gemini/server"})
+    public void shouldForwardGeminiNonstreamingWithReplySharedBudget() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
     @ScriptProperty({"source \"gemini\"", "target \"gemini\"", "reason \"gemini:MALFORMED_FUNCTION_CALL\""})
     @Specification({
         "${net}/gemini.transform.response.finish.reason.unknown/client",
