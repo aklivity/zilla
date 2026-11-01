@@ -560,6 +560,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/discover.stream.message.parse.error/client",
+        "${net}/discover.stream.message.parse.error/server"})
+    public void shouldDiscoverStreamMessageParseError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/discover.stream.message.auth.required/client",
         "${net}/discover.stream.message.auth.required/server"})
     public void shouldDiscoverStreamMessageAuthRequired() throws Exception
