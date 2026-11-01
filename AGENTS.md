@@ -120,7 +120,10 @@ module that depends on it.
   branch and then `develop`, and a push to `develop` or `support/**` publishes it
   from a separate job, the only one with `packages: write`
   (`.github/scripts/build-cache.sh`). A missing artifact is a cold build, never an
-  error
+  error. Each publish leaves the previous package version untagged, so the same job
+  deletes untagged versions beyond the latest three; that needs the Admin role for
+  the repository under the package's Manage Actions access, and a failure does not
+  fail the publish
 - A local session (e.g. a sandboxed agent environment with no pre-populated
   `~/.m2`) can restore the same cache manually instead of building the whole
   reactor from source — do this before any full `./mvnw install` at the repo
