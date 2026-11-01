@@ -282,6 +282,8 @@
                 <Specification-Title>${project.name}</Specification-Title>
                 <Specification-Version>${project.version}</Specification-Version>
                 <Specification-Vendor>aklivity.io</Specification-Vendor>
+                <Add-Opens>java.base/jdk.internal.misc</Add-Opens>
+                <Enable-Native-Access>ALL-UNNAMED</Enable-Native-Access>
               </manifestEntries>
             </transformer>
           </transformers>
