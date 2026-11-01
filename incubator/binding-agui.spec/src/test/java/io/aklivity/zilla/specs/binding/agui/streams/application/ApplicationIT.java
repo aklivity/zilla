@@ -359,4 +359,13 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/run.routed/client",
+        "${app}/run.routed/server"})
+    public void shouldRunRouted() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -19,8 +19,10 @@ bindings:
   net0:
     type: agui
     kind: server
-    exit: app0
     routes:
-      - exit: app1
+      - exit: app0
         when:
-          - path: /agent
+          - path: /agents
+        with:
+          agent: support-agent
+          topic: agents
