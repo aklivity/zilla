@@ -62,6 +62,16 @@ public class LlmOpenaiResponsesServerIT
     }
 
     @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.reply.shared.budget/client",
+        "${app}/openai.responses.text/server"})
+    public void shouldForwardOpenaiResponsesWithReplySharedBudget() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.openai.yaml")
     @Specification({
         "${net}/openai.responses.text/client",
@@ -316,6 +326,15 @@ public class LlmOpenaiResponsesServerIT
         "${net}/openai.responses.rejected.error.param/client",
         "${app}/openai.responses.rejected.error.param/server"})
     public void shouldPreserveOpenaiResponsesRejectedErrorParam() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.rejected.json.malformed.window/client"})
+    public void shouldRejectOpenaiResponsesJsonMalformedWithReplyWindow() throws Exception
     {
         k3po.finish();
     }

@@ -74,6 +74,7 @@ import io.aklivity.zilla.runtime.common.json.JsonParserEx.StringEventPositions;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.util.Flags;
@@ -225,6 +226,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private final LlmEndExFW.Builder llmEndExRW = new LlmEndExFW.Builder();
     private final LlmAbortExFW.Builder llmAbortExRW = new LlmAbortExFW.Builder();
 
+    private final EngineContext context;
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
     private final Matcher contentTypeMatcher;
@@ -247,6 +249,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     public LlmOpenaiClientFactory(
         EngineContext context)
     {
+        this.context = context;
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.contentTypeMatcher = CONTENT_TYPE.matcher("");
@@ -4010,6 +4013,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private long initialAck;
         private int initialMax;
         private int initialPad;
+        private long initialBudgetId;
+        private BudgetDebit initialDebit;
 
         private long replySeq;
         private long replyAck;
@@ -4943,6 +4948,14 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             return encodeSlotOffset + generator.length() + length <= encodeMax;
         }
 
+        private int claimInitial(
+            long traceId,
+            int minimum,
+            int maximum)
+        {
+            return initialDebit != null ? initialDebit.claim(traceId, minimum, maximum) : maximum;
+        }
+
         private void flushEncode(
             long traceId)
         {
@@ -4952,7 +4965,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 {
                     final int flushLimit = bodyHeld ? 0 : encodeSlotOffset;
                     final long window = initialMax - (initialSeq - initialAck) - initialPad;
-                    final int length = (int) Math.max(Math.min(flushLimit, window), 0L);
+                    final int lengthMax = (int) Math.max(Math.min(flushLimit, window), 0L);
+                    final int length = lengthMax > 0 ? claimInitial(traceId, 1, lengthMax) : 0;
 
                     if (length > 0)
                     {
@@ -5193,7 +5207,18 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             initialAck = window.acknowledge();
             initialMax = window.maximum();
             initialPad = window.padding();
+            initialBudgetId = window.budgetId();
             state = LlmState.openInitial(state);
+
+            if (initialBudgetId != 0L)
+            {
+                if (initialDebit == null)
+                {
+                    initialDebit = LlmOpenaiClientFactory.this.context.supplyDebit(initialId, initialBudgetId,
+                        this::flushEncode);
+                }
+                initialDebit.declare(window.traceId(), initialPad, 0);
+            }
 
             flushEncode(window.traceId());
             stream.flushAppWindow(window.traceId());
@@ -5680,7 +5705,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 .traceId(traceId)
                 .authorization(stream.authorization)
                 .flags(Flags.COMPLETE)
-                .budgetId(0L)
+                .budgetId(initialBudgetId)
                 .reserved(length + initialPad)
                 .payload(buffer, offset, length)
                 .extension(EMPTY_OCTETS)
@@ -5769,7 +5794,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 .streamId(replyId)
                 .sequence(replySeq)
                 .acknowledge(replyAck)
-                .maximum(decodeMax - buffered)
+                .maximum(decodeMax)
                 .traceId(traceId)
                 .budgetId(0L)
                 .padding(framing ? QUEUE_ENTRY_PADDING : 0)
