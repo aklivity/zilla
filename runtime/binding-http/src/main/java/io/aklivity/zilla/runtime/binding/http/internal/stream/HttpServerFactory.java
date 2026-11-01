@@ -172,6 +172,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private static final int CAPABILITY_CHALLENGE_MASK = 1 << Capability.CHALLENGE.ordinal();
     private static final int CAPABILITY_FRAMING_MASK = 1 << Capability.FRAMING.ordinal();
     private static final int EVENT_FIELD_VALUE_MAX = 255;
+    private static final int INITIAL_CONNECTION_WINDOW = 65_535;
     private static final String8FW HEADER_CONTENT_TYPE = new String8FW("content-type");
     private static final byte[] CONTENT_TYPE_EVENT_STREAM = "text/event-stream".getBytes(UTF_8);
     private static final byte[] CONTENT_TYPE_PARAMETER_SPACE = "space=1".getBytes(UTF_8);
@@ -576,6 +577,8 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final Http2HeadersEncoder headersEncoder = new Http2HeadersEncoder();
 
     private final HttpConfiguration config;
+    private final int connectionWindow;
+    private final int connectionWindowLowMark;
     private final MutableDirectBufferEx codecBuffer;
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx frameBuffer;
@@ -614,6 +617,8 @@ public final class HttpServerFactory implements HttpStreamFactory
         EngineContext context)
     {
         this.config = config;
+        this.connectionWindow = config.connectionWindow();
+        this.connectionWindowLowMark = connectionWindow >> 1;
         this.context = context;
         this.writeBuffer = context.writeBuffer();
         this.bufferPool = context.bufferPool();
@@ -4186,6 +4191,12 @@ public final class HttpServerFactory implements HttpStreamFactory
             }
             else
             {
+                server.localSharedBudget -= http2Data.length();
+                if (server.localSharedBudget < connectionWindowLowMark)
+                {
+                    server.doEncodeConnectionWindow(traceId, authorization);
+                }
+
                 server.decodableDataBytes = http2Data.dataLength();
                 progress = http2Data.dataOffset();
 
@@ -4411,6 +4422,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         private int replySharedBudget;
 
         private int remoteSharedBudget;
+        private int localSharedBudget = INITIAL_CONNECTION_WINDOW;
         private int responseSharedBudget;
         private BudgetCredit responseCredit;
         private BudgetDebit replyDebit;
@@ -5260,6 +5272,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             Http2PrefaceFW http2Preface)
         {
             doEncodeSettings(traceId, authorization);
+            doEncodeConnectionWindow(traceId, authorization);
         }
 
         private void onDecodeSettings(
@@ -6225,20 +6238,32 @@ public final class HttpServerFactory implements HttpStreamFactory
             int streamId,
             int size)
         {
-            final int frameOffset = http2WindowUpdateRW.wrap(frameBuffer, 0, frameBuffer.capacity())
-                    .streamId(0)
-                    .size(size)
-                    .build()
-                    .limit();
-
-            final int frameLimit = http2WindowUpdateRW
-                    .wrap(frameBuffer, frameOffset, frameBuffer.capacity())
+            final int frameLimit = http2WindowUpdateRW.wrap(frameBuffer, 0, frameBuffer.capacity())
                     .streamId(streamId)
                     .size(size)
                     .build()
                     .limit();
 
             doNetworkReservedData(traceId, authorization, 0L, frameBuffer, 0, frameLimit);
+        }
+
+        private void doEncodeConnectionWindow(
+            long traceId,
+            long authorization)
+        {
+            final int credit = connectionWindow - localSharedBudget;
+
+            if (credit > 0)
+            {
+                final int frameLimit = http2WindowUpdateRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+                        .streamId(0)
+                        .size(credit)
+                        .build()
+                        .limit();
+
+                doNetworkReservedData(traceId, authorization, 0L, frameBuffer, 0, frameLimit);
+                localSharedBudget = connectionWindow;
+            }
         }
 
         private void cleanupNetwork(

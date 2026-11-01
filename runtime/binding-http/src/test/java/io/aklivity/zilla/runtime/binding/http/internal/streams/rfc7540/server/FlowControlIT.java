@@ -16,6 +16,9 @@
 package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.server;
 
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CONCURRENT_STREAMS;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_CONNECTION_WINDOW_NAME;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_STREAM_INITIAL_WINDOW_NAME;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -30,6 +33,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class FlowControlIT
 {
@@ -78,6 +82,40 @@ public class FlowControlIT
         "${app}/server.rst.stream.last.frame/server"
     })
     public void serverResetStreamLastFrame() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/server.connection.window.bounded/client",
+        "${app}/connection.window.bounded/server" })
+    public void serverConnectionWindowBounded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/client.sent.connection.window.topup/client",
+        "${app}/client.sent.connection.window.topup/server" })
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_CONNECTION_WINDOW_NAME, value = "100000")
+    public void shouldClientSentConnectionWindowTopup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/client.sent.unknown.stream.connection.window.topup/client" })
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
+    @Configure(name = HTTP_CONNECTION_WINDOW_NAME, value = "100000")
+    public void shouldClientSentUnknownStreamConnectionWindowTopup() throws Exception
     {
         k3po.finish();
     }

@@ -96,4 +96,64 @@ public class FlowControlIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/server.connection.window.bounded/client",
+        "${net}/server.connection.window.bounded/server",
+    })
+    public void serverConnectionWindowBounded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.connection.window.bounded/client",
+        "${net}/client.connection.window.bounded/server",
+    })
+    public void clientConnectionWindowBounded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.sent.connection.window.topup/client",
+        "${net}/client.sent.connection.window.topup/server",
+    })
+    public void shouldClientSentConnectionWindowTopup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.connection.window.topup/client",
+        "${net}/server.sent.connection.window.topup/server",
+    })
+    public void shouldServerSentConnectionWindowTopup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.sent.unknown.stream.connection.window.topup/client",
+        "${net}/client.sent.unknown.stream.connection.window.topup/server",
+    })
+    public void shouldClientSentUnknownStreamConnectionWindowTopup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.unknown.stream.connection.window.topup/client",
+        "${net}/server.sent.unknown.stream.connection.window.topup/server",
+    })
+    public void shouldServerSentUnknownStreamConnectionWindowTopup() throws Exception
+    {
+        k3po.finish();
+    }
 }

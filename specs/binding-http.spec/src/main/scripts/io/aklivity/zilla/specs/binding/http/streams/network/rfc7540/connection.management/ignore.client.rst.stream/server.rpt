@@ -28,6 +28,11 @@ write [0x00 0x00 0x12]                   # length = 18
       [0x00 0x03 0x00 0x00 0x00 0x64]    # SETTINGS_MAX_CONCURRENT_STREAMS(0x03) = 100
       [0x00 0x04 0x00 0x00 0x00 0x00]    # SETTINGS_INITIAL_WINDOW_SIZE(0x03) = 0
       [0x00 0x06 0x00 0x00 0x20 0x00]    # SETTINGS_MAX_HEADER_LIST_SIZE(0x06) = 8192
+write [0x00 0x00 0x04]                                     # length
+      [0x08]                                               # WINDOW_UPDATE frame
+      [0x00]                                               # no flags
+      [0x00 0x00 0x00 0x00]                                # stream_id=0
+      [0x7f 0xff 0x00 0x00]                                # window size increment = 2147418112
 write flush
 
 # client connection preface
@@ -74,12 +79,6 @@ read [0x00 0x00 0x00]                   # length = 0
 write [0x00 0x00 0x04]                                      # length
       [0x08]                                                # WINDOW_UPDATE frame
       [0x00]                                                # no flags
-      [0x00 0x00 0x00 0x00]                                 # stream_id=0
-      [0x00 0x00 0x00 0x0c]                                 # window size increment = 12
-
-write [0x00 0x00 0x04]                                      # length
-      [0x08]                                                # WINDOW_UPDATE frame
-      [0x00]                                                # no flags
       [0x00 0x00 0x00 0x01]                                 # stream_id=1
       [0x00 0x00 0x00 0x0c]                                 # window size increment = 12
 
@@ -118,9 +117,3 @@ read [0x00 0x00 0x13]                  # length = 19
      [0x86]                            # :scheme: http
      [0x84]                            # :path: /
      [0x01] [0x0e] "localhost:8080"    # :authority: localhost:8080
-
-write [0x00 0x00 0x04]                   # length
-      [0x08]                             # WINDOW_UPDATE frame
-      [0x00]                             # no flags
-      [0x00 0x00 0x00 0x00]              # stream_id=0
-      [0x00 0x00 0x00 0x0c]              # size
