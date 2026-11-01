@@ -3594,7 +3594,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 {
                     exchange.cleanup(traceId, authorization);
                     doEncodeHttp2RstStream(traceId, streamId, error);
-                    progress += payloadRemaining.value;
+                    progress += payload.capacity();
                 }
                 else
                 {
@@ -5485,6 +5485,11 @@ public final class HttpClientFactory implements HttpStreamFactory
                     state = HttpState.closeReply(state);
                     doAbort(application, originId, routedId, responseId, responseSeq, responseAck, requestMax,
                             traceId, authorization, extension);
+
+                    if (HttpState.closed(state))
+                    {
+                        onExchangeClosed();
+                    }
                 }
                 else
                 {
