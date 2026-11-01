@@ -45,7 +45,7 @@ public final class AguiA2aBindingInfo implements BindingInfo
     @Override
     public ConfigAdapter<OptionsConfig, JsonObject> options()
     {
-        return null;
+        return new AguiA2aOptionsConfigAdapter();
     }
 
     @Override

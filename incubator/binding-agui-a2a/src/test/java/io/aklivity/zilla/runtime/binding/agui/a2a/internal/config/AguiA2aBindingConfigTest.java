@@ -64,7 +64,7 @@ public class AguiA2aBindingConfigTest
             .routes(routes)
             .build();
         config.resolveId = name -> 1L;
-        return new AguiA2aBindingConfig(config, id -> null);
+        return new AguiA2aBindingConfig(config, id -> null, null);
     }
 
     @Test

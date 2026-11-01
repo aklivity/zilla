@@ -147,13 +147,21 @@ there is no incremental text.
 
 ## Known limits
 
-- The remembered context lives in memory on one worker. A restart, a worker rescale or an expiry loses it; the
-  next run starts a new agent context and the `MESSAGES_SNAPSHOT` above tells the client. A history the client
-  trimmed holds no assistant message, so that loss is not announced.
+- The remembered context lives in memory on one worker unless `options.store` names a store. A restart, a worker
+  rescale or an expiry loses it; the next run starts a new agent context and the `MESSAGES_SNAPSHOT` above tells
+  the client. A history the client trimmed holds no assistant message, so that loss is not announced.
+- With `options.store` the store holds the authoritative copy and the worker keeps a local fast path. Contexts are
+  written under `agui-a2a/ctx/<hash>` and handles under `agui-a2a/h/<handle>` with the `thread.ttl` and `handle.ttl`
+  lifetimes. A request that misses locally waits for a store read before it continues. The values hold A2A ids
+  and never reach the client. A failed write is ignored and the local copy still serves the run.
+- The context key is a 64-bit hash of the identity, agent and thread id, and the store value holds only the
+  context id. A hash collision, probability about 2^-64 per pair, would return another thread's context.
 - An agent that returns a `contextId` on every message without keeping memory causes one spurious reset per thread
   per restart.
-- Interrupt handles are worker-local too. An unknown, expired or foreign handle rejects the run with 409
-  `handle_unknown` before the agent is contacted.
+- Interrupt handles are worker-local too unless a store is configured. An unknown, expired or foreign handle
+  rejects the run with 409 `handle_unknown` before the agent is contacted. A handle is consumed on use. Resolving
+  it twice from different instances is guarded only for a handle local to the worker that issued it; a handle
+  restored from the store is consumed by the store's `getAndDelete`.
 - Aborting a run cancels the A2A task once its id is known. Before the first event the remote task may keep
   running. A Stop button and a closed tab look the same to Zilla.
 - The interrupt tag is not mapped yet. The proxy

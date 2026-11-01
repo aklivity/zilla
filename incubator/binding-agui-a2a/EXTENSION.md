@@ -450,7 +450,7 @@ The extension gives each deferred item a place; it does not specify the implemen
 | --- | --- |
 | #2885 working status messages as activity | tier 1 behavior of an untagged `WORKING` message, an `ACTIVITY_SNAPSHOT` `status` that replaces the earlier fallback reply; in tier 2 the `activity` and `step` tags |
 | #2886 A2UI content plug-in | not part of this extension. A plug-in is its own A2A extension owned by its content type; it adds its media type to `acceptedOutputModes` and its URI to `A2A-Extensions` when the card declares it, and maps to an AG-UI activity type. Adding one needs no change to this carrier |
-| #2887 durable state tier | not part of the protocol: handles and contexts stay owner-local on the proxy, behind the state interface |
+| #2887 durable state tier | not part of the protocol: contexts and handles stay on the proxy behind the state interface; `options.store` writes them through to a store and restores them on a local miss, and the values never reach the client |
 | #2888 frontend tools through the extension | features `tools` and `toolCalls`; `metadata.agui.tools`; `toolCall` and `toolResult` tags; section 7.4 |
 | #2889 state, activity, reasoning, step and tool-call events | features `state`, `activity`, `reasoning`, `steps`, `toolCalls`, `custom`; section 7.3 |
 | #2890 agent-declared history feature | feature `history`; section 6.3 |
