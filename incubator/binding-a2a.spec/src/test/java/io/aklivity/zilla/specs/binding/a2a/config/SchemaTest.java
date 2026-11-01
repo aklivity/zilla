@@ -30,6 +30,7 @@ public class SchemaTest
 {
     @Rule
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/guard/test.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/binding/a2a/schema/a2a.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/a2a/config");
 
@@ -337,5 +338,29 @@ public class SchemaTest
     public void shouldRejectServerVersionsUnknown()
     {
         schema.validate("server.versions.unknown.invalid.yaml");
+    }
+
+    @Test
+    public void shouldValidateClientCredentials()
+    {
+        JsonObject config = schema.validate("client.credentials.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateClientRoutesGuarded()
+    {
+        JsonObject config = schema.validate("client.routes.guarded.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateClientVersionsV03()
+    {
+        JsonObject config = schema.validate("client.versions.v03.yaml");
+
+        assertThat(config, not(nullValue()));
     }
 }

@@ -156,6 +156,70 @@ public final class A2aV10Dialect implements A2aDialect
     }
 
     @Override
+    public JsonObject requestParams(
+        A2aOperation operation,
+        A2aRequestParams request,
+        String tenant)
+    {
+        final JsonObjectBuilder builder = Json.createObjectBuilder();
+
+        if (tenant != null && (request.body() == null || !(request.body() instanceof JsonObject body) ||
+            !body.containsKey("tenant")))
+        {
+            builder.add("tenant", tenant);
+        }
+
+        switch (operation)
+        {
+        case TASKS_GET:
+            builder.add("id", request.taskId());
+            if (request.historyLength() >= 0)
+            {
+                builder.add("historyLength", request.historyLength());
+            }
+            break;
+        case TASKS_CANCEL:
+        case TASKS_SUBSCRIBE:
+            builder.add("id", request.taskId());
+            break;
+        case PUSH_CONFIG_LIST:
+            builder.add("taskId", request.taskId());
+            break;
+        case PUSH_CONFIG_GET:
+        case PUSH_CONFIG_DELETE:
+            builder.add("taskId", request.taskId()).add("id", request.configId());
+            break;
+        case EXTENDED_AGENT_CARD:
+            break;
+        default:
+            if (request.body() instanceof JsonObject body)
+            {
+                body.forEach(builder::add);
+            }
+            break;
+        }
+
+        final JsonObject params = builder.build();
+
+        return operation == A2aOperation.EXTENDED_AGENT_CARD && tenant == null ? null : params;
+    }
+
+    @Override
+    public JsonValue resultFromWire(
+        A2aOperation operation,
+        JsonValue wire)
+    {
+        return wire;
+    }
+
+    @Override
+    public JsonObject cardFromWire(
+        JsonObject wire)
+    {
+        return wire;
+    }
+
+    @Override
     public boolean verbatim()
     {
         return true;
