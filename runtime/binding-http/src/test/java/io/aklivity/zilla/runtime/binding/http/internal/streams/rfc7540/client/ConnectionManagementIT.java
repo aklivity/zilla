@@ -263,6 +263,18 @@ public class ConnectionManagementIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/server.sent.data.on.closed.stream/client",
+        "${net}/server.sent.data.on.closed.stream/server"
+    })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    public void shouldServerSentDataOnClosedStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/server.sent.end.stream.before.payload/client",
         "${net}/server.sent.end.stream.before.payload/server"
     })
