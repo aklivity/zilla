@@ -16,49 +16,64 @@ package io.aklivity.zilla.config.binding.agui;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.instanceOf;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.config.engine.RouteConfig;
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
 
 public class AguiRouteConfigBuilderTest
 {
     @Test
-    public void shouldBuildServerRoute()
+    public void shouldBuildClientRouteWithAgentAndPath()
     {
-        RouteConfig route = new AguiRouteConfigBuilder<RouteConfig>(RouteConfig.class::cast)
-            .exit("app0")
-            .when()
-                .path("/agents/{name}")
+        BindingConfig binding = AguiBindingConfig.builder()
+            .namespace("test")
+            .name("app0")
+            .kind(KindConfig.CLIENT)
+            .options()
+                .server("http://localhost:8080/agent")
                 .build()
-            .with()
-                .agent("${params.name}")
+            .route()
+                .exit("net1")
+                .when()
+                    .agent("agent-1")
+                    .build()
+                .with()
+                    .path("/routed")
+                    .build()
                 .build()
             .build();
 
-        assertThat(route.exit, equalTo("app0"));
-        assertThat(route.when, hasSize(1));
-        assertThat(route.when.get(0), instanceOf(AguiConditionConfig.class));
-        assertThat(((AguiConditionConfig) route.when.get(0)).path, equalTo("/agents/{name}"));
-        assertThat(((AguiWithConfig) route.with).agent, equalTo("${params.name}"));
+        AguiConditionConfig when = (AguiConditionConfig) binding.routes.get(0).when.get(0);
+        AguiWithConfig with = (AguiWithConfig) binding.routes.get(0).with;
+
+        assertThat(when.agent, equalTo("agent-1"));
+        assertThat(with.path, equalTo("/routed"));
     }
 
     @Test
-    public void shouldBuildClientRoute()
+    public void shouldBuildServerRouteWithPathAndAgent()
     {
-        RouteConfig route = new AguiRouteConfigBuilder<RouteConfig>(RouteConfig.class::cast)
-            .exit("net0")
-            .when()
-                .agent("support")
-                .build()
-            .with()
-                .path("/agents/support")
+        BindingConfig binding = AguiBindingConfig.builder()
+            .namespace("test")
+            .name("app0")
+            .kind(KindConfig.SERVER)
+            .route()
+                .exit("app1")
+                .when()
+                    .path("/agents/{name}")
+                    .build()
+                .with()
+                    .agent("${params.name}")
+                    .build()
                 .build()
             .build();
 
-        assertThat(((AguiConditionConfig) route.when.get(0)).agent, equalTo("support"));
-        assertThat(((AguiWithConfig) route.with).path, equalTo("/agents/support"));
+        AguiConditionConfig when = (AguiConditionConfig) binding.routes.get(0).when.get(0);
+        AguiWithConfig with = (AguiWithConfig) binding.routes.get(0).with;
+
+        assertThat(when.path, equalTo("/agents/{name}"));
+        assertThat(with.agent, equalTo("${params.name}"));
     }
 }

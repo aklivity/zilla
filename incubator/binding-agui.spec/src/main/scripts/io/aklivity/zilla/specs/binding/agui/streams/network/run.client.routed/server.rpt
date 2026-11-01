@@ -14,7 +14,9 @@
 #
 
 
-accept "zilla://streams/net0"
+property serverAddress "zilla://streams/net0"
+
+accept ${serverAddress}
        option zilla:window 8192
        option zilla:transmission "half-duplex"
 
