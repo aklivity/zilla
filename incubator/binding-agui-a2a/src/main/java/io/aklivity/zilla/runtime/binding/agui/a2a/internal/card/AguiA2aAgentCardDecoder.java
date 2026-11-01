@@ -47,6 +47,7 @@ public final class AguiA2aAgentCardDecoder
     private final AguiA2aAgentCardDecode decodeExtensionRequired = this::decodeExtensionRequired;
     private final AguiA2aAgentCardDecode decodeParamsStart = this::decodeParamsStart;
     private final AguiA2aAgentCardDecode decodeParams = this::decodeParams;
+    private final AguiA2aAgentCardDecode decodeParamsHistory = this::decodeParamsHistory;
     private final AguiA2aAgentCardDecode decodeFeaturesStart = this::decodeFeaturesStart;
     private final AguiA2aAgentCardDecode decodeFeatures = this::decodeFeatures;
     private final AguiA2aAgentCardDecode decodeInputModesStart = this::decodeInputModesStart;
@@ -66,6 +67,7 @@ public final class AguiA2aAgentCardDecoder
     private boolean streaming;
     private String extensionUri;
     private boolean extensionRequired;
+    private String extensionHistory = AguiA2aExtension.HISTORY_CONTEXT;
     private boolean failed;
 
     public int decode(
@@ -134,6 +136,7 @@ public final class AguiA2aAgentCardDecoder
         extensionFeatures.clear();
         extensionUri = null;
         extensionRequired = false;
+        extensionHistory = AguiA2aExtension.HISTORY_CONTEXT;
         decoder = decodeStart;
         skipThen = null;
         skipDepth = 0;
@@ -337,6 +340,7 @@ public final class AguiA2aAgentCardDecoder
             case START_OBJECT:
                 extensionUri = null;
                 extensionRequired = false;
+                extensionHistory = AguiA2aExtension.HISTORY_CONTEXT;
                 extensionFeatures.clear();
                 decoder = decodeExtension;
                 break;
@@ -389,7 +393,8 @@ public final class AguiA2aAgentCardDecoder
             case END_OBJECT:
                 if (extensionUri != null)
                 {
-                    extensions.add(new AguiA2aExtension(extensionUri, extensionRequired, Set.copyOf(extensionFeatures)));
+                    extensions.add(new AguiA2aExtension(extensionUri, extensionRequired, Set.copyOf(extensionFeatures),
+                        extensionHistory));
                 }
                 decoder = decodeExtensions;
                 break;
@@ -492,6 +497,10 @@ public final class AguiA2aAgentCardDecoder
                     {
                         decoder = decodeFeaturesStart;
                     }
+                    else if ("history".contentEquals(parser.getStringView()))
+                    {
+                        decoder = decodeParamsHistory;
+                    }
                     else
                     {
                         skip(decodeParams);
@@ -504,6 +513,34 @@ public final class AguiA2aAgentCardDecoder
             default:
                 onDecodeParseError();
                 break decode;
+            }
+        }
+
+        return position(limit);
+    }
+
+    private int decodeParamsHistory(
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        if (parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            if (event == JsonEvent.VALUE_STRING)
+            {
+                if (!parser.deferredBytes())
+                {
+                    extensionHistory = AguiA2aExtension.HISTORY_ALWAYS.equals(parser.getString())
+                        ? AguiA2aExtension.HISTORY_ALWAYS
+                        : AguiA2aExtension.HISTORY_CONTEXT;
+                }
+                decoder = decodeParams;
+            }
+            else
+            {
+                skipUnexpected(event, decodeParams);
             }
         }
 

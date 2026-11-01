@@ -151,6 +151,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
     private final MutableDirectBufferEx bodyBuffer;
     private final BufferPool decodePool;
     private final BufferPool retentionPool;
+    private final BufferPool archivePool;
     private final BufferPool encodePool;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
@@ -173,6 +174,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
         this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.decodePool = context.bufferPool();
         this.retentionPool = context.bufferPool().duplicate();
+        this.archivePool = context.bufferPool().duplicate();
         this.encodePool = context.bufferPool().duplicate();
         this.bodyBuffer = new UnsafeBufferEx(new byte[context.bufferPool().slotCapacity()]);
         this.streamFactory = context.streamFactory();
@@ -394,7 +396,8 @@ public final class AguiA2aProxyFactory implements BindingHandler
             this.runId = runId;
             this.parentRunId = parentRunId;
             this.retention = new AguiA2aRetention(retentionPool);
-            this.requestDecoder = new AguiA2aRequestDecoder(initialId, threadId, runId, parentRunId, retention);
+            this.requestDecoder = new AguiA2aRequestDecoder(initialId, threadId, runId, parentRunId, retention,
+                new AguiA2aRetention(archivePool));
         }
 
         private void onAguiMessage(
@@ -679,7 +682,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
         {
             if (!requestDecoder.priorTurn() || rememberedContextId != null)
             {
-                retention.release();
+                releaseRetention();
             }
         }
 
@@ -689,6 +692,12 @@ public final class AguiA2aProxyFactory implements BindingHandler
             this.mapper = new AguiResponseMapper(this, this, aguiTypeId, decodePool.slotCapacity());
             this.eventDecoder = new A2aEventDecoder(mapper, decodePool.slotCapacity(),
                 cancelled ? A2aEventRoot.TASK : A2aEventRoot.EVENT);
+        }
+
+        private void releaseRetention()
+        {
+            retention.release();
+            requestDecoder.releaseArchive();
         }
 
         private void onCardDecoded(
@@ -720,6 +729,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
                 final String contextId = resumeTaskId == null ? rememberedContextId : null;
                 assembler.wrap(retained, runId, contextId, resumeTaskId, resumeInterruptId, card.acceptsAdvisory())
                     .extension(offered)
+                    .history(history(traceId, card))
                     .toolCalls(toolCalls::get)
                     .accepting(card::acceptsInput);
 
@@ -737,6 +747,30 @@ public final class AguiA2aProxyFactory implements BindingHandler
                     message.doA2aBegin(traceId);
                 }
             }
+        }
+
+        private AguiA2aRetained history(
+            long traceId,
+            AguiA2aAgentCard card)
+        {
+            final AguiA2aRetained archive = requestDecoder.archive();
+            final boolean wanted = offered != null && offered.enabled(AguiA2aExtension.FEATURE_HISTORY) &&
+                card.acceptsAdvisory() && resumeTaskId == null && (offered.historyAlways() || rememberedContextId == null);
+            final String omitted = requestDecoder.archiveOmitted();
+
+            if (wanted && omitted != null)
+            {
+                events.historyOmitted(traceId, binding.id, agent, omitted);
+            }
+
+            final boolean present = wanted && archive != null && archive.count() > 0;
+
+            if (!present)
+            {
+                requestDecoder.releaseArchive();
+            }
+
+            return present ? archive : null;
         }
 
         private boolean resolveToolResults(
@@ -819,7 +853,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
             }
 
             owners.rememberContext(key, contextId);
-            retention.release();
+            releaseRetention();
 
             return json;
         }
@@ -979,7 +1013,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
             }
 
             cleanupEncodeSlot();
-            retention.release();
+            releaseRetention();
         }
 
         private void noReplyEnd()
@@ -1139,7 +1173,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
 
             cleanupDecodeSlot();
             cleanupEncodeSlot();
-            retention.release();
+            releaseRetention();
         }
 
         private void cleanupDecodeSlot()

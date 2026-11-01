@@ -62,6 +62,9 @@ public final class AguiA2aMessageAssembler
     private static final DirectBufferEx DATA_PAYLOAD_OPEN = literal("{\"data\":");
     private static final DirectBufferEx DATA_EMPTY = literal("{\"data\":{}}");
     private static final DirectBufferEx FORWARDED_PROPS = literal("\"forwardedProps\":");
+    private static final DirectBufferEx HISTORY_OPEN = literal("{\"data\":{\"messages\":[");
+    private static final DirectBufferEx HISTORY_CLOSE = literal("]},\"mediaType\":\"application/json\"," +
+        "\"metadata\":{\"agui\":{\"part\":\"history\"}}}");
     private static final DirectBufferEx AGUI_OPEN = literal("\"agui\":{");
     private static final DirectBufferEx AGUI_TOOLS = literal("\"tools\":");
     private static final DirectBufferEx TOOL_RESULT_OPEN = literal("{\"data\":{\"type\":\"tool-result\",\"toolCallId\":");
@@ -95,6 +98,7 @@ public final class AguiA2aMessageAssembler
     private String interruptId;
     private boolean acceptsJson;
     private AguiA2aExtension extension;
+    private AguiA2aRetained history;
     private Function<String, String> toolCalls = handle -> null;
     private Predicate<String> acceptedMediaType = mediaType -> true;
     private String unacceptedMediaType;
@@ -122,6 +126,13 @@ public final class AguiA2aMessageAssembler
         AguiA2aExtension extension)
     {
         this.extension = extension;
+        return this;
+    }
+
+    public AguiA2aMessageAssembler history(
+        AguiA2aRetained history)
+    {
+        this.history = history;
         return this;
     }
 
@@ -180,6 +191,7 @@ public final class AguiA2aMessageAssembler
         }
         else
         {
+            emitHistoryPart();
             emitMessageParts();
             emitDataPart();
         }
@@ -265,6 +277,27 @@ public final class AguiA2aMessageAssembler
 
                 index++;
             }
+        }
+    }
+
+    private void emitHistoryPart()
+    {
+        if (history != null && history.count() > 0)
+        {
+            separate();
+            write(HISTORY_OPEN);
+
+            for (int index = 0; index < history.count(); index++)
+            {
+                if (index > 0)
+                {
+                    write(COMMA);
+                }
+
+                gather(history.buffer(), history.offset(index), history.length(index));
+            }
+
+            write(HISTORY_CLOSE);
         }
     }
 

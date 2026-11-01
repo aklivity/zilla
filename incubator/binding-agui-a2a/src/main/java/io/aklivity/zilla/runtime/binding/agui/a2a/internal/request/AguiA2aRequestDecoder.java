@@ -109,6 +109,9 @@ public final class AguiA2aRequestDecoder
     private static final int RANGE_TOOL_ERROR = 8;
     private static final int RANGE_COUNT = 9;
 
+    private static final String ARCHIVE_TOO_LARGE = "too_large";
+    private static final String ARCHIVE_UNAVAILABLE = "unavailable";
+
     private static final String KEY_THREAD_ID = "threadId";
     private static final String KEY_RUN_ID = "runId";
     private static final String KEY_PARENT_RUN_ID = "parentRunId";
@@ -173,7 +176,9 @@ public final class AguiA2aRequestDecoder
     private final String runId;
     private final String parentRunId;
     private final AguiA2aRetention retention;
+    private final long streamId;
     private final AguiA2aRetained retained;
+    private final AguiA2aRetention archiveRetention;
     private final int textMax;
     private final StringBuilder text;
     private final int[] rangeStart = new int[RANGE_COUNT];
@@ -213,6 +218,10 @@ public final class AguiA2aRequestDecoder
     private int oversize;
     private int rejectDepth;
     private int turns;
+    private AguiA2aRetained archive;
+    private String archiveOmitted;
+    private int archiveFrom = ABSENT;
+    private int archiveMessageMark;
 
     public AguiA2aRequestDecoder(
         long streamId,
@@ -221,12 +230,26 @@ public final class AguiA2aRequestDecoder
         String parentRunId,
         AguiA2aRetention retention)
     {
+        this(streamId, threadId, runId, parentRunId, retention, null);
+    }
+
+    public AguiA2aRequestDecoder(
+        long streamId,
+        String threadId,
+        String runId,
+        String parentRunId,
+        AguiA2aRetention retention,
+        AguiA2aRetention archiveRetention)
+    {
         this.parser = JsonEx.createParser(Map.of(JsonParserEx.STRING_EVENT_POSITIONS, StringEventPositions.QUOTED));
         this.threadId = threadId;
         this.runId = runId;
         this.parentRunId = parentRunId;
         this.retention = retention;
+        this.streamId = streamId;
         this.retained = new AguiA2aRetained(retention, streamId);
+        this.archiveRetention = archiveRetention;
+        this.archive = archiveRetention != null ? new AguiA2aRetained(archiveRetention, ~streamId) : null;
         this.textMax = Math.max(TEXT_MAX, Math.max(threadId.length(), runId.length()));
         this.text = new StringBuilder(textMax);
     }
@@ -242,6 +265,7 @@ public final class AguiA2aRequestDecoder
             window = buffer;
             windowLimit = limit;
             captureFrom = offset;
+            archiveFrom = archiveFrom != ABSENT ? offset : ABSENT;
             parser.wrap(buffer, offset, limit, last);
 
             while (decoder != decodeDone && decoder != decodeIgnore && parser.hasNextEvent())
@@ -250,6 +274,7 @@ public final class AguiA2aRequestDecoder
             }
 
             flushCapture();
+            flushArchive();
 
             if (last && decoder != decodeDone && decoder != decodeIgnore)
             {
@@ -279,6 +304,27 @@ public final class AguiA2aRequestDecoder
     public AguiA2aRetained retained()
     {
         return retained;
+    }
+
+    public AguiA2aRetained archive()
+    {
+        return archive;
+    }
+
+    public String archiveOmitted()
+    {
+        return archiveOmitted;
+    }
+
+    public void releaseArchive()
+    {
+        if (archiveRetention != null)
+        {
+            archiveRetention.release();
+        }
+
+        archive = null;
+        archiveFrom = ABSENT;
     }
 
     public boolean priorTurn()
@@ -639,6 +685,7 @@ public final class AguiA2aRequestDecoder
 
                 if (event == JsonEvent.VALUE_STRING && (matches(value, ROLE_ASSISTANT) || matches(value, ROLE_TOOL)))
                 {
+                    archiveHistory();
                     retained.truncate(historyMark, historyCount);
                     oversize = 0;
                     turns++;
@@ -680,6 +727,7 @@ public final class AguiA2aRequestDecoder
         }
         else
         {
+            archiveMessageEnd();
             oversize += messageRole == Role.USER ? 1 : 0;
             decoder = decodeMessageNext;
         }
@@ -738,6 +786,120 @@ public final class AguiA2aRequestDecoder
         return fits;
     }
 
+    private void archiveHistory()
+    {
+        if (archive != null && messageDecoder == decodeMessageDrain)
+        {
+            archiveDrop(ARCHIVE_TOO_LARGE);
+        }
+
+        archiveRetained();
+
+        archiveMessageMark = archive != null ? archive.mark() : 0;
+
+        if (retained.mark() > messageMark)
+        {
+            archiveAppend(retained.buffer(), messageMark, retained.mark() - messageMark);
+        }
+
+        if (position() > captureFrom)
+        {
+            archiveAppend(window, captureFrom, position() - captureFrom);
+        }
+
+        archiveFrom = archive != null ? position() : ABSENT;
+    }
+
+    private void archiveRetained()
+    {
+        for (int index = 0; archive != null && index < retained.count(); index++)
+        {
+            final Kind kind = retained.kind(index);
+
+            if (kind == Kind.MESSAGE || kind == Kind.TOOL_RESULT)
+            {
+                archiveEntry(retained.buffer(), retained.offset(index), retained.length(index));
+            }
+        }
+    }
+
+    private void archiveTail()
+    {
+        for (int index = retained.indexOf(Kind.TOOL_RESULT); archive != null && index != -1;
+            index = retained.indexOf(Kind.TOOL_RESULT, index + 1))
+        {
+            archiveEntry(retained.buffer(), retained.offset(index), retained.length(index));
+        }
+
+        if (archive != null && archive.count() == 0)
+        {
+            archiveRetention.release();
+        }
+    }
+
+    private void archiveEntry(
+        DirectBufferEx source,
+        int offset,
+        int length)
+    {
+        final int mark = archive.mark();
+
+        archiveAppend(source, offset, length);
+
+        if (archive != null)
+        {
+            archive.entry(Kind.MESSAGE, mark);
+        }
+    }
+
+    private void archiveMessageEnd()
+    {
+        if (archive != null && archiveFrom != ABSENT)
+        {
+            archiveAppend(window, archiveFrom, position() - archiveFrom);
+
+            if (archive != null)
+            {
+                archive.entry(Kind.MESSAGE, archiveMessageMark);
+            }
+        }
+
+        archiveFrom = ABSENT;
+    }
+
+    private void flushArchive()
+    {
+        if (archive != null && archiveFrom != ABSENT)
+        {
+            archiveAppend(window, archiveFrom, position() - archiveFrom);
+            archiveFrom = archive != null ? position() : ABSENT;
+        }
+    }
+
+    private void archiveAppend(
+        DirectBufferEx source,
+        int offset,
+        int length)
+    {
+        if (archive != null && length > 0)
+        {
+            final Append result = retention.acquired() || retention.acquire(streamId) ? archive.append(source, offset, length) :
+                Append.UNAVAILABLE;
+
+            if (result != Append.OK)
+            {
+                archiveDrop(result == Append.FULL ? ARCHIVE_TOO_LARGE : ARCHIVE_UNAVAILABLE);
+            }
+        }
+    }
+
+    private void archiveDrop(
+        String reason)
+    {
+        archiveOmitted = archiveOmitted != null ? archiveOmitted : reason;
+        releaseArchive();
+    }
+
     private void decodeSkip()
     {
         final JsonEvent event = next();
@@ -775,6 +937,7 @@ public final class AguiA2aRequestDecoder
         }
         else
         {
+            archiveTail();
             decoder = decodeDone;
         }
     }

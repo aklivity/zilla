@@ -49,7 +49,7 @@ Versioning rules:
 | --- | --- |
 | metadata key `agui` | the proxy, on `Message.metadata`, `Part.metadata` and agent-produced `Part.metadata`. It is already reserved in v1, where a `forwardedProps` object that has an `agui` member is rejected 400 `reserved_key` before the agent is contacted |
 | the extension URI as a metadata key | in a run that activated the extension, a `forwardedProps` object with the URI as a member is rejected the same way, so a client cannot forge an extension-defined member |
-| feature names `instructions` and `history` | reserved and **not defined** by `v1` (sections 4.1, 12) |
+| feature name `instructions` | reserved and **not defined** by `v1` (sections 4.1, 12) |
 
 `forwardedProps` stays the application-to-agent channel: its members are the top-level members of `Message.metadata`, never
 inside `agui`. The `agui` member holds only what this extension defines.
@@ -81,6 +81,7 @@ The agent adds one entry to `capabilities.extensions[]` of its agent card:
 | `uri` | string | the extension URI of section 2 |
 | `required` | boolean | `true` when the agent cannot work without the extension. Default `false` |
 | `params.features` | string array | the features the agent supports. Absent or empty means no feature: the extension is declared and nothing is enabled |
+| `params.history` | string | `context` (default) or `always`, when the `history` feature is listed (section 6.3). An unknown value means `context` |
 
 ### 4.1 Features
 
@@ -91,6 +92,7 @@ A feature is an independent switch. A feature the agent did not list is never se
 | `tools` | AG-UI to agent | `RunAgentInput.tools[]` in `metadata.agui.tools`, and `toolResult` parts (section 7.2) |
 | `state` | both | `RunAgentInput.state` in `metadata.agui.state`; `state` tags (snapshot, delta, messages) from the agent |
 | `context` | AG-UI to agent | `RunAgentInput.context[]` in `metadata.agui.context` |
+| `history` | AG-UI to agent | the advisory `history` part of the earlier messages (section 6.3) |
 | `activity` | agent to AG-UI | `activity` tags |
 | `reasoning` | agent to AG-UI | `reasoning` and `reasoning.encrypted` tags |
 | `steps` | agent to AG-UI | `step` tags |
@@ -192,6 +194,22 @@ A tag is the `agui` member of a part's `metadata`. It identifies the AG-UI event
 
 A part without a tag, or whose `metadata.agui` has no `event`, is not tagged. The tier 1 member `part` is the proxy's own
 request marker and is never read from an agent part.
+
+### 6.3 The `history` part
+
+The `history` feature lets an agent that lists it receive the earlier messages of the AG-UI thread. A2A has no portable
+way to send history and the assistant turns of a client can be forged, so the proxy sends it only as an **advisory,
+non-authoritative** part and only to an agent that asked for it. A plain agent never receives it.
+
+| Rule | Behavior |
+| --- | --- |
+| When | the card lists `history` and accepts `application/json`, the run is not a continuation (no `taskId`, so not a resume and not a tool result answer) and there is an earlier turn. With `params.history` `context` (the default) it is sent only when the run starts a new A2A context: the first run of a thread that already has earlier turns, or a run whose remembered context is lost. With `always` it is sent on every such run, for an agent that does not keep its own history |
+| Shape | one `data` part: `{"data": {"messages": [...]}, "mediaType": "application/json", "metadata": {"agui": {"part": "history"}}}` |
+| Content | the AG-UI messages before and including the last `assistant` or `tool` message, verbatim and in order. `system` and `developer` messages are dropped, as everywhere. The trailing messages are not repeated: they are the message itself |
+| Order | the first part, then the trailing user parts, then the advisory `input` part. The history never replaces the trailing user message, which stays the only authoritative input |
+| Independence | `state`, `context` and `tools` are written exactly as without `history` |
+| Compaction | the proxy-originated `MESSAGES_SNAPSHOT` of an implicit context reset is unchanged and still precedes every reply frame; history is the request direction only |
+| Bound | history is never buffered whole beyond the proxy's retention capacity. It has the lowest priority: it is all-or-nothing, and when keeping it would prevent any other part of the request from being retained, or the history alone does not fit, the history part is omitted and the request continues exactly as it would without it. The omission is never partial and never a rejection, and a Zilla event records the reason |
 
 ## 7. Part tags
 
@@ -398,7 +416,7 @@ No A2A id, task state, extension URI or tag name is placed on the AG-UI client s
 | frontend tools | dropped | declared, called, answered (section 7.4) |
 | `SUBAGENT_*` | none | `subagent` tag |
 | `CUSTOM`, `RAW` | `CUSTOM agent.data` / `agent.file` for non-text parts | `custom`, `raw` tags |
-| history replay | latest user turn only | latest user turn only (a later feature, section 12) |
+| history replay | latest user turn only | latest user turn only, plus an advisory `history` part for an agent that declares `history` (section 6.3) |
 
 ## 11. Interoperability with `@ag-ui/a2a`
 
@@ -418,7 +436,7 @@ The extension gives each deferred item a place; it does not specify the implemen
 | #2887 durable state tier | not part of the protocol: handles and contexts stay owner-local on the proxy, behind the state interface |
 | #2888 frontend tools through the extension | features `tools` and `toolCalls`; `metadata.agui.tools`; `toolCall` and `toolResult` tags; section 7.4 |
 | #2889 state, activity, reasoning, step and tool-call events | features `state`, `activity`, `reasoning`, `steps`, `toolCalls`, `custom`; section 7.3 |
-| #2890 agent-declared history feature | feature name `history` is reserved. It will let an agent that declares it receive the full history. It is not defined by `v1` and needs no change to the other features |
+| #2890 agent-declared history feature | feature `history`; section 6.3 |
 | #2891 subagent events | feature `subagents`; `subagent` tag and the `subagentRunId` member |
 | `instructions` (`system` / `developer`) | feature name reserved and not defined. The proxy drops those roles because forwarding them lets a client assert privileged instructions across a trust boundary. Any definition needs its own security review and is not planned |
 
@@ -430,7 +448,7 @@ Where the source design was silent or contradicted itself, these decisions were 
 | --- | --- | --- |
 | 1 | The URI | `https://a2a.aklivity.io/ext/agui/v1`: host `a2a.aklivity.io`, path `ext/<name>/v<major>` (section 2) |
 | 2 | `instructions` | reserved name, not defined (sections 3, 12) |
-| 3 | `history` | reserved name, not defined (sections 3, 12) |
+| 3 | `history` | defined as the advisory history part of section 6.3 |
 | 4 | `custom` and `raw` tags | enabled by a feature named `custom` (section 4.1) |
 | 5 | Request alone vs the reply echo | tags are honored only after the reply echoes the URI (section 5, step 6) |
 | 6 | Tier 2 `state` / `context` vs the tier 1 advisory part | they replace it, per enabled feature (section 6.1) |
@@ -440,5 +458,7 @@ Where the source design was silent or contradicted itself, these decisions were 
 | 10 | The card requires the extension and the proxy cannot activate it | 502 before the reply begin (section 5.1) |
 | 11 | `AguiEventMeta` `timestamp` and `metadata` | not carried, out of scope for the extension (section 1) |
 | 12 | The header name | `A2A-Extensions` (section 2) |
+| 13 | History part | one advisory `data` part with `metadata.agui.part` `history`, sent first, only to an agent that lists `history`, by default only when the run starts a new A2A context and never on a continuation (section 6.3) |
+| 14 | History yields | history is all-or-nothing and has the lowest priority: when retaining it would keep any other part of the request from being retained, or it cannot fit, it is omitted whole, never partial and never a rejection, and a Zilla event records the reason (section 6.3) |
 
 Unresolved: none.
