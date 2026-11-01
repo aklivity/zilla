@@ -121,6 +121,21 @@ module that depends on it.
   from a separate job, the only one with `packages: write`
   (`.github/scripts/build-cache.sh`). A missing artifact is a cold build, never an
   error
+- A local session (e.g. a sandboxed agent environment with no pre-populated
+  `~/.m2`) can restore the same cache manually instead of building the whole
+  reactor from source — do this before any full `./mvnw install` at the repo
+  root, especially when a dependent repo (e.g. `zilla-plus`) needs zilla
+  artifacts this session hasn't built yet:
+  ```bash
+  bash .github/scripts/build-cache.sh install   # installs oras into ~/.local/bin
+  apt-get install -y zstd                       # only if zstd isn't already present
+  bash .github/scripts/build-cache.sh restore "$HOME/.m2/build-cache" \
+      ghcr.io/aklivity/zilla/build-cache develop
+  ```
+  Restoring falls back silently to a cold build if the ref/tag isn't found, so
+  it's always safe to attempt first. Once restored, a full `./mvnw clean
+  install -Dskip.checks=true` from the repo root is a near-instant cache-hit
+  build for every unchanged module instead of a from-source rebuild.
 - Do not add a direct plugin goal (for example `jacoco:report-aggregate`) to a
   cached build command — it disables caching for the whole build
 - A module that must always build opts out with

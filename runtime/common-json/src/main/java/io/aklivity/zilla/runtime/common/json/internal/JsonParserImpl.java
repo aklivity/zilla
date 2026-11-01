@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.common.json.internal;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.foreign.MemorySegment;
 import java.math.BigDecimal;
 import java.util.AbstractMap;
 import java.util.Arrays;
@@ -42,6 +43,8 @@ import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx.Mode;
 import io.aklivity.zilla.runtime.common.json.JsonStep;
+import io.aklivity.zilla.runtime.common.json.JsonTokenizer;
+import io.aklivity.zilla.runtime.common.json.JsonTokenizerFactory;
 import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 import io.aklivity.zilla.runtime.common.json.internal.json.JsonValues;
 
@@ -55,10 +58,27 @@ public final class JsonParserImpl implements JsonParserEx
     // generous enough for any reasonable value, bounding only adversarial accumulation
     private static final int DEFAULT_MAX_VALUE_SIZE = 1 << 24;
 
-    private final InputStream in;
+    // selected once per JVM, not once per parser: ServiceLoader lookup (and an implementation's own
+    // availability probe) would otherwise run on every JsonParserImpl construction
+    private static final JsonTokenizerFactory TOKENIZER_FACTORY = JsonTokenizerFactory.instantiate();
+
     private final DirectBufferInputStreamEx ownedInput;
     private final JsonTokenizer tokenizer;
     private final JsonLocationImpl location;
+    // whether the current/next wrapped window is the feed's final one; tracked here (not just passed
+    // through) because the plain 3-arg wrap() must keep re-asserting it to the tokenizer on every call
+    private boolean terminal;
+    // a one-shot (non-DirectBufferInputStreamEx) InputStream given to the constructor, read into ownedInput
+    // lazily on first use rather than eagerly: construction must not do I/O or surface a read failure before
+    // the caller ever asks for an event, matching plain jakarta JsonParser(InputStream) semantics
+    private InputStream unmaterializedInput;
+    // the (buffer, offset, length) ownedInput held as of the last tokenizer wrap()/window(): compared against
+    // ownedInput's current state before every advance() so a caller that re-wraps ownedInput directly (a live
+    // DirectBufferInputStreamEx fed incrementally, byte by byte or window by window) is picked up without
+    // requiring every feeder to go through this parser's own wrap() method
+    private DirectBufferEx syncedBuffer;
+    private int syncedOffset = -1;
+    private int syncedLength = -1;
     private final UnsafeBufferEx segmentView = new UnsafeBufferEx(0, 0);
     private final UnsafeBufferEx verbatimView = new UnsafeBufferEx(0, 0);
 
@@ -173,8 +193,8 @@ public final class JsonParserImpl implements JsonParserEx
         Map<String, ?> config)
     {
         this.ownedInput = new DirectBufferInputStreamEx();
-        this.in = ownedInput;
-        this.tokenizer = new JsonTokenizer(false, maxValueSize(config), quoted(config));
+        this.terminal = false;
+        this.tokenizer = TOKENIZER_FACTORY.create(maxValueSize(config), quoted(config));
         this.location = new JsonLocationImpl(tokenizer);
     }
 
@@ -184,21 +204,27 @@ public final class JsonParserImpl implements JsonParserEx
         this(in, Map.of());
     }
 
+    // A DirectBufferInputStreamEx is already buffer-resident, so it is read from directly (and may still be
+    // re-wrapped by the caller later to feed further windows); it is also a resumable frame source whose end
+    // is a frame boundary. Any other stream is one-shot, so its bytes are materialized into ownedInput on
+    // first use (the tokenizer only scans a resident buffer) and its end is the terminal delimiter for a
+    // trailing number.
     public JsonParserImpl(
         InputStream in,
         Map<String, ?> config)
     {
-        if (!in.markSupported())
-        {
-            throw new IllegalArgumentException("InputStream must support mark/reset");
-        }
-        this.in = in;
-        this.ownedInput = null;
-        // A DirectBufferInputStreamEx is a resumable frame source whose EOF is a frame boundary;
-        // any other stream is one-shot, so its EOF is the terminal delimiter for a trailing number.
-        this.tokenizer = new JsonTokenizer(
-            !(in instanceof DirectBufferInputStreamEx), maxValueSize(config), quoted(config));
+        this.terminal = !(in instanceof DirectBufferInputStreamEx);
+        this.tokenizer = TOKENIZER_FACTORY.create(maxValueSize(config), quoted(config));
         this.location = new JsonLocationImpl(tokenizer);
+        if (in instanceof DirectBufferInputStreamEx dbis)
+        {
+            this.ownedInput = dbis;
+        }
+        else
+        {
+            this.ownedInput = new DirectBufferInputStreamEx();
+            this.unmaterializedInput = in;
+        }
     }
 
     private static int maxValueSize(
@@ -220,15 +246,22 @@ public final class JsonParserImpl implements JsonParserEx
         int offset,
         int limit)
     {
-        frameBaseStreamOffset = tokenizer.streamOffset();
-        tokenizer.window(limit - offset);
         ownedInput.wrap(buffer, offset, limit - offset);
         windowLast = true;
+        // every explicit wrap() is unconditionally a new window, unlike the lazy sync syncInput() performs
+        // for a live InputStream re-wrapped behind the scenes (see its own comment) — this also records the
+        // sync-tracking fields so that later lazy check finds nothing to do until ownedInput changes again
+        syncedBuffer = buffer;
+        syncedOffset = offset;
+        syncedLength = limit - offset;
+        frameBaseStreamOffset = tokenizer.streamOffset();
+        tokenizer.wrap(buffer, offset, limit, terminal);
+        tokenizer.window(limit - offset);
         return this;
     }
 
     // Wraps the next input window [offset, limit) of a chunked feed; last == true marks the final window, so
-    // its EOF is the terminal delimiter (completing a trailing scalar, rejecting a truncated value) rather
+    // its end is the terminal delimiter (completing a trailing scalar, rejecting a truncated value) rather
     // than a frame boundary with more bytes to come.
     @Override
     public JsonParserEx wrap(
@@ -237,7 +270,7 @@ public final class JsonParserImpl implements JsonParserEx
         int limit,
         boolean last)
     {
-        tokenizer.terminal(last);
+        terminal = last;
         wrap(buffer, offset, limit);
         windowLast = last;
         return this;
@@ -253,6 +286,14 @@ public final class JsonParserImpl implements JsonParserEx
     public void reset()
     {
         tokenizer.reset();
+        // force the next syncInput() to re-wrap unconditionally: a caller that reuses the same
+        // (buffer, offset, length) across reset() cycles -- the long-lived-parser pattern
+        // JsonSchemaBM's own validators exercise -- would otherwise see no apparent change and
+        // skip re-wrapping, leaving the tokenizer's buffer cursor stale at the end of the prior
+        // document while reset() has already zeroed its streamOffset/state
+        syncedBuffer = null;
+        syncedOffset = -1;
+        syncedLength = -1;
         segmentState = SegmentState.NONE;
         segmentDepth = 0;
         segmentConsumed = 0;
@@ -322,11 +363,6 @@ public final class JsonParserImpl implements JsonParserEx
     @Override
     public void rewind()
     {
-        if (tokenizer.markStreamOffset() < frameBaseStreamOffset)
-        {
-            throw new IllegalStateException("rewind requires the window the mark was taken in");
-        }
-
         tokenizer.rewind();
         currentEvent = mark.currentEvent;
         lastEvent = mark.lastEvent;
@@ -416,6 +452,8 @@ public final class JsonParserImpl implements JsonParserEx
         }
         else
         {
+            materializeInput();
+            syncInput();
             // before resuming a value that spans windows, tell the tokenizer how much of the prior
             // fragment the consumer took (the char cursor) so it keeps the unconsumed remainder and
             // accumulates rather than discarding a declined fragment
@@ -423,16 +461,54 @@ public final class JsonParserImpl implements JsonParserEx
             {
                 tokenizer.markScratchConsumed(stringViewOffset);
             }
+            result = tokenizer.advance();
+        }
+        return result;
+    }
+
+    // Reads a one-shot InputStream given to the constructor into ownedInput, once, on first use.
+    private void materializeInput()
+    {
+        if (unmaterializedInput != null)
+        {
+            final InputStream in = unmaterializedInput;
+            unmaterializedInput = null;
+            final byte[] bytes;
             try
             {
-                result = tokenizer.advance(in);
+                bytes = in.readAllBytes();
             }
             catch (IOException ex)
             {
                 throw new JsonParsingException(ex.getMessage(), ex, location);
             }
+            // wrap via MemorySegment.ofArray(), not the byte[] overload: that overload touches
+            // org.agrona.BufferUtil's static Unsafe lookup, which fails outside a JVM opened with
+            // --add-opens java.base/jdk.internal.misc=ALL-UNNAMED (e.g. zilla's own manager tool)
+            ownedInput.wrap(new UnsafeBufferEx(MemorySegment.ofArray(bytes)), 0, bytes.length);
         }
-        return result;
+    }
+
+    // Catches up to a caller that fed ownedInput directly instead of going through this parser's own wrap()
+    // — a live DirectBufferInputStreamEx a test or caller re-wraps between next() calls, which this parser
+    // never sees unless it checks before every advance(). A no-op once wrap() has already caught the tokenizer
+    // up (the usual case), so driving several events out of the same window costs nothing extra. Deliberately
+    // leaves the fragmentation window (window()) untouched: unlike wrap(), this path has no notion of a bounded
+    // window to honor and must not start fragmenting values just because ownedInput happens to hold few bytes
+    // at the moment (e.g. a byte-at-a-time feed) — windowLength simply stays at its unbounded default here.
+    private void syncInput()
+    {
+        final DirectBufferEx buffer = ownedInput.buffer();
+        final int offset = ownedInput.offset();
+        final int length = ownedInput.length();
+        if (buffer != syncedBuffer || offset != syncedOffset || length != syncedLength)
+        {
+            syncedBuffer = buffer;
+            syncedOffset = offset;
+            syncedLength = length;
+            frameBaseStreamOffset = tokenizer.streamOffset();
+            tokenizer.wrap(buffer, offset, offset + length, terminal);
+        }
     }
 
     private int bufferOffset(

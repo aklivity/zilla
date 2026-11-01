@@ -17,10 +17,6 @@ package io.aklivity.zilla.runtime.common.json.internal;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,19 +24,20 @@ import jakarta.json.stream.JsonParser;
 
 import org.junit.jupiter.api.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 public class JsonTokenizerPathTest
 {
     @Test
-    public void shouldTrackPathThroughObjectsAndArrays() throws IOException
+    public void shouldTrackPathThroughObjectsAndArrays()
     {
         final String json = "{\"tools\":[{\"name\":\"X\"},{\"name\":\"Y\"}],\"id\":7}";
-        final JsonTokenizer tokenizer = new JsonTokenizer();
-        final InputStream in = new BufferedInputStream(
-            new ByteArrayInputStream(json.getBytes(UTF_8)));
+        final JsonTokenizerImpl tokenizer = wholeDocument(json);
 
         final List<String> pathAtEvent = new ArrayList<>();
         final List<JsonParser.Event> events = new ArrayList<>();
-        while (tokenizer.advance(in))
+        while (tokenizer.advance())
         {
             events.add(tokenizer.event());
             pathAtEvent.add(tokenizer.currentPath());
@@ -66,15 +63,13 @@ public class JsonTokenizerPathTest
     }
 
     @Test
-    public void shouldExposeFullPathForNestedObject() throws IOException
+    public void shouldExposeFullPathForNestedObject()
     {
         final String json = "{\"a\":{\"b\":{\"c\":42}}}";
-        final JsonTokenizer tokenizer = new JsonTokenizer();
-        final InputStream in = new BufferedInputStream(
-            new ByteArrayInputStream(json.getBytes(UTF_8)));
+        final JsonTokenizerImpl tokenizer = wholeDocument(json);
 
         String pathAtNumber = null;
-        while (tokenizer.advance(in))
+        while (tokenizer.advance())
         {
             if (tokenizer.event() == JsonParser.Event.VALUE_NUMBER)
             {
@@ -86,17 +81,14 @@ public class JsonTokenizerPathTest
     }
 
     @Test
-    public void shouldTrackPathWithEscapedSlashAndTilde() throws IOException
+    public void shouldTrackPathWithEscapedSlashAndTilde()
     {
         // RFC 6901 escapes in currentPath(): "/" encodes to "~1", "~" encodes to "~0"
-        final JsonTokenizer tokenizer = new JsonTokenizer();
-
         final String json = "{\"a/b\":{\"c~d\":42}}";
-        final InputStream in = new BufferedInputStream(
-            new ByteArrayInputStream(json.getBytes(UTF_8)));
+        final JsonTokenizerImpl tokenizer = wholeDocument(json);
 
         String observedPathAtNumber = null;
-        while (tokenizer.advance(in))
+        while (tokenizer.advance())
         {
             if (tokenizer.event() == JsonParser.Event.VALUE_NUMBER)
             {
@@ -108,20 +100,28 @@ public class JsonTokenizerPathTest
     }
 
     @Test
-    public void shouldHandleArrayDocument() throws IOException
+    public void shouldHandleArrayDocument()
     {
-        final JsonTokenizer tokenizer = new JsonTokenizer();
-
         final String json = "[1,2,3]";
-        final InputStream in = new BufferedInputStream(
-            new ByteArrayInputStream(json.getBytes(UTF_8)));
+        final JsonTokenizerImpl tokenizer = wholeDocument(json);
 
         int events = 0;
-        while (tokenizer.advance(in))
+        while (tokenizer.advance())
         {
             events++;
             tokenizer.clearEvent();
         }
         assertEquals(5, events); // [, 1, 2, 3, ]
+    }
+
+    private static JsonTokenizerImpl wholeDocument(
+        String json)
+    {
+        final byte[] bytes = json.getBytes(UTF_8);
+        final DirectBufferEx buffer = new UnsafeBufferEx(bytes);
+        final JsonTokenizerImpl tokenizer = new JsonTokenizerImpl(Integer.MAX_VALUE, false);
+        tokenizer.wrap(buffer, 0, bytes.length, true);
+        tokenizer.window(bytes.length);
+        return tokenizer;
     }
 }
