@@ -3577,7 +3577,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             final HttpExchange exchange = exchanges.get(streamId);
 
-            if (exchange == null)
+            if (exchange == null || HttpState.closed(exchange.state))
             {
                 progress += payload.capacity();
             }
@@ -5485,11 +5485,6 @@ public final class HttpClientFactory implements HttpStreamFactory
                     state = HttpState.closeReply(state);
                     doAbort(application, originId, routedId, responseId, responseSeq, responseAck, requestMax,
                             traceId, authorization, extension);
-
-                    if (HttpState.closed(state))
-                    {
-                        onExchangeClosed();
-                    }
                 }
                 else
                 {
