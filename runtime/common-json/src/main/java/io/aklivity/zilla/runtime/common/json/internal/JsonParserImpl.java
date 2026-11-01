@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.common.json.internal;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.foreign.MemorySegment;
 import java.math.BigDecimal;
 import java.util.AbstractMap;
 import java.util.Arrays;
@@ -481,7 +482,10 @@ public final class JsonParserImpl implements JsonParserEx
             {
                 throw new JsonParsingException(ex.getMessage(), ex, location);
             }
-            ownedInput.wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+            // wrap via MemorySegment.ofArray(), not the byte[] overload: that overload touches
+            // org.agrona.BufferUtil's static Unsafe lookup, which fails outside a JVM opened with
+            // --add-opens java.base/jdk.internal.misc=ALL-UNNAMED (e.g. zilla's own manager tool)
+            ownedInput.wrap(new UnsafeBufferEx(MemorySegment.ofArray(bytes)), 0, bytes.length);
         }
     }
 
