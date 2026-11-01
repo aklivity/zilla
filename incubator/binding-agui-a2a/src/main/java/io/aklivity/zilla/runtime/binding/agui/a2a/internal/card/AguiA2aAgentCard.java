@@ -50,7 +50,7 @@ public final class AguiA2aAgentCard
                 {
                     final Set<String> features = new HashSet<>(declared.features());
                     features.retainAll(AguiA2aExtension.FEATURES);
-                    negotiated = new AguiA2aExtension(uri, declared.required(), features);
+                    negotiated = new AguiA2aExtension(uri, declared.required(), features, declared.history());
                 }
             }
         }
