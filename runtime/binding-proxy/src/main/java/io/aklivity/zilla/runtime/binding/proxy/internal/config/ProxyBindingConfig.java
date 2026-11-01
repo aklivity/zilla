@@ -35,24 +35,24 @@ public final class ProxyBindingConfig
     public final List<ProxyRouteConfig> routes;
 
     public ProxyBindingConfig(
-        BindingConfig binding,
-        Function<String, InetAddress[]> resolveHost)
+        BindingConfig binding)
     {
         this.id = binding.id;
         this.name = binding.name;
         this.kind = binding.kind;
         this.options = ProxyOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream()
-            .map(r -> new ProxyRouteConfig(r, resolveHost))
+            .map(ProxyRouteConfig::new)
             .collect(toList());
     }
 
     public ProxyRouteConfig resolve(
         long authorization,
-        ProxyBeginExFW beginEx)
+        ProxyBeginExFW beginEx,
+        Function<String, InetAddress[]> resolveHost)
     {
         return routes.stream()
-                .filter(r -> r.authorized(authorization) && r.matches(beginEx))
+                .filter(r -> r.authorized(authorization) && r.matches(beginEx, resolveHost))
                 .findFirst()
                 .orElse(null);
     }

@@ -162,7 +162,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        ProxyBindingConfig proxyBinding = new ProxyBindingConfig(binding, resolveHost);
+        ProxyBindingConfig proxyBinding = new ProxyBindingConfig(binding);
         router.attach(proxyBinding);
     }
 
@@ -667,7 +667,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
             final ProxyBeginExFW beginEx = beginExRO.tryWrap(decodeBuffer, 0, decodeOffset);
 
             final ProxyBindingConfig binding = router.lookup(routedId);
-            final ProxyRouteConfig resolved = binding != null ? binding.resolve(authorization, beginEx) : null;
+            final ProxyRouteConfig resolved = binding != null ? binding.resolve(authorization, beginEx, resolveHost) : null;
             if (resolved != null)
             {
                 app = new ProxyAppServer(this, routedId, resolved.id);
