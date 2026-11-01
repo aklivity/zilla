@@ -124,7 +124,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        ProxyBindingConfig proxyBinding = new ProxyBindingConfig(binding, resolveHost);
+        ProxyBindingConfig proxyBinding = new ProxyBindingConfig(binding);
         router.attach(proxyBinding);
     }
 
@@ -153,7 +153,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
         MessageConsumer newStream = null;
 
         final ProxyBindingConfig binding = router.lookup(routedId);
-        final ProxyRouteConfig resolved = binding != null ? binding.resolve(authorization, beginEx) : null;
+        final ProxyRouteConfig resolved = binding != null ? binding.resolve(authorization, beginEx, resolveHost) : null;
         if (resolved != null)
         {
             newStream = new ProxyAppClient(originId, routedId, initialId, sender, resolved.id)::onAppMessage;

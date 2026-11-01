@@ -36,13 +36,12 @@ public final class ProxyRouteConfig
     private final LongObjectPredicate<UnaryOperator<String>> authorized;
 
     public ProxyRouteConfig(
-        RouteConfig route,
-        Function<String, InetAddress[]> resolveHost)
+        RouteConfig route)
     {
         this.id = route.id;
         this.when = route.when.stream()
             .map(ProxyConditionConfig.class::cast)
-            .map(w -> new ProxyConditionMatcher(w, resolveHost))
+            .map(ProxyConditionMatcher::new)
             .collect(toList());
         this.authorized = route.authorized;
     }
@@ -54,8 +53,9 @@ public final class ProxyRouteConfig
     }
 
     boolean matches(
-        ProxyBeginExFW beginEx)
+        ProxyBeginExFW beginEx,
+        Function<String, InetAddress[]> resolveHost)
     {
-        return when.isEmpty() || when.stream().anyMatch(c -> c.matches(beginEx));
+        return when.isEmpty() || when.stream().anyMatch(c -> c.matches(beginEx, resolveHost));
     }
 }

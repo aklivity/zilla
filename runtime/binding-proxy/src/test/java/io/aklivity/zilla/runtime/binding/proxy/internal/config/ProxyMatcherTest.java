@@ -57,7 +57,7 @@ public class ProxyMatcherTest
     public void shouldMatchCondition()
     {
         ProxyConditionConfig condition = ProxyConditionConfig.builder().build();
-        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition, RESOLVE_HOST);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -68,14 +68,14 @@ public class ProxyMatcherTest
                         .destinationPort(443)))
                 .build();
 
-        assertTrue(matcher.matches(beginEx));
+        assertTrue(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
     public void shouldMatchConditionWithTransport()
     {
         ProxyConditionConfig condition = ProxyConditionConfig.builder().transport("stream").build();
-        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition, RESOLVE_HOST);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -86,14 +86,14 @@ public class ProxyMatcherTest
                         .destinationPort(443)))
                 .build();
 
-        assertTrue(matcher.matches(beginEx));
+        assertTrue(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
     public void shouldNotMatchConditionWithTransport()
     {
         ProxyConditionConfig condition = ProxyConditionConfig.builder().transport("datagram").build();
-        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition, RESOLVE_HOST);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -104,14 +104,14 @@ public class ProxyMatcherTest
                         .destinationPort(443)))
                 .build();
 
-        assertFalse(matcher.matches(beginEx));
+        assertFalse(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
     public void shouldMatchConditionWithFamily()
     {
         ProxyConditionConfig condition = ProxyConditionConfig.builder().family("inet4").build();
-        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition, RESOLVE_HOST);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -122,14 +122,14 @@ public class ProxyMatcherTest
                         .destinationPort(443)))
                 .build();
 
-        assertTrue(matcher.matches(beginEx));
+        assertTrue(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
     public void shouldNotMatchConditionWithFamily()
     {
         ProxyConditionConfig condition = ProxyConditionConfig.builder().family("inet6").build();
-        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition, RESOLVE_HOST);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -140,7 +140,7 @@ public class ProxyMatcherTest
                         .destinationPort(443)))
                 .build();
 
-        assertFalse(matcher.matches(beginEx));
+        assertFalse(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -152,7 +152,7 @@ public class ProxyMatcherTest
                     .port(32768)
                     .build())
                 .build();
-        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition, RESOLVE_HOST);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -163,7 +163,7 @@ public class ProxyMatcherTest
                         .destinationPort(443)))
                 .build();
 
-        assertTrue(matcher.matches(beginEx));
+        assertTrue(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -175,7 +175,7 @@ public class ProxyMatcherTest
                     .port(32768)
                     .build())
                 .build();
-        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition, RESOLVE_HOST);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -186,7 +186,7 @@ public class ProxyMatcherTest
                         .destinationPort(443)))
                 .build();
 
-        assertFalse(matcher.matches(beginEx));
+        assertFalse(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -198,7 +198,7 @@ public class ProxyMatcherTest
                     .port(443)
                     .build())
                 .build();
-        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition, RESOLVE_HOST);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -209,7 +209,7 @@ public class ProxyMatcherTest
                         .destinationPort(443)))
                 .build();
 
-        assertTrue(matcher.matches(beginEx));
+        assertTrue(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -221,7 +221,7 @@ public class ProxyMatcherTest
                     .port(443)
                     .build())
                 .build();
-        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition, RESOLVE_HOST);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -232,7 +232,7 @@ public class ProxyMatcherTest
                         .destinationPort(443)))
                 .build();
 
-        assertFalse(matcher.matches(beginEx));
+        assertFalse(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -240,7 +240,7 @@ public class ProxyMatcherTest
     {
         ProxyInfoConfig info = ProxyInfoConfig.builder().alpn("echo").build();
         ProxyConditionConfig condition = ProxyConditionConfig.builder().info(info).build();
-        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition, RESOLVE_HOST);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -252,7 +252,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.alpn("echo"))
                 .build();
 
-        assertTrue(matcher.matches(beginEx));
+        assertTrue(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -260,7 +260,7 @@ public class ProxyMatcherTest
     {
         ProxyInfoConfig info = ProxyInfoConfig.builder().alpn("http/1.1").build();
         ProxyConditionConfig condition = ProxyConditionConfig.builder().info(info).build();
-        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition, RESOLVE_HOST);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -272,7 +272,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.alpn("echo"))
                 .build();
 
-        assertFalse(matcher.matches(beginEx));
+        assertFalse(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -280,7 +280,7 @@ public class ProxyMatcherTest
     {
         ProxyInfoConfig info = ProxyInfoConfig.builder().authority("example.com").build();
         ProxyConditionConfig condition = ProxyConditionConfig.builder().info(info).build();
-        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition, RESOLVE_HOST);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -292,7 +292,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.authority("example.com"))
                 .build();
 
-        assertTrue(matcher.matches(beginEx));
+        assertTrue(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -300,7 +300,7 @@ public class ProxyMatcherTest
     {
         ProxyInfoConfig info = ProxyInfoConfig.builder().authority("example.net").build();
         ProxyConditionConfig condition = ProxyConditionConfig.builder().info(info).build();
-        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition, RESOLVE_HOST);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -312,7 +312,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.authority("example.com"))
                 .build();
 
-        assertFalse(matcher.matches(beginEx));
+        assertFalse(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -320,7 +320,7 @@ public class ProxyMatcherTest
     {
         ProxyInfoConfig info = ProxyInfoConfig.builder().identity(fromHex("12345678")).build();
         ProxyConditionConfig condition = ProxyConditionConfig.builder().info(info).build();
-        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition, RESOLVE_HOST);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -332,7 +332,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.identity(v -> v.value(x -> x.set(fromHex("12345678")))))
                 .build();
 
-        assertTrue(matcher.matches(beginEx));
+        assertTrue(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -340,7 +340,7 @@ public class ProxyMatcherTest
     {
         ProxyInfoConfig info = ProxyInfoConfig.builder().identity(fromHex("87654321")).build();
         ProxyConditionConfig condition = ProxyConditionConfig.builder().info(info).build();
-        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition, RESOLVE_HOST);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -352,7 +352,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.identity(v -> v.value(x -> x.set(fromHex("12345678")))))
                 .build();
 
-        assertFalse(matcher.matches(beginEx));
+        assertFalse(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -360,7 +360,7 @@ public class ProxyMatcherTest
     {
         ProxyInfoConfig info = ProxyInfoConfig.builder().namespace("example").build();
         ProxyConditionConfig condition = ProxyConditionConfig.builder().info(info).build();
-        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition, RESOLVE_HOST);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -372,7 +372,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.namespace("example"))
                 .build();
 
-        assertTrue(matcher.matches(beginEx));
+        assertTrue(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -380,7 +380,7 @@ public class ProxyMatcherTest
     {
         ProxyInfoConfig info = ProxyInfoConfig.builder().namespace("mismatch").build();
         ProxyConditionConfig condition = ProxyConditionConfig.builder().info(info).build();
-        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition, RESOLVE_HOST);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -392,7 +392,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.namespace("example"))
                 .build();
 
-        assertFalse(matcher.matches(beginEx));
+        assertFalse(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -401,7 +401,7 @@ public class ProxyMatcherTest
         ProxySecureInfoConfig secureInfo = ProxySecureInfoConfig.builder().version("TLSv1.3").build();
         ProxyInfoConfig info = ProxyInfoConfig.builder().secure(secureInfo).build();
         ProxyConditionConfig condition = ProxyConditionConfig.builder().info(info).build();
-        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition, RESOLVE_HOST);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -413,7 +413,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.secure(s -> s.version("TLSv1.3")))
                 .build();
 
-        assertTrue(matcher.matches(beginEx));
+        assertTrue(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -422,7 +422,7 @@ public class ProxyMatcherTest
         ProxySecureInfoConfig secureInfo = ProxySecureInfoConfig.builder().version("TLSv1.2").build();
         ProxyInfoConfig info = ProxyInfoConfig.builder().secure(secureInfo).build();
         ProxyConditionConfig condition = ProxyConditionConfig.builder().info(info).build();
-        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition, RESOLVE_HOST);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -434,7 +434,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.secure(s -> s.version("TLSv1.3")))
                 .build();
 
-        assertFalse(matcher.matches(beginEx));
+        assertFalse(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -443,7 +443,7 @@ public class ProxyMatcherTest
         ProxySecureInfoConfig secureInfo = ProxySecureInfoConfig.builder().cipher("ECDHE-RSA-AES128-GCM-SHA256").build();
         ProxyInfoConfig info = ProxyInfoConfig.builder().secure(secureInfo).build();
         ProxyConditionConfig condition = ProxyConditionConfig.builder().info(info).build();
-        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition, RESOLVE_HOST);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -455,7 +455,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.secure(s -> s.cipher("ECDHE-RSA-AES128-GCM-SHA256")))
                 .build();
 
-        assertTrue(matcher.matches(beginEx));
+        assertTrue(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -464,7 +464,7 @@ public class ProxyMatcherTest
         ProxySecureInfoConfig secureInfo = ProxySecureInfoConfig.builder().cipher("ECDH-ECDSA-AES256-GCM-SHA384").build();
         ProxyInfoConfig info = ProxyInfoConfig.builder().secure(secureInfo).build();
         ProxyConditionConfig condition = ProxyConditionConfig.builder().info(info).build();
-        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition, RESOLVE_HOST);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -476,7 +476,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.secure(s -> s.cipher("ECDHE-RSA-AES128-GCM-SHA256")))
                 .build();
 
-        assertFalse(matcher.matches(beginEx));
+        assertFalse(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -485,7 +485,7 @@ public class ProxyMatcherTest
         ProxySecureInfoConfig secureInfo = ProxySecureInfoConfig.builder().key("RSA2048").build();
         ProxyInfoConfig info = ProxyInfoConfig.builder().secure(secureInfo).build();
         ProxyConditionConfig condition = ProxyConditionConfig.builder().info(info).build();
-        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition, RESOLVE_HOST);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -497,7 +497,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.secure(s -> s.key("RSA2048")))
                 .build();
 
-        assertTrue(matcher.matches(beginEx));
+        assertTrue(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -506,7 +506,7 @@ public class ProxyMatcherTest
         ProxySecureInfoConfig secureInfo = ProxySecureInfoConfig.builder().key("RSA1024").build();
         ProxyInfoConfig info = ProxyInfoConfig.builder().secure(secureInfo).build();
         ProxyConditionConfig condition = ProxyConditionConfig.builder().info(info).build();
-        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition, RESOLVE_HOST);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -518,7 +518,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.secure(s -> s.key("RSA2048")))
                 .build();
 
-        assertFalse(matcher.matches(beginEx));
+        assertFalse(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -527,7 +527,7 @@ public class ProxyMatcherTest
         ProxySecureInfoConfig secureInfo = ProxySecureInfoConfig.builder().name("name@domain").build();
         ProxyInfoConfig info = ProxyInfoConfig.builder().secure(secureInfo).build();
         ProxyConditionConfig condition = ProxyConditionConfig.builder().info(info).build();
-        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition, RESOLVE_HOST);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -539,7 +539,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.secure(s -> s.name("name@domain")))
                 .build();
 
-        assertTrue(matcher.matches(beginEx));
+        assertTrue(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -548,7 +548,7 @@ public class ProxyMatcherTest
         ProxySecureInfoConfig secureInfo = ProxySecureInfoConfig.builder().name("other@domain").build();
         ProxyInfoConfig info = ProxyInfoConfig.builder().secure(secureInfo).build();
         ProxyConditionConfig condition = ProxyConditionConfig.builder().info(info).build();
-        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition, RESOLVE_HOST);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -560,7 +560,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.secure(s -> s.name("name@domain")))
                 .build();
 
-        assertFalse(matcher.matches(beginEx));
+        assertFalse(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -569,7 +569,7 @@ public class ProxyMatcherTest
         ProxySecureInfoConfig secureInfo = ProxySecureInfoConfig.builder().signature("SHA256").build();
         ProxyInfoConfig info = ProxyInfoConfig.builder().secure(secureInfo).build();
         ProxyConditionConfig condition = ProxyConditionConfig.builder().info(info).build();
-        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition, RESOLVE_HOST);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -581,7 +581,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.secure(s -> s.signature("SHA256")))
                 .build();
 
-        assertTrue(matcher.matches(beginEx));
+        assertTrue(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -590,7 +590,7 @@ public class ProxyMatcherTest
         ProxySecureInfoConfig secureInfo = ProxySecureInfoConfig.builder().signature("SHA384").build();
         ProxyInfoConfig info = ProxyInfoConfig.builder().secure(secureInfo).build();
         ProxyConditionConfig condition = ProxyConditionConfig.builder().info(info).build();
-        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition, RESOLVE_HOST);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -602,7 +602,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.secure(s -> s.signature("SHA256")))
                 .build();
 
-        assertFalse(matcher.matches(beginEx));
+        assertFalse(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     private static byte[] resolveHost(
