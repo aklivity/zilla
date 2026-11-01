@@ -45,6 +45,7 @@ public final class A2aOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
     private final A2aCacheConfigAdapter cache = new A2aCacheConfigAdapter();
     private final A2aDiscoveryConfigAdapter discovery;
     private final A2aProxyPushConfigAdapter proxyPush = new A2aProxyPushConfigAdapter();
+    private final A2aClientPushConfigAdapter clientPush = new A2aClientPushConfigAdapter();
 
     public A2aOptionsConfigAdapter()
     {
@@ -107,6 +108,11 @@ public final class A2aOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
             object.add(PUSH_NAME, proxyPush.adaptToJson(a2aOptions.proxyPush));
         }
 
+        if (a2aOptions.clientPush != null)
+        {
+            object.add(PUSH_NAME, clientPush.adaptToJson(a2aOptions.clientPush));
+        }
+
         return object.build();
     }
 
@@ -139,6 +145,11 @@ public final class A2aOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
             if (push.containsKey(A2aProxyPushConfigAdapter.VAULT_NAME))
             {
                 builder.proxyPush(proxyPush.adaptFromJson(push));
+            }
+            else if (push.containsKey(A2aClientPushConfigAdapter.ALLOW_NAME) ||
+                push.containsKey(A2aClientPushConfigAdapter.MAX_LENGTH_NAME))
+            {
+                builder.clientPush(clientPush.adaptFromJson(push));
             }
             else
             {

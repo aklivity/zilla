@@ -42,6 +42,7 @@ import io.aklivity.zilla.runtime.binding.a2a.internal.dialect.A2aDialect;
 import io.aklivity.zilla.runtime.binding.a2a.internal.dialect.A2aError;
 import io.aklivity.zilla.runtime.binding.a2a.internal.dialect.A2aOperation;
 import io.aklivity.zilla.runtime.binding.a2a.internal.dialect.A2aRequestParams;
+import io.aklivity.zilla.runtime.binding.a2a.internal.push.A2aPushCapabilities;
 import io.aklivity.zilla.runtime.binding.a2a.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.a2a.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.a2a.internal.types.stream.A2aBearerError;
@@ -2590,9 +2591,13 @@ public final class A2aServerFactory implements A2aStreamFactory
         if (canonical != null)
         {
             final boolean secured = operation == null && server.binding.secured();
-            final JsonValue translated = operation == null || operation == A2aOperation.EXTENDED_AGENT_CARD
+            final boolean card = operation == null || operation == A2aOperation.EXTENDED_AGENT_CARD;
+            final JsonValue rendered = card
                 ? server.dialect.card(canonical.asJsonObject(), server.request.url(), secured)
                 : server.dialect.result(operation, canonical);
+            final JsonValue translated = card && server.binding.pushConfigured()
+                ? A2aPushCapabilities.advertise(rendered.asJsonObject())
+                : rendered;
 
             final byte[] json = translated.toString().getBytes(UTF_8);
 
