@@ -86,4 +86,14 @@ public class StartingIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/upgrade.and.large.response/client",
+        "${app}/upgrade.and.large.response/server",
+    })
+    public void shouldUpgradeAndLargeResponse() throws Exception
+    {
+        k3po.finish();
+    }
 }
