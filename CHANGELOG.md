@@ -41,6 +41,8 @@
 - feat\(common-json\): extract pluggable JsonTokenizer SPI [\#2940](https://github.com/aklivity/zilla/pull/2940) ([jfallows](https://github.com/jfallows))
 - fix\(manager\): grant jdk.internal.misc opens via manifest instead of avoiding it in common-json [\#2942](https://github.com/aklivity/zilla/pull/2942) ([jfallows](https://github.com/jfallows))
 - ci: prune untagged build cache versions after publishing [\#2944](https://github.com/aklivity/zilla/pull/2944) ([jfallows](https://github.com/jfallows))
+- fix\(binding-http\): discard DATA on a closed h2 stream without advancing by a stale length [\#2946](https://github.com/aklivity/zilla/pull/2946) ([jfallows](https://github.com/jfallows))
+- feat\(binding-http\): complete h2c upgrade and size h2 flow control from the protocol [\#2947](https://github.com/aklivity/zilla/pull/2947) ([jfallows](https://github.com/jfallows))
 
 ## [2.6.0](https://github.com/aklivity/zilla/tree/2.6.0) (2026-10-22)
 
