@@ -125,4 +125,14 @@ public class StartingIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/upgrade.h2c.with.window.limited/client",
+        "${app}/upgrade.and.response/server" })
+    public void shouldUpgradeViaCleartextWithWindowLimited() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -1727,8 +1727,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         return server.upgrade &&
             server.upgradeProtocol != null &&
             decodeUpgradeSettings(server.upgradeSettings) != null &&
-            (server.decoder == decodeHeadersOnly || server.decoder == decodeContent) &&
-            server.replyWindow() >= RESPONSE_101_H2C.capacity() + server.replyPad;
+            (server.decoder == decodeHeadersOnly || server.decoder == decodeContent);
     }
 
     private byte[] decodeUpgradeSettings(
@@ -2121,6 +2120,11 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             flushNetworkIfBuffered(traceId, authorization, budgetId);
 
+            if (decoder == decodeDelegated)
+            {
+                signalUpgrade(traceId);
+            }
+
             if (exchange != null)
             {
                 exchange.doResponseWindow(traceId);
@@ -2142,11 +2146,14 @@ public final class HttpServerFactory implements HttpStreamFactory
                 this.delegateNetwork = delegate::onNetwork;
                 break;
             case UPGRADE_SIGNAL:
-                onDelegate();
-                delegate.onUpgrade(traceId);
-                delegate.decodeNetworkIfNecessary(traceId);
+                if (delegate.responseCredit == null)
+                {
+                    onDelegate();
+                    delegate.onUpgrade(traceId);
+                    delegate.decodeNetworkIfNecessary(traceId);
 
-                this.delegateNetwork = delegate::onNetwork;
+                    this.delegateNetwork = delegate::onNetwork;
+                }
                 break;
             case EXPIRING_SIGNAL:
                 HttpExchange exchange = this.exchange;
@@ -2197,9 +2204,19 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             final int length = RESPONSE_101_H2C.capacity();
             doNetworkData(traceId, authorization, replyBudgetId, length + replyPad, RESPONSE_101_H2C, 0, length);
-            signaler.signalNow(originId, routedId, replyId, traceId, UPGRADE_SIGNAL, 0);
 
             decoder = decodeDelegated;
+
+            signalUpgrade(traceId);
+        }
+
+        private void signalUpgrade(
+            long traceId)
+        {
+            if (encodeSlot == NO_SLOT)
+            {
+                signaler.signalNow(originId, routedId, replyId, traceId, UPGRADE_SIGNAL, 0);
+            }
         }
 
         private void flushNetworkIfBuffered(

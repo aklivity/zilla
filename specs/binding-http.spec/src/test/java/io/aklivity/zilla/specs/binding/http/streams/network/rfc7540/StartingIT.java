@@ -177,4 +177,14 @@ public class StartingIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/upgrade.h2c.with.window.limited/client",
+        "${net}/upgrade.h2c.with.window.limited/server",
+    })
+    public void shouldUpgradeH2cWithWindowLimited() throws Exception
+    {
+        k3po.finish();
+    }
 }
