@@ -156,4 +156,44 @@ public class FlowControlIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/server.sent.data.on.closed.stream.after.flow.control.error/client",
+        "${app}/server.sent.data.on.closed.stream.after.flow.control.error/server"
+    })
+    public void shouldServerSentDataOnClosedStreamAfterFlowControlError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.sent.data.on.closed.stream.after.flow.control.error/client",
+        "${app}/client.sent.data.on.closed.stream.after.flow.control.error/server"
+    })
+    public void shouldClientSentDataOnClosedStreamAfterFlowControlError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.sent.second.stream.window.grants/client",
+        "${app}/client.sent.second.stream.window.grants/server"
+    })
+    public void shouldClientSentSecondStreamWindowGrants() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/server.sent.second.stream.window.grants/client",
+        "${app}/server.sent.second.stream.window.grants/server"
+    })
+    public void shouldServerSentSecondStreamWindowGrants() throws Exception
+    {
+        k3po.finish();
+    }
 }

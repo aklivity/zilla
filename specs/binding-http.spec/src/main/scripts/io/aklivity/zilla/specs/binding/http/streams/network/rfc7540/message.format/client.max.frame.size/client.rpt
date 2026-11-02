@@ -14,7 +14,6 @@
 # under the License.
 #
 
-property data20k ${http:randomBytes(20000)}
 
 connect "zilla://streams/net0"
         option zilla:window 65536
@@ -75,24 +74,31 @@ write [0x00 0x00 0x00]                   # length = 0
 write flush
 
 write [0x00 0x4e 0x20]                   # length = 20000
-     [0x00]                             # HTTP2 DATA frame
-     [0x00]                             # NO_FLAG
-     [0x00 0x00 0x00 0x01]              # stream_id = 1
-write ${data20k}
+      [0x00]                            # HTTP2 DATA frame
+      [0x00]                            # NO_FLAG
+      [0x00 0x00 0x00 0x01]             # stream_id = 1
+write ${http:randomBytes(20000)}
+write flush
+
+write [0x00 0x31 0xce]                   # length = 12750
+      [0x00]                            # HTTP2 DATA frame
+      [0x00]                            # NO_FLAG
+      [0x00 0x00 0x00 0x01]             # stream_id = 1
+write ${http:randomBytes(12750)}
 write flush
 
 write [0x00 0x4e 0x20]                   # length = 20000
-     [0x00]                             # HTTP2 DATA frame
-     [0x00]                             # NO_FLAG
-     [0x00 0x00 0x00 0x01]              # stream_id = 1
-write ${data20k}
+      [0x00]                            # HTTP2 DATA frame
+      [0x00]                            # NO_FLAG
+      [0x00 0x00 0x00 0x01]             # stream_id = 1
+write ${http:randomBytes(20000)}
 write flush
 
-write [0x00 0x4e 0x20]                   # length = 20000
-     [0x00]                             # HTTP2 DATA frame
-     [0x01]                             # END_STREAM
-     [0x00 0x00 0x00 0x01]              # stream_id = 1
-write ${data20k}
+write [0x00 0x1c 0x52]                   # length = 7250
+      [0x00]                            # HTTP2 DATA frame
+      [0x01]                            # END_STREAM
+      [0x00 0x00 0x00 0x01]             # stream_id = 1
+write ${http:randomBytes(7250)}
 write flush
 
 read [0x00 0x00 0x04]                                      # length

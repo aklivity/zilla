@@ -294,6 +294,16 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
+        "${net}/server.sent.data.on.closed.stream/client",
+        "${net}/server.sent.data.on.closed.stream/server"
+    })
+    public void shouldServerSentDataOnClosedStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/server.sent.write.close/client",
         "${net}/server.sent.write.close/server"
     })

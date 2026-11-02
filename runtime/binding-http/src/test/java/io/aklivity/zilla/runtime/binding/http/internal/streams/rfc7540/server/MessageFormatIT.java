@@ -16,7 +16,6 @@
 package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.server;
 
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CONCURRENT_STREAMS;
-import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -30,7 +29,6 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
-import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class MessageFormatIT
 {
@@ -76,7 +74,6 @@ public class MessageFormatIT
     @Specification({
         "${net}/server.max.frame.size/client",
         "${app}/server.max.frame.size/server" })
-    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
     public void maxFrameSize() throws Exception
     {
         k3po.finish();
@@ -194,6 +191,15 @@ public class MessageFormatIT
     @Specification({
         "${net}/data.padding.length.error/client" })
     public void shouldDataPaddingLengthError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/window.update.overflow.error/client" })
+    public void shouldWindowUpdateOverflowError() throws Exception
     {
         k3po.finish();
     }

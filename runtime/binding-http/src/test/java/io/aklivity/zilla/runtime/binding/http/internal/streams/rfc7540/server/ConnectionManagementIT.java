@@ -18,7 +18,6 @@ package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.server;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CONCURRENT_STREAMS;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_MAX_CONCURRENT_STREAMS_CLEANUP_NAME;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_STREAMS_CLEANUP_DELAY_NAME;
-import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -125,7 +124,6 @@ public class ConnectionManagementIT
     @Specification({
         "${net}/http.post.exchange.before.settings.exchange/client",
         "${app}/http.post.exchange.before.settings.exchange/server" })
-    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
     public void httpPostExchangeBeforeSettingsExchange() throws Exception
     {
         k3po.finish();

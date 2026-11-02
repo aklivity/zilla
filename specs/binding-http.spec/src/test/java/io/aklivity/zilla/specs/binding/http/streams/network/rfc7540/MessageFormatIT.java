@@ -214,4 +214,24 @@ public class MessageFormatIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/window.update.overflow.error/client",
+        "${net}/window.update.overflow.error/server"
+    })
+    public void shouldWindowUpdateOverflowError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.window.update.overflow.error/client",
+        "${net}/client.window.update.overflow.error/server"
+    })
+    public void shouldClientWindowUpdateOverflowError() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -120,12 +120,6 @@ write [0x00 0x00 0x3a]                                      # length = 51
       [0x0f 0x10] [0x18] "text/plain;charset=UTF-8"         # content-type
       [0x0f 0x0d] [0x02] "12"                               # content-length
 
-write [0x00 0x00 0x0c]                   # length = 12
-      [0x00]                             # HTTP2 DATA frame
-      [0x01]                             # END_STREAM
-      [0x00 0x00 0x00 0x03]              # stream_id = 3
-      "Hello, world"
-
 read [0x00 0x00 0x04]                                      # length
      [0x08]                                                # WINDOW_UPDATE frame
      [0x00]                                                # no flags
@@ -135,8 +129,14 @@ read [0x00 0x00 0x04]                                      # length
 read [0x00 0x00 0x04]                                      # length
      [0x08]                                                # WINDOW_UPDATE frame
      [0x00]                                                # no flags
-     [0x00 0x00 0x00 0x01]                                 # stream_id=3
-     [0x00 0x00 0x00 0x0c]                                 # window size increment = 12
+     [0x00 0x00 0x00 0x03]                                 # stream_id=3
+     [0x00 0x00 0x00 0x15]                                 # window size increment = 21
+
+write [0x00 0x00 0x0c]                   # length = 12
+      [0x00]                             # HTTP2 DATA frame
+      [0x01]                             # END_STREAM
+      [0x00 0x00 0x00 0x03]              # stream_id = 3
+      "Hello, world"
 
 read [0x00 0x00 0x58]                                      # length
      [0x01]                                                # HTTP2 HEADERS frame
