@@ -3577,7 +3577,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             final HttpExchange exchange = exchanges.get(streamId);
 
-            if (exchange == null)
+            if (exchange == null || HttpState.closed(exchange.state))
             {
                 progress += payload.capacity();
             }
@@ -3594,7 +3594,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 {
                     exchange.cleanup(traceId, authorization);
                     doEncodeHttp2RstStream(traceId, streamId, error);
-                    progress += payloadRemaining.value;
+                    progress += payload.capacity();
                 }
                 else
                 {
