@@ -176,4 +176,24 @@ public class FlowControlIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/client.sent.second.stream.window.grants/client",
+        "${app}/client.sent.second.stream.window.grants/server"
+    })
+    public void shouldClientSentSecondStreamWindowGrants() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/server.sent.second.stream.window.grants/client",
+        "${app}/server.sent.second.stream.window.grants/server"
+    })
+    public void shouldServerSentSecondStreamWindowGrants() throws Exception
+    {
+        k3po.finish();
+    }
 }

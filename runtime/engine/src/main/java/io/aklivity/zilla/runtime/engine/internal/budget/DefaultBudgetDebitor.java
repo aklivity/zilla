@@ -145,8 +145,41 @@ public final class DefaultBudgetDebitor implements BudgetDebitor, AutoCloseable
         final int index = (int) (budgetIndex & ~budgetMask);
         final int budgetRemainingOffset = budgetRemainingOffset(index);
 
+        long claimed = claimBudget(budgetRemainingOffset, minimum, maximum);
+
+        if (claimed != maximum)
+        {
+            watch(index, watcherId);
+
+            if (claimed == 0L)
+            {
+                claimed = claimBudget(budgetRemainingOffset, minimum, maximum);
+            }
+        }
+
+        if (EngineConfiguration.DEBUG_BUDGETS)
+        {
+            final long budgetId = budgetIdByIndex.get(budgetIndex);
+            System.out.format("[%d] [0x%016x] [0x%016x] [0x%016x] claimed %d / %d => %d\n",
+                    System.nanoTime(), traceId, watcherId, budgetId,
+                    claimed, maximum, available(budgetIndex));
+        }
+
+        if (claimed == maximum)
+        {
+            unwatch(index, watcherId);
+        }
+
+        return (int) claimed;
+    }
+
+    private long claimBudget(
+        int budgetRemainingOffset,
+        int minimum,
+        int maximum)
+    {
         long claimed = maximum;
-        long previous = storage.getAndAddLong(budgetRemainingOffset, -claimed);
+        final long previous = storage.getAndAddLong(budgetRemainingOffset, -claimed);
         if (previous - claimed < 0L)
         {
             if (previous >= minimum)
@@ -161,24 +194,7 @@ public final class DefaultBudgetDebitor implements BudgetDebitor, AutoCloseable
             }
         }
 
-        if (EngineConfiguration.DEBUG_BUDGETS)
-        {
-            final long budgetId = budgetIdByIndex.get(budgetIndex);
-            System.out.format("[%d] [0x%016x] [0x%016x] [0x%016x] claimed %d / %d @ %d => %d\n",
-                    System.nanoTime(), traceId, watcherId, budgetId,
-                    claimed, maximum, previous, previous - claimed);
-        }
-
-        if (claimed != maximum)
-        {
-            watch(index, watcherId);
-        }
-        else
-        {
-            unwatch(index, watcherId);
-        }
-
-        return (int) claimed;
+        return claimed;
     }
 
     @Override

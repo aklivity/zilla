@@ -18,11 +18,9 @@ package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.server;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CONCURRENT_STREAMS;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_CONNECTION_WINDOW_NAME;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_STREAM_INITIAL_WINDOW_NAME;
-import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -64,11 +62,10 @@ public class FlowControlIT
         k3po.finish();
     }
 
-    @Ignore("Github Actions")
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/server.sent.100k.message/client",
+        "${net}/server.sent.100k.message.up.front.window/client",
         "${app}/server.sent.100k.message/server" })
     public void serverSent100kMessage() throws Exception
     {
@@ -101,7 +98,6 @@ public class FlowControlIT
     @Specification({
         "${net}/client.sent.connection.window.topup/client",
         "${app}/client.sent.connection.window.topup/server" })
-    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     @Configure(name = HTTP_CONNECTION_WINDOW_NAME, value = "100000")
     public void shouldClientSentConnectionWindowTopup() throws Exception
@@ -113,7 +109,6 @@ public class FlowControlIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/client.sent.unknown.stream.connection.window.topup/client" })
-    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
     @Configure(name = HTTP_CONNECTION_WINDOW_NAME, value = "100000")
     public void shouldClientSentUnknownStreamConnectionWindowTopup() throws Exception
     {
@@ -125,7 +120,6 @@ public class FlowControlIT
     @Specification({
         "${net}/client.sent.padded.connection.window.topup/client",
         "${app}/client.sent.padded.connection.window.topup/server" })
-    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     @Configure(name = HTTP_CONNECTION_WINDOW_NAME, value = "100000")
     public void shouldClientSentPaddedConnectionWindowTopup() throws Exception
@@ -138,7 +132,6 @@ public class FlowControlIT
     @Specification({
         "${net}/client.sent.padding.only.stream.window.update/client",
         "${app}/client.sent.padding.only.stream.window.update/server" })
-    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void shouldClientSentPaddingOnlyStreamWindowUpdate() throws Exception
     {
@@ -152,6 +145,16 @@ public class FlowControlIT
         "${app}/client.sent.data.on.closed.stream.after.flow.control.error/server"
     })
     public void shouldClientSentDataOnClosedStreamAfterFlowControlError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/server.sent.second.stream.window.grants/client",
+        "${app}/server.sent.second.stream.window.grants/server" })
+    public void shouldServerSentSecondStreamWindowGrants() throws Exception
     {
         k3po.finish();
     }
