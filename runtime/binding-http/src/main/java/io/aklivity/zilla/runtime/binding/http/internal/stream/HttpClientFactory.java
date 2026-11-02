@@ -955,10 +955,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
                             if (client.encoder == HttpEncoder.H2C)
                             {
-                                client.encoder = HttpEncoder.HTTP_2;
-                                client.decoder = decodeHttp2Settings;
-                                client.doHttp2SettingsAck(traceId, authorization);
-                                client.doEncodeHttp2ConnectionWindow(traceId, authorization);
+                                client.onUpgradedToHttp2(traceId, authorization);
                             }
                             else
                             {
@@ -2613,10 +2610,6 @@ public final class HttpClientFactory implements HttpStreamFactory
                      pool.versions.contains(HTTP_2))
             {
                 this.encoder = HttpEncoder.H2C;
-                for (HttpExchange exchange: exchanges.values())
-                {
-                    exchange.remoteBudget += encodeMax;
-                }
             }
 
             doNetworkWindow(traceId, 0L, 0, 0);
@@ -3422,6 +3415,25 @@ public final class HttpClientFactory implements HttpStreamFactory
             {
                 exchange.doRequestWindow(traceId);
             }
+        }
+
+        private void onUpgradedToHttp2(
+            long traceId,
+            long authorization)
+        {
+            encoder = HttpEncoder.HTTP_2;
+            decoder = decodeHttp2Settings;
+
+            initialBudgetId = supplyBudgetId.getAsLong();
+            assert requestCredit == null;
+            requestCredit = context.supplyCredit(initialId, initialBudgetId);
+            initialSharedBudget = initialWindow();
+
+            doHttp2SettingsAck(traceId, authorization);
+            doEncodeHttp2Preface(traceId, authorization);
+            doEncodeHttp2Settings(traceId, authorization);
+            doEncodeHttp2ConnectionWindow(traceId, authorization);
+            flushRequestSharedBudget(traceId);
         }
 
         private void doEncodeHttp2Preface(

@@ -99,4 +99,16 @@ public class StartingIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/upgrade.and.large.request/client",
+        "${net}/upgrade.h2c.with.large.request/server"})
+    @Configure(name = HTTP_CONCURRENT_STREAMS_NAME, value = "100")
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    public void shouldUpgradeViaH2cWithLargeRequest() throws Exception
+    {
+        k3po.finish();
+    }
 }

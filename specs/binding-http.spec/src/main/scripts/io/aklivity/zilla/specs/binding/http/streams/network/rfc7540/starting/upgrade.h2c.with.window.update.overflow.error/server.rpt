@@ -47,6 +47,19 @@ write [0x00 0x00 0x04]                                     # length
       [0x7f 0xff 0x00 0x01]                                # window size increment = 2147418113, past 2^31-1 with the initial 65535
 write flush
 
+# client connection preface
+read "PRI * HTTP/2.0\r\n"
+     "\r\n"
+     "SM\r\n"
+     "\r\n"
+
+read [0x00 0x00 0x0c]                   # length = 12
+     [0x04]                             # HTTP2 SETTINGS frame
+     [0x00]                             # flags = 0x00
+     [0x00 0x00 0x00 0x00]              # stream_id = 0
+     [0x00 0x03 0x00 0x00 0x00 0x64]    # SETTINGS_MAX_CONCURRENT_STREAMS(0x03) = 100
+     [0x00 0x04 0x00 0x00 0xff 0xff]    # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 65535
+
 read [0x00 0x00 0x04]                                      # length
      [0x08]                                                # WINDOW_UPDATE frame
      [0x00]                                                # no flags
