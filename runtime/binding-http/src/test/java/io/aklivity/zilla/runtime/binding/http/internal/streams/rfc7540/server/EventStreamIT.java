@@ -18,7 +18,6 @@ package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.server;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CONCURRENT_STREAMS;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_SSE_INITIAL_COMMENT_ENABLED_NAME;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_SSE_MAXIMUM_IDLE_TIME_NAME;
-import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -148,7 +147,6 @@ public class EventStreamIT
 
     @Test
     @Configuration("server.yaml")
-    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
     @Specification({
         "${net}/response.sse.data.large.frames/client",
         "${app}/response.sse.data.large.frames/server" })

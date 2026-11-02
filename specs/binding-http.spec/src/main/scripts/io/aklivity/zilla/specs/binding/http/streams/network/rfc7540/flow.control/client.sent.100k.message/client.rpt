@@ -45,6 +45,11 @@ read [0x00 0x00 0x12]                   # length = 18
      [0x00 0x03 0x00 0x00 0x00 0x64]    # SETTINGS_MAX_CONCURRENT_STREAMS(0x03) = 100
      [0x00 0x04 0x00 0x00 0x00 0x00]    # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 0
      [0x00 0x06 0x00 0x00 0x20 0x00]    # SETTINGS_MAX_HEADER_LIST_SIZE(0x06) = 8192
+read [0x00 0x00 0x04]                                   # length
+     [0x08]                                             # WINDOW_UPDATE frame
+     [0x00]                                             # no flags
+     [0x00 0x00 0x00 0x00]                              # stream_id=0
+     [0x7f 0xff 0x00 0x00]                              # window size increment = 2147418112
 
 read [0x00 0x00 0x00]                   # length = 0
      [0x04]                             # HTTP2 SETTINGS frame
@@ -68,108 +73,107 @@ write [0x00 0x00 0x00]                  # length = 0
       [0x00 0x00 0x00 0x00]             # stream_id = 0
 write flush
 
-write [0x00 0x40 0x00]                  # length = 16384
-      [0x00]                            # HTTP2 DATA frame
-      [0x00]                            # NO_END_STREAM
-      [0x00 0x00 0x00 0x01]             # stream_id = 1
-      ${http:randomBytes(16384)}
+read [0x00 0x00 0x04]                                   # length
+     [0x08]                                             # WINDOW_UPDATE frame
+     [0x00]                                             # no flags
+     [0x00 0x00 0x00 0x01]                              # stream_id=1
+     [0x00 0x00 0xff 0xff]                              # window size increment = 65535
 
-write [0x00 0x40 0x00]                  # length = 16384
-      [0x00]                            # HTTP2 DATA frame
-      [0x00]                            # NO_END_STREAM
-      [0x00 0x00 0x00 0x01]             # stream_id = 1
-      ${http:randomBytes(16384)}
+read [0x00 0x00 0x04]                                   # length
+     [0x08]                                             # WINDOW_UPDATE frame
+     [0x00]                                             # no flags
+     [0x00 0x00 0x00 0x01]                              # stream_id=1
+     [0x00 0x00 0xff 0xff]                              # window size increment = 65535
 
-write [0x00 0x40 0x00]                  # length = 16384
-      [0x00]                            # HTTP2 DATA frame
-      [0x00]                            # NO_END_STREAM
-      [0x00 0x00 0x00 0x01]             # stream_id = 1
-      ${http:randomBytes(16384)}
+read [0x00 0x00 0x04]                                   # length
+     [0x08]                                             # WINDOW_UPDATE frame
+     [0x00]                                             # no flags
+     [0x00 0x00 0x00 0x01]                              # stream_id=1
+     [0x00 0x00 0xff 0xff]                              # window size increment = 65535
 
-write [0x00 0x3f 0xdc]                  # length = 16348
-      [0x00]                            # HTTP2 DATA frame
-      [0x00]                            # NO_END_STREAM
-      [0x00 0x00 0x00 0x01]             # stream_id = 1
-      ${http:randomBytes(16348)}
+write [0x00 0x40 0x00]                                  # length = 16384
+      [0x00]                                            # HTTP2 DATA frame
+      [0x00]                                            # NO_END_STREAM
+      [0x00 0x00 0x00 0x01]                             # stream_id = 1
+      ${http:randomBytes(16384)}
 write flush
 
-read [0x00 0x00 0x04]                  # length
-     [0x08]                            # WINDOW_UPDATE frame
-     [0x00]                            # no flags
-     [0x00 0x00 0x00 0x00]             # stream_id=0
-     [0x00 0x00 0x40 0x00]             # window size increment = 16384
+read [0x00 0x00 0x04]                                   # length
+     [0x08]                                             # WINDOW_UPDATE frame
+     [0x00]                                             # no flags
+     [0x00 0x00 0x00 0x01]                              # stream_id=1
+     [0x00 0x00 0x40 0x00]                              # window size increment = 16384
 
-read [0x00 0x00 0x04]                  # length
-     [0x08]                            # WINDOW_UPDATE frame
-     [0x00]                            # no flags
-     [0x00 0x00 0x00 0x01]             # stream_id=1
-     [0x00 0x00 0x40 0x00]             # window size increment = 16384
+write [0x00 0x3f 0xee]                                  # length = 16366
+      [0x00]                                            # HTTP2 DATA frame
+      [0x00]                                            # NO_END_STREAM
+      [0x00 0x00 0x00 0x01]                             # stream_id = 1
+      ${http:randomBytes(16366)}
+write flush
 
-read [0x00 0x00 0x04]                  # length
-     [0x08]                            # WINDOW_UPDATE frame
-     [0x00]                            # no flags
-     [0x00 0x00 0x00 0x00]             # stream_id=0
-     [0x00 0x00 0x40 0x00]             # window size increment = 16384
+read [0x00 0x00 0x04]                                   # length
+     [0x08]                                             # WINDOW_UPDATE frame
+     [0x00]                                             # no flags
+     [0x00 0x00 0x00 0x01]                              # stream_id=1
+     [0x00 0x00 0x3f 0xee]                              # window size increment = 16366
 
-read [0x00 0x00 0x04]                  # length
-     [0x08]                            # WINDOW_UPDATE frame
-     [0x00]                            # no flags
-     [0x00 0x00 0x00 0x01]             # stream_id=1
-     [0x00 0x00 0x40 0x00]             # window size increment = 16384
-
-read [0x00 0x00 0x04]                  # length
-     [0x08]                            # WINDOW_UPDATE frame
-     [0x00]                            # no flags
-     [0x00 0x00 0x00 0x00]             # stream_id=0
-     [0x00 0x00 0x40 0x00]             # window size increment = 16384
-
-read [0x00 0x00 0x04]                  # length
-     [0x08]                            # WINDOW_UPDATE frame
-     [0x00]                            # no flags
-     [0x00 0x00 0x00 0x01]             # stream_id=1
-     [0x00 0x00 0x40 0x00]             # window size increment = 16384
-
-read [0x00 0x00 0x04]                  # length
-     [0x08]                            # WINDOW_UPDATE frame
-     [0x00]                            # no flags
-     [0x00 0x00 0x00 0x00]             # stream_id=0
-     [0x00 0x00 0x3f 0xff]             # window size increment = 16383
-
-read [0x00 0x00 0x04]                  # length
-     [0x08]                            # WINDOW_UPDATE frame
-     [0x00]                            # no flags
-     [0x00 0x00 0x00 0x01]             # stream_id=1
-     [0x00 0x00 0x3f 0xdc]             # window size increment = 16348
-
-read [0x00 0x00 0x04]                  # length
-     [0x08]                            # WINDOW_UPDATE frame
-     [0x00]                            # no flags
-     [0x00 0x00 0x00 0x00]             # stream_id=0
-     [0x00 0x00 0xff 0xff]             # window size increment = 65535
-
-read [0x00 0x00 0x04]                  # length
-     [0x08]                            # WINDOW_UPDATE frame
-     [0x00]                            # no flags
-     [0x00 0x00 0x00 0x01]             # stream_id=1
-     [0x00 0x00 0xff 0xff]             # window size increment = 65535
-
-write [0x00 0x40 0x00]                  # length = 16384
-      [0x00]                            # HTTP2 DATA frame
-      [0x00]                            # NO_END_STREAM
-      [0x00 0x00 0x00 0x01]             # stream_id = 1
+write [0x00 0x40 0x00]                                  # length = 16384
+      [0x00]                                            # HTTP2 DATA frame
+      [0x00]                                            # NO_END_STREAM
+      [0x00 0x00 0x00 0x01]                             # stream_id = 1
       ${http:randomBytes(16384)}
+write flush
 
-write [0x00 0x40 0x00]                  # length = 16384
-      [0x00]                            # HTTP2 DATA frame
-      [0x00]                            # NO_END_STREAM
-      [0x00 0x00 0x00 0x01]             # stream_id = 1
+read [0x00 0x00 0x04]                                   # length
+     [0x08]                                             # WINDOW_UPDATE frame
+     [0x00]                                             # no flags
+     [0x00 0x00 0x00 0x01]                              # stream_id=1
+     [0x00 0x00 0x40 0x00]                              # window size increment = 16384
+
+write [0x00 0x3f 0xee]                                  # length = 16366
+      [0x00]                                            # HTTP2 DATA frame
+      [0x00]                                            # NO_END_STREAM
+      [0x00 0x00 0x00 0x01]                             # stream_id = 1
+      ${http:randomBytes(16366)}
+write flush
+
+read [0x00 0x00 0x04]                                   # length
+     [0x08]                                             # WINDOW_UPDATE frame
+     [0x00]                                             # no flags
+     [0x00 0x00 0x00 0x01]                              # stream_id=1
+     [0x00 0x00 0x3f 0xee]                              # window size increment = 16366
+
+write [0x00 0x40 0x00]                                  # length = 16384
+      [0x00]                                            # HTTP2 DATA frame
+      [0x00]                                            # NO_END_STREAM
+      [0x00 0x00 0x00 0x01]                             # stream_id = 1
       ${http:randomBytes(16384)}
+write flush
 
-write [0x00 0x06 0xc4]                  # length = 1732
-      [0x00]                            # HTTP2 DATA frame
-      [0x01]                            # END_STREAM
-      [0x00 0x00 0x00 0x01]             # stream_id = 1
-      ${http:randomBytes(1732)}
+read [0x00 0x00 0x04]                                   # length
+     [0x08]                                             # WINDOW_UPDATE frame
+     [0x00]                                             # no flags
+     [0x00 0x00 0x00 0x01]                              # stream_id=1
+     [0x00 0x00 0x40 0x00]                              # window size increment = 16384
+
+write [0x00 0x3f 0xee]                                  # length = 16366
+      [0x00]                                            # HTTP2 DATA frame
+      [0x00]                                            # NO_END_STREAM
+      [0x00 0x00 0x00 0x01]                             # stream_id = 1
+      ${http:randomBytes(16366)}
+write flush
+
+read [0x00 0x00 0x04]                                   # length
+     [0x08]                                             # WINDOW_UPDATE frame
+     [0x00]                                             # no flags
+     [0x00 0x00 0x00 0x01]                              # stream_id=1
+     [0x00 0x00 0x3f 0xee]                              # window size increment = 16366
+
+write [0x00 0x06 0xd6]                                  # length = 1750
+      [0x00]                                            # HTTP2 DATA frame
+      [0x01]                                            # END_STREAM
+      [0x00 0x00 0x00 0x01]                             # stream_id = 1
+      ${http:randomBytes(1750)}
 write flush
 
 read [0x00 0x00 0x18]                                      # length

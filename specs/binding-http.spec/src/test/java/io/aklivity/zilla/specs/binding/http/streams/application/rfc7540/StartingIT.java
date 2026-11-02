@@ -66,4 +66,34 @@ public class StartingIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/upgrade.and.503.response/client",
+        "${app}/upgrade.and.503.response/server",
+    })
+    public void shouldUpgradeAnd503Response() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/upgrade.and.large.request/client",
+        "${app}/upgrade.and.large.request/server",
+    })
+    public void shouldUpgradeAndLargeRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/upgrade.and.large.response/client",
+        "${app}/upgrade.and.large.response/server",
+    })
+    public void shouldUpgradeAndLargeResponse() throws Exception
+    {
+        k3po.finish();
+    }
 }

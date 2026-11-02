@@ -147,4 +147,34 @@ public class StartingIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/upgrade.h2c.with.window.update.overflow.error/client",
+        "${net}/upgrade.h2c.with.window.update.overflow.error/server",
+    })
+    public void shouldUpgradeH2cWithWindowUpdateOverflowError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/upgrade.h2c.with.large.request/client",
+        "${net}/upgrade.h2c.with.large.request/server",
+    })
+    public void shouldUpgradeH2cWithLargeRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/upgrade.h2c.with.large.response/client",
+        "${net}/upgrade.h2c.with.large.response/server",
+    })
+    public void shouldUpgradeH2cWithLargeResponse() throws Exception
+    {
+        k3po.finish();
+    }
 }

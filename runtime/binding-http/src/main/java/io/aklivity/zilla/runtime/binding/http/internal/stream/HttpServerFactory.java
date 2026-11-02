@@ -50,6 +50,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import java.net.URI;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -164,8 +165,12 @@ public final class HttpServerFactory implements HttpStreamFactory
     private static final int EXPIRING_SIGNAL = 2;
     private static final int EVENT_PADDING_MAX = 288;
     private static final int IDLE_SIGNAL = 3;
+    private static final int UPGRADE_SIGNAL = 4;
 
     private static final int PADDING_CHUNKED = 10;
+    private static final String UPGRADE_SETTINGS_DUPLICATE = "*";
+    private static final int SETTING_LENGTH = 6;
+    private static final int UPGRADE_STREAM_ID = 1;
     private static final long MAX_REMOTE_BUDGET = Integer.MAX_VALUE;
     private static final long NO_REQUEST_ID = -1;
 
@@ -209,6 +214,8 @@ public final class HttpServerFactory implements HttpStreamFactory
     private static final byte[] REASON_UNRECOGNIZED_STATUS_BYTES = "Unrecognized Status".getBytes(US_ASCII);
 
     private static final DirectBufferEx ZERO_CHUNK = new UnsafeBufferEx("0\r\n\r\n".getBytes(US_ASCII));
+    private static final DirectBufferEx RESPONSE_101_H2C = new UnsafeBufferEx(
+        "HTTP/1.1 101 Switching Protocols\r\nConnection: Upgrade\r\nUpgrade: h2c\r\n\r\n".getBytes(US_ASCII));
 
     private static final DirectBufferEx ERROR_400_BAD_REQUEST =
             initResponse(400, "Bad Request");
@@ -508,6 +515,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final HttpServerDecoder decodeEmptyLines = this::decodeEmptyLines;
     private final HttpServerDecoder decodeUpgraded = this::decodeUpgraded;
     private final HttpServerDecoder decodeIgnore = this::decodeIgnore;
+    private final HttpServerDecoder decodeDelegated = this::decodeDelegated;
 
     private final MutableInteger codecOffset = new MutableInteger();
     private final MutableBoolean hasAuthority = new MutableBoolean();
@@ -548,6 +556,8 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final Http2ServerDecoder decodeHttp2Continuation = this::decodeHttp2Continuation;
     private final Http2ServerDecoder decodeHttp2Data = this::decodeHttp2Data;
     private final Http2ServerDecoder decodeHttp2DataPayload = this::decodeHttp2DataPayload;
+    private final Http2ServerDecoder decodeHttp2UpgradeContent = this::decodeHttp2UpgradeContent;
+    private final Http2ServerDecoder decodeHttp2UpgradePreface = this::decodeHttp2UpgradePreface;
     private final Http2ServerDecoder decodeHttp2DataPadding = this::decodeHttp2DataPadding;
     private final Http2ServerDecoder decodeHttp2Priority = this::decodePriority;
     private final Http2ServerDecoder decodeHttp2RstStream = this::decodeHttp2RstStream;
@@ -1094,6 +1104,9 @@ public final class HttpServerFactory implements HttpStreamFactory
         final HttpBeginExFW.Builder httpBeginEx = beginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
                                                            .typeId(httpTypeId);
 
+        server.upgradeProtocol = null;
+        server.upgradeSettings = null;
+
         DirectBufferEx error = null;
 
         final int endOfStartAt = limitOfBytes(buffer, offset, limit, CRLF_BYTES);
@@ -1166,7 +1179,11 @@ public final class HttpServerFactory implements HttpStreamFactory
                 GuardHandler guard = server.guard;
                 event.requestAccepted(traceId, server.routedId, guard, authorization, beginEx.headers());
 
-                if (isCorsPreflightRequest(headers))
+                if (isUpgradeH2c(server))
+                {
+                    server.onDecodeUpgrade(traceId, authorization, headers);
+                }
+                else if (isCorsPreflightRequest(headers))
                 {
                     server.onDecodeCorsPreflight(traceId, authorization, headers);
                     server.decoder = decodeEmptyLines;
@@ -1396,7 +1413,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 break;
 
             case "http2-settings":
-                // TODO: h2c
+                server.upgradeSettings = server.upgradeSettings == null ? value : UPGRADE_SETTINGS_DUPLICATE;
                 break;
 
             case "transfer-encoding":
@@ -1418,7 +1435,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             case "upgrade":
                 if ("h2c".equals(value))
                 {
-                    // TODO: h2c
+                    server.upgradeProtocol = value;
                 }
                 else if (server.decoder != decodeHeadersOnly)
                 {
@@ -1691,6 +1708,50 @@ public final class HttpServerFactory implements HttpStreamFactory
         return limit;
     }
 
+    private int decodeDelegated(
+        HttpServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        return offset;
+    }
+
+    private boolean isUpgradeH2c(
+        HttpServer server)
+    {
+        return server.upgrade &&
+            server.upgradeProtocol != null &&
+            decodeUpgradeSettings(server.upgradeSettings) != null &&
+            (server.decoder == decodeHeadersOnly || server.decoder == decodeContent) &&
+            server.replyWindow() >= RESPONSE_101_H2C.capacity() + server.replyPad;
+    }
+
+    private byte[] decodeUpgradeSettings(
+        String value)
+    {
+        byte[] settings = null;
+
+        if (value != null)
+        {
+            try
+            {
+                final byte[] decoded = Base64.getUrlDecoder().decode(value);
+                settings = decoded.length % SETTING_LENGTH == 0 ? decoded : null;
+            }
+            catch (IllegalArgumentException ex)
+            {
+                settings = null;
+            }
+        }
+
+        return settings;
+    }
+
     @FunctionalInterface
     private interface HttpServerDecoder
     {
@@ -1740,6 +1801,8 @@ public final class HttpServerFactory implements HttpStreamFactory
         private Http2Server delegate;
 
         private HttpServerDecoder decoder;
+        private String upgradeProtocol;
+        private String upgradeSettings;
         private String16FW decodeScheme;
         private int decodableChunkSize;
         private int contentLength;
@@ -2073,22 +2136,14 @@ public final class HttpServerFactory implements HttpStreamFactory
             switch (signalId)
             {
             case DELEGATE_SIGNAL:
-                delegate.state = state;
-                delegate.initialSeq = initialSeq;
-                delegate.initialAck = initialAck;
-                delegate.initialMax = decodeMax;
-                delegate.replySeq = replySeq;
-                delegate.replyAck = replyAck;
-                delegate.replyMax = replyMax;
-                delegate.replyPad = replyPad;
+                onDelegate();
+                delegate.decodeNetworkIfNecessary(traceId);
 
-                assert delegate.responseCredit == null;
-                delegate.responseCredit = context.supplyCredit(delegate.replyId, delegate.budgetId);
-                delegate.replySharedBudget = replyMax - replyPendingAck();
-
-                delegate.decodeSlot = decodeSlot;
-                delegate.decodeSlotOffset = decodeSlotOffset;
-                delegate.decodeSlotReserved = decodeSlotReserved;
+                this.delegateNetwork = delegate::onNetwork;
+                break;
+            case UPGRADE_SIGNAL:
+                onDelegate();
+                delegate.onUpgrade(traceId);
                 delegate.decodeNetworkIfNecessary(traceId);
 
                 this.delegateNetwork = delegate::onNetwork;
@@ -2108,6 +2163,43 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
                 break;
             }
+        }
+
+        private void onDelegate()
+        {
+            delegate.state = state;
+            delegate.initialSeq = initialSeq;
+            delegate.initialAck = initialAck;
+            delegate.initialMax = decodeMax;
+            delegate.replySeq = replySeq;
+            delegate.replyAck = replyAck;
+            delegate.replyMax = replyMax;
+            delegate.replyPad = replyPad;
+
+            assert delegate.responseCredit == null;
+            delegate.responseCredit = context.supplyCredit(delegate.replyId, delegate.budgetId);
+            delegate.replySharedBudget = replyMax - replyPendingAck();
+
+            delegate.decodeSlot = decodeSlot;
+            delegate.decodeSlotOffset = decodeSlotOffset;
+            delegate.decodeSlotReserved = decodeSlotReserved;
+        }
+
+        private void onDecodeUpgrade(
+            long traceId,
+            long authorization,
+            Map<String, String> headers)
+        {
+            final int contentLength = decoder == decodeContent ? this.contentLength : 0;
+
+            delegate = new Http2Server(this);
+            delegate.upgrade(decodeUpgradeSettings(upgradeSettings), headers, contentLength, authorization);
+
+            final int length = RESPONSE_101_H2C.capacity();
+            doNetworkData(traceId, authorization, replyBudgetId, length + replyPad, RESPONSE_101_H2C, 0, length);
+            signaler.signalNow(originId, routedId, replyId, traceId, UPGRADE_SIGNAL, 0);
+
+            decoder = decodeDelegated;
         }
 
         private void flushNetworkIfBuffered(
@@ -3850,6 +3942,54 @@ public final class HttpServerFactory implements HttpStreamFactory
         return progress;
     }
 
+    private int decodeHttp2UpgradePreface(
+        Http2Server server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        final Http2PrefaceFW http2Preface = http2PrefaceRO.tryWrap(buffer, offset, limit);
+
+        int progress = offset;
+        if (http2Preface != null)
+        {
+            if (http2Preface.error())
+            {
+                server.onDecodeError(traceId, authorization, Http2ErrorCode.PROTOCOL_ERROR);
+                server.decoder = decodeHttp2IgnoreAll;
+            }
+            else
+            {
+                progress = http2Preface.limit();
+                server.decoder = decodeHttp2FrameType;
+            }
+        }
+
+        return progress;
+    }
+
+    private int decodeHttp2UpgradeContent(
+        Http2Server server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        final int progress = decodeHttp2DataPayload(server, traceId, authorization, budgetId, buffer, offset, limit);
+
+        if (server.decodableDataBytes == 0)
+        {
+            server.decoder = decodeHttp2UpgradePreface;
+        }
+
+        return progress;
+    }
+
     private int decodeHttp2FrameType(
         Http2Server server,
         long traceId,
@@ -4041,7 +4181,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             if (streamId == 0)
             {
-                if (server.remoteSharedBudget + size > Integer.MAX_VALUE)
+                if ((long) server.remoteSharedBudget + size > MAX_REMOTE_BUDGET)
                 {
                     error = Http2ErrorCode.FLOW_CONTROL_ERROR;
                 }
@@ -4391,7 +4531,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         final int dataLength,
         final int maxFrameSize)
     {
-        final int frameCount = (dataLength + maxFrameSize - 1) / maxFrameSize;
+        final int frameCount = dataLength / maxFrameSize + (dataLength % maxFrameSize != 0 ? 1 : 0);
 
         return frameCount * Http2FrameInfoFW.SIZE_OF_FRAME; // assumes H2 DATA not PADDED
     }
@@ -4446,7 +4586,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         private int replyBudgetReserved;
         private int replySharedBudget;
 
-        private int remoteSharedBudget;
+        private int remoteSharedBudget = INITIAL_CONNECTION_WINDOW;
         private int localSharedBudget = INITIAL_CONNECTION_WINDOW;
         private int responseSharedBudget;
         private BudgetCredit responseCredit;
@@ -4488,6 +4628,10 @@ public final class HttpServerFactory implements HttpStreamFactory
         private int decodableDataBytes;
         private int decodablePaddingBytes;
 
+        private byte[] upgradeSettings;
+        private Map<String, String> upgradeHeaders;
+        private int upgradeContentLength;
+
         private Http2Server(
             HttpBindingConfig binding,
             MessageConsumer network,
@@ -4513,7 +4657,6 @@ public final class HttpServerFactory implements HttpStreamFactory
             this.encodeContext = new HpackContext(remoteSettings.headerTableSize, true);
             this.encodeHeadersBuffer = new ExpandableArrayBufferEx();
             this.encodeReservedBuffer = new ExpandableArrayBufferEx();
-            this.remoteSharedBudget = remoteSettings.initialWindowSize;
             this.guard = resolveGuard(binding);
             this.credentials = binding.credentials();
         }
@@ -5292,6 +5435,53 @@ public final class HttpServerFactory implements HttpStreamFactory
             cleanup(traceId, authorization, this::doEncodeGoaway);
         }
 
+        private void upgrade(
+            byte[] settings,
+            Map<String, String> headers,
+            int contentLength,
+            long authorization)
+        {
+            this.upgradeSettings = settings;
+            this.upgradeHeaders = headers;
+            this.upgradeContentLength = contentLength;
+            this.authorization = authorization;
+            this.decodedStreamId = UPGRADE_STREAM_ID;
+            this.decodedFlags = Http2Flags.END_STREAM;
+            this.decodableDataBytes = contentLength;
+            this.decoder = contentLength > 0 ? decodeHttp2UpgradeContent : decodeHttp2UpgradePreface;
+        }
+
+        private void onUpgrade(
+            long traceId)
+        {
+            final int length = upgradeSettings.length;
+            frameBuffer.putByte(0, (byte) (length >> 16));
+            frameBuffer.putByte(1, (byte) (length >> 8));
+            frameBuffer.putByte(2, (byte) length);
+            frameBuffer.putByte(3, Http2FrameType.SETTINGS.type());
+            frameBuffer.putByte(4, Http2Flags.NONE);
+            frameBuffer.putInt(5, 0);
+            frameBuffer.putBytes(9, upgradeSettings);
+
+            final Http2SettingsFW http2Settings = http2SettingsRO.wrap(frameBuffer, 0, 9 + length);
+            final Http2ErrorCode error = onDecodeRemoteSettings(http2Settings);
+
+            if (error == Http2ErrorCode.NO_ERROR)
+            {
+                doEncodeSettings(traceId, authorization);
+                doEncodeConnectionWindow(traceId, authorization);
+
+                maxClientStreamId = UPGRADE_STREAM_ID;
+                onDecodeRequest(traceId, authorization, UPGRADE_STREAM_ID, upgradeHeaders, upgradeContentLength, true,
+                    upgradeContentLength == 0);
+            }
+            else
+            {
+                onDecodeError(traceId, authorization, error);
+                decoder = decodeHttp2IgnoreAll;
+            }
+        }
+
         private void onDecodePreface(
             long traceId,
             long authorization,
@@ -5324,29 +5514,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             }
             else
             {
-                final int remoteInitialBudget = remoteSettings.initialWindowSize;
-                http2Settings.forEach(this::onDecodeSetting);
-
-                Http2ErrorCode decodeError = remoteSettings.error();
-
-                if (decodeError == Http2ErrorCode.NO_ERROR)
-                {
-                    // reply budget can become negative
-                    final long remoteInitialCredit = remoteSettings.initialWindowSize - remoteInitialBudget;
-                    if (remoteInitialCredit != 0)
-                    {
-                        for (Http2Exchange stream: streams.values())
-                        {
-                            final long newRemoteBudget = stream.remoteBudget + remoteInitialCredit;
-                            if (newRemoteBudget > MAX_REMOTE_BUDGET)
-                            {
-                                decodeError = Http2ErrorCode.FLOW_CONTROL_ERROR;
-                                break;
-                            }
-                            stream.remoteBudget = (int) newRemoteBudget;
-                        }
-                    }
-                }
+                final Http2ErrorCode decodeError = onDecodeRemoteSettings(http2Settings);
 
                 if (decodeError == Http2ErrorCode.NO_ERROR)
                 {
@@ -5358,6 +5526,36 @@ public final class HttpServerFactory implements HttpStreamFactory
                     decoder = decodeHttp2IgnoreAll;
                 }
             }
+        }
+
+        private Http2ErrorCode onDecodeRemoteSettings(
+            Http2SettingsFW http2Settings)
+        {
+            final int remoteInitialBudget = remoteSettings.initialWindowSize;
+            http2Settings.forEach(this::onDecodeSetting);
+
+            Http2ErrorCode decodeError = remoteSettings.error();
+
+            if (decodeError == Http2ErrorCode.NO_ERROR)
+            {
+                // reply budget can become negative
+                final long remoteInitialCredit = remoteSettings.initialWindowSize - remoteInitialBudget;
+                if (remoteInitialCredit != 0)
+                {
+                    for (Http2Exchange stream: streams.values())
+                    {
+                        final long newRemoteBudget = stream.remoteBudget + remoteInitialCredit;
+                        if (newRemoteBudget > MAX_REMOTE_BUDGET)
+                        {
+                            decodeError = Http2ErrorCode.FLOW_CONTROL_ERROR;
+                            break;
+                        }
+                        stream.remoteBudget = (int) newRemoteBudget;
+                    }
+                }
+            }
+
+            return decodeError;
         }
 
         private void onDecodeSetting(
@@ -5576,110 +5774,121 @@ public final class HttpServerFactory implements HttpStreamFactory
             {
                 final Map<String, String> headers = headersDecoder.headers;
                 event.requestAccepted(traceId, routedId, guard, authorization, headers);
-                if (isCorsPreflightRequest(headers))
+                onDecodeRequest(traceId, authorization, streamId, headers, headersDecoder.contentLength, false, endRequest);
+            }
+        }
+
+        private void onDecodeRequest(
+            long traceId,
+            long authorization,
+            int streamId,
+            Map<String, String> headers,
+            long contentLength,
+            boolean upgraded,
+            boolean endRequest)
+        {
+            if (isCorsPreflightRequest(headers))
+            {
+                if (!endRequest)
                 {
-                    if (!endRequest)
-                    {
-                        doEncodeHeaders(traceId, authorization, streamId, headers400, true);
-                    }
-                    else
-                    {
-                        onDecodeCorsPreflight(traceId, authorization, streamId, headers);
-                    }
-                }
-                else if (!isCorsRequestAllowed(binding, headers))
-                {
-                    doEncodeHeaders(traceId, authorization, streamId, headers403, true);
+                    doEncodeHeaders(traceId, authorization, streamId, headers400, true);
                 }
                 else
                 {
-                    final String authority = headers.get(HEADER_NAME_AUTHORITY);
-                    if (authority != null && authority.indexOf(':') == -1)
-                    {
-                        String scheme = headers.get(HEADER_NAME_SCHEME);
-                        String defaultPort = "https".equals(scheme) ? ":443" : ":80";
-                        headers.put(HEADER_NAME_AUTHORITY, authority + defaultPort);
-                    }
+                    onDecodeCorsPreflight(traceId, authorization, streamId, headers);
+                }
+            }
+            else if (!isCorsRequestAllowed(binding, headers))
+            {
+                doEncodeHeaders(traceId, authorization, streamId, headers403, true);
+            }
+            else
+            {
+                final String authority = headers.get(HEADER_NAME_AUTHORITY);
+                if (authority != null && authority.indexOf(':') == -1)
+                {
+                    String scheme = headers.get(HEADER_NAME_SCHEME);
+                    String defaultPort = "https".equals(scheme) ? ":443" : ":80";
+                    headers.put(HEADER_NAME_AUTHORITY, authority + defaultPort);
+                }
 
-                    if (CHALLENGE_RESPONSE_METHOD.equals(headers.get(HEADER_NAME_METHOD)) &&
-                        CHALLENGE_RESPONSE_CONTENT_TYPE.equals(headers.get(HEADER_NAME_CONTENT_TYPE)) &&
-                        endRequest)
+                if (CHALLENGE_RESPONSE_METHOD.equals(headers.get(HEADER_NAME_METHOD)) &&
+                    CHALLENGE_RESPONSE_CONTENT_TYPE.equals(headers.get(HEADER_NAME_CONTENT_TYPE)) &&
+                    endRequest)
+                {
+                    final String credentialsMatch = credentials.apply(headers::get);
+                    if (credentialsMatch != null)
                     {
-                        final String credentialsMatch = credentials.apply(headers::get);
+                        guard.reauthorize(traceId, routedId, initialId, credentialsMatch);
+                    }
+                    doEncodeHeaders(traceId, authorization, streamId, headers204, true);
+                }
+                else
+                {
+                    long exchangeAuth = authorization;
+                    String credentialsMatch = null;
+
+                    if (guard != null)
+                    {
+                        credentialsMatch = credentials.apply(headers::get);
                         if (credentialsMatch != null)
                         {
-                            guard.reauthorize(traceId, routedId, initialId, credentialsMatch);
+                            exchangeAuth = guard.reauthorize(traceId, routedId, initialId, credentialsMatch);
                         }
-                        doEncodeHeaders(traceId, authorization, streamId, headers204, true);
+                    }
+
+                    final HttpRouteConfig route = binding.resolve(exchangeAuth, headers::get);
+                    if (route == null)
+                    {
+                        Array32FW<HttpHeaderFW> headers40x =
+                            guard != null && (exchangeAuth & MASK_AUTHORIZED) == 0
+                                ? credentialsMatch != null ? headers403 : headers401
+                                : headers404;
+                        doEncodeHeaders(traceId, authorization, streamId, headers40x, true);
                     }
                     else
                     {
-                        long exchangeAuth = authorization;
-                        String credentialsMatch = null;
+                        final long originId = this.routedId;
+                        final long routedId = route.id;
 
-                        if (guard != null)
+                        HttpPolicyConfig policy = binding.access().effectivePolicy(headers);
+                        final String origin = policy == CROSS_ORIGIN ? headers.get(HEADER_NAME_ORIGIN) : null;
+
+                        Map<String8FW, String16FW> overrides = route.overrides();
+                        if (overrides != null)
                         {
-                            credentialsMatch = credentials.apply(headers::get);
-                            if (credentialsMatch != null)
-                            {
-                                exchangeAuth = guard.reauthorize(traceId, routedId, initialId, credentialsMatch);
-                            }
+                            overrides.forEach((k, v) -> headers.put(k.asString(), v.asString()));
                         }
 
-                        final HttpRouteConfig route = binding.resolve(exchangeAuth, headers::get);
-                        if (route == null)
+                        final HttpBeginExFW beginEx = beginExRW
+                                .wrap(extBuffer, 0, extBuffer.capacity())
+                                .compositeId(route.compositeId())
+                                .typeId(httpTypeId)
+                                .headers(hs -> headers.forEach((n, v) -> hs.item(h -> h.name(n).value(v))))
+                                .build();
+
+                        HttpRequestType requestType = binding.resolveRequestType(beginEx);
+
+                        final HttpRouteAffinity resolved = route.resolve();
+
+                        final Http2Exchange exchange = new Http2Exchange(originId, routedId,
+                            resolved.initialId(), resolved.affinity(),
+                            streamId, exchangeAuth, traceId, policy, origin, contentLength, upgraded, requestType);
+
+                        final HttpBeginExFW transformedBeginEx =
+                            transformRequestBeginEx(traceId, routedId, exchangeAuth, beginEx, requestType);
+                        boolean headersValid = transformedBeginEx != null;
+                        if (headersValid)
                         {
-                            Array32FW<HttpHeaderFW> headers40x =
-                                guard != null && (exchangeAuth & MASK_AUTHORIZED) == 0
-                                    ? credentialsMatch != null ? headers403 : headers401
-                                    : headers404;
-                            doEncodeHeaders(traceId, authorization, streamId, headers40x, true);
+                            exchange.doRequestBegin(traceId, transformedBeginEx);
+                            if (endRequest)
+                            {
+                                exchange.doRequestEnd(traceId, EMPTY_OCTETS);
+                            }
                         }
                         else
                         {
-                            final long originId = this.routedId;
-                            final long routedId = route.id;
-                            final long contentLength = headersDecoder.contentLength;
-
-                            HttpPolicyConfig policy = binding.access().effectivePolicy(headers);
-                            final String origin = policy == CROSS_ORIGIN ? headers.get(HEADER_NAME_ORIGIN) : null;
-
-                            Map<String8FW, String16FW> overrides = route.overrides();
-                            if (overrides != null)
-                            {
-                                overrides.forEach((k, v) -> headers.put(k.asString(), v.asString()));
-                            }
-
-                            final HttpBeginExFW beginEx = beginExRW
-                                    .wrap(extBuffer, 0, extBuffer.capacity())
-                                    .compositeId(route.compositeId())
-                                    .typeId(httpTypeId)
-                                    .headers(hs -> headers.forEach((n, v) -> hs.item(h -> h.name(n).value(v))))
-                                    .build();
-
-                            HttpRequestType requestType = binding.resolveRequestType(beginEx);
-
-                            final HttpRouteAffinity resolved = route.resolve();
-
-                            final Http2Exchange exchange = new Http2Exchange(originId, routedId,
-                                resolved.initialId(), resolved.affinity(),
-                                streamId, exchangeAuth, traceId, policy, origin, contentLength, requestType);
-
-                            final HttpBeginExFW transformedBeginEx =
-                                transformRequestBeginEx(traceId, routedId, exchangeAuth, beginEx, requestType);
-                            boolean headersValid = transformedBeginEx != null;
-                            if (headersValid)
-                            {
-                                exchange.doRequestBegin(traceId, transformedBeginEx);
-                                if (endRequest)
-                                {
-                                    exchange.doRequestEnd(traceId, EMPTY_OCTETS);
-                                }
-                            }
-                            else
-                            {
-                                doEncodeHeaders(traceId, authorization, streamId, headers400, true);
-                            }
+                            doEncodeHeaders(traceId, authorization, streamId, headers400, true);
                         }
                     }
                 }
@@ -5985,11 +6194,11 @@ public final class HttpServerFactory implements HttpStreamFactory
             long traceId)
         {
             final int responseSharedPadding = http2FramePadding(remoteSharedBudget, remoteSettings.maxFrameSize);
-            final int remoteSharedBudgetMax = remoteSharedBudget + responseSharedPadding + replyPad;
+            final long remoteSharedBudgetMax = (long) remoteSharedBudget + responseSharedPadding + replyPad;
             final int responseSharedCredit =
-                Math.min(decodeMax - responseSharedBudget - encodeSlotReserved, replySharedBudget);
-            final int responseSharedBudgetDelta = remoteSharedBudgetMax - (responseSharedBudget + encodeSlotReserved);
-            final int replySharedCredit = Math.min(responseSharedCredit, responseSharedBudgetDelta);
+                Math.min(encodeMax - responseSharedBudget - encodeSlotReserved, replySharedBudget);
+            final long responseSharedBudgetDelta = remoteSharedBudgetMax - (responseSharedBudget + encodeSlotReserved);
+            final int replySharedCredit = (int) Math.min(responseSharedCredit, responseSharedBudgetDelta);
 
             if (replySharedCredit > 0 && responseCredit != null)
             {
@@ -6005,11 +6214,8 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 responseSharedBudget += replySharedCredit;
 
-                assert responseSharedBudget <= decodeMax
-                    : String.format("%d <= %d", responseSharedBudget, decodeMax);
-
-                assert replySharedBudget <= decodeMax
-                    : String.format("%d <= %d", replySharedBudget, decodeMax);
+                assert responseSharedBudget <= encodeMax
+                    : String.format("%d <= %d", responseSharedBudget, encodeMax);
             }
         }
 
@@ -6070,7 +6276,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     doEncodePushPromise(traceId, authorization, pushId, promiseId, promise);
 
                     final Http2Exchange exchange = new Http2Exchange(originId, routedId, requestId, Http2Server.this.affinity,
-                                promiseId, exchangeAuth, traceId, policy, origin, contentLength, null);
+                                promiseId, exchangeAuth, traceId, policy, origin, contentLength, false, null);
 
                     final HttpBeginExFW beginEx = beginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                             .compositeId(route.compositeId())
@@ -6373,6 +6579,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             private final HttpPolicyConfig policy;
             private final String origin;
             private final long requestContentLength;
+            private final boolean upgraded;
             private final HttpRequestType requestType;
             private final HttpModel content;
 
@@ -6425,6 +6632,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 HttpPolicyConfig policy,
                 String origin,
                 long requestContentLength,
+                boolean upgraded,
                 HttpRequestType requestType)
             {
                 this.originId = originId;
@@ -6435,6 +6643,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 this.policy = policy;
                 this.origin = origin;
                 this.requestContentLength = requestContentLength;
+                this.upgraded = upgraded;
                 this.requestId = requestId == NO_REQUEST_ID ? supplyInitialId.applyAsLong(routedId) : requestId;
                 this.affinity = affinity;
                 this.responseId = supplyReplyId.applyAsLong(this.requestId);
@@ -6478,7 +6687,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 boolean valid = true;
 
-                if (localBudget < remaining.value)
+                if (!upgraded && localBudget < remaining.value)
                 {
                     doEncodeRstStream(traceId, streamId, Http2ErrorCode.FLOW_CONTROL_ERROR);
                     cleanup(traceId);
@@ -6778,7 +6987,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             {
                 final int initialWindow = initialWindow();
                 final int size = initialWindow - localBudget;
-                if (size > 0)
+                if (!upgraded && size > 0)
                 {
                     localBudget = initialWindow;
                     doEncodeWindowUpdates(traceId, authorization, streamId, size);
@@ -6824,6 +7033,12 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 responseSeq = sequence;
                 responseAck = acknowledge;
+
+                if (responseMax == 0)
+                {
+                    doWindow(application, originId, routedId, responseId, responseSeq, responseAck, responseMax,
+                        traceId, sessionId, budgetId, replyPad, CAPABILITY_FRAMING_MASK);
+                }
 
                 final HttpBeginExFW beginEx = begin.extension().get(beginExRO::tryWrap);
                 final HttpRequestType.Response response = beginEx != null ? binding.resolveResponse(requestType, beginEx) : null;
@@ -7152,7 +7367,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     final int remotePad = http2FramePadding(remotePaddableMax, remoteSettings.maxFrameSize);
                     final int eventPad = eventFraming ? EVENT_PADDING_MAX : 0;
                     final int responsePad = replyPad + remotePad + eventPad;
-                    final int newResponseWin = remoteBudget;
+                    final int newResponseWin = remotePaddableMax;
                     final int responseWin = responseMax - (int)(responseSeq - responseAck);
                     final int responseCredit = newResponseWin - responseWin;
 

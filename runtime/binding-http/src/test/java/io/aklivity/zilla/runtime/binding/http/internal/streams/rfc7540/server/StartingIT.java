@@ -19,7 +19,6 @@ import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -89,17 +88,6 @@ public class StartingIT
         k3po.finish();
     }
 
-    @Ignore("TODO")
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/upgrade.h2c.with.no.tls/client",
-        "${app}/upgrade.http/server" })
-    public void shouldUpgradeViaCleartextWithNoTls() throws Exception
-    {
-        k3po.finish();
-    }
-
     @Test
     @Configuration("server.yaml")
     @Specification({
@@ -124,6 +112,16 @@ public class StartingIT
     @Specification({
         "${net}/upgrade.pri.with.tls.and.alpn.http1.1/client" })
     public void shouldNotUpgradeViaPriorKnowledgeWithTlsAndAlpnHttp11() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/upgrade.h2c.with.large.response/client",
+        "${app}/upgrade.and.large.response/server" })
+    public void shouldUpgradeViaCleartextWithLargeResponse() throws Exception
     {
         k3po.finish();
     }
