@@ -148,10 +148,10 @@ public class EventStreamIT
 
     @Test
     @Configuration("server.yaml")
-    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
     @Specification({
         "${net}/response.sse.data.large.frames/client",
         "${app}/response.sse.data.large.frames/server" })
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
     public void shouldReceiveResponseDataLargeFrames() throws Exception
     {
         k3po.finish();

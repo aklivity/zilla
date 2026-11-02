@@ -1243,7 +1243,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         final int dataLength,
         final int maxFrameSize)
     {
-        final int frameCount = (dataLength + maxFrameSize - 1) / maxFrameSize;
+        final int frameCount = dataLength / maxFrameSize + (dataLength % maxFrameSize != 0 ? 1 : 0);
 
         return frameCount * Http2FrameInfoFW.SIZE_OF_FRAME; // assumes H2 DATA not PADDED
     }
@@ -2595,11 +2595,11 @@ public final class HttpClientFactory implements HttpStreamFactory
                 assert requestCredit == null;
                 requestCredit = context.supplyCredit(initialId, initialBudgetId);
 
-                remoteSharedBudget = encodeMax;
+                remoteSharedBudget = remoteSettings.initialWindowSize;
 
                 for (HttpExchange exchange: exchanges.values())
                 {
-                    exchange.remoteBudget += encodeMax;
+                    exchange.remoteBudget += remoteSettings.initialWindowSize;
                     exchange.flushRequestWindow(traceId, 0);
                 }
 
@@ -4179,11 +4179,11 @@ public final class HttpClientFactory implements HttpStreamFactory
             long traceId)
         {
             final int requestSharedPadding = http2FramePadding(remoteSharedBudget, remoteSettings.maxFrameSize);
-            final int remoteSharedBudgetMax = remoteSharedBudget + requestSharedPadding + initialPad;
+            final long remoteSharedBudgetMax = (long) remoteSharedBudget + requestSharedPadding + initialPad;
             final int requestSharedCredit =
                     Math.min(encodeMax - encodeSlotReserved - requestSharedBudget, initialSharedBudget);
-            final int requestSharedBudgetDelta = remoteSharedBudgetMax - (requestSharedBudget + encodeSlotReserved);
-            final int initialSharedCredit = Math.min(requestSharedCredit, requestSharedBudgetDelta);
+            final long requestSharedBudgetDelta = remoteSharedBudgetMax - (requestSharedBudget + encodeSlotReserved);
+            final int initialSharedCredit = (int) Math.min(requestSharedCredit, requestSharedBudgetDelta);
 
             if (initialSharedCredit > 0 && requestCredit != null)
             {
@@ -4193,9 +4193,6 @@ public final class HttpClientFactory implements HttpStreamFactory
 
                 assert requestSharedBudget <= encodeMax
                         : String.format("%d <= %d", requestSharedBudget, encodeMax);
-
-                assert initialSharedBudget <= encodeMax
-                        : String.format("%d <= %d", initialSharedBudget, encodeMax);
             }
         }
 
@@ -4311,7 +4308,6 @@ public final class HttpClientFactory implements HttpStreamFactory
                         .endStream(endRequest && progress + length >= limit)
                         .payload(buffer, progress, length)
                         .build();
-
                 frameOffset = http2Data.limit();
                 progress += length;
             }
@@ -5606,7 +5602,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 final int remotePaddableMax = Math.min(remoteBudget, encodeMax);
                 final int remotePad = http2FramePadding(remotePaddableMax, client.remoteSettings.maxFrameSize);
                 final int requestPad = client.initialPad + remotePad;
-                final int newRequestWin = remoteBudget;
+                final int newRequestWin = remotePaddableMax;
                 final int requestWin = requestMax - (int)(requestSeq - requestAck);
                 final int requestCredit = newRequestWin - requestWin;
 

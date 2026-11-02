@@ -80,7 +80,6 @@ public class FlowControlIT
     @Specification({
         "${app}/client.sent.100k.message/client",
         "${net}/client.sent.100k.message/server" })
-    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void clientSent100kMessage() throws Exception
     {
@@ -92,7 +91,6 @@ public class FlowControlIT
     @Specification({
         "${app}/server.sent.100k.message/client",
         "${net}/server.sent.100k.message/server" })
-    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void clientServer100kMessage() throws Exception
     {
@@ -115,7 +113,6 @@ public class FlowControlIT
     @Specification({
         "${app}/server.sent.connection.window.topup/client",
         "${net}/server.sent.connection.window.topup/server" })
-    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     @Configure(name = HTTP_CONNECTION_WINDOW_NAME, value = "100000")
     public void shouldServerSentConnectionWindowTopup() throws Exception
@@ -128,7 +125,6 @@ public class FlowControlIT
     @Specification({
         "${app}/server.sent.unknown.stream.connection.window.topup/client",
         "${net}/server.sent.unknown.stream.connection.window.topup/server" })
-    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
     @Configure(name = HTTP_CONNECTION_WINDOW_NAME, value = "100000")
     public void shouldServerSentUnknownStreamConnectionWindowTopup() throws Exception
     {
@@ -140,9 +136,9 @@ public class FlowControlIT
     @Specification({
         "${app}/server.sent.padded.connection.window.topup/client",
         "${net}/server.sent.padded.connection.window.topup/server" })
-    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     @Configure(name = HTTP_CONNECTION_WINDOW_NAME, value = "100000")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
     public void shouldServerSentPaddedConnectionWindowTopup() throws Exception
     {
         k3po.finish();
@@ -153,7 +149,6 @@ public class FlowControlIT
     @Specification({
         "${app}/server.sent.padding.only.stream.window.update/client",
         "${net}/server.sent.padding.only.stream.window.update/server" })
-    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void shouldServerSentPaddingOnlyStreamWindowUpdate() throws Exception
     {

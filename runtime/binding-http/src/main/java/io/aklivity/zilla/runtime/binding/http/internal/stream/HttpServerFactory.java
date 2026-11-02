@@ -4391,7 +4391,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         final int dataLength,
         final int maxFrameSize)
     {
-        final int frameCount = (dataLength + maxFrameSize - 1) / maxFrameSize;
+        final int frameCount = dataLength / maxFrameSize + (dataLength % maxFrameSize != 0 ? 1 : 0);
 
         return frameCount * Http2FrameInfoFW.SIZE_OF_FRAME; // assumes H2 DATA not PADDED
     }
@@ -5985,11 +5985,11 @@ public final class HttpServerFactory implements HttpStreamFactory
             long traceId)
         {
             final int responseSharedPadding = http2FramePadding(remoteSharedBudget, remoteSettings.maxFrameSize);
-            final int remoteSharedBudgetMax = remoteSharedBudget + responseSharedPadding + replyPad;
+            final long remoteSharedBudgetMax = (long) remoteSharedBudget + responseSharedPadding + replyPad;
             final int responseSharedCredit =
-                Math.min(decodeMax - responseSharedBudget - encodeSlotReserved, replySharedBudget);
-            final int responseSharedBudgetDelta = remoteSharedBudgetMax - (responseSharedBudget + encodeSlotReserved);
-            final int replySharedCredit = Math.min(responseSharedCredit, responseSharedBudgetDelta);
+                Math.min(encodeMax - responseSharedBudget - encodeSlotReserved, replySharedBudget);
+            final long responseSharedBudgetDelta = remoteSharedBudgetMax - (responseSharedBudget + encodeSlotReserved);
+            final int replySharedCredit = (int) Math.min(responseSharedCredit, responseSharedBudgetDelta);
 
             if (replySharedCredit > 0 && responseCredit != null)
             {
@@ -6005,11 +6005,8 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 responseSharedBudget += replySharedCredit;
 
-                assert responseSharedBudget <= decodeMax
-                    : String.format("%d <= %d", responseSharedBudget, decodeMax);
-
-                assert replySharedBudget <= decodeMax
-                    : String.format("%d <= %d", replySharedBudget, decodeMax);
+                assert responseSharedBudget <= encodeMax
+                    : String.format("%d <= %d", responseSharedBudget, encodeMax);
             }
         }
 
@@ -7152,7 +7149,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     final int remotePad = http2FramePadding(remotePaddableMax, remoteSettings.maxFrameSize);
                     final int eventPad = eventFraming ? EVENT_PADDING_MAX : 0;
                     final int responsePad = replyPad + remotePad + eventPad;
-                    final int newResponseWin = remoteBudget;
+                    final int newResponseWin = remotePaddableMax;
                     final int responseWin = responseMax - (int)(responseSeq - responseAck);
                     final int responseCredit = newResponseWin - responseWin;
 
