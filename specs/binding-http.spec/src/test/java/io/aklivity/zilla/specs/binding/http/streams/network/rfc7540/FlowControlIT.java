@@ -216,4 +216,14 @@ public class FlowControlIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.100k.message.up.front.window/client",
+        "${net}/server.sent.100k.message.up.front.window/server"
+    })
+    public void shouldServerSent100kMessageUpFrontWindow() throws Exception
+    {
+        k3po.finish();
+    }
 }

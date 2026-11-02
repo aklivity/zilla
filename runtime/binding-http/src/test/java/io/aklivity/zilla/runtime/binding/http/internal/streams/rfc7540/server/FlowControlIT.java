@@ -66,7 +66,7 @@ public class FlowControlIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/server.sent.100k.message/client",
+        "${net}/server.sent.100k.message.up.front.window/client",
         "${app}/server.sent.100k.message/server" })
     public void serverSent100kMessage() throws Exception
     {
