@@ -147,4 +147,14 @@ public class StartingIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/upgrade.h2c.with.window.update.overflow.error/client",
+        "${net}/upgrade.h2c.with.window.update.overflow.error/server",
+    })
+    public void shouldUpgradeH2cWithWindowUpdateOverflowError() throws Exception
+    {
+        k3po.finish();
+    }
 }

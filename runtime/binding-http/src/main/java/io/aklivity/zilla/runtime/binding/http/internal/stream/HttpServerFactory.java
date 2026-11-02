@@ -4446,7 +4446,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         private int replyBudgetReserved;
         private int replySharedBudget;
 
-        private int remoteSharedBudget;
+        private int remoteSharedBudget = INITIAL_CONNECTION_WINDOW;
         private int localSharedBudget = INITIAL_CONNECTION_WINDOW;
         private int responseSharedBudget;
         private BudgetCredit responseCredit;
@@ -4513,7 +4513,6 @@ public final class HttpServerFactory implements HttpStreamFactory
             this.encodeContext = new HpackContext(remoteSettings.headerTableSize, true);
             this.encodeHeadersBuffer = new ExpandableArrayBufferEx();
             this.encodeReservedBuffer = new ExpandableArrayBufferEx();
-            this.remoteSharedBudget = remoteSettings.initialWindowSize;
             this.guard = resolveGuard(binding);
             this.credentials = binding.credentials();
         }

@@ -2415,7 +2415,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         private int decodedStreamId;
         private byte decodedFlags;
         private int continuationStreamId;
-        private int remoteSharedBudget;
+        private int remoteSharedBudget = INITIAL_CONNECTION_WINDOW;
         private int localSharedBudget = INITIAL_CONNECTION_WINDOW;
         private int maxClientStreamId = -1;
         private int decodableDataBytes;
@@ -2594,8 +2594,6 @@ public final class HttpClientFactory implements HttpStreamFactory
                 initialBudgetId = supplyBudgetId.getAsLong();
                 assert requestCredit == null;
                 requestCredit = context.supplyCredit(initialId, initialBudgetId);
-
-                remoteSharedBudget = remoteSettings.initialWindowSize;
 
                 for (HttpExchange exchange: exchanges.values())
                 {

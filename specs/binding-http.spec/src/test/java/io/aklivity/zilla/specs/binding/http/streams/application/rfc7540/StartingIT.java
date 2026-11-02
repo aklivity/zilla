@@ -66,4 +66,14 @@ public class StartingIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/upgrade.and.503.response/client",
+        "${app}/upgrade.and.503.response/server",
+    })
+    public void shouldUpgradeAnd503Response() throws Exception
+    {
+        k3po.finish();
+    }
 }
