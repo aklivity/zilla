@@ -88,17 +88,17 @@ read [0x00 0x0e 0x25]                   # length = 3621
      [0x00 0x00 0x00 0x01]              # stream_id = 1
      [0..3621]
 
-read [0x00 0x40 0x00]                   # length = 16384
+read [0x00 0x31 0xbe]                   # length = 12734
      [0x00]                             # HTTP2 DATA frame
      [0x00]                             # flags
      [0x00 0x00 0x00 0x01]              # stream_id = 1
-     [0..16384]
+     [0..12734]
 
-read [0x00 0x0e 0x22]                   # length = 3618
+read [0x00 0x1c 0x66]                   # length = 7270
      [0x00]                             # HTTP2 DATA frame
      [0x00]                             # flags
      [0x00 0x00 0x00 0x01]              # stream_id = 1
-     [0..3616]
+     [0..7268]
      "\n\n"
 
 read [0x00 0x00 0x00]                   # empty DATA

@@ -90,18 +90,18 @@ write [0x00 0x0e 0x25]                   # length = 3621
       ${http:randomAscii(3621)}
 write flush
 
-write [0x00 0x40 0x00]                   # length = 16384
+write [0x00 0x31 0xbe]                   # length = 12734
       [0x00]                             # HTTP2 DATA frame
       [0x00]                             # flags
       [0x00 0x00 0x00 0x01]              # stream_id = 1
-      ${http:randomAscii(16384)}
+      ${http:randomAscii(12734)}
 write flush
 
-write [0x00 0x0e 0x22]                   # length = 3618
+write [0x00 0x1c 0x66]                   # length = 7270
       [0x00]                             # HTTP2 DATA frame
       [0x00]                             # flags
       [0x00 0x00 0x00 0x01]              # stream_id = 1
-      ${http:randomAscii(3616)}
+      ${http:randomAscii(7268)}
       "\n\n"
 write flush
 
