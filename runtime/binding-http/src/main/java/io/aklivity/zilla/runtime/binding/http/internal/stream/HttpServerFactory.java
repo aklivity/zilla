@@ -4041,7 +4041,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             if (streamId == 0)
             {
-                if (server.remoteSharedBudget + size > Integer.MAX_VALUE)
+                if ((long) server.remoteSharedBudget + size > MAX_REMOTE_BUDGET)
                 {
                     error = Http2ErrorCode.FLOW_CONTROL_ERROR;
                 }

@@ -163,4 +163,15 @@ public class FlowControlIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/client.sent.second.stream.window.grants/client",
+        "${net}/client.sent.second.stream.window.grants/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    public void shouldClientSentSecondStreamWindowGrants() throws Exception
+    {
+        k3po.finish();
+    }
 }

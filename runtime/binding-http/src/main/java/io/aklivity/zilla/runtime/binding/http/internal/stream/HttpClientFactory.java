@@ -1839,7 +1839,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             if (streamId == 0)
             {
-                if (client.remoteSharedBudget + size > Integer.MAX_VALUE)
+                if ((long) client.remoteSharedBudget + size > MAX_REMOTE_BUDGET)
                 {
                     error = Http2ErrorCode.FLOW_CONTROL_ERROR;
                 }
@@ -4701,7 +4701,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                     if (client != null)
                     {
                         httpExchange.doRequestBegin(traceId, authorization, queueEntry.value());
-                        httpExchange.remoteBudget = httpExchange.client.remoteSharedBudget;
+                        httpExchange.remoteBudget = httpExchange.client.remoteSettings.initialWindowSize;
                         httpExchange.client.encoder.onApplicationBegin(httpExchange.client, httpExchange, traceId, authorization);
                     }
                     else
@@ -5033,7 +5033,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             if (HttpState.replyOpened(client.state))
             {
-                remoteBudget = client.remoteSharedBudget;
+                remoteBudget = client.remoteSettings.initialWindowSize;
                 client.encoder.onApplicationBegin(client, this, traceId, authorization);
             }
         }
@@ -5606,7 +5606,8 @@ public final class HttpClientFactory implements HttpStreamFactory
                 final int requestWin = requestMax - (int)(requestSeq - requestAck);
                 final int requestCredit = newRequestWin - requestWin;
 
-                if (requestCredit >= 0 && requestCredit >= requestCreditMin && newRequestWin > requestPad)
+                if (requestCredit >= 0 && requestCredit >= requestCreditMin &&
+                    (newRequestWin > requestPad || !HttpState.initialOpened(state)))
                 {
                     final int requestNoAck = (int)(requestSeq - requestAck);
                     final int requestAcked = Math.min(requestNoAck, requestCredit);
@@ -5616,6 +5617,8 @@ public final class HttpClientFactory implements HttpStreamFactory
 
                     requestMax = newRequestWin + (int)(requestSeq - requestAck);
                     assert requestMax >= 0;
+
+                    state = HttpState.openInitial(state);
 
                     doWindow(application, originId, routedId, requestId, requestSeq, requestAck, requestMax, traceId, sessionId,
                             client.initialBudgetId, requestPad, CAPABILITY_FRAMING_MASK);

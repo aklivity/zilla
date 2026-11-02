@@ -197,4 +197,15 @@ public class MessageFormatIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/request.and.503.response/client",
+        "${net}/client.window.update.overflow.error/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    public void shouldClientWindowUpdateOverflowError() throws Exception
+    {
+        k3po.finish();
+    }
 }

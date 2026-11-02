@@ -148,4 +148,14 @@ public class FlowControlIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/server.sent.second.stream.window.grants/client",
+        "${app}/server.sent.second.stream.window.grants/server" })
+    public void shouldServerSentSecondStreamWindowGrants() throws Exception
+    {
+        k3po.finish();
+    }
 }

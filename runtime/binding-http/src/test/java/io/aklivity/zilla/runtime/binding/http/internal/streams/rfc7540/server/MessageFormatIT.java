@@ -194,4 +194,13 @@ public class MessageFormatIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/window.update.overflow.error/client" })
+    public void shouldWindowUpdateOverflowError() throws Exception
+    {
+        k3po.finish();
+    }
 }
