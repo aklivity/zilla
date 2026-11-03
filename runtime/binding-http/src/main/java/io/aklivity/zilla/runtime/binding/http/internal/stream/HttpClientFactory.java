@@ -88,7 +88,6 @@ import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2PrefaceFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2PriorityFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2PushPromiseFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2RstStreamFW;
-import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2Setting;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2SettingsFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2WindowUpdateFW;
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpBindingConfig;
@@ -4038,7 +4037,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             else
             {
                 final int remoteInitialBudget = remoteSettings.initialWindowSize;
-                http2Settings.forEach(this::onDecodeSetting);
+                http2Settings.forEach(remoteSettings::apply);
 
                 Http2ErrorCode decodeError = remoteSettings.error();
 
@@ -4092,35 +4091,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
 
             localSettings.apply(initialSettings);
-        }
-
-        private void onDecodeSetting(
-            Http2Setting setting,
-            int value)
-        {
-            switch (setting)
-            {
-            case HEADER_TABLE_SIZE:
-                remoteSettings.headerTableSize = value;
-                break;
-            case ENABLE_PUSH:
-                remoteSettings.enablePush = value;
-                break;
-            case MAX_CONCURRENT_STREAMS:
-                remoteSettings.maxConcurrentStreams = value;
-                break;
-            case INITIAL_WINDOW_SIZE:
-                remoteSettings.initialWindowSize = value;
-                break;
-            case MAX_FRAME_SIZE:
-                remoteSettings.maxFrameSize = value;
-                break;
-            case MAX_HEADER_LIST_SIZE:
-                remoteSettings.maxHeaderListSize = value;
-                break;
-            case UNKNOWN:
-                break;
-            }
         }
 
         private void onDecodeHttp2WindowUpdate(

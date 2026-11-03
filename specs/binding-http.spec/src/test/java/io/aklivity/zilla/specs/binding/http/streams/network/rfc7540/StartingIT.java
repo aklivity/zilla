@@ -217,4 +217,84 @@ public class StartingIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/upgrade.h2c.with.duplicate.settings/client",
+        "${net}/upgrade.h2c.with.duplicate.settings/server",
+    })
+    public void shouldUpgradeH2cWithDuplicateSettings() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/upgrade.h2c.with.invalid.settings/client",
+        "${net}/upgrade.h2c.with.invalid.settings/server",
+    })
+    public void shouldUpgradeH2cWithInvalidSettings() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/upgrade.h2c.with.truncated.settings/client",
+        "${net}/upgrade.h2c.with.truncated.settings/server",
+    })
+    public void shouldUpgradeH2cWithTruncatedSettings() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/upgrade.h2c.with.settings.window.error/client",
+        "${net}/upgrade.h2c.with.settings.window.error/server",
+    })
+    public void shouldUpgradeH2cWithSettingsWindowError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/upgrade.h2c.with.settings.frame.size.error/client",
+        "${net}/upgrade.h2c.with.settings.frame.size.error/server",
+    })
+    public void shouldUpgradeH2cWithSettingsFrameSizeError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/upgrade.h2c.with.unknown.authority/client",
+        "${net}/upgrade.h2c.with.unknown.authority/server",
+    })
+    public void shouldUpgradeH2cWithUnknownAuthority() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/upgrade.h2c.with.large.body/client",
+        "${net}/upgrade.h2c.with.large.body/server",
+    })
+    public void shouldUpgradeH2cWithLargeBody() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/upgrade.h2c.with.client.close/client",
+        "${net}/upgrade.h2c.with.client.close/server",
+    })
+    public void shouldUpgradeH2cWithClientClose() throws Exception
+    {
+        k3po.finish();
+    }
 }

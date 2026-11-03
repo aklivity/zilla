@@ -167,4 +167,82 @@ public class StartingIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/upgrade.h2c.with.duplicate.settings/client",
+        "${app}/upgrade.http/server" })
+    public void shouldUpgradeViaCleartextWithDuplicateSettings() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/upgrade.h2c.with.invalid.settings/client",
+        "${app}/upgrade.http/server" })
+    public void shouldUpgradeViaCleartextWithInvalidSettings() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/upgrade.h2c.with.truncated.settings/client",
+        "${app}/upgrade.http/server" })
+    public void shouldUpgradeViaCleartextWithTruncatedSettings() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/upgrade.h2c.with.settings.window.error/client",
+        "${app}/upgrade.http/server" })
+    public void shouldUpgradeViaCleartextWithSettingsWindowError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/upgrade.h2c.with.settings.frame.size.error/client",
+        "${app}/upgrade.http/server" })
+    public void shouldUpgradeViaCleartextWithSettingsFrameSizeError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.authority.yaml")
+    @Specification({
+        "${net}/upgrade.h2c.with.unknown.authority/client" })
+    public void shouldUpgradeViaCleartextWithUnknownAuthority() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/upgrade.h2c.with.large.body/client",
+        "${app}/upgrade.and.large.body/server" })
+    public void shouldUpgradeViaCleartextWithLargeBody() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/upgrade.h2c.with.client.close/client" })
+    public void shouldUpgradeViaCleartextWithClientClose() throws Exception
+    {
+        k3po.finish();
+    }
 }
