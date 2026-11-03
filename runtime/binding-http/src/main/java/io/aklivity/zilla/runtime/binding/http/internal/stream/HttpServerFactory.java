@@ -1116,8 +1116,11 @@ public final class HttpServerFactory implements HttpStreamFactory
                 endOfStartAt >= offset + 16 &&
                 CharSequence.compare("PRI * HTTP/2.0\r\n", new AsciiSequenceView(buffer, offset, 16)) == 0)
             {
-                server.delegate = new Http2Server(server);
-                signaler.signalNow(server.originId, server.routedId, server.replyId, traceId, DELEGATE_SIGNAL, 0);
+                if (server.delegate == null)
+                {
+                    server.delegate = new Http2Server(server);
+                    signaler.signalNow(server.originId, server.routedId, server.replyId, traceId, DELEGATE_SIGNAL, 0);
+                }
                 return offset;
             }
 
@@ -2414,6 +2417,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     final MutableDirectBufferEx decodeBuffer = bufferPool.buffer(decodeSlot);
                     decodeBuffer.putBytes(0, buffer, progress, limit - progress);
                     decodeSlotOffset = limit - progress;
+                    decodeSlotReserved = (int)((long) reserved * (limit - progress) / (limit - offset));
                 }
             }
             else
@@ -4782,6 +4786,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 if (decodeSlot != NO_SLOT)
                 {
                     final MutableDirectBufferEx slotBuffer = bufferPool.buffer(decodeSlot);
+                    assert decodeSlotOffset + limit - offset <= slotBuffer.capacity();
                     slotBuffer.putBytes(decodeSlotOffset, buffer, offset, limit - offset);
                     decodeSlotOffset += limit - offset;
                     decodeSlotReserved += reserved;

@@ -110,6 +110,16 @@ public class StartingIT
 
     @Test
     @Specification({
+        "${net}/upgrade.pri.with.partial.frame/client",
+        "${net}/upgrade.pri.with.partial.frame/server",
+    })
+    public void shouldUpgradeViaPriorKnowledgeWithPartialFrame() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/upgrade.pri.with.tls.and.alpn.http1.1/client",
         "${net}/upgrade.pri.with.tls.and.alpn.http1.1/server",
     })
