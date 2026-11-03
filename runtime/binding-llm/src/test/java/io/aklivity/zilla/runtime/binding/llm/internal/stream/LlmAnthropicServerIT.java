@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_POOL_CAPACITY_NAME;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -28,6 +30,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class LlmAnthropicServerIT
 {
@@ -42,6 +45,7 @@ public class LlmAnthropicServerIT
         .countersBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/llm/config")
         .external("app0")
+        .external("app1")
         .clean();
 
 
@@ -343,6 +347,15 @@ public class LlmAnthropicServerIT
         "${net}/anthropic.section.rejected.json.malformed/client",
         "${app}/anthropic.section.rejected.json.malformed/server"})
     public void shouldDecodeAnthropicSectionRejectedJsonMalformed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.rejected.json.malformed.window/client"})
+    public void shouldRejectAnthropicJsonMalformedWithReplyWindow() throws Exception
     {
         k3po.finish();
     }
@@ -784,6 +797,16 @@ public class LlmAnthropicServerIT
         "${net}/anthropic/client",
         "${app}/anthropic/server"})
     public void shouldForwardAnthropicNonstreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.reply.shared.budget/client",
+        "${app}/anthropic/server"})
+    public void shouldForwardAnthropicNonstreamingWithReplySharedBudget() throws Exception
     {
         k3po.finish();
     }
@@ -2183,6 +2206,55 @@ public class LlmAnthropicServerIT
         "${net}/anthropic.response.controls.grouped/client",
         "${app}/anthropic.response.controls.grouped/server"})
     public void shouldEncodeAnthropicResponseControlsGrouped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.reply.reset/client",
+        "${app}/anthropic.reply.reset/server"})
+    public void shouldAnthropicReplyReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.request.abort/client"})
+    public void shouldAnthropicRequestAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Configure(name = ENGINE_BUFFER_POOL_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/anthropic.request.buffer.exhausted/client"})
+    public void shouldAnthropicRequestBufferExhausted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.anthropic.route.model.yaml")
+    @Specification({
+        "${net}/anthropic.route.model/client",
+        "${app}/anthropic.route.model/server"})
+    public void shouldRouteAnthropicRequestByModel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.anthropic.route.model.yaml")
+    @Specification({
+        "${net}/anthropic.route.model.unmatched/client"})
+    public void shouldRejectAnthropicRequestWithUnmatchedModel() throws Exception
     {
         k3po.finish();
     }

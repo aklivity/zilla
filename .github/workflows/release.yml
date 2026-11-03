@@ -224,7 +224,7 @@ jobs:
 
     - name: Deploy via Maven
       run: |
-        ./mvnw -B -U -nsu -ntp clean deploy -Drelease -Ddocker.latest.tag=${{ steps.tag.outputs.latest }} -DskipTests
+        ./mvnw -B -U -nsu -ntp -Dmaven.build.cache.enabled=false clean deploy -Drelease -Ddocker.latest.tag=${{ steps.tag.outputs.latest }} -DskipTests
       env:
         GITHUB_ACTOR: ${{ github.actor }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

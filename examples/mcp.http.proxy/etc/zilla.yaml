@@ -1,0 +1,256 @@
+---
+name: example
+guards:
+  authn_jwt:
+    type: jwt
+    options:
+      issuer: https://auth.example.com
+      audience: https://api.example.com
+      keys:
+        - kty: RSA
+          n: lphdEcMpCplK5UYAhxPnF/kuE8dL9dHznfb8z124/vgI3CGDB9AQCGzcNOYOT4h9q+M9nKidcWnPyyIZ/GrGa7YWPQusckpPbWOaNMxjwRZ799TVHVV2xdJxige5C1lMpunho/vDlnUh1UmTsPXOmdWR3KS/+uFZzVAjNaFphpnl/1nGZAjtje5ynf/UHZ2rZPMUL6gkPqJ3kgWZugaCe0G8QWaETn1sLNInb93g5yVQCmF3KSg+xsWUIG5OYvVrKLvNNXgKOWyFbTR5Ium63kM6Rm2d3YoX5V0e7ucu1Hj52QkF0pCVXwOfqeYwkQ2O3m7HXbDVcMQLVanAmfFj2w==
+          e: AQAB
+          alg: RS256
+          kid: example
+catalogs:
+  github_catalog:
+    type: inline
+    options:
+      subjects:
+        create_pr_params:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "required": [ "owner", "repo", "title", "head", "base" ],
+              "properties": {
+                "owner": { "type": "string" },
+                "repo": { "type": "string" },
+                "title": { "type": "string" },
+                "head": { "type": "string" },
+                "base": { "type": "string" },
+                "body": { "type": "string" }
+              }
+            }
+        create_pr_body:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "required": [ "title", "head", "base" ],
+              "properties": {
+                "title": { "type": "string" },
+                "head": { "type": "string" },
+                "base": { "type": "string" },
+                "body": { "type": "string" }
+              }
+            }
+        get_pr_params:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "required": [ "owner", "repo", "number" ],
+              "properties": {
+                "owner": { "type": "string" },
+                "repo": { "type": "string" },
+                "number": { "type": "integer" }
+              }
+            }
+        pull_result:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {
+                "number": { "type": "integer" },
+                "html_url": { "type": "string" },
+                "state": { "type": "string" },
+                "title": { "type": "string" },
+                "opened_by": { "type": "string" }
+              }
+            }
+bindings:
+  north_tcp_server:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port:
+        - 7114
+    routes:
+      - when:
+          - port: 7114
+        exit: north_http_server
+  north_http_server:
+    type: http
+    kind: server
+    options:
+      access-control:
+        policy: cross-origin
+    routes:
+      - when:
+          - headers:
+              :scheme: http
+              :path: /mcp
+        exit: north_mcp_server
+  north_mcp_server:
+    type: mcp
+    kind: server
+    options:
+      authorization:
+        authn_jwt:
+          credentials: "Bearer {credentials}"
+    exit: north_mcp_proxy
+    telemetry:
+      metrics:
+        - mcp.*
+      attributes:
+        method: ${mcp.method}
+        tool: ${mcp.tool}
+        outcome: ${mcp.outcome}
+  north_mcp_proxy:
+    type: mcp
+    kind: proxy
+    routes:
+      - exit: south_mcp_http_github
+        when:
+          - toolkit: github
+        guarded:
+          authn_jwt:
+            - github:tools
+  south_mcp_http_github:
+    type: mcp-http
+    kind: proxy
+    options:
+      authorization:
+        authn_jwt:
+          credentials:
+            headers:
+              authorization: "Bearer {credentials}"
+              x-user-identity: "{identity}"
+      tools:
+        create_pr:
+          description: Create a pull request to merge one branch into another.
+          summary: "Created pull request #${result.number}: ${result.title}"
+          schemas:
+            input:
+              model: json
+              catalog:
+                github_catalog:
+                  - subject: create_pr_params
+                    version: latest
+            output:
+              model: json
+              catalog:
+                github_catalog:
+                  - subject: pull_result
+                    version: latest
+        get_pr:
+          description: Get a pull request by owner, repo, and number.
+          summary: "Pull request #${result.number} is ${result.state}: ${result.title}"
+          schemas:
+            input:
+              model: json
+              catalog:
+                github_catalog:
+                  - subject: get_pr_params
+                    version: latest
+            output:
+              model: json
+              catalog:
+                github_catalog:
+                  - subject: pull_result
+                    version: latest
+      resources:
+        pull_by_number:
+          # {owner}/{repo}/{number} makes this a resource TEMPLATE, listed under
+          # resources/templates/list instead of resources/list -- purely from
+          # the presence of {...} in the uri, no separate flag to set
+          uri: "pr://{owner}/{repo}/{number}"
+          description: A pull request by owner, repo, and number.
+          mimeType: application/json
+          schemas:
+            output:
+              model: json
+              catalog:
+                github_catalog:
+                  - subject: pull_result
+                    version: latest
+    routes:
+      # base route with no `when` applies its guard to every tool in this
+      # binding, layered underneath any tool-specific guard below
+      - guarded:
+          authn_jwt: []
+      - when:
+          - tool: create_pr
+        exit: south_http_client_ghapi
+        guarded:
+          authn_jwt:
+            - github:pr:write
+        with:
+          headers:
+            ":method": POST
+            ":scheme": http
+            ":authority": ghapi:4001
+            ":path": /repos/${args.owner}/${args.repo}/pulls
+          # owner/repo are already consumed above by the :path template, so
+          # the body schema below omits them -- everything else in the
+          # tools/call arguments still forwards as the request body
+          body:
+            model: json
+            catalog:
+              github_catalog:
+                - subject: create_pr_body
+                  version: latest
+      - when:
+          - tool: get_pr
+        exit: south_http_client_ghapi
+        with:
+          headers:
+            ":method": GET
+            ":scheme": http
+            ":authority": ghapi:4001
+            ":path": /repos/${args.owner}/${args.repo}/pulls/${args.number}
+      # read-only, so (unlike create_pr) no scope beyond the base route's
+      # authn_jwt is required -- captured path params surface as ${params.x},
+      # never ${args.x} (that accessor is tool-call-only)
+      - when:
+          - resource: pull_by_number
+        exit: south_http_client_ghapi
+        with:
+          headers:
+            ":method": GET
+            ":scheme": http
+            ":authority": ghapi:4001
+            ":path": /repos/${params.owner}/${params.repo}/pulls/${params.number}
+  south_http_client_ghapi:
+    type: http
+    kind: client
+    exit: south_tcp_client_ghapi
+  south_tcp_client_ghapi:
+    type: tcp
+    kind: client
+    options:
+      host: ghapi
+      port: 4001
+telemetry:
+  metrics:
+    - mcp.initialize
+    - mcp.initialize.duration
+    - mcp.tools.list
+    - mcp.tools.list.duration
+    - mcp.tools.call
+    - mcp.tools.call.duration
+    - mcp.resources.list
+    - mcp.resources.list.duration
+    - mcp.resources.read
+    - mcp.resources.read.duration
+  exporters:
+    prometheus_exporter:
+      type: prometheus
+      options:
+        endpoints:
+          - scheme: http
+            port: 7190
+            path: /metrics

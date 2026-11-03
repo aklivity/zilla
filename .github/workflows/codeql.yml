@@ -54,40 +54,6 @@ jobs:
         distribution: zulu
         java-version: 25
 
-    # Initializes the CodeQL tools for scanning.
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v4
-      with:
-        languages: ${{ matrix.language }}
-        # If you wish to specify custom queries, you can do so here or in a config file.
-        # By default, queries listed here will override any specified in a config file.
-        # Prefix the list here with "+" to use these queries and those in the config file.
-
-        # For more details on CodeQL's query packs, refer to: https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning#using-queries-in-ql-packs
-        # queries: security-extended,security-and-quality
-
-    # Cache downloaded Maven dependencies
-    - name: Cache Maven packages
-      uses: actions/cache@v6
-      with:
-        path: |
-          ~/.m2/repository
-          !~/.m2/repository/io/aklivity/zilla
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-        restore-keys: ${{ runner.os }}-m2
-
-    - name: Route Docker Hub pulls through mirror.gcr.io
-      run: |
-        sudo mkdir -p /etc/docker
-        if [ -f /etc/docker/daemon.json ]; then
-          sudo jq '. + {"registry-mirrors": ["https://mirror.gcr.io"]}' /etc/docker/daemon.json > /tmp/daemon.json
-        else
-          echo '{"registry-mirrors": ["https://mirror.gcr.io"]}' > /tmp/daemon.json
-        fi
-        sudo mv /tmp/daemon.json /etc/docker/daemon.json
-        sudo systemctl restart docker
-        timeout 30 sh -c 'until docker info >/dev/null 2>&1; do sleep 1; done'
-
     - name: Pin maven.packages.aklivity.io to IPv4
       run: |
         ipv4=$(getent ahostsv4 maven.packages.aklivity.io | awk 'NR==1{print $1}')
@@ -95,12 +61,18 @@ jobs:
           echo "$ipv4 maven.packages.aklivity.io" | sudo tee -a /etc/hosts
         fi
 
-    - name: Autobuild
-      uses: github/codeql-action/autobuild@v4
-      env:
-        GITHUB_ACTOR: ${{ github.actor }}
-        GITHUB_TOKEN: ${{ github.token }}
-        MAVEN_OPTS: -Dzpm.skip=true
+    # Initializes the CodeQL tools for scanning.
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v4
+      with:
+        languages: ${{ matrix.language }}
+        build-mode: none
+        # If you wish to specify custom queries, you can do so here or in a config file.
+        # By default, queries listed here will override any specified in a config file.
+        # Prefix the list here with "+" to use these queries and those in the config file.
+
+        # For more details on CodeQL's query packs, refer to: https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning#using-queries-in-ql-packs
+        # queries: security-extended,security-and-quality
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v4

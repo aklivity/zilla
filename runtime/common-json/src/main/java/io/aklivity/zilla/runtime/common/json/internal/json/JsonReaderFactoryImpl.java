@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.common.json.internal.json;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.io.Reader;
 import java.nio.charset.Charset;
@@ -65,7 +64,7 @@ public final class JsonReaderFactoryImpl implements JsonReaderFactory
         InputStream in,
         Charset charset)
     {
-        return new JsonReaderImpl(parser(marked(in)), uniqueKeys);
+        return new JsonReaderImpl(parser(in), uniqueKeys);
     }
 
     @Override
@@ -78,11 +77,5 @@ public final class JsonReaderFactoryImpl implements JsonReaderFactory
         InputStream in)
     {
         return new JsonParserImpl(in, config);
-    }
-
-    private static InputStream marked(
-        InputStream in)
-    {
-        return in.markSupported() ? in : new BufferedInputStream(in);
     }
 }

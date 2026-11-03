@@ -160,19 +160,7 @@ public final class LlmServerFactory implements LlmStreamFactory
         private LlmDialectHandler detect(
             JsonEnvelope headers)
         {
-            LlmDialectHandler matched = null;
-            boolean ambiguous = false;
-
-            for (LlmDialectHandler handler : candidates.values())
-            {
-                if (handler.detect(headers))
-                {
-                    ambiguous |= matched != null;
-                    matched = handler;
-                }
-            }
-
-            return ambiguous ? null : matched;
+            return LlmDialectSelector.select(candidates.values(), headers);
         }
     }
 }

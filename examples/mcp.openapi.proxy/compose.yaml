@@ -1,0 +1,86 @@
+name: ${NAMESPACE:-zilla-mcp-openapi-proxy}
+services:
+  zilla:
+    image: ghcr.io/aklivity/zilla:${ZILLA_VERSION:-latest}
+    restart: unless-stopped
+    hostname: zilla.examples.dev
+    ports:
+      - 7114:7114
+    # start_interval makes `up --wait` return promptly: without it the first
+    # health probe waits a full `interval` even if zilla is ready in milliseconds
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 15
+      start_period: 15s
+      start_interval: 250ms
+      test: ["CMD", "sh", "-c", "test -f /var/run/zilla/ready"]
+    environment:
+      ZILLA_INCUBATOR_ENABLED: "true"
+    volumes:
+      - ./etc:/etc/zilla
+    command: start -v -e
+    depends_on:
+      petstore:
+        condition: service_healthy
+
+  # Mock Petstore REST API backing the mcp-openapi "petstore" toolkit.
+  petstore:
+    image: node:20-alpine
+    hostname: petstore
+    restart: unless-stopped
+    working_dir: /app
+    command: ["sh", "-c", "npm install --no-audit --no-fund --silent && node server.mjs"]
+    environment:
+      PORT: "4002"
+    volumes:
+      - ./petstore:/app
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
+      start_interval: 250ms
+      test: ["CMD", "nc", "-z", "127.0.0.1", "4002"]
+
+  # Run on demand, e.g.
+  #   docker compose run --rm -e JWT_SCOPE="petstore:tools pets:write" client
+  client:
+    image: node:20-alpine
+    deploy:
+      replicas: 0
+    working_dir: /app
+    environment:
+      MCP_URL: "http://zilla:7114/mcp"
+    volumes:
+      - ./client:/app
+      - ./private.pem:/private.pem:ro
+    entrypoint: ["sh", "-c", "npm install --no-audit --no-fund --silent && node client.mjs"]
+
+  # One-off verification container: `docker compose run --rm verify`, which is
+  # all .github/test.sh does. Gated by a profile so a plain `docker compose up`
+  # never starts it. Depending on zilla alone covers the whole topology.
+  verify:
+    image: node:20-alpine
+    profiles: ["test"]
+    working_dir: /work
+    depends_on:
+      zilla:
+        condition: service_healthy
+    volumes:
+      - ./etc/test:/test:ro
+      - ../.github/test-lib.sh:/test-lib.sh:ro
+      - ./client:/work/client
+      - ./private.pem:/private.pem:ro
+    environment:
+      FAIL_FAST: "${FAIL_FAST:-1}"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        npm install --prefix /work/client --no-audit --no-fund --silent
+        exec sh /test/verify.sh
+
+networks:
+  default:
+    driver: bridge

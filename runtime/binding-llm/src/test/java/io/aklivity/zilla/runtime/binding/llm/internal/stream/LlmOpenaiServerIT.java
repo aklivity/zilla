@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_POOL_CAPACITY_NAME;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -28,6 +30,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class LlmOpenaiServerIT
 {
@@ -42,6 +45,7 @@ public class LlmOpenaiServerIT
         .countersBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/llm/config")
         .external("app0")
+        .external("app1")
         .clean();
 
     @Rule
@@ -72,6 +76,16 @@ public class LlmOpenaiServerIT
         "${net}/openai.reply.padded/client",
         "${app}/openai.reply.padded/server"})
     public void shouldForwardOpenaiNonstreamingWithReplyPadding() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.reply.shared.budget/client",
+        "${app}/openai.reply.padded/server"})
+    public void shouldForwardOpenaiNonstreamingWithReplySharedBudget() throws Exception
     {
         k3po.finish();
     }
@@ -532,6 +546,15 @@ public class LlmOpenaiServerIT
         "${net}/openai.section.rejected.json.malformed/client",
         "${app}/openai.section.rejected.json.malformed/server"})
     public void shouldDecodeOpenaiSectionRejectedJsonMalformed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.rejected.json.malformed.window/client"})
+    public void shouldRejectOpenaiJsonMalformedWithReplyWindow() throws Exception
     {
         k3po.finish();
     }
@@ -1823,6 +1846,65 @@ public class LlmOpenaiServerIT
         "${net}/openai.response.controls.message.stream/client",
         "${app}/openai.response.controls.message.stream/server"})
     public void shouldEncodeOpenaiResponseControlsMessageStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.reply.reset/client",
+        "${app}/openai.reply.reset/server"})
+    public void shouldOpenaiReplyReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.request.abort/client"})
+    public void shouldOpenaiRequestAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Configure(name = ENGINE_BUFFER_POOL_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/openai.request.buffer.exhausted/client"})
+    public void shouldOpenaiRequestBufferExhausted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.openai.route.model.yaml")
+    @Specification({
+        "${net}/openai.route.model/client",
+        "${app}/openai.route.model/server"})
+    public void shouldRouteOpenaiRequestByModel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.openai.route.model.glob.yaml")
+    @Specification({
+        "${net}/openai.route.model/client",
+        "${app}/openai.route.model/server"})
+    public void shouldRouteOpenaiRequestByModelGlob() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.openai.route.model.yaml")
+    @Specification({
+        "${net}/openai.route.model.unmatched/client"})
+    public void shouldRejectOpenaiRequestWithUnmatchedModel() throws Exception
     {
         k3po.finish();
     }

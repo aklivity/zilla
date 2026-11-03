@@ -1,0 +1,74 @@
+---
+name: example
+guards:
+  authn_jwt:
+    type: jwt
+    options:
+      issuer: https://auth.example.com
+      audience: https://api.example.com
+      keys:
+        - kty: RSA
+          n: lphdEcMpCplK5UYAhxPnF/kuE8dL9dHznfb8z124/vgI3CGDB9AQCGzcNOYOT4h9q+M9nKidcWnPyyIZ/GrGa7YWPQusckpPbWOaNMxjwRZ799TVHVV2xdJxige5C1lMpunho/vDlnUh1UmTsPXOmdWR3KS/+uFZzVAjNaFphpnl/1nGZAjtje5ynf/UHZ2rZPMUL6gkPqJ3kgWZugaCe0G8QWaETn1sLNInb93g5yVQCmF3KSg+xsWUIG5OYvVrKLvNNXgKOWyFbTR5Ium63kM6Rm2d3YoX5V0e7ucu1Hj52QkF0pCVXwOfqeYwkQ2O3m7HXbDVcMQLVanAmfFj2w==
+          e: AQAB
+          alg: RS256
+          kid: example
+bindings:
+  north_tcp_server:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port:
+        - 7114
+    routes:
+      - when:
+          - port: 7114
+        exit: north_http_server
+  north_http_server:
+    type: http
+    kind: server
+    options:
+      access-control:
+        policy: cross-origin
+    routes:
+      - when:
+          - headers:
+              :scheme: http
+              :path: /mcp
+        exit: north_mcp_server
+  north_mcp_server:
+    type: mcp
+    kind: server
+    options:
+      authorization:
+        authn_jwt:
+          credentials: "Bearer {credentials}"
+    exit: north_mcp_proxy
+  north_mcp_proxy:
+    type: mcp
+    kind: proxy
+    routes:
+      - exit: south_mcp_client_everything
+        when:
+          - toolkit: everything
+      - exit: south_mcp_client_urlelicit
+        when:
+          - toolkit: urlelicit
+        guarded:
+          authn_jwt:
+            - urlelicit:authorize
+  south_mcp_client_everything:
+    type: mcp
+    kind: client
+    options:
+      server: http://everything:3001/mcp
+    exit: sys:http_client
+  south_mcp_client_urlelicit:
+    type: mcp
+    kind: client
+    options:
+      server: http://urlelicit:3003/mcp
+      authorization:
+        authn_jwt:
+          credentials: "Bearer {credentials}"
+    exit: sys:http_client

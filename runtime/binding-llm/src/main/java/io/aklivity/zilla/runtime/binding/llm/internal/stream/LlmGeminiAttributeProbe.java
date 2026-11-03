@@ -63,6 +63,14 @@ final class LlmGeminiAttributeProbe extends LlmAttributeProbe
         responseText = false;
     }
 
+    @Override
+    protected void onRestart()
+    {
+        responseMembers = 0;
+        responseKey = KEY_OTHER;
+        responseText = false;
+    }
+
     boolean unclassified()
     {
         return section == SECTION_MEDIA && attributes.mediaType() == null;

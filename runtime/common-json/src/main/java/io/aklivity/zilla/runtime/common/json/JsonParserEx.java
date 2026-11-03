@@ -121,6 +121,35 @@ public interface JsonParserEx extends JsonParser
     void nextDocument();
 
     /**
+     * Marks the current position, between events, so that {@link #rewind()} can return to it. Only one mark is
+     * held; marking again replaces it. The mark may be taken at a whole-event boundary — before the next
+     * {@link #hasNextEvent()}, or after it answered {@code false} — and not while a skipped value, a fragmented
+     * value or a segment is open. It does not allocate.
+     *
+     * @throws IllegalStateException if the parser is not at such a boundary
+     * @throws UnsupportedOperationException if this parser cannot be rewound
+     */
+    default void mark()
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    /**
+     * Returns to the position of the last {@link #mark()}, discarding the events pulled since: scanning resumes
+     * at the marked byte, so {@link #remaining()} grows back by the bytes re-exposed. The caller keeps the window
+     * and its bytes unchanged between the mark and the rewind, and the parse must not have left the container
+     * the mark was taken in. Event accessors have no defined value until the next event is pulled.
+     *
+     * @throws IllegalStateException if there is no mark, the window has moved on, or the parse has left the
+     *         marked container
+     * @throws UnsupportedOperationException if this parser cannot be rewound
+     */
+    default void rewind()
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    /**
      * Whether this parser reads its input verbatim, leaving the bytes intact for an identity generator. A
      * cursor over the native JSON form is identity; one that parses a foreign representation is not.
      */

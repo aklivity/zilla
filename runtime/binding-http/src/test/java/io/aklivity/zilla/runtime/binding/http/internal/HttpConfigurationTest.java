@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.http.internal;
 
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CONCURRENT_STREAMS;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CONNECTION_WINDOW;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_MAX_CONCURRENT_STREAMS_CLEANUP;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_MAX_FRAME_SIZE;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_MAX_HEADER_LIST_SIZE;
@@ -40,6 +41,7 @@ public class HttpConfigurationTest
     public static final String HTTP_USER_AGENT_HEADER_NAME = "zilla.binding.http.user.agent.header";
     public static final String HTTP_CONCURRENT_STREAMS_NAME = "zilla.binding.http.concurrent.streams";
     public static final String HTTP_STREAM_INITIAL_WINDOW_NAME = "zilla.binding.http.stream.initial.window";
+    public static final String HTTP_CONNECTION_WINDOW_NAME = "zilla.binding.http.connection.window";
     public static final String HTTP_MAX_HEADER_LIST_SIZE_NAME = "zilla.binding.http.max.header.list.size";
     public static final String HTTP_MAX_FRAME_SIZE_NAME = "zilla.binding.http.max.frame.size";
     public static final String HTTP_MAX_CONCURRENT_STREAMS_CLEANUP_NAME = "zilla.binding.http.max.concurrent.streams.cleanup";
@@ -55,6 +57,7 @@ public class HttpConfigurationTest
         assertEquals(HTTP_USER_AGENT_HEADER.name(), HTTP_USER_AGENT_HEADER_NAME);
         assertEquals(HTTP_CONCURRENT_STREAMS.name(), HTTP_CONCURRENT_STREAMS_NAME);
         assertEquals(HTTP_STREAM_INITIAL_WINDOW.name(), HTTP_STREAM_INITIAL_WINDOW_NAME);
+        assertEquals(HTTP_CONNECTION_WINDOW.name(), HTTP_CONNECTION_WINDOW_NAME);
         assertEquals(HTTP_MAX_HEADER_LIST_SIZE.name(), HTTP_MAX_HEADER_LIST_SIZE_NAME);
         assertEquals(HTTP_MAX_FRAME_SIZE.name(), HTTP_MAX_FRAME_SIZE_NAME);
         assertEquals(HTTP_MAX_CONCURRENT_STREAMS_CLEANUP.name(), HTTP_MAX_CONCURRENT_STREAMS_CLEANUP_NAME);

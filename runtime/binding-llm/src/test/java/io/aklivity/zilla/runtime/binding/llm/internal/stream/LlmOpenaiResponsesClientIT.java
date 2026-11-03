@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_POOL_CAPACITY_NAME;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -28,6 +30,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class LlmOpenaiResponsesClientIT
 {
@@ -329,6 +332,26 @@ public class LlmOpenaiResponsesClientIT
         "${app}/openai.responses.text.captured/client",
         "${net}/openai.responses.text.captured/server"})
     public void shouldForwardOpenaiResponsesCaptured() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.text.captured.padded/client",
+        "${net}/openai.responses.text.captured/server"})
+    public void shouldForwardOpenaiResponsesCapturedPadded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.reasoning.encrypted/client",
+        "${net}/openai.responses.reasoning.encrypted/server"})
+    public void shouldForwardOpenaiResponsesReasoningEncrypted() throws Exception
     {
         k3po.finish();
     }
@@ -2834,6 +2857,28 @@ public class LlmOpenaiResponsesClientIT
         "${app}/transform.rejected.prefixed.member/client",
         "${net}/openai.responses.transform.rejected.member/server"})
     public void shouldRejectBehaviouralMemberOfChatCompletionsAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Configure(name = ENGINE_BUFFER_POOL_CAPACITY_NAME, value = "16384")
+    @Specification({
+        "${app}/openai.responses.response.buffer.exhausted/client",
+        "${net}/openai.responses.response.buffer.exhausted/server"})
+    public void shouldResetOpenaiResponsesResponseWhenBufferExhausted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.abort/client",
+        "${net}/openai.responses.abort/server"})
+    public void shouldOpenaiResponsesAbort() throws Exception
     {
         k3po.finish();
     }

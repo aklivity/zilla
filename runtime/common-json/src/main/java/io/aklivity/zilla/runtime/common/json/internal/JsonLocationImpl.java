@@ -16,6 +16,8 @@ package io.aklivity.zilla.runtime.common.json.internal;
 
 import jakarta.json.stream.JsonLocation;
 
+import io.aklivity.zilla.runtime.common.json.JsonTokenizer;
+
 final class JsonLocationImpl implements JsonLocation
 {
     private final JsonTokenizer tokenizer;

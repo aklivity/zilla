@@ -11,4 +11,10 @@
         <version>1.0-alpha-9-stable-1</version>
         <license>Modified BSD License</license>
     </artifact>
+    <artifact>
+        <groupId>org.codehaus.plexus</groupId>
+        <artifactId>plexus-container-default</artifactId>
+        <version>1.0-alpha-9</version>
+        <license>Apache License, Version 2.0</license>
+    </artifact>
 </license-lookup>
