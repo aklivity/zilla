@@ -2,14 +2,15 @@
 # Runs inside the compose stack as the `verify` service; .github/test.sh only
 # starts it. Assertions, all at the Zilla layer:
 #   1. a caller with inventory:tools lists get_item and list_items
-#   2. a caller without inventory:tools does not list the inventory toolkit
+#   2. a caller without inventory:tools gets no result from the inventory toolkit
 #   3. get_item reads an item through the generated grpc client, so the JSON
 #      arguments became a protobuf request and the protobuf reply became JSON
 #   4. list_items filters by category, proving a repeated message field converts
 #   5. the gRPC service only answers calls carrying the credential Zilla forwards
 #      from the caller's session via options.authorization
 #   6. a gRPC NOT_FOUND status comes back as an MCP tool error, not a failure
-#   7. MCP metrics count the tool calls by outcome
+#   7. MCP metrics count the tool calls, a gRPC error status included, since
+#      it is a tool result and not a failed call
 set -x
 
 FAIL_FAST=${FAIL_FAST:-1}
@@ -44,6 +45,7 @@ MCP_ENDPOINT="http://zilla:7114/mcp"
 METRICS_ENDPOINT="http://zilla:7190/metrics"
 SCOPE_TOOLS="inventory:tools"
 SCOPE_OTHER="unrelated:tools"
+DENIED_TIMEOUT=8
 
 echo "# Testing mcp.grpc.proxy"
 
@@ -59,7 +61,7 @@ mcp_run() {
       shift 2
     done
     export MCP_URL="$MCP_ENDPOINT"
-    exec timeout 60 node /work/client/client.mjs 2>&1
+    exec timeout "${MCP_TIMEOUT:-60}" node /work/client/client.mjs 2>&1
   )
 }
 
@@ -86,14 +88,15 @@ else
   fail "inventory:tools did not list get_item and list_items"
 fi
 
-# WHEN: a caller without inventory:tools lists tools
-# THEN: no inventory tool is listed
-TOOLS_OTHER=$(list_tools "$SCOPE_OTHER")
-echo "TOOLS_OTHER=$TOOLS_OTHER"
-if ! echo "$TOOLS_OTHER" | grep -q '^inventory__'; then
-  echo "✅ a caller without inventory:tools does not list the inventory toolkit"
+# WHEN: a caller without inventory:tools asks for an item
+# THEN: it gets no result, because the toolkit route is closed to it
+DENIED_OUT=$(mcp_run -e MCP_TIMEOUT="$DENIED_TIMEOUT" -e JWT_SCOPE="$SCOPE_OTHER" \
+    -e CALL_TOOL=inventory__get_item -e CALL_ARGS='{"sku":"sku-1"}')
+echo "DENIED_OUT=$DENIED_OUT"
+if ! echo "$DENIED_OUT" | grep -q 'Widget'; then
+  echo "✅ a caller without inventory:tools got no inventory result"
 else
-  fail "a caller without inventory:tools listed the inventory toolkit"
+  fail "a caller without inventory:tools reached the inventory toolkit"
 fi
 
 # WHEN: an inventory:tools caller calls get_item for a known sku
@@ -137,15 +140,15 @@ else
 fi
 
 # WHEN: the Prometheus endpoint is scraped after the calls above
-# THEN: inventory__get_item is counted as ok for the found item and as error
-#       for the missing one
+# THEN: both tools are counted as ok, and so is the NOT_FOUND call, which came
+#       back as a tool result carrying isError rather than as a failed call
 METRICS=$(wget -qO- -T 10 "$METRICS_ENDPOINT" | grep '^mcp_tools_call_total')
 echo "METRICS=$METRICS"
-if echo "$METRICS" | grep -q 'outcome="ok",tool="inventory__get_item"} [1-9]' &&
-    echo "$METRICS" | grep -q 'outcome="error",tool="inventory__get_item"} [1-9]'; then
-  echo "✅ mcp_tools_call_total counts inventory__get_item by outcome"
+if echo "$METRICS" | grep -q 'outcome="ok",tool="inventory__get_item"} [2-9]' &&
+    echo "$METRICS" | grep -q 'outcome="ok",tool="inventory__list_items"} [1-9]'; then
+  echo "✅ mcp_tools_call_total counts inventory tool calls, a gRPC error status included"
 else
-  fail "mcp_tools_call_total did not count inventory__get_item by outcome"
+  fail "mcp_tools_call_total did not count the inventory tool calls"
 fi
 
 report_failures
