@@ -516,6 +516,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final HttpServerDecoder decodeUpgraded = this::decodeUpgraded;
     private final HttpServerDecoder decodeIgnore = this::decodeIgnore;
     private final HttpServerDecoder decodeDelegated = this::decodeDelegated;
+    private final HttpServerDecoder decodeDelegating = this::decodeDelegating;
 
     private final MutableInteger codecOffset = new MutableInteger();
     private final MutableBoolean hasAuthority = new MutableBoolean();
@@ -523,6 +524,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
     private final Http2PrefaceFW http2PrefaceRO = new Http2PrefaceFW();
     private final Http2FrameInfoFW http2FrameInfoRO = new Http2FrameInfoFW();
+    private final Http2FrameInfoFW encodeFrameInfoRO = new Http2FrameInfoFW();
     private final Http2SettingsFW http2SettingsRO = new Http2SettingsFW();
     private final Http2GoawayFW http2GoawayRO = new Http2GoawayFW();
     private final Http2PingFW http2PingRO = new Http2PingFW();
@@ -1117,6 +1119,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 CharSequence.compare("PRI * HTTP/2.0\r\n", new AsciiSequenceView(buffer, offset, 16)) == 0)
             {
                 server.delegate = new Http2Server(server);
+                server.decoder = decodeDelegating;
                 signaler.signalNow(server.originId, server.routedId, server.replyId, traceId, DELEGATE_SIGNAL, 0);
                 return offset;
             }
@@ -1709,6 +1712,19 @@ public final class HttpServerFactory implements HttpStreamFactory
     }
 
     private int decodeDelegated(
+        HttpServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        return offset;
+    }
+
+    private int decodeDelegating(
         HttpServer server,
         long traceId,
         long authorization,
@@ -2414,6 +2430,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     final MutableDirectBufferEx decodeBuffer = bufferPool.buffer(decodeSlot);
                     decodeBuffer.putBytes(0, buffer, progress, limit - progress);
                     decodeSlotOffset = limit - progress;
+                    decodeSlotReserved = (int)((long) reserved * (limit - progress) / (limit - offset));
                 }
             }
             else
@@ -4782,6 +4799,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 if (decodeSlot != NO_SLOT)
                 {
                     final MutableDirectBufferEx slotBuffer = bufferPool.buffer(decodeSlot);
+                    assert decodeSlotOffset + limit - offset <= decodeMax;
                     slotBuffer.putBytes(decodeSlotOffset, buffer, offset, limit - offset);
                     decodeSlotOffset += limit - offset;
                     decodeSlotReserved += reserved;
@@ -5333,7 +5351,10 @@ public final class HttpServerFactory implements HttpStreamFactory
                 final int replyWin = replyMax - replyPendingAck();
                 final int maxEncodeLength =
                     encodeReservedSlotMarkOffset != 0 ? encodeReservedSlotMarkOffset : encodeReservedSlotOffset;
-                final int encodeLength = Math.max(Math.min(replyWin - replyPad, maxEncodeLength), 0);
+                final int encodeLengthMax = Math.max(Math.min(replyWin - replyPad, maxEncodeLength), 0);
+                final int encodeLength = encodeLengthMax < maxEncodeLength
+                    ? encodeReservedFramesLimit(encodeLengthMax)
+                    : encodeLengthMax;
 
                 if (encodeLength > 0)
                 {
@@ -5378,6 +5399,21 @@ public final class HttpServerFactory implements HttpStreamFactory
                     replyBudgetReserved += encodeReserved;
                 }
             }
+        }
+
+        private int encodeReservedFramesLimit(
+            int maxLimit)
+        {
+            int progress = 0;
+
+            Http2FrameInfoFW frameInfo = encodeFrameInfoRO.tryWrap(encodeReservedBuffer, progress, maxLimit);
+            while (frameInfo != null && frameInfo.limit() + frameInfo.length() <= maxLimit)
+            {
+                progress = frameInfo.limit() + frameInfo.length();
+                frameInfo = encodeFrameInfoRO.tryWrap(encodeReservedBuffer, progress, maxLimit);
+            }
+
+            return progress;
         }
 
         private void decodeNetworkIfNecessary(

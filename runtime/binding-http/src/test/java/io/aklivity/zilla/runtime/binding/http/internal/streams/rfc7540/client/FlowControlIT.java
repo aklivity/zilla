@@ -174,4 +174,15 @@ public class FlowControlIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/client.sent.end.stream.window.limited/client",
+        "${net}/client.sent.end.stream.window.limited/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    public void shouldClientSentEndStreamWindowLimited() throws Exception
+    {
+        k3po.finish();
+    }
 }

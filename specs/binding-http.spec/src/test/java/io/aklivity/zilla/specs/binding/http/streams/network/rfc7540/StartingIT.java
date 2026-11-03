@@ -110,6 +110,16 @@ public class StartingIT
 
     @Test
     @Specification({
+        "${net}/upgrade.pri.with.partial.frame/client",
+        "${net}/upgrade.pri.with.partial.frame/server",
+    })
+    public void shouldUpgradeViaPriorKnowledgeWithPartialFrame() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/upgrade.pri.with.tls.and.alpn.http1.1/client",
         "${net}/upgrade.pri.with.tls.and.alpn.http1.1/server",
     })
@@ -184,6 +194,26 @@ public class StartingIT
         "${net}/upgrade.h2c.with.window.limited/server",
     })
     public void shouldUpgradeH2cWithWindowLimited() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/upgrade.h2c.with.partial.frame/client",
+        "${net}/upgrade.h2c.with.partial.frame/server"
+    })
+    public void shouldUpgradeViaCleartextWithPartialFrame() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/upgrade.pri.with.split.preface/client",
+        "${net}/upgrade.pri.with.split.preface/server"
+    })
+    public void shouldUpgradeViaPriorKnowledgeWithSplitPreface() throws Exception
     {
         k3po.finish();
     }
