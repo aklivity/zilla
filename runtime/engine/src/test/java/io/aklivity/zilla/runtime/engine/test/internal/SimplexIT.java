@@ -137,6 +137,16 @@ public class SimplexIT
 
     @Test
     @Specification({
+        "handshake.circuit.id/client",
+        "handshake.circuit.id/server"
+    })
+    public void shouldHandshakeWithCircuitId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "handshake.budget.id/client",
         "handshake.budget.id/server"
     })
