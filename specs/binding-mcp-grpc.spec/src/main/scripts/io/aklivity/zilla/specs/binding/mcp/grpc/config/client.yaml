@@ -41,3 +41,6 @@ bindings:
         catalog0:
           subject: sql
           version: latest
+    routes:
+      - with:
+          method: example.sql.v1.SQLService/*

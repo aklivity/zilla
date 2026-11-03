@@ -42,3 +42,6 @@ bindings:
           subject: sql
           version: latest
       naming: service
+    routes:
+      - with:
+          method: example.sql.v1.SQLService/*

@@ -42,13 +42,14 @@ public class McpGrpcToolsListTest
 
     private static final String INPUT = "{\"type\":\"object\",\"properties\":{\"statement\":{\"type\":\"string\"}}}";
     private static final String OUTPUT = "{\"type\":\"object\",\"properties\":{\"status\":{\"type\":\"string\"}}}";
+    private static final List<McpGrpcRouteConfig> ALL = List.of(new McpGrpcRouteConfig(null, null, null));
 
     private final ProtobufSchema schema = Protobuf.schema(PROTO);
 
     @Test
     public void shouldListToolsWithoutOutputSchemaByDefault()
     {
-        McpGrpcToolRegistry registry = McpGrpcToolRegistry.of(schema, null, null);
+        McpGrpcToolRegistry registry = McpGrpcToolRegistry.of(schema, null, ALL);
 
         String json = new String(McpGrpcToolsList.toJson(registry.tools()), StandardCharsets.UTF_8);
 
@@ -81,7 +82,7 @@ public class McpGrpcToolsListTest
                 .annotations(McpGrpcToolAnnotationsConfig.builder().destructiveHint(true).build())
                 .build());
 
-        McpGrpcToolRegistry registry = McpGrpcToolRegistry.of(schema, overrides, null);
+        McpGrpcToolRegistry registry = McpGrpcToolRegistry.of(schema, overrides, ALL);
 
         String json = new String(McpGrpcToolsList.toJson(registry.tools()), StandardCharsets.UTF_8);
 

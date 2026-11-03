@@ -48,12 +48,14 @@ public class McpGrpcToolRegistryTest
         "message QueryRequest { string statement = 1; }\n" +
         "message QueryResult { string status = 1; }\n";
 
+    private static final List<McpGrpcRouteConfig> ALL = List.of(new McpGrpcRouteConfig(null, null, null));
+
     private final ProtobufSchema schema = Protobuf.schema(PROTO);
 
     @Test
-    public void shouldMapEveryUnaryMethodWhenNoRoutes()
+    public void shouldMapEveryUnaryMethodOnCatchAllRoute()
     {
-        McpGrpcToolRegistry registry = McpGrpcToolRegistry.of(schema, null, null);
+        McpGrpcToolRegistry registry = McpGrpcToolRegistry.of(schema, null, ALL);
 
         assertThat(names(registry), contains(
             "example_sql_v1_sql_service_query",
@@ -64,7 +66,7 @@ public class McpGrpcToolRegistryTest
     @Test
     public void shouldDescribeToolFromMethod()
     {
-        McpGrpcToolRegistry registry = McpGrpcToolRegistry.of(schema, null, null);
+        McpGrpcToolRegistry registry = McpGrpcToolRegistry.of(schema, null, ALL);
 
         McpGrpcTool tool = registry.tool("example_sql_v1_sql_service_query");
 
@@ -163,7 +165,7 @@ public class McpGrpcToolRegistryTest
                 .annotations(McpGrpcToolAnnotationsConfig.builder().readOnlyHint(true).idempotentHint(true).build())
                 .build());
 
-        McpGrpcToolRegistry registry = McpGrpcToolRegistry.of(schema, overrides, null);
+        McpGrpcToolRegistry registry = McpGrpcToolRegistry.of(schema, overrides, ALL);
 
         McpGrpcTool tool = registry.tool("example_sql_v1_sql_service_query");
         assertThat(tool.title, equalTo("Query SQL"));
@@ -186,7 +188,7 @@ public class McpGrpcToolRegistryTest
                 .annotations(McpGrpcToolAnnotationsConfig.builder().openWorldHint(true).build())
                 .build());
 
-        McpGrpcToolRegistry registry = McpGrpcToolRegistry.of(schema, overrides, null);
+        McpGrpcToolRegistry registry = McpGrpcToolRegistry.of(schema, overrides, ALL);
 
         assertThat(registry.tool("example_sql_v1_sql_service_query").annotations.openWorldHint, equalTo(true));
     }
@@ -205,7 +207,7 @@ public class McpGrpcToolRegistryTest
     }
 
     @Test
-    public void shouldDenyMethodsWhoseDefaultNamesCollide()
+    public void shouldSuffixMethodsWhoseDefaultNamesCollide()
     {
         ProtobufSchema folded = Protobuf.schema(
             "syntax = \"proto3\";\n" +
@@ -214,10 +216,25 @@ public class McpGrpcToolRegistryTest
             "message Req { string id = 1; }\n" +
             "message Res { string id = 1; }\n");
 
-        McpGrpcToolRegistry registry = McpGrpcToolRegistry.of(folded, null, null);
+        McpGrpcToolRegistry registry = McpGrpcToolRegistry.of(folded, null, ALL);
 
-        assertThat(names(registry), contains("test_svc_other"));
-        assertThat(registry.denied(), hasSize(2));
+        assertThat(names(registry), contains("test_svc_get_url", "test_svc_get_url_2", "test_svc_other"));
+        assertThat(registry.denied(), empty());
+    }
+
+    @Test
+    public void shouldSuffixDefaultNameThatCollidesWithPinnedName()
+    {
+        List<McpGrpcRouteConfig> routes = List.of(
+            new McpGrpcRouteConfig("example_sql_v1_sql_service_execute", "example.sql.v1.SQLService/Query", null),
+            new McpGrpcRouteConfig(null, "example.sql.v1.SQLService/*", null));
+
+        McpGrpcToolRegistry registry = McpGrpcToolRegistry.of(schema, null, routes);
+
+        assertThat(names(registry), contains(
+            "example_sql_v1_sql_service_execute",
+            "example_sql_v1_sql_service_execute_2"));
+        assertThat(registry.denied(), empty());
     }
 
     @Test
@@ -230,7 +247,7 @@ public class McpGrpcToolRegistryTest
             "message Req { string id = 1; }\n" +
             "message Res { string id = 1; }\n");
 
-        McpGrpcToolRegistry registry = McpGrpcToolRegistry.of(longName, null, null);
+        McpGrpcToolRegistry registry = McpGrpcToolRegistry.of(longName, null, ALL);
 
         assertThat(registry.tools(), empty());
         assertThat(registry.denied(), hasSize(1));

@@ -43,11 +43,7 @@ public final class McpGrpcToolRegistry
         List<McpGrpcToolConfig> overrides,
         List<McpGrpcRouteConfig> routes)
     {
-        final List<McpGrpcRouteConfig> selectors = routes != null && !routes.isEmpty()
-            ? routes
-            : List.of(new McpGrpcRouteConfig(null, null, null));
-
-        final List<Candidate> candidates = select(schema, selectors);
+        final List<Candidate> candidates = select(schema, routes);
         final List<String> denied = new ArrayList<>();
         final List<Candidate> accepted = deny(candidates, denied);
 
@@ -97,8 +93,17 @@ public final class McpGrpcToolRegistry
         List<McpGrpcRouteConfig> routes)
     {
         final Set<String> claimed = new HashSet<>();
+        final Set<String> used = new HashSet<>();
         final Map<String, Pattern> globs = new HashMap<>();
         final List<Candidate> candidates = new ArrayList<>();
+
+        for (McpGrpcRouteConfig route : routes)
+        {
+            if (route.tool != null)
+            {
+                used.add(route.tool);
+            }
+        }
 
         for (McpGrpcRouteConfig route : routes)
         {
@@ -115,7 +120,7 @@ public final class McpGrpcToolRegistry
 
                         final String name = route.tool != null
                             ? route.tool
-                            : McpGrpcNames.toolName(service.name(), method.name());
+                            : unique(McpGrpcNames.toolName(service.name(), method.name()), used);
                         candidates.add(new Candidate(name, service.name(), method, route));
                     }
                 }
@@ -123,6 +128,20 @@ public final class McpGrpcToolRegistry
         }
 
         return candidates;
+    }
+
+    private static String unique(
+        String base,
+        Set<String> used)
+    {
+        String name = base;
+        int suffix = 2;
+        while (!used.add(name))
+        {
+            name = "%s_%d".formatted(base, suffix++);
+        }
+
+        return name;
     }
 
     private static boolean matches(

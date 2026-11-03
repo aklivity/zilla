@@ -68,6 +68,18 @@ public class SchemaTest
     }
 
     @Test(expected = JsonException.class)
+    public void shouldRejectClientWithoutRoutes()
+    {
+        schema.validate("client.routes.missing.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientWithEmptyRoutes()
+    {
+        schema.validate("client.routes.empty.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
     public void shouldRejectProxyKind()
     {
         schema.validate("kind.proxy.invalid.yaml");
