@@ -10,7 +10,7 @@ on:
 jobs:
   build:
     name: Build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 120
     outputs:
       rebuilt-modules: ${{ steps.rebuilt.outputs.modules }}
@@ -160,7 +160,7 @@ jobs:
     if: ${{ needs.build.result == 'success' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref_name == 'develop' || startsWith(github.ref_name, 'support/')) }}
     needs:
       - build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     permissions:
       contents: read
@@ -203,7 +203,7 @@ jobs:
           echo "pruned $(echo "$stale" | wc -w) untagged versions, kept the latest $KEEP"
 
   setup-examples:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     needs:
       - build
@@ -248,7 +248,7 @@ jobs:
           MODE: ${{ vars.EXAMPLES_SELECTION }}
 
   cache-images:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
     outputs:
       key: ${{ steps.key.outputs.key }}
@@ -307,7 +307,7 @@ jobs:
     needs:
       - setup-examples
       - cache-images
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 45
     env:
       ZILLA_VERSION: develop-SNAPSHOT
@@ -432,7 +432,7 @@ jobs:
       - setup-examples
       - cache-images
       - testing
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     steps:
       - name: Verify examples
@@ -448,7 +448,7 @@ jobs:
     if: ${{ !failure() && !cancelled() }}
     needs:
       - testing
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     steps:
       - name: Delete Docker image artifact
