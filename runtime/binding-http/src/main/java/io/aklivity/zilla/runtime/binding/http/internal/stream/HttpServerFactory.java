@@ -4787,7 +4787,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 if (decodeSlot != NO_SLOT)
                 {
                     final MutableDirectBufferEx slotBuffer = bufferPool.buffer(decodeSlot);
-                    assert decodeSlotOffset + limit - offset <= slotBuffer.capacity();
+                    assert decodeSlotOffset + limit - offset <= decodeMax;
                     slotBuffer.putBytes(decodeSlotOffset, buffer, offset, limit - offset);
                     decodeSlotOffset += limit - offset;
                     decodeSlotReserved += reserved;

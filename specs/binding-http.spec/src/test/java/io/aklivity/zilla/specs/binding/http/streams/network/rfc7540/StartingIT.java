@@ -197,4 +197,14 @@ public class StartingIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/upgrade.h2c.with.partial.frame/client",
+        "${net}/upgrade.h2c.with.partial.frame/server"
+    })
+    public void shouldUpgradeViaCleartextWithPartialFrame() throws Exception
+    {
+        k3po.finish();
+    }
 }

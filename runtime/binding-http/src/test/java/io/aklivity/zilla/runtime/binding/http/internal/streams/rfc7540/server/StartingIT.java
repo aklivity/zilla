@@ -147,4 +147,15 @@ public class StartingIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/upgrade.h2c.with.partial.frame/client",
+        "${app}/upgrade.and.response/server" })
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    public void shouldUpgradeViaCleartextWithPartialFrame() throws Exception
+    {
+        k3po.finish();
+    }
 }
