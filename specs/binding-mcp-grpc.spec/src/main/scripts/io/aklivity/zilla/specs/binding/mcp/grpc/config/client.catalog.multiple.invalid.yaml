@@ -44,3 +44,6 @@ bindings:
         catalog1:
           subject: sql-mcp
           version: latest
+    routes:
+      - with:
+          method: example.sql.v1.SQLService/*

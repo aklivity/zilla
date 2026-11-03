@@ -37,3 +37,6 @@ bindings:
     kind: client
     options:
       server: http://localhost:8080
+    routes:
+      - with:
+          method: example.sql.v1.SQLService/*
