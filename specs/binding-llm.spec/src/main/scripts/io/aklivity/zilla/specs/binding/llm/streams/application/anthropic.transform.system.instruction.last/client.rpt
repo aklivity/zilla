@@ -28,11 +28,6 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write advised zilla:challenge ${llm:matchChallengeEx()
-                                    .typeId(zilla:id("llm"))
-                                    .dialect(target)
-                                    .build()}
-
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("USER_TEXT")

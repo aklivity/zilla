@@ -58,6 +58,7 @@
     <agrona.version>2.4.0</agrona.version>
     <slf4j.version>2.0.17</slf4j.version>
     <junit.version>5.10.2</junit.version>
+    <enforcer.version>3.0.0-M1</enforcer.version>
     <byteman.version>4.0.26</byteman.version>
     <jmock.version>2.6.0</jmock.version>
     <mockito.version>5.23.0</mockito.version>
@@ -304,6 +305,18 @@
               </goals>
             </execution>
           </executions>
+        </plugin>
+        <plugin>
+          <groupId>io.aklivity.zilla</groupId>
+          <artifactId>flyweight-maven-plugin</artifactId>
+          <version>${project.version}</version>
+          <dependencies>
+            <dependency>
+              <groupId>io.aklivity.zilla</groupId>
+              <artifactId>flyweight-maven-plugin</artifactId>
+              <version>${project.version}</version>
+            </dependency>
+          </dependencies>
         </plugin>
         <plugin>
           <groupId>com.mycila</groupId>
@@ -641,7 +654,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-enforcer-plugin</artifactId>
-          <version>3.0.0-M1</version>
+          <version>${enforcer.version}</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>

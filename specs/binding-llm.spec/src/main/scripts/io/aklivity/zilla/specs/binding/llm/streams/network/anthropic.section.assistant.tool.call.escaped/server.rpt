@@ -31,7 +31,7 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-read "{\"model\":\"claude-3-opus-20240229\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Weather in Paris?\"}]},{\"role\":\"assistant\",\"content\":[{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"get_weather\",\"input\":{\"query\":\"say \\\"hi\\\" \\\\ done\\nnext\",\"text\":\"café ✓ 😀\",\"nested\":{\"items\":[1,2.5,true,null,{\"k\":\"v\"}],\"empty\":{},\"list\":[]}}}]}]}"
+read "{\"model\":\"claude-3-opus-20240229\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Weather in Paris?\"}]},{\"role\":\"assistant\",\"content\":[{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"get_weather\",\"input\":{\"query\":\"say \\\"hi\\\" \\\\ done\\nnext\",\"text\":\"café ✓ 😀\",\"nested\":{\"items\":[1,2.5,true,null,{\"k\":\"v\"}],\"empty\":{},\"list\":[]}}}]}],\"max_tokens\":4096}"
 
 read closed
 

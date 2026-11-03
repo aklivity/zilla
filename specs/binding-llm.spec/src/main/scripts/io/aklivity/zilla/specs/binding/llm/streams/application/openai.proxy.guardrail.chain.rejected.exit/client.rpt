@@ -22,16 +22,18 @@ connect ${clientAddress}
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
+                           .dialect("openai/ccs")
                            .model(model)
                            .build()}
 
 connected
 
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
+                          .type("USER_TEXT")
+                          .message(0)
                           .build()}
-write "{\"model\":\"gpt-a\",\"messages\":[{\"role\":\"user\",\"content\":"
+write "{\"text\":\""
 write flush
 
 write abort

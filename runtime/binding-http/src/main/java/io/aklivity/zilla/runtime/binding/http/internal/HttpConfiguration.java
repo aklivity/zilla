@@ -29,6 +29,7 @@ public class HttpConfiguration extends Configuration
     public static final IntPropertyDef HTTP_MAXIMUM_CONNECTIONS;
     public static final IntPropertyDef HTTP_CONCURRENT_STREAMS;
     public static final IntPropertyDef HTTP_STREAM_INITIAL_WINDOW;
+    public static final IntPropertyDef HTTP_CONNECTION_WINDOW;
     public static final LongPropertyDef HTTP_MAX_HEADER_LIST_SIZE;
     public static final IntPropertyDef HTTP_MAX_PUSH_PROMISE_LIST_SIZE;
     public static final IntPropertyDef HTTP_MAX_FRAME_SIZE;
@@ -49,6 +50,7 @@ public class HttpConfiguration extends Configuration
         HTTP_MAXIMUM_CONNECTIONS = config.property("maximum.connections", 10);
         HTTP_CONCURRENT_STREAMS = config.property("concurrent.streams", Integer.MAX_VALUE);
         HTTP_STREAM_INITIAL_WINDOW = config.property("stream.initial.window", 0);
+        HTTP_CONNECTION_WINDOW = config.property("connection.window", Integer.MAX_VALUE);
         HTTP_MAX_HEADER_LIST_SIZE = config.property("max.header.list.size", 8_192L);
         HTTP_MAX_PUSH_PROMISE_LIST_SIZE = config.property("max.push.promise.list.size", 100);
         HTTP_MAX_FRAME_SIZE = config.property("max.frame.size", 16_384);
@@ -92,6 +94,11 @@ public class HttpConfiguration extends Configuration
     public int streamInitialWindow()
     {
         return HTTP_STREAM_INITIAL_WINDOW.getAsInt(this);
+    }
+
+    public int connectionWindow()
+    {
+        return HTTP_CONNECTION_WINDOW.getAsInt(this);
     }
 
     public long maxHeaderListSize()

@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.LongBinaryOperator;
 
 import io.aklivity.zilla.runtime.common.lang.util.function.ObjectIntBiConsumer;
 import io.aklivity.zilla.runtime.engine.Configuration;
@@ -29,6 +30,8 @@ import io.aklivity.zilla.runtime.engine.router.Router;
 public final class TestRouter implements Router
 {
     public static final String NAME = "test";
+
+    public static volatile LongBinaryOperator affinityResolver;
 
     private final Map<String, Integer> labelIds;
     private final Map<Integer, String> labels;

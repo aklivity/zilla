@@ -16,19 +16,20 @@ scope llm
 {
     scope stream
     {
+        struct LlmAttribute
+        {
+            string8 name;
+            string16 value;
+        }
+
         struct LlmBeginEx extends core::stream::Extension
         {
             string16 dialect;
             string16 contentType = null;
             string16 model = null;
             string16 id = null;
+            LlmAttribute[] attributes;
             octets extension;
-        }
-
-        struct LlmAttribute
-        {
-            string8 name;
-            string16 value;
         }
 
         enum LlmSectionType (uint8)
@@ -50,7 +51,14 @@ scope llm
             USER_VIDEO(14),
             SERVER_TOOL_CALL(15),
             SERVER_TOOL_DEFINITION(16),
-            UNKNOWN(17)
+            CONTROL(17)
+        }
+
+        struct LlmRange
+        {
+            int32 length;
+            uint8 closing = 1;
+            LlmAttribute[] attributes;
         }
 
         struct LlmSectionDataEx
@@ -58,20 +66,13 @@ scope llm
             LlmSectionType type = NONE;
             int32 message = -1;
             LlmAttribute[] attributes;
+            LlmRange[] ranges;
             octets extension;
-        }
-
-        struct LlmDialectDataEx
-        {
-            uint8 complete = 0;
-            uint8 usageOnly = 0;
-            LlmAttribute[] attributes;
         }
 
         union LlmDataEx switch (uint8) extends core::stream::Extension
         {
             case 0: llm::stream::LlmSectionDataEx section;
-            case 1: llm::stream::LlmDialectDataEx dialect;
         }
 
         struct LlmUsage
@@ -82,7 +83,6 @@ scope llm
             int32 outputTokens = -1;
             int32 reasoningTokens = -1;
             int32 totalTokens = -1;
-            string16 nativeUsage = null;
         }
 
         struct LlmError
@@ -96,14 +96,7 @@ scope llm
 
         struct LlmChallengeEx extends core::stream::Extension
         {
-            string16 dialect;
             string16 model = null;
-        }
-
-        struct LlmSectionFlushEx
-        {
-            LlmSectionType type = NONE;
-            int32 message = -1;
         }
 
         struct LlmDialectFlushEx
@@ -113,8 +106,7 @@ scope llm
 
         union LlmFlushEx switch (uint8) extends core::stream::Extension
         {
-            case 0: llm::stream::LlmSectionFlushEx section;
-            case 1: llm::stream::LlmDialectFlushEx dialect;
+            case 0: llm::stream::LlmDialectFlushEx dialect;
         }
 
         struct LlmEndEx extends core::stream::Extension

@@ -22,16 +22,11 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
+                           .dialect("openai/ccs")
                            .model(model)
                            .build()}
 
 connected
-
-write advised zilla:challenge ${llm:matchChallengeEx()
-                                    .typeId(zilla:id("llm"))
-                                    .dialect(target)
-                                    .build()}
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
@@ -47,7 +42,7 @@ read zilla:reset.ext ${llm:matchResetEx()
                            .typeId(zilla:id("llm"))
                            .status(400)
                            .type("invalid_request_error")
-                           .message("user-audio cannot be converted from openai to %s".formatted(target))
+                           .message("user-audio cannot be converted from openai/ccs to %s".formatted(target))
                            .build()}
 
 write aborted

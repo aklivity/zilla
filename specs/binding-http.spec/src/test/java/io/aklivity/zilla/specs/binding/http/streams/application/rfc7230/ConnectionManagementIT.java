@@ -70,6 +70,15 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
+        "${app}/concurrent.requests.awaiting.connection/client",
+        "${app}/concurrent.requests.awaiting.connection/server" })
+    public void shouldProcessConcurrentRequestsAwaitingConnection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/concurrent.requests.with.content/client",
         "${app}/concurrent.requests.with.content/server" })
     public void concurrentRequestsWithContent() throws Exception
@@ -353,6 +362,15 @@ public class ConnectionManagementIT
         "${app}/pool.exhausted.and.503.response/client",
         "${app}/pool.exhausted.and.503.response/server" })
     public void shouldGive503ResponseWhenConnectionPoolExhausted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/buffer.pool.exhausted.and.503.response/client",
+        "${app}/buffer.pool.exhausted.and.503.response/server" })
+    public void shouldGive503ResponseWhenBufferPoolExhausted() throws Exception
     {
         k3po.finish();
     }

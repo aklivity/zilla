@@ -1,0 +1,89 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+accept "zilla://streams/net0"
+       option zilla:window 8192
+       option zilla:transmission "half-duplex"
+
+accepted
+
+read zilla:begin.ext ${http:matchBeginEx()
+                           .typeId(zilla:id("http"))
+                           .header(":method", "POST")
+                           .header(":scheme", "http")
+                           .header(":authority", "example.com:8080")
+                           .header(":path", "/v1/responses")
+                           .header("content-type", "application/json")
+                           .build()}
+
+connected
+
+read "{\"model\":\"model\",\"input\":[{\"role\":\"user\",\"content\":\"Hello\"}]}"
+
+read closed
+
+write zilla:begin.ext ${http:beginEx()
+                            .typeId(zilla:id("http"))
+                            .header(":status", "200")
+                            .header("content-type", "text/event-stream")
+                            .build()}
+write flush
+
+write zilla:data.ext ${http:dataEx()
+                           .typeId(zilla:id("http"))
+                           .header("type", "response.created")
+                           .build()}
+write "{\"type\":\"response.created\",\"response\":{\"id\":\"id_1\",\"object\":\"response\",\"model\":\"model\",\"status\":\"in_progress\",\"output\":[]},\"sequence_number\":0}"
+write zilla:data.ext ${http:dataEx()
+                           .typeId(zilla:id("http"))
+                           .header("type", "response.in_progress")
+                           .build()}
+write "{\"type\":\"response.in_progress\",\"response\":{\"id\":\"id_1\",\"object\":\"response\",\"model\":\"model\",\"status\":\"in_progress\",\"output\":[]},\"sequence_number\":1}"
+write zilla:data.ext ${http:dataEx()
+                           .typeId(zilla:id("http"))
+                           .header("type", "response.output_item.added")
+                           .build()}
+write "{\"type\":\"response.output_item.added\",\"item\":{\"id\":\"msg_1\",\"type\":\"message\",\"status\":\"in_progress\",\"content\":[],\"role\":\"assistant\"},\"output_index\":0,\"sequence_number\":2}"
+write zilla:data.ext ${http:dataEx()
+                           .typeId(zilla:id("http"))
+                           .header("type", "response.content_part.added")
+                           .build()}
+write "{\"type\":\"response.content_part.added\",\"content_index\":0,\"item_id\":\"msg_1\",\"output_index\":0,\"part\":{\"type\":\"refusal\",\"refusal\":\"\"},\"sequence_number\":3}"
+write zilla:data.ext ${http:dataEx()
+                           .typeId(zilla:id("http"))
+                           .header("type", "response.refusal.delta")
+                           .build()}
+write "{\"type\":\"response.refusal.delta\",\"content_index\":0,\"delta\":\"I cannot help with that\",\"item_id\":\"msg_1\",\"output_index\":0,\"sequence_number\":4}"
+write zilla:data.ext ${http:dataEx()
+                           .typeId(zilla:id("http"))
+                           .header("type", "response.refusal.done")
+                           .build()}
+write "{\"type\":\"response.refusal.done\",\"content_index\":0,\"item_id\":\"msg_1\",\"output_index\":0,\"refusal\":\"I cannot help with that\",\"sequence_number\":5}"
+write zilla:data.ext ${http:dataEx()
+                           .typeId(zilla:id("http"))
+                           .header("type", "response.content_part.done")
+                           .build()}
+write "{\"type\":\"response.content_part.done\",\"content_index\":0,\"item_id\":\"msg_1\",\"output_index\":0,\"part\":{\"type\":\"refusal\",\"refusal\":\"I cannot help with that\"},\"sequence_number\":6}"
+write zilla:data.ext ${http:dataEx()
+                           .typeId(zilla:id("http"))
+                           .header("type", "response.output_item.done")
+                           .build()}
+write "{\"type\":\"response.output_item.done\",\"item\":{\"id\":\"msg_1\",\"type\":\"message\",\"status\":\"incomplete\",\"content\":[{\"type\":\"refusal\",\"refusal\":\"I cannot help with that\"}],\"role\":\"assistant\"},\"output_index\":0,\"sequence_number\":7}"
+write zilla:data.ext ${http:dataEx()
+                           .typeId(zilla:id("http"))
+                           .header("type", "response.incomplete")
+                           .build()}
+write "{\"type\":\"response.incomplete\",\"response\":{\"id\":\"id_1\",\"object\":\"response\",\"model\":\"model\",\"output\":[{\"id\":\"msg_1\",\"type\":\"message\",\"status\":\"incomplete\",\"content\":[{\"type\":\"refusal\",\"refusal\":\"I cannot help with that\"}],\"role\":\"assistant\"}],\"status\":\"incomplete\",\"incomplete_details\":{\"reason\":\"content_filter\"},\"usage\":{\"input_tokens\":25,\"output_tokens\":15,\"total_tokens\":40}},\"sequence_number\":8}"
+write close

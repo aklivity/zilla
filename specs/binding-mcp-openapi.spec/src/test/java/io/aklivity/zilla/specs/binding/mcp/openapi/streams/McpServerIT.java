@@ -65,6 +65,15 @@ public class McpServerIT
 
     @Test
     @Specification({
+        "${mcp}/tools.list.with.overlay/client",
+        "${mcp}/tools.list.with.overlay/server"})
+    public void shouldListToolsWithOverlay() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mcp}/resources.list/client",
         "${mcp}/resources.list/server"})
     public void shouldListResources() throws Exception

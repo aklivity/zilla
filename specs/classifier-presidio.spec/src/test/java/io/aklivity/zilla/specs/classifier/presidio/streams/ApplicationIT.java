@@ -75,4 +75,24 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/streaming.text.rejected.straddling/client",
+        "${app}/streaming.text.rejected.straddling/server"
+    })
+    public void shouldAbortEmailStraddlingFragmentsWithoutReleasingItsPrefix() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/streaming.text.accepted.retained/client",
+        "${app}/streaming.text.accepted.retained/server"
+    })
+    public void shouldReleaseTrailingTokenOnceRuledOut() throws Exception
+    {
+        k3po.finish();
+    }
 }

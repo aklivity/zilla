@@ -96,7 +96,7 @@ public class LlmAnthropicCitationsToCanonicalTest
     @Test
     public void shouldRoundTripUrlAndOtherCitations()
     {
-        assertRoundTrips(transform, new LlmAnthropicCitationsFromCanonical(),
+        assertRoundTrips(transform, new LlmAnthropicCitationsFromCanonical(true),
             json("[{'type':'web_search_result_location','url':'https://example.com','title':'Example'," +
                 "'encrypted_index':'idx','cited_text':'blue'},{'type':'char_location','cited_text':'a'," +
                 "'document_index':0}]"));

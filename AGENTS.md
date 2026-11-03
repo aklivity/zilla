@@ -40,6 +40,7 @@ its `AGENTS.md` is loaded automatically with more detail:
 | [runtime/AGENTS.md](runtime/AGENTS.md) | Java module system, stream model, binding kinds, EngineWorker threading, factory + flyweight pattern, server/client/proxy patterns, per-stream field naming, buffer slots, decode strategy, unit tests |
 | [runtime/engine/AGENTS.md](runtime/engine/AGENTS.md) | Engine SPI conventions (Javadoc neutrality, null defaults), `EngineContext` implementer fan-out, test implementations for engine concepts |
 | [runtime/binding-kafka/AGENTS.md](runtime/binding-kafka/AGENTS.md) | Kafka local cache (mmap segments, `IoUtil.unmap()`, retention timestamps) |
+| [runtime/binding-llm/AGENTS.md](runtime/binding-llm/AGENTS.md) | llm section contract: body members and attributes, ranges, guardrail pass-through, model-visible value per section, streaming vs non-streaming |
 | [specs/AGENTS.md](specs/AGENTS.md) | `.rpt` script structure, folder layout, IT method naming, `XxxFunctions` builders/matchers, JUEL typed variants, k3po + JUnit 4 migration, JSON schema patches, required spec coverage |
 
 ---
@@ -100,6 +101,54 @@ A crash or hang from `test -Dtest=SomeIT` (SIGSEGV, "forked VM terminated
 without properly saying goodbye", event-assertion mismatches) is a symptom of
 this same root cause, not a real bug — before spending time diagnosing a
 crash from an `*IT` run, confirm it was launched with `verify`.
+
+### Build cache
+
+`.mvn/extensions.xml` enables the Maven build cache extension. A module whose
+inputs and reactor dependencies are unchanged is restored from `~/.m2/build-cache`
+without running its tests or ITs; a changed module rebuilds, and so does every
+module that depends on it.
+
+- Use `clean install` for local builds — a rebuilt module fails in moditect if
+  its `target/modules` jar already exists
+- Build a subset with `-pl <module> -am`; without `-am` its siblings resolve from
+  `~/.m2` and the module misses entries from a full build
+- Force a full rebuild with `-Dmaven.build.cache.skipCache=true`, or bypass the
+  extension with `-Dmaven.build.cache.enabled=false`
+- CI restores `~/.m2/build-cache` from the OCI artifact
+  `ghcr.io/aklivity/zilla/build-cache:<branch>`: a pull request restores its base
+  branch and then `develop`, and a push to `develop` or `support/**` publishes it
+  from a separate job, the only one with `packages: write`
+  (`.github/scripts/build-cache.sh`). A missing artifact is a cold build, never an
+  error. Each publish leaves the previous package version untagged, so the same job
+  deletes untagged versions beyond the latest three; that needs the Admin role for
+  the repository under the package's Manage Actions access, and a failure does not
+  fail the publish
+- A local session (e.g. a sandboxed agent environment with no pre-populated
+  `~/.m2`) can restore the same cache manually instead of building the whole
+  reactor from source — do this before any full `./mvnw install` at the repo
+  root, especially when a dependent repo (e.g. `zilla-plus`) needs zilla
+  artifacts this session hasn't built yet:
+  ```bash
+  bash .github/scripts/build-cache.sh install   # installs oras into ~/.local/bin
+  apt-get install -y zstd                       # only if zstd isn't already present
+  bash .github/scripts/build-cache.sh restore "$HOME/.m2/build-cache" \
+      ghcr.io/aklivity/zilla/build-cache develop
+  ```
+  Restoring falls back silently to a cold build if the ref/tag isn't found, so
+  it's always safe to attempt first. Once restored, a full `./mvnw clean
+  install -Dskip.checks=true` from the repo root is a near-instant cache-hit
+  build for every unchanged module instead of a from-source rebuild.
+- Do not add a direct plugin goal (for example `jacoco:report-aggregate`) to a
+  cached build command — it disables caching for the whole build
+- A module that must always build opts out with
+  `<maven.build.cache.enabled>false</maven.build.cache.enabled>` in its own
+  `<properties>`: `cloud/docker-image` and `cloud/helm-chart` (a cache hit would
+  skip the image build)
+- A module that shades its dependencies marks them `<optional>true</optional>`,
+  sets `createDependencyReducedPom` to `false` and `excludeOptional` to `false`
+  on `maven-notice-plugin`, so the installed pom is the source pom and the
+  NOTICE still lists the shaded libraries (`manager`, `incubator/command-log`)
 
 ### Docker
 

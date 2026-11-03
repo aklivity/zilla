@@ -22,6 +22,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.function.Function;
 
 import org.agrona.LangUtil;
 import org.junit.Before;
@@ -37,6 +38,8 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class ProxyMatcherTest
 {
+    private static final Function<String, InetAddress[]> RESOLVE_HOST = ProxyMatcherTest::resolveHostAddresses;
+
     private ProxyBeginExFW.Builder builder;
 
     @Before
@@ -62,7 +65,7 @@ public class ProxyMatcherTest
                         .destinationPort(443)))
                 .build();
 
-        assertTrue(matcher.matches(beginEx));
+        assertTrue(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -80,7 +83,7 @@ public class ProxyMatcherTest
                         .destinationPort(443)))
                 .build();
 
-        assertTrue(matcher.matches(beginEx));
+        assertTrue(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -98,7 +101,7 @@ public class ProxyMatcherTest
                         .destinationPort(443)))
                 .build();
 
-        assertFalse(matcher.matches(beginEx));
+        assertFalse(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -116,7 +119,7 @@ public class ProxyMatcherTest
                         .destinationPort(443)))
                 .build();
 
-        assertTrue(matcher.matches(beginEx));
+        assertTrue(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -134,7 +137,7 @@ public class ProxyMatcherTest
                         .destinationPort(443)))
                 .build();
 
-        assertFalse(matcher.matches(beginEx));
+        assertFalse(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -157,7 +160,7 @@ public class ProxyMatcherTest
                         .destinationPort(443)))
                 .build();
 
-        assertTrue(matcher.matches(beginEx));
+        assertTrue(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -180,7 +183,7 @@ public class ProxyMatcherTest
                         .destinationPort(443)))
                 .build();
 
-        assertFalse(matcher.matches(beginEx));
+        assertFalse(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -203,7 +206,7 @@ public class ProxyMatcherTest
                         .destinationPort(443)))
                 .build();
 
-        assertTrue(matcher.matches(beginEx));
+        assertTrue(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -226,7 +229,7 @@ public class ProxyMatcherTest
                         .destinationPort(443)))
                 .build();
 
-        assertFalse(matcher.matches(beginEx));
+        assertFalse(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -246,7 +249,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.alpn("echo"))
                 .build();
 
-        assertTrue(matcher.matches(beginEx));
+        assertTrue(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -266,7 +269,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.alpn("echo"))
                 .build();
 
-        assertFalse(matcher.matches(beginEx));
+        assertFalse(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -286,7 +289,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.authority("example.com"))
                 .build();
 
-        assertTrue(matcher.matches(beginEx));
+        assertTrue(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -306,7 +309,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.authority("example.com"))
                 .build();
 
-        assertFalse(matcher.matches(beginEx));
+        assertFalse(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -326,7 +329,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.identity(v -> v.value(x -> x.set(fromHex("12345678")))))
                 .build();
 
-        assertTrue(matcher.matches(beginEx));
+        assertTrue(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -346,7 +349,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.identity(v -> v.value(x -> x.set(fromHex("12345678")))))
                 .build();
 
-        assertFalse(matcher.matches(beginEx));
+        assertFalse(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -366,7 +369,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.namespace("example"))
                 .build();
 
-        assertTrue(matcher.matches(beginEx));
+        assertTrue(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -386,7 +389,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.namespace("example"))
                 .build();
 
-        assertFalse(matcher.matches(beginEx));
+        assertFalse(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -407,7 +410,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.secure(s -> s.version("TLSv1.3")))
                 .build();
 
-        assertTrue(matcher.matches(beginEx));
+        assertTrue(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -428,7 +431,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.secure(s -> s.version("TLSv1.3")))
                 .build();
 
-        assertFalse(matcher.matches(beginEx));
+        assertFalse(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -449,7 +452,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.secure(s -> s.cipher("ECDHE-RSA-AES128-GCM-SHA256")))
                 .build();
 
-        assertTrue(matcher.matches(beginEx));
+        assertTrue(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -470,7 +473,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.secure(s -> s.cipher("ECDHE-RSA-AES128-GCM-SHA256")))
                 .build();
 
-        assertFalse(matcher.matches(beginEx));
+        assertFalse(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -491,7 +494,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.secure(s -> s.key("RSA2048")))
                 .build();
 
-        assertTrue(matcher.matches(beginEx));
+        assertTrue(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -512,7 +515,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.secure(s -> s.key("RSA2048")))
                 .build();
 
-        assertFalse(matcher.matches(beginEx));
+        assertFalse(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -533,7 +536,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.secure(s -> s.name("name@domain")))
                 .build();
 
-        assertTrue(matcher.matches(beginEx));
+        assertTrue(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -554,7 +557,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.secure(s -> s.name("name@domain")))
                 .build();
 
-        assertFalse(matcher.matches(beginEx));
+        assertFalse(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -575,7 +578,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.secure(s -> s.signature("SHA256")))
                 .build();
 
-        assertTrue(matcher.matches(beginEx));
+        assertTrue(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     @Test
@@ -596,7 +599,7 @@ public class ProxyMatcherTest
                 .infosItem(i -> i.secure(s -> s.signature("SHA256")))
                 .build();
 
-        assertFalse(matcher.matches(beginEx));
+        assertFalse(matcher.matches(beginEx, RESOLVE_HOST));
     }
 
     private static byte[] resolveHost(
@@ -615,5 +618,22 @@ public class ProxyMatcherTest
         }
 
         return address;
+    }
+
+    private static InetAddress[] resolveHostAddresses(
+        String host)
+    {
+        InetAddress[] addresses = null;
+
+        try
+        {
+            addresses = InetAddress.getAllByName(host);
+        }
+        catch (UnknownHostException ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+
+        return addresses;
     }
 }

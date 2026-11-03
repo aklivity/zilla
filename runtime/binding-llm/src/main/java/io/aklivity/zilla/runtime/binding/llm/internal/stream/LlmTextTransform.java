@@ -18,9 +18,49 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 final class LlmTextTransform extends LlmToolTransform
 {
+    private final boolean optional;
+    private final LlmCacheBreakpoint breakpoints;
+
+    private boolean extracted;
+    private boolean marked;
+    private String markedTtl;
+
     LlmTextTransform()
     {
+        this(false, null);
+    }
+
+    LlmTextTransform(
+        boolean optional,
+        LlmCacheBreakpoint breakpoints)
+    {
         super(MODE_EXTRACT);
+        this.optional = optional;
+        this.breakpoints = breakpoints;
+    }
+
+    boolean extracted()
+    {
+        return extracted;
+    }
+
+    boolean marked()
+    {
+        return marked;
+    }
+
+    String markedTtl()
+    {
+        return markedTtl;
+    }
+
+    @Override
+    public void reset()
+    {
+        super.reset();
+        extracted = false;
+        marked = false;
+        markedTtl = null;
     }
 
     @Override
@@ -28,7 +68,21 @@ final class LlmTextTransform extends LlmToolTransform
         int depth,
         CharSequence key)
     {
-        return matches(key, "text") ? PASS_STRING : DROP;
+        final boolean text = matches(key, "text");
+
+        extracted |= text;
+
+        return text ? PASS_STRING : breakpoints != null && matches(key, LlmCacheBreakpoint.MEMBER) ? capture(key) : DROP;
+    }
+
+    @Override
+    protected Status onCaptured(
+        LlmCapturedValue value)
+    {
+        marked = breakpoints.admit(value);
+        markedTtl = marked ? breakpoints.ttl() : null;
+
+        return Status.ADVANCED;
     }
 
     @Override
@@ -40,6 +94,6 @@ final class LlmTextTransform extends LlmToolTransform
     protected Status onClose(
         int depth)
     {
-        return Status.ADVANCED;
+        return optional && !extracted ? Status.COMPLETED : Status.ADVANCED;
     }
 }

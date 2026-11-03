@@ -1,0 +1,81 @@
+{
+  "area": "Images",
+  "area_id": "images",
+  "probes": [
+    {
+      "id": "image-part",
+      "requires": [],
+      "steps": [
+        {
+          "id": "a",
+          "method": "POST",
+          "path": "/chat/completions",
+          "body": {
+            "model": {
+              "$model": "model"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "What is the dominant colour of this image? Answer with one word."
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": {
+                        "$gen": "red_png"
+                      }
+                    }
+                  }
+                ]
+              }
+            ],
+            "$cap": 16
+          }
+        }
+      ],
+      "classify": [
+        {
+          "when": {
+            "all": [
+              {
+                "path": "a.status",
+                "op": "eq",
+                "value": 200
+              },
+              {
+                "path": "a.json.choices[0].message.content",
+                "op": "icontains",
+                "value": "red"
+              }
+            ]
+          },
+          "outcome": "compliant",
+          "observed": "image part accepted and reflected in the answer"
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "eq",
+            "value": 200
+          },
+          "outcome": "unsupported",
+          "observed": "image part accepted; answer does not reflect it: {a.json.choices[0].message.content}",
+          "silent": true
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "status_class",
+            "value": 4
+          },
+          "outcome": "unsupported",
+          "observed": "image part rejected with HTTP {a.status}: {a.json.error.message}"
+        }
+      ]
+    }
+  ]
+}

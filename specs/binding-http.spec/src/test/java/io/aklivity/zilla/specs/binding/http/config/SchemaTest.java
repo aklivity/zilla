@@ -53,6 +53,14 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateHttp11ClientVersions()
+    {
+        JsonObject config = schema.validate("v1.1/client.versions.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateHttp11ClientOverride()
     {
         JsonObject config = schema.validate("v1.1/client.override.yaml");

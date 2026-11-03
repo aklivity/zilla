@@ -31,7 +31,7 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-read "{\"model\":\"claude-3-opus-20240229\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Hi\"}]},{\"role\":\"assistant\",\"content\":[{\"type\":\"thinking\",\"signature\":\"sig-1\",\"thinking\":\"Let me think.\"},{\"type\":\"text\",\"text\":\"Hello!\"}]}]}"
+read "{\"model\":\"claude-3-opus-20240229\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Hi\"}]},{\"role\":\"assistant\",\"content\":[{\"type\":\"thinking\",\"signature\":\"sig-1\",\"thinking\":\"Let me think.\"},{\"type\":\"text\",\"text\":\"Hello!\"}]}],\"max_tokens\":4096}"
 
 read closed
 

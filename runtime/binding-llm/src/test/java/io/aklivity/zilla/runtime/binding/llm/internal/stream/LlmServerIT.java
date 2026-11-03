@@ -41,6 +41,7 @@ public class LlmServerIT
         .countersBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/llm/config")
         .external("app0")
+        .external("app1")
         .clean();
 
     @Rule
@@ -60,6 +61,52 @@ public class LlmServerIT
     @Specification({
         "${net}/openai.completions.unsupported/client"})
     public void shouldRejectOpenaiCompletionsRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.openai.chat.yaml")
+    @Specification({
+        "${net}/reject.openai.api.responses/client"})
+    public void shouldRejectOpenaiResponsesRequestWhenApisRestrictedToChatCompletions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.openai.responses.yaml")
+    @Specification({
+        "${net}/reject.openai.api.chat.completions/client"})
+    public void shouldRejectOpenaiChatCompletionsRequestWhenApisRestrictedToResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.dialects.yaml")
+    @Specification({
+        "${net}/reject.openai.api.responses/client"})
+    public void shouldRejectOpenaiResponsesRequestWhenDialectsRestrictOpenaiToChatCompletions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.dialects.yaml")
+    @Specification({
+        "${net}/reject.gemini.dialect/client"})
+    public void shouldRejectGeminiRequestWhenDialectsOmitGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.route.dialect.yaml")
+    @Specification({
+        "${net}/openai/client",
+        "${app}/openai/server"})
+    public void shouldRouteOpenaiRequestByDialect() throws Exception
     {
         k3po.finish();
     }

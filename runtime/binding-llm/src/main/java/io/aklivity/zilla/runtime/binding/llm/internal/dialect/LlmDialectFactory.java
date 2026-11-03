@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.llm.internal.dialect;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.function.Supplier;
@@ -28,17 +29,24 @@ import io.aklivity.zilla.runtime.binding.llm.internal.LlmConfiguration;
  */
 public final class LlmDialectFactory
 {
+    static final String SHARED_NAME = "x";
+
     private final Map<String, LlmDialect> dialects;
 
     public LlmDialectFactory(
         LlmConfiguration config)
     {
+        this(config, ServiceLoader.load(LlmDialectFactorySpi.class).stream().map(Supplier::get).toList());
+    }
+
+    LlmDialectFactory(
+        LlmConfiguration config,
+        List<LlmDialectFactorySpi> factories)
+    {
         this.dialects = new LinkedHashMap<>();
 
-        ServiceLoader
-            .load(LlmDialectFactorySpi.class)
-            .stream()
-            .map(Supplier::get)
+        factories.stream()
+            .peek(f -> reserve(f.name()))
             .map(f -> f.create(config))
             .forEach(d -> dialects.put(d.name(), d));
     }
@@ -46,5 +54,14 @@ public final class LlmDialectFactory
     public Map<String, LlmDialect> dialects()
     {
         return dialects;
+    }
+
+    private static void reserve(
+        String name)
+    {
+        if (SHARED_NAME.equals(name))
+        {
+            throw new IllegalArgumentException("dialect name \"%s\" is reserved for shared members".formatted(name));
+        }
     }
 }

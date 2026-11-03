@@ -29,6 +29,7 @@ import io.aklivity.zilla.config.engine.ConfigAdapter;
 public final class LlmConditionConfigAdapter extends ConfigAdapter<ConditionConfig, JsonObject>
 {
     private static final String DIALECT_NAME = "dialect";
+    private static final String API_NAME = "api";
     private static final String MODEL_NAME = "model";
 
     @Override
@@ -42,6 +43,11 @@ public final class LlmConditionConfigAdapter extends ConfigAdapter<ConditionConf
         if (llmCondition.dialect != null)
         {
             object.add(DIALECT_NAME, llmCondition.dialect);
+        }
+
+        if (llmCondition.api != null)
+        {
+            object.add(API_NAME, llmCondition.api);
         }
 
         if (llmCondition.model != null)
@@ -62,6 +68,10 @@ public final class LlmConditionConfigAdapter extends ConfigAdapter<ConditionConf
             ? object.getString(DIALECT_NAME)
             : null;
 
+        String api = object.containsKey(API_NAME)
+            ? object.getString(API_NAME)
+            : null;
+
         List<String> model = object.containsKey(MODEL_NAME)
             ? object.getJsonArray(MODEL_NAME).stream()
                 .map(JsonString.class::cast)
@@ -71,6 +81,7 @@ public final class LlmConditionConfigAdapter extends ConfigAdapter<ConditionConf
 
         return LlmConditionConfig.builder()
             .dialect(dialect)
+            .api(api)
             .model(model)
             .build();
     }

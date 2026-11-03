@@ -194,4 +194,44 @@ public class MessageFormatIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/data.padding.length.error/client",
+        "${net}/data.padding.length.error/server",
+    })
+    public void shouldDataPaddingLengthError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.data.padding.length.error/client",
+        "${net}/client.data.padding.length.error/server",
+    })
+    public void shouldClientDataPaddingLengthError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/window.update.overflow.error/client",
+        "${net}/window.update.overflow.error/server"
+    })
+    public void shouldWindowUpdateOverflowError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.window.update.overflow.error/client",
+        "${net}/client.window.update.overflow.error/server"
+    })
+    public void shouldClientWindowUpdateOverflowError() throws Exception
+    {
+        k3po.finish();
+    }
 }

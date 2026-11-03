@@ -27,12 +27,12 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
+                          .type("CONTROL")
+                          .message(-1)
                           .build()}
-write "{\"model\":\""
-      ${model}
-      "\",\"stream\":true,\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":"
+write "{\"stream\":true}"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -43,11 +43,12 @@ write zilla:data.ext ${llm:dataEx()
 write "{\"text\":\"Hello\"}"
 write flush
 
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .complete(true)
+                          .type("CONTROL")
+                          .message(-1)
                           .build()}
-write "}]}]}"
+write "{\"stream_options\":{\"include_usage\":true}}"
 write flush
 
 write advise zilla:flush
@@ -59,53 +60,12 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .id("msg_01")
                            .build()}
 
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .attribute("type", "message_start")
-                          .build()}
-read "{\"type\":\"message_start\",\"message\":{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\""
-     ${model}
-     "\",\"content\":[],\"stop_reason\":null,\"stop_sequence\":null,\"usage\":{\"input_tokens\":25,\"output_tokens\":1}}}"
-
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .attribute("type", "content_block_start")
-                          .build()}
-read "{\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}"
-
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .attribute("type", "content_block_delta")
-                          .build()}
-read "{\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":"
-
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
                           .message(0)
                           .build()}
 read "{\"text\":\"Let me check\"}"
-
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .build()}
-read "}}"
-
-read advised zilla:flush ${llm:matchFlushEx()
-                                .typeId(zilla:id("llm"))
-                                .type("ASSISTANT_TEXT")
-                                .message(0)
-                                .build()}
-
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .attribute("type", "content_block_stop")
-                          .build()}
-read "{\"type\":\"content_block_stop\",\"index\":0}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
@@ -114,30 +74,21 @@ read zilla:data.ext ${llm:matchDataEx()
                           .attribute("tool-name", "get_weather")
                           .attribute("tool-call-id", "call_1")
                           .build()}
-read "{\"arguments\":"
-read "{\"city\":"
-read "\"Paris\"}"
-read "}"
+read "{\"arguments\":{\"city\":\"Paris\"}}"
 
-read advised zilla:flush ${llm:matchFlushEx()
-                                .typeId(zilla:id("llm"))
-                                .type("TOOL_CALL")
-                                .message(0)
-                                .build()}
-
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .attribute("type", "message_delta")
+                          .type("CONTROL")
+                          .message(-1)
                           .build()}
-read "{\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\",\"stop_sequence\":null},\"usage\":{\"output_tokens\":15}}"
+read "{\"anthropic:stop_sequence\":null}"
 
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .attribute("type", "message_stop")
+                          .type("CONTROL")
+                          .message(-1)
                           .build()}
-read "{\"type\":\"message_stop\"}"
+read "{\"anthropic:usage\":{\"input_tokens\":25,\"output_tokens\":15}}"
 
 read zilla:end.ext ${llm:matchEndEx()
                             .typeId(zilla:id("llm"))

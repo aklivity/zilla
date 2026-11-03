@@ -1,0 +1,88 @@
+---
+name: example
+stores:
+  cache:
+    type: memory
+bindings:
+  north_tcp_server:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port:
+        - 7114
+    routes:
+      - when:
+          - port: 7114
+        exit: north_http_server
+  north_http_server:
+    type: http
+    kind: server
+    options:
+      access-control:
+        policy: cross-origin
+    routes:
+      - when:
+          - headers:
+              :scheme: http
+              :path: /mcp
+        exit: north_mcp_server
+  north_mcp_server:
+    type: mcp
+    kind: server
+    exit: north_mcp_proxy
+    telemetry:
+      metrics:
+        - mcp.*
+      attributes:
+        method: ${mcp.method}
+        tool: ${mcp.tool}
+        outcome: ${mcp.outcome}
+  north_mcp_proxy:
+    type: mcp
+    kind: proxy
+    options:
+      cache:
+        store: cache
+        # refresh interval, not an expiry: the cache re-hydrates from the backend
+        # every ttl and keeps serving the previous listing in between
+        ttl: PT30S
+        tools:
+          # only these tools are listed by tools/list; every other tool is cold --
+          # omitted from the listing, still callable by name and found via search
+          eager:
+            policy: explicit
+            match:
+              - everything__echo
+              - everything__get-env
+          search:
+            toolkit: zilla
+    routes:
+      - exit: south_mcp_client_everything
+        when:
+          - toolkit: everything
+  south_mcp_client_everything:
+    type: mcp
+    kind: client
+    options:
+      server: http://everything:3001/mcp
+    exit: sys:http_client
+    telemetry:
+      metrics:
+        - mcp.tools.list
+telemetry:
+  metrics:
+    - mcp.tools.list
+    - mcp.tools.list.duration
+    - mcp.tools.call
+    - mcp.tools.call.duration
+  exporters:
+    stdout_logs_exporter:
+      type: stdout
+    prometheus_exporter:
+      type: prometheus
+      options:
+        endpoints:
+          - scheme: http
+            port: 7190
+            path: /metrics

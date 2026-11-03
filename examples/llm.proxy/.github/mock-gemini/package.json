@@ -1,0 +1,10 @@
+{
+  "name": "mock-gemini",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Minimal mock Gemini generateContent API backing the gemini-facing llm(client) route",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}

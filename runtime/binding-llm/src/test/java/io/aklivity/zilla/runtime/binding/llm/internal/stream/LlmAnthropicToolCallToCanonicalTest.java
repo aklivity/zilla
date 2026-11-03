@@ -80,7 +80,7 @@ public class LlmAnthropicToolCallToCanonicalTest
     {
         assertTransforms(transform,
             json("{'cache_control':{'type':'ephemeral'},'type':'tool_use','id':'toolu_1','name':'ping','input':{'a':1}}"),
-            json("{'anthropic:cache_control':{'type':'ephemeral'},'arguments':{'a':1}}"));
+            json("{'prompt_cache_breakpoint':{'mode':'explicit'},'arguments':{'a':1}}"));
     }
 
     @Test
@@ -88,7 +88,7 @@ public class LlmAnthropicToolCallToCanonicalTest
     {
         assertTransforms(transform,
             json("{'type':'tool_use','id':'toolu_1','name':'ping','input':{'a':1},'cache_control':{'type':'ephemeral'}}"),
-            json("{'arguments':{'a':1},'anthropic:cache_control':{'type':'ephemeral'}}"));
+            json("{'arguments':{'a':1},'prompt_cache_breakpoint':{'mode':'explicit'}}"));
     }
 
     @Test
@@ -96,7 +96,7 @@ public class LlmAnthropicToolCallToCanonicalTest
     {
         assertTransforms(transform,
             json("{'type':'tool_use','id':'toolu_1','name':'ping','cache_control':{'type':'ephemeral'}}"),
-            json("{'anthropic:cache_control':{'type':'ephemeral'},'arguments':{}}"));
+            json("{'prompt_cache_breakpoint':{'mode':'explicit'},'arguments':{}}"));
     }
 
     @Test
@@ -105,7 +105,7 @@ public class LlmAnthropicToolCallToCanonicalTest
         assertTransforms(transform,
             json("{'cache_control':{'type':'ephemeral','ttl':[1,{'a':null}]},'type':'tool_use','id':'toolu_1'," +
                 "'note':'" + LONG + "','name':'ping','input':{'a':1},'count':12345,'tail':null}"),
-            json("{'anthropic:cache_control':{'type':'ephemeral','ttl':[1,{'a':null}]},'anthropic:note':'" + LONG +
+            json("{'prompt_cache_breakpoint':{'mode':'explicit'},'anthropic:note':'" + LONG +
                 "','arguments':{'a':1},'anthropic:count':12345,'anthropic:tail':null}"));
     }
 

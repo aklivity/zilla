@@ -20,7 +20,7 @@ import io.aklivity.zilla.runtime.engine.Configuration;
 
 public final class LlmOpenaiDialectFactorySpi implements LlmDialectFactorySpi
 {
-    static final String NAME = "openai";
+    static final String NAME = "openai/ccs";
 
     @Override
     public String name()

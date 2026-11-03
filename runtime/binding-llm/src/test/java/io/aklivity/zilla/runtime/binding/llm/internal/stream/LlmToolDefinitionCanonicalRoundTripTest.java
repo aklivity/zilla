@@ -24,7 +24,8 @@ public class LlmToolDefinitionCanonicalRoundTripTest
     private static final String LONG = "x".repeat(300);
 
     private final LlmAnthropicToolDefinitionToCanonical toCanonical = new LlmAnthropicToolDefinitionToCanonical();
-    private final LlmAnthropicToolDefinitionFromCanonical fromCanonical = new LlmAnthropicToolDefinitionFromCanonical();
+    private final LlmAnthropicToolDefinitionFromCanonical fromCanonical = new LlmAnthropicToolDefinitionFromCanonical(true,
+        new LlmCacheBreakpoint(Integer.MAX_VALUE, "5m", "1h"));
 
     @Test
     public void shouldRoundTripAnthropicToolDefinition()
@@ -45,7 +46,7 @@ public class LlmToolDefinitionCanonicalRoundTripTest
     public void shouldRoundTripCacheControlBetweenCanonicalMembers()
     {
         assertRoundTrips(toCanonical, fromCanonical,
-            json("{'name':'ping','cache_control':{'type':'ephemeral','ttl':[1,{'a':null}]},'description':'Ping'," +
+            json("{'name':'ping','cache_control':{'type':'ephemeral','ttl':'1h'},'description':'Ping'," +
                 "'input_schema':{'type':'object'}}"));
     }
 

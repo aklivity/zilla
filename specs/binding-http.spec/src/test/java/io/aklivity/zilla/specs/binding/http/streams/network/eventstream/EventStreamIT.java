@@ -549,4 +549,22 @@ public class EventStreamIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/response.sse.field.space/client",
+        "${net}/response.sse.field.space/server" })
+    public void shouldReceiveResponseFieldSpace() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/response.sse.field.space.parameters/client",
+        "${net}/response.sse.field.space.parameters/server" })
+    public void shouldReceiveResponseFieldSpaceParameters() throws Exception
+    {
+        k3po.finish();
+    }
 }

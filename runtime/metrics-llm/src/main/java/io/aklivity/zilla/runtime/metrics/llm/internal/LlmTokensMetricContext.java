@@ -93,7 +93,7 @@ public final class LlmTokensMetricContext implements MetricContext
         List<AttributeConfig> attributes,
         ToLongFunction<String> resolveId)
     {
-        return new LlmTokensHandler(recorder, new LlmAttributes(attributes, context, resolveId));
+        return new LlmTokensHandler(recorder, new LlmAttributes(attributes, context, resolveId, llmTypeId));
     }
 
     private final class LlmTokensHandler implements MessageConsumer
@@ -135,7 +135,11 @@ public final class LlmTokensMetricContext implements MetricContext
                 final ExtensionFW beginEx = begin.extension().get(extensionRO::tryWrap);
                 if (direction == RECEIVED && beginEx != null && beginEx.typeId() == llmTypeId)
                 {
-                    attributes.request(exchangeId, frame.authorization());
+                    attributes.request(exchangeId, frame.authorization(), begin);
+                }
+                else if (direction == SENT)
+                {
+                    attributes.response(exchangeId, begin);
                 }
                 break;
             case EndFW.TYPE_ID:

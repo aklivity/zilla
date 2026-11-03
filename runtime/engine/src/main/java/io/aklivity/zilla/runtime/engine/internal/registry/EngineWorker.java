@@ -585,6 +585,15 @@ public class EngineWorker implements EngineContext, Agent
     }
 
     @Override
+    public long resolveAffinityId(
+        long keyHash)
+    {
+        final long affinityId = (((long) selfNodeId & 0xffL) << 24) | Math.floorMod(keyHash, (long) config.workers());
+
+        return router.resolveAffinityId(keyHash, affinityId);
+    }
+
+    @Override
     public long resolveRoutedId(
         long routedId,
         long affinity)

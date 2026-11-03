@@ -21,16 +21,11 @@ accepted
 
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
+                           .dialect("openai/ccs")
                            .model("gpt-4")
                            .build()}
 
 connected
-
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-read "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
@@ -39,11 +34,12 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "{\"text\":\"Hello\"}"
 
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .complete(true)
+                          .type("CONTROL")
+                          .message(-1)
                           .build()}
-read "}],\"temperature\":0.7,\"top_p\":0.9,\"max_tokens\":100,\"seed\":42,\"stop\":[\"END\"],\"store\":true,\"service_tier\":\"auto\",\"logprobs\":true,\"top_logprobs\":3,\"n\":2,\"audio\":{\"voice\":\"alloy\",\"format\":\"wav\"}}"
+read "{\"x:temperature\":0.7,\"x:top_p\":0.9,\"x:seed\":42,\"x:stop\":[\"END\"],\"openai:store\":true,\"x:service_tier\":\"auto\",\"openai/ccs:logprobs\":true,\"openai/ccs:top_logprobs\":3,\"openai/ccs:n\":2,\"openai/ccs:audio\":{\"voice\":\"alloy\",\"format\":\"wav\"}}"
 
 read advised zilla:flush ${llm:matchDialectFlushEx()
                                  .typeId(zilla:id("llm"))

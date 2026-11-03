@@ -263,6 +263,18 @@ public class ConnectionManagementIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/server.sent.data.on.closed.stream/client",
+        "${net}/server.sent.data.on.closed.stream/server"
+    })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    public void shouldServerSentDataOnClosedStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/server.sent.end.stream.before.payload/client",
         "${net}/server.sent.end.stream.before.payload/server"
     })
@@ -379,6 +391,17 @@ public class ConnectionManagementIT
         "${net}/streams.on.same.connection/server" })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void shouldHandleStreamsOnSameConnection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/ignore.server.headers.after.rst.stream/client",
+        "${net}/ignore.server.headers.after.rst.stream/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    public void shouldIgnoreServerHeadersAfterRstStream() throws Exception
     {
         k3po.finish();
     }

@@ -42,17 +42,18 @@ final class PresidioDetector implements Detector
     {
         if (value.isEmpty())
         {
-            context.dispatch(() -> completion.completed(contextId, false));
+            context.dispatch(() -> completion.completed(contextId, false, 0));
         }
         else
         {
             analyzer.analyze(value).whenComplete((body, failure) ->
-                context.dispatch(() -> complete(contextId, body, failure, completion)));
+                context.dispatch(() -> complete(contextId, value, body, failure, completion)));
         }
     }
 
     private void complete(
         long contextId,
+        String value,
         String body,
         Throwable failure,
         CompletionCallback completion)
@@ -74,11 +75,24 @@ final class PresidioDetector implements Detector
 
         if (cause == null)
         {
-            completion.completed(contextId, detected);
+            completion.completed(contextId, detected, detected ? 0 : retained(value));
         }
         else
         {
             completion.failed(contextId, cause);
         }
+    }
+
+    private static int retained(
+        String value)
+    {
+        int index = value.length();
+
+        while (index > 0 && !Character.isWhitespace(value.charAt(index - 1)))
+        {
+            index--;
+        }
+
+        return value.length() - index;
     }
 }

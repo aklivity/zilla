@@ -1,0 +1,259 @@
+{
+  "area": "Roles",
+  "area_id": "roles",
+  "probes": [
+    {
+      "id": "developer-role",
+      "requires": [],
+      "steps": [
+        {
+          "id": "a",
+          "method": "POST",
+          "path": "/chat/completions",
+          "body": {
+            "model": {
+              "$model": "model"
+            },
+            "messages": [
+              {
+                "role": "developer",
+                "content": "Always answer with exactly the word BANANA."
+              },
+              {
+                "role": "user",
+                "content": "What is 2+2?"
+              }
+            ],
+            "$cap": 16
+          }
+        }
+      ],
+      "classify": [
+        {
+          "when": {
+            "all": [
+              {
+                "path": "a.status",
+                "op": "eq",
+                "value": 200
+              },
+              {
+                "path": "a.json.choices[0].message.content",
+                "op": "icontains",
+                "value": "banana"
+              }
+            ]
+          },
+          "outcome": "compliant",
+          "observed": "developer role accepted and applied"
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "eq",
+            "value": 200
+          },
+          "outcome": "adjustment-needed",
+          "observed": "developer role accepted but instruction not applied: {a.json.choices[0].message.content}",
+          "adjustment": "map-sections",
+          "silent": true
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "status_class",
+            "value": 4
+          },
+          "outcome": "adjustment-needed",
+          "observed": "developer role rejected (HTTP {a.status}): {a.json.error.message}; map to system",
+          "adjustment": "map-sections"
+        }
+      ]
+    },
+    {
+      "id": "two-system",
+      "requires": [],
+      "steps": [
+        {
+          "id": "a",
+          "method": "POST",
+          "path": "/chat/completions",
+          "body": {
+            "model": {
+              "$model": "model"
+            },
+            "messages": [
+              {
+                "role": "system",
+                "content": "Reply in uppercase letters only."
+              },
+              {
+                "role": "system",
+                "content": "Always end your reply with the word DONE."
+              },
+              {
+                "role": "user",
+                "content": "Say hello."
+              }
+            ],
+            "$cap": 16
+          }
+        }
+      ],
+      "classify": [
+        {
+          "when": {
+            "all": [
+              {
+                "path": "a.status",
+                "op": "eq",
+                "value": 200
+              },
+              {
+                "path": "a.json.choices[0].message.content",
+                "op": "icontains",
+                "value": "done"
+              }
+            ]
+          },
+          "outcome": "compliant",
+          "observed": "two system messages accepted and both applied"
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "eq",
+            "value": 200
+          },
+          "outcome": "adjustment-needed",
+          "observed": "two system messages accepted; second not applied: {a.json.choices[0].message.content}",
+          "adjustment": "map-sections",
+          "silent": true
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "status_class",
+            "value": 4
+          },
+          "outcome": "adjustment-needed",
+          "observed": "multiple system messages rejected (HTTP {a.status}): {a.json.error.message}; merge",
+          "adjustment": "map-sections"
+        }
+      ]
+    },
+    {
+      "id": "consecutive-user",
+      "requires": [],
+      "steps": [
+        {
+          "id": "a",
+          "method": "POST",
+          "path": "/chat/completions",
+          "body": {
+            "model": {
+              "$model": "model"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": "My name is Ada."
+              },
+              {
+                "role": "user",
+                "content": "What is my name? Answer with the name only."
+              }
+            ],
+            "$cap": 16
+          }
+        }
+      ],
+      "classify": [
+        {
+          "when": {
+            "all": [
+              {
+                "path": "a.status",
+                "op": "eq",
+                "value": 200
+              },
+              {
+                "path": "a.json.choices[0].message.content",
+                "op": "icontains",
+                "value": "ada"
+              }
+            ]
+          },
+          "outcome": "compliant",
+          "observed": "consecutive user messages accepted and both used"
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "eq",
+            "value": 200
+          },
+          "outcome": "adjustment-needed",
+          "observed": "consecutive user messages accepted; first not used: {a.json.choices[0].message.content}",
+          "adjustment": "map-sections",
+          "silent": true
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "status_class",
+            "value": 4
+          },
+          "outcome": "adjustment-needed",
+          "observed": "consecutive user messages rejected (HTTP {a.status}): {a.json.error.message}; merge",
+          "adjustment": "map-sections"
+        }
+      ]
+    },
+    {
+      "id": "name-field",
+      "requires": [],
+      "steps": [
+        {
+          "id": "a",
+          "method": "POST",
+          "path": "/chat/completions",
+          "body": {
+            "model": {
+              "$model": "model"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "name": "ada",
+                "content": "Say hello."
+              }
+            ],
+            "$cap": 16
+          }
+        }
+      ],
+      "classify": [
+        {
+          "when": {
+            "path": "a.status",
+            "op": "eq",
+            "value": 200
+          },
+          "outcome": "compliant",
+          "observed": "name field accepted"
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "status_class",
+            "value": 4
+          },
+          "outcome": "adjustment-needed",
+          "observed": "name field rejected (HTTP {a.status}): {a.json.error.message}; strip",
+          "adjustment": "handle-unsupported"
+        }
+      ]
+    }
+  ]
+}

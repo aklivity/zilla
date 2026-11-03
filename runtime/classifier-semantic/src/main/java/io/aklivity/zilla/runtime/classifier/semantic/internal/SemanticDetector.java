@@ -26,17 +26,20 @@ final class SemanticDetector implements Detector
     private final SemanticReferences references;
     private final double threshold;
     private final int[] exemplars;
+    private final int window;
 
     SemanticDetector(
         EmbeddingHandler embedding,
         SemanticReferences references,
         double threshold,
-        int[] exemplars)
+        int[] exemplars,
+        int window)
     {
         this.embedding = embedding;
         this.references = references;
         this.threshold = threshold;
         this.exemplars = exemplars;
+        this.window = window;
     }
 
     @Override
@@ -48,6 +51,25 @@ final class SemanticDetector implements Detector
         CompletionCallback completion)
     {
         references.whenReady(new Detection(traceId, bindingId, contextId, value, completion));
+    }
+
+    private int retained(
+        String value)
+    {
+        int index = value.length();
+
+        while (index > 0 && !isTerminator(value.charAt(index - 1)))
+        {
+            index--;
+        }
+
+        return Math.min(value.length() - index, window);
+    }
+
+    private static boolean isTerminator(
+        char ch)
+    {
+        return ch == '.' || ch == '!' || ch == '?' || ch == '\n';
     }
 
     private boolean matches(
@@ -110,7 +132,9 @@ final class SemanticDetector implements Detector
         {
             if (SemanticVectorCodec.valid(results, 1))
             {
-                completion.completed(contextId, matches(vectors, results[0]));
+                final boolean detected = matches(vectors, results[0]);
+
+                completion.completed(contextId, detected, detected ? 0 : retained(value));
             }
             else
             {

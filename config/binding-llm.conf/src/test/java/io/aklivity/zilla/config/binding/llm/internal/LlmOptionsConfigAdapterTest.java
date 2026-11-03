@@ -15,6 +15,7 @@
 package io.aklivity.zilla.config.binding.llm.internal;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.anEmptyMap;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
@@ -23,6 +24,9 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import java.util.List;
+
+import jakarta.json.Json;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
@@ -30,7 +34,10 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.config.binding.llm.LlmDialectConfig;
+import io.aklivity.zilla.config.binding.llm.LlmModelConfig;
 import io.aklivity.zilla.config.binding.llm.LlmOptionsConfig;
+import io.aklivity.zilla.config.binding.llm.LlmTestDialectConfig;
 import io.aklivity.zilla.config.engine.test.internal.model.config.TestModelConfig;
 
 public class LlmOptionsConfigAdapterTest
@@ -41,7 +48,7 @@ public class LlmOptionsConfigAdapterTest
     public void initJson()
     {
         JsonbConfig config = new JsonbConfig()
-            .withAdapters(new LlmOptionsConfigAdapter());
+            .withAdapters(new LlmOptionsConfigAdapter(List.of(new LlmTestDialectExtInfo().options())));
         jsonb = JsonbBuilder.create(config);
     }
 
@@ -57,6 +64,116 @@ public class LlmOptionsConfigAdapterTest
 
         assertThat(options, not(nullValue()));
         assertThat(options.dialect, equalTo("openai"));
+    }
+
+    @Test
+    public void shouldReadOptionsWithOpenaiResponsesDialect()
+    {
+        String text =
+                "{" +
+                    "\"dialect\": \"openai/responses\"" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.dialect, equalTo("openai/responses"));
+    }
+
+    @Test
+    public void shouldWriteOptionsWithOpenaiResponsesDialect()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .dialect("openai/responses")
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"dialect\":\"openai/responses\"}"));
+    }
+
+    @Test
+    public void shouldReadOptionsWithApis()
+    {
+        String text =
+                "{" +
+                    "\"dialect\": \"openai\"," +
+                    "\"apis\": [\"chat/completions\", \"responses\"]" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.apis, contains("chat/completions", "responses"));
+    }
+
+    @Test
+    public void shouldReadOptionsWithoutApis()
+    {
+        LlmOptionsConfig options = jsonb.fromJson("{\"dialect\": \"openai\"}", LlmOptionsConfig.class);
+
+        assertThat(options.apis, nullValue());
+    }
+
+    @Test
+    public void shouldWriteOptionsWithApis()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .dialect("openai")
+            .apis(List.of("responses"))
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, equalTo("{\"dialect\":\"openai\",\"apis\":[\"responses\"]}"));
+    }
+
+    @Test
+    public void shouldReadOptionsWithDialects()
+    {
+        String text =
+                "{" +
+                    "\"dialects\": [\"anthropic\", {\"openai\": {\"apis\": [\"responses\"]}}, {\"gemini\": {}}]" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.dialect, nullValue());
+        assertThat(options.dialects, hasSize(3));
+        assertThat(options.dialects.get(0).name, equalTo("anthropic"));
+        assertThat(options.dialects.get(0).apis, nullValue());
+        assertThat(options.dialects.get(1).name, equalTo("openai"));
+        assertThat(options.dialects.get(1).apis, contains("responses"));
+        assertThat(options.dialects.get(2).name, equalTo("gemini"));
+        assertThat(options.dialects.get(2).apis, nullValue());
+    }
+
+    @Test
+    public void shouldReadOptionsWithoutDialects()
+    {
+        LlmOptionsConfig options = jsonb.fromJson("{\"dialect\": \"openai\"}", LlmOptionsConfig.class);
+
+        assertThat(options.dialects, nullValue());
+    }
+
+    @Test
+    public void shouldWriteOptionsWithDialects()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .dialects(List.of(
+                LlmDialectConfig.builder().name("openai").apis(List.of("chat/completions")).build(),
+                LlmDialectConfig.builder().name("anthropic").build()))
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, equalTo("{\"dialects\":[{\"openai\":{\"apis\":[\"chat/completions\"]}},\"anthropic\"]}"));
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectOptionsWithDuplicateDialect()
+    {
+        jsonb.fromJson("{\"dialects\": [\"openai\", {\"openai\": {\"apis\": [\"responses\"]}}]}", LlmOptionsConfig.class);
     }
 
     @Test
@@ -307,6 +424,64 @@ public class LlmOptionsConfigAdapterTest
     }
 
     @Test
+    public void shouldReadServerOptionWithGeminiDialectDefaultPath()
+    {
+        String text =
+                "{" +
+                    "\"dialect\": \"gemini\"," +
+                    "\"server\": \"https://generativelanguage.googleapis.com\"" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.dialect, equalTo("gemini"));
+        assertThat(options.server.host, equalTo("generativelanguage.googleapis.com"));
+        assertThat(options.server.path, equalTo("/v1beta"));
+    }
+
+    @Test
+    public void shouldReadServerOptionWithGeminiDialectDefaultPathWhenServerPrecedesDialect()
+    {
+        String text =
+                "{" +
+                    "\"server\": \"https://generativelanguage.googleapis.com/\"," +
+                    "\"dialect\": \"gemini\"" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.server.path, equalTo("/v1beta"));
+    }
+
+    @Test
+    public void shouldReadServerOptionWithGeminiDialectExplicitPath()
+    {
+        String text =
+                "{" +
+                    "\"dialect\": \"gemini\"," +
+                    "\"server\": \"https://generativelanguage.googleapis.com/v1\"" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.server.path, equalTo("/v1"));
+    }
+
+    @Test
+    public void shouldReadServerOptionWithAnthropicDialectDefaultPath()
+    {
+        String text =
+                "{" +
+                    "\"dialect\": \"anthropic\"," +
+                    "\"server\": \"https://api.anthropic.com\"" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.server.path, equalTo("/v1"));
+    }
+
+    @Test
     public void shouldReadServerOptionWithTrailingSlashStripped()
     {
         String text =
@@ -427,5 +602,239 @@ public class LlmOptionsConfigAdapterTest
         String text = jsonb.toJson(options);
 
         assertThat(text, equalTo("{\"authorization\":{\"test0\":{\"credentials\":\"Bearer {credentials}\"}}}"));
+    }
+
+    @Test
+    public void shouldReadOptionsWithDialectExtension()
+    {
+        String text =
+                "{" +
+                    "\"dialect\": \"test-dialect\"," +
+                    "\"test-settings\": { \"region\": \"us-east-1\" }" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.dialect, equalTo("test-dialect"));
+        LlmTestDialectConfig settings = options.ext(LlmTestDialectExtInfo.OPTIONS_NAME, LlmTestDialectConfig.class);
+        assertThat(settings, not(nullValue()));
+        assertThat(settings.region, equalTo("us-east-1"));
+    }
+
+    @Test
+    public void shouldReadOptionsWithoutDialectExtension()
+    {
+        String text = "{\"dialect\": \"test-dialect\"}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.ext(LlmTestDialectExtInfo.OPTIONS_NAME, LlmTestDialectConfig.class), nullValue());
+    }
+
+    @Test
+    public void shouldWriteOptionsWithDialectExtension()
+    {
+        String text =
+                "{" +
+                    "\"dialect\":\"test-dialect\"," +
+                    "\"test-settings\":{\"region\":\"us-east-1\"}" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(jsonb.toJson(options), equalTo(text));
+    }
+
+    @Test
+    public void shouldReadModels()
+    {
+        String text =
+                "{" +
+                    "\"dialect\": \"anthropic\"," +
+                    "\"models\": {" +
+                        "\"claude-opus-4-7\": { \"sampling\": false, \"thinking\": \"adaptive\" }," +
+                        "\"claude-3-*\": {" +
+                            "\"thinking\": \"enabled\"," +
+                            "\"budget\": { \"minimum\": 1024, \"maximum\": 32768 }," +
+                            "\"ladder\": { \"low\": 2048, \"high\": 16384 }" +
+                        "}" +
+                    "}" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.models, hasSize(2));
+
+        LlmModelConfig opus = options.models.get(0);
+        assertThat(opus.name, equalTo("claude-opus-4-7"));
+        assertThat(opus.sampling, equalTo(false));
+        assertThat(opus.thinking, equalTo("adaptive"));
+        assertThat(opus.budgetMinimum, nullValue());
+        assertThat(opus.budgetMaximum, nullValue());
+        assertThat(opus.ladder, anEmptyMap());
+
+        LlmModelConfig legacy = options.models.get(1);
+        assertThat(legacy.name, equalTo("claude-3-*"));
+        assertThat(legacy.sampling, nullValue());
+        assertThat(legacy.thinking, equalTo("enabled"));
+        assertThat(legacy.budgetMinimum, equalTo(1024));
+        assertThat(legacy.budgetMaximum, equalTo(32768));
+        assertThat(legacy.ladder.get("low"), equalTo(2048));
+        assertThat(legacy.ladder.get("high"), equalTo(16384));
+    }
+
+    @Test
+    public void shouldReadOptionsWithoutModels()
+    {
+        String text = "{\"dialect\": \"anthropic\"}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.models, empty());
+    }
+
+    @Test
+    public void shouldWriteModels()
+    {
+        String text =
+                "{" +
+                    "\"dialect\":\"gemini\"," +
+                    "\"models\":{" +
+                        "\"gemini-2.5-pro\":{" +
+                            "\"sampling\":false," +
+                            "\"thinking\":\"budget\"," +
+                            "\"budget\":{\"minimum\":128,\"maximum\":32768}," +
+                            "\"ladder\":{\"low\":1024,\"medium\":8192,\"high\":24576}" +
+                        "}" +
+                    "}" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(jsonb.toJson(options), equalTo(text));
+    }
+
+    @Test
+    public void shouldBuildModel()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .dialect("anthropic")
+            .model()
+                .name("claude-sonnet-4-6")
+                .thinking("adaptive-enabled")
+                .build()
+            .build();
+
+        assertThat(options.models, hasSize(1));
+        assertThat(options.models.get(0).name, equalTo("claude-sonnet-4-6"));
+        assertThat(options.models.get(0).thinking, equalTo("adaptive-enabled"));
+    }
+
+    @Test
+    public void shouldWriteModelBudgetMaximumOnly()
+    {
+        String text = "{\"dialect\":\"gemini\",\"models\":{\"m\":{\"budget\":{\"maximum\":24576}}}}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.models.get(0).budgetMinimum, nullValue());
+        assertThat(options.models.get(0).budgetMaximum, equalTo(24576));
+        assertThat(jsonb.toJson(options), equalTo(text));
+    }
+
+    @Test
+    public void shouldWriteModelBudgetMinimumOnly()
+    {
+        String text = "{\"dialect\":\"gemini\",\"models\":{\"m\":{\"budget\":{\"minimum\":128}}}}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(jsonb.toJson(options), equalTo(text));
+    }
+
+    @Test
+    public void shouldAdaptModelWithoutName()
+    {
+        LlmModelConfig model = new LlmModelConfigAdapter()
+            .adaptFromJson(Json.createObjectBuilder().add("sampling", false).build());
+
+        assertThat(model.name, nullValue());
+        assertThat(model.sampling, equalTo(false));
+    }
+
+    @Test
+    public void shouldReadModelTiers()
+    {
+        String text = "{\"dialect\":\"openai\",\"models\":{\"gpt-5\":{\"tiers\":[\"auto\",\"flex\"]},\"o3*\":{\"tiers\":[]}}}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.models.get(0).tiers, equalTo(List.of("auto", "flex")));
+        assertThat(options.models.get(1).tiers, equalTo(List.of()));
+        assertThat(jsonb.toJson(options), equalTo(text));
+    }
+
+    @Test
+    public void shouldReadModelWithoutTiers()
+    {
+        String text = "{\"dialect\":\"openai\",\"models\":{\"gpt-5\":{\"sampling\":false}}}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.models.get(0).tiers, nullValue());
+        assertThat(jsonb.toJson(options), equalTo(text));
+    }
+
+    @Test
+    public void shouldReadModelUnsupportedAndExclusive()
+    {
+        String text = "{\"dialect\":\"openai\",\"models\":{\"gpt-5\":{\"unsupported\":[\"seed\",\"stop\"]," +
+            "\"exclusive\":[[\"reasoning_effort\",\"thinking_budget_tokens\"]]},\"o3*\":{\"unsupported\":[]," +
+            "\"exclusive\":[]}}}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.models.get(0).unsupported, equalTo(List.of("seed", "stop")));
+        assertThat(options.models.get(0).exclusive, equalTo(List.of(List.of("reasoning_effort", "thinking_budget_tokens"))));
+        assertThat(options.models.get(1).unsupported, equalTo(List.of()));
+        assertThat(options.models.get(1).exclusive, equalTo(List.of()));
+        assertThat(jsonb.toJson(options), equalTo(text));
+    }
+
+    @Test
+    public void shouldReadModelWithoutUnsupportedAndExclusive()
+    {
+        String text = "{\"dialect\":\"openai\",\"models\":{\"gpt-5\":{\"sampling\":false}}}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.models.get(0).unsupported, nullValue());
+        assertThat(options.models.get(0).exclusive, nullValue());
+        assertThat(jsonb.toJson(options), equalTo(text));
+    }
+
+    @Test
+    public void shouldReadOptionsUnsupportedAndExclusive()
+    {
+        String text = "{\"dialect\":\"openai\",\"unsupported\":[\"parallel_tool_calls\",\"response_format\"]," +
+            "\"exclusive\":[[\"thinking_budget_tokens\",\"reasoning_effort\"]]}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.unsupported, equalTo(List.of("parallel_tool_calls", "response_format")));
+        assertThat(options.exclusive, equalTo(List.of(List.of("thinking_budget_tokens", "reasoning_effort"))));
+        assertThat(jsonb.toJson(options), equalTo(text));
+    }
+
+    @Test
+    public void shouldReadOptionsWithoutUnsupportedAndExclusive()
+    {
+        String text = "{\"dialect\":\"openai\"}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options.unsupported, nullValue());
+        assertThat(options.exclusive, nullValue());
+        assertThat(jsonb.toJson(options), equalTo(text));
     }
 }

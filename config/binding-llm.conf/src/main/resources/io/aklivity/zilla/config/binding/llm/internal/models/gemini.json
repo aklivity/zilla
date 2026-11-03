@@ -1,0 +1,20 @@
+{
+    "gemini-2.5-pro*":
+    {
+        "thinking": "budget",
+        "budget":
+        {
+            "minimum": 128,
+            "maximum": 32768
+        }
+    },
+    "gemini-2.5-flash*":
+    {
+        "thinking": "budget",
+        "budget":
+        {
+            "minimum": 0,
+            "maximum": 24576
+        }
+    }
+}

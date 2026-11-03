@@ -1,0 +1,219 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "LLM compatibility probe results",
+    "type": "object",
+    "required": [
+        "meta",
+        "records"
+    ],
+    "properties": {
+        "meta": {
+            "$ref": "#/$defs/meta"
+        },
+        "records": {
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/record"
+            }
+        }
+    },
+    "$defs": {
+        "meta": {
+            "type": "object",
+            "required": [
+                "dialect",
+                "provider",
+                "tier",
+                "hosting",
+                "zilla_ref",
+                "started",
+                "finished",
+                "skipped",
+                "spent_usd"
+            ],
+            "properties": {
+                "dialect": {
+                    "type": "string"
+                },
+                "provider": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "tier": {
+                    "enum": [
+                        "reference",
+                        "p1",
+                        "p2",
+                        "p3"
+                    ]
+                },
+                "hosting": {
+                    "enum": [
+                        "hosted",
+                        "gateway",
+                        "local",
+                        "first-party-compat"
+                    ]
+                },
+                "zilla_ref": {
+                    "type": "string"
+                },
+                "started": {
+                    "type": "string"
+                },
+                "finished": {
+                    "type": "string"
+                },
+                "skipped": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "spent_usd": {
+                    "type": "number"
+                }
+            }
+        },
+        "record": {
+            "type": "object",
+            "required": [
+                "provider",
+                "probe",
+                "area",
+                "via",
+                "status",
+                "outcome",
+                "adjustment",
+                "silent",
+                "documented",
+                "observed",
+                "tokens",
+                "cost_usd",
+                "cost_estimated",
+                "timestamp",
+                "provider_model",
+                "tier",
+                "zilla_ref"
+            ],
+            "properties": {
+                "provider": {
+                    "type": "string"
+                },
+                "probe": {
+                    "type": "string",
+                    "description": "<area>.<probe>"
+                },
+                "area": {
+                    "type": "string"
+                },
+                "via": {
+                    "enum": [
+                        "direct",
+                        "zilla"
+                    ]
+                },
+                "status": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
+                    "description": "HTTP status of the first request the probe sent"
+                },
+                "outcome": {
+                    "enum": [
+                        "compliant",
+                        "adjustment-needed",
+                        "unsupported",
+                        "not-applicable",
+                        "error"
+                    ]
+                },
+                "adjustment": {
+                    "enum": [
+                        "rename-reshape",
+                        "map-sections",
+                        "normalise-telemetry",
+                        "declare-capability",
+                        "handle-unsupported",
+                        null
+                    ],
+                    "description": "set when outcome is adjustment-needed"
+                },
+                "silent": {
+                    "type": "boolean",
+                    "description": "true when the response was 200 but the parameter was not honoured"
+                },
+                "documented": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ],
+                    "description": "whether the behaviour matches the provider's documentation; null when unknown or not applicable"
+                },
+                "observed": {
+                    "type": "string"
+                },
+                "error_kind": {
+                    "type": "string"
+                },
+                "tokens": {
+                    "type": "object",
+                    "required": [
+                        "input",
+                        "output"
+                    ],
+                    "properties": {
+                        "input": {
+                            "type": "integer"
+                        },
+                        "output": {
+                            "type": "integer"
+                        }
+                    }
+                },
+                "cost_usd": {
+                    "type": "number"
+                },
+                "retries": {
+                    "type": "integer",
+                    "description": "requests retried after a 429 or a gateway error"
+                },
+                "elapsed_ms": {
+                    "type": "integer",
+                    "description": "total time spent in the probe's requests"
+                },
+                "cost_estimated": {
+                    "type": "boolean",
+                    "description": "true when the price used was a fallback because the provider's price is unknown"
+                },
+                "timestamp": {
+                    "type": "string"
+                },
+                "provider_model": {
+                    "type": "string"
+                },
+                "tier": {
+                    "enum": [
+                        "reference",
+                        "p1",
+                        "p2",
+                        "p3"
+                    ]
+                },
+                "zilla_ref": {
+                    "type": "string"
+                },
+                "evidence": {
+                    "type": "array",
+                    "description": "credential-redacted requests and truncated responses",
+                    "items": {
+                        "type": "object"
+                    }
+                }
+            }
+        }
+    }
+}

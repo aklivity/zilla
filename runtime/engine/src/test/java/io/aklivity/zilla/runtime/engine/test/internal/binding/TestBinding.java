@@ -15,6 +15,9 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.binding;
 
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.ConfigException;
 import io.aklivity.zilla.runtime.engine.Configuration;
@@ -27,6 +30,7 @@ public final class TestBinding implements Binding
     public static final String NAME_INVALID = "invalid";
 
     private final Configuration config;
+    private final List<EngineContext> contexts = new CopyOnWriteArrayList<>();
 
     TestBinding(
         Configuration config)
@@ -44,7 +48,13 @@ public final class TestBinding implements Binding
     public TestBindingContext supply(
         EngineContext context)
     {
+        contexts.add(context);
         return new TestBindingContext(config, context);
+    }
+
+    public List<EngineContext> contexts()
+    {
+        return contexts;
     }
 
     @Override

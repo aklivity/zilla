@@ -524,6 +524,46 @@ class JsonGeneratorExTest
     }
 
     @Test
+    void shouldWriteMembersIntoEmptyObject()
+    {
+        assertEquals("{\"a\":1,\"b\":[2]}", generate(g -> g
+            .writeStartObject()
+            .writeMembers(source("\"a\":1,\"b\":[2]"), 0, 13, Completion.COMPLETE)
+            .writeEnd()));
+    }
+
+    @Test
+    void shouldWriteMembersAfterMember()
+    {
+        assertEquals("{\"x\":true,\"a\":1}", generate(g -> g
+            .writeStartObject()
+            .writeKey("x").write(true)
+            .writeMembers(source("\"a\":1"), 0, 5, Completion.COMPLETE)
+            .writeEnd()));
+    }
+
+    @Test
+    void shouldWriteMemberAfterMembers()
+    {
+        assertEquals("{\"a\":1,\"z\":2}", generate(g -> g
+            .writeStartObject()
+            .writeMembers(source("\"a\":1"), 0, 5, Completion.COMPLETE)
+            .writeKey("z").write(2)
+            .writeEnd()));
+    }
+
+    @Test
+    void shouldWriteMembersAcrossFragments()
+    {
+        assertEquals("{\"x\":true,\"a\":1,\"b\":2}", generate(g -> g
+            .writeStartObject()
+            .writeKey("x").write(true)
+            .writeMembers(source("\"a\":1"), 0, 5, Completion.INCOMPLETE)
+            .writeMembers(source(",\"b\":2"), 0, 6, Completion.COMPLETE)
+            .writeEnd()));
+    }
+
+    @Test
     void shouldWriteDeferredStringAcrossFragments()
     {
         assertEquals("[\"abcd\"]", generate(g -> g
@@ -543,6 +583,12 @@ class JsonGeneratorExTest
                 .write("a\"b", Completion.INCOMPLETE)
                 .write("\nc", Completion.COMPLETE)
                 .writeEnd()));
+    }
+
+    private static UnsafeBufferEx source(
+        String text)
+    {
+        return new UnsafeBufferEx(text.getBytes(UTF_8));
     }
 
     private static String generate(

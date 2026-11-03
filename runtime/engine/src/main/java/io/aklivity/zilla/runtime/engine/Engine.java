@@ -654,13 +654,12 @@ public final class Engine implements Collector, AutoCloseable
     private long[][] mergeIds(
         Function<EngineWorker, long[][]> supplier)
     {
-        Map<Long, long[]> merged = new LinkedHashMap<>();
+        Map<List<Long>, long[]> merged = new LinkedHashMap<>();
         for (EngineWorker worker : workers)
         {
             for (long[] ids : supplier.apply(worker))
             {
-                long key = ids[0] ^ ((long) ids[1] << 32) ^ ids[2];
-                merged.putIfAbsent(key, ids);
+                merged.putIfAbsent(List.of(ids[0], ids[1], ids[2]), ids);
             }
         }
         return merged.values().toArray(long[][]::new);

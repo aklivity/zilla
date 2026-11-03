@@ -1,0 +1,185 @@
+{
+  "area": "Streaming usage",
+  "area_id": "streaming-usage",
+  "probes": [
+    {
+      "id": "usage-included",
+      "requires": [],
+      "steps": [
+        {
+          "id": "a",
+          "method": "POST",
+          "path": "/chat/completions",
+          "body": {
+            "model": {
+              "$model": "model"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": "Say hello."
+              }
+            ],
+            "$cap": 16,
+            "stream": true,
+            "stream_options": {
+              "include_usage": true
+            }
+          }
+        }
+      ],
+      "derive": [
+        {
+          "id": "s",
+          "fn": "stream_summary",
+          "args": {
+            "from": "a"
+          }
+        }
+      ],
+      "classify": [
+        {
+          "when": {
+            "path": "a.status",
+            "op": "status_class",
+            "value": 4
+          },
+          "outcome": "adjustment-needed",
+          "observed": "stream_options rejected (HTTP {a.status}): {a.json.error.message}",
+          "adjustment": "handle-unsupported"
+        },
+        {
+          "when": {
+            "path": "s.chunk_count",
+            "op": "eq",
+            "value": 0
+          },
+          "outcome": "unsupported",
+          "observed": "no SSE stream returned for stream:true",
+          "silent": true
+        },
+        {
+          "when": {
+            "path": "s.usage_where",
+            "op": "eq",
+            "value": "final-chunk"
+          },
+          "outcome": "compliant",
+          "observed": "usage in final chunk with empty choices"
+        },
+        {
+          "when": {
+            "path": "s.usage_where",
+            "op": "eq",
+            "value": "content-chunk"
+          },
+          "outcome": "adjustment-needed",
+          "observed": "usage on a chunk that also carries choices",
+          "adjustment": "normalise-telemetry"
+        },
+        {
+          "when": {
+            "path": "s.usage_where",
+            "op": "matches",
+            "value": "^vendor-field"
+          },
+          "outcome": "adjustment-needed",
+          "observed": "usage in {s.usage_where}, not the standard usage field",
+          "adjustment": "normalise-telemetry"
+        },
+        {
+          "when": {
+            "path": "s.usage_where",
+            "op": "eq",
+            "value": "none"
+          },
+          "outcome": "unsupported",
+          "observed": "include_usage accepted; no usage anywhere in the stream",
+          "silent": true
+        }
+      ]
+    },
+    {
+      "id": "usage-default",
+      "requires": [],
+      "steps": [
+        {
+          "id": "a",
+          "method": "POST",
+          "path": "/chat/completions",
+          "body": {
+            "model": {
+              "$model": "model"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": "Say hello."
+              }
+            ],
+            "$cap": 16,
+            "stream": true
+          }
+        }
+      ],
+      "derive": [
+        {
+          "id": "s",
+          "fn": "stream_summary",
+          "args": {
+            "from": "a"
+          }
+        }
+      ],
+      "classify": [
+        {
+          "when": {
+            "path": "a.status",
+            "op": "status_class",
+            "value": 4
+          },
+          "outcome": "unsupported",
+          "observed": "streaming rejected (HTTP {a.status}): {a.json.error.message}"
+        },
+        {
+          "when": {
+            "path": "s.chunk_count",
+            "op": "eq",
+            "value": 0
+          },
+          "outcome": "unsupported",
+          "observed": "no SSE stream returned for stream:true",
+          "silent": true
+        },
+        {
+          "when": {
+            "path": "s.usage_where",
+            "op": "eq",
+            "value": "none"
+          },
+          "outcome": "compliant",
+          "observed": "no usage unless include_usage requested"
+        },
+        {
+          "when": {
+            "path": "s.usage_where",
+            "op": "eq",
+            "value": "final-chunk"
+          },
+          "outcome": "adjustment-needed",
+          "observed": "usage in final chunk without include_usage",
+          "adjustment": "normalise-telemetry"
+        },
+        {
+          "when": {
+            "path": "s.usage_where",
+            "op": "exists"
+          },
+          "outcome": "adjustment-needed",
+          "observed": "usage emitted by default at {s.usage_where}",
+          "adjustment": "normalise-telemetry"
+        }
+      ]
+    }
+  ]
+}

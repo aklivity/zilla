@@ -22,13 +22,16 @@ import io.aklivity.zilla.config.engine.ConditionConfig;
 public final class LlmConditionConfig extends ConditionConfig
 {
     public final String dialect;
+    public final String api;
     public final List<String> model;
 
     LlmConditionConfig(
         String dialect,
+        String api,
         List<String> model)
     {
         this.dialect = dialect;
+        this.api = api;
         this.model = model;
     }
 

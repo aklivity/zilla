@@ -65,4 +65,24 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/streaming.text.rejected.straddling/client",
+        "${net}/streaming.text.rejected.straddling/server"
+    })
+    public void shouldAbortEmailStraddlingFragmentsWithoutReleasingItsPrefix() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/streaming.text.accepted.retained/client",
+        "${net}/streaming.text.accepted.retained/server"
+    })
+    public void shouldReleaseTrailingTokenOnceRuledOut() throws Exception
+    {
+        k3po.finish();
+    }
 }

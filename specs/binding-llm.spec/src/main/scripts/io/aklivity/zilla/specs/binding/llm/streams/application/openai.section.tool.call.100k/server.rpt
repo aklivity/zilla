@@ -21,18 +21,11 @@ accepted
 
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
+                           .dialect("openai/ccs")
                            .model(model)
                            .build()}
 
 connected
-
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-read "{\"model\":\""
-     ${model}
-     "\",\"messages\":[{\"role\":\"assistant\",\"content\":null,\"tool_calls\":["
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
@@ -45,28 +38,14 @@ read "{\"arguments\":{\"city\":\""
      ${core:randomBase64(100000)}
      "\"}}"
 
-read zilla:data.ext ${llm:matchDialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .complete(true)
-                          .build()}
-read "]}]}"
-
 read advised zilla:flush
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
+                           .dialect("openai/ccs")
                            .model(model)
                            .id("chatcmpl_2")
                            .build()}
-write flush
-
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-write "{\"id\":\"chatcmpl_2\",\"object\":\"chat.completion\",\"model\":\""
-      ${model}
-      "\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":"
 write flush
 
 write zilla:data.ext ${llm:dataEx()
@@ -77,11 +56,12 @@ write zilla:data.ext ${llm:dataEx()
 write "{\"text\":\"Hello! How can I help you today?\"}"
 write flush
 
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .complete(true)
+                          .type("CONTROL")
+                          .message(-1)
                           .build()}
-write "},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}}"
+write "{\"openai/ccs:usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}}"
 write flush
 
 write zilla:end.ext ${llm:endEx()

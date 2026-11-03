@@ -294,6 +294,16 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
+        "${net}/server.sent.data.on.closed.stream/client",
+        "${net}/server.sent.data.on.closed.stream/server"
+    })
+    public void shouldServerSentDataOnClosedStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/server.sent.write.close/client",
         "${net}/server.sent.write.close/server"
     })
@@ -397,6 +407,15 @@ public class ConnectionManagementIT
         "${net}/streams.on.same.connection/client",
         "${net}/streams.on.same.connection/server" })
     public void shouldHandleStreamsOnSameConnection() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/ignore.server.headers.after.rst.stream/client",
+        "${net}/ignore.server.headers.after.rst.stream/server" })
+    public void shouldIgnoreServerHeadersAfterRstStream() throws Exception
     {
         k3po.finish();
     }

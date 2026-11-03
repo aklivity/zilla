@@ -223,6 +223,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private static final String16FW TRANSFER_ENCODING_CHUNKED = new String16FW("chunked");
 
     private static final int CAPABILITY_FRAMING_MASK = 1 << Capability.FRAMING.ordinal();
+    private static final int INITIAL_CONNECTION_WINDOW = 65_535;
 
     private static final byte[] CONTENT_TYPE_EVENT_STREAM = "text/event-stream".getBytes(UTF_8);
     private static final byte[] EVENT_STREAM_BOM = "\ufeff".getBytes(UTF_8);
@@ -367,6 +368,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final HttpClientDecoder decodeHttp2Continuation = this::decodeHttp2Continuation;
     private final HttpClientDecoder decodeHttp2Data = this::decodeHttp2Data;
     private final HttpClientDecoder decodeHttp2DataPayload = this::decodeHttp2DataPayload;
+    private final HttpClientDecoder decodeHttp2DataPadding = this::decodeHttp2DataPadding;
     private final HttpClientDecoder decodeHttp2PushPromise = this::decodeHttp2PusPromise;
     private final HttpClientDecoder decodeHttp2Priority = this::decodeHttp2Priority;
     private final HttpClientDecoder decodeHttp2RstStream = this::decodeHttp2RstStream;
@@ -401,6 +403,8 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final Map<String8FW, String16FW> headersMap;
     private final String16FW h2cSettingsPayload;
     private final HttpConfiguration config;
+    private final int connectionWindow;
+    private final int connectionWindowLowMark;
     private final EngineContext context;
     private final boolean verbose;
     private final Http2Settings initialSettings;
@@ -441,6 +445,8 @@ public final class HttpClientFactory implements HttpStreamFactory
     {
         this.context = context;
         this.config = config;
+        this.connectionWindow = config.connectionWindow();
+        this.connectionWindowLowMark = connectionWindow >> 1;
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.writeBuffer = context.writeBuffer();
         this.codecBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
@@ -949,9 +955,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
                             if (client.encoder == HttpEncoder.H2C)
                             {
-                                client.encoder = HttpEncoder.HTTP_2;
-                                client.decoder = decodeHttp2Settings;
-                                client.doHttp2SettingsAck(traceId, authorization);
+                                client.onUpgradedToHttp2(traceId, authorization);
                             }
                             else
                             {
@@ -1236,7 +1240,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         final int dataLength,
         final int maxFrameSize)
     {
-        final int frameCount = (dataLength + maxFrameSize - 1) / maxFrameSize;
+        final int frameCount = dataLength / maxFrameSize + (dataLength % maxFrameSize != 0 ? 1 : 0);
 
         return frameCount * Http2FrameInfoFW.SIZE_OF_FRAME; // assumes H2 DATA not PADDED
     }
@@ -1832,7 +1836,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             if (streamId == 0)
             {
-                if (client.remoteSharedBudget + size > Integer.MAX_VALUE)
+                if ((long) client.remoteSharedBudget + size > MAX_REMOTE_BUDGET)
                 {
                     error = Http2ErrorCode.FLOW_CONTROL_ERROR;
                 }
@@ -1889,7 +1893,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             if (client.applicationHeadersProcessed.size() < config.maxConcurrentApplicationHeaders())
             {
                 final HttpExchange exchange = client.exchanges.get(streamId);
-                if (HttpState.replyOpening(exchange.state))
+                if (exchange != null && HttpState.replyOpening(exchange.state))
                 {
                     client.onDecodeHttp2Trailers(traceId, authorization, http2Headers);
                 }
@@ -1969,6 +1973,11 @@ public final class HttpClientFactory implements HttpStreamFactory
             Http2ErrorCode error = Http2ErrorCode.NO_ERROR;
             Http2DataFW http2Data = http2DataRO.wrap(buffer, offset, limit);
 
+            if (http2Data.dataLength() < 0)
+            {
+                error = Http2ErrorCode.PROTOCOL_ERROR;
+            }
+
             if (error != Http2ErrorCode.NO_ERROR)
             {
                 client.onDecodeHttp2Error(traceId, authorization, error);
@@ -1976,7 +1985,16 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
             else
             {
+                client.localSharedBudget -= http2Data.length();
+                if (client.localSharedBudget < connectionWindowLowMark)
+                {
+                    client.doEncodeHttp2ConnectionWindow(traceId, authorization);
+                }
+
+                client.onDecodeHttp2DataPadding(traceId, authorization, http2Data);
+
                 client.decodableDataBytes = http2Data.dataLength();
+                client.decodablePaddingBytes = http2Data.paddingLength();
                 progress = http2Data.dataOffset();
 
                 client.decoder = decodeHttp2DataPayload;
@@ -2020,10 +2038,32 @@ public final class HttpClientFactory implements HttpStreamFactory
 
         if (client.decodableDataBytes == 0)
         {
-            client.decoder = decodeHttp2FrameType;
+            client.decoder = client.decodablePaddingBytes > 0 ? decodeHttp2DataPadding : decodeHttp2FrameType;
         }
 
         return progress;
+    }
+
+    private int decodeHttp2DataPadding(
+        HttpClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        final int skipped = Math.min(limit - offset, client.decodablePaddingBytes);
+
+        client.decodablePaddingBytes -= skipped;
+
+        if (client.decodablePaddingBytes == 0)
+        {
+            client.decoder = decodeHttp2FrameType;
+        }
+
+        return offset + skipped;
     }
 
     private int decodeHttp2PusPromise(
@@ -2221,6 +2261,10 @@ public final class HttpClientFactory implements HttpStreamFactory
             {
                 newStream = rejectWithStatusCode(sender, begin, HEADERS_431_REQUEST_TOO_LARGE);
             }
+            else if (!HttpState.replyOpened(client.state) && !client.acquireQueueSlotIfNecessary())
+            {
+                newStream = rejectWithStatusCode(sender, begin, HEADERS_503_RETRY_AFTER);
+            }
             else if (queuedRequestLength <= client.availableSlotSize())
             {
                 final HttpPromise promise = client.promises.stream().filter(p -> p.matches(beginEx.headers()))
@@ -2368,9 +2412,11 @@ public final class HttpClientFactory implements HttpStreamFactory
         private int decodedStreamId;
         private byte decodedFlags;
         private int continuationStreamId;
-        private int remoteSharedBudget;
+        private int remoteSharedBudget = INITIAL_CONNECTION_WINDOW;
+        private int localSharedBudget = INITIAL_CONNECTION_WINDOW;
         private int maxClientStreamId = -1;
         private int decodableDataBytes;
+        private int decodablePaddingBytes;
         private MessageConsumer network;
         private int decodeSlot;
         private int decodeSlotOffset;
@@ -2546,16 +2592,15 @@ public final class HttpClientFactory implements HttpStreamFactory
                 assert requestCredit == null;
                 requestCredit = context.supplyCredit(initialId, initialBudgetId);
 
-                remoteSharedBudget = encodeMax;
-
                 for (HttpExchange exchange: exchanges.values())
                 {
-                    exchange.remoteBudget += encodeMax;
+                    exchange.remoteBudget += remoteSettings.initialWindowSize;
                     exchange.flushRequestWindow(traceId, 0);
                 }
 
                 doEncodeHttp2Preface(traceId, authorization);
                 doEncodeHttp2Settings(traceId, authorization);
+                doEncodeHttp2ConnectionWindow(traceId, authorization);
 
                 this.decoder = decodeHttp2Settings;
                 this.encoder = HttpEncoder.HTTP_2;
@@ -2565,10 +2610,6 @@ public final class HttpClientFactory implements HttpStreamFactory
                      pool.versions.contains(HTTP_2))
             {
                 this.encoder = HttpEncoder.H2C;
-                for (HttpExchange exchange: exchanges.values())
-                {
-                    exchange.remoteBudget += encodeMax;
-                }
             }
 
             doNetworkWindow(traceId, 0L, 0, 0);
@@ -3376,6 +3417,25 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
         }
 
+        private void onUpgradedToHttp2(
+            long traceId,
+            long authorization)
+        {
+            encoder = HttpEncoder.HTTP_2;
+            decoder = decodeHttp2Settings;
+
+            initialBudgetId = supplyBudgetId.getAsLong();
+            assert requestCredit == null;
+            requestCredit = context.supplyCredit(initialId, initialBudgetId);
+            initialSharedBudget = initialWindow();
+
+            doHttp2SettingsAck(traceId, authorization);
+            doEncodeHttp2Preface(traceId, authorization);
+            doEncodeHttp2Settings(traceId, authorization);
+            doEncodeHttp2ConnectionWindow(traceId, authorization);
+            flushRequestSharedBudget(traceId);
+        }
+
         private void doEncodeHttp2Preface(
             long traceId,
             long authorization)
@@ -3436,20 +3496,32 @@ public final class HttpClientFactory implements HttpStreamFactory
                 int streamId,
                 int size)
         {
-            final int frameOffset = http2WindowUpdateRW.wrap(frameBuffer, 0, frameBuffer.capacity())
-                    .streamId(0)
-                    .size(size)
-                    .build()
-                    .limit();
-
-            final int frameLimit = http2WindowUpdateRW
-                    .wrap(frameBuffer, frameOffset, frameBuffer.capacity())
+            final int frameLimit = http2WindowUpdateRW.wrap(frameBuffer, 0, frameBuffer.capacity())
                     .streamId(streamId)
                     .size(size)
                     .build()
                     .limit();
 
             doNetworkReservedData(traceId, authorization, 0L, frameBuffer, 0, frameLimit);
+        }
+
+        private void doEncodeHttp2ConnectionWindow(
+                long traceId,
+                long authorization)
+        {
+            final int credit = connectionWindow - localSharedBudget;
+
+            if (credit > 0)
+            {
+                final int frameLimit = http2WindowUpdateRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+                        .streamId(0)
+                        .size(credit)
+                        .build()
+                        .limit();
+
+                doNetworkReservedData(traceId, authorization, 0L, frameBuffer, 0, frameLimit);
+                localSharedBudget = connectionWindow;
+            }
         }
 
         private void onDecodeHttp2RstStream(
@@ -3484,6 +3556,25 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
         }
 
+        private void onDecodeHttp2DataPadding(
+            long traceId,
+            long authorization,
+            Http2DataFW http2Data)
+        {
+            final HttpExchange exchange = exchanges.get(http2Data.streamId());
+            final int padding = http2Data.length() - http2Data.dataLength();
+
+            if (exchange != null && padding > 0)
+            {
+                exchange.localBudget -= padding;
+
+                if (http2Data.dataLength() == 0)
+                {
+                    exchange.flushResponseWindowUpdate(traceId, authorization);
+                }
+            }
+        }
+
         private int onDecodeHttp2Data(
             long traceId,
             long authorization,
@@ -3496,7 +3587,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             final HttpExchange exchange = exchanges.get(streamId);
 
-            if (exchange == null)
+            if (exchange == null || HttpState.closed(exchange.state))
             {
                 progress += payload.capacity();
             }
@@ -3513,7 +3604,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 {
                     exchange.cleanup(traceId, authorization);
                     doEncodeHttp2RstStream(traceId, streamId, error);
-                    progress += payloadRemaining.value;
+                    progress += payload.capacity();
                 }
                 else
                 {
@@ -3631,7 +3722,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             {
                 doEncodeHttp2Headers(traceId, authorization, streamId, headersDecoder.httpErrorHeader, EMPTY_OVERRIDES, true);
             }
-            else
+            else if (exchanges.containsKey(streamId))
             {
                 final Map<String, String> headers = headersDecoder.headers;
                 final HttpExchange exchange = exchanges.get(streamId);
@@ -4098,11 +4189,11 @@ public final class HttpClientFactory implements HttpStreamFactory
             long traceId)
         {
             final int requestSharedPadding = http2FramePadding(remoteSharedBudget, remoteSettings.maxFrameSize);
-            final int remoteSharedBudgetMax = remoteSharedBudget + requestSharedPadding + initialPad;
+            final long remoteSharedBudgetMax = (long) remoteSharedBudget + requestSharedPadding + initialPad;
             final int requestSharedCredit =
                     Math.min(encodeMax - encodeSlotReserved - requestSharedBudget, initialSharedBudget);
-            final int requestSharedBudgetDelta = remoteSharedBudgetMax - (requestSharedBudget + encodeSlotReserved);
-            final int initialSharedCredit = Math.min(requestSharedCredit, requestSharedBudgetDelta);
+            final long requestSharedBudgetDelta = remoteSharedBudgetMax - (requestSharedBudget + encodeSlotReserved);
+            final int initialSharedCredit = (int) Math.min(requestSharedCredit, requestSharedBudgetDelta);
 
             if (initialSharedCredit > 0 && requestCredit != null)
             {
@@ -4112,9 +4203,6 @@ public final class HttpClientFactory implements HttpStreamFactory
 
                 assert requestSharedBudget <= encodeMax
                         : String.format("%d <= %d", requestSharedBudget, encodeMax);
-
-                assert initialSharedBudget <= encodeMax
-                        : String.format("%d <= %d", initialSharedBudget, encodeMax);
             }
         }
 
@@ -4230,7 +4318,6 @@ public final class HttpClientFactory implements HttpStreamFactory
                         .endStream(endRequest && progress + length >= limit)
                         .payload(buffer, progress, length)
                         .build();
-
                 frameOffset = http2Data.limit();
                 progress += length;
             }
@@ -4611,6 +4698,11 @@ public final class HttpClientFactory implements HttpStreamFactory
                 if (httpExchange != null)
                 {
                     final HttpEncoder encoder = httpExchange.client.encoder;
+                    if (encoder == HttpEncoder.HTTP_1_1 && httpExchange.client.exchange != null)
+                    {
+                        break dequeue;
+                    }
+
                     client = encoder == HttpEncoder.HTTP_2 ||
                             encoder == HttpEncoder.HTTP_1_1 && httpExchange.client.exchange == null ||
                             encoder == HttpEncoder.H2C ?
@@ -4619,7 +4711,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                     if (client != null)
                     {
                         httpExchange.doRequestBegin(traceId, authorization, queueEntry.value());
-                        httpExchange.remoteBudget = httpExchange.client.remoteSharedBudget;
+                        httpExchange.remoteBudget = httpExchange.client.remoteSettings.initialWindowSize;
                         httpExchange.client.encoder.onApplicationBegin(httpExchange.client, httpExchange, traceId, authorization);
                     }
                     else
@@ -4651,12 +4743,14 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
         }
 
-        private void acquireQueueSlotIfNecessary()
+        private boolean acquireQueueSlotIfNecessary()
         {
             if (httpQueueSlot == NO_SLOT)
             {
                 httpQueueSlot = bufferPool.acquire(routedId);
             }
+
+            return httpQueueSlot != NO_SLOT;
         }
 
         private int availableSlotSize()
@@ -4949,7 +5043,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             if (HttpState.replyOpened(client.state))
             {
-                remoteBudget = client.remoteSharedBudget;
+                remoteBudget = client.remoteSettings.initialWindowSize;
                 client.encoder.onApplicationBegin(client, this, traceId, authorization);
             }
         }
@@ -5518,11 +5612,12 @@ public final class HttpClientFactory implements HttpStreamFactory
                 final int remotePaddableMax = Math.min(remoteBudget, encodeMax);
                 final int remotePad = http2FramePadding(remotePaddableMax, client.remoteSettings.maxFrameSize);
                 final int requestPad = client.initialPad + remotePad;
-                final int newRequestWin = remoteBudget;
+                final int newRequestWin = remotePaddableMax;
                 final int requestWin = requestMax - (int)(requestSeq - requestAck);
                 final int requestCredit = newRequestWin - requestWin;
 
-                if (requestCredit >= 0 && requestCredit >= requestCreditMin && newRequestWin > requestPad)
+                if (requestCredit >= 0 && requestCredit >= requestCreditMin &&
+                    (newRequestWin > requestPad || !HttpState.initialOpened(state)))
                 {
                     final int requestNoAck = (int)(requestSeq - requestAck);
                     final int requestAcked = Math.min(requestNoAck, requestCredit);
@@ -5532,6 +5627,8 @@ public final class HttpClientFactory implements HttpStreamFactory
 
                     requestMax = newRequestWin + (int)(requestSeq - requestAck);
                     assert requestMax >= 0;
+
+                    state = HttpState.openInitial(state);
 
                     doWindow(application, originId, routedId, requestId, requestSeq, requestAck, requestMax, traceId, sessionId,
                             client.initialBudgetId, requestPad, CAPABILITY_FRAMING_MASK);

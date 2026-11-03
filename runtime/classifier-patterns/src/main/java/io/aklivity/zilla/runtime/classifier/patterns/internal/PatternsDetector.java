@@ -53,6 +53,7 @@ final class PatternsDetector implements Detector
         CompletionCallback completion)
     {
         boolean detected = false;
+        int retained = 0;
         Throwable failure = null;
 
         if (value.length() > inputMaxLength)
@@ -65,6 +66,11 @@ final class PatternsDetector implements Detector
             try
             {
                 detected = matcher.find(value, matchMaxSteps);
+
+                if (!detected)
+                {
+                    retained = matcher.retained();
+                }
             }
             catch (IllegalStateException | StackOverflowError ex)
             {
@@ -74,7 +80,7 @@ final class PatternsDetector implements Detector
 
         if (failure == null)
         {
-            completion.completed(contextId, detected);
+            completion.completed(contextId, detected, retained);
         }
         else
         {

@@ -34,6 +34,9 @@ import java.util.function.ToDoubleFunction;
 import java.util.function.ToIntFunction;
 import java.util.function.ToLongFunction;
 
+import io.aklivity.zilla.runtime.common.json.JsonSchema;
+import io.aklivity.zilla.runtime.engine.internal.property.JsonPropertyDecoder;
+
 public class Configuration
 {
     public static final class ConfigurationDef
@@ -277,6 +280,17 @@ public class Configuration
         {
             String qualifiedName = qualifiedName(name);
             PropertyDef<T> property = new ObjectPropertyDef<T>(kind, qualifiedName, decodeValue, defaultValue);
+            properties.put(qualifiedName, property);
+            return property;
+        }
+
+        public <T> JsonPropertyDef<T> property(
+            Class<T> kind,
+            String name,
+            JsonSchema schema)
+        {
+            String qualifiedName = qualifiedName(name);
+            JsonPropertyDef<T> property = new JsonPropertyDef<>(kind, qualifiedName, schema);
             properties.put(qualifiedName, property);
             return property;
         }
@@ -742,6 +756,36 @@ public class Configuration
         {
             String value = config.getPropertyDefault.apply(name, null);
             return value != null ? decodeValue.apply(config, value) : defaultValue.apply(config);
+        }
+    }
+
+    public static final class JsonPropertyDef<T> extends PropertyDef<T>
+    {
+        private final JsonPropertyDecoder<T> decoder;
+
+        private JsonPropertyDef(
+            Class<T> kind,
+            String name,
+            JsonSchema schema)
+        {
+            super(requireNonNull(kind, "kind"), name);
+            this.decoder = new JsonPropertyDecoder<>(kind, name, requireNonNull(schema, "schema"));
+        }
+
+        @Override
+        public T value(
+            Configuration config)
+        {
+            String value = config.getProperty.apply(name, null);
+            return value != null ? decoder.decode(value) : null;
+        }
+
+        @Override
+        public T defaultValue(
+            Configuration config)
+        {
+            String value = config.getPropertyDefault.apply(name, null);
+            return value != null ? decoder.decode(value) : null;
         }
     }
 

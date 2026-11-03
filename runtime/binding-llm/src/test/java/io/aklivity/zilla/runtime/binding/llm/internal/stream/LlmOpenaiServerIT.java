@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_POOL_CAPACITY_NAME;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -28,6 +30,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class LlmOpenaiServerIT
 {
@@ -42,6 +45,7 @@ public class LlmOpenaiServerIT
         .countersBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/llm/config")
         .external("app0")
+        .external("app1")
         .clean();
 
     @Rule
@@ -72,6 +76,16 @@ public class LlmOpenaiServerIT
         "${net}/openai.reply.padded/client",
         "${app}/openai.reply.padded/server"})
     public void shouldForwardOpenaiNonstreamingWithReplyPadding() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.reply.shared.budget/client",
+        "${app}/openai.reply.padded/server"})
+    public void shouldForwardOpenaiNonstreamingWithReplySharedBudget() throws Exception
     {
         k3po.finish();
     }
@@ -539,6 +553,15 @@ public class LlmOpenaiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.rejected.json.malformed.window/client"})
+    public void shouldRejectOpenaiJsonMalformedWithReplyWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.section.rejected.trailing.content/client",
         "${app}/openai.section.rejected.trailing.content/server"})
     public void shouldDecodeOpenaiSectionRejectedTrailingContent() throws Exception
@@ -787,16 +810,6 @@ public class LlmOpenaiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/openai.section.assistant.text.logprobs.streaming.role.first/client",
-        "${app}/openai.section.assistant.text.logprobs.streaming.role.first/server"})
-    public void shouldDecodeOpenaiSectionAssistantTextLogprobsStreamingRoleFirst() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
         "${net}/openai.transform.response.streaming.logprobs.foreign/client",
         "${app}/openai.transform.response.streaming.logprobs.foreign/server"})
     public void shouldDecodeOpenaiTransformResponseStreamingLogprobsForeign() throws Exception
@@ -936,7 +949,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.user.text/client",
         "${app}/transform.user.text/server"})
@@ -947,7 +960,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.assistant.text/client",
         "${app}/transform.assistant.text/server"})
@@ -958,7 +971,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.tool.result/client",
         "${app}/transform.tool.result/server"})
@@ -969,7 +982,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.tool.result.blocks/client",
         "${app}/transform.tool.result.blocks/server"})
@@ -980,10 +993,10 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.request.frames/client",
-        "${app}/transform.request.frames/server"})
+        "${app}/openai.transform.request.members/server"})
     public void shouldTransformRequestFramesFromOpenai() throws Exception
     {
         k3po.finish();
@@ -991,27 +1004,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @Specification({
-        "${net}/openai.section.user.text/client",
-        "${app}/openai.section.model.override/server"})
-    public void shouldReplaceOpenaiModelWhenChallengedWithModel() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/openai.section.model.last/client",
-        "${app}/openai.section.model.last.override/server"})
-    public void shouldReplaceOpenaiModelLastWhenChallengedWithModel() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.frames/client",
         "${app}/transform.response.frames/server"})
@@ -1083,16 +1076,6 @@ public class LlmOpenaiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/openai.section.assistant.text.logprobs.streaming/client",
-        "${app}/openai.section.assistant.text.logprobs.streaming/server"})
-    public void shouldDecodeOpenaiSectionAssistantTextLogprobsStreaming() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
         "${net}/openai.section.assistant.tool.call.streaming/client",
         "${app}/openai.section.assistant.tool.call.streaming/server"})
     public void shouldDecodeOpenaiSectionAssistantToolCallStreaming() throws Exception
@@ -1102,17 +1085,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @Specification({
-        "${net}/openai.section.assistant.text.usage.streaming/client",
-        "${app}/openai.section.assistant.text.usage.streaming/server"})
-    public void shouldDecodeOpenaiSectionAssistantTextUsageStreaming() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.text/client",
         "${app}/transform.response.text/server"})
@@ -1123,7 +1096,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.text.escaped/client",
         "${app}/transform.response.text.escaped/server"})
@@ -1134,7 +1107,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.text.100k/client",
         "${app}/transform.response.text.100k/server"})
@@ -1145,7 +1118,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.text.multibyte/client",
         "${app}/transform.response.text.multibyte/server"})
@@ -1156,7 +1129,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.text.and.tool.call/client",
         "${app}/transform.response.text.and.tool.call/server"})
@@ -1167,7 +1140,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.usage/client",
         "${app}/transform.response.usage/server"})
@@ -1178,7 +1151,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.reasoning/client",
         "${app}/transform.response.reasoning/server"})
@@ -1189,7 +1162,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.reasoning.tag/client",
         "${app}/transform.response.reasoning.tag/server"})
@@ -1200,10 +1173,10 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.streaming.reasoning/client",
-        "${app}/transform.response.reasoning/server"})
+        "${app}/openai.transform.response.streaming.reasoning/server"})
     public void shouldTransformResponseStreamingReasoningFromOpenai() throws Exception
     {
         k3po.finish();
@@ -1211,10 +1184,10 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.streaming.reasoning.tag/client",
-        "${app}/transform.response.reasoning.tag/server"})
+        "${app}/openai.transform.response.streaming.reasoning.tag/server"})
     public void shouldTransformResponseStreamingReasoningTagFromOpenai() throws Exception
     {
         k3po.finish();
@@ -1222,7 +1195,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.reasoning.tag.fragmented/client",
         "${app}/transform.response.reasoning.tag.fragmented/server"})
@@ -1233,10 +1206,10 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.streaming.reasoning.tag.fragmented/client",
-        "${app}/transform.response.reasoning.tag.fragmented/server"})
+        "${app}/openai.transform.response.streaming.reasoning.tag.fragmented/server"})
     public void shouldTransformResponseStreamingReasoningTagFragmentedFromOpenai() throws Exception
     {
         k3po.finish();
@@ -1244,7 +1217,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.reasoning.tag.multiple/client",
         "${app}/transform.response.reasoning.tag.multiple/server"})
@@ -1255,7 +1228,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.reasoning.tag.unclosed/client",
         "${app}/transform.response.reasoning.tag.unclosed/server"})
@@ -1266,7 +1239,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.reasoning.tag.absent/client",
         "${app}/transform.response.reasoning.tag.absent/server"})
@@ -1287,7 +1260,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.refusal/client",
         "${app}/transform.response.refusal/server"})
@@ -1298,10 +1271,10 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.streaming/client",
-        "${app}/transform.response.streaming/server"})
+        "${app}/openai.transform.response.streaming/server"})
     public void shouldTransformResponseStreamingFromOpenai() throws Exception
     {
         k3po.finish();
@@ -1309,10 +1282,10 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.streaming.tool.call/client",
-        "${app}/transform.response.streaming.tool.call/server"})
+        "${app}/openai.transform.response.streaming.tool.call/server"})
     public void shouldTransformResponseStreamingToolCallFromOpenai() throws Exception
     {
         k3po.finish();
@@ -1320,10 +1293,10 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.response.streaming.error/client",
-        "${app}/transform.response.streaming.error/server"})
+        "${app}/openai.transform.response.streaming.error/server"})
     public void shouldTransformResponseStreamingErrorFromOpenai() throws Exception
     {
         k3po.finish();
@@ -1331,7 +1304,7 @@ public class LlmOpenaiServerIT
 
     @Test
     @Configuration("server.yaml")
-    @ScriptProperty({"source \"openai\""})
+    @ScriptProperty({"source \"openai/ccs\""})
     @Specification({
         "${net}/openai.transform.request.max.output.tokens/client",
         "${app}/transform.request.max.output.tokens/server"})
@@ -1396,6 +1369,542 @@ public class LlmOpenaiServerIT
         "${net}/openai.section.assistant.tool.call.streaming.error/client",
         "${app}/openai.section.assistant.tool.call.streaming.error/server"})
     public void shouldEncodeOpenaiSectionAssistantToolCallStreamingError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.assistant.text/client",
+        "${app}/openai.section.assistant.text.flush.ignored/server"})
+    public void shouldDecodeOpenaiSectionAssistantTextIgnoringFlush() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/ccs\"", "target \"openai/ccs\"", "reason \"openai/ccs:insufficient_system_resource\""})
+    @Specification({
+        "${net}/openai.transform.response.finish.reason.unknown/client",
+        "${app}/transform.response.finish.reason/server"})
+    public void shouldRestoreUnknownFinishReasonFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\"", "reason \"anthropic:stop_sequence\""})
+    @Specification({
+        "${net}/openai.transform.response.text/client",
+        "${app}/transform.response.finish.reason/server"})
+    public void shouldDropForeignPrefixedFinishReasonAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/ccs\"", "target \"openai/ccs\"", "reason \"unprefixed\""})
+    @Specification({
+        "${net}/openai.transform.response.text/client",
+        "${app}/transform.response.finish.reason/server"})
+    public void shouldDropUnprefixedFinishReasonAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/ccs\"", "target \"openai/rs\""})
+    @Specification({
+        "${net}/openai.transform.response.text/client",
+        "${app}/openai.responses.transform.response.text/server"})
+    public void shouldTransformResponseTextOfOpenaiResponsesAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/ccs\"", "target \"openai/rs\""})
+    @Specification({
+        "${net}/openai.transform.response.reasoning/client",
+        "${app}/openai.responses.transform.response.reasoning/server"})
+    public void shouldTransformResponseReasoningOfOpenaiResponsesAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/ccs\"", "target \"openai/rs\""})
+    @Specification({
+        "${net}/openai.transform.response.text.and.tool.call/client",
+        "${app}/openai.responses.transform.response.text.and.tool.call/server"})
+    public void shouldTransformResponseTextAndToolCallOfOpenaiResponsesAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/ccs\"", "target \"openai/rs\"", "reason \"openai/rs:max_messages\""})
+    @Specification({
+        "${net}/openai.transform.response.text/client",
+        "${app}/transform.response.finish.reason/server"})
+    public void shouldDropOpenaiResponsesFinishReasonAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/ccs\"", "target \"openai/rs\""})
+    @Specification({
+        "${net}/openai.transform.response.streaming/client",
+        "${app}/openai.responses.transform.response.streaming/server"})
+    public void shouldTransformResponseStreamingOfOpenaiResponsesAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/ccs\""})
+    @Specification({
+        "${net}/openai.transform.request.sampling/client",
+        "${app}/transform.request.sampling/server"})
+    public void shouldTransformRequestSamplingFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/ccs\""})
+    @Specification({
+        "${net}/openai.transform.request.sampling.seed/client",
+        "${app}/transform.request.sampling.seed/server"})
+    public void shouldTransformRequestSamplingSeedFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/ccs\""})
+    @Specification({
+        "${net}/openai.transform.request.sampling.penalties/client",
+        "${app}/transform.request.sampling.penalties/server"})
+    public void shouldTransformRequestSamplingPenaltiesFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/ccs\""})
+    @Specification({
+        "${net}/openai.transform.request.sampling.stop/client",
+        "${app}/transform.request.sampling.stop/server"})
+    public void shouldTransformRequestSamplingStopFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/ccs\""})
+    @Specification({
+        "${net}/openai.transform.request.sampling.stop.string/client",
+        "${app}/transform.request.sampling.stop/server"})
+    public void shouldTransformRequestSamplingStopStringToArrayFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.request.tool.choice.auto/client",
+        "${app}/openai.request.tool.choice.auto/server"})
+    public void shouldForwardOpenaiRequestToolChoiceAuto() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.request.tool.choice.required/client",
+        "${app}/openai.request.tool.choice.required/server"})
+    public void shouldForwardOpenaiRequestToolChoiceRequired() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.request.tool.choice.none/client",
+        "${app}/openai.request.tool.choice.none/server"})
+    public void shouldForwardOpenaiRequestToolChoiceNone() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.request.tool.choice.function/client",
+        "${app}/openai.request.tool.choice.function/server"})
+    public void shouldForwardOpenaiRequestToolChoiceFunction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.request.tool.choice.allowed/client",
+        "${app}/openai.request.tool.choice.allowed/server"})
+    public void shouldForwardOpenaiRequestToolChoiceAllowed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.request.tool.choice.parallel/client",
+        "${app}/openai.request.tool.choice.parallel/server"})
+    public void shouldForwardOpenaiRequestToolChoiceParallel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.request.tool.choice.mixed/client",
+        "${app}/openai.request.tool.choice.mixed/server"})
+    public void shouldForwardOpenaiRequestToolChoiceMixed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.request.response.format.text/client",
+        "${app}/openai.request.response.format.text/server"})
+    public void shouldForwardOpenaiRequestResponseFormatText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.request.response.format.json.object/client",
+        "${app}/openai.request.response.format.json.object/server"})
+    public void shouldForwardOpenaiRequestResponseFormatJsonObject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/ccs\"", "effort \"none\"", "wire \"none\""})
+    @Specification({
+        "${net}/openai.transform.request.reasoning.effort/client",
+        "${app}/transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortNoneFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/ccs\"", "effort \"minimal\"", "wire \"minimal\""})
+    @Specification({
+        "${net}/openai.transform.request.reasoning.effort/client",
+        "${app}/transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortMinimalFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/ccs\"", "effort \"low\"", "wire \"low\""})
+    @Specification({
+        "${net}/openai.transform.request.reasoning.effort/client",
+        "${app}/transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortLowFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/ccs\"", "effort \"medium\"", "wire \"medium\""})
+    @Specification({
+        "${net}/openai.transform.request.reasoning.effort/client",
+        "${app}/transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortMediumFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/ccs\"", "effort \"high\"", "wire \"high\""})
+    @Specification({
+        "${net}/openai.transform.request.reasoning.effort/client",
+        "${app}/transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortHighFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/ccs\"", "effort \"xhigh\"", "wire \"xhigh\""})
+    @Specification({
+        "${net}/openai.transform.request.reasoning.effort/client",
+        "${app}/transform.request.reasoning.effort/server"})
+    public void shouldTransformReasoningEffortXhighFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/ccs\"", "user \"user-123\"", "wire \"user-123\""})
+    @Specification({
+        "${net}/openai.transform.request.user/client",
+        "${app}/transform.request.user/server"})
+    public void shouldTransformUserFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/ccs\"", "tier \"auto\"", "wire \"auto\""})
+    @Specification({
+        "${net}/openai.transform.request.service.tier/client",
+        "${app}/transform.request.service.tier/server"})
+    public void shouldTransformServiceTierAutoFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/ccs\"", "tier \"default\"", "wire \"default\""})
+    @Specification({
+        "${net}/openai.transform.request.service.tier/client",
+        "${app}/transform.request.service.tier/server"})
+    public void shouldTransformServiceTierDefaultFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/ccs\"", "tier \"flex\"", "wire \"flex\""})
+    @Specification({
+        "${net}/openai.transform.request.service.tier/client",
+        "${app}/transform.request.service.tier/server"})
+    public void shouldTransformServiceTierFlexFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/ccs\"", "tier \"priority\"", "wire \"priority\""})
+    @Specification({
+        "${net}/openai.transform.request.service.tier/client",
+        "${app}/transform.request.service.tier/server"})
+    public void shouldTransformServiceTierPriorityFromOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.request.user/client",
+        "${app}/openai.request.user/server"})
+    public void shouldDecodeOpenaiRequestUser() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"tier \"auto\"", "wire \"auto\""})
+    @Specification({
+        "${net}/openai.request.service.tier/client",
+        "${app}/openai.request.service.tier/server"})
+    public void shouldDecodeOpenaiRequestServiceTierAuto() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"tier \"flex\"", "wire \"flex\""})
+    @Specification({
+        "${net}/openai.request.service.tier/client",
+        "${app}/openai.request.service.tier/server"})
+    public void shouldDecodeOpenaiRequestServiceTierFlex() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"wire \"scale\""})
+    @Specification({
+        "${net}/openai.request.service.tier.residue/client",
+        "${app}/openai.request.service.tier.residue/server"})
+    public void shouldDecodeOpenaiRequestServiceTierResidueScale() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.openai.chat.yaml")
+    @Specification({
+        "${net}/openai.echo/client",
+        "${app}/openai.echo/server"})
+    public void shouldServeOpenaiChatCompletionsWhenApisRestrictedToChatCompletions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.dialects.yaml")
+    @Specification({
+        "${net}/openai.echo/client",
+        "${app}/openai.echo/server"})
+    public void shouldServeOpenaiChatCompletionsWhenDialectsRestrictOpenaiToChatCompletions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.request.controls.split/client",
+        "${app}/openai.request.controls.split/server"})
+    public void shouldDecodeOpenaiRequestControlsSplitUnderBackPressure() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.response.controls.many/client",
+        "${app}/openai.response.controls.many/server"})
+    public void shouldEncodeOpenaiResponseControlsMany() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.response.controls.many.stream/client",
+        "${app}/openai.response.controls.many.stream/server"})
+    public void shouldEncodeOpenaiResponseControlsManyStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.response.controls.grouped/client",
+        "${app}/openai.response.controls.grouped/server"})
+    public void shouldEncodeOpenaiResponseControlsGrouped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.response.controls.message.stream/client",
+        "${app}/openai.response.controls.message.stream/server"})
+    public void shouldEncodeOpenaiResponseControlsMessageStream() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.reply.reset/client",
+        "${app}/openai.reply.reset/server"})
+    public void shouldOpenaiReplyReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.request.abort/client"})
+    public void shouldOpenaiRequestAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Configure(name = ENGINE_BUFFER_POOL_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${net}/openai.request.buffer.exhausted/client"})
+    public void shouldOpenaiRequestBufferExhausted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.openai.route.model.yaml")
+    @Specification({
+        "${net}/openai.route.model/client",
+        "${app}/openai.route.model/server"})
+    public void shouldRouteOpenaiRequestByModel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.openai.route.model.glob.yaml")
+    @Specification({
+        "${net}/openai.route.model/client",
+        "${app}/openai.route.model/server"})
+    public void shouldRouteOpenaiRequestByModelGlob() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.openai.route.model.yaml")
+    @Specification({
+        "${net}/openai.route.model.unmatched/client"})
+    public void shouldRejectOpenaiRequestWithUnmatchedModel() throws Exception
     {
         k3po.finish();
     }

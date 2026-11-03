@@ -204,6 +204,33 @@ class JsonParserTest
         assertEquals(full.length, parser.getLocation().getStreamOffset());
     }
 
+    // The long-lived-parser pattern a caller that validates many messages over one parser instance
+    // relies on: reset() between documents, then re-wrap the same backing InputStream (even the exact
+    // same buffer instance, as a schema validator replaying a fixed fixture would) rather than
+    // constructing a fresh parser per message.
+    @Test
+    void shouldProduceEventsAfterResetAndRewrapOfSameBuffer()
+    {
+        byte[] full = "{\"a\":1}".getBytes(UTF_8);
+        UnsafeBufferEx buffer = new UnsafeBufferEx(full);
+        DirectBufferInputStreamEx in = new DirectBufferInputStreamEx();
+        JsonParserEx parser = (JsonParserEx) JsonEx.createParser(in);
+
+        for (int document = 0; document < 3; document++)
+        {
+            in.wrap(buffer, 0, full.length);
+            parser.reset();
+
+            int events = 0;
+            while (parser.hasNext())
+            {
+                parser.next();
+                events++;
+            }
+            assertEquals(4, events, "document " + document);
+        }
+    }
+
     @Test
     void shouldTrackStreamOffset()
     {
@@ -514,14 +541,20 @@ class JsonParserTest
     }
 
     @Test
-    void shouldRejectStreamWithoutMarkSupport()
+    void shouldAcceptStreamWithoutMarkSupport()
     {
+        // the tokenizer only ever scans a resident buffer, so a one-shot InputStream is read fully into
+        // one up front regardless of mark/reset support — unlike the earlier InputStream-pull tokenizer,
+        // this no longer requires markSupported()
         InputStream in = new InputStream()
         {
+            private int index;
+            private final byte[] bytes = "{}".getBytes(UTF_8);
+
             @Override
             public int read()
             {
-                return -1;
+                return index < bytes.length ? bytes[index++] & 0xff : -1;
             }
 
             @Override
@@ -531,7 +564,10 @@ class JsonParserTest
             }
         };
 
-        assertThrows(IllegalArgumentException.class, () -> JsonEx.createParser(in));
+        JsonParser parser = JsonEx.createParser(in);
+        assertEquals(START_OBJECT, parser.next());
+        assertEquals(END_OBJECT, parser.next());
+        assertFalse(parser.hasNext());
     }
 
     @Test

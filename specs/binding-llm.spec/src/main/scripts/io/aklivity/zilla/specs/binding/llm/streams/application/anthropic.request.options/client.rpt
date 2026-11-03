@@ -25,12 +25,6 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write zilla:data.ext ${llm:dialectDataEx()
-                          .typeId(zilla:id("llm"))
-                          .build()}
-write "{\"model\":\"claude-3-opus-20240229\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":"
-write flush
-
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("USER_TEXT")
@@ -39,15 +33,17 @@ write zilla:data.ext ${llm:dataEx()
 write "{\"text\":\"Hello\"}"
 write flush
 
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .complete(true)
+                          .type("CONTROL")
+                          .message(-1)
                           .build()}
-write "}]}],\"temperature\":0.5,\"top_p\":0.9,\"top_k\":40,\"max_tokens\":1024,\"stop_sequences\":[\"END\"],\"thinking\":{\"type\":\"enabled\",\"budget_tokens\":2048},\"container_id\":\"ctr_1\",\"mcp_servers\":[{\"type\":\"url\",\"url\":\"https://mcp.example.com\",\"name\":\"example\"}]}"
+write "{\"x:temperature\":0.5,\"x:top_p\":0.9,\"x:top_k\":40,\"x:stop\":[\"END\"],\"anthropic:container_id\":\"ctr_1\",\"anthropic:mcp_servers\":[{\"type\":\"url\",\"url\":\"https://mcp.example.com\",\"name\":\"example\"}],\"x:thinking_budget_tokens\":2048}"
 write flush
+
 write advise zilla:flush ${llm:dialectFlushEx()
                                .typeId(zilla:id("llm"))
-                               .maxOutputTokens(1024)
+                               .maxOutputTokens(4096)
                                .build()}
 
 read zilla:reset.ext ${llm:matchResetEx()

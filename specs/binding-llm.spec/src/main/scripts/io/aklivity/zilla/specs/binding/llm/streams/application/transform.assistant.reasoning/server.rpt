@@ -31,11 +31,6 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
-read advise zilla:challenge ${llm:challengeEx()
-                                .typeId(zilla:id("llm"))
-                                .dialect(target)
-                                .build()}
-
 read option zilla:window 8192
 
 read zilla:data.ext ${llm:matchDataEx()
@@ -50,7 +45,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("ASSISTANT_REASONING")
                           .message(1)
                           .build()}
-read "{\"text\":\"Let me think.\",\"anthropic:signature\":\"sig-1\"}"
+read "{\"text\":\"Let me think.\",\"x:signature\":\"sig-1\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))

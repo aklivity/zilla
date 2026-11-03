@@ -1,0 +1,341 @@
+{
+  "area": "Ranges",
+  "area_id": "ranges",
+  "probes": [
+    {
+      "id": "temperature-2",
+      "requires": [],
+      "steps": [
+        {
+          "id": "a",
+          "method": "POST",
+          "path": "/chat/completions",
+          "body": {
+            "model": {
+              "$model": "model"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": "Say hello."
+              }
+            ],
+            "$cap": 16,
+            "temperature": 2.0
+          }
+        }
+      ],
+      "classify": [
+        {
+          "when": {
+            "path": "a.status",
+            "op": "eq",
+            "value": 200
+          },
+          "outcome": "compliant",
+          "observed": "temperature 2.0 accepted"
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "status_class",
+            "value": 4
+          },
+          "outcome": "adjustment-needed",
+          "observed": "temperature 2.0 rejected (HTTP {a.status}): {a.json.error.message}; clamp to range",
+          "adjustment": "handle-unsupported"
+        }
+      ]
+    },
+    {
+      "id": "n-2",
+      "requires": [],
+      "steps": [
+        {
+          "id": "a",
+          "method": "POST",
+          "path": "/chat/completions",
+          "body": {
+            "model": {
+              "$model": "model"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": "Say hello."
+              }
+            ],
+            "$cap": 16,
+            "n": 2
+          }
+        }
+      ],
+      "classify": [
+        {
+          "when": {
+            "all": [
+              {
+                "path": "a.status",
+                "op": "eq",
+                "value": 200
+              },
+              {
+                "path": "a.json.choices",
+                "op": "len_eq",
+                "value": 2
+              }
+            ]
+          },
+          "outcome": "compliant",
+          "observed": "n=2 returned two choices"
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "eq",
+            "value": 200
+          },
+          "outcome": "unsupported",
+          "observed": "n=2 accepted; fewer than two choices returned",
+          "silent": true
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "status_class",
+            "value": 4
+          },
+          "outcome": "unsupported",
+          "observed": "n=2 rejected (HTTP {a.status}): {a.json.error.message}"
+        }
+      ]
+    },
+    {
+      "id": "logprobs",
+      "requires": [],
+      "steps": [
+        {
+          "id": "a",
+          "method": "POST",
+          "path": "/chat/completions",
+          "body": {
+            "model": {
+              "$model": "model"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": "Say hello."
+              }
+            ],
+            "$cap": 16,
+            "logprobs": true,
+            "top_logprobs": 2
+          }
+        }
+      ],
+      "classify": [
+        {
+          "when": {
+            "all": [
+              {
+                "path": "a.status",
+                "op": "eq",
+                "value": 200
+              },
+              {
+                "path": "a.json.choices[0].logprobs.content",
+                "op": "len_ge",
+                "value": 1
+              }
+            ]
+          },
+          "outcome": "compliant",
+          "observed": "logprobs returned"
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "eq",
+            "value": 200
+          },
+          "outcome": "unsupported",
+          "observed": "logprobs accepted; none returned",
+          "silent": true
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "status_class",
+            "value": 4
+          },
+          "outcome": "unsupported",
+          "observed": "logprobs rejected (HTTP {a.status}): {a.json.error.message}"
+        }
+      ]
+    },
+    {
+      "id": "seed",
+      "requires": [],
+      "steps": [
+        {
+          "id": "a",
+          "method": "POST",
+          "path": "/chat/completions",
+          "body": {
+            "model": {
+              "$model": "model"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": "Write one sentence about a fox."
+              }
+            ],
+            "$cap": 40,
+            "seed": 42,
+            "temperature": 1.0
+          }
+        },
+        {
+          "id": "b",
+          "method": "POST",
+          "path": "/chat/completions",
+          "body": {
+            "model": {
+              "$model": "model"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": "Write one sentence about a fox."
+              }
+            ],
+            "$cap": 40,
+            "seed": 42,
+            "temperature": 1.0
+          }
+        }
+      ],
+      "classify": [
+        {
+          "when": {
+            "any": [
+              {
+                "path": "a.status",
+                "op": "status_class",
+                "value": 4
+              },
+              {
+                "path": "b.status",
+                "op": "status_class",
+                "value": 4
+              }
+            ]
+          },
+          "outcome": "adjustment-needed",
+          "observed": "seed rejected (HTTP {a.status}): {a.json.error.message}",
+          "adjustment": "handle-unsupported"
+        },
+        {
+          "when": {
+            "path": "a.json.choices[0].message.content",
+            "op": "eq",
+            "value": null,
+            "value_path": "b.json.choices[0].message.content"
+          },
+          "outcome": "compliant",
+          "observed": "seed accepted; two calls returned identical output"
+        },
+        {
+          "when": {
+            "all": [
+              {
+                "path": "a.status",
+                "op": "eq",
+                "value": 200
+              },
+              {
+                "path": "b.status",
+                "op": "eq",
+                "value": 200
+              }
+            ]
+          },
+          "outcome": "unsupported",
+          "observed": "seed accepted; two calls with the same seed returned different output",
+          "silent": true
+        }
+      ]
+    },
+    {
+      "id": "stop-5",
+      "requires": [],
+      "steps": [
+        {
+          "id": "a",
+          "method": "POST",
+          "path": "/chat/completions",
+          "body": {
+            "model": {
+              "$model": "model"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": "Count from 1 to 12 as digits separated by commas."
+              }
+            ],
+            "$cap": 60,
+            "stop": {
+              "$const": "stop_five"
+            }
+          }
+        }
+      ],
+      "classify": [
+        {
+          "when": {
+            "all": [
+              {
+                "path": "a.status",
+                "op": "eq",
+                "value": 200
+              },
+              {
+                "not": {
+                  "path": "a.json.choices[0].message.content",
+                  "op": "contains",
+                  "value": "5"
+                }
+              }
+            ]
+          },
+          "outcome": "compliant",
+          "observed": "five stop sequences accepted; fifth honoured"
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "eq",
+            "value": 200
+          },
+          "outcome": "adjustment-needed",
+          "observed": "five stop sequences accepted; fifth not honoured: {a.json.choices[0].message.content}",
+          "adjustment": "handle-unsupported",
+          "silent": true
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "status_class",
+            "value": 4
+          },
+          "outcome": "adjustment-needed",
+          "observed": "five stop sequences rejected (HTTP {a.status}): {a.json.error.message}",
+          "adjustment": "handle-unsupported"
+        }
+      ]
+    }
+  ]
+}

@@ -25,27 +25,95 @@ final class LlmAnthropicMediaFromCanonical extends LlmToolTransform
     private final String container;
     private final String dataMember;
     private final String urlMember;
+    private final boolean citable;
+    private final LlmCacheBreakpoint breakpoints;
 
-    static LlmAnthropicMediaFromCanonical image()
+    private boolean cited;
+
+    static LlmAnthropicMediaFromCanonical image(
+        boolean sameDialect)
     {
-        return new LlmAnthropicMediaFromCanonical("image", "image_url", "url", "url");
+        return image(sameDialect, null);
     }
 
-    static LlmAnthropicMediaFromCanonical document()
+    static LlmAnthropicMediaFromCanonical document(
+        boolean sameDialect)
     {
-        return new LlmAnthropicMediaFromCanonical("document", "file", "file_data", "file_url");
+        return document(sameDialect, null);
+    }
+
+    static LlmAnthropicMediaFromCanonical image(
+        boolean sameDialect,
+        LlmCacheBreakpoint breakpoints)
+    {
+        return new LlmAnthropicMediaFromCanonical("image", "image_url", "url", "url", false, sameDialect, breakpoints);
+    }
+
+    static LlmAnthropicMediaFromCanonical document(
+        boolean sameDialect,
+        LlmCacheBreakpoint breakpoints)
+    {
+        return new LlmAnthropicMediaFromCanonical("document", "file", "file_data", "file_url", true, sameDialect, breakpoints);
     }
 
     private LlmAnthropicMediaFromCanonical(
         String part,
         String container,
         String dataMember,
-        String urlMember)
+        String urlMember,
+        boolean citable,
+        boolean sameDialect,
+        LlmCacheBreakpoint breakpoints)
     {
+        super(MODE_OBJECT, sameDialect ? DIALECT : null);
         this.part = part;
         this.container = container;
         this.dataMember = dataMember;
         this.urlMember = urlMember;
+        this.citable = citable;
+        this.breakpoints = breakpoints;
+    }
+
+    @Override
+    public void reset()
+    {
+        super.reset();
+        cited = false;
+    }
+
+    boolean cited()
+    {
+        return cited;
+    }
+
+    @Override
+    protected int shared(
+        CharSequence member)
+    {
+        return citable && matches(member, LlmCitationsEnabled.MEMBER) ? capture(member) : DROP;
+    }
+
+    @Override
+    protected int breakpoint(
+        CharSequence member)
+    {
+        return breakpoints != null ? capture(member) : DROP;
+    }
+
+    @Override
+    protected Status onCaptured(
+        LlmCapturedValue value)
+    {
+        if (matches(capturedMember(), LlmCitationsEnabled.MEMBER))
+        {
+            cited |= LlmCitationsEnabled.emit(this, value, LlmCitationsEnabled.MEMBER);
+        }
+        else
+        {
+            breakpoints.fromCanonical(this, value);
+        }
+
+        return Status.ADVANCED;
     }
 
     @Override
@@ -86,7 +154,7 @@ final class LlmAnthropicMediaFromCanonical extends LlmToolTransform
         }
         else
         {
-            action = unprefix(DIALECT, key);
+            action = unprefix(key);
         }
 
         return action;

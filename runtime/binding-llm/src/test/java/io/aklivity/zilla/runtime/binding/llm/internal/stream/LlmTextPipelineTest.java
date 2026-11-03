@@ -34,6 +34,9 @@ public class LlmTextPipelineTest
 
     private final ByteArrayOutputStream output = new ByteArrayOutputStream();
     private final LlmTextPipeline pipeline = new LlmTextPipeline(this::collect);
+    private final LlmTextPipeline optional = new LlmTextPipeline(this::collect, true);
+    private final LlmCacheBreakpoint breakpoints = new LlmCacheBreakpoint(4, "5m", "1h");
+    private final LlmTextPipeline breakpointed = new LlmTextPipeline(this::collect, breakpoints);
 
     @Test
     public void shouldDeliverTextContent()
@@ -74,6 +77,28 @@ public class LlmTextPipelineTest
     }
 
     @Test
+    public void shouldRejectMissingText()
+    {
+        final byte[] bytes = json("{'anthropic:data':'opaque'}").getBytes(UTF_8);
+
+        pipeline.begin();
+
+        assertThat(pipeline.feed(new UnsafeBufferEx(bytes), 0, bytes.length, true), is(false));
+    }
+
+    @Test
+    public void shouldDeliverNothingWithoutTextWhenOptional()
+    {
+        assertDelivers(optional, json("{'anthropic:data':'opaque'}"), "");
+    }
+
+    @Test
+    public void shouldDeliverTextWhenOptional()
+    {
+        assertDelivers(optional, json("{'anthropic:signature':'sig','text':'t'}"), "t");
+    }
+
+    @Test
     public void shouldDeliverSeveralSectionsInOrder()
     {
         for (String json : new String[] {json("{'text':'A '}"), json("{'text':'B'}")})
@@ -86,7 +111,113 @@ public class LlmTextPipelineTest
         assertThat(output.toString(UTF_8), equalTo("A B"));
     }
 
+    @Test
+    public void shouldCompleteAtEndOfText()
+    {
+        final byte[] bytes = json("{'text':'t','openai:id':'rs_1'").getBytes(UTF_8);
+
+        pipeline.begin();
+
+        assertThat(pipeline.completed(), is(false));
+        assertThat(pipeline.feed(new UnsafeBufferEx(bytes), 0, bytes.length, false), is(true));
+        assertThat(pipeline.completed(), is(true));
+        assertThat(pipeline.extracted(), is(true));
+    }
+
+    @Test
+    public void shouldNotCompleteBeforeTextEnds()
+    {
+        final byte[] bytes = json("{'text':'partial").getBytes(UTF_8);
+
+        pipeline.begin();
+
+        assertThat(pipeline.feed(new UnsafeBufferEx(bytes), 0, bytes.length, false), is(true));
+        assertThat(pipeline.completed(), is(false));
+    }
+
+    @Test
+    public void shouldCompleteWithoutTextWhenOptional()
+    {
+        final byte[] bytes = json("{'openai:id':'rs_1'}").getBytes(UTF_8);
+
+        optional.begin();
+
+        assertThat(optional.feed(new UnsafeBufferEx(bytes), 0, bytes.length, true), is(true));
+        assertThat(optional.completed(), is(true));
+        assertThat(optional.extracted(), is(false));
+    }
+
+    @Test
+    public void shouldMarkBreakpointAfterText()
+    {
+        assertMarks(json("{'text':'Hello','prompt_cache_breakpoint':{'mode':'explicit','ttl':'30m'}}"), "Hello", "1h");
+    }
+
+    @Test
+    public void shouldMarkBreakpointBeforeText()
+    {
+        assertMarks(json("{'prompt_cache_breakpoint':{'mode':'explicit'},'text':'Hello'}"), "Hello", null);
+    }
+
+    @Test
+    public void shouldNotMarkBreakpointWithoutExplicitMode()
+    {
+        assertMarks(json("{'text':'Hello','prompt_cache_breakpoint':{'mode':'auto'}}"), "Hello", false);
+    }
+
+    @Test
+    public void shouldDropBreakpointWithoutBreakpoints()
+    {
+        assertDelivers(json("{'text':'Hello','prompt_cache_breakpoint':{'mode':'explicit'}}"), "Hello");
+    }
+
+    private void assertMarks(
+        String json,
+        String expected,
+        String ttl)
+    {
+        assertMarks(json, expected, true);
+        assertThat(breakpointed.markedTtl(), equalTo(ttl));
+    }
+
+    private void assertMarks(
+        String json,
+        String expected,
+        boolean marked)
+    {
+        for (int window : WINDOWS)
+        {
+            final byte[] bytes = json.getBytes(UTF_8);
+            final UnsafeBufferEx input = new UnsafeBufferEx(bytes);
+
+            output.reset();
+            breakpoints.reset();
+            breakpointed.begin();
+
+            boolean accepted = true;
+
+            for (int offset = 0; accepted && offset < bytes.length; offset += window)
+            {
+                final int length = Math.min(window, bytes.length - offset);
+
+                accepted = breakpointed.feed(input, offset, length, offset + length == bytes.length);
+            }
+
+            assertThat("accepted window " + window, accepted, is(true));
+            assertThat("window " + window, output.toString(UTF_8), equalTo(expected));
+            assertThat("marked window " + window, breakpointed.marked(), is(marked));
+        }
+    }
+
     private void assertDelivers(
+        String json,
+        String expected)
+    {
+        assertDelivers(pipeline, json, expected);
+    }
+
+    private void assertDelivers(
+        LlmTextPipeline pipeline,
         String json,
         String expected)
     {

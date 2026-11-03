@@ -25,9 +25,10 @@ final class LlmAnthropicCitationsFromCanonical extends LlmToolTransform
 
     private boolean typed;
 
-    LlmAnthropicCitationsFromCanonical()
+    LlmAnthropicCitationsFromCanonical(
+        boolean sameDialect)
     {
-        super(MODE_ARRAY);
+        super(MODE_ARRAY, sameDialect ? DIALECT : null);
     }
 
     @Override
@@ -72,7 +73,7 @@ final class LlmAnthropicCitationsFromCanonical extends LlmToolTransform
         else
         {
             emitType();
-            action = unprefix(DIALECT, key);
+            action = unprefix(key);
         }
 
         return action;

@@ -32,8 +32,19 @@ bindings:
                 model: test
                 reject:
                   - ignore previous instructions
+        gemini-a:
+          request:
+            - section: user-text
+              value:
+                model: test
+                reject:
+                  - ignore previous instructions
     routes:
     - when:
       - dialect: openai
         model: [ gpt-a ]
+      exit: app0
+    - when:
+      - dialect: gemini
+        model: [ gemini-a ]
       exit: app0

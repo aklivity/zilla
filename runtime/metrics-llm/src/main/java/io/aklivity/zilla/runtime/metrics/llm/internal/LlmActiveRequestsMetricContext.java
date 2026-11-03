@@ -88,7 +88,7 @@ public final class LlmActiveRequestsMetricContext implements MetricContext
         List<AttributeConfig> attributes,
         ToLongFunction<String> resolveId)
     {
-        return new LlmActiveRequestsHandler(recorder, new LlmAttributes(attributes, context, resolveId));
+        return new LlmActiveRequestsHandler(recorder, new LlmAttributes(attributes, context, resolveId, llmTypeId));
     }
 
     private final class LlmActiveRequestsHandler implements MessageConsumer
@@ -155,8 +155,8 @@ public final class LlmActiveRequestsMetricContext implements MetricContext
                 if (beginEx != null && beginEx.typeId() == llmTypeId)
                 {
                     exchanges.put(exchangeId, 0L);
-                    attributes.request(exchangeId, authorization);
-                    recorder.apply(attributes.attributesId(exchangeId)).accept(1L);
+                    attributes.request(exchangeId, authorization, begin);
+                    recorder.apply(attributes.requestAttributesId(exchangeId)).accept(1L);
                 }
             }
             else
@@ -186,7 +186,7 @@ public final class LlmActiveRequestsMetricContext implements MetricContext
                 if ((closed & EXCHANGE_CLOSED) == EXCHANGE_CLOSED)
                 {
                     exchanges.remove(exchangeId);
-                    recorder.apply(attributes.attributesId(exchangeId)).accept(-1L);
+                    recorder.apply(attributes.requestAttributesId(exchangeId)).accept(-1L);
                     attributes.release(exchangeId);
                 }
                 else

@@ -32,6 +32,13 @@ package io.aklivity.zilla.runtime.engine.classifier;
  * An implementation that cannot answer, including one that exceeds its own time limit,
  * reports {@link CompletionCallback#failed}. A call is never left unanswered.
  * </p>
+ * <p>
+ * <b>A value may be one window of a longer value.</b> A caller that examines a longer value as it
+ * arrives presents it a window at a time. Each answer reports how many trailing characters of the
+ * window the detector could not rule out, so the caller can withhold them and present them again at the
+ * start of its next window. A match that straddles two windows is then seen whole, and nothing that could
+ * still become part of a match is released before it is ruled out.
+ * </p>
  *
  * @see ClassifierHandler
  */
@@ -70,10 +77,14 @@ public interface Detector
          *
          * @param contextId  the {@code contextId} supplied to the originating call
          * @param detected   {@code true} if any of the labels is present in the value
+         * @param retained   the number of trailing characters of the value that could not be ruled out, which a
+         *                   caller presenting the value a window at a time withholds and presents again at the start
+         *                   of its next window, or {@code 0} if the whole value is ruled out
          */
         void completed(
             long contextId,
-            boolean detected);
+            boolean detected,
+            int retained);
 
         /**
          * Invoked when the operation fails.

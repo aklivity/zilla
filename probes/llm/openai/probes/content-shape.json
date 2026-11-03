@@ -1,0 +1,74 @@
+{
+  "area": "Content shape",
+  "area_id": "content-shape",
+  "probes": [
+    {
+      "id": "content-parts",
+      "requires": [],
+      "steps": [
+        {
+          "id": "a",
+          "method": "POST",
+          "path": "/chat/completions",
+          "body": {
+            "model": {
+              "$model": "model"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "Reply with exactly the word: PINEAPPLE"
+                  }
+                ]
+              }
+            ],
+            "$cap": 16
+          }
+        }
+      ],
+      "classify": [
+        {
+          "when": {
+            "all": [
+              {
+                "path": "a.status",
+                "op": "eq",
+                "value": 200
+              },
+              {
+                "path": "a.json.choices[0].message.content",
+                "op": "icontains",
+                "value": "pineapple"
+              }
+            ]
+          },
+          "outcome": "compliant",
+          "observed": "text-part array accepted and answered"
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "eq",
+            "value": 200
+          },
+          "outcome": "unsupported",
+          "observed": "text-part array accepted but instruction not reflected: {a.json.choices[0].message.content}",
+          "silent": true
+        },
+        {
+          "when": {
+            "path": "a.status",
+            "op": "status_class",
+            "value": 4
+          },
+          "outcome": "adjustment-needed",
+          "observed": "content array rejected (HTTP {a.status}): {a.json.error.message}; flatten to string",
+          "adjustment": "map-sections"
+        }
+      ]
+    }
+  ]
+}

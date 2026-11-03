@@ -22,29 +22,26 @@ connect ${clientAddress}
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
+                           .dialect("openai/ccs")
                            .model(model)
                            .build()}
 
 connected
 
-write option zilla:flags "init"
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("USER_TEXT")
                           .message(0)
                           .build()}
-write "{\"text\":\"my ******"
+write "{\"text\":\"my ******\",\"anthropic:cache_control\":{\"type\":\"ephemeral\"}}"
 write flush
-write option zilla:flags "fin"
-write "\",\"anthropic:cache_control\":{\"type\":\"ephemeral\"}}"
 write flush
 
 write advise zilla:flush
 
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
+                           .dialect("openai/ccs")
                            .model(model)
                            .build()}
 

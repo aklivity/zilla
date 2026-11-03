@@ -66,6 +66,16 @@ abstract class LlmAttributeProbe
         onBegin(type);
     }
 
+    final void restart()
+    {
+        depth = 1;
+        declined = false;
+        continued = false;
+        keys[1] = NO_KEY;
+
+        onRestart();
+    }
+
     final LlmSectionAttributes attributes()
     {
         return attributes;
@@ -121,6 +131,13 @@ abstract class LlmAttributeProbe
                 parser.consumed(declined ? 0 : length);
             }
             break;
+        case VALUE_TRUE:
+        case VALUE_FALSE:
+            if (depth < MAX_DEPTH && !continued)
+            {
+                onLiteral(depth, event);
+            }
+            break;
         default:
             break;
         }
@@ -133,6 +150,10 @@ abstract class LlmAttributeProbe
 
     protected abstract void onBegin(
         LlmSectionType type);
+
+    protected void onRestart()
+    {
+    }
 
     protected abstract int onKey(
         int depth,
@@ -147,6 +168,12 @@ abstract class LlmAttributeProbe
         int depth,
         CharSequence value,
         boolean deferred);
+
+    protected void onLiteral(
+        int depth,
+        JsonEvent event)
+    {
+    }
 
     protected final int key(
         int depth)

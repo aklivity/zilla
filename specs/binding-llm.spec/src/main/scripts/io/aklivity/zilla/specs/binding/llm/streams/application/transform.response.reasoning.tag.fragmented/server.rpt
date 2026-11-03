@@ -31,11 +31,6 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
-read advise zilla:challenge ${llm:challengeEx()
-                                .typeId(zilla:id("llm"))
-                                .dialect(target)
-                                .build()}
-
 read option zilla:window 8192
 
 read zilla:data.ext ${llm:matchDataEx()
@@ -71,6 +66,8 @@ write option zilla:flags "fin"
 write "}"
 write flush
 write option zilla:flags "init fin"
+write option zilla:flags "auto"
+
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")

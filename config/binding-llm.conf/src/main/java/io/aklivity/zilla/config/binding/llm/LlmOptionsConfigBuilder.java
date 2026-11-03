@@ -23,20 +23,26 @@ import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ConfigBuilder;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public final class LlmOptionsConfigBuilder<T> extends ConfigBuilder<T, LlmOptionsConfigBuilder<T>>
+public final class LlmOptionsConfigBuilder<T> extends ConfigBuilder.Extensible<T, LlmOptionsConfigBuilder<T>>
 {
     private final Function<OptionsConfig, T> mapper;
 
     private String dialect;
+    private List<String> apis;
+    private List<LlmDialectConfig> dialects;
     private LlmAuthorizationConfig authorization;
     private LlmServerConfig server;
     private List<LlmGuardrailConfig> guardrails;
+    private List<LlmModelConfig> models;
+    private List<String> unsupported;
+    private List<List<String>> exclusive;
 
     LlmOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
     {
         this.mapper = mapper;
         this.guardrails = new ArrayList<>();
+        this.models = new ArrayList<>();
     }
 
     @Override
@@ -50,6 +56,20 @@ public final class LlmOptionsConfigBuilder<T> extends ConfigBuilder<T, LlmOption
         String dialect)
     {
         this.dialect = dialect;
+        return this;
+    }
+
+    public LlmOptionsConfigBuilder<T> apis(
+        List<String> apis)
+    {
+        this.apis = List.copyOf(apis);
+        return this;
+    }
+
+    public LlmOptionsConfigBuilder<T> dialects(
+        List<LlmDialectConfig> dialects)
+    {
+        this.dialects = List.copyOf(dialects);
         return this;
     }
 
@@ -89,14 +109,43 @@ public final class LlmOptionsConfigBuilder<T> extends ConfigBuilder<T, LlmOption
         return LlmGuardrailConfig.builder(this::guardrail);
     }
 
+    public LlmOptionsConfigBuilder<T> model(
+        LlmModelConfig model)
+    {
+        this.models.add(model);
+        return this;
+    }
+
+    public LlmModelConfigBuilder<LlmOptionsConfigBuilder<T>> model()
+    {
+        return LlmModelConfig.builder(this::model);
+    }
+
+    public LlmOptionsConfigBuilder<T> unsupported(
+        List<String> unsupported)
+    {
+        this.unsupported = List.copyOf(unsupported);
+        return this;
+    }
+
+    public LlmOptionsConfigBuilder<T> exclusive(
+        List<List<String>> exclusive)
+    {
+        this.exclusive = exclusive.stream().map(List::copyOf).toList();
+        return this;
+    }
+
     @Override
     public T build()
     {
-        List<Config.Reference> refs = guardrails.stream()
-            .flatMap(guardrail -> Stream.concat(guardrail.request.stream(), guardrail.response.stream()))
-            .flatMap(stage -> stage.value.refs().stream())
+        List<Config.Reference> refs = Stream.concat(
+                guardrails.stream()
+                    .flatMap(guardrail -> Stream.concat(guardrail.request.stream(), guardrail.response.stream()))
+                    .flatMap(stage -> stage.value.refs().stream()),
+                refs().stream())
             .toList();
 
-        return mapper.apply(new LlmOptionsConfig(dialect, authorization, server, List.copyOf(guardrails), refs));
+        return mapper.apply(new LlmOptionsConfig(dialect, apis, dialects, authorization, server, List.copyOf(guardrails),
+            List.copyOf(models), unsupported, exclusive, extensions(), refs));
     }
 }

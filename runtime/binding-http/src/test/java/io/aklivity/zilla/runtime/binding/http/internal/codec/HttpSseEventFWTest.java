@@ -106,6 +106,90 @@ public class HttpSseEventFWTest
         assertEquals(":\n\n", encode(COMPLETE, "", null, null, null));
     }
 
+    @Test
+    public void shouldEncodeCompleteEventWithSpaceAfterFieldNames()
+    {
+        assertEquals("id: 105\nevent: one\ndata: Hello, world\n\n",
+            encode(COMPLETE, true, "105", "one", "Hello, world"));
+    }
+
+    @Test
+    public void shouldEncodeCompleteEventWithSpaceAfterFieldNamesForMultipleLines()
+    {
+        assertEquals("data: Hello\ndata: world\n\n", encode(COMPLETE, true, null, null, "Hello\nworld"));
+    }
+
+    @Test
+    public void shouldEncodeCompleteEventWithSpaceAfterFieldNamesForEmptyData()
+    {
+        assertEquals("data: \n\n", encode(COMPLETE, true, null, null, ""));
+    }
+
+    @Test
+    public void shouldEncodeInitialFragmentWithSpaceAfterFieldNames()
+    {
+        assertEquals("id: 105\ndata: Hel", encode(INIT, true, "105", null, "Hel"));
+    }
+
+    @Test
+    public void shouldEncodeFinalFragmentWithSpaceAfterFieldNames()
+    {
+        assertEquals("lo\n\n", encode(FIN, true, null, null, "lo"));
+    }
+
+    @Test
+    public void shouldEncodeCompleteEventWithSpaceAfterRetryFieldName()
+    {
+        final byte[] bytes = "Hello, world".getBytes(UTF_8);
+        final HttpSseEventFW event = eventRW.wrap(buffer, 0, buffer.capacity())
+            .flags(COMPLETE)
+            .space(true)
+            .retry(field("5000"))
+            .data(dataRO.wrap(new UnsafeBufferEx(bytes), 0, bytes.length))
+            .build();
+
+        assertEquals("retry: 5000\ndata: Hello, world\n\n", buffer.getStringWithoutLengthUtf8(event.offset(), event.sizeof()));
+    }
+
+    @Test
+    public void shouldEncodeCommentOnlyEventWithoutSpaceAfterFieldNames()
+    {
+        final HttpSseEventFW event = eventRW.wrap(buffer, 0, buffer.capacity())
+            .flags(COMPLETE)
+            .space(true)
+            .comment(field(""))
+            .build();
+
+        assertEquals(":\n\n", buffer.getStringWithoutLengthUtf8(event.offset(), event.sizeof()));
+    }
+
+    @Test
+    public void shouldEncodeWithoutSpaceAfterFieldNamesWhenBuilderIsRewrapped()
+    {
+        encode(COMPLETE, true, "105", null, "Hello");
+
+        assertEquals("id:105\ndata:Hello\n\n", encode(COMPLETE, "105", null, "Hello"));
+    }
+
+    private String encode(
+        int flags,
+        boolean space,
+        String id,
+        String type,
+        String data)
+    {
+        final byte[] bytes = data.getBytes(UTF_8);
+        final HttpSseEventFW event = eventRW.wrap(buffer, 0, buffer.capacity())
+            .flags(flags)
+            .space(space)
+            .id(id != null ? field(id) : null)
+            .type(type != null ? field(type) : null)
+            .data(dataRO.wrap(new UnsafeBufferEx(bytes), 0, bytes.length))
+            .build();
+
+        return buffer.getStringWithoutLengthUtf8(event.offset(), event.sizeof());
+    }
+
     private String encode(
         int flags,
         String comment,

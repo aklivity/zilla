@@ -20,7 +20,9 @@ import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
+import java.net.InetAddress;
 import java.nio.ByteBuffer;
+import java.util.function.Function;
 import java.util.function.LongUnaryOperator;
 import java.util.zip.CRC32C;
 
@@ -138,6 +140,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
+    private final Function<String, InetAddress[]> resolveHost;
 
     private final DirectBufferEx headerRO = EMPTY_BUFFER;
     private final MutableDirectBufferEx crc32cBufferRW = new UnsafeBufferEx();
@@ -152,6 +155,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
+        this.resolveHost = context::resolveHost;
     }
 
     @Override
@@ -663,7 +667,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
             final ProxyBeginExFW beginEx = beginExRO.tryWrap(decodeBuffer, 0, decodeOffset);
 
             final ProxyBindingConfig binding = router.lookup(routedId);
-            final ProxyRouteConfig resolved = binding != null ? binding.resolve(authorization, beginEx) : null;
+            final ProxyRouteConfig resolved = binding != null ? binding.resolve(authorization, beginEx, resolveHost) : null;
             if (resolved != null)
             {
                 app = new ProxyAppServer(this, routedId, resolved.id);

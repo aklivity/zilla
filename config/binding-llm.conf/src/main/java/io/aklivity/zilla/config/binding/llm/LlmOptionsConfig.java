@@ -15,6 +15,7 @@
 package io.aklivity.zilla.config.binding.llm;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.Config;
@@ -23,9 +24,14 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 public final class LlmOptionsConfig extends OptionsConfig
 {
     public final String dialect;
+    public final List<String> apis;
+    public final List<LlmDialectConfig> dialects;
     public final LlmAuthorizationConfig authorization;
     public final LlmServerConfig server;
     public final List<LlmGuardrailConfig> guardrails;
+    public final List<LlmModelConfig> models;
+    public final List<String> unsupported;
+    public final List<List<String>> exclusive;
 
     public static LlmOptionsConfigBuilder<LlmOptionsConfig> builder()
     {
@@ -40,15 +46,26 @@ public final class LlmOptionsConfig extends OptionsConfig
 
     LlmOptionsConfig(
         String dialect,
+        List<String> apis,
+        List<LlmDialectConfig> dialects,
         LlmAuthorizationConfig authorization,
         LlmServerConfig server,
         List<LlmGuardrailConfig> guardrails,
+        List<LlmModelConfig> models,
+        List<String> unsupported,
+        List<List<String>> exclusive,
+        Map<String, Config> extensions,
         List<Config.Reference> refs)
     {
-        super(null, refs);
+        super(extensions, refs);
         this.dialect = dialect;
+        this.apis = apis;
+        this.dialects = dialects;
         this.authorization = authorization;
         this.server = server;
         this.guardrails = guardrails;
+        this.models = models;
+        this.unsupported = unsupported;
+        this.exclusive = exclusive;
     }
 }

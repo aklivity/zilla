@@ -26,15 +26,18 @@ final class LlmTextSink implements JsonSink
     private static final char REPLACEMENT_CHARACTER = '�';
 
     private final LlmTextPipeline.Output output;
+    private final boolean completing;
 
     private byte[] bytes;
     private UnsafeBufferEx buffer;
     private char highSurrogate;
 
     LlmTextSink(
-        LlmTextPipeline.Output output)
+        LlmTextPipeline.Output output,
+        boolean completing)
     {
         this.output = output;
+        this.completing = completing;
         this.bytes = new byte[1024];
         this.buffer = new UnsafeBufferEx(bytes);
     }
@@ -61,7 +64,11 @@ final class LlmTextSink implements JsonSink
 
             control.consumed(chars.length());
 
-            status = deferred ? Status.ADVANCED : Status.COMPLETED;
+            status = deferred || !completing ? Status.ADVANCED : Status.COMPLETED;
+        }
+        else if (event == JsonEvent.END_DOCUMENT && !completing)
+        {
+            status = Status.COMPLETED;
         }
 
         return status;

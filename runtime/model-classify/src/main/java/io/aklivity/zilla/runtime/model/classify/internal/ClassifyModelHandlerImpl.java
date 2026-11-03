@@ -14,9 +14,12 @@
  */
 package io.aklivity.zilla.runtime.model.classify.internal;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.List;
 
 import io.aklivity.zilla.config.model.classify.ClassifyModelConfig;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.classifier.Detector;
 import io.aklivity.zilla.runtime.engine.model.ModelCache;
@@ -27,6 +30,8 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 final class ClassifyModelHandlerImpl implements ModelHandler
 {
+    private static final String ENVELOPE_DIRECTION = "direction";
+    private static final byte[] DIRECTION_RESPONSE = "response".getBytes(UTF_8);
     private static final Runnable NOOP = () ->
     {
     };
@@ -68,7 +73,7 @@ final class ClassifyModelHandlerImpl implements ModelHandler
         ModelTransform transform,
         Runnable resumed)
     {
-        return new ClassifyModelPipeline(detectors, maxLength, resumed);
+        return supplyPipeline(envelope, resumed);
     }
 
     @Override
@@ -77,6 +82,28 @@ final class ClassifyModelHandlerImpl implements ModelHandler
         ModelTransform transform,
         Runnable resumed)
     {
-        return new ClassifyModelPipeline(detectors, maxLength, resumed);
+        return supplyPipeline(envelope, resumed);
+    }
+
+    private ModelPipeline supplyPipeline(
+        ModelEnvelope envelope,
+        Runnable resumed)
+    {
+        return new ClassifyModelPipeline(detectors, maxLength, responding(envelope), resumed);
+    }
+
+    private static boolean responding(
+        ModelEnvelope envelope)
+    {
+        final DirectBufferEx direction = envelope.count(ENVELOPE_DIRECTION) > 0 ? envelope.get(ENVELOPE_DIRECTION, 0) : null;
+
+        boolean responding = direction != null && direction.capacity() == DIRECTION_RESPONSE.length;
+
+        for (int index = 0; responding && index < DIRECTION_RESPONSE.length; index++)
+        {
+            responding = direction.getByte(index) == DIRECTION_RESPONSE[index];
+        }
+
+        return responding;
     }
 }
