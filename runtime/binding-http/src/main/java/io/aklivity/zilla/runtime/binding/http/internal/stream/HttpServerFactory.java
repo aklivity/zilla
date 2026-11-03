@@ -100,7 +100,6 @@ import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2PrefaceFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2PriorityFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2PushPromiseFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2RstStreamFW;
-import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2Setting;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2SettingsFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2WindowUpdateFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.HttpSseEventFW;
@@ -169,7 +168,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
     private static final int PADDING_CHUNKED = 10;
     private static final String UPGRADE_SETTINGS_DUPLICATE = "*";
-    private static final int SETTING_LENGTH = 6;
+    private static final int SETTING_BASE64_LENGTH = 8;
     private static final int UPGRADE_STREAM_ID = 1;
     private static final long MAX_REMOTE_BUDGET = Integer.MAX_VALUE;
     private static final long NO_REQUEST_ID = -1;
@@ -1746,25 +1745,61 @@ public final class HttpServerFactory implements HttpStreamFactory
             (server.decoder == decodeHeadersOnly || server.decoder == decodeContent);
     }
 
+    private boolean isUpgradeSettingsValid(
+        byte[] settings)
+    {
+        final Http2Settings probe = new Http2Settings();
+        wrapUpgradeSettings(settings).forEach(probe::apply);
+
+        return probe.error() == Http2ErrorCode.NO_ERROR;
+    }
+
+    private Http2SettingsFW wrapUpgradeSettings(
+        byte[] settings)
+    {
+        final int length = settings.length;
+        frameBuffer.putByte(0, (byte) (length >> 16));
+        frameBuffer.putByte(1, (byte) (length >> 8));
+        frameBuffer.putByte(2, (byte) length);
+        frameBuffer.putByte(3, Http2FrameType.SETTINGS.type());
+        frameBuffer.putByte(4, Http2Flags.NONE);
+        frameBuffer.putInt(5, 0);
+        frameBuffer.putBytes(9, settings);
+
+        return http2SettingsRO.wrap(frameBuffer, 0, 9 + length);
+    }
+
     private byte[] decodeUpgradeSettings(
         String value)
     {
         byte[] settings = null;
 
-        if (value != null)
+        if (value != null && value.length() % SETTING_BASE64_LENGTH == 0 && isBase64Url(value))
         {
-            try
-            {
-                final byte[] decoded = Base64.getUrlDecoder().decode(value);
-                settings = decoded.length % SETTING_LENGTH == 0 ? decoded : null;
-            }
-            catch (IllegalArgumentException ex)
-            {
-                settings = null;
-            }
+            final byte[] decoded = Base64.getUrlDecoder().decode(value);
+            settings = isUpgradeSettingsValid(decoded) ? decoded : null;
         }
 
         return settings;
+    }
+
+    private static boolean isBase64Url(
+        String value)
+    {
+        boolean valid = true;
+
+        for (int i = 0; valid && i < value.length(); i++)
+        {
+            final char ch = value.charAt(i);
+
+            valid = '0' <= ch && ch <= '9' ||
+                'A' <= ch && ch <= 'Z' ||
+                'a' <= ch && ch <= 'z' ||
+                ch == '-' ||
+                ch == '_';
+        }
+
+        return valid;
     }
 
     @FunctionalInterface
@@ -5507,32 +5542,15 @@ public final class HttpServerFactory implements HttpStreamFactory
         private void onUpgrade(
             long traceId)
         {
-            final int length = upgradeSettings.length;
-            frameBuffer.putByte(0, (byte) (length >> 16));
-            frameBuffer.putByte(1, (byte) (length >> 8));
-            frameBuffer.putByte(2, (byte) length);
-            frameBuffer.putByte(3, Http2FrameType.SETTINGS.type());
-            frameBuffer.putByte(4, Http2Flags.NONE);
-            frameBuffer.putInt(5, 0);
-            frameBuffer.putBytes(9, upgradeSettings);
+            final Http2ErrorCode error = onDecodeRemoteSettings(wrapUpgradeSettings(upgradeSettings));
+            assert error == Http2ErrorCode.NO_ERROR;
 
-            final Http2SettingsFW http2Settings = http2SettingsRO.wrap(frameBuffer, 0, 9 + length);
-            final Http2ErrorCode error = onDecodeRemoteSettings(http2Settings);
+            doEncodeSettings(traceId, authorization);
+            doEncodeConnectionWindow(traceId, authorization);
 
-            if (error == Http2ErrorCode.NO_ERROR)
-            {
-                doEncodeSettings(traceId, authorization);
-                doEncodeConnectionWindow(traceId, authorization);
-
-                maxClientStreamId = UPGRADE_STREAM_ID;
-                onDecodeRequest(traceId, authorization, UPGRADE_STREAM_ID, upgradeHeaders, upgradeContentLength, true,
-                    upgradeContentLength == 0);
-            }
-            else
-            {
-                onDecodeError(traceId, authorization, error);
-                decoder = decodeHttp2IgnoreAll;
-            }
+            maxClientStreamId = UPGRADE_STREAM_ID;
+            onDecodeRequest(traceId, authorization, UPGRADE_STREAM_ID, upgradeHeaders, upgradeContentLength, true,
+                upgradeContentLength == 0);
         }
 
         private void onDecodePreface(
@@ -5585,7 +5603,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             Http2SettingsFW http2Settings)
         {
             final int remoteInitialBudget = remoteSettings.initialWindowSize;
-            http2Settings.forEach(this::onDecodeSetting);
+            http2Settings.forEach(remoteSettings::apply);
 
             Http2ErrorCode decodeError = remoteSettings.error();
 
@@ -5609,35 +5627,6 @@ public final class HttpServerFactory implements HttpStreamFactory
             }
 
             return decodeError;
-        }
-
-        private void onDecodeSetting(
-            Http2Setting setting,
-            int value)
-        {
-            switch (setting)
-            {
-            case HEADER_TABLE_SIZE:
-                remoteSettings.headerTableSize = value;
-                break;
-            case ENABLE_PUSH:
-                remoteSettings.enablePush = value;
-                break;
-            case MAX_CONCURRENT_STREAMS:
-                remoteSettings.maxConcurrentStreams = value;
-                break;
-            case INITIAL_WINDOW_SIZE:
-                remoteSettings.initialWindowSize = value;
-                break;
-            case MAX_FRAME_SIZE:
-                remoteSettings.maxFrameSize = value;
-                break;
-            case MAX_HEADER_LIST_SIZE:
-                remoteSettings.maxHeaderListSize = value;
-                break;
-            case UNKNOWN:
-                break;
-            }
         }
 
         private void onDecodePing(
