@@ -339,6 +339,8 @@ public final class HttpClientFactory implements HttpStreamFactory
 
     private final MutableInteger codecOffset = new MutableInteger();
     private final Http2FrameInfoFW http2FrameInfoRO = new Http2FrameInfoFW();
+    private final Http2FrameInfoFW encodeFrameInfoRO = new Http2FrameInfoFW();
+    private final Http2PrefaceFW encodePrefaceRO = new Http2PrefaceFW();
     private final Http2SettingsFW http2SettingsRO = new Http2SettingsFW();
     private final Http2GoawayFW http2GoawayRO = new Http2GoawayFW();
     private final Http2PingFW http2PingRO = new Http2PingFW();
@@ -4586,7 +4588,10 @@ public final class HttpClientFactory implements HttpStreamFactory
                 final int initialWin = initialMax - initialPendingAck();
                 final int maxEncodeLength =
                         encodeReservedSlotMarkOffset != 0 ? encodeReservedSlotMarkOffset : encodeReservedSlotOffset;
-                final int encodeLength = Math.max(Math.min(initialWin - initialPad, maxEncodeLength), 0);
+                final int encodeLengthMax = Math.max(Math.min(initialWin - initialPad, maxEncodeLength), 0);
+                final int encodeLength = encodeLengthMax < maxEncodeLength
+                        ? encodeReservedFramesLimit(encodeLengthMax)
+                        : encodeLengthMax;
 
                 if (encodeLength > 0)
                 {
@@ -4624,6 +4629,27 @@ public final class HttpClientFactory implements HttpStreamFactory
                     initialBudgetReserved += encodeReserved;
                 }
             }
+        }
+
+        private int encodeReservedFramesLimit(
+            int maxLimit)
+        {
+            int progress = 0;
+
+            final Http2PrefaceFW preface = encodePrefaceRO.tryWrap(encodeReservedBuffer, 0, maxLimit);
+            if (preface != null && !preface.error())
+            {
+                progress = preface.limit();
+            }
+
+            Http2FrameInfoFW frameInfo = encodeFrameInfoRO.tryWrap(encodeReservedBuffer, progress, maxLimit);
+            while (frameInfo != null && frameInfo.limit() + frameInfo.length() <= maxLimit)
+            {
+                progress = frameInfo.limit() + frameInfo.length();
+                frameInfo = encodeFrameInfoRO.tryWrap(encodeReservedBuffer, progress, maxLimit);
+            }
+
+            return progress;
         }
 
         private void encodeNetwork(
