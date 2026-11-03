@@ -207,4 +207,14 @@ public class StartingIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/upgrade.pri.with.split.preface/client",
+        "${net}/upgrade.pri.with.split.preface/server"
+    })
+    public void shouldUpgradeViaPriorKnowledgeWithSplitPreface() throws Exception
+    {
+        k3po.finish();
+    }
 }

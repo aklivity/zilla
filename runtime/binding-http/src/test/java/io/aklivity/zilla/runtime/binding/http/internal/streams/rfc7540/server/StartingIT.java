@@ -158,4 +158,13 @@ public class StartingIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/upgrade.pri.with.split.preface/client" })
+    public void shouldUpgradeViaPriorKnowledgeWithSplitPreface() throws Exception
+    {
+        k3po.finish();
+    }
 }

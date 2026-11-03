@@ -516,6 +516,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final HttpServerDecoder decodeUpgraded = this::decodeUpgraded;
     private final HttpServerDecoder decodeIgnore = this::decodeIgnore;
     private final HttpServerDecoder decodeDelegated = this::decodeDelegated;
+    private final HttpServerDecoder decodeDelegating = this::decodeDelegating;
 
     private final MutableInteger codecOffset = new MutableInteger();
     private final MutableBoolean hasAuthority = new MutableBoolean();
@@ -1117,11 +1118,9 @@ public final class HttpServerFactory implements HttpStreamFactory
                 endOfStartAt >= offset + 16 &&
                 CharSequence.compare("PRI * HTTP/2.0\r\n", new AsciiSequenceView(buffer, offset, 16)) == 0)
             {
-                if (server.delegate == null)
-                {
-                    server.delegate = new Http2Server(server);
-                    signaler.signalNow(server.originId, server.routedId, server.replyId, traceId, DELEGATE_SIGNAL, 0);
-                }
+                server.delegate = new Http2Server(server);
+                server.decoder = decodeDelegating;
+                signaler.signalNow(server.originId, server.routedId, server.replyId, traceId, DELEGATE_SIGNAL, 0);
                 return offset;
             }
 
@@ -1713,6 +1712,19 @@ public final class HttpServerFactory implements HttpStreamFactory
     }
 
     private int decodeDelegated(
+        HttpServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        return offset;
+    }
+
+    private int decodeDelegating(
         HttpServer server,
         long traceId,
         long authorization,
