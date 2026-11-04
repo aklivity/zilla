@@ -36,6 +36,10 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 // shared budget are released on close.
 final class LlmRequestRetention
 {
+    static final int KIND_DATA = 0;
+    static final int KIND_FLUSH = 1;
+    static final int KIND_NONE = -1;
+
     private static final int HEADER_SIZE = 16;
     private static final int KIND_OFFSET = 0;
     private static final int FLAGS_OFFSET = 4;
@@ -53,6 +57,7 @@ final class LlmRequestRetention
     private ExpandableArrayBufferEx memory;
     private FileChannel file;
     private long size;
+    private int lastKind = KIND_NONE;
     private long memoryReserved;
     private long diskReserved;
 
@@ -122,6 +127,11 @@ final class LlmRequestRetention
         return retained;
     }
 
+    int lastKind()
+    {
+        return lastKind;
+    }
+
     void rewind()
     {
         this.recordPosition = 0L;
@@ -141,6 +151,11 @@ final class LlmRequestRetention
     int flags()
     {
         return recordFlags;
+    }
+
+    int payloadLength()
+    {
+        return recordPayloadLength;
     }
 
     int payloadRemaining()
@@ -202,6 +217,7 @@ final class LlmRequestRetention
         }
 
         this.size = 0L;
+        this.lastKind = KIND_NONE;
         this.recordPosition = 0L;
     }
 
@@ -297,6 +313,7 @@ final class LlmRequestRetention
         if (written)
         {
             this.size += recordSize;
+            this.lastKind = kind;
         }
 
         return written;

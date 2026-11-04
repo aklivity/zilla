@@ -511,6 +511,74 @@ public class LlmProxyIT
     @Test
     @Configuration("proxy.fallback.yaml")
     @Specification({
+        "${app}/openai.proxy.fallback.complete/client",
+        "${app}/openai.proxy.fallback.complete.failed/server",
+        "${app}/openai.proxy.fallback.complete.replayed/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldFallbackWhenExitFailsAfterRequestSent503() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.fallback.yaml")
+    @Specification({
+        "${app}/openai.proxy.fallback.complete/client",
+        "${app}/openai.proxy.fallback.complete.failed/server",
+        "${app}/openai.proxy.fallback.complete.replayed/server"})
+    @ScriptProperty({"clientAddress \"zilla://streams/net0\"", "status 429"})
+    public void shouldFallbackWhenExitFailsAfterRequestSent429() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.fallback.yaml")
+    @Specification({
+        "${app}/openai.proxy.fallback.complete.failed/client",
+        "${app}/openai.proxy.fallback.complete.failed/server"})
+    @ScriptProperty({"clientAddress \"zilla://streams/net0\"", "status 400"})
+    public void shouldNotFallbackWhenExitRejectsRequest400() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.fallback.yaml")
+    @Specification({
+        "${app}/openai.proxy.fallback.complete.failed/client",
+        "${app}/openai.proxy.fallback.complete.failed/server"})
+    @ScriptProperty({"clientAddress \"zilla://streams/net0\"", "status 401"})
+    public void shouldNotFallbackWhenExitRejectsRequest401() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.fallback.yaml")
+    @Specification({
+        "${app}/openai.proxy.fallback.complete.failed/client",
+        "${app}/openai.proxy.fallback.complete.failed/server"})
+    @ScriptProperty({"clientAddress \"zilla://streams/net0\"", "status 404"})
+    public void shouldNotFallbackWhenExitRejectsRequest404() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.fallback.yaml")
+    @Specification({
+        "${app}/openai.proxy.fallback.complete.failed/client",
+        "${app}/openai.proxy.fallback.complete.failed/server"})
+    @ScriptProperty({"clientAddress \"zilla://streams/net0\"", "shouldRetry 0"})
+    public void shouldNotFallbackWhenExitAdvisesNoRetry() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.fallback.yaml")
+    @Specification({
         "${app}/openai.proxy.fallback.attributes/client",
         "${app}/openai.proxy.fallback.refused/server",
         "${app}/openai.proxy.fallback.attributes.accepted/server"})

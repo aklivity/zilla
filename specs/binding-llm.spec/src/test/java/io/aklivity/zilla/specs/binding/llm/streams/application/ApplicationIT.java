@@ -3000,6 +3000,33 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.proxy.fallback.complete/client",
+        "${app}/openai.proxy.fallback.complete/server"})
+    public void shouldOpenaiProxyFallbackComplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.fallback.complete.replayed/client",
+        "${app}/openai.proxy.fallback.complete.replayed/server"})
+    public void shouldOpenaiProxyFallbackCompleteReplayed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.fallback.complete.failed/client",
+        "${app}/openai.proxy.fallback.complete.failed/server"})
+    public void shouldOpenaiProxyFallbackCompleteFailed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.proxy.fallback.attributes/client",
         "${app}/openai.proxy.fallback.attributes/server"})
     public void shouldTellCallerTheFallbackModelOpenaiWithAttributes() throws Exception
