@@ -9202,6 +9202,42 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.request.end.deferred/client",
+        "${net}/openai.request.end.deferred/server"})
+    public void shouldOpenaiRequestEndDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.end.deferred.reset/client",
+        "${net}/openai.request.end.deferred.reset/server"})
+    public void shouldOpenaiRequestEndDeferredReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.response.end.deferred/client",
+        "${net}/openai.response.end.deferred/server"})
+    public void shouldOpenaiResponseEndDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.response.end.deferred.reset/client",
+        "${net}/openai.response.end.deferred.reset/server"})
+    public void shouldOpenaiResponseEndDeferredReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.responses.sorted.reasoning.tool.call.stream/client",
         "${net}/openai.responses.sorted.reasoning.tool.call.stream/server"})
     public void shouldOpenaiSortedResponsesReasoningToolCallStream() throws Exception

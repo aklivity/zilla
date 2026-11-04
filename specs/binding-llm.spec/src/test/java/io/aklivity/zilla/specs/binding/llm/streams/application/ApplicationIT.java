@@ -8878,6 +8878,42 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.request.end.deferred/client",
+        "${app}/openai.request.end.deferred/server"})
+    public void shouldOpenaiRequestEndDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.end.deferred.reset/client",
+        "${app}/openai.request.end.deferred.reset/server"})
+    public void shouldOpenaiRequestEndDeferredReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.end.deferred/client",
+        "${app}/openai.response.end.deferred/server"})
+    public void shouldOpenaiResponseEndDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.end.deferred.reset/client",
+        "${app}/openai.response.end.deferred.reset/server"})
+    public void shouldOpenaiResponseEndDeferredReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.responses.sorted.code.interpreter.stream/client",
         "${app}/openai.responses.sorted.code.interpreter.stream/server"})
     public void shouldOpenaiSortedResponsesCodeInterpreterStream() throws Exception
