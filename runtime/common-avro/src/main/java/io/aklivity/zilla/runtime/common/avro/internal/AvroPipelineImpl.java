@@ -122,6 +122,13 @@ final class AvroPipelineImpl implements AvroPipeline
     }
 
     @Override
+    public void bindingId(
+        long bindingId)
+    {
+        control.bindingId = bindingId;
+    }
+
+    @Override
     public void resumer(
         Runnable resumer)
     {
@@ -338,6 +345,7 @@ final class AvroPipelineImpl implements AvroPipeline
 
         private boolean segmented;
         private long authorization;
+        private long bindingId;
         private Runnable resumer = NO_RESUMER;
 
         private Control(
@@ -358,6 +366,12 @@ final class AvroPipelineImpl implements AvroPipeline
         public AvroEnvelope envelope()
         {
             return envelope;
+        }
+
+        @Override
+        public long bindingId()
+        {
+            return bindingId;
         }
 
         @Override

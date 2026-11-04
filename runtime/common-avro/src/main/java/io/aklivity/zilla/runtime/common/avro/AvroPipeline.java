@@ -89,6 +89,19 @@ public interface AvroPipeline
     }
 
     /**
+     * Sets the namespaced identifier of the binding the next {@link #transform fed} datum is driven for,
+     * reached by any stage via {@link AvroController#bindingId()}. The default does nothing, for a pipeline
+     * assembled with no stage that reads it. Call before each {@code transform}, since a reused pipeline
+     * instance carries this value forward otherwise.
+     *
+     * @param bindingId  the identifier of the binding the pipeline is driven for
+     */
+    default void bindingId(
+        long bindingId)
+    {
+    }
+
+    /**
      * Sets the callback a stage reaches through {@link AvroController#resumer()}, to be run on the pipeline's
      * I/O thread once the asynchronous work behind a {@link Status#PENDING} outcome completes. The default
      * does nothing, for a pipeline assembled with no stage that can wait.

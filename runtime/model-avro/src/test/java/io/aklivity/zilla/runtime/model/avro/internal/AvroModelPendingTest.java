@@ -99,6 +99,9 @@ public class AvroModelPendingTest
             "type": "record"
         }""";
 
+    private static final long ENTRY_BINDING_ID = 7L;
+    private static final long REENTRY_BINDING_ID = 8L;
+
     private EngineContext context;
     private AvroModelConfiguration config;
     private PendingTransform pending;
@@ -221,7 +224,8 @@ public class AvroModelPendingTest
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[capacity]);
         ByteArrayOutputStream drained = new ByteArrayOutputStream();
 
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE, src, 0, value.length, dst, 0, dst.capacity());
+        ModelPipelineResult result = pipeline.transform(0L, ENTRY_BINDING_ID, 0L, COMPLETE,
+            src, 0, value.length, dst, 0, dst.capacity());
         drain(dst, result.produced(), drained);
         assertEquals(ModelStatus.SUSPENDED, result.status());
         assertEquals(0, result.consumed());
@@ -230,10 +234,11 @@ public class AvroModelPendingTest
         pending.complete();
         assertEquals(1, resumed);
 
-        result = pipeline.transform(0L, 0L, 0L, FIN, src, 0, value.length, dst, 0, dst.capacity());
+        result = pipeline.transform(0L, REENTRY_BINDING_ID, 0L, FIN, src, 0, value.length, dst, 0, dst.capacity());
         drain(dst, result.produced(), drained);
         assertEquals(ModelStatus.COMPLETE, result.status());
         assertEquals(1, pending.lookups);
+        assertEquals(List.of(ENTRY_BINDING_ID, REENTRY_BINDING_ID), pending.bindingIds);
 
         return drained.toByteArray();
     }
@@ -341,6 +346,7 @@ public class AvroModelPendingTest
     private static final class PendingTransform implements AvroTransform
     {
         private final List<String> presented = new ArrayList<>();
+        private final List<Long> bindingIds = new ArrayList<>();
 
         private Runnable resumer;
         private boolean waiting;
@@ -359,6 +365,7 @@ public class AvroModelPendingTest
             {
                 presented.add("STRING:" + source.getString());
                 resumer = control.resumer();
+                bindingIds.add(control.bindingId());
                 lookups++;
                 waiting = true;
                 status = Status.PENDING;
@@ -383,6 +390,7 @@ public class AvroModelPendingTest
                 if (answered)
                 {
                     presented.add("resume:" + event);
+                    bindingIds.add(control.bindingId());
                     waiting = false;
                     answered = false;
                     status = sink.transform(control, source, event);
