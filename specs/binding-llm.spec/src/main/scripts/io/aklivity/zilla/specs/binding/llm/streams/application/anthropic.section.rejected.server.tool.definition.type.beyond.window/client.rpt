@@ -35,6 +35,7 @@ write zilla:data.ext ${llm:dataEx()
                           .build()}
 write "{\"type\":\"function\",\"function\":{\"name\":\"web_search\",\"description\":\""
       ${core:randomBase64(100000)}
+      "\""
 write flush
 
 write abort

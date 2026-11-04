@@ -37,6 +37,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "{\"type\":\"function\",\"function\":{\"name\":\"web_search\",\"description\":\""
      ${core:randomBase64(100000)}
+     "\""
 
 read aborted
 write aborted
