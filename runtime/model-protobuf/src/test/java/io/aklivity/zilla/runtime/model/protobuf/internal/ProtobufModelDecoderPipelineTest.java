@@ -632,15 +632,30 @@ public class ProtobufModelDecoderPipelineTest
         transform.complete();
         ModelPipelineResult second = pipeline.transform(0L, 0L, 0L, 0, new UnsafeBufferEx(new byte[0]), 0, 0,
             dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.REJECTED, second.status());
-
-        // the held input is discarded: the next value starts clean
-        transform.failing = false;
+        assertEquals(ModelStatus.SUSPENDED, second.status());
         transform.complete();
+        ModelPipelineResult rejected = pipeline.transform(0L, 0L, 0L, 0, new UnsafeBufferEx(new byte[0]), 0, 0,
+            dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.REJECTED, rejected.status());
+
+        // the held input and output are discarded: the next value starts clean and equals a run that never suspends
+        byte[] expected = decodeWhole(newHandler("json"), WIRE);
+        transform.failing = false;
+        transform.resumes = 0;
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
         ModelPipelineResult third = pipeline.transform(0L, 0L, 0L, COMPLETE, new UnsafeBufferEx(WIRE), 0, WIRE.length,
             dst, 0, dst.capacity());
-        assertEquals(ModelStatus.SUSPENDED, third.status());
+        drain(dst, third.produced(), out);
+        int guard = 0;
+        while (third.status() == ModelStatus.SUSPENDED && guard++ < 100)
+        {
+            transform.complete();
+            third = pipeline.transform(0L, 0L, 0L, 0, new UnsafeBufferEx(new byte[0]), 0, 0, dst, 0, dst.capacity());
+            drain(dst, third.produced(), out);
+        }
+        assertEquals(ModelStatus.COMPLETE, third.status());
+        assertArrayEquals(expected, out.toByteArray());
     }
 
     @Test
@@ -860,6 +875,7 @@ public class ProtobufModelDecoderPipelineTest
         private final List<Long> bindingIds = new ArrayList<>();
         private final boolean every;
         private boolean failing;
+        private int resumes;
         private Runnable resumer;
         private boolean released;
         private boolean waited;
@@ -897,7 +913,7 @@ public class ProtobufModelDecoderPipelineTest
             ProtobufPipeline.Status status;
             if (event == ProtobufEvent.VALUE && (every || !waited))
             {
-                if (released && failing)
+                if (released && failing && resumes++ > 0)
                 {
                     throw new ProtobufException("failure after resume");
                 }
