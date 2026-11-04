@@ -2369,4 +2369,24 @@ public class LlmAnthropicServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.assistant.text.citations.reply/client",
+        "${app}/anthropic.section.assistant.text.citations.reply/server"})
+    public void shouldAnthropicSectionAssistantTextCitationsReply() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.assistant.text.citations.reply.streaming/client",
+        "${app}/anthropic.section.assistant.text.citations.reply.streaming/server"})
+    public void shouldAnthropicSectionAssistantTextCitationsReplyStreaming() throws Exception
+    {
+        k3po.finish();
+    }
 }
