@@ -18,6 +18,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufGenerator;
@@ -42,6 +43,7 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
     private static final int KIND_GROUP = 1;
 
     private final ProtobufWriter writer;
+    private final ExpandableArrayBufferEx held;
 
     private int[] fields;
     private int[] kinds;
@@ -54,10 +56,15 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
     private int consumed;
     private boolean needsReopen;
     private boolean flushed;
+    private MutableDirectBufferEx target;
+    private int targetOffset;
+    private int heldLength;
+    private int heldOffset;
 
     public ProtobufGeneratorImpl()
     {
         this.writer = new ProtobufWriter();
+        this.held = new ExpandableArrayBufferEx();
         this.fields = new int[8];
         this.kinds = new int[8];
         this.slots = new int[8];
@@ -89,8 +96,23 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
                 (buffer.capacity() - offset));
         }
         this.limit = limit;
+        this.target = buffer;
+        this.targetOffset = offset;
         writer.wrap(buffer, offset, offset + limit);
-        if (flushed)
+        if (heldLength > 0)
+        {
+            // continuation of a held chunk: the withheld bytes come first in the fresh buffer and the open
+            // records' length slots move with them, so the records stay open and nothing is split or re-emitted
+            buffer.putBytes(offset, held, 0, heldLength);
+            writer.reserve(heldLength);
+            int delta = offset - heldOffset;
+            for (int level = 0; level < depth; level++)
+            {
+                slots[level] += delta;
+            }
+            heldLength = 0;
+        }
+        else if (flushed)
         {
             // continuation: the committed levels stay open (reopened lazily on the next field) and any
             // in-flight segment keeps streaming — nothing is re-emitted here
@@ -466,6 +488,16 @@ public final class ProtobufGeneratorImpl implements ProtobufGenerator
             break;
         }
         return this;
+    }
+
+    @Override
+    public void pause()
+    {
+        heldLength = writer.length();
+        heldOffset = targetOffset;
+        held.putBytes(0, target, targetOffset, heldLength);
+        writer.wrap(target, targetOffset, targetOffset + limit);
+        flushed |= heldLength == 0;
     }
 
     @Override

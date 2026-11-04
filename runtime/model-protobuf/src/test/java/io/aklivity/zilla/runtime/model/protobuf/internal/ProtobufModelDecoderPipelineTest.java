@@ -403,6 +403,70 @@ public class ProtobufModelDecoderPipelineTest
     }
 
     @Test
+    public void shouldNotSplitRepeatedElementsWhenExtensionTransformPends()
+    {
+        String schema = """
+                        syntax = "proto3";
+                        package io.aklivity.examples.clients.proto;
+                        message Order {
+                            repeated Item items = 1;
+                        }
+                        message Item {
+                            string name = 1;
+                            string note = 2;
+                        }
+                        """;
+        byte[] wire = {0x00,
+            0x0a, 0x0b, 0x0a, 0x03, 'p', 'e', 'n', 0x12, 0x04, 'b', 'l', 'u', 'e',
+            0x0a, 0x0c, 0x0a, 0x03, 'i', 'n', 'k', 0x12, 0x05, 'b', 'l', 'a', 'c', 'k'};
+
+        byte[] expected = decodeWhole(newHandler(null, List.of(), schema, "Order"), wire);
+
+        Pending transform = new Pending(true);
+        ProtobufModelHandlerImpl handler = newHandler(null, List.of(pending(transform)), schema, "Order");
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, () ->
+        {
+        });
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        int position = 0;
+        int flags = COMPLETE;
+        ModelPipelineResult result;
+        int guard = 0;
+        do
+        {
+            result = pipeline.transform(0L, 0L, 0L, flags, new UnsafeBufferEx(wire), position, wire.length,
+                dst, 0, dst.capacity());
+            drain(dst, result.produced(), out);
+            position += result.consumed();
+            flags = FIN;
+            if (result.status() == ModelStatus.SUSPENDED)
+            {
+                transform.complete();
+            }
+            guard++;
+        }
+        while (result.status() != ModelStatus.COMPLETE && guard < 100);
+
+        assertEquals(ModelStatus.COMPLETE, result.status());
+        assertArrayEquals(expected, out.toByteArray());
+    }
+
+    private static byte[] decodeWhole(
+        ProtobufModelHandlerImpl handler,
+        byte[] wire)
+    {
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE, new UnsafeBufferEx(wire), 0, wire.length,
+            dst, 0, dst.capacity());
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        drain(dst, result.produced(), out);
+        assertEquals(ModelStatus.COMPLETE, result.status());
+        return out.toByteArray();
+    }
+
+    @Test
     public void shouldNotReportIdentityWhenExtensionInstalled()
     {
         ProtobufModelHandlerImpl handler = newHandler(null, List.of(failing()));
@@ -617,9 +681,21 @@ public class ProtobufModelDecoderPipelineTest
     private static final class Pending implements ProtobufTransform
     {
         private final List<Long> bindingIds = new ArrayList<>();
+        private final boolean every;
         private Runnable resumer;
         private boolean released;
         private boolean waited;
+
+        private Pending()
+        {
+            this(false);
+        }
+
+        private Pending(
+            boolean every)
+        {
+            this.every = every;
+        }
 
         void complete()
         {
@@ -641,12 +717,13 @@ public class ProtobufModelDecoderPipelineTest
             ProtobufSink sink)
         {
             ProtobufPipeline.Status status;
-            if (event == ProtobufEvent.VALUE && !waited)
+            if (event == ProtobufEvent.VALUE && (every || !waited))
             {
                 resumer = control.resumer();
                 bindingIds.add(control.bindingId());
                 waited = released;
                 status = released ? sink.transform(control, source, event) : ProtobufPipeline.Status.PENDING;
+                released &= !every;
             }
             else
             {
@@ -699,6 +776,15 @@ public class ProtobufModelDecoderPipelineTest
         String view,
         List<ProtobufModelExtContext> exts)
     {
+        return newHandler(view, exts, SCHEMA, "SimpleMessage");
+    }
+
+    private ProtobufModelHandlerImpl newHandler(
+        String view,
+        List<ProtobufModelExtContext> exts,
+        String schema,
+        String record)
+    {
         TestCatalogConfig catalog = GenericCatalogConfig.builder(TestCatalogConfig::new)
             .namespace("test")
             .name("test0")
@@ -706,7 +792,7 @@ public class ProtobufModelDecoderPipelineTest
             .options(TestCatalogOptionsConfig::builder)
                 .id(1)
                 .prefix(framing)
-                .schema(SCHEMA)
+                .schema(schema)
                 .build()
             .build();
         var builder = ProtobufModelConfig.builder();
@@ -721,7 +807,7 @@ public class ProtobufModelDecoderPipelineTest
                     .strategy("topic")
                     .version("latest")
                     .subject("test-value")
-                    .record("SimpleMessage")
+                    .record(record)
                     .build()
                 .build()
             .build();
