@@ -15,14 +15,6 @@
 
 ---
 name: test
-guards:
-    test0:
-        type: test
-        options:
-            credentials: token
-            identity: alice
-            attributes:
-                tenant: acme
 telemetry:
     metrics:
         - model.fields.replaced
@@ -38,9 +30,6 @@ telemetry:
                     - name: model.transform.duration
                       binding: net1
                       kind: histogram
-                      attributes:
-                          tenant: "acme"
-                          user: "alice"
                       count: 1
 bindings:
     net1:
@@ -54,8 +43,5 @@ bindings:
                     - bad
                 suspend: true
         telemetry:
-            attributes:
-                user: ${guarded['test0'].identity}
-                tenant: ${guarded['test0'].attributes.tenant}
             metrics:
                 - model.*
