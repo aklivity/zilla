@@ -17,12 +17,22 @@ package io.aklivity.zilla.config.engine;
 import static java.util.ServiceLoader.load;
 import static java.util.stream.Collectors.toList;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonReader;
+import jakarta.json.JsonValue;
 
 import io.aklivity.zilla.config.engine.factory.Factory;
 
@@ -81,12 +91,62 @@ public final class EngineInfo
             .filter(Objects::nonNull)
             .collect(toList()));
         patches.addAll(metrics.values().stream().map(MetricGroupInfo::schema).filter(Objects::nonNull).collect(toList()));
-        patches.addAll(metrics.values().stream()
-            .flatMap(metric -> metric.extensions().stream())
-            .map(MetricGroupExtInfo::schema)
-            .filter(Objects::nonNull)
-            .collect(toList()));
+        for (MetricGroupInfo metric : metrics.values())
+        {
+            List<URL> extensions = metric.extensions().stream()
+                .map(MetricGroupExtInfo::schema)
+                .filter(Objects::nonNull)
+                .collect(toList());
+            validateMetricNames(metric.type(), metric.schema(), extensions);
+            patches.addAll(extensions);
+        }
         return patches;
+    }
+
+    static void validateMetricNames(
+        String type,
+        URL group,
+        List<URL> extensions)
+    {
+        Set<String> names = new HashSet<>(metricNames(group));
+        for (URL extension : extensions)
+        {
+            for (String name : metricNames(extension))
+            {
+                if (!names.add(name))
+                {
+                    throw new IllegalStateException(String.format(
+                        "Metric %s contributed to group %s is already defined by the group or another extension", name, type));
+                }
+            }
+        }
+    }
+
+    private static List<String> metricNames(
+        URL schema)
+    {
+        List<String> names = new ArrayList<>();
+        if (schema != null)
+        {
+            try (InputStream input = schema.openStream();
+                 JsonReader reader = Json.createReader(input))
+            {
+                for (JsonValue patch : reader.readArray())
+                {
+                    JsonObject operation = patch.asJsonObject();
+                    if (operation.getString("path", "").endsWith("/items/enum/-"))
+                    {
+                        names.add(operation.getString("value"));
+                    }
+                }
+            }
+            catch (IOException ex)
+            {
+                throw new UncheckedIOException(ex);
+            }
+        }
+
+        return names;
     }
 
     public Collection<BindingInfo> bindings()
