@@ -1035,7 +1035,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             switch (event)
             {
             case START_OBJECT:
-                lookaheadTool(server, traceId, offset, limit);
+                lookaheadTool(server, traceId, limit);
                 break;
             case END_ARRAY:
                 server.decoder = decodeRoot;
@@ -1053,7 +1053,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private void lookaheadTool(
         LlmAnthropicServer server,
         long traceId,
-        int offset,
         int limit)
     {
         final JsonParserEx parser = server.parser;
@@ -1096,16 +1095,13 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
         parser.rewind();
 
-        if (type != null || ended || limit - offset >= decodeMax)
-        {
-            server.probe.begin(type == null || TYPE_CUSTOM.equals(type)
-                ? LlmSectionType.TOOL_DEFINITION
-                : LlmSectionType.SERVER_TOOL_DEFINITION);
+        server.probe.begin(type == null || TYPE_CUSTOM.equals(type)
+            ? LlmSectionType.TOOL_DEFINITION
+            : LlmSectionType.SERVER_TOOL_DEFINITION);
 
-            if (server.probed(traceId, limit))
-            {
-                server.decoder = decodeToolStart;
-            }
+        if (server.probed(traceId, limit))
+        {
+            server.decoder = decodeToolStart;
         }
     }
 
