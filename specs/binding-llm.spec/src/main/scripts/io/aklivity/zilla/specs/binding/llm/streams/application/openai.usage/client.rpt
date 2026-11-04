@@ -61,10 +61,10 @@ read "{\"text\":\"Hello! How can I assist you today?\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("CONTROL")
+                          .type("ASSISTANT_CITATIONS")
                           .message(0)
                           .build()}
-read "{\"openai/ccs:annotations\":[]}"
+read "[]"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
