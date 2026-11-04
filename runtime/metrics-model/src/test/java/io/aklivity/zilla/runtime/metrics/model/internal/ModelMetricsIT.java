@@ -23,7 +23,6 @@ import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 
-import io.aklivity.k3po.runtime.junit.annotation.ScriptProperty;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
@@ -52,7 +51,6 @@ public class ModelMetricsIT
     @Specification({
         "${net}/write.bad/client",
         "${app}/reject.value.pipeline.first/server" })
-    @ScriptProperty("authorization 1L")
     public void shouldRecordRejectedInvalid() throws Exception
     {
         k3po.finish();
@@ -63,7 +61,6 @@ public class ModelMetricsIT
     @Specification({
         "${net}/write.bad/client",
         "${app}/reject.value.pipeline.first/server" })
-    @ScriptProperty("authorization 1L")
     public void shouldRecordRejectedWithheld() throws Exception
     {
         k3po.finish();
@@ -74,7 +71,6 @@ public class ModelMetricsIT
     @Specification({
         "${net}/write.good/client",
         "${app}/exchange.value.pipeline.suspend.first/server" })
-    @ScriptProperty("authorization 1L")
     public void shouldRecordTransformDuration() throws Exception
     {
         k3po.finish();
@@ -85,7 +81,6 @@ public class ModelMetricsIT
     @Specification({
         "${net}/write.good/client",
         "${app}/exchange.value.pipeline.suspend.first/server" })
-    @ScriptProperty("authorization 1L")
     public void shouldRecordTransformDurationAcrossSuspend() throws Exception
     {
         k3po.finish();
@@ -96,7 +91,6 @@ public class ModelMetricsIT
     @Specification({
         "${net}/write.bad/client",
         "${app}/reject.value.pipeline.first/server" })
-    @ScriptProperty("authorization 1L")
     public void shouldNotRecordUnselectedMetrics() throws Exception
     {
         k3po.finish();
