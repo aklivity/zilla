@@ -3828,6 +3828,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     {
         private final LlmOpenaiServer server;
         private final LlmTextPipeline textPipeline;
+        private final LlmSectionPipeline.Output encodeCitations = (buffer, offset, length, last) ->
+            onEncodeCitations(buffer, offset, length);
         private final LlmSectionPipeline.Output encodeArguments = (buffer, offset, length, last) ->
             onEncodeArguments(buffer, offset, length);
 
@@ -3847,6 +3849,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private int state;
 
         private LlmSectionPipeline argumentsPipeline;
+        private LlmSectionPipeline citationsPipeline;
 
         private boolean flushed;
 
@@ -4437,6 +4440,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private static final int KIND_SKIPPED = 4;
         private static final int KIND_REASONING = 5;
         private static final int KIND_CONTROL = 6;
+        private static final int KIND_CITATIONS = 7;
 
         private static final int CONTROL_DROP = 0;
         private static final int CONTROL_INLINE = 1;
@@ -4447,6 +4451,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private static final Predicate<String> ALL_MEMBERS = name -> true;
         private static final Predicate<String> NOT_USAGE = name -> !MEMBER_USAGE.equals(name);
         private static final String MEMBER_LOGPROBS = "logprobs";
+        private static final String MEMBER_ANNOTATIONS = "annotations";
         private static final String MEMBER_OBFUSCATION = "obfuscation";
         private static final int KIND_ROOT = 0;
         private static final int KIND_MESSAGE = 1;
@@ -4589,6 +4594,9 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 controlMode = CONTROL_DROP;
                 splitter.begin();
                 break;
+            case KIND_CITATIONS:
+                sectionCitations();
+                break;
             default:
                 break;
             }
@@ -4619,6 +4627,57 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 (!splitter.put(payload, payloadOffset, payloadLength, fin) || hold.failed()))
             {
                 server.cleanup(traceId);
+            }
+            else if (kind == KIND_CITATIONS &&
+                (!citationsPipeline.feed(payload, payloadOffset, payloadLength, fin, encodeCitations) || hold.failed()))
+            {
+                server.cleanup(traceId);
+            }
+        }
+
+        private void sectionCitations()
+        {
+            if (server.streaming)
+            {
+                if (!hold.begin(MEMBER_ANNOTATIONS, KIND_MESSAGE))
+                {
+                    kind = KIND_SKIPPED;
+                }
+            }
+            else if (messageClosed)
+            {
+                kind = KIND_SKIPPED;
+            }
+            else
+            {
+                closeMember();
+                generator.writeKey(MEMBER_ANNOTATIONS);
+            }
+
+            if (kind == KIND_CITATIONS)
+            {
+                if (citationsPipeline == null)
+                {
+                    citationsPipeline = new LlmSectionPipeline(new LlmOpenaiCitationsFromCanonical(NAME),
+                        new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                }
+
+                citationsPipeline.begin(replyAttributes);
+            }
+        }
+
+        private void onEncodeCitations(
+            DirectBufferEx payload,
+            int offset,
+            int length)
+        {
+            if (server.streaming)
+            {
+                hold.put(payload, offset, length);
+            }
+            else
+            {
+                generator.writeSegment(payload, offset, length, Completion.INCOMPLETE);
             }
         }
 
@@ -4732,6 +4791,17 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             if (!server.streaming && kind == KIND_TOOL_CALL)
             {
                 generator.writeEndEscaped().writeEnd().writeEnd();
+            }
+            else if (kind == KIND_CITATIONS)
+            {
+                if (server.streaming)
+                {
+                    hold.end();
+                }
+                else
+                {
+                    generator.writeSegment(EMPTY_BUFFER, 0, 0, Completion.COMPLETE);
+                }
             }
 
             kind = KIND_NONE;
@@ -5132,6 +5202,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             case ASSISTANT_REASONING -> KIND_REASONING;
             case ASSISTANT_REFUSAL -> KIND_REFUSAL;
             case TOOL_CALL -> KIND_TOOL_CALL;
+            case ASSISTANT_CITATIONS -> KIND_CITATIONS;
             default -> KIND_SKIPPED;
             };
         }

@@ -493,6 +493,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private final LlmOpenaiResponseDecoder decodeMessage = this::decodeMessage;
         private final LlmOpenaiResponseDecoder decodeText = this::decodeText;
         private final LlmOpenaiResponseDecoder decodeToolCallsStart = this::decodeToolCallsStart;
+        private final LlmOpenaiResponseDecoder decodeAnnotationsStart = this::decodeAnnotationsStart;
+        private final LlmOpenaiResponseDecoder decodeAnnotations = this::decodeAnnotations;
         private final LlmOpenaiResponseDecoder decodeToolCalls = this::decodeToolCalls;
         private final LlmOpenaiResponseDecoder decodeToolCall = this::decodeToolCall;
         private final LlmOpenaiResponseDecoder decodeToolIndex = this::decodeToolIndex;
@@ -613,6 +615,9 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private int controlSlotOffset;
         private int controlEntry;
         private int controlFrom = NONE;
+        private int annotationFrom = NONE;
+        private int annotationDepth;
+        private LlmOpenaiResponseDecoder annotationThen;
         private int controlMessage;
         private int controlDepth;
         private LlmOpenaiResponseDecoder controlThen;
@@ -1208,6 +1213,11 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 controlFrom = offset;
             }
 
+            if (annotationFrom != NONE)
+            {
+                annotationFrom = offset;
+            }
+
             int previous;
             LlmOpenaiResponseDecoder previousDecoder;
             do
@@ -1219,6 +1229,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             while (progress != previous && progress < limit || decoder != previousDecoder);
 
             flushControl(progress);
+            flushAnnotations(progress);
 
             return progress;
         }
@@ -1284,6 +1295,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                         else if (decoder == previous)
                         {
                             flushControl(progress);
+                            flushAnnotations(progress);
                         }
 
                         if (decoder == previous)
@@ -1811,6 +1823,11 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             {
                 decoder = decodeToolCallsStart;
             }
+            else if (MEMBER_ANNOTATIONS.contentEquals(member) && messageScope)
+            {
+                annotationThen = scope;
+                decoder = decodeAnnotationsStart;
+            }
             else if (MEMBER_ROLE.contentEquals(member))
             {
                 skipMember(scope);
@@ -1855,6 +1872,71 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             }
 
             return position();
+        }
+
+        private int decodeAnnotationsStart(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            if (hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.START_ARRAY)
+                {
+                    closeSection();
+                    openSection(LlmSectionType.ASSISTANT_CITATIONS, choiceIndex, null, null, NONE);
+                    annotationDepth = 1;
+                    annotationFrom = position() - 1;
+                    decoder = decodeAnnotations;
+                }
+                else
+                {
+                    skipAfter(event, annotationThen);
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeAnnotations(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeAnnotations && hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+                final boolean deferred = deferredScalar(event);
+
+                annotationDepth += nesting(event);
+
+                if (deferred)
+                {
+                    parser.consumed(deferredLength(event));
+                }
+                else if (annotationDepth == 0)
+                {
+                    flushAnnotations(position());
+                    annotationFrom = NONE;
+                    sectionOpen = false;
+                    writeSection(EMPTY_BUFFER, 0, 0, true);
+                    decoder = annotationThen;
+                }
+            }
+
+            return position();
+        }
+
+        private void flushAnnotations(
+            int to)
+        {
+            if (annotationFrom != NONE && to > annotationFrom)
+            {
+                writeSection(decodedInput, annotationFrom, to - annotationFrom, false);
+                annotationFrom = to;
+            }
         }
 
         private int decodeToolCallsStart(
