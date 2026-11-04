@@ -123,7 +123,7 @@ connect aborted
 write notify REQUEST_5_COMPLETED
 write notify RELEASE_PROBE
 
-connect await REQUEST_5_COMPLETED
+connect await REQUEST_4_COMPLETED
         "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"

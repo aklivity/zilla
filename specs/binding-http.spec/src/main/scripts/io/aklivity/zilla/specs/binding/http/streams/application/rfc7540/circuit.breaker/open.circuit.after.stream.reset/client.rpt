@@ -22,8 +22,8 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
-                              .header(":scheme", "http")
                               .header(":method", "GET")
+                              .header(":scheme", "http")
                               .header(":path", "/request1")
                               .header(":authority", "localhost:8080")
                               .build()}
@@ -48,8 +48,8 @@ connect await REQUEST_1_COMPLETED
 
 write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
-                              .header(":scheme", "http")
                               .header(":method", "GET")
+                              .header(":scheme", "http")
                               .header(":path", "/request2")
                               .header(":authority", "localhost:8080")
                               .build()}
@@ -74,8 +74,8 @@ connect await REQUEST_2_COMPLETED
 
 write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
-                              .header(":scheme", "http")
                               .header(":method", "GET")
+                              .header(":scheme", "http")
                               .header(":path", "/request3")
                               .header(":authority", "localhost:8080")
                               .build()}

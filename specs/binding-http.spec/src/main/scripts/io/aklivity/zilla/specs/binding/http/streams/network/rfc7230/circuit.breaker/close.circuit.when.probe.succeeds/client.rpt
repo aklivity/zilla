@@ -49,6 +49,7 @@ read "Content-Length: 0" "\r\n"
 read "\r\n"
 read notify REQUEST_4_COMPLETED
 
+write await REQUEST_4_COMPLETED
 write "GET /request6 HTTP/1.1" "\r\n"
 write "Host: localhost:8080" "\r\n"
 write "\r\n"
