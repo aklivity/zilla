@@ -2228,7 +2228,7 @@ final class TestBindingFactory implements BindingHandler
                 ModelStatus status;
                 do
                 {
-                    final ModelPipelineResult result = pipeline.transform(traceId, routedId, authorization, stepFlags,
+                    final ModelPipelineResult result = pipeline.transform(traceId, originId, authorization, stepFlags,
                             buffer, srcAt, limit, replyBuffer, 0, replyBuffer.capacity());
                     status = result.status();
 

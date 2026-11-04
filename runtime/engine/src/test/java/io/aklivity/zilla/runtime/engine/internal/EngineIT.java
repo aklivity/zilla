@@ -287,6 +287,16 @@ public class EngineIT
     }
 
     @Test
+    @Configuration("server.value.pipeline.binding.id.yaml")
+    @Specification({
+        "${net}/exchange.value.pipeline.binding.id/client",
+        "${app}/exchange.value.pipeline.binding.id/server" })
+    public void shouldExchangeValuePipelineBindingId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.value.pipeline.transform.identity.yaml")
     @Specification({
         "${net}/exchange.value.pipeline.transform.identity/client",
