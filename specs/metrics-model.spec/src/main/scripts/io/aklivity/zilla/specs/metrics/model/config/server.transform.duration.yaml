@@ -1,0 +1,67 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+---
+name: test
+guards:
+    test0:
+        type: test
+        options:
+            credentials: token
+            identity: alice
+            attributes:
+                tenant: acme
+telemetry:
+    metrics:
+        - model.fields.replaced
+        - model.fields.declined
+        - model.rejected.invalid
+        - model.rejected.withheld
+        - model.transform.duration
+    exporters:
+        exporter0:
+            type: test
+            options:
+                metrics:
+                    - name: model.transform.duration
+                      binding: net1
+                      kind: histogram
+                      attributes:
+                          tenant: "acme"
+                          user: "alice"
+                      count: 1
+                    - name: model.rejected.invalid
+                      binding: net1
+                      kind: counter
+                      attributes:
+                          tenant: "acme"
+                          user: "alice"
+                      value: 0
+bindings:
+    net1:
+        type: test
+        kind: server
+        exit: app1
+        options:
+            value:
+                model: test
+                reject:
+                    - bad
+        telemetry:
+            attributes:
+                user: ${guarded['test0'].identity}
+                tenant: ${guarded['test0'].attributes.tenant}
+            metrics:
+                - model.*
