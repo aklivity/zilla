@@ -9307,4 +9307,22 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/gemini.section.assistant.text.citations.reply/client",
+        "${app}/gemini.section.assistant.text.citations.reply/server"})
+    public void shouldGeminiSectionAssistantTextCitationsReply() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.streaming.assistant.text.citations/client",
+        "${app}/gemini.streaming.assistant.text.citations/server"})
+    public void shouldGeminiStreamingAssistantTextCitations() throws Exception
+    {
+        k3po.finish();
+    }
 }
