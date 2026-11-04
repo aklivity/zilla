@@ -435,7 +435,7 @@ public final class SseServerFactory implements SseStreamFactory
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = SseState.closedInitial(state);
+            state = SseState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -454,7 +454,7 @@ public final class SseServerFactory implements SseStreamFactory
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = SseState.closedInitial(state);
+            state = SseState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -475,7 +475,7 @@ public final class SseServerFactory implements SseStreamFactory
 
             httpReplyAck = acknowledge;
             httpReplyMax = maximum;
-            state = SseState.closedReply(state);
+            state = SseState.closeReply(state);
 
             assert httpReplyAck <= httpReplySeq;
 
@@ -505,7 +505,7 @@ public final class SseServerFactory implements SseStreamFactory
             httpReplyPad = padding;
             httpReplyBud = budgetId;
             httpReplyAuth = authorization;
-            state = SseState.openedReply(state);
+            state = SseState.openReply(state);
 
             assert httpReplyAck <= httpReplySeq;
 
@@ -668,7 +668,7 @@ public final class SseServerFactory implements SseStreamFactory
         {
             if (!SseState.replyClosed(state))
             {
-                state = SseState.closedReply(state);
+                state = SseState.closeReply(state);
 
                 doHttpAbort(network, originId, routedId, replyId, httpReplySeq, httpReplyAck, httpReplyMax,
                         traceId, authorization);
@@ -683,7 +683,7 @@ public final class SseServerFactory implements SseStreamFactory
         {
             if (!SseState.replyClosed(state))
             {
-                state = SseState.closedReply(state);
+                state = SseState.closeReply(state);
 
                 doHttpEnd(network, originId, routedId, replyId, httpReplySeq, httpReplyAck, httpReplyMax,
                         traceId, authorization);
@@ -710,7 +710,7 @@ public final class SseServerFactory implements SseStreamFactory
         {
             if (!SseState.initialClosed(state))
             {
-                state = SseState.closedInitial(state);
+                state = SseState.closeInitial(state);
 
                 doReset(network, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId);
             }
@@ -849,7 +849,7 @@ public final class SseServerFactory implements SseStreamFactory
             {
                 if (!SseState.initialClosed(state))
                 {
-                    state = SseState.closedInitial(state);
+                    state = SseState.closeInitial(state);
 
                     doEnd(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                             traceId, authorization);
@@ -862,7 +862,7 @@ public final class SseServerFactory implements SseStreamFactory
             {
                 if (!SseState.initialClosed(state))
                 {
-                    state = SseState.closedInitial(state);
+                    state = SseState.closeInitial(state);
 
                     doAbort(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                             traceId, authorization);
@@ -1005,7 +1005,7 @@ public final class SseServerFactory implements SseStreamFactory
                 assert sequence >= sseReplySeq;
 
                 sseReplySeq = sequence;
-                state = SseState.closedReply(state);
+                state = SseState.closeReply(state);
 
                 assert sseReplyAck <= sseReplySeq;
 
@@ -1099,7 +1099,7 @@ public final class SseServerFactory implements SseStreamFactory
                 assert sequence >= sseReplySeq;
 
                 sseReplySeq = sequence;
-                state = SseState.closedReply(state);
+                state = SseState.closeReply(state);
 
                 assert sseReplyAck <= sseReplySeq;
 
@@ -1153,7 +1153,7 @@ public final class SseServerFactory implements SseStreamFactory
             {
                 if (!SseState.replyClosed(state))
                 {
-                    state = SseState.closedReply(state);
+                    state = SseState.closeReply(state);
 
                     doReset(application, originId, routedId, replyId, sseReplySeq, sseReplyAck, sseReplyMax,
                             traceId);
@@ -1174,7 +1174,7 @@ public final class SseServerFactory implements SseStreamFactory
 
                     sseReplyMax = httpReplyMax;
 
-                    state = SseState.openedReply(state);
+                    state = SseState.openReply(state);
 
                     doWindow(application, originId, routedId, replyId, sseReplySeq, sseReplyAck, sseReplyMax,
                             traceId, httpReplyAuth, httpReplyBud, sseReplyPad, 0);

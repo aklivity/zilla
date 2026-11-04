@@ -866,4 +866,13 @@ public class MqttIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.will.message.qos2.reply.window.before.begin/client",
+        "${mqtt}/session.will.message.qos2.reply.window.before.begin/server"})
+    public void shouldSendWillSignalOnQos2AbortWhenReplyWindowBeforeReplyBegin() throws Exception
+    {
+        k3po.finish();
+    }
 }

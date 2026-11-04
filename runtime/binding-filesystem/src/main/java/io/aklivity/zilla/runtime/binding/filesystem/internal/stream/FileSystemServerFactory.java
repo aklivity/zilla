@@ -511,7 +511,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
             assert replyAck <= replySeq;
 
-            if (FileSystemState.replyOpening(state) && !FileSystemState.replyClosed(state))
+            if (!FileSystemState.replyClosed(state))
             {
                 state = FileSystemState.openReply(state);
 
@@ -520,7 +520,11 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                     replyDebit = context.supplyDebit(replyId, budgetId, this::flushAppData);
                     replyDebit.declare(traceId, 0, 0);
                 }
-                flushAppData(traceId);
+
+                if (FileSystemState.replyOpening(state))
+                {
+                    flushAppData(traceId);
+                }
             }
         }
 
@@ -1097,7 +1101,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
             assert replyAck <= replySeq;
 
-            if (FileSystemState.replyOpening(state) && !FileSystemState.replyClosed(state))
+            if (!FileSystemState.replyClosed(state))
             {
                 state = FileSystemState.openReply(state);
             }

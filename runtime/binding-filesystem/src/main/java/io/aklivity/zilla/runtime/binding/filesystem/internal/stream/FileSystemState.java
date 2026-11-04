@@ -16,14 +16,14 @@ package io.aklivity.zilla.runtime.binding.filesystem.internal.stream;
 
 public final class FileSystemState
 {
-    private static final int INITIAL_OPENING = 0x10;
-    private static final int INITIAL_OPENED = 0x20;
-    private static final int INITIAL_CLOSING = 0x40;
-    private static final int INITIAL_CLOSED = 0x80;
     private static final int REPLY_OPENING = 0x01;
     private static final int REPLY_OPENED = 0x02;
     private static final int REPLY_CLOSING = 0x04;
     private static final int REPLY_CLOSED = 0x08;
+    private static final int INITIAL_OPENING = 0x10;
+    private static final int INITIAL_OPENED = 0x20;
+    private static final int INITIAL_CLOSING = 0x40;
+    private static final int INITIAL_CLOSED = 0x80;
 
     static int openingInitial(
         int state)
@@ -82,7 +82,19 @@ public final class FileSystemState
     static int openReply(
         int state)
     {
-        return openingReply(state) | REPLY_OPENED;
+        return state | REPLY_OPENED;
+    }
+
+    static int closingReply(
+        int state)
+    {
+        return state | REPLY_CLOSING;
+    }
+
+    static int closeReply(
+        int state)
+    {
+        return closingReply(state) | REPLY_CLOSED;
     }
 
     static boolean replyOpening(
@@ -97,28 +109,22 @@ public final class FileSystemState
         return (state & REPLY_OPENED) != 0;
     }
 
-    static int closingReply(
-        int state)
-    {
-        return state | REPLY_CLOSING;
-    }
-
     static boolean replyClosing(
         int state)
     {
         return (state & REPLY_CLOSING) != 0;
     }
 
-    static int closeReply(
-        int state)
-    {
-        return closingReply(state) | REPLY_CLOSED;
-    }
-
     static boolean replyClosed(
         int state)
     {
         return (state & REPLY_CLOSED) != 0;
+    }
+
+    static boolean closed(
+        int state)
+    {
+        return initialClosed(state) && replyClosed(state);
     }
 
     private FileSystemState()
