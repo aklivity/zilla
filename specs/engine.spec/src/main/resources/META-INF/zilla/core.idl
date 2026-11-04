@@ -29,6 +29,16 @@ scope core
             int32 typeId;
         }
 
+        // Frame state semantics
+        //
+        // state is the sender's StreamState bitmask after applying the transition that the frame itself effects,
+        // for example BEGIN carries the opening bit of its direction, END carries closing and closed, ABORT carries
+        // aborting and closed, a reply WINDOW carries the reply opened bit, and RESET carries the state of the side
+        // that sends it.
+        // Bits are monotonic, so a set bit is reliable and a clear bit means not known to be set. For the sender's own
+        // direction the value is exact as of the frame; for the opposing direction it can be stale.
+        // The value is a snapshot for observers and does not replace the state held by a stream handler.
+        // 0 means unset or unknown, and is the default for writers that do not supply it.
         struct Frame
         {
             int64 originId;
@@ -36,7 +46,7 @@ scope core
             int64 streamId;
             int64 sequence;
             int64 acknowledge;
-            int32 state = 0;            // sender's StreamState snapshot when written, 0 unknown
+            int32 state = 0;            // see Frame state semantics
             int32 maximum;
             int64 timestamp = 0;
             int64 traceId = 0;
