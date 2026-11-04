@@ -4560,7 +4560,9 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         {
             final int next = type == LlmSectionType.CONTROL
                 ? KIND_CONTROL
-                : message == MESSAGE_FIRST && !messageClosed && envelope != ENVELOPE_TAIL ? kindOf(type) : KIND_SKIPPED;
+                : message == MESSAGE_FIRST && !messageClosed && envelope != ENVELOPE_TAIL
+                    ? kindOf(type, NAME.equals(responseDialect))
+                    : KIND_SKIPPED;
 
             if (next != KIND_REASONING)
             {
@@ -5194,7 +5196,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         }
 
         private static int kindOf(
-            LlmSectionType type)
+            LlmSectionType type,
+            boolean sameDialect)
         {
             return switch (type)
             {
@@ -5202,7 +5205,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             case ASSISTANT_REASONING -> KIND_REASONING;
             case ASSISTANT_REFUSAL -> KIND_REFUSAL;
             case TOOL_CALL -> KIND_TOOL_CALL;
-            case ASSISTANT_CITATIONS -> KIND_CITATIONS;
+            case ASSISTANT_CITATIONS -> sameDialect ? KIND_CITATIONS : KIND_SKIPPED;
             default -> KIND_SKIPPED;
             };
         }

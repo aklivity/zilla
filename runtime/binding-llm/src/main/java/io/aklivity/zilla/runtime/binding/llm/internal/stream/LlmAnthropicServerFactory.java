@@ -5007,8 +5007,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                     ? kindOf(type, NAME.equals(responseDialect))
                     : KIND_SKIPPED;
 
-            final boolean joined = next == KIND_CITATIONS && kind == KIND_TEXT_BLOCK &&
-                (!server.streaming || NAME.equals(responseDialect));
+            final boolean joined = next == KIND_CITATIONS && kind == KIND_TEXT_BLOCK;
 
             if (kind == KIND_TEXT_BLOCK && !joined)
             {
@@ -5581,7 +5580,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         {
             if (citationsBlock == null)
             {
-                citationsBlock = new LlmSectionPipeline(new LlmAnthropicCitationsFromCanonical(NAME.equals(responseDialect)),
+                citationsBlock = new LlmSectionPipeline(new LlmAnthropicCitationsFromCanonical(true),
                     new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
             }
 
@@ -5996,7 +5995,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             case TOOL_CALL -> KIND_TOOL_CALL;
             case SERVER_TOOL_CALL -> sameDialect ? KIND_SERVER_TOOL_CALL : KIND_SKIPPED;
             case SERVER_TOOL_RESULT -> sameDialect ? KIND_SERVER_TOOL_RESULT : KIND_SKIPPED;
-            case ASSISTANT_CITATIONS -> KIND_CITATIONS;
+            case ASSISTANT_CITATIONS -> sameDialect ? KIND_CITATIONS : KIND_SKIPPED;
             default -> KIND_SKIPPED;
             };
         }
