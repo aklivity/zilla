@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.model.avro.internal;
 
 import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -101,6 +102,30 @@ public class AvroModelPendingTest
 
     private static final long ENTRY_BINDING_ID = 7L;
     private static final long REENTRY_BINDING_ID = 8L;
+
+    private static final String ARRAY_RECORDS_SCHEMA = """
+        {
+            "fields":
+            [
+                {
+                    "name": "items",
+                    "type":
+                    {
+                        "type": "array",
+                        "items":
+                        {
+                            "fields": [ { "name": "name", "type": "string" } ],
+                            "name": "Item",
+                            "type": "record"
+                        }
+                    }
+                },
+                { "name": "tail", "type": "string" }
+            ],
+            "name": "Event",
+            "namespace": "io.aklivity.example",
+            "type": "record"
+        }""";
 
     private EngineContext context;
     private AvroModelConfiguration config;
@@ -213,6 +238,100 @@ public class AvroModelPendingTest
         assertEquals(0, second.consumed());
         assertEquals(0, second.produced());
         assertEquals(0, resumed);
+    }
+
+    @Test
+    public void shouldSuspendDecodeOnEveryStringInRecord()
+    {
+        byte[] value = concat(string("wait-id"), string("wait-text"), string("wait-tail"));
+
+        assertArrayEquals(value, drive(decoder(RECORD_SCHEMA, ModelTransform.NONE), value));
+        assertEquals(3, pending.lookups);
+    }
+
+    @Test
+    public void shouldSuspendEncodeOnEveryStringInRecord()
+    {
+        byte[] value = concat(string("wait-id"), string("wait-text"), string("wait-tail"));
+        ModelPipeline pipeline =
+            newHandler(RECORD_SCHEMA).supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE, this::onResumed);
+
+        assertArrayEquals(value, drive(pipeline, value));
+        assertEquals(3, pending.lookups);
+    }
+
+    @Test
+    public void shouldSuspendDecodeOnEveryStringInArrayOfRecords()
+    {
+        byte[] value = concat(varint(1), string("wait-1"), varint(1), string("wait-2"), varint(0), string("wait-tail"));
+
+        assertArrayEquals(value, drive(decoder(ARRAY_RECORDS_SCHEMA, ModelTransform.NONE), value));
+        assertEquals(3, pending.lookups);
+    }
+
+    @Test
+    public void shouldSuspendDecodeOnLastString()
+    {
+        byte[] value = concat(string("id0"), string("text"), string("wait-tail"));
+
+        assertArrayEquals(value, drive(decoder(RECORD_SCHEMA, ModelTransform.NONE), value));
+        assertEquals(1, pending.lookups);
+    }
+
+    @Test
+    public void shouldSuspendDecodeOnWindowBoundary()
+    {
+        byte[] first = concat(string("wait-id"));
+        byte[] second = concat(string("wait-text"), string("wait-tail"));
+        ModelPipeline pipeline = decoder(RECORD_SCHEMA, ModelTransform.NONE);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ByteArrayOutputStream drained = new ByteArrayOutputStream();
+
+        UnsafeBufferEx window = new UnsafeBufferEx(first);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, INIT, window, 0, first.length, dst, 0, dst.capacity());
+        drain(dst, result.produced(), drained);
+        assertEquals(ModelStatus.SUSPENDED, result.status());
+
+        pending.complete();
+        result = pipeline.transform(0L, 0L, 0L, 0, window, 0, first.length, dst, 0, dst.capacity());
+        drain(dst, result.produced(), drained);
+        assertEquals(ModelStatus.UNDERFLOW, result.status());
+        assertEquals(first.length, result.consumed());
+
+        window = new UnsafeBufferEx(second);
+        result = pipeline.transform(0L, 0L, 0L, FIN, window, 0, second.length, dst, 0, dst.capacity());
+        drain(dst, result.produced(), drained);
+        while (result.status() == ModelStatus.SUSPENDED)
+        {
+            pending.complete();
+            result = pipeline.transform(0L, 0L, 0L, FIN, window, 0, second.length, dst, 0, dst.capacity());
+            drain(dst, result.produced(), drained);
+        }
+
+        assertEquals(ModelStatus.COMPLETE, result.status());
+        assertArrayEquals(concat(first, second), drained.toByteArray());
+        assertEquals(3, pending.lookups);
+    }
+
+    private byte[] drive(
+        ModelPipeline pipeline,
+        byte[] value)
+    {
+        UnsafeBufferEx src = new UnsafeBufferEx(value);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ByteArrayOutputStream drained = new ByteArrayOutputStream();
+
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE, src, 0, value.length, dst, 0, dst.capacity());
+        drain(dst, result.produced(), drained);
+        while (result.status() == ModelStatus.SUSPENDED)
+        {
+            pending.complete();
+            result = pipeline.transform(0L, 0L, 0L, FIN, src, 0, value.length, dst, 0, dst.capacity());
+            drain(dst, result.produced(), drained);
+        }
+
+        assertEquals(ModelStatus.COMPLETE, result.status());
+        return drained.toByteArray();
     }
 
     private byte[] assertSuspendedThenResumed(
