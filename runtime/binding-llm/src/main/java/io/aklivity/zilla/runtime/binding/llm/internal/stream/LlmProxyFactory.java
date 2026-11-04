@@ -477,9 +477,9 @@ public final class LlmProxyFactory implements LlmStreamFactory
             long affinity,
             OctetsFW extension)
         {
-            doBegin(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, affinity, extension);
             this.state = StreamState.openingReply(state);
+            doBegin(network, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
+                    traceId, authorization, affinity, extension);
         }
 
         private void doNetData(
@@ -491,7 +491,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             OctetsFW payload,
             OctetsFW extension)
         {
-            doData(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doData(network, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, flags, budgetId, reserved, payload, extension);
             this.replySeq += reserved;
         }
@@ -503,8 +503,8 @@ public final class LlmProxyFactory implements LlmStreamFactory
         {
             if (!StreamState.replyClosed(state))
             {
-                doEnd(network, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, extension);
                 this.state = StreamState.closeReply(state);
+                doEnd(network, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization, extension);
             }
         }
 
@@ -515,8 +515,9 @@ public final class LlmProxyFactory implements LlmStreamFactory
         {
             if (!StreamState.replyClosed(state))
             {
-                doAbort(network, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, extension);
+                this.state = StreamState.abortingReply(state);
                 this.state = StreamState.closeReply(state);
+                doAbort(network, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization, extension);
             }
         }
 
@@ -527,7 +528,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             int reserved,
             OctetsFW extension)
         {
-            doFlush(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
+            doFlush(network, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, budgetId, reserved, extension);
         }
 
@@ -549,7 +550,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
                 this.initialMax = minInitialMax;
                 this.state = StreamState.openInitial(state);
 
-                doWindow(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doWindow(network, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                         traceId, authorization, budgetId, minInitialPad, minimum, capabilities);
             }
         }
@@ -667,7 +668,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
         {
             if (!StreamState.initialClosed(state))
             {
-                doReset(network, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
+                doReset(network, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId, authorization,
                     extension);
                 this.state = StreamState.closeInitial(state);
             }
@@ -682,11 +683,11 @@ public final class LlmProxyFactory implements LlmStreamFactory
             {
                 this.state = StreamState.openInitial(state);
 
-                doWindow(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doWindow(network, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                         traceId, authorization, 0L, 0, 0, 0);
             }
 
-            doChallenge(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doChallenge(network, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, extension);
         }
 
@@ -814,12 +815,15 @@ public final class LlmProxyFactory implements LlmStreamFactory
             long affinity,
             OctetsFW extension)
         {
+            this.state = StreamState.openingInitial(state);
+
             final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(initialId)
                 .sequence(initialSeq)
                 .acknowledge(initialAck)
+                .state(state)
                 .maximum(initialMax)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -830,8 +834,6 @@ public final class LlmProxyFactory implements LlmStreamFactory
             this.app = streamFactory.newStream(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof(),
                 this::onAppMessage);
             app.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
-
-            this.state = StreamState.openingInitial(state);
         }
 
         private void onAppMessage(
@@ -1024,7 +1026,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             OctetsFW payload,
             OctetsFW extension)
         {
-            doData(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doData(app, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, flags, budgetId, reserved, payload, extension);
             this.initialSeq += reserved;
         }
@@ -1036,7 +1038,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
         {
             if (!StreamState.initialClosed(state))
             {
-                doEnd(app, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
+                doEnd(app, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId, authorization,
                         extension);
                 this.state = StreamState.closeInitial(state);
             }
@@ -1049,7 +1051,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
         {
             if (!StreamState.initialClosed(state))
             {
-                doAbort(app, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
+                doAbort(app, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId, authorization,
                         extension);
                 this.state = StreamState.closeInitial(state);
             }
@@ -1062,7 +1064,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             int reserved,
             OctetsFW extension)
         {
-            doFlush(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+            doFlush(app, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, budgetId, reserved, extension);
         }
 
@@ -1082,8 +1084,9 @@ public final class LlmProxyFactory implements LlmStreamFactory
             {
                 this.replyAck = newReplyAck;
                 this.replyMax = minReplyMax;
+                this.state = StreamState.openReply(state);
 
-                doWindow(app, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                doWindow(app, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                         traceId, authorization, budgetId, minReplyPad, minimum, capabilities);
             }
         }
@@ -1095,8 +1098,8 @@ public final class LlmProxyFactory implements LlmStreamFactory
         {
             if (!StreamState.replyClosed(state))
             {
-                doReset(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, extension);
                 this.state = StreamState.closeReply(state);
+                doReset(app, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization, extension);
             }
         }
 
@@ -1105,7 +1108,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             long authorization,
             OctetsFW extension)
         {
-            doChallenge(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, extension);
+            doChallenge(app, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization, extension);
         }
 
         private int heldReplyBytes()
@@ -2085,6 +2088,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -2097,6 +2101,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -2114,6 +2119,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -2129,6 +2135,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -2149,6 +2156,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -2160,6 +2168,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -2176,6 +2185,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -2187,6 +2197,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -2203,6 +2214,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -2216,6 +2228,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -2234,6 +2247,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -2248,6 +2262,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -2267,6 +2282,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -2278,6 +2294,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
@@ -2294,6 +2311,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -2305,6 +2323,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
+            .state(state)
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
