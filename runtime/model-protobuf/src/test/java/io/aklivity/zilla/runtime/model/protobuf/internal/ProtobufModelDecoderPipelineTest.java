@@ -27,6 +27,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayOutputStream;
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -383,6 +384,25 @@ public class ProtobufModelDecoderPipelineTest
     }
 
     @Test
+    public void shouldExposeBindingIdToExtensionTransformAcrossReentry()
+    {
+        Pending transform = new Pending();
+        ProtobufModelHandlerImpl handler = newHandler("json", List.of(pending(transform)));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, () ->
+        {
+        });
+
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ModelPipelineResult first = pipeline.transform(0L, 42L, 0L, COMPLETE, new UnsafeBufferEx(WIRE), 0, WIRE.length,
+            dst, 0, dst.capacity());
+        transform.complete();
+        pipeline.transform(0L, 42L, 0L, FIN, new UnsafeBufferEx(WIRE), first.consumed(), WIRE.length,
+            dst, 0, dst.capacity());
+
+        assertEquals(List.of(42L, 42L), transform.bindingIds);
+    }
+
+    @Test
     public void shouldNotReportIdentityWhenExtensionInstalled()
     {
         ProtobufModelHandlerImpl handler = newHandler(null, List.of(failing()));
@@ -596,6 +616,7 @@ public class ProtobufModelDecoderPipelineTest
     // waits for the first string value it sees, completing only when the test runs the resumer it was handed
     private static final class Pending implements ProtobufTransform
     {
+        private final List<Long> bindingIds = new ArrayList<>();
         private Runnable resumer;
         private boolean released;
         private boolean waited;
@@ -623,6 +644,7 @@ public class ProtobufModelDecoderPipelineTest
             if (event == ProtobufEvent.VALUE && !waited)
             {
                 resumer = control.resumer();
+                bindingIds.add(control.bindingId());
                 waited = released;
                 status = released ? sink.transform(control, source, event) : ProtobufPipeline.Status.PENDING;
             }

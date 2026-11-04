@@ -144,6 +144,7 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
         }
         else
         {
+            active.bindingId(bindingId);
             active.authorization(authorization);
             boolean last = hasFin(flags);
             ProtobufPipelineResult proto = active.transform(src, srcIndex + prefix, srcIndex + srcLength, last,

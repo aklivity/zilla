@@ -62,6 +62,19 @@ public interface ProtobufController
     }
 
     /**
+     * Returns the namespaced identifier of the binding this pipeline is currently driven for, as given by
+     * the caller of the driving transform. It holds for the whole call, including re-entry after a stage
+     * returned {@link ProtobufPipeline.Status#PENDING}. The default is {@code 0L}, in force when the pipeline
+     * was supplied no binding.
+     *
+     * @return the binding identifier in effect for the current call
+     */
+    default long bindingId()
+    {
+        return 0L;
+    }
+
+    /**
      * Returns the callback that signals this pipeline's caller that asynchronous work a stage started has
      * completed. A stage that cannot finish an event immediately starts that work, retains the callback, and
      * returns {@link ProtobufPipeline.Status#PENDING}; when the work completes it runs the callback, the caller

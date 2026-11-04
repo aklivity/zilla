@@ -106,6 +106,17 @@ public interface ProtobufPipeline
     }
 
     /**
+     * Sets the binding identifier in effect for the next message {@link #transform fed} to this pipeline,
+     * reached by any stage via {@link ProtobufController#bindingId()}. The default does nothing, for a
+     * pipeline assembled with no stage that reads it. Call before each {@code transform}, since a reused
+     * pipeline instance carries this value forward otherwise.
+     */
+    default void bindingId(
+        long bindingId)
+    {
+    }
+
+    /**
      * Sets the callback reached by any stage via {@link ProtobufController#resumer()}, run when asynchronous
      * work a stage started completes after it returned {@link Status#PENDING}. The default does nothing, for a
      * pipeline assembled with no stage that waits.

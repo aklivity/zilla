@@ -139,6 +139,13 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
     }
 
     @Override
+    public void bindingId(
+        long bindingId)
+    {
+        control.bindingId = bindingId;
+    }
+
+    @Override
     public void resumer(
         Runnable resumer)
     {
@@ -422,6 +429,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
     {
         private boolean segmented;
         private long authorization;
+        private long bindingId;
         private Runnable resumer = () ->
         {
         };
@@ -430,6 +438,12 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         public long authorization()
         {
             return authorization;
+        }
+
+        @Override
+        public long bindingId()
+        {
+            return bindingId;
         }
 
         @Override
