@@ -182,6 +182,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
     private static final String BLOCK_TOOL_USE = "tool_use";
     private static final String BLOCK_SERVER_TOOL_USE = "server_tool_use";
+    private static final String BLOCK_MCP_TOOL_USE = "mcp_tool_use";
     private static final String BLOCK_OTHER = "other";
     private static final String BLOCK_TEXT = "text";
     private static final String BLOCK_THINKING = "thinking";
@@ -495,6 +496,12 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             kind == KIND_TOOL_RESULT;
     }
 
+    private static boolean argumented(
+        LlmSectionType type)
+    {
+        return type == LlmSectionType.TOOL_CALL || type == LlmSectionType.SERVER_TOOL_CALL;
+    }
+
     private static boolean objectShaped(
         LlmSectionType type)
     {
@@ -678,8 +685,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private int controlDepth;
         private LlmAnthropicResponseDecoder controlThen;
         private JsonObject usageMerged;
-        private String knownToolId;
-        private String knownToolName;
 
         private int captureDepth;
         private int captureFrom;
@@ -745,7 +750,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             {
                 closing = 0;
             }
-            else if (sectionType == LlmSectionType.TOOL_CALL)
+            else if (argumented(sectionType))
             {
                 closing = ARGUMENTS_EMPTY.length + ARGUMENTS_SUFFIX.length + replyPad;
             }
@@ -1233,8 +1238,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             highSurrogate = 0;
             cleanupEncodeSlot();
             cleanupControlSlot();
-            knownToolId = null;
-            knownToolName = null;
             decoder = decodeLookahead;
         }
 
@@ -1904,7 +1907,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             {
                 final JsonEvent event = parser.nextEvent();
 
-                if (event == JsonEvent.START_OBJECT && BLOCK_TOOL_USE.equals(blockType))
+                if (event == JsonEvent.START_OBJECT && toolCallSection() != null)
                 {
                     beginSectionCapture();
                 }
@@ -1928,6 +1931,9 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
                 if (event == JsonEvent.START_OBJECT)
                 {
+                    blockType = null;
+                    toolId = null;
+                    toolName = null;
                     decoder = decodeContentBlock;
                 }
                 else
@@ -1950,11 +1956,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
                 if (event == JsonEvent.END_OBJECT)
                 {
-                    if (BLOCK_TOOL_USE.equals(blockType))
+                    if (toolCallSection() != null)
                     {
-                        knownToolId = toolId;
-                        knownToolName = toolName;
-
                         beginToolCall();
                     }
 
@@ -2011,6 +2014,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                     final CharSequence type = parser.getStringView();
 
                     blockType = BLOCK_TOOL_USE.contentEquals(type) ? BLOCK_TOOL_USE
+                        : BLOCK_SERVER_TOOL_USE.contentEquals(type) ? BLOCK_SERVER_TOOL_USE
+                        : BLOCK_MCP_TOOL_USE.contentEquals(type) ? BLOCK_MCP_TOOL_USE
                         : BLOCK_REDACTED_THINKING.contentEquals(type) ? BLOCK_REDACTED_THINKING
                         : BLOCK_TEXT.contentEquals(type) ? BLOCK_TEXT
                         : BLOCK_THINKING.contentEquals(type) ? BLOCK_THINKING : BLOCK_OTHER;
@@ -2816,14 +2821,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             final CharSequence chars = parser.getStringView();
             final int length = chars.length();
 
-            if (!sectionOpen || sectionType != LlmSectionType.TOOL_CALL)
-            {
-                closeSection();
-                openSection(LlmSectionType.TOOL_CALL, knownToolId, knownToolName);
-                argumentsLength = 0;
-            }
-
-            if (length > 0 || highSurrogate != 0 || !deferred)
+            if (sectionOpen && argumented(sectionType) && (length > 0 || highSurrogate != 0 || !deferred))
             {
                 final int prefix = sectionStarted ? 0 : ARGUMENTS_PREFIX.length;
                 final int encoded = encodeText(chars, !deferred);
@@ -2838,10 +2836,17 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             }
         }
 
+        private LlmSectionType toolCallSection()
+        {
+            return BLOCK_TOOL_USE.equals(blockType) ? LlmSectionType.TOOL_CALL
+                : BLOCK_SERVER_TOOL_USE.equals(blockType) || BLOCK_MCP_TOOL_USE.equals(blockType)
+                    ? LlmSectionType.SERVER_TOOL_CALL : null;
+        }
+
         private void beginToolCall()
         {
             closeSection();
-            openSection(LlmSectionType.TOOL_CALL, knownToolId, knownToolName);
+            openSection(toolCallSection(), toolId, toolName);
             argumentsLength = 0;
 
             final int encoded = encodeText("", true);
@@ -3246,7 +3251,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             if (sectionOpen && sectionStarted)
             {
-                if (sectionType == LlmSectionType.TOOL_CALL)
+                if (argumented(sectionType))
                 {
                     final int encoded = putArgumentsEnd();
 
@@ -3360,7 +3365,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             captureFrom = from;
 
             closeSection();
-            openSection(LlmSectionType.TOOL_CALL, toolId, toolName);
+            openSection(toolCallSection(), toolId, toolName);
             argumentsLength = 1;
 
             emitArgumentsPiece(encodeText("", true));
@@ -3464,7 +3469,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             final int length = chars.length();
             final boolean reasoning = objectShaped(sectionType);
-            final boolean arguments = sectionType == LlmSectionType.TOOL_CALL;
+            final boolean arguments = argumented(sectionType);
             final int capacity = length * (reasoning ? REASONING_ESCAPE_EXPANSION : 3) + 8 +
                 (reasoning ? REASONING_FRAMING : arguments ? ARGUMENTS_PREFIX.length : 0);
 
