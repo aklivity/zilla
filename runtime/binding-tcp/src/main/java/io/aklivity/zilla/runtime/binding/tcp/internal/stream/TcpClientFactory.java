@@ -61,6 +61,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
@@ -312,7 +313,7 @@ public class TcpClientFactory implements TcpStreamFactory
         {
             final long traceId = supplyTraceId.getAsLong();
 
-            state = TcpState.openInitial(state);
+            state = StreamState.openInitial(state);
 
             try
             {
@@ -354,7 +355,7 @@ public class TcpClientFactory implements TcpStreamFactory
             read:
             try
             {
-                if (!TcpState.initialOpened(state) || !TcpState.replyOpened(state))
+                if (!StreamState.initialOpened(state) || !StreamState.replyOpened(state))
                 {
                     break read;
                 }
@@ -451,7 +452,7 @@ public class TcpClientFactory implements TcpStreamFactory
                     cleanupWriteSlot();
                     networkKey.clear(OP_WRITE);
 
-                    if (TcpState.initialClosing(state))
+                    if (StreamState.initialClosing(state))
                     {
                         doNetShutdownOutput(traceId);
                     }
@@ -474,7 +475,7 @@ public class TcpClientFactory implements TcpStreamFactory
         private void doNetShutdownOutput(
             long traceId)
         {
-            state = TcpState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             cleanupWriteSlot();
 
@@ -563,7 +564,7 @@ public class TcpClientFactory implements TcpStreamFactory
 
             assert initialAck <= initialSeq;
 
-            state = TcpState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             doNetConnect();
 
@@ -643,7 +644,7 @@ public class TcpClientFactory implements TcpStreamFactory
 
             assert initialAck <= initialSeq;
 
-            state = TcpState.closingInitial(state);
+            state = StreamState.closingInitial(state);
 
             if (writeSlot == NO_SLOT)
             {
@@ -682,15 +683,15 @@ public class TcpClientFactory implements TcpStreamFactory
 
             assert replyAck <= replySeq;
 
-            // TODO: assert !TcpState.replyClosed(state);
+            // TODO: assert !StreamState.replyClosed(state);
 
             // Note: asyncapi triggers duplicate synthetic reset on engine close during ITs
-            if (TcpState.replyClosed(state))
+            if (StreamState.replyClosed(state))
             {
                 return;
             }
 
-            state = TcpState.closeReply(state);
+            state = StreamState.closeReply(state);
             CloseHelper.quietClose(net::shutdownInput);
 
             cleanup(traceId);
@@ -716,7 +717,7 @@ public class TcpClientFactory implements TcpStreamFactory
 
             assert replyAck <= replySeq;
 
-            state = TcpState.openReply(state);
+            state = StreamState.openReply(state);
 
             if (replySeq + replyPad < replyAck + replyMax)
             {
@@ -727,7 +728,7 @@ public class TcpClientFactory implements TcpStreamFactory
                 networkKey.clear(OP_READ);
             }
 
-            if (replySeq + replyPad < replyAck + replyMax && !TcpState.replyClosed(state))
+            if (replySeq + replyPad < replyAck + replyMax && !StreamState.replyClosed(state))
             {
                 networkKey.register(OP_READ);
             }
@@ -739,7 +740,7 @@ public class TcpClientFactory implements TcpStreamFactory
             InetSocketAddress remoteAddress)
         {
             doBegin(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, localAddress, remoteAddress);
-            state = TcpState.openingReply(state);
+            state = StreamState.openingReply(state);
         }
 
         private void doAppData(
@@ -764,10 +765,10 @@ public class TcpClientFactory implements TcpStreamFactory
         private void doAppEnd(
             long traceId)
         {
-            if (!TcpState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doEnd(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId);
-                state = TcpState.closeReply(state);
+                state = StreamState.closeReply(state);
             }
         }
 
@@ -780,27 +781,27 @@ public class TcpClientFactory implements TcpStreamFactory
         private void doAppReset(
             long traceId)
         {
-            if (TcpState.initialOpening(state) &&
-                !TcpState.initialClosing(state))
+            if (StreamState.initialOpening(state) &&
+                !StreamState.initialClosing(state))
             {
                 doReset(app, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId);
-                state = TcpState.closeInitial(state);
+                state = StreamState.closeInitial(state);
             }
         }
 
         private void doAppAbort(
             long traceId)
         {
-            if (!TcpState.replyOpening(state) &&
-                !TcpState.replyClosed(state))
+            if (!StreamState.replyOpening(state) &&
+                !StreamState.replyClosed(state))
             {
                 doAppBegin(traceId, null, null);
             }
 
-            if (!TcpState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doAbort(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId);
-                state = TcpState.closeReply(state);
+                state = StreamState.closeReply(state);
             }
         }
 
