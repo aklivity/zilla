@@ -76,13 +76,14 @@ public final class JsonPipelineImpl implements JsonPipeline
         JsonReporter reporter,
         JsonGeneratorEx generator,
         boolean lenient,
-        JsonEnvelope envelope)
+        JsonEnvelope envelope,
+        Runnable resumer)
     {
         this.parser = parser;
         this.driver = parser;
         // the source view and the upstream controller a stage steers are adapters over the parser surface
         this.source = new Source(parser);
-        this.control = new Control(this, parser, envelope);
+        this.control = new Control(this, parser, envelope, resumer);
         this.root = root;
         this.reporter = reporter;
         this.diagnostic = new Diagnostic();
@@ -187,7 +188,7 @@ public final class JsonPipelineImpl implements JsonPipeline
                     break;
                 }
                 status = root.transform(control, source, event);
-                if (status == Status.SUSPENDED)
+                if (status == Status.SUSPENDED || status == Status.PENDING)
                 {
                     // the pump owns the resume cursor: remember the in-flight event for the next entry
                     resumeEvent = event;
@@ -209,9 +210,9 @@ public final class JsonPipelineImpl implements JsonPipeline
                 // so both convert to REJECTED; otherwise an exhausted-but-advancing pump needs more input and
                 // a stage-starved status is left as is (the stage owns that decision until then).
                 final Status drained = root.flush(control, source);
-                if (drained == Status.SUSPENDED)
+                if (drained == Status.SUSPENDED || drained == Status.PENDING)
                 {
-                    status = Status.SUSPENDED;
+                    status = drained;
                     suspendedByFlush = true;
                 }
                 else if (last)
@@ -249,7 +250,7 @@ public final class JsonPipelineImpl implements JsonPipeline
             // call-scoped view, so the reporter must copy out anything it needs before returning
             reporter.rejected(diagnostic);
         }
-        suspended = status == Status.SUSPENDED;
+        suspended = status == Status.SUSPENDED || status == Status.PENDING;
         completed = status == Status.COMPLETED;
         return status;
     }
@@ -272,7 +273,8 @@ public final class JsonPipelineImpl implements JsonPipeline
         int produced = rejected ? 0 : generator.length();
         // SUSPENDED holds the input steady (drain and re-present the same window); otherwise the window
         // advanced by all but the unconsumed tail the caller re-presents at the front of the next window
-        int consumed = rejected || status == Status.SUSPENDED ? 0 : (limit - offset) - driver.remaining();
+        boolean held = status == Status.SUSPENDED || status == Status.PENDING;
+        int consumed = rejected || held ? 0 : (limit - offset) - driver.remaining();
         return result.set(status, consumed, produced);
     }
 
@@ -323,7 +325,7 @@ public final class JsonPipelineImpl implements JsonPipeline
         while (event != null && status == Status.COMPLETED)
         {
             status = root.transform(control, source, event);
-            if (status == Status.SUSPENDED)
+            if (status == Status.SUSPENDED || status == Status.PENDING)
             {
                 resumeEvent = event;
                 suspendedByFlush = false;
@@ -423,6 +425,7 @@ public final class JsonPipelineImpl implements JsonPipeline
     {
         private final JsonPipelineImpl pipeline;
         private final JsonEnvelope envelope;
+        private final Runnable resumer;
 
         private JsonParserEx parser;
         private boolean segmented;
@@ -431,11 +434,19 @@ public final class JsonPipelineImpl implements JsonPipeline
         private Control(
             JsonPipelineImpl pipeline,
             JsonParserEx parser,
-            JsonEnvelope envelope)
+            JsonEnvelope envelope,
+            Runnable resumer)
         {
             this.pipeline = pipeline;
             this.parser = parser;
             this.envelope = envelope;
+            this.resumer = resumer;
+        }
+
+        @Override
+        public Runnable resumer()
+        {
+            return resumer;
         }
 
         @Override

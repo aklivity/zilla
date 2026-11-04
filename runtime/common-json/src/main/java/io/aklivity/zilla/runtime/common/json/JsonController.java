@@ -45,6 +45,21 @@ public interface JsonController
     }
 
     /**
+     * Returns the callback a stage runs when asynchronous work it started completes, after it returned
+     * {@link JsonPipeline.Status#PENDING}. Running it notifies whoever drives the pipeline, through the callback
+     * given to {@link JsonStream#resuming(Runnable)}, to call {@link JsonPipeline#transform} again so the pending
+     * stage is re-entered. The callback must run on the thread driving the pipeline, never from another thread. A
+     * mediating stage passes its upstream's through. The default does nothing, for a pipeline that never received
+     * a callback.
+     *
+     * @return the callback to run when asynchronous work completes
+     */
+    default Runnable resumer()
+    {
+        return () -> {};
+    }
+
+    /**
      * Returns the metadata travelling alongside the value being transformed, addressed by name rather than
      * by position within the value. The default is {@link JsonEnvelope#NONE}, in force when no envelope
      * was supplied to the pipeline, so a stage reads an empty envelope rather than no envelope at all. A

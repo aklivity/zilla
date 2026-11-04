@@ -44,6 +44,7 @@ public final class JsonStreamImpl implements JsonStream
 
     private JsonReporter reporter = JsonReporter.NONE;
     private JsonEnvelope envelope = JsonEnvelope.NONE;
+    private Runnable resumer = () -> {};
     private boolean lenient;
 
     public JsonStreamImpl(
@@ -86,10 +87,18 @@ public final class JsonStreamImpl implements JsonStream
     }
 
     @Override
+    public JsonStream resuming(
+        Runnable resumed)
+    {
+        this.resumer = resumed != null ? resumed : () -> {};
+        return this;
+    }
+
+    @Override
     public JsonPipeline into(
         JsonSink sink)
     {
-        return new JsonPipelineImpl(parser, bind(sink), reporter, null, lenient, envelope);
+        return new JsonPipelineImpl(parser, bind(sink), reporter, null, lenient, envelope, resumer);
     }
 
     @Override
@@ -98,7 +107,8 @@ public final class JsonStreamImpl implements JsonStream
     {
         // the generator self-wraps an empty buffer on construction, so it is already in a sink-safe
         // state here; transform re-targets it at the caller's destination per call
-        return new JsonPipelineImpl(parser, bind(new JsonSinkImpl(generator)), reporter, generator, lenient, envelope);
+        return new JsonPipelineImpl(parser, bind(new JsonSinkImpl(generator)), reporter, generator, lenient, envelope,
+            resumer);
     }
 
     @Override
@@ -107,7 +117,8 @@ public final class JsonStreamImpl implements JsonStream
         Map<String, ?> config)
     {
         boolean canonical = config.get(JsonSink.DELIVERY) == JsonSink.Delivery.STRUCTURED;
-        return new JsonPipelineImpl(parser, bind(new JsonSinkImpl(generator, canonical)), reporter, generator, lenient, envelope);
+        return new JsonPipelineImpl(parser, bind(new JsonSinkImpl(generator, canonical)), reporter, generator, lenient,
+            envelope, resumer);
     }
 
     private JsonSink bind(

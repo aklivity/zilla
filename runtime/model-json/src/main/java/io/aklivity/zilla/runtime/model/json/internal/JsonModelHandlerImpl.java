@@ -54,6 +54,7 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
 
     // forces canonical re-rendering on the decode pipeline once an extension is installed -- see
     // newPipeline's own note on why byte-preserving delivery is unsafe once a value can be substituted
+    private static final Runnable NO_RESUME = () -> {};
     private static final Map<String, Object> STRUCTURED_DELIVERY = Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED);
 
     private final JsonModelConfig options;
@@ -80,8 +81,26 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
         ModelTransform transform,
         ModelCache cache)
     {
+        return supplyDecoder(envelope, transform, cache, NO_RESUME);
+    }
+
+    @Override
+    public ModelPipeline supplyDecoder(
+        ModelEnvelope envelope,
+        ModelTransform transform,
+        Runnable resumed)
+    {
+        return supplyDecoder(envelope, transform, ModelCache.NONE, resumed);
+    }
+
+    private ModelPipeline supplyDecoder(
+        ModelEnvelope envelope,
+        ModelTransform transform,
+        ModelCache cache,
+        Runnable resumed)
+    {
         return new JsonModelDecoderPipeline(this, JsonModelEnvelope.of(requireNonNull(envelope)), requireNonNull(transform),
-            cache);
+            cache, requireNonNull(resumed));
     }
 
     @Override
@@ -89,7 +108,17 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
         ModelEnvelope envelope,
         ModelTransform transform)
     {
-        return new JsonModelEncoderPipeline(this, JsonModelEnvelope.of(requireNonNull(envelope)), requireNonNull(transform));
+        return supplyEncoder(envelope, transform, NO_RESUME);
+    }
+
+    @Override
+    public ModelPipeline supplyEncoder(
+        ModelEnvelope envelope,
+        ModelTransform transform,
+        Runnable resumed)
+    {
+        return new JsonModelEncoderPipeline(this, JsonModelEnvelope.of(requireNonNull(envelope)), requireNonNull(transform),
+            requireNonNull(resumed));
     }
 
     // a catalog that frames values is stripped of it on decode (and re-emits it on WRITE), so the bytes change
@@ -189,7 +218,8 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
         JsonTransform fieldTransform,
         JsonReporter reporter,
         JsonEnvelope envelope,
-        ModelCache cache)
+        ModelCache cache,
+        Runnable resumed)
     {
         JsonSchema schema = supplySchema(schemaId);
         JsonStream stream = schema != null
@@ -200,6 +230,7 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
                 .lenient(lenient)
                 .reporting(reporter)
                 .envelope(envelope)
+                .resuming(resumed)
             : null;
         return terminal != null
             ? exts.isEmpty() && fieldTransform == null
@@ -220,7 +251,8 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
         JsonGeneratorEx generator,
         JsonTransform fieldTransform,
         JsonReporter reporter,
-        JsonEnvelope envelope)
+        JsonEnvelope envelope,
+        Runnable resumed)
     {
         JsonSchema schema = supplySchema(schemaId);
         JsonStream stream = schema != null
@@ -231,6 +263,7 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
                 .lenient(lenient)
                 .reporting(reporter)
                 .envelope(envelope)
+                .resuming(resumed)
             : null;
         return terminal != null
             ? exts.isEmpty() && fieldTransform == null
