@@ -46,6 +46,7 @@ public final class ZillaTypeSystem implements TypeSystemSpi
     public static final TypeInfo<String> OPTION_ALIGNMENT = new TypeInfo<>("alignment", String.class);
     public static final TypeInfo<Long> OPTION_AFFINITY = new TypeInfo<>("affinity", Long.class);
     public static final TypeInfo<Long> OPTION_REDIRECTED_ID = new TypeInfo<>("redirectedId", Long.class);
+    public static final TypeInfo<Long> OPTION_CIRCUIT_ID = new TypeInfo<>("circuitId", Long.class);
     public static final TypeInfo<Byte> OPTION_CAPABILITIES = new TypeInfo<>("capabilities", Byte.class);
     public static final TypeInfo<String> OPTION_TIMESTAMPS = new TypeInfo<>("timestamps", String.class);
     public static final TypeInfo<Integer> OPTION_FLAGS = new TypeInfo<>("flags", Integer.class);
@@ -100,6 +101,7 @@ public final class ZillaTypeSystem implements TypeSystemSpi
         acceptOptions.add(OPTION_ALIGNMENT);
         acceptOptions.add(OPTION_AFFINITY);
         acceptOptions.add(OPTION_REDIRECTED_ID);
+        acceptOptions.add(OPTION_CIRCUIT_ID);
         acceptOptions.add(OPTION_CAPABILITIES);
         acceptOptions.add(OPTION_TIMESTAMPS);
         this.acceptOptions = unmodifiableSet(acceptOptions);
@@ -121,6 +123,7 @@ public final class ZillaTypeSystem implements TypeSystemSpi
         connectOptions.add(OPTION_ALIGNMENT);
         connectOptions.add(OPTION_AFFINITY);
         connectOptions.add(OPTION_REDIRECTED_ID);
+        connectOptions.add(OPTION_CIRCUIT_ID);
         connectOptions.add(OPTION_CAPABILITIES);
         connectOptions.add(OPTION_TIMESTAMPS);
         this.connectOptions = unmodifiableSet(connectOptions);

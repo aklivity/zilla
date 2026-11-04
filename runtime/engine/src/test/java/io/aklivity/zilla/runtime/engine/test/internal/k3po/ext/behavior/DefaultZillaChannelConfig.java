@@ -22,6 +22,7 @@ import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.Zill
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_BUDGET_ID;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_BYTE_ORDER;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_CAPABILITIES;
+import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_CIRCUIT_ID;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_PADDABLE;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_PADDING;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_REDIRECTED_ID;
@@ -55,6 +56,7 @@ public class DefaultZillaChannelConfig extends DefaultChannelConfig implements Z
     private ZillaUpdateMode update = ZillaUpdateMode.STREAM;
     private long affinity;
     private long redirectedId;
+    private long circuitId;
     private byte capabilities;
     private boolean timestamps;
 
@@ -216,6 +218,19 @@ public class DefaultZillaChannelConfig extends DefaultChannelConfig implements Z
     }
 
     @Override
+    public void setCircuitId(
+        long circuitId)
+    {
+        this.circuitId = circuitId;
+    }
+
+    @Override
+    public long getCircuitId()
+    {
+        return circuitId;
+    }
+
+    @Override
     public void setCapabilities(
         byte capabilities)
     {
@@ -297,6 +312,10 @@ public class DefaultZillaChannelConfig extends DefaultChannelConfig implements Z
         else if (OPTION_REDIRECTED_ID.getName().equals(key))
         {
             setRedirectedId(convertToLong(value));
+        }
+        else if (OPTION_CIRCUIT_ID.getName().equals(key))
+        {
+            setCircuitId(convertToLong(value));
         }
         else if (OPTION_CAPABILITIES.getName().equals(key))
         {

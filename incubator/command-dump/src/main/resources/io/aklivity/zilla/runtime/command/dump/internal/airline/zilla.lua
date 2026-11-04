@@ -129,6 +129,7 @@ add_field("authorization", ProtoField.uint64("zilla.authorization", "Authorizati
 -- begin frame
 add_field("affinity", ProtoField.uint64("zilla.affinity", "Affinity", base.HEX))
 add_field("redirected_id", ProtoField.uint64("zilla.redirected_id", "Redirected ID", base.HEX))
+add_field("circuit_id", ProtoField.uint64("zilla.circuit_id", "Circuit ID", base.HEX))
 
 -- data frame
 add_field("flags", ProtoField.uint8("zilla.flags", "Flags", base.HEX))
@@ -282,7 +283,9 @@ function handle_begin_frame(buffer, offset, subtree, pinfo, info)
     subtree:add_le(fields.affinity, slice_affinity)
     local slice_redirected_id = buffer(offset + 8, 8)
     subtree:add_le(fields.redirected_id, slice_redirected_id)
-    handle_extension(buffer, subtree, pinfo, info, offset + 16, BEGIN_ID)
+    local slice_circuit_id = buffer(offset + 16, 8)
+    subtree:add_le(fields.circuit_id, slice_circuit_id)
+    handle_extension(buffer, subtree, pinfo, info, offset + 24, BEGIN_ID)
 end
 
 function handle_redirect_frame(buffer, offset, subtree, pinfo, info)

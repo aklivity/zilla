@@ -252,6 +252,16 @@ request direction, reply = response direction).
 | `routedId`      | `long` | Routed binding identifier                          |
 | `authorization` | `long` | Authorization context carried on the stream        |
 | `affinity`      | `long` | Affinity hint for stream routing                   |
+| `circuitId`     | `long` | Group of streams whose failures this stream shares |
+
+`circuitId` is carried on `BEGIN` alongside `affinity` (the worker a stream is
+pinned to) and `budgetId` (the budget it shares). It is opaque to the engine and
+chosen by the caller; the engine does not allocate it. `0` means no circuit. A
+non-zero value is a name, so the same name must give the same value on every
+worker and after a restart; a 64-bit hash of the caller's own name, with a hash
+of `0` remapped to `1`, is recommended. Only the hop that creates the `BEGIN`
+sets it; no hop in between has to forward it. The default of `0` leaves existing
+bindings and scripts unchanged.
 
 **Flow-control fields (declared per direction):**
 
