@@ -151,6 +151,35 @@ public class ProtobufModelEncoderPipelineTest
     }
 
     @Test
+    public void shouldKeepTailWhenCallerRedrivesPendingWithEmptySource()
+    {
+        Pending transform = new Pending(true);
+        ProtobufModelHandlerImpl handler = newHandler("SimpleMessage", List.of(pending(transform)));
+        ModelPipeline pipeline = handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE, () ->
+        {
+        });
+
+        byte[] in = JSON.getBytes(UTF_8);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE, new UnsafeBufferEx(in), 0, in.length,
+            dst, 0, dst.capacity());
+        drain(dst, result.produced(), out);
+        assertEquals(in.length, result.consumed());
+        int guard = 0;
+        while (result.status() == ModelStatus.SUSPENDED && guard++ < 100)
+        {
+            transform.complete();
+            result = pipeline.transform(0L, 0L, 0L, 0, new UnsafeBufferEx(new byte[0]), 0, 0,
+                dst, 0, dst.capacity());
+            drain(dst, result.produced(), out);
+        }
+
+        assertEquals(ModelStatus.COMPLETE, result.status());
+        assertArrayEquals(WIRE, out.toByteArray());
+    }
+
+    @Test
     public void shouldReportDeterministicWithoutIdentityBeforeAnyData()
     {
         ProtobufModelHandlerImpl handler = newHandler();
@@ -272,9 +301,21 @@ public class ProtobufModelEncoderPipelineTest
     // waits for the first string value it sees, completing only when the test runs the resumer it was handed
     private static final class Pending implements ProtobufTransform
     {
+        private final boolean every;
         private Runnable resumer;
         private boolean released;
         private boolean waited;
+
+        private Pending()
+        {
+            this(false);
+        }
+
+        private Pending(
+            boolean every)
+        {
+            this.every = every;
+        }
 
         void complete()
         {
@@ -296,11 +337,12 @@ public class ProtobufModelEncoderPipelineTest
             ProtobufSink sink)
         {
             ProtobufPipeline.Status status;
-            if (event == ProtobufEvent.VALUE && !waited)
+            if (event == ProtobufEvent.VALUE && (every || !waited))
             {
                 resumer = control.resumer();
                 waited = released;
                 status = released ? sink.transform(control, source, event) : ProtobufPipeline.Status.PENDING;
+                released &= !every;
             }
             else
             {

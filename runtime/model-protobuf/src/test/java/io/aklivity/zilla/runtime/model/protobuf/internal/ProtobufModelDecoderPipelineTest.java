@@ -467,6 +467,108 @@ public class ProtobufModelDecoderPipelineTest
     }
 
     @Test
+    public void shouldKeepTailWhenCallerRedrivesPendingWithEmptySource()
+    {
+        String schema = """
+                        syntax = "proto3";
+                        package io.aklivity.examples.clients.proto;
+                        message Pair {
+                            string first = 1;
+                            string second = 2;
+                            string third = 3;
+                        }
+                        """;
+        byte[] wire = {0x00,
+            0x0a, 0x03, 'o', 'n', 'e',
+            0x12, 0x03, 't', 'w', 'o',
+            0x1a, 0x05, 't', 'h', 'r', 'e', 'e'};
+
+        byte[] expected = decodeWhole(newHandler(null, List.of(), schema, "Pair"), wire);
+
+        Pending transform = new Pending(true);
+        ProtobufModelHandlerImpl handler = newHandler(null, List.of(pending(transform)), schema, "Pair");
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, () ->
+        {
+        });
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+        // the whole value is delivered once, with FIN; every re-drive carries no input and no flags
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE, new UnsafeBufferEx(wire), 0, wire.length,
+            dst, 0, dst.capacity());
+        drain(dst, result.produced(), out);
+        assertEquals(wire.length, result.consumed());
+        int guard = 0;
+        while (result.status() == ModelStatus.SUSPENDED && guard++ < 100)
+        {
+            transform.complete();
+            result = pipeline.transform(0L, 0L, 0L, 0, new UnsafeBufferEx(new byte[0]), 0, 0,
+                dst, 0, dst.capacity());
+            drain(dst, result.produced(), out);
+        }
+
+        assertEquals(ModelStatus.COMPLETE, result.status());
+        assertArrayEquals(expected, out.toByteArray());
+    }
+
+    @Test
+    public void shouldKeepTailAcrossFragmentBoundaryWhenPending()
+    {
+        String schema = """
+                        syntax = "proto3";
+                        package io.aklivity.examples.clients.proto;
+                        message Pair {
+                            string first = 1;
+                            string second = 2;
+                            string third = 3;
+                        }
+                        """;
+        byte[] wire = {0x00,
+            0x0a, 0x03, 'o', 'n', 'e',
+            0x12, 0x03, 't', 'w', 'o',
+            0x1a, 0x05, 't', 'h', 'r', 'e', 'e'};
+        int boundary = 11;
+
+        byte[] expected = decodeWhole(newHandler(null, List.of(), schema, "Pair"), wire);
+
+        Pending transform = new Pending(true);
+        ProtobufModelHandlerImpl handler = newHandler(null, List.of(pending(transform)), schema, "Pair");
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, () ->
+        {
+        });
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, INIT, new UnsafeBufferEx(wire), 0, boundary,
+            dst, 0, dst.capacity());
+        drain(dst, result.produced(), out);
+        int position = result.consumed();
+        boolean second = false;
+        int guard = 0;
+        while (result.status() != ModelStatus.COMPLETE && guard++ < 100)
+        {
+            if (result.status() == ModelStatus.SUSPENDED)
+            {
+                transform.complete();
+                result = pipeline.transform(0L, 0L, 0L, 0, new UnsafeBufferEx(new byte[0]), 0, 0,
+                    dst, 0, dst.capacity());
+            }
+            else
+            {
+                assertEquals(ModelStatus.UNDERFLOW, result.status());
+                assertTrue(!second);
+                second = true;
+                result = pipeline.transform(0L, 0L, 0L, FIN, new UnsafeBufferEx(wire), boundary, wire.length,
+                    dst, 0, dst.capacity());
+            }
+            drain(dst, result.produced(), out);
+        }
+
+        assertEquals(ModelStatus.COMPLETE, result.status());
+        assertArrayEquals(expected, out.toByteArray());
+    }
+
+    @Test
     public void shouldNotReportIdentityWhenExtensionInstalled()
     {
         ProtobufModelHandlerImpl handler = newHandler(null, List.of(failing()));

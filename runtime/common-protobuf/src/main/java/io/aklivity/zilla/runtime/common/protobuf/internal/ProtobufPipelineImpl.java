@@ -61,6 +61,13 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
     private final boolean lenient;
 
     private final ExpandableArrayBufferEx pendingBuffer;
+    private ExpandableArrayBufferEx tail;
+    private ExpandableArrayBufferEx tailSwap;
+    // the unconsumed input the pipeline holds for itself once a stage returned PENDING, since the caller
+    // re-drives a suspended pipeline without re-presenting what it already handed over
+    private int tailLength;
+    // the final window was seen, so a re-drive that carries no flags still ends the message
+    private boolean inputLast;
     private final UnsafeBufferEx pendingSegment;
 
     private boolean suspended;
@@ -96,6 +103,8 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         this.control = new Control();
         this.envelope = envelope;
         this.pendingBuffer = new ExpandableArrayBufferEx();
+        this.tail = new ExpandableArrayBufferEx();
+        this.tailSwap = new ExpandableArrayBufferEx();
         this.pendingSegment = new UnsafeBufferEx(new byte[0]);
 
         ProtobufSink chain = sink;
@@ -117,6 +126,8 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         resumeEvent = null;
         pending = null;
         retained = null;
+        tailLength = 0;
+        inputLast = false;
     }
 
     @Override
@@ -270,12 +281,20 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         // across a SUSPENDED drain, then pump the same window the existing transform contract expects; the
         // protobuf generator bounds writes by a length from the offset, so pass dstLimit - dstOffset
         generator.wrap(dst, dstOffset, dstLimit - dstOffset);
-        Status status = transform(src, offset, limit, last);
-        boolean rejected = status == Status.REJECTED;
-        if (status == Status.PENDING)
+        int srcLength = limit - offset;
+        boolean held = tailLength > 0;
+        boolean appended = held && !suspended && srcLength > 0;
+        if (appended)
         {
-            generator.pause();
+            tail.putBytes(tailLength, src, offset, srcLength);
+            tailLength += srcLength;
         }
+        DirectBufferEx window = held ? tail : src;
+        int windowOffset = held ? 0 : offset;
+        int windowLimit = held ? tailLength : limit;
+        inputLast |= last;
+        Status status = transform(window, windowOffset, windowLimit, inputLast);
+        boolean rejected = status == Status.REJECTED;
         if (status == Status.COMPLETED)
         {
             // finalize the document: the wire generator's records are already closed (a no-op at completion),
@@ -288,11 +307,54 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
             // as for a drain: they are reopened with the next field and the fragments merge on decode
             generator.flush();
         }
+        else if (status == Status.PENDING)
+        {
+            generator.pause();
+        }
         int produced = rejected ? 0 : generator.length();
-        // SUSPENDED holds the input steady (drain and re-present the same window); otherwise the window
-        // advanced by all but the unconsumed tail the caller re-presents at the front of the next window
-        int consumed = rejected || status == Status.SUSPENDED ? 0 : (limit - offset) - parser.remaining();
+        int consumed;
+        if (status == Status.PENDING || held && status != Status.SUSPENDED)
+        {
+            // the pipeline owns the window from here: the unconsumed tail is kept internally and everything
+            // handed over counts as consumed, so the caller never re-presents it
+            retainTail(window, windowLimit - parser.remaining(), windowLimit, status);
+            consumed = srcLength;
+        }
+        else if (held)
+        {
+            consumed = appended ? srcLength : 0;
+        }
+        else
+        {
+            // SUSPENDED holds the input steady (drain and re-present the same window); otherwise the window
+            // advanced by all but the unconsumed tail the caller re-presents at the front of the next window
+            consumed = rejected || status == Status.SUSPENDED ? 0 : srcLength - parser.remaining();
+        }
         return result.set(status, consumed, produced);
+    }
+
+    private void retainTail(
+        DirectBufferEx window,
+        int from,
+        int to,
+        Status status)
+    {
+        int length = status == Status.REJECTED || status == Status.COMPLETED ? 0 : to - from;
+        if (window == tail)
+        {
+            if (length > 0 && from > 0)
+            {
+                tailSwap.putBytes(0, tail, from, length);
+                ExpandableArrayBufferEx swap = tail;
+                tail = tailSwap;
+                tailSwap = swap;
+            }
+        }
+        else if (length > 0)
+        {
+            tail.putBytes(0, window, from, length);
+        }
+        tailLength = length;
     }
 
     private void retain(
