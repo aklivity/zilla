@@ -4035,7 +4035,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
             final HttpBeginExFW httpBeginEx = httpBeginExBuilder.build();
 
-                state = StreamState.openInitial(state);
+            state = StreamState.openInitial(state);
             final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)

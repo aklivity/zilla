@@ -504,7 +504,8 @@ public final class LlmProxyFactory implements LlmStreamFactory
             if (!StreamState.replyClosed(state))
             {
                 this.state = StreamState.closeReply(state);
-                doEnd(network, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization, extension);
+                doEnd(network, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization,
+                    extension);
             }
         }
 
@@ -517,7 +518,8 @@ public final class LlmProxyFactory implements LlmStreamFactory
             {
                 this.state = StreamState.abortingReply(state);
                 this.state = StreamState.closeReply(state);
-                doAbort(network, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization, extension);
+                doAbort(network, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization,
+                    extension);
             }
         }
 
@@ -1099,7 +1101,8 @@ public final class LlmProxyFactory implements LlmStreamFactory
             if (!StreamState.replyClosed(state))
             {
                 this.state = StreamState.closeReply(state);
-                doReset(app, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization, extension);
+                doReset(app, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization,
+                    extension);
             }
         }
 
@@ -1108,7 +1111,8 @@ public final class LlmProxyFactory implements LlmStreamFactory
             long authorization,
             OctetsFW extension)
         {
-            doChallenge(app, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization, extension);
+            doChallenge(app, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization,
+                    extension);
         }
 
         private int heldReplyBytes()
