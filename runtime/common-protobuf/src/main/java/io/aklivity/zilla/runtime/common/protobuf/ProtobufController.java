@@ -60,4 +60,22 @@ public interface ProtobufController
         int sourceBytes)
     {
     }
+
+    /**
+     * Returns the callback that signals this pipeline's caller that asynchronous work a stage started has
+     * completed. A stage that cannot finish an event immediately starts that work, retains the callback, and
+     * returns {@link ProtobufPipeline.Status#PENDING}; when the work completes it runs the callback, the caller
+     * drives the pipeline again, and the same event is presented to that stage once more. The callback runs on
+     * the pipeline's own I/O thread, never on another, so a stage hands the completion of work done elsewhere
+     * back to that thread before running it. The default does nothing, in force when the pipeline was supplied
+     * no callback.
+     *
+     * @return the callback to run when asynchronous work completes
+     */
+    default Runnable resumer()
+    {
+        return () ->
+        {
+        };
+    }
 }

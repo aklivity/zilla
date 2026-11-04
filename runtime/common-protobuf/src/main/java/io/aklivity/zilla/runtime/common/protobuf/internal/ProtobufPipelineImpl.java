@@ -17,7 +17,9 @@ package io.aklivity.zilla.runtime.common.protobuf.internal;
 import java.util.List;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufController;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufDiagnostic;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEnvelope;
@@ -58,10 +60,20 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
     private final ProtobufPipelineResult result;
     private final boolean lenient;
 
+    private final ExpandableArrayBufferEx pendingBuffer;
+    private final UnsafeBufferEx pendingSegment;
+
     private boolean suspended;
     private boolean starved;
-    // the event in flight across an output suspend, handed to head.resume() so no sink stores it
+    // the event in flight across an output suspend or an asynchronous wait, handed back to the stage chain so
+    // no sink stores it
     private ProtobufEvent resumeEvent;
+    // the innermost stage that returned PENDING, re-entered with resumeEvent once the caller drives again
+    private ProtobufSink pending;
+    // the pending event's slice, copied out of the input window the caller releases while the stage waits,
+    // and served by the source view until the event is finally accepted
+    private DirectBufferEx retained;
+    private int pendingOffset;
 
     public ProtobufPipelineImpl(
         ProtobufParser parser,
@@ -80,9 +92,11 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         this.result = new ProtobufPipelineResult();
         // the per-edge handles the stages see: a read-only source view of the parser, and a control handle
         // that records a stage's segment request which the pump turns into the SEGMENTED mode on the next pull
-        this.source = new Source(parser);
+        this.source = new Source();
         this.control = new Control();
         this.envelope = envelope;
+        this.pendingBuffer = new ExpandableArrayBufferEx();
+        this.pendingSegment = new UnsafeBufferEx(new byte[0]);
 
         ProtobufSink chain = sink;
         for (int i = transforms.size() - 1; i >= 0; i--)
@@ -101,6 +115,8 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         diagnostic.message = null;
         diagnostic.category = null;
         resumeEvent = null;
+        pending = null;
+        retained = null;
     }
 
     @Override
@@ -123,6 +139,13 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
     }
 
     @Override
+    public void resumer(
+        Runnable resumer)
+    {
+        control.resumer = resumer;
+    }
+
+    @Override
     public int remaining()
     {
         return parser.remaining();
@@ -138,10 +161,27 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         Status status = Status.ADVANCED;
         try
         {
-            if (suspended)
+            if (pending != null)
+            {
+                // asynchronous wait: re-present the pending event to the stage that returned PENDING, over the
+                // window re-presented at the cursor, before pulling anything further
+                parser.resume(buffer, offset, limit, last);
+                ProtobufSink reentry = pending;
+                pending = null;
+                status = reentry.transform(control, source, resumeEvent);
+                if (status != Status.PENDING && status != Status.SUSPENDED)
+                {
+                    retained = null;
+                }
+            }
+            else if (suspended)
             {
                 // output back-pressure: continue the suspended work on the same window without replaying it
                 status = head.resume(control, source, resumeEvent);
+                if (status != Status.SUSPENDED)
+                {
+                    retained = null;
+                }
             }
             else if (starved)
             {
@@ -162,10 +202,14 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
                 else
                 {
                     status = head.transform(control, source, event);
-                    if (status == Status.SUSPENDED)
+                    if (status == Status.SUSPENDED || status == Status.PENDING)
                     {
                         // the pump owns the resume cursor: remember the in-flight event for the next entry
                         resumeEvent = event;
+                    }
+                    if (status == Status.PENDING)
+                    {
+                        retain(event);
                     }
                     // a sink STARVED leaves the unconsumed tail uncommitted (consumed() advanced the cursor by
                     // only what the sink took), so remaining() already reports it for the next window — no rewind
@@ -221,6 +265,12 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         generator.wrap(dst, dstOffset, dstLimit - dstOffset);
         Status status = transform(src, offset, limit, last);
         boolean rejected = status == Status.REJECTED;
+        if (status == Status.PENDING)
+        {
+            // the caller drains what was produced while this stage waits; close the open records so the next
+            // transform continues them against a fresh destination, as it does after an output suspend
+            generator.flush();
+        }
         if (status == Status.COMPLETED)
         {
             // finalize the document: the wire generator's records are already closed (a no-op at completion),
@@ -238,6 +288,25 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         // advanced by all but the unconsumed tail the caller re-presents at the front of the next window
         int consumed = rejected || status == Status.SUSPENDED ? 0 : (limit - offset) - parser.remaining();
         return result.set(status, consumed, produced);
+    }
+
+    private void retain(
+        ProtobufEvent event)
+    {
+        if (event == ProtobufEvent.VALUE || event == ProtobufEvent.SEGMENT || event == ProtobufEvent.START_MESSAGE)
+        {
+            DirectBufferEx segment = parser.segment();
+            int length = segment.capacity();
+            pendingBuffer.putBytes(0, segment, 0, length);
+            pendingOffset = 0;
+            pendingSegment.wrap(pendingBuffer, pendingOffset, length);
+            retained = pendingSegment;
+            if (event != ProtobufEvent.START_MESSAGE)
+            {
+                // commit the value past the read cursor so the caller carries only what follows it
+                parser.consumed(length);
+            }
+        }
     }
 
     private final class StageSink implements ProtobufSink
@@ -259,7 +328,12 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
             ProtobufSource source,
             ProtobufEvent event)
         {
-            return transform.transform(control, source, event, downstream);
+            Status status = transform.transform(control, source, event, downstream);
+            if (status == Status.PENDING && pending == null)
+            {
+                pending = this;
+            }
+            return status;
         }
 
         @Override
@@ -293,16 +367,8 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
 
     // the read-only view handed to stages: the parser's accessors without its cursor, so a stage reads the
     // current value but cannot advance the pump
-    private static final class Source implements ProtobufSource
+    private final class Source implements ProtobufSource
     {
-        private final ProtobufParser parser;
-
-        private Source(
-            ProtobufParser parser)
-        {
-            this.parser = parser;
-        }
-
         @Override
         public ProtobufField field()
         {
@@ -348,7 +414,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         @Override
         public DirectBufferEx segment()
         {
-            return parser.segment();
+            return retained != null ? retained : parser.segment();
         }
 
         @Override
@@ -364,6 +430,9 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
     {
         private boolean segmented;
         private long authorization;
+        private Runnable resumer = () ->
+        {
+        };
 
         @Override
         public long authorization()
@@ -378,6 +447,12 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         }
 
         @Override
+        public Runnable resumer()
+        {
+            return resumer;
+        }
+
+        @Override
         public void segmentable()
         {
             segmented = true;
@@ -387,7 +462,15 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         public void consumed(
             int sourceBytes)
         {
-            parser.consumed(sourceBytes);
+            if (retained != null)
+            {
+                pendingOffset += sourceBytes;
+                pendingSegment.wrap(pendingBuffer, pendingOffset, pendingSegment.capacity() - sourceBytes);
+            }
+            else
+            {
+                parser.consumed(sourceBytes);
+            }
         }
 
         private ProtobufParser.Mode mode()
