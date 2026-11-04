@@ -81,6 +81,11 @@ public final class EngineInfo
             .filter(Objects::nonNull)
             .collect(toList()));
         patches.addAll(metrics.values().stream().map(MetricGroupInfo::schema).filter(Objects::nonNull).collect(toList()));
+        patches.addAll(metrics.values().stream()
+            .flatMap(metric -> metric.extensions().stream())
+            .map(MetricGroupExtInfo::schema)
+            .filter(Objects::nonNull)
+            .collect(toList()));
         return patches;
     }
 
