@@ -219,6 +219,19 @@ public final class ZillaStreamFactory
                 }
             }
 
+            final long expectedCircuitId = config.getCircuitId();
+            if (channel instanceof ZillaChildChannel && expectedCircuitId != ZillaChannelConfig.NO_CIRCUIT_ID)
+            {
+                final long actualCircuitId = begin.circuitId();
+                if (actualCircuitId != expectedCircuitId)
+                {
+                    fireExceptionCaught(channel, new IllegalStateException(String.format(
+                        "expected zilla:circuitId 0x%016x but received 0x%016x",
+                        expectedCircuitId, actualCircuitId)));
+                    return;
+                }
+            }
+
             int beginExtBytes = beginExt.sizeof();
             if (beginExtBytes != 0)
             {

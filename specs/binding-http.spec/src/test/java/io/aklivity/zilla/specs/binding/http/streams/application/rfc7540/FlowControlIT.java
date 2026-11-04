@@ -189,10 +189,30 @@ public class FlowControlIT
 
     @Test
     @Specification({
+        "${app}/client.sent.end.stream.window.limited/client",
+        "${app}/client.sent.end.stream.window.limited/server"
+    })
+    public void shouldClientSentEndStreamWindowLimited() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/server.sent.second.stream.window.grants/client",
         "${app}/server.sent.second.stream.window.grants/server"
     })
     public void shouldServerSentSecondStreamWindowGrants() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/server.sent.end.stream.window.limited/client",
+        "${app}/server.sent.end.stream.window.limited/server"
+    })
+    public void shouldServerSentEndStreamWindowLimited() throws Exception
     {
         k3po.finish();
     }

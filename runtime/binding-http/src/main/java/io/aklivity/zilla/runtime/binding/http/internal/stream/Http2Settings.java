@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.http.internal.stream;
 
 import io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2ErrorCode;
+import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2Setting;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 
 public class Http2Settings
@@ -47,6 +48,35 @@ public class Http2Settings
 
     public Http2Settings()
     {
+    }
+
+    public void apply(
+        Http2Setting setting,
+        int value)
+    {
+        switch (setting)
+        {
+        case HEADER_TABLE_SIZE:
+            headerTableSize = value;
+            break;
+        case ENABLE_PUSH:
+            enablePush = value;
+            break;
+        case MAX_CONCURRENT_STREAMS:
+            maxConcurrentStreams = value;
+            break;
+        case INITIAL_WINDOW_SIZE:
+            initialWindowSize = value;
+            break;
+        case MAX_FRAME_SIZE:
+            maxFrameSize = value;
+            break;
+        case MAX_HEADER_LIST_SIZE:
+            maxHeaderListSize = value;
+            break;
+        case UNKNOWN:
+            break;
+        }
     }
 
     public void apply(

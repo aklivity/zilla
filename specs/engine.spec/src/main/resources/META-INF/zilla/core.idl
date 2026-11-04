@@ -46,6 +46,7 @@ scope core
         {
             int64 affinity;
             int64 redirectedId = 0;
+            int64 circuitId = 0;
             octets extension;
         }
 

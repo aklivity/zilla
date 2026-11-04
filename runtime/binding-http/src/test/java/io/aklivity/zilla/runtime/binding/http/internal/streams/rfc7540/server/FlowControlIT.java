@@ -158,4 +158,14 @@ public class FlowControlIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/server.sent.end.stream.window.limited/client",
+        "${app}/server.sent.end.stream.window.limited/server" })
+    public void shouldServerSentEndStreamWindowLimited() throws Exception
+    {
+        k3po.finish();
+    }
 }

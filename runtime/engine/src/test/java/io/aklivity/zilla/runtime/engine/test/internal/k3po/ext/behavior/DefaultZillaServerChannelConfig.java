@@ -53,6 +53,7 @@ public class DefaultZillaServerChannelConfig extends DefaultServerChannelConfig 
     private ZillaUpdateMode update = ZillaUpdateMode.STREAM;
     private long affinity;
     private long redirectedId;
+    private long circuitId;
     private byte capabilities;
     private boolean timestamps;
 
@@ -199,6 +200,19 @@ public class DefaultZillaServerChannelConfig extends DefaultServerChannelConfig 
     public long getRedirectedId()
     {
         return redirectedId;
+    }
+
+    @Override
+    public void setCircuitId(
+        long circuitId)
+    {
+        this.circuitId = circuitId;
+    }
+
+    @Override
+    public long getCircuitId()
+    {
+        return circuitId;
     }
 
     @Override

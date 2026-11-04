@@ -100,7 +100,6 @@ import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2PrefaceFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2PriorityFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2PushPromiseFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2RstStreamFW;
-import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2Setting;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2SettingsFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2WindowUpdateFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.HttpSseEventFW;
@@ -169,7 +168,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
     private static final int PADDING_CHUNKED = 10;
     private static final String UPGRADE_SETTINGS_DUPLICATE = "*";
-    private static final int SETTING_LENGTH = 6;
+    private static final int SETTING_BASE64_LENGTH = 8;
     private static final int UPGRADE_STREAM_ID = 1;
     private static final long MAX_REMOTE_BUDGET = Integer.MAX_VALUE;
     private static final long NO_REQUEST_ID = -1;
@@ -516,6 +515,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final HttpServerDecoder decodeUpgraded = this::decodeUpgraded;
     private final HttpServerDecoder decodeIgnore = this::decodeIgnore;
     private final HttpServerDecoder decodeDelegated = this::decodeDelegated;
+    private final HttpServerDecoder decodeDelegating = this::decodeDelegating;
 
     private final MutableInteger codecOffset = new MutableInteger();
     private final MutableBoolean hasAuthority = new MutableBoolean();
@@ -523,6 +523,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
     private final Http2PrefaceFW http2PrefaceRO = new Http2PrefaceFW();
     private final Http2FrameInfoFW http2FrameInfoRO = new Http2FrameInfoFW();
+    private final Http2FrameInfoFW encodeFrameInfoRO = new Http2FrameInfoFW();
     private final Http2SettingsFW http2SettingsRO = new Http2SettingsFW();
     private final Http2GoawayFW http2GoawayRO = new Http2GoawayFW();
     private final Http2PingFW http2PingRO = new Http2PingFW();
@@ -1117,6 +1118,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 CharSequence.compare("PRI * HTTP/2.0\r\n", new AsciiSequenceView(buffer, offset, 16)) == 0)
             {
                 server.delegate = new Http2Server(server);
+                server.decoder = decodeDelegating;
                 signaler.signalNow(server.originId, server.routedId, server.replyId, traceId, DELEGATE_SIGNAL, 0);
                 return offset;
             }
@@ -1721,6 +1723,19 @@ public final class HttpServerFactory implements HttpStreamFactory
         return offset;
     }
 
+    private int decodeDelegating(
+        HttpServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        return offset;
+    }
+
     private boolean isUpgradeH2c(
         HttpServer server)
     {
@@ -1730,25 +1745,61 @@ public final class HttpServerFactory implements HttpStreamFactory
             (server.decoder == decodeHeadersOnly || server.decoder == decodeContent);
     }
 
+    private boolean isUpgradeSettingsValid(
+        byte[] settings)
+    {
+        final Http2Settings probe = new Http2Settings();
+        wrapUpgradeSettings(settings).forEach(probe::apply);
+
+        return probe.error() == Http2ErrorCode.NO_ERROR;
+    }
+
+    private Http2SettingsFW wrapUpgradeSettings(
+        byte[] settings)
+    {
+        final int length = settings.length;
+        frameBuffer.putByte(0, (byte) (length >> 16));
+        frameBuffer.putByte(1, (byte) (length >> 8));
+        frameBuffer.putByte(2, (byte) length);
+        frameBuffer.putByte(3, Http2FrameType.SETTINGS.type());
+        frameBuffer.putByte(4, Http2Flags.NONE);
+        frameBuffer.putInt(5, 0);
+        frameBuffer.putBytes(9, settings);
+
+        return http2SettingsRO.wrap(frameBuffer, 0, 9 + length);
+    }
+
     private byte[] decodeUpgradeSettings(
         String value)
     {
         byte[] settings = null;
 
-        if (value != null)
+        if (value != null && value.length() % SETTING_BASE64_LENGTH == 0 && isBase64Url(value))
         {
-            try
-            {
-                final byte[] decoded = Base64.getUrlDecoder().decode(value);
-                settings = decoded.length % SETTING_LENGTH == 0 ? decoded : null;
-            }
-            catch (IllegalArgumentException ex)
-            {
-                settings = null;
-            }
+            final byte[] decoded = Base64.getUrlDecoder().decode(value);
+            settings = isUpgradeSettingsValid(decoded) ? decoded : null;
         }
 
         return settings;
+    }
+
+    private static boolean isBase64Url(
+        String value)
+    {
+        boolean valid = true;
+
+        for (int i = 0; valid && i < value.length(); i++)
+        {
+            final char ch = value.charAt(i);
+
+            valid = '0' <= ch && ch <= '9' ||
+                'A' <= ch && ch <= 'Z' ||
+                'a' <= ch && ch <= 'z' ||
+                ch == '-' ||
+                ch == '_';
+        }
+
+        return valid;
     }
 
     @FunctionalInterface
@@ -2414,6 +2465,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     final MutableDirectBufferEx decodeBuffer = bufferPool.buffer(decodeSlot);
                     decodeBuffer.putBytes(0, buffer, progress, limit - progress);
                     decodeSlotOffset = limit - progress;
+                    decodeSlotReserved = (int)((long) reserved * (limit - progress) / (limit - offset));
                 }
             }
             else
@@ -4782,6 +4834,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 if (decodeSlot != NO_SLOT)
                 {
                     final MutableDirectBufferEx slotBuffer = bufferPool.buffer(decodeSlot);
+                    assert decodeSlotOffset + limit - offset <= decodeMax;
                     slotBuffer.putBytes(decodeSlotOffset, buffer, offset, limit - offset);
                     decodeSlotOffset += limit - offset;
                     decodeSlotReserved += reserved;
@@ -5333,7 +5386,10 @@ public final class HttpServerFactory implements HttpStreamFactory
                 final int replyWin = replyMax - replyPendingAck();
                 final int maxEncodeLength =
                     encodeReservedSlotMarkOffset != 0 ? encodeReservedSlotMarkOffset : encodeReservedSlotOffset;
-                final int encodeLength = Math.max(Math.min(replyWin - replyPad, maxEncodeLength), 0);
+                final int encodeLengthMax = Math.max(Math.min(replyWin - replyPad, maxEncodeLength), 0);
+                final int encodeLength = encodeLengthMax < maxEncodeLength
+                    ? encodeReservedFramesLimit(encodeLengthMax)
+                    : encodeLengthMax;
 
                 if (encodeLength > 0)
                 {
@@ -5378,6 +5434,21 @@ public final class HttpServerFactory implements HttpStreamFactory
                     replyBudgetReserved += encodeReserved;
                 }
             }
+        }
+
+        private int encodeReservedFramesLimit(
+            int maxLimit)
+        {
+            int progress = 0;
+
+            Http2FrameInfoFW frameInfo = encodeFrameInfoRO.tryWrap(encodeReservedBuffer, progress, maxLimit);
+            while (frameInfo != null && frameInfo.limit() + frameInfo.length() <= maxLimit)
+            {
+                progress = frameInfo.limit() + frameInfo.length();
+                frameInfo = encodeFrameInfoRO.tryWrap(encodeReservedBuffer, progress, maxLimit);
+            }
+
+            return progress;
         }
 
         private void decodeNetworkIfNecessary(
@@ -5471,32 +5542,15 @@ public final class HttpServerFactory implements HttpStreamFactory
         private void onUpgrade(
             long traceId)
         {
-            final int length = upgradeSettings.length;
-            frameBuffer.putByte(0, (byte) (length >> 16));
-            frameBuffer.putByte(1, (byte) (length >> 8));
-            frameBuffer.putByte(2, (byte) length);
-            frameBuffer.putByte(3, Http2FrameType.SETTINGS.type());
-            frameBuffer.putByte(4, Http2Flags.NONE);
-            frameBuffer.putInt(5, 0);
-            frameBuffer.putBytes(9, upgradeSettings);
+            final Http2ErrorCode error = onDecodeRemoteSettings(wrapUpgradeSettings(upgradeSettings));
+            assert error == Http2ErrorCode.NO_ERROR;
 
-            final Http2SettingsFW http2Settings = http2SettingsRO.wrap(frameBuffer, 0, 9 + length);
-            final Http2ErrorCode error = onDecodeRemoteSettings(http2Settings);
+            doEncodeSettings(traceId, authorization);
+            doEncodeConnectionWindow(traceId, authorization);
 
-            if (error == Http2ErrorCode.NO_ERROR)
-            {
-                doEncodeSettings(traceId, authorization);
-                doEncodeConnectionWindow(traceId, authorization);
-
-                maxClientStreamId = UPGRADE_STREAM_ID;
-                onDecodeRequest(traceId, authorization, UPGRADE_STREAM_ID, upgradeHeaders, upgradeContentLength, true,
-                    upgradeContentLength == 0);
-            }
-            else
-            {
-                onDecodeError(traceId, authorization, error);
-                decoder = decodeHttp2IgnoreAll;
-            }
+            maxClientStreamId = UPGRADE_STREAM_ID;
+            onDecodeRequest(traceId, authorization, UPGRADE_STREAM_ID, upgradeHeaders, upgradeContentLength, true,
+                upgradeContentLength == 0);
         }
 
         private void onDecodePreface(
@@ -5549,7 +5603,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             Http2SettingsFW http2Settings)
         {
             final int remoteInitialBudget = remoteSettings.initialWindowSize;
-            http2Settings.forEach(this::onDecodeSetting);
+            http2Settings.forEach(remoteSettings::apply);
 
             Http2ErrorCode decodeError = remoteSettings.error();
 
@@ -5573,35 +5627,6 @@ public final class HttpServerFactory implements HttpStreamFactory
             }
 
             return decodeError;
-        }
-
-        private void onDecodeSetting(
-            Http2Setting setting,
-            int value)
-        {
-            switch (setting)
-            {
-            case HEADER_TABLE_SIZE:
-                remoteSettings.headerTableSize = value;
-                break;
-            case ENABLE_PUSH:
-                remoteSettings.enablePush = value;
-                break;
-            case MAX_CONCURRENT_STREAMS:
-                remoteSettings.maxConcurrentStreams = value;
-                break;
-            case INITIAL_WINDOW_SIZE:
-                remoteSettings.initialWindowSize = value;
-                break;
-            case MAX_FRAME_SIZE:
-                remoteSettings.maxFrameSize = value;
-                break;
-            case MAX_HEADER_LIST_SIZE:
-                remoteSettings.maxHeaderListSize = value;
-                break;
-            case UNKNOWN:
-                break;
-            }
         }
 
         private void onDecodePing(
