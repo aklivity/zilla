@@ -43,6 +43,7 @@ import io.aklivity.zilla.runtime.engine.embedding.EmbeddingHandler;
 import io.aklivity.zilla.runtime.engine.event.EventFormatter;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
+import io.aklivity.zilla.runtime.engine.metrics.MetricRecorder;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
@@ -689,6 +690,23 @@ public interface EngineContext
         int metricId,
         int attributesId,
         KindConfig bindingKind);
+
+    /**
+     * Returns a {@link MetricRecorder} for a metric that is not derived from stream frames,
+     * for the component identified by {@code namespacedId}.
+     * <p>
+     * The recorder is a no-op unless the component's {@code telemetry} selected the metric.
+     * Recorders are prepared before the component is attached, so a component can supply one
+     * while it is being constructed.
+     * </p>
+     *
+     * @param namespacedId  the namespaced id of the component
+     * @param metric        the metric name
+     * @return the metric recorder, never {@code null}
+     */
+    MetricRecorder supplyMetricRecorder(
+        long namespacedId,
+        String metric);
 
     /**
      * Returns a {@link MessageConsumer} for writing structured event frames to the engine's
