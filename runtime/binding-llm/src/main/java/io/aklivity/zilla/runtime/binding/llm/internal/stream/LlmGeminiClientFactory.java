@@ -200,8 +200,12 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final String MEMBER_EXECUTABLE_CODE = "executableCode";
     private static final String MEMBER_CODE_EXECUTION_RESULT = "codeExecutionResult";
     private static final String SERVER_TOOL_NAME = "code_execution";
+    private static final String MEMBER_TOOL_CALL = "toolCall";
+    private static final String MEMBER_TOOL_RESPONSE = "toolResponse";
+    private static final DirectBufferEx TOOL_CALL_PREFIX = new UnsafeBufferEx("{\"toolCall\":".getBytes(UTF_8));
+    private static final DirectBufferEx TOOL_RESPONSE_PREFIX = new UnsafeBufferEx("{\"toolResponse\":".getBytes(UTF_8));
     private static final DirectBufferEx SERVER_CALL_PREFIX = new UnsafeBufferEx("{\"executableCode\":".getBytes(UTF_8));
-    private static final int SERVER_CALL_GROWTH = ",\"gemini:id\":\"\"".length() - ",\"id\":\"\"".length();
+    private static final int SERVER_CALL_GROWTH = 3 * "gemini:".length() + "arguments".length() - "args".length();
     private static final DirectBufferEx RESULT_PREFIX = new UnsafeBufferEx("{\"codeExecutionResult\":".getBytes(UTF_8));
     private static final String MEMBER_WIRE_SIGNATURE = ",\"gemini:thoughtSignature\":\"";
     private static final String MEMBER_WIRE_ID = ",\"gemini:id\":\"";
@@ -611,6 +615,9 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private String sectionToolName;
         private String sectionSignature;
         private String serverCallId;
+        private String serverCallName;
+        private DirectBufferEx serverCallPrefix;
+        private DirectBufferEx serverResultPrefix;
         private LlmSectionPipeline serverCallPipeline;
         private LlmSectionPipeline capturePipeline;
         private final LlmSectionAttributes captureAttributes = new LlmSectionAttributes();
@@ -1790,10 +1797,24 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 }
                 else if (MEMBER_EXECUTABLE_CODE.contentEquals(parser.getStringView()))
                 {
+                    serverCallName = SERVER_TOOL_NAME;
+                    serverCallPrefix = SERVER_CALL_PREFIX;
+                    decoder = decodeServerCallStart;
+                }
+                else if (MEMBER_TOOL_CALL.contentEquals(parser.getStringView()))
+                {
+                    serverCallName = null;
+                    serverCallPrefix = TOOL_CALL_PREFIX;
                     decoder = decodeServerCallStart;
                 }
                 else if (MEMBER_CODE_EXECUTION_RESULT.contentEquals(parser.getStringView()))
                 {
+                    serverResultPrefix = RESULT_PREFIX;
+                    decoder = decodeServerResultStart;
+                }
+                else if (MEMBER_TOOL_RESPONSE.contentEquals(parser.getStringView()))
+                {
+                    serverResultPrefix = TOOL_RESPONSE_PREFIX;
                     decoder = decodeServerResultStart;
                 }
                 else if (MEMBER_SIGNATURE.contentEquals(parser.getStringView()))
@@ -1823,7 +1844,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 {
                     closeSection();
                     serverCallId = TOOL_CALL_ID_PREFIX + callOrdinal++;
-                    openSection(LlmSectionType.SERVER_TOOL_CALL, serverCallId, SERVER_TOOL_NAME);
+                    openSection(LlmSectionType.SERVER_TOOL_CALL, serverCallId, serverCallName);
                     beginServerCall();
                 }
                 else
@@ -1848,7 +1869,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 {
                     closeSection();
                     openSection(LlmSectionType.SERVER_TOOL_RESULT, serverCallId, null);
-                    beginSectionObject(RESULT_PREFIX);
+                    beginSectionObject(serverResultPrefix);
                 }
                 else
                 {
@@ -1867,7 +1888,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             }
 
             serverCallPipeline.begin(captureAttributes);
-            serverCallPipeline.feed(SERVER_CALL_PREFIX, 0, SERVER_CALL_PREFIX.capacity(), false, captureOutput);
+            serverCallPipeline.feed(serverCallPrefix, 0, serverCallPrefix.capacity(), false, captureOutput);
             sectionStarted = true;
 
             capturePipeline = serverCallPipeline;
@@ -3691,6 +3712,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private LlmSectionPipeline toolCallPipeline;
         private LlmSectionPipeline serverToolPipeline;
         private LlmSectionPipeline serverToolCallPipeline;
+        private LlmSectionPipeline serverToolUsePipeline;
         private final LlmSectionPipeline[] mediaPipelines = new LlmSectionPipeline[MEDIA_KINDS];
         private LlmGeminiToolCallFromCanonical toolCallTransform;
         private LlmGeminiSignatureFromCanonical signatureTransform;
@@ -3884,13 +3906,30 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
         private LlmSectionPipeline serverToolCallPipeline()
         {
-            if (serverToolCallPipeline == null)
+            final LlmSectionPipeline pipeline;
+
+            if (SERVER_TOOL_NAME.equals(sectionAttributes.toolName()))
             {
-                serverToolCallPipeline = new LlmSectionPipeline(new LlmGeminiServerToolCallFromCanonical(sameDialect),
-                    transformBuffer);
+                if (serverToolCallPipeline == null)
+                {
+                    serverToolCallPipeline = new LlmSectionPipeline(new LlmGeminiServerToolCallFromCanonical(sameDialect),
+                        transformBuffer);
+                }
+
+                pipeline = serverToolCallPipeline;
+            }
+            else
+            {
+                if (serverToolUsePipeline == null)
+                {
+                    serverToolUsePipeline = new LlmSectionPipeline(new LlmGeminiServerToolUseFromCanonical(sameDialect),
+                        transformBuffer);
+                }
+
+                pipeline = serverToolUsePipeline;
             }
 
-            return serverToolCallPipeline;
+            return pipeline;
         }
 
         private LlmSectionPipeline serverToolPipeline()
