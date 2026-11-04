@@ -36,6 +36,7 @@ scope core
             int64 streamId;
             int64 sequence;
             int64 acknowledge;
+            int32 state = 0;            // sender's StreamState snapshot when written, 0 unknown
             int32 maximum;
             int64 timestamp = 0;
             int64 traceId = 0;
