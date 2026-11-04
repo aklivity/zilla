@@ -74,7 +74,10 @@ final class MeteredModelPipeline implements ModelPipeline
             startedAt = clock.getAsLong();
         }
 
-        transform.recorders(recorders);
+        if (transform != null)
+        {
+            transform.recorders(recorders);
+        }
 
         final ModelPipelineResult result = pipeline.transform(traceId, bindingId, authorization, flags,
             src, srcIndex, srcLimit, dst, dstIndex, dstLimit);

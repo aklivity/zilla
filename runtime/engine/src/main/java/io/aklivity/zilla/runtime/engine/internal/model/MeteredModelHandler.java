@@ -53,8 +53,10 @@ public final class MeteredModelHandler implements ModelHandler
         ModelTransform transform,
         ModelCache cache)
     {
-        final MeteredModelTransform metered = new MeteredModelTransform(transform);
-        return new MeteredModelPipeline(handler.supplyDecoder(envelope, metered, cache), metered, metrics, clock);
+        final MeteredModelTransform metered = meter(transform);
+        return new MeteredModelPipeline(
+            handler.supplyDecoder(envelope, supplied(transform, metered), cache),
+            metered, metrics, clock);
     }
 
     @Override
@@ -62,8 +64,10 @@ public final class MeteredModelHandler implements ModelHandler
         ModelEnvelope envelope,
         ModelTransform transform)
     {
-        final MeteredModelTransform metered = new MeteredModelTransform(transform);
-        return new MeteredModelPipeline(handler.supplyEncoder(envelope, metered), metered, metrics, clock);
+        final MeteredModelTransform metered = meter(transform);
+        return new MeteredModelPipeline(
+            handler.supplyEncoder(envelope, supplied(transform, metered)),
+            metered, metrics, clock);
     }
 
     @Override
@@ -72,8 +76,10 @@ public final class MeteredModelHandler implements ModelHandler
         ModelTransform transform,
         Runnable resumed)
     {
-        final MeteredModelTransform metered = new MeteredModelTransform(transform);
-        return new MeteredModelPipeline(handler.supplyDecoder(envelope, metered, resumed), metered, metrics, clock);
+        final MeteredModelTransform metered = meter(transform);
+        return new MeteredModelPipeline(
+            handler.supplyDecoder(envelope, supplied(transform, metered), resumed),
+            metered, metrics, clock);
     }
 
     @Override
@@ -82,7 +88,22 @@ public final class MeteredModelHandler implements ModelHandler
         ModelTransform transform,
         Runnable resumed)
     {
-        final MeteredModelTransform metered = new MeteredModelTransform(transform);
-        return new MeteredModelPipeline(handler.supplyEncoder(envelope, metered, resumed), metered, metrics, clock);
+        final MeteredModelTransform metered = meter(transform);
+        return new MeteredModelPipeline(
+            handler.supplyEncoder(envelope, supplied(transform, metered), resumed),
+            metered, metrics, clock);
+    }
+
+    private static MeteredModelTransform meter(
+        ModelTransform transform)
+    {
+        return transform != ModelTransform.NONE ? new MeteredModelTransform(transform) : null;
+    }
+
+    private static ModelTransform supplied(
+        ModelTransform transform,
+        MeteredModelTransform metered)
+    {
+        return metered != null ? metered : transform;
     }
 }
