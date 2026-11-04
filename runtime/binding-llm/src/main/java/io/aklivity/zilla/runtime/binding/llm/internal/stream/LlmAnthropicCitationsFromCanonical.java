@@ -23,12 +23,22 @@ final class LlmAnthropicCitationsFromCanonical extends LlmToolTransform
     private static final String TYPE_URL = "url_citation";
     private static final String TYPE_URL_NATIVE = "web_search_result_location";
 
+    private final boolean element;
+
     private boolean typed;
 
     LlmAnthropicCitationsFromCanonical(
         boolean sameDialect)
     {
-        super(MODE_ARRAY, sameDialect ? DIALECT : null);
+        this(sameDialect, MODE_ARRAY);
+    }
+
+    LlmAnthropicCitationsFromCanonical(
+        boolean sameDialect,
+        int mode)
+    {
+        super(mode, sameDialect ? DIALECT : null);
+        this.element = mode == MODE_OBJECT;
     }
 
     @Override
@@ -90,6 +100,11 @@ final class LlmAnthropicCitationsFromCanonical extends LlmToolTransform
     protected Status onClose(
         int depth)
     {
+        if (element && depth == 1)
+        {
+            pass(JsonEvent.END_OBJECT);
+        }
+
         return Status.ADVANCED;
     }
 

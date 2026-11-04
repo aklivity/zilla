@@ -1873,4 +1873,24 @@ public class LlmGeminiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.section.assistant.text.citations.reply/client",
+        "${app}/gemini.section.assistant.text.citations.reply/server"})
+    public void shouldGeminiSectionAssistantTextCitationsReply() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.streaming.assistant.text.citations/client",
+        "${app}/gemini.streaming.assistant.text.citations/server"})
+    public void shouldGeminiStreamingAssistantTextCitations() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -718,7 +718,22 @@ cache of #2798 is the planned resolution.
     the same section type, so it selects which part is written back. `toolResponse` is `SERVER_TOOL_RESULT` with the
     native part, `{"toolResponse":{...}}`, as the payload, as `codeExecutionResult` is.
   - A server writes these sections to the caller only when the reply is of its own dialect.
-- **`ASSISTANT_CITATIONS`** also carries `openai/ccs` `message.annotations` and `gemini` `groundingMetadata`.
+- **`ASSISTANT_CITATIONS`** (**implemented**) carries the citations of one reply message, on the reply and when the
+  history is replayed. The payload is a JSON array. A citation that more than one dialect can express is the
+  `openai/ccs` `url_citation` object; every other member keeps its native form behind the dialect prefix, and a
+  client of another dialect never writes it. A server writes the section only when the reply is of its own dialect
+  and drops it whole otherwise, keeping the text.
+  - `anthropic` text block `citations` is the array, one entry per citation, with every member prefixed
+    (`anthropic:type`, `anthropic:cited_text`, ...). A `web_search_result_location` is the canonical `url_citation`
+    with `url` and `title` nested. A streamed reply carries each `citations_delta` event as one entry; the entries
+    of a block are held until its `content_block_stop` and written as one section after the text of the block.
+    The server writes the entries as `citations_delta` events of the open text block when streaming and as the
+    `citations` member of the text block otherwise, so the block stays open until the next section begins.
+  - `openai/ccs` `message.annotations` is the array unchanged. The server writes it inline in the message, or
+    holds it into the finish chunk when streaming.
+  - `gemini` carries `groundingMetadata` and `citationMetadata` of a candidate, one section per member, as the
+    one-entry array `[{"gemini:groundingMetadata":{...}}]` and `[{"gemini:citationMetadata":{...}}]`. The server
+    holds the member until the candidate finishes, like every candidate member.
 - **`openai/rs`** drops an unknown item or part, carries `compaction` as `ASSISTANT_COMPACTION` and carries
   `item_reference` as the control member `openai/rs:item_reference`.
 - **Deprecated `openai/ccs` forms** (`functions`, `function_call`, the `function` role) decode to the canonical
@@ -763,7 +778,9 @@ Streamable HTTP, so a legacy SSE endpoint fails at the provider. The Interaction
 | `openai/ccs` `web_search_options` | capability | `SERVER_TOOL_DEFINITION`, native, dropped by other dialects |
 | `openai/ccs` `functions`, `function_call`, `function` role | content | canonical tool sections with a stream-level marker |
 | `openai/ccs` response `audio` | content | `ASSISTANT_AUDIO`, and the transcript as `ASSISTANT_TEXT` |
-| `openai/ccs` `message.annotations`, `gemini` `groundingMetadata` | content | `ASSISTANT_CITATIONS` |
+| `openai/ccs` response `message.annotations` (**implemented**) | content | `ASSISTANT_CITATIONS` |
+| `anthropic` response text block `citations` and `citations_delta` (**implemented**) | content | `ASSISTANT_CITATIONS` |
+| `gemini` candidate `groundingMetadata` and `citationMetadata` (**implemented**) | content | `ASSISTANT_CITATIONS` |
 | `anthropic` `mcp_servers` and `mcp_toolset` | capability | `SERVER_TOOL_DEFINITION` ([MCP server definition](#mcp-server-definition)) |
 | `anthropic` `container` | capability, an opaque handle | `anthropic:container` control member |
 | `anthropic` `diagnostics` | setting | `anthropic:diagnostics` control member |
@@ -871,7 +888,7 @@ stage)
 | `SERVER_TOOL_RESULT` | none yet | not covered | whole |
 | `USER_PREDICTION`, `ASSISTANT_COMPACTION` (**planned**: not yet produced) | `text` | request side, whole | request side, whole |
 | `ASSISTANT_IMAGE`, `ASSISTANT_AUDIO`, `ASSISTANT_VIDEO`, `ASSISTANT_DOCUMENT`, `TOOL_RESULT_IMAGE`, `TOOL_RESULT_DOCUMENT` (**planned**: not yet produced) | the decoded media data, **verdict-only**, as for the `USER_*` media types | not covered | not covered |
-| `ASSISTANT_CITATIONS` | none; every member is prefixed | not covered | request history only today |
+| `ASSISTANT_CITATIONS` | none; every member is prefixed | not covered | whole |
 | `CONTROL` | none; bypasses guardrails | one section holds one or more members | same |
 
 The media data is the base64 in `image_url.url` (a `data:` URI that declares base64),

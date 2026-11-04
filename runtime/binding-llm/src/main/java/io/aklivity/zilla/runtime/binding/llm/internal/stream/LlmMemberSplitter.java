@@ -36,6 +36,7 @@ final class LlmMemberSplitter
     private static final DirectBufferEx OPEN = new UnsafeBufferEx("{".getBytes(UTF_8));
     private static final DirectBufferEx CLOSE = new UnsafeBufferEx("}".getBytes(UTF_8));
 
+    private static final int ARRAY_OPEN = 11;
     private static final int OBJECT_OPEN = 0;
     private static final int KEY_START = 1;
     private static final int KEY = 2;
@@ -49,6 +50,7 @@ final class LlmMemberSplitter
     private static final int PASS = 10;
 
     private final Members members;
+    private final boolean wrapped;
 
     private int state;
     private int depth;
@@ -60,12 +62,20 @@ final class LlmMemberSplitter
     LlmMemberSplitter(
         Members members)
     {
+        this(members, false);
+    }
+
+    LlmMemberSplitter(
+        Members members,
+        boolean wrapped)
+    {
         this.members = members;
+        this.wrapped = wrapped;
     }
 
     void begin()
     {
-        state = OBJECT_OPEN;
+        state = wrapped ? ARRAY_OPEN : OBJECT_OPEN;
         depth = 0;
         inString = false;
         escaped = false;
@@ -90,6 +100,9 @@ final class LlmMemberSplitter
 
             switch (state)
             {
+            case ARRAY_OPEN:
+                consumed = onArrayOpen(value);
+                break;
             case OBJECT_OPEN:
                 consumed = onObjectOpen(value);
                 break;
@@ -175,6 +188,16 @@ final class LlmMemberSplitter
         }
 
         return accepted;
+    }
+
+    private boolean onArrayOpen(
+        byte value)
+    {
+        final boolean consumed = value == '[' || isWhitespace(value);
+
+        state = value == '[' || !consumed ? OBJECT_OPEN : ARRAY_OPEN;
+
+        return consumed;
     }
 
     private boolean onObjectOpen(

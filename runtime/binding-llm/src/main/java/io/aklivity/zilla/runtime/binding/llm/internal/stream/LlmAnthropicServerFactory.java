@@ -125,6 +125,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private static final String BLOCK_SERVER_TOOL_USE = "server_tool_use";
     private static final String BLOCK_MCP_TOOL_USE = "mcp_tool_use";
     private static final String MEMBER_SERVER_NAME = "anthropic:server_name";
+    private static final String MEMBER_CITATIONS = "citations";
 
     private static final int RESPONSE_ENCODE_PADDING = 128;
     private static final int RESPONSE_ESCAPE_EXPANSION = 6;
@@ -4097,6 +4098,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private final LlmTextPipeline sectionText;
         private final LlmTextPipeline reasoningText;
         private final LlmTextPipeline serverNameText;
+        private final LlmSectionPipeline.Output citationsOutput;
 
         private LlmTextPipeline textPipeline;
         private LlmSectionPipeline blockPipeline;
@@ -4107,6 +4109,9 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private LlmAnthropicReasoningToEvent reasoningRedactedTransform;
         private LlmSectionPipeline toolBlock;
         private LlmSectionPipeline serverToolBlock;
+        private LlmSectionPipeline citationsBlock;
+        private LlmSectionPipeline citationEvent;
+        private final LlmElementSplitter citationElements = new LlmElementSplitter(this::onCitationElement);
         private LlmSectionPipeline toolValue;
         private byte[] serverNameBytes = new byte[0];
         private final UnsafeBufferEx serverNameBuffer = new UnsafeBufferEx();
@@ -4153,6 +4158,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             this.sectionText = new LlmTextPipeline(this::onSectionText);
             this.reasoningText = new LlmTextPipeline(this::onReasoningText, true);
             this.serverNameText = new LlmTextPipeline(this::onServerName, MEMBER_SERVER_NAME);
+            this.citationsOutput = (buffer, offset, length, last) -> onCitations(buffer, offset, length);
         }
 
         private long initialAvailable()
@@ -4418,6 +4424,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             beginEncode();
 
             doEncodeEnd();
+            closeTextBlock();
             doEncodeFinish(
                 llmEndEx != null ? llmEndEx.finishReason().asString() : null,
                 usage != null ? usage.inputTokens() : -1,
@@ -4896,6 +4903,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private static final int KIND_CONTROL = 5;
         private static final int KIND_SERVER_TOOL_CALL = 6;
         private static final int KIND_SERVER_TOOL_RESULT = 7;
+        private static final int KIND_CITATIONS = 8;
+        private static final int KIND_TEXT_BLOCK = 9;
 
         private static final int CONTROL_DROP = 0;
         private static final int CONTROL_INLINE = 1;
@@ -4992,13 +5001,22 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             String toolCallId,
             String toolName)
         {
-            kind = type == LlmSectionType.CONTROL
+            final int next = type == LlmSectionType.CONTROL
                 ? KIND_CONTROL
                 : message == MESSAGE_FIRST && envelope != ENVELOPE_TAIL
                     ? kindOf(type, NAME.equals(responseDialect))
                     : KIND_SKIPPED;
+
+            final boolean joined = next == KIND_CITATIONS && kind == KIND_TEXT_BLOCK;
+
+            if (kind == KIND_TEXT_BLOCK && !joined)
+            {
+                closeTextBlock();
+            }
+
+            kind = next == KIND_CITATIONS && !joined ? KIND_SKIPPED : next;
             textSection = kind == KIND_TEXT;
-            blockOpen = false;
+            blockOpen = blockOpen && kind == KIND_CITATIONS;
 
             if (kind == KIND_CONTROL)
             {
@@ -5026,6 +5044,10 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 serverNameLength = 0;
                 serverNameText.begin();
                 toolValue().begin(replyAttributes);
+            }
+            else if (kind == KIND_CITATIONS)
+            {
+                beginCitations();
             }
             else if (kind != KIND_SKIPPED && kind != KIND_CONTROL && !textSection)
             {
@@ -5179,6 +5201,15 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             {
                 if (!serverNameText.feed(payload, payloadOffset, payloadLength, fin) ||
                     !toolValue.feed(payload, payloadOffset, payloadLength, fin, deltaOutput))
+                {
+                    server.cleanup(traceId);
+                }
+            }
+            else if (kind == KIND_CITATIONS)
+            {
+                if (!(server.streaming
+                    ? citationElements.put(payload, payloadOffset, payloadLength)
+                    : citationsBlock.feed(payload, payloadOffset, payloadLength, fin, citationsOutput)))
                 {
                     server.cleanup(traceId);
                 }
@@ -5455,13 +5486,125 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 openBlock(replyAttributes.toolCallId(), replyAttributes.toolName());
             }
 
-            if (blockOpen)
+            if (kind == KIND_TEXT && blockOpen)
             {
-                closeBlock();
+                holdTextBlock();
+            }
+            else if (kind == KIND_CITATIONS)
+            {
+                closeCitations();
+            }
+            else if (kind != KIND_TEXT_BLOCK)
+            {
+                if (blockOpen)
+                {
+                    closeBlock();
+                }
+
+                kind = KIND_NONE;
             }
 
-            kind = KIND_NONE;
             textSection = false;
+        }
+
+        private void holdTextBlock()
+        {
+            if (!server.streaming)
+            {
+                generator.writeEndEscaped();
+            }
+
+            kind = KIND_TEXT_BLOCK;
+        }
+
+        private void closeTextBlock()
+        {
+            if (kind == KIND_TEXT_BLOCK)
+            {
+                closeBlock();
+                kind = KIND_NONE;
+            }
+        }
+
+        private void beginCitations()
+        {
+            if (server.streaming)
+            {
+                if (citationEvent == null)
+                {
+                    citationEvent = new LlmSectionPipeline(
+                        new LlmAnthropicCitationsFromCanonical(true, LlmToolTransform.MODE_OBJECT),
+                        new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                }
+
+                citationElements.begin();
+            }
+            else
+            {
+                beginCitationsBlock();
+            }
+        }
+
+        private boolean onCitationElement(
+            DirectBufferEx buffer,
+            int offset,
+            int length,
+            boolean init,
+            boolean last)
+        {
+            if (init)
+            {
+                eventBegin(generator.length(), EVENT_BLOCK_DELTA);
+                generator.writeStartObject()
+                    .write("type", EVENT_BLOCK_DELTA)
+                    .writeKey("index").write(blocks - 1)
+                    .writeStartObject("delta")
+                    .write("type", "citations_delta")
+                    .writeKey("citation");
+                citationEvent.begin(replyAttributes);
+            }
+
+            final boolean accepted = citationEvent.feed(buffer, offset, length, last, citationsOutput);
+
+            if (last)
+            {
+                generator.writeSegment(EMPTY_BUFFER, 0, 0, Completion.COMPLETE);
+                generator.writeEnd().writeEnd();
+                eventEnd(generator.length());
+            }
+
+            return accepted;
+        }
+
+        private void beginCitationsBlock()
+        {
+            if (citationsBlock == null)
+            {
+                citationsBlock = new LlmSectionPipeline(new LlmAnthropicCitationsFromCanonical(true),
+                    new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+            }
+
+            generator.writeKey(MEMBER_CITATIONS);
+            citationsBlock.begin(replyAttributes);
+        }
+
+        private void closeCitations()
+        {
+            kind = KIND_TEXT_BLOCK;
+
+            if (!server.streaming)
+            {
+                generator.writeSegment(EMPTY_BUFFER, 0, 0, Completion.COMPLETE);
+                closeTextBlock();
+            }
+        }
+
+        private void onCitations(
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            generator.writeSegment(buffer, offset, length, Completion.INCOMPLETE);
         }
 
         private void openBlock(
@@ -5728,6 +5871,9 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             case KIND_TEXT:
                 generator.writeEndEscaped().writeEnd();
                 break;
+            case KIND_TEXT_BLOCK:
+                generator.writeEnd();
+                break;
             case KIND_REASONING:
                 if (textSection)
                 {
@@ -5849,6 +5995,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             case TOOL_CALL -> KIND_TOOL_CALL;
             case SERVER_TOOL_CALL -> sameDialect ? KIND_SERVER_TOOL_CALL : KIND_SKIPPED;
             case SERVER_TOOL_RESULT -> sameDialect ? KIND_SERVER_TOOL_RESULT : KIND_SKIPPED;
+            case ASSISTANT_CITATIONS -> sameDialect ? KIND_CITATIONS : KIND_SKIPPED;
             default -> KIND_SKIPPED;
             };
         }

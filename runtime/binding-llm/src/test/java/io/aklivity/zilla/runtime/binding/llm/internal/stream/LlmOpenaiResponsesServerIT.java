@@ -2336,4 +2336,15 @@ public class LlmOpenaiResponsesServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/rs\"", "target \"anthropic\""})
+    @Specification({
+        "${net}/openai.responses.transform.response.text/client",
+        "${app}/transform.response.citations/server"})
+    public void shouldDropCitationsOfAnthropicAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
 }

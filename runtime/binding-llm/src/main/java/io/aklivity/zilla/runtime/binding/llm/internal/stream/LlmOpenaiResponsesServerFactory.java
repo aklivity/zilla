@@ -5830,7 +5830,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
             case ASSISTANT_TEXT -> KIND_TEXT;
             case ASSISTANT_REFUSAL -> KIND_REFUSAL;
             case ASSISTANT_REASONING -> NAME.equals(responseDialect) ? KIND_REASONING : KIND_SKIPPED;
-            case ASSISTANT_CITATIONS -> citable(message) ? KIND_CITATIONS : KIND_SKIPPED;
+            case ASSISTANT_CITATIONS -> NAME.equals(responseDialect) && citable(message) ? KIND_CITATIONS : KIND_SKIPPED;
             case TOOL_CALL -> KIND_CALL;
             case SERVER_TOOL_CALL -> providerCall(extension) ? KIND_PROVIDER : KIND_SKIPPED;
             case SERVER_TOOL_RESULT -> awaitingResult(extension) ? KIND_RESULT : KIND_SKIPPED;

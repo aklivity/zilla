@@ -3068,4 +3068,14 @@ public class LlmOpenaiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.assistant.text.annotations.reply/client",
+        "${net}/openai.section.assistant.text.annotations.reply/server"})
+    public void shouldOpenaiSectionAssistantTextAnnotationsReply() throws Exception
+    {
+        k3po.finish();
+    }
 }

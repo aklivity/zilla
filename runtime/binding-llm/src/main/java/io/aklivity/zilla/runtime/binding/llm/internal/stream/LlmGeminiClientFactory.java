@@ -202,6 +202,13 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final String SERVER_TOOL_NAME = "code_execution";
     private static final String MEMBER_TOOL_CALL = "toolCall";
     private static final String MEMBER_TOOL_RESPONSE = "toolResponse";
+    private static final DirectBufferEx GROUNDING_PREFIX =
+        new UnsafeBufferEx("[{\"gemini:groundingMetadata\":".getBytes(UTF_8));
+    private static final DirectBufferEx CITATION_PREFIX =
+        new UnsafeBufferEx("[{\"gemini:citationMetadata\":".getBytes(UTF_8));
+    private static final DirectBufferEx CITATIONS_SUFFIX = new UnsafeBufferEx("}]".getBytes(UTF_8));
+    private static final String MEMBER_GROUNDING_METADATA = "groundingMetadata";
+    private static final String MEMBER_CITATION_METADATA = "citationMetadata";
     private static final DirectBufferEx TOOL_CALL_PREFIX = new UnsafeBufferEx("{\"toolCall\":".getBytes(UTF_8));
     private static final DirectBufferEx TOOL_RESPONSE_PREFIX = new UnsafeBufferEx("{\"toolResponse\":".getBytes(UTF_8));
     private static final DirectBufferEx SERVER_CALL_PREFIX = new UnsafeBufferEx("{\"executableCode\":".getBytes(UTF_8));
@@ -507,6 +514,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private final LlmGeminiResponseDecoder decodeCandidatesStart = this::decodeCandidatesStart;
         private final LlmGeminiResponseDecoder decodeCandidates = this::decodeCandidates;
         private final LlmGeminiResponseDecoder decodeCandidate = this::decodeCandidate;
+        private final LlmGeminiResponseDecoder decodeCitationsStart = this::decodeCitationsStart;
         private final LlmGeminiResponseDecoder decodeContentStart = this::decodeContentStart;
         private final LlmGeminiResponseDecoder decodeContent = this::decodeContent;
         private final LlmGeminiResponseDecoder decodePartsStart = this::decodePartsStart;
@@ -617,6 +625,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private String serverCallId;
         private String serverCallName;
         private DirectBufferEx serverCallPrefix;
+        private DirectBufferEx citationsPrefix;
         private DirectBufferEx serverResultPrefix;
         private LlmSectionPipeline serverCallPipeline;
         private LlmSectionPipeline capturePipeline;
@@ -1636,10 +1645,44 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                     {
                         skipMember(decodeCandidate);
                     }
+                    else if (MEMBER_GROUNDING_METADATA.contentEquals(member))
+                    {
+                        citationsPrefix = GROUNDING_PREFIX;
+                        decoder = decodeCitationsStart;
+                    }
+                    else if (MEMBER_CITATION_METADATA.contentEquals(member))
+                    {
+                        citationsPrefix = CITATION_PREFIX;
+                        decoder = decodeCitationsStart;
+                    }
                     else
                     {
                         beginControl(member, ROOT_CONTROL, decodeCandidate);
                     }
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeCitationsStart(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            if (hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.START_OBJECT)
+                {
+                    closeSection();
+                    openSection(LlmSectionType.ASSISTANT_CITATIONS, null, null);
+                    beginSectionObject(citationsPrefix, decodeCandidate);
+                }
+                else
+                {
+                    skipAfter(event, decodeCandidate);
                 }
             }
 
@@ -1869,7 +1912,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                 {
                     closeSection();
                     openSection(LlmSectionType.SERVER_TOOL_RESULT, serverCallId, null);
-                    beginSectionObject(serverResultPrefix);
+                    beginSectionObject(serverResultPrefix, decodePart);
                 }
                 else
                 {
@@ -1899,12 +1942,13 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         }
 
         private void beginSectionObject(
-            DirectBufferEx prefix)
+            DirectBufferEx prefix,
+            LlmGeminiResponseDecoder then)
         {
             sectionStarted = true;
             writeSection(prefix, 0, prefix.capacity(), false);
 
-            captureThen = decodePart;
+            captureThen = then;
             captureDepth = 1;
             captureFrom = position() - 1;
             decoder = decodeCapture;
@@ -3123,6 +3167,11 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
                 sectionOpen = false;
                 writeSection(end, 0, end.capacity(), true);
+            }
+            else if (sectionOpen && sectionType == LlmSectionType.ASSISTANT_CITATIONS)
+            {
+                sectionOpen = false;
+                writeSection(CITATIONS_SUFFIX, 0, CITATIONS_SUFFIX.capacity(), true);
             }
             else if (sectionOpen && sectionStarted)
             {

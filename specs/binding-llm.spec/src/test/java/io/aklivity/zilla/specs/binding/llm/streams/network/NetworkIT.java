@@ -9838,4 +9838,49 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.assistant.text.citations.reply/client",
+        "${net}/anthropic.section.assistant.text.citations.reply/server"})
+    public void shouldAnthropicSectionAssistantTextCitationsReply() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.assistant.text.citations.reply.streaming/client",
+        "${net}/anthropic.section.assistant.text.citations.reply.streaming/server"})
+    public void shouldAnthropicSectionAssistantTextCitationsReplyStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.assistant.text.annotations.reply/client",
+        "${net}/openai.section.assistant.text.annotations.reply/server"})
+    public void shouldOpenaiSectionAssistantTextAnnotationsReply() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.assistant.text.citations.reply/client",
+        "${net}/gemini.section.assistant.text.citations.reply/server"})
+    public void shouldGeminiSectionAssistantTextCitationsReply() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.streaming.assistant.text.citations/client",
+        "${net}/gemini.streaming.assistant.text.citations/server"})
+    public void shouldGeminiStreamingAssistantTextCitations() throws Exception
+    {
+        k3po.finish();
+    }
 }

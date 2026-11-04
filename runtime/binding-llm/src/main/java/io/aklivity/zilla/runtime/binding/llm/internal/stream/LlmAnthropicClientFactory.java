@@ -206,6 +206,11 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final String MEMBER_CONTENT = "content";
     private static final String MEMBER_CONTENT_BLOCK = "content_block";
     private static final String MEMBER_DELTA = "delta";
+    private static final String MEMBER_CITATION = "citation";
+    private static final int CITATIONS_CANONICAL_GROWTH = 3;
+    private static final DirectBufferEx ITEM_SEPARATOR = new UnsafeBufferEx(",".getBytes(UTF_8));
+    private static final DirectBufferEx ARRAY_OPEN = new UnsafeBufferEx("[".getBytes(UTF_8));
+    private static final DirectBufferEx ARRAY_CLOSE = new UnsafeBufferEx("]".getBytes(UTF_8));
     private static final String MEMBER_USAGE = "usage";
     private static final String MEMBER_ERROR = "error";
     private static final String MEMBER_TEXT = "text";
@@ -580,6 +585,10 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private final LlmAnthropicResponseDecoder decodeUsage = this::decodeUsage;
         private final LlmAnthropicResponseDecoder decodeUsageValue = this::decodeUsageValue;
         private final LlmAnthropicResponseDecoder decodeCapture = this::decodeCapture;
+        private final LlmAnthropicResponseDecoder decodeCitationsStart = this::decodeCitationsStart;
+        private final LlmAnthropicResponseDecoder decodeCitationStart = this::decodeCitationStart;
+        private final LlmAnthropicResponseDecoder decodeCitation = this::decodeCitation;
+        private final LlmAnthropicResponseDecoder decodeCitationsHeld = this::decodeCitationsHeld;
         private final LlmAnthropicResponseDecoder decodeControlValue = this::decodeControlValue;
         private final LlmAnthropicResponseDecoder decodeControlStream = this::decodeControlStream;
         private final LlmAnthropicResponseDecoder decodeSkip = this::decodeSkip;
@@ -704,6 +713,11 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private int blockFrom;
         private LlmSectionPipeline capturePipeline;
         private LlmSectionPipeline reasoningPipeline;
+        private LlmSectionPipeline citationsPipeline;
+        private final LlmHeldTail citations;
+        private int citationObjects;
+        private int citationFrom = NONE;
+        private int citationDepth;
         private final LlmSectionAttributes captureAttributes = new LlmSectionAttributes();
         private final LlmSectionPipeline.Output captureOutput = (buffer, offset, length, last) ->
             writeSection(buffer, offset, length, last);
@@ -742,6 +756,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             this.controlGenerator = JsonEx.createGenerator();
             this.controlBytes = new byte[CONTROL_HEADER];
             this.controlBuffer = new UnsafeBufferEx(controlBytes);
+            this.citations = new LlmHeldTail(encodePool);
         }
 
         private int replyCredit()
@@ -994,6 +1009,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             http.doNetAbort(traceId);
             cleanupEncodeSlot();
             cleanupControlSlot();
+            cleanupCitations();
             http.cleanupEncodeSlot();
             http.cleanupHeldSlot();
             http.cleanupDecodeSlot();
@@ -1270,8 +1286,10 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             sectionOpen = false;
             sectionStarted = false;
             highSurrogate = 0;
+            citationFrom = NONE;
             cleanupEncodeSlot();
             cleanupControlSlot();
+            cleanupCitations();
             decoder = decodeLookahead;
         }
 
@@ -1302,6 +1320,11 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 captureFrom = offset;
             }
 
+            if (citationFrom != NONE)
+            {
+                citationFrom = offset;
+            }
+
             int previous;
             LlmAnthropicResponseDecoder previousDecoder;
             do
@@ -1318,6 +1341,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             }
 
             flushControl(progress);
+            flushCitation(progress);
 
             return progress;
         }
@@ -1388,6 +1412,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                             }
 
                             flushControl(progress);
+                            flushCitation(progress);
                         }
 
                         if (decoder == previous)
@@ -1702,6 +1727,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                     if (TYPE_CONTENT_BLOCK_STOP.equals(documentType))
                     {
                         blockType = null;
+                        beginCitationsEmit();
                     }
                 }
                 else
@@ -1922,6 +1948,10 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                     {
                         beginReasoning(REASONING_TEXT, decodeContentItem);
                     }
+                    else if (MEMBER_CITATIONS.contentEquals(member) && BLOCK_TEXT.equals(blockType))
+                    {
+                        decoder = decodeCitationsStart;
+                    }
                     else if (MEMBER_INPUT.contentEquals(member))
                     {
                         decoder = decodeInputStart;
@@ -1930,6 +1960,167 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                     {
                         skipMember(decodeContentItem);
                     }
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeCitationStart(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            if (hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.START_OBJECT)
+                {
+                    appendCitation(citationObjects++ == 0 ? ARRAY_OPEN : ITEM_SEPARATOR, 0, 1);
+                    citationDepth = 1;
+                    citationFrom = position() - 1;
+                    decoder = decodeCitation;
+                }
+                else
+                {
+                    skipAfter(event, decodeDelta);
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeCitation(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            while (decoder == decodeCitation && hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+                final boolean deferred = deferredScalar(event);
+
+                citationDepth += nesting(event);
+
+                if (deferred)
+                {
+                    parser.consumed(deferredLength(event));
+                }
+                else if (citationDepth == 0)
+                {
+                    flushCitation(position());
+                    citationFrom = NONE;
+                    decoder = decodeDelta;
+                }
+            }
+
+            return position();
+        }
+
+        private void flushCitation(
+            int to)
+        {
+            if (citationFrom != NONE && to > citationFrom)
+            {
+                appendCitation(decodedInput, citationFrom, to - citationFrom);
+                citationFrom = to;
+            }
+        }
+
+        private void appendCitation(
+            DirectBufferEx source,
+            int offset,
+            int length)
+        {
+            if (decoder != decodeRejected && !citations.append(replyId, source, offset, length))
+            {
+                decoder = decodeRejected;
+            }
+        }
+
+        private void beginCitationsEmit()
+        {
+            if (citationObjects > 0)
+            {
+                appendCitation(ARRAY_CLOSE, 0, 1);
+
+                if (citationsPipeline == null)
+                {
+                    citationsPipeline = new LlmSectionPipeline(new LlmAnthropicCitationsToCanonical(), transformBuffer);
+                }
+
+                citationsPipeline.begin(captureAttributes);
+                openSection(LlmSectionType.ASSISTANT_CITATIONS, null, null);
+                sectionStarted = true;
+                citationObjects = 0;
+                decoder = decodeCitationsHeld;
+            }
+        }
+
+        private int decodeCitationsHeld(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            boolean progress = true;
+
+            while (decoder == decodeCitationsHeld && progress)
+            {
+                final int remaining = citations.remaining();
+                final int take = Math.min(remaining, replyWindow() / CITATIONS_CANONICAL_GROWTH);
+
+                progress = take > 0;
+
+                if (progress)
+                {
+                    final boolean last = take == remaining;
+
+                    if (last)
+                    {
+                        sectionOpen = false;
+                        decoder = decodeRoot;
+                    }
+
+                    if (!citationsPipeline.feed(citations.buffer(), citations.offset(), take, last, captureOutput))
+                    {
+                        decoder = decodeRejected;
+                    }
+
+                    citations.consumed(take);
+
+                    if (last)
+                    {
+                        citations.release();
+                    }
+                }
+            }
+
+            return position();
+        }
+
+        private void cleanupCitations()
+        {
+            citations.release();
+            citationObjects = 0;
+        }
+
+        private int decodeCitationsStart(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            if (hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.START_ARRAY)
+                {
+                    beginCitationsCapture();
+                }
+                else
+                {
+                    skipAfter(event, decodeContentItem);
                 }
             }
 
@@ -2344,6 +2535,10 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                     else if (MEMBER_PARTIAL_JSON.contentEquals(member))
                     {
                         decoder = decodeArguments;
+                    }
+                    else if (MEMBER_CITATION.contentEquals(member))
+                    {
+                        decoder = decodeCitationStart;
                     }
                     else if (MEMBER_TYPE.contentEquals(member) || !TYPE_MESSAGE_DELTA.equals(documentType))
                     {
@@ -3586,6 +3781,26 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             decoder = decodeCapture;
         }
 
+        private void beginCitationsCapture()
+        {
+            if (citationsPipeline == null)
+            {
+                citationsPipeline = new LlmSectionPipeline(new LlmAnthropicCitationsToCanonical(), transformBuffer);
+            }
+
+            captureThen = decodeContentItem;
+            captureDepth = 1;
+            captureFrom = position() - 1;
+            capturePipeline = citationsPipeline;
+            capturePipeline.begin(captureAttributes);
+
+            closeSection();
+            openSection(LlmSectionType.ASSISTANT_CITATIONS, null, null);
+            sectionStarted = true;
+
+            decoder = decodeCapture;
+        }
+
         private void endCapture(
             DirectBufferEx buffer)
         {
@@ -3928,6 +4143,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                     app.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
                     cleanupEncodeSlot();
                     cleanupControlSlot();
+                    cleanupCitations();
                 }
             }
         }
@@ -3962,6 +4178,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 app.accept(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
                 cleanupEncodeSlot();
                 cleanupControlSlot();
+                cleanupCitations();
             }
         }
 
@@ -4079,6 +4296,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             http.doNetReset(traceId);
             cleanupEncodeSlot();
             cleanupControlSlot();
+            cleanupCitations();
             http.cleanupEncodeSlot();
             http.cleanupHeldSlot();
             http.cleanupDecodeSlot();
