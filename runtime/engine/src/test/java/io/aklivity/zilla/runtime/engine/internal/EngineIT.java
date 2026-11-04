@@ -235,7 +235,7 @@ public class EngineIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/server.sent.write.abort.before.begin/client",
+        "${net}/server.sent.write.abort/client",
         "${app}/server.sent.write.abort.authorized/server"})
     public void shouldReceiveServerSentWriteAbort() throws Exception
     {
