@@ -50,6 +50,7 @@ final class AvroModelDecoderPipeline implements ModelPipeline
     private final Int2ObjectCache<AvroPipeline> pipelines;
     private final ModelPipelineResult result;
     private final ModelCache cache;
+    private final Runnable resumed;
     private final boolean deterministic;
     private final boolean identity;
 
@@ -63,9 +64,11 @@ final class AvroModelDecoderPipeline implements ModelPipeline
         AvroModelHandlerImpl handler,
         AvroEnvelope envelope,
         ModelTransform transform,
-        ModelCache cache)
+        ModelCache cache,
+        Runnable resumed)
     {
         this.handler = handler;
+        this.resumed = resumed;
         this.envelope = envelope;
         this.generator = JsonEx.createGenerator();
         this.adapter = AvroModelTransform.of(transform);
@@ -134,6 +137,7 @@ final class AvroModelDecoderPipeline implements ModelPipeline
         else
         {
             active.authorization(authorization);
+            active.resumer(resumed);
             boolean last = hasFin(flags);
             AvroPipelineResult avro = active.transform(src, srcIndex + prefix, srcIndex + srcLength, last,
                 dst, dstIndex + framing, dstIndex + dstLength);
@@ -249,6 +253,7 @@ final class AvroModelDecoderPipeline implements ModelPipeline
         {
         case COMPLETED -> ModelStatus.COMPLETE;
         case SUSPENDED -> ModelStatus.OVERFLOW;
+        case PENDING -> ModelStatus.SUSPENDED;
         case STARVED -> ModelStatus.UNDERFLOW;
         case REJECTED -> ModelStatus.REJECTED;
         default -> ModelStatus.OK;

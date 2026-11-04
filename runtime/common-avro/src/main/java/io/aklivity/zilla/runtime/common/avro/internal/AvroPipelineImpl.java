@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.common.avro.internal;
 
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.ADVANCED;
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.COMPLETED;
+import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.PENDING;
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.REJECTED;
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.STARVED;
 import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.SUSPENDED;
@@ -52,6 +53,10 @@ import io.aklivity.zilla.runtime.common.avro.AvroValidationException;
  */
 final class AvroPipelineImpl implements AvroPipeline
 {
+    private static final Runnable NO_RESUMER = () ->
+    {
+    };
+
     private final AvroParser parser;
     private final Source source;
     private final Control control;
@@ -114,6 +119,13 @@ final class AvroPipelineImpl implements AvroPipeline
         long authorization)
     {
         control.authorization = authorization;
+    }
+
+    @Override
+    public void resumer(
+        Runnable resumer)
+    {
+        control.resumer = resumer;
     }
 
     @Override
@@ -192,7 +204,7 @@ final class AvroPipelineImpl implements AvroPipeline
             // call-scoped view, so the reporter must copy out anything it needs before returning
             reporter.rejected(diagnostic);
         }
-        suspended = status == SUSPENDED;
+        suspended = status == SUSPENDED || status == PENDING;
         completed = status == COMPLETED;
         // the pump remembers which event suspended (so the sink keeps no resume state); a re-suspend on
         // resume leaves event null, keeping the prior suspendedEvent
@@ -221,7 +233,7 @@ final class AvroPipelineImpl implements AvroPipeline
         int produced = rejected ? 0 : generator.length();
         // SUSPENDED holds the input steady (drain and re-present the same window); otherwise the window
         // advanced by all but the unconsumed tail the caller re-presents at the front of the next window
-        int consumed = rejected || status == SUSPENDED ? 0 : (limit - offset) - parser.remaining();
+        int consumed = rejected || status == SUSPENDED || status == PENDING ? 0 : (limit - offset) - parser.remaining();
         return result.set(status, consumed, produced);
     }
 
@@ -326,6 +338,7 @@ final class AvroPipelineImpl implements AvroPipeline
 
         private boolean segmented;
         private long authorization;
+        private Runnable resumer = NO_RESUMER;
 
         private Control(
             AvroParser parser,
@@ -345,6 +358,12 @@ final class AvroPipelineImpl implements AvroPipeline
         public AvroEnvelope envelope()
         {
             return envelope;
+        }
+
+        @Override
+        public Runnable resumer()
+        {
+            return resumer;
         }
 
         @Override
