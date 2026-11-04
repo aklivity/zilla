@@ -41,6 +41,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufController;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSink;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSource;
@@ -180,6 +181,37 @@ public class ProtobufModelEncoderPipelineTest
     }
 
     @Test
+    public void shouldRejectWhenReentrantTransformFailsAfterPending()
+    {
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        Pending transform = new Pending(true);
+        transform.failing = true;
+        ProtobufModelHandlerImpl handler = newHandler("SimpleMessage", List.of(pending(transform)));
+        ModelPipeline pipeline = handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE, () ->
+        {
+        });
+        byte[] in = JSON.getBytes(UTF_8);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+
+        ModelPipelineResult first = pipeline.transform(0L, 0L, 0L, COMPLETE, new UnsafeBufferEx(in), 0, in.length,
+            dst, 0, dst.capacity());
+        assertEquals(ModelStatus.SUSPENDED, first.status());
+        transform.complete();
+        ModelPipelineResult second = pipeline.transform(0L, 0L, 0L, 0, new UnsafeBufferEx(new byte[0]), 0, 0,
+            dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.REJECTED, second.status());
+
+        // the held input is discarded: the next value starts clean and suspends again on its first string
+        transform.failing = false;
+        transform.complete();
+        ModelPipelineResult third = pipeline.transform(0L, 0L, 0L, COMPLETE, new UnsafeBufferEx(in), 0, in.length,
+            dst, 0, dst.capacity());
+        assertEquals(ModelStatus.SUSPENDED, third.status());
+    }
+
+    @Test
     public void shouldReportDeterministicWithoutIdentityBeforeAnyData()
     {
         ProtobufModelHandlerImpl handler = newHandler();
@@ -302,6 +334,7 @@ public class ProtobufModelEncoderPipelineTest
     private static final class Pending implements ProtobufTransform
     {
         private final boolean every;
+        private boolean failing;
         private Runnable resumer;
         private boolean released;
         private boolean waited;
@@ -339,6 +372,11 @@ public class ProtobufModelEncoderPipelineTest
             ProtobufPipeline.Status status;
             if (event == ProtobufEvent.VALUE && (every || !waited))
             {
+                if (released && failing)
+                {
+                    throw new ProtobufException("failure after resume");
+                }
+
                 resumer = control.resumer();
                 waited = released;
                 status = released ? sink.transform(control, source, event) : ProtobufPipeline.Status.PENDING;
