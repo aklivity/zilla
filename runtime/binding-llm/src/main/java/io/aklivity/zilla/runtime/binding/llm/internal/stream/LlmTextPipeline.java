@@ -61,14 +61,30 @@ final class LlmTextPipeline
         this(output, false, breakpoints);
     }
 
+    LlmTextPipeline(
+        Output output,
+        String member)
+    {
+        this(output, member, true, null);
+    }
+
     private LlmTextPipeline(
         Output output,
         boolean optional,
         LlmCacheBreakpoint breakpoints)
     {
+        this(output, "text", optional, breakpoints);
+    }
+
+    private LlmTextPipeline(
+        Output output,
+        String member,
+        boolean optional,
+        LlmCacheBreakpoint breakpoints)
+    {
         this.windowBuffer = new UnsafeBufferEx();
         this.window = new byte[0];
-        this.transform = new LlmTextTransform(optional, breakpoints);
+        this.transform = new LlmTextTransform(member, optional, breakpoints);
         this.pipeline = JsonEx.stream(JsonEx.createParser())
             .transform(transform)
             .into(new LlmTextSink(output, breakpoints == null));
