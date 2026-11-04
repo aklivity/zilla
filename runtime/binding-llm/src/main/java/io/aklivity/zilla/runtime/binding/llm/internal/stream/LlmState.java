@@ -24,8 +24,8 @@ final class LlmState
     private static final int REPLY_OPENED = 0x02;
     private static final int REPLY_CLOSING = 0x04;
     private static final int REPLY_CLOSED = 0x08;
-    private static final int INITIAL_END_DEFERRED = 0x100;
-    private static final int REPLY_END_DEFERRED = 0x200;
+    private static final int INITIAL_ABORTING = 0x100;
+    private static final int REPLY_ABORTING = 0x200;
 
     static int openingInitial(
         int state)
@@ -67,6 +67,24 @@ final class LlmState
         int state)
     {
         return (state & INITIAL_CLOSED) != 0;
+    }
+
+    static int abortingInitial(
+        int state)
+    {
+        return state | INITIAL_ABORTING;
+    }
+
+    static boolean initialOpening(
+        int state)
+    {
+        return (state & INITIAL_OPENING) != 0;
+    }
+
+    static boolean initialAborting(
+        int state)
+    {
+        return (state & INITIAL_ABORTING) != 0;
     }
 
     static int openingReply(
@@ -117,43 +135,22 @@ final class LlmState
         return (state & REPLY_CLOSED) != 0;
     }
 
-    // Marks that an END arrived for this direction while a buffer was still draining, so forwarding it
-    // downstream had to wait; cleared once that forwarding actually happens. Unlike the opening/open/
-    // closing/closed bits above, this one is transient rather than terminal.
-    static int deferInitialEnd(
+    static int abortingReply(
         int state)
     {
-        return state | INITIAL_END_DEFERRED;
+        return state | REPLY_ABORTING;
     }
 
-    static int clearInitialEndDeferred(
+    static boolean replyAborting(
         int state)
     {
-        return state & ~INITIAL_END_DEFERRED;
+        return (state & REPLY_ABORTING) != 0;
     }
 
-    static boolean initialEndDeferred(
+    static boolean closed(
         int state)
     {
-        return (state & INITIAL_END_DEFERRED) != 0;
-    }
-
-    static int deferReplyEnd(
-        int state)
-    {
-        return state | REPLY_END_DEFERRED;
-    }
-
-    static int clearReplyEndDeferred(
-        int state)
-    {
-        return state & ~REPLY_END_DEFERRED;
-    }
-
-    static boolean replyEndDeferred(
-        int state)
-    {
-        return (state & REPLY_END_DEFERRED) != 0;
+        return initialClosed(state) && replyClosed(state);
     }
 
     private LlmState()
