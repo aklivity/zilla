@@ -112,7 +112,7 @@ class ProtobufPipelinePendingTest
         byte[] input = person("neo", street, "Zion");
         PendingTransform never = new PendingTransform(1, 99);
 
-        byte[] output = drive(never, input, input.length, 32);
+        byte[] output = drive(never, input, 20, 64);
 
         assertDecoded(output, "neo", street, "Zion");
         assertEquals(0, never.pended);
