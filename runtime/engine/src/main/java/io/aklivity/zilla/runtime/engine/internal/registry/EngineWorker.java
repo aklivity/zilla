@@ -169,6 +169,7 @@ import io.aklivity.zilla.runtime.engine.metrics.Collector;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
+import io.aklivity.zilla.runtime.engine.metrics.MetricRecorder;
 import io.aklivity.zilla.runtime.engine.model.Model;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
@@ -2171,6 +2172,14 @@ public class EngineWorker implements EngineContext, Agent
     {
         final int remoteIndex = serverIndex(streamId);
         return writersByIndex.computeIfAbsent(remoteIndex, supplyWriter);
+    }
+
+    @Override
+    public MetricRecorder supplyMetricRecorder(
+        long namespacedId,
+        String metric)
+    {
+        return MetricRecorder.NOOP;
     }
 
     @Override
