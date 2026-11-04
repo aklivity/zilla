@@ -137,6 +137,7 @@ final class AvroModelDecoderPipeline implements ModelPipeline
         else
         {
             active.authorization(authorization);
+            active.bindingId(bindingId);
             active.resumer(resumed);
             boolean last = hasFin(flags);
             AvroPipelineResult avro = active.transform(src, srcIndex + prefix, srcIndex + srcLength, last,
