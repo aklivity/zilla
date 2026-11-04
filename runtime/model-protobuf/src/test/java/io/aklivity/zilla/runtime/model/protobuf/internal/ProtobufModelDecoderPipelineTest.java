@@ -569,6 +569,81 @@ public class ProtobufModelDecoderPipelineTest
     }
 
     @Test
+    public void shouldNotDropRepeatedElementsWhenCallerRedrivesPendingWithEmptySource()
+    {
+        String schema = """
+                        syntax = "proto3";
+                        package io.aklivity.examples.clients.proto;
+                        message Order {
+                            repeated Item items = 1;
+                        }
+                        message Item {
+                            string name = 1;
+                        }
+                        """;
+        byte[] wire = {0x00,
+            0x0a, 0x05, 0x0a, 0x03, 'p', 'e', 'n',
+            0x0a, 0x05, 0x0a, 0x03, 'i', 'n', 'k'};
+
+        byte[] expected = decodeWhole(newHandler(null, List.of(), schema, "Order"), wire);
+
+        Pending transform = new Pending(true);
+        ProtobufModelHandlerImpl handler = newHandler(null, List.of(pending(transform)), schema, "Order");
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, () ->
+        {
+        });
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE, new UnsafeBufferEx(wire), 0, wire.length,
+            dst, 0, dst.capacity());
+        drain(dst, result.produced(), out);
+        int suspensions = 0;
+        while (result.status() == ModelStatus.SUSPENDED && suspensions < 100)
+        {
+            suspensions++;
+            transform.complete();
+            result = pipeline.transform(0L, 0L, 0L, 0, new UnsafeBufferEx(new byte[0]), 0, 0,
+                dst, 0, dst.capacity());
+            drain(dst, result.produced(), out);
+        }
+
+        assertEquals(2, suspensions);
+        assertEquals(ModelStatus.COMPLETE, result.status());
+        assertArrayEquals(expected, out.toByteArray());
+    }
+
+    @Test
+    public void shouldRejectWhenReentrantTransformFailsAfterPending()
+    {
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+        Pending transform = new Pending(true);
+        transform.failing = true;
+        ProtobufModelHandlerImpl handler = newHandler("json", List.of(pending(transform)));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, () ->
+        {
+        });
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+
+        ModelPipelineResult first = pipeline.transform(0L, 0L, 0L, COMPLETE, new UnsafeBufferEx(WIRE), 0, WIRE.length,
+            dst, 0, dst.capacity());
+        assertEquals(ModelStatus.SUSPENDED, first.status());
+        transform.complete();
+        ModelPipelineResult second = pipeline.transform(0L, 0L, 0L, 0, new UnsafeBufferEx(new byte[0]), 0, 0,
+            dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.REJECTED, second.status());
+
+        // the held input is discarded: the next value starts clean
+        transform.failing = false;
+        transform.complete();
+        ModelPipelineResult third = pipeline.transform(0L, 0L, 0L, COMPLETE, new UnsafeBufferEx(WIRE), 0, WIRE.length,
+            dst, 0, dst.capacity());
+        assertEquals(ModelStatus.SUSPENDED, third.status());
+    }
+
+    @Test
     public void shouldNotReportIdentityWhenExtensionInstalled()
     {
         ProtobufModelHandlerImpl handler = newHandler(null, List.of(failing()));
@@ -784,6 +859,7 @@ public class ProtobufModelDecoderPipelineTest
     {
         private final List<Long> bindingIds = new ArrayList<>();
         private final boolean every;
+        private boolean failing;
         private Runnable resumer;
         private boolean released;
         private boolean waited;
@@ -821,6 +897,11 @@ public class ProtobufModelDecoderPipelineTest
             ProtobufPipeline.Status status;
             if (event == ProtobufEvent.VALUE && (every || !waited))
             {
+                if (released && failing)
+                {
+                    throw new ProtobufException("failure after resume");
+                }
+
                 resumer = control.resumer();
                 bindingIds.add(control.bindingId());
                 waited = released;
