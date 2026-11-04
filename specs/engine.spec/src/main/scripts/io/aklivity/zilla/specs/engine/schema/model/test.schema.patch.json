@@ -122,6 +122,10 @@
                     {
                         "type": "boolean"
                     },
+                    "bindingConsistent":
+                    {
+                        "type": "boolean"
+                    },
                     "discloseAuthorized":
                     {
                         "type": "array",

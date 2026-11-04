@@ -52,8 +52,10 @@ public class TestModelHandler implements ModelHandler
     private final DirectBufferEx discloseRedacted;
     private final String envelopeDiscloseName;
     private final boolean deterministic;
+    private final boolean bindingConsistent;
 
     private int transformAuthorizationIndex;
+    private long observedBindingId;
 
     public TestModelHandler(
         TestModelConfig config)
@@ -82,6 +84,7 @@ public class TestModelHandler implements ModelHandler
             : null;
         this.envelopeDiscloseName = config.envelopeDiscloseName;
         this.deterministic = config.deterministic;
+        this.bindingConsistent = config.bindingConsistent;
     }
 
     @Override
@@ -157,6 +160,17 @@ public class TestModelHandler implements ModelHandler
         }
 
         return pipeline;
+    }
+
+    boolean acceptBindingId(
+        long bindingId)
+    {
+        if (observedBindingId == 0L)
+        {
+            observedBindingId = bindingId;
+        }
+
+        return !bindingConsistent || observedBindingId == bindingId;
     }
 
     Long nextTransformAuthorization()
