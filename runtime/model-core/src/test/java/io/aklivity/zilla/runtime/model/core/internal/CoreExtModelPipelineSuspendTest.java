@@ -23,6 +23,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 
@@ -170,6 +171,80 @@ public class CoreExtModelPipelineSuspendTest
         assertEquals("0123456789", drained.toString());
     }
 
+    @Test
+    public void shouldReachBindingIdFromStringStageOnFirstEntryAndReentry()
+    {
+        List<Long> observed = new ArrayList<>();
+        StringExtModelPipeline pipeline = string(new AwaitString(StringEvent.START_VALUE, 1)
+        {
+            @Override
+            public ModelStatus transform(
+                StringController control,
+                StringSource source,
+                StringEvent event,
+                StringSink sink)
+            {
+                observed.add(control.bindingId());
+                return super.transform(control, source, event, sink);
+            }
+
+            @Override
+            public ModelStatus resume(
+                StringController control,
+                StringSource source,
+                StringEvent event,
+                StringSink sink)
+            {
+                observed.add(control.bindingId());
+                return super.resume(control, source, event, sink);
+            }
+        });
+        UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
+
+        pipeline.transform(0L, 7L, 0L, COMPLETE, buffer("abc"), 0, 3, dst, 0, dst.capacity());
+        completeAsynchronously();
+        pipeline.transform(0L, 7L, 0L, NONE, buffer(""), 0, 0, dst, 0, dst.capacity());
+
+        assertEquals(List.of(7L, 7L, 7L), observed.subList(0, 3));
+    }
+
+    @Test
+    public void shouldReachBindingIdFromBytesStageOnFirstEntryAndReentry()
+    {
+        List<Long> observed = new ArrayList<>();
+        BytesExtModelPipeline pipeline = bytes(new AwaitBytes(BytesEvent.START_VALUE, 1)
+        {
+            @Override
+            public ModelStatus transform(
+                BytesController control,
+                BytesSource source,
+                BytesEvent event,
+                BytesSink sink)
+            {
+                observed.add(control.bindingId());
+                return super.transform(control, source, event, sink);
+            }
+
+            @Override
+            public ModelStatus resume(
+                BytesController control,
+                BytesSource source,
+                BytesEvent event,
+                BytesSink sink)
+            {
+                observed.add(control.bindingId());
+                return super.resume(control, source, event, sink);
+            }
+        });
+        UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
+
+        pipeline.transform(0L, 9L, 0L, COMPLETE, buffer("abc"), 0, 3, dst, 0, dst.capacity());
+        completeAsynchronously();
+        pipeline.transform(0L, 9L, 0L, NONE, buffer(""), 0, 0, dst, 0, dst.capacity());
+
+        assertEquals(List.of(9L, 9L, 9L), observed.subList(0, 3));
+    }
+
     private StringExtModelPipeline string(
         StringTransform transform)
     {
@@ -204,7 +279,7 @@ public class CoreExtModelPipelineSuspendTest
 
     // suspends on the nth presentation of an event, standing in for work completed through the signaler
     // back on the pipeline's own thread, then forwards that event once resumed
-    private final class AwaitString implements StringTransform
+    private class AwaitString implements StringTransform
     {
         private final StringEvent awaited;
         private final int occurrence;
@@ -212,7 +287,7 @@ public class CoreExtModelPipelineSuspendTest
         private int seen;
         private boolean awaiting;
 
-        private AwaitString(
+        AwaitString(
             StringEvent awaited,
             int occurrence)
         {
@@ -275,7 +350,7 @@ public class CoreExtModelPipelineSuspendTest
         }
     }
 
-    private final class AwaitBytes implements BytesTransform
+    private class AwaitBytes implements BytesTransform
     {
         private final BytesEvent awaited;
         private final int occurrence;
@@ -283,7 +358,7 @@ public class CoreExtModelPipelineSuspendTest
         private int seen;
         private boolean awaiting;
 
-        private AwaitBytes(
+        AwaitBytes(
             BytesEvent awaited,
             int occurrence)
         {

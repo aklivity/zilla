@@ -28,6 +28,21 @@ import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 public interface StringController
 {
     /**
+     * Returns the namespaced identifier of the binding the pipeline is currently driven for.
+     * <p>
+     * It is the {@code bindingId} argument of the {@code ModelPipeline.transform} call driving the pipeline,
+     * and is valid for the whole of that call, including when a stage is re-entered after reporting
+     * {@link ModelStatus#SUSPENDED}. The default is {@code 0L}, for a pipeline that never received one.
+     * </p>
+     *
+     * @return the identifier of the binding the pipeline is driven for
+     */
+    default long bindingId()
+    {
+        return 0L;
+    }
+
+    /**
      * Returns the authorization in effect for the value currently being transformed.
      * <p>
      * A mediating stage may override this to scope the authorization further for a nested composition; a
