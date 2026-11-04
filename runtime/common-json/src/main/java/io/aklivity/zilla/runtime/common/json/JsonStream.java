@@ -59,16 +59,13 @@ public interface JsonStream extends JsonTransformable<JsonStream>
      * Attaches the callback the pipeline runs when a stage signals, through {@link JsonController#resumer()},
      * that the asynchronous work behind a {@link JsonPipeline.Status#PENDING} has completed, so the caller knows
      * to call {@link JsonPipeline#transform} again. It runs on the thread driving the pipeline. The last attached
-     * callback wins; the default does nothing.
+     * callback wins; without one, the signal does nothing.
      *
      * @param resumed  the callback to run when a pending stage may be re-entered
      * @return this stream
      */
-    default JsonStream resuming(
-        Runnable resumed)
-    {
-        return this;
-    }
+    JsonStream resuming(
+        Runnable resumed);
 
     JsonPipeline into(
         JsonSink sink);
