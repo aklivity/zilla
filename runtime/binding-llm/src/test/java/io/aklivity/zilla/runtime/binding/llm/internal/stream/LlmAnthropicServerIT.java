@@ -1600,6 +1600,17 @@ public class LlmAnthropicServerIT
 
     @Test
     @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"gemini\""})
+    @Specification({
+        "${net}/anthropic.transform.response.text/client",
+        "${app}/transform.response.server.tool/server"})
+    public void shouldDropServerToolSectionsOfGeminiAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
     @ScriptProperty({"source \"anthropic\"", "target \"anthropic\"", "reason \"unprefixed\""})
     @Specification({
         "${net}/anthropic.transform.response.text/client",

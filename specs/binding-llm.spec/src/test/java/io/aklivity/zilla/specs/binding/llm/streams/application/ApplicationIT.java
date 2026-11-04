@@ -5349,6 +5349,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/transform.response.server.tool/client",
+        "${app}/transform.response.server.tool/server"})
+    public void shouldTransformResponseServerTool() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/anthropic.transform.response.finish.reason/client",
         "${app}/anthropic.transform.response.finish.reason/server"})
     public void shouldAnthropicTransformResponseFinishReason() throws Exception
