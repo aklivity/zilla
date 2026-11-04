@@ -4177,6 +4177,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         private static final int KIND_REASONING = 5;
         private static final int KIND_SERVER_TOOL_CALL = 6;
         private static final int KIND_SERVER_TOOL_RESULT = 7;
+        private static final int KIND_CITATIONS = 8;
 
         private static final int CONTROL_DROP = 0;
         private static final int CONTROL_HELD = 1;
@@ -4249,6 +4250,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         private boolean controlOpen;
         private final LlmControlHold hold = new LlmControlHold(this::heldBuffer);
         private final LlmMemberSplitter splitter = new LlmMemberSplitter(this::onEncodeMember);
+        private final LlmMemberSplitter citationSplitter = new LlmMemberSplitter(this::onEncodeMember, true);
         private int heldSlot = NO_SLOT;
 
         private LlmGeminiStream(
@@ -4957,6 +4959,12 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 controlMode = CONTROL_DROP;
                 splitter.begin();
             }
+            else if (kind == KIND_CITATIONS)
+            {
+                controlMessage = NONE;
+                controlMode = CONTROL_DROP;
+                citationSplitter.begin();
+            }
 
             if (part(kind))
             {
@@ -4992,6 +5000,13 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             if (kind == KIND_CONTROL)
             {
                 if (!splitter.put(payload, payloadOffset, payloadLength, fin) || hold.failed())
+                {
+                    server.cleanup(traceId);
+                }
+            }
+            else if (kind == KIND_CITATIONS)
+            {
+                if (!citationSplitter.put(payload, payloadOffset, payloadLength, fin) || hold.failed())
                 {
                     server.cleanup(traceId);
                 }
@@ -5412,6 +5427,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             case TOOL_CALL -> KIND_TOOL_CALL;
             case SERVER_TOOL_CALL -> sameDialect ? KIND_SERVER_TOOL_CALL : KIND_SKIPPED;
             case SERVER_TOOL_RESULT -> sameDialect ? KIND_SERVER_TOOL_RESULT : KIND_SKIPPED;
+            case ASSISTANT_CITATIONS -> sameDialect ? KIND_CITATIONS : KIND_SKIPPED;
             default -> KIND_SKIPPED;
             };
         }
