@@ -43,6 +43,13 @@ import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 // drains, advances the input by exactly that, and calls again to resume the event that suspended. The
 // input bounds the value: a fragment that does not close the value returns UNDERFLOW, and the next
 // fragment arrives as a further segment of the same value.
+//
+// A third outcome is waiting rather than draining. A stage that returns SUSPENDED is awaiting asynchronous
+// work and invokes the resume callback once it completes, on the pipeline's own I/O thread. The call takes
+// the whole input window, so the caller advances past it and the pipeline keeps whatever the stage has not
+// consumed; the caller then drives the pipeline again with an empty source and the suspended event is
+// presented to the stage once more, over those retained bytes, ahead of anything that follows. A suspended
+// pipeline accepts no new input until then.
 abstract class CoreExtModelPipeline implements ModelPipeline
 {
     private enum Phase
@@ -69,6 +76,11 @@ abstract class CoreExtModelPipeline implements ModelPipeline
 
     private Phase phase;
     private ValueEvent pending;
+    private boolean suspended;
+    private boolean closing;
+    private byte[] retained;
+    private int retainedAt;
+    private int retainedLength;
     private boolean initial;
     private boolean finished;
     private int reported;
@@ -90,6 +102,7 @@ abstract class CoreExtModelPipeline implements ModelPipeline
         this.padding = padding;
         this.result = new ModelPipelineResult();
         this.segment = new UnsafeBufferEx(new byte[0]);
+        this.retained = new byte[0];
         this.phase = Phase.START;
         this.initial = true;
     }
@@ -112,17 +125,32 @@ abstract class CoreExtModelPipeline implements ModelPipeline
             reset();
         }
 
+        int srcLength = srcLimit - srcIndex;
+        if (suspended && srcLength > 0)
+        {
+            return result.set(ModelStatus.SUSPENDED, 0, 0, null);
+        }
+
         this.authorization = authorization;
         target = dst;
         targetAt = dstIndex;
         targetLimit = dstLimit;
         reported = 0;
 
-        int srcLength = srcLimit - srcIndex;
-        boolean last = hasFin(flags);
-        segment.wrap(src, srcIndex, srcLength);
+        closing |= hasFin(flags);
+        boolean replay = retainedLength > 0;
+        int windowLength = replay ? retainedLength : srcLength;
+        if (replay)
+        {
+            segment.wrap(retained, retainedAt, retainedLength);
+        }
+        else
+        {
+            segment.wrap(src, srcIndex, srcLength);
+        }
 
-        ModelStatus pumped = pump(srcLength, last);
+        ModelStatus pumped = pump(windowLength, closing);
+        suspended = pumped == ModelStatus.SUSPENDED;
 
         ModelStatus status;
         int consumed;
@@ -148,8 +176,23 @@ abstract class CoreExtModelPipeline implements ModelPipeline
         }
         else
         {
-            consumed = consumption(srcLength);
-            boolean tail = last && consumed == srcLength;
+            int taken = consumption(windowLength);
+            if (replay)
+            {
+                retainedAt += taken;
+                retainedLength -= taken;
+                consumed = 0;
+            }
+            else if (suspended)
+            {
+                retain(src, srcIndex + taken, srcLength - taken);
+                consumed = srcLength;
+            }
+            else
+            {
+                consumed = taken;
+            }
+            boolean tail = closing && consumed == srcLength;
             Validity validity = validate(src, srcIndex, consumed, tail);
             boolean reject = validity == Validity.MALFORMED || validity == Validity.INVALID && !lenient;
             if (validity != Validity.VALID)
@@ -166,9 +209,11 @@ abstract class CoreExtModelPipeline implements ModelPipeline
             }
             else
             {
-                status = pending != null
-                    ? ModelStatus.OVERFLOW
-                    : phase == Phase.DONE ? ModelStatus.COMPLETE : ModelStatus.UNDERFLOW;
+                status = suspended
+                    ? ModelStatus.SUSPENDED
+                    : pending != null
+                        ? ModelStatus.OVERFLOW
+                        : phase == Phase.DONE ? ModelStatus.COMPLETE : ModelStatus.UNDERFLOW;
                 produced = targetAt - dstIndex;
             }
         }
@@ -189,6 +234,10 @@ abstract class CoreExtModelPipeline implements ModelPipeline
     {
         phase = Phase.START;
         pending = null;
+        suspended = false;
+        closing = false;
+        retainedAt = 0;
+        retainedLength = 0;
         initial = true;
         finished = false;
         reported = 0;
@@ -308,8 +357,25 @@ abstract class CoreExtModelPipeline implements ModelPipeline
         ValueEvent event)
     {
         ModelStatus status = pending == event ? resume(event) : feed(event);
-        pending = status == ModelStatus.OVERFLOW ? event : null;
+        pending = status == ModelStatus.OVERFLOW || status == ModelStatus.SUSPENDED ? event : null;
         return status;
+    }
+
+    // the bytes the stage has not consumed are copied aside, since the caller advances past the window it
+    // handed over and drives the resumed event with an empty source
+    private void retain(
+        DirectBufferEx src,
+        int index,
+        int length)
+    {
+        if (retained.length < length)
+        {
+            retained = new byte[length];
+        }
+
+        src.getBytes(index, retained, 0, length);
+        retainedAt = 0;
+        retainedLength = length;
     }
 
     // accepting the segment event accepts the whole window; a bounded write that suspended mid-segment

@@ -31,6 +31,7 @@ import io.aklivity.zilla.runtime.model.core.ext.StringTransform;
 // pump's state, allocated once and reused for every event of every value this stream carries.
 final class StringExtModelPipeline extends CoreExtModelPipeline
 {
+    private final Runnable resumed;
     private final StringController control;
     private final StringSource source;
     private final StringSink head;
@@ -43,9 +44,11 @@ final class StringExtModelPipeline extends CoreExtModelPipeline
         boolean lenient,
         List<StringTransform> transforms,
         ModelEnvelope envelope,
-        int padding)
+        int padding,
+        Runnable resumed)
     {
         super(handler, validator, lenient, envelope, padding);
+        this.resumed = resumed;
         this.control = new Control();
         this.source = new Source();
 
@@ -121,6 +124,12 @@ final class StringExtModelPipeline extends CoreExtModelPipeline
             int sourceBytes)
         {
             StringExtModelPipeline.this.consumed(sourceBytes);
+        }
+
+        @Override
+        public Runnable resumer()
+        {
+            return resumed;
         }
 
         @Override
