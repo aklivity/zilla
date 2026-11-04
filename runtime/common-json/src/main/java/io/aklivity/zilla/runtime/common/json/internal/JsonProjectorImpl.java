@@ -173,6 +173,12 @@ public final class JsonProjectorImpl implements JsonTransform
         }
 
         @Override
+        public long bindingId()
+        {
+            return upstreamControl.bindingId();
+        }
+
+        @Override
         public void consumed(
             int sourceBytes)
         {

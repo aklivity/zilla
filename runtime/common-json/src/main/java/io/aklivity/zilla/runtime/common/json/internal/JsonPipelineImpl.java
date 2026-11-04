@@ -123,6 +123,13 @@ public final class JsonPipelineImpl implements JsonPipeline
     }
 
     @Override
+    public void bindingId(
+        long bindingId)
+    {
+        control.bindingId = bindingId;
+    }
+
+    @Override
     public boolean identity()
     {
         return parser.identity() && root.identity();
@@ -430,6 +437,7 @@ public final class JsonPipelineImpl implements JsonPipeline
         private JsonParserEx parser;
         private boolean segmented;
         private long authorization;
+        private long bindingId;
 
         private Control(
             JsonPipelineImpl pipeline,
@@ -447,6 +455,12 @@ public final class JsonPipelineImpl implements JsonPipeline
         public Runnable resumer()
         {
             return resumer;
+        }
+
+        @Override
+        public long bindingId()
+        {
+            return bindingId;
         }
 
         @Override
