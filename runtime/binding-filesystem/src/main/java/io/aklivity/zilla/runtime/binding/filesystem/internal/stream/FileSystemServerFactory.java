@@ -597,7 +597,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                 .tag(tag)
                 .build();
 
-            doBegin(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, 0L, 0L, extension);
+            doBegin(app, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, 0L, 0L, extension);
         }
 
         private void doAppData(
@@ -608,7 +608,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             final int length = payload != null ? payload.sizeof() : 0;
             assert reserved >= length + replyPad : String.format("%d >= %d", reserved, length + replyPad);
 
-            doData(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, 0L, replyBud,
+            doData(app, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, 0L, replyBud,
                     reserved, payload, EMPTY_EXTENSION);
 
             replySeq += reserved;
@@ -621,7 +621,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
             {
                 state = StreamState.closeReply(state);
-                doEnd(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, 0L, EMPTY_EXTENSION);
+                doEnd(app, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, 0L, EMPTY_EXTENSION);
             }
         }
 
@@ -632,6 +632,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             {
                 state = StreamState.closeReply(state);
                 doAbort(app, originId, routedId, replyId, replySeq, replyAck,
+                        StreamState.closeReply(StreamState.abortingReply(state)),
                         replyMax, traceId, 0L, EMPTY_EXTENSION);
             }
         }
@@ -643,7 +644,8 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             {
                 state = StreamState.closeInitial(state);
 
-                doReset(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doReset(app, originId, routedId, initialId, initialSeq, initialAck,
+                    StreamState.closeInitial(StreamState.abortingInitial(state)), initialMax,
                     traceId, 0L, EMPTY_EXTENSION);
             }
         }
@@ -653,7 +655,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         {
             state = StreamState.openInitial(state);
 
-            doWindow(app, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId,
+            doWindow(app, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId,
                      initialAuth, 0L, initialPad);
         }
 
@@ -1150,7 +1152,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                 .path(relativePath)
                 .tag(tag)
                 .build();
-            doBegin(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, 0L, 0L, extension);
+            doBegin(app, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, 0L, 0L, extension);
         }
 
         private void doAppEnd(
@@ -1159,7 +1161,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             if (StreamState.replyOpening(state) && !StreamState.replyClosed(state))
             {
                 state = StreamState.closeReply(state);
-                doEnd(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, 0L, EMPTY_EXTENSION);
+                doEnd(app, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, 0L, EMPTY_EXTENSION);
             }
         }
 
@@ -1170,6 +1172,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             {
                 state = StreamState.closeReply(state);
                 doAbort(app, originId, routedId, replyId, replySeq, replyAck,
+                        StreamState.closeReply(StreamState.abortingReply(state)),
                         replyMax, traceId, 0L, EMPTY_EXTENSION);
             }
         }
@@ -1182,7 +1185,8 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             {
                 state = StreamState.closeInitial(state);
 
-                doReset(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                doReset(app, originId, routedId, initialId, initialSeq, initialAck,
+                    StreamState.closeInitial(StreamState.abortingInitial(state)), initialMax,
                     traceId, 0L, extension);
             }
         }
@@ -1194,7 +1198,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             {
                 state = StreamState.openInitial(state);
 
-                doWindow(app, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId,
+                doWindow(app, originId, routedId, initialId, initialSeq, initialAck, state, initialMax, traceId,
                     0L, 0L, 0);
             }
         }
@@ -1320,6 +1324,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1332,6 +1337,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1349,6 +1355,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1363,6 +1370,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1382,6 +1390,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1393,6 +1402,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1409,6 +1419,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1420,6 +1431,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1436,6 +1448,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1447,6 +1460,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
@@ -1463,6 +1477,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         long streamId,
         long sequence,
         long acknowledge,
+        int state,
         int maximum,
         long traceId,
         long authorization,
@@ -1475,6 +1490,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
+                .state(state)
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
