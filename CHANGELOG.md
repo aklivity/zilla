@@ -41,8 +41,12 @@
 - feat\(common-json\): extract pluggable JsonTokenizer SPI [\#2940](https://github.com/aklivity/zilla/pull/2940) ([jfallows](https://github.com/jfallows))
 - fix\(manager\): grant jdk.internal.misc opens via manifest instead of avoiding it in common-json [\#2942](https://github.com/aklivity/zilla/pull/2942) ([jfallows](https://github.com/jfallows))
 - ci: prune untagged build cache versions after publishing [\#2944](https://github.com/aklivity/zilla/pull/2944) ([jfallows](https://github.com/jfallows))
+- ci: move workflow actions to node24, bound job runtimes, pin runner images [\#2945](https://github.com/aklivity/zilla/pull/2945) ([jfallows](https://github.com/jfallows))
 - fix\(binding-http\): discard DATA on a closed h2 stream without advancing by a stale length [\#2946](https://github.com/aklivity/zilla/pull/2946) ([jfallows](https://github.com/jfallows))
 - feat\(binding-http\): complete h2c upgrade and size h2 flow control from the protocol [\#2947](https://github.com/aklivity/zilla/pull/2947) ([jfallows](https://github.com/jfallows))
+- fix\(binding-http\): h2c handover slot overrun and h2 client and server split reserved frames [\#2948](https://github.com/aklivity/zilla/pull/2948) ([ankitk-me](https://github.com/ankitk-me))
+- fix\(binding-http\): decline an h2c upgrade whose HTTP2-Settings are invalid and cover the upgrade fallback paths [\#2949](https://github.com/aklivity/zilla/pull/2949) ([jfallows](https://github.com/jfallows))
+- feat\(engine\): add circuitId to Begin frame [\#2951](https://github.com/aklivity/zilla/pull/2951) ([jfallows](https://github.com/jfallows))
 
 ## [2.6.0](https://github.com/aklivity/zilla/tree/2.6.0) (2026-10-22)
 
