@@ -16,14 +16,16 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
 public final class McpState
 {
-    private static final int INITIAL_OPENING = 0x10;
-    private static final int INITIAL_OPENED = 0x20;
-    private static final int INITIAL_CLOSING = 0x40;
-    private static final int INITIAL_CLOSED = 0x80;
-    private static final int REPLY_OPENED = 0x01;
-    private static final int REPLY_OPENING = 0x02;
-    private static final int REPLY_CLOSING = 0x04;
-    private static final int REPLY_CLOSED = 0x08;
+    private static final int REPLY_OPENING = 0x0001;
+    private static final int REPLY_OPENED = 0x0002;
+    private static final int REPLY_CLOSING = 0x0004;
+    private static final int REPLY_CLOSED = 0x0008;
+    private static final int INITIAL_OPENING = 0x0010;
+    private static final int INITIAL_OPENED = 0x0020;
+    private static final int INITIAL_CLOSING = 0x0040;
+    private static final int INITIAL_CLOSED = 0x0080;
+    private static final int INITIAL_ABORTING = 0x0100;
+    private static final int REPLY_ABORTING = 0x0200;
 
     public static int openingInitial(
         int state)
@@ -31,10 +33,28 @@ public final class McpState
         return state | INITIAL_OPENING;
     }
 
-    public static int openedInitial(
+    public static int openInitial(
         int state)
     {
-        return state | INITIAL_OPENED;
+        return openingInitial(state) | INITIAL_OPENED;
+    }
+
+    public static int closingInitial(
+        int state)
+    {
+        return state | INITIAL_CLOSING;
+    }
+
+    public static int closeInitial(
+        int state)
+    {
+        return closingInitial(state) | INITIAL_CLOSED;
+    }
+
+    public static int abortingInitial(
+        int state)
+    {
+        return state | INITIAL_ABORTING;
     }
 
     public static boolean initialOpening(
@@ -49,18 +69,6 @@ public final class McpState
         return (state & INITIAL_OPENED) != 0;
     }
 
-    public static int closingInitial(
-        int state)
-    {
-        return state | INITIAL_CLOSING;
-    }
-
-    public static int closedInitial(
-        int state)
-    {
-        return state | INITIAL_CLOSED;
-    }
-
     public static boolean initialClosing(
         int state)
     {
@@ -73,16 +81,40 @@ public final class McpState
         return (state & INITIAL_CLOSED) != 0;
     }
 
+    public static boolean initialAborting(
+        int state)
+    {
+        return (state & INITIAL_ABORTING) != 0;
+    }
+
     public static int openingReply(
         int state)
     {
         return state | REPLY_OPENING;
     }
 
-    public static int openedReply(
+    public static int openReply(
         int state)
     {
         return state | REPLY_OPENED;
+    }
+
+    public static int closingReply(
+        int state)
+    {
+        return state | REPLY_CLOSING;
+    }
+
+    public static int closeReply(
+        int state)
+    {
+        return closingReply(state) | REPLY_CLOSED;
+    }
+
+    public static int abortingReply(
+        int state)
+    {
+        return state | REPLY_ABORTING;
     }
 
     public static boolean replyOpening(
@@ -97,18 +129,6 @@ public final class McpState
         return (state & REPLY_OPENED) != 0;
     }
 
-    public static int closingReply(
-        int state)
-    {
-        return state | REPLY_CLOSING;
-    }
-
-    public static int closedReply(
-        int state)
-    {
-        return state | REPLY_CLOSED;
-    }
-
     public static boolean replyClosing(
         int state)
     {
@@ -119,6 +139,12 @@ public final class McpState
         int state)
     {
         return (state & REPLY_CLOSED) != 0;
+    }
+
+    public static boolean replyAborting(
+        int state)
+    {
+        return (state & REPLY_ABORTING) != 0;
     }
 
     public static boolean closed(

@@ -542,7 +542,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
         {
             if (!McpState.initialClosed(state))
             {
-                state = McpState.closedInitial(state);
+                state = McpState.closeInitial(state);
                 binding.sessions.remove(sessionId);
                 for (McpLifecycleClient client : clients.values())
                 {
@@ -556,7 +556,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
         {
             if (!McpState.initialClosed(state))
             {
-                state = McpState.closedInitial(state);
+                state = McpState.closeInitial(state);
                 binding.sessions.remove(sessionId);
                 for (McpLifecycleClient client : clients.values())
                 {
@@ -633,7 +633,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            state = McpState.closedInitial(state);
+            state = McpState.closeInitial(state);
 
             binding.sessions.remove(sessionId);
 
@@ -660,7 +660,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            state = McpState.closedInitial(state);
+            state = McpState.closeInitial(state);
 
             binding.sessions.remove(sessionId);
 
@@ -707,7 +707,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
-            state = McpState.closedReply(state);
+            state = McpState.closeReply(state);
 
             binding.sessions.remove(sessionId);
 
@@ -723,7 +723,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
         {
             doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
                 affinity, extension);
-            state = McpState.openedReply(state);
+            state = McpState.openReply(state);
         }
 
         private void doServerEnd(
@@ -732,7 +732,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             if (!McpState.replyClosed(state))
             {
                 doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
-                state = McpState.closedReply(state);
+                state = McpState.closeReply(state);
             }
         }
 
@@ -742,7 +742,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             if (!McpState.replyClosed(state))
             {
                 doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
-                state = McpState.closedReply(state);
+                state = McpState.closeReply(state);
             }
         }
 
@@ -760,7 +760,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             {
                 doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId,
                     authorization, extension);
-                state = McpState.closedInitial(state);
+                state = McpState.closeInitial(state);
             }
         }
 
@@ -1035,7 +1035,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             {
                 doEnd(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId,
                     authorization);
-                state = McpState.closedInitial(state);
+                state = McpState.closeInitial(state);
             }
         }
 
@@ -1046,7 +1046,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             {
                 doAbort(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId,
                     authorization);
-                state = McpState.closedInitial(state);
+                state = McpState.closeInitial(state);
             }
         }
 
@@ -1057,7 +1057,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             {
                 doReset(sender, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId,
                     authorization, emptyRO);
-                state = McpState.closedReply(state);
+                state = McpState.closeReply(state);
             }
         }
 
@@ -1297,7 +1297,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             replySeq = sequence;
             replyAck = acknowledge;
 
-            state = McpState.openedInitial(state);
+            state = McpState.openInitial(state);
 
             final McpBeginExFW beginEx = extension.get(mcpBeginExRO::tryWrap);
             if (beginEx != null && beginEx.kind() == KIND_LIFECYCLE)
@@ -1315,7 +1315,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
             doClientWindow(traceId, 0L, 0);
 
-            state = McpState.openedReply(state);
+            state = McpState.openReply(state);
 
             resolved = true;
             settleLifecycle(traceId);
@@ -1343,7 +1343,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
-            state = McpState.closedReply(state);
+            state = McpState.closeReply(state);
             settleRequests(traceId);
             doClientEnd(traceId);
             server.clients.remove(routedId, this);
@@ -1368,7 +1368,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
-            state = McpState.closedReply(state);
+            state = McpState.closeReply(state);
             resolved = true;
             settleRequests(traceId);
             doClientAbort(traceId);
@@ -1419,7 +1419,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            state = McpState.closedInitial(state);
+            state = McpState.closeInitial(state);
             resolved = true;
             settleRequests(traceId);
             doClientReset(traceId);
