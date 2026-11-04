@@ -580,6 +580,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private final LlmAnthropicResponseDecoder decodeUsage = this::decodeUsage;
         private final LlmAnthropicResponseDecoder decodeUsageValue = this::decodeUsageValue;
         private final LlmAnthropicResponseDecoder decodeCapture = this::decodeCapture;
+        private final LlmAnthropicResponseDecoder decodeCitationsStart = this::decodeCitationsStart;
         private final LlmAnthropicResponseDecoder decodeControlValue = this::decodeControlValue;
         private final LlmAnthropicResponseDecoder decodeControlStream = this::decodeControlStream;
         private final LlmAnthropicResponseDecoder decodeSkip = this::decodeSkip;
@@ -704,6 +705,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private int blockFrom;
         private LlmSectionPipeline capturePipeline;
         private LlmSectionPipeline reasoningPipeline;
+        private LlmSectionPipeline citationsPipeline;
         private final LlmSectionAttributes captureAttributes = new LlmSectionAttributes();
         private final LlmSectionPipeline.Output captureOutput = (buffer, offset, length, last) ->
             writeSection(buffer, offset, length, last);
@@ -1922,6 +1924,10 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                     {
                         beginReasoning(REASONING_TEXT, decodeContentItem);
                     }
+                    else if (MEMBER_CITATIONS.contentEquals(member) && BLOCK_TEXT.equals(blockType))
+                    {
+                        decoder = decodeCitationsStart;
+                    }
                     else if (MEMBER_INPUT.contentEquals(member))
                     {
                         decoder = decodeInputStart;
@@ -1930,6 +1936,28 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                     {
                         skipMember(decodeContentItem);
                     }
+                }
+            }
+
+            return position();
+        }
+
+        private int decodeCitationsStart(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            if (hasNextEvent())
+            {
+                final JsonEvent event = parser.nextEvent();
+
+                if (event == JsonEvent.START_ARRAY)
+                {
+                    beginCitationsCapture();
+                }
+                else
+                {
+                    skipAfter(event, decodeContentItem);
                 }
             }
 
@@ -3581,6 +3609,26 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
             closeSection();
             openSection(LlmSectionType.ASSISTANT_REASONING, null, null);
+            sectionStarted = true;
+
+            decoder = decodeCapture;
+        }
+
+        private void beginCitationsCapture()
+        {
+            if (citationsPipeline == null)
+            {
+                citationsPipeline = new LlmSectionPipeline(new LlmAnthropicCitationsToCanonical(), transformBuffer);
+            }
+
+            captureThen = decodeContentItem;
+            captureDepth = 1;
+            captureFrom = position() - 1;
+            capturePipeline = citationsPipeline;
+            capturePipeline.begin(captureAttributes);
+
+            closeSection();
+            openSection(LlmSectionType.ASSISTANT_CITATIONS, null, null);
             sectionStarted = true;
 
             decoder = decodeCapture;
