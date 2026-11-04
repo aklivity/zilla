@@ -245,6 +245,98 @@ public class CoreExtModelPipelineSuspendTest
         assertEquals(List.of(9L, 9L, 9L), observed.subList(0, 3));
     }
 
+    @Test
+    public void shouldKeepWindowAfterResumedEventWhenSuspendingOnEveryFragment()
+    {
+        StringExtModelPipeline pipeline = string(new AwaitEveryString());
+
+        StringBuilder output = new StringBuilder();
+        ModelStatus first = drive(pipeline, INIT, "abc", output);
+        ModelStatus second = drive(pipeline, NONE, "def", output);
+        ModelStatus third = drive(pipeline, FIN, "ghi", output);
+
+        assertEquals(ModelStatus.UNDERFLOW, first);
+        assertEquals(ModelStatus.UNDERFLOW, second);
+        assertEquals(ModelStatus.COMPLETE, third);
+        assertEquals("abcdefghi", output.toString());
+    }
+
+    @Test
+    public void shouldKeepWindowAfterResumedEventAcrossConsecutiveValues()
+    {
+        StringExtModelPipeline pipeline = string(new AwaitEveryString());
+
+        StringBuilder output = new StringBuilder();
+        ModelStatus first = drive(pipeline, COMPLETE, "abc", output);
+        ModelStatus second = drive(pipeline, COMPLETE, "def", output);
+
+        assertEquals(ModelStatus.COMPLETE, first);
+        assertEquals(ModelStatus.COMPLETE, second);
+        assertEquals("abcdef", output.toString());
+    }
+
+    @Test
+    public void shouldResumeSuspensionAtValueEndOfLastFragmentWithFin()
+    {
+        StringExtModelPipeline pipeline = string(new AwaitString(StringEvent.END_VALUE, 1));
+
+        StringBuilder output = new StringBuilder();
+        ModelStatus first = drive(pipeline, INIT, "abc", output);
+        ModelStatus second = drive(pipeline, FIN, "def", output);
+
+        assertEquals(ModelStatus.UNDERFLOW, first);
+        assertEquals(ModelStatus.COMPLETE, second);
+        assertEquals("abcdef", output.toString());
+        assertEquals(1, resumed);
+    }
+
+    @Test
+    public void shouldKeepWindowAfterResumedEventWhenBytesSuspendOnEveryFragment()
+    {
+        BytesExtModelPipeline pipeline = bytes(new AwaitEveryBytes());
+        UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
+
+        StringBuilder output = new StringBuilder();
+        ModelStatus last = ModelStatus.OK;
+        String[] fragments = {"abc", "def", "ghi"};
+        int[] flags = {INIT, NONE, FIN};
+        for (int i = 0; i < fragments.length; i++)
+        {
+            ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, flags[i],
+                buffer(fragments[i]), 0, fragments[i].length(), dst, 0, dst.capacity());
+            output.append(dst.getStringWithoutLengthUtf8(0, result.produced()));
+            while (result.status() == ModelStatus.SUSPENDED)
+            {
+                completeAsynchronously();
+                result = pipeline.transform(0L, 0L, 0L, NONE, buffer(""), 0, 0, dst, 0, dst.capacity());
+                output.append(dst.getStringWithoutLengthUtf8(0, result.produced()));
+            }
+            last = result.status();
+        }
+
+        assertEquals(ModelStatus.COMPLETE, last);
+        assertEquals("abcdefghi", output.toString());
+    }
+
+    private ModelStatus drive(
+        StringExtModelPipeline pipeline,
+        int flags,
+        String fragment,
+        StringBuilder output)
+    {
+        UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, flags,
+            buffer(fragment), 0, fragment.length(), dst, 0, dst.capacity());
+        output.append(dst.getStringWithoutLengthUtf8(0, result.produced()));
+        while (result.status() == ModelStatus.SUSPENDED)
+        {
+            completeAsynchronously();
+            result = pipeline.transform(0L, 0L, 0L, NONE, buffer(""), 0, 0, dst, 0, dst.capacity());
+            output.append(dst.getStringWithoutLengthUtf8(0, result.produced()));
+        }
+        return result.status();
+    }
+
     private StringExtModelPipeline string(
         StringTransform transform)
     {
@@ -411,6 +503,105 @@ public class CoreExtModelPipelineSuspendTest
         public void reset()
         {
             seen = 0;
+            awaiting = false;
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return false;
+        }
+    }
+
+    // suspends on every event it is presented, forwarding each only once the asynchronous work completes
+    private final class AwaitEveryString implements StringTransform
+    {
+        private boolean awaiting;
+
+        @Override
+        public ModelStatus transform(
+            StringController control,
+            StringSource source,
+            StringEvent event,
+            StringSink sink)
+        {
+            awaiting = true;
+            signals.add(control.resumer());
+            return ModelStatus.SUSPENDED;
+        }
+
+        @Override
+        public ModelStatus resume(
+            StringController control,
+            StringSource source,
+            StringEvent event,
+            StringSink sink)
+        {
+            ModelStatus status;
+            if (awaiting)
+            {
+                awaiting = false;
+                status = sink.transform(control, source, event);
+            }
+            else
+            {
+                status = sink.resume(control, source, event);
+            }
+            return status;
+        }
+
+        @Override
+        public void reset()
+        {
+            awaiting = false;
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return false;
+        }
+    }
+
+    private final class AwaitEveryBytes implements BytesTransform
+    {
+        private boolean awaiting;
+
+        @Override
+        public ModelStatus transform(
+            BytesController control,
+            BytesSource source,
+            BytesEvent event,
+            BytesSink sink)
+        {
+            awaiting = true;
+            signals.add(control.resumer());
+            return ModelStatus.SUSPENDED;
+        }
+
+        @Override
+        public ModelStatus resume(
+            BytesController control,
+            BytesSource source,
+            BytesEvent event,
+            BytesSink sink)
+        {
+            ModelStatus status;
+            if (awaiting)
+            {
+                awaiting = false;
+                status = sink.transform(control, source, event);
+            }
+            else
+            {
+                status = sink.resume(control, source, event);
+            }
+            return status;
+        }
+
+        @Override
+        public void reset()
+        {
             awaiting = false;
         }
 
