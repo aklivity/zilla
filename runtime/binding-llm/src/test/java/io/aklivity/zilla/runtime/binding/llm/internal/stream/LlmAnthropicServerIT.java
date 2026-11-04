@@ -2389,4 +2389,15 @@ public class LlmAnthropicServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"gemini\""})
+    @Specification({
+        "${net}/anthropic.transform.response.text/client",
+        "${app}/transform.response.citations/server"})
+    public void shouldDropCitationsOfGeminiAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
 }

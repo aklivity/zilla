@@ -9325,4 +9325,13 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/transform.response.citations/client",
+        "${app}/transform.response.citations/server"})
+    public void shouldTransformResponseCitations() throws Exception
+    {
+        k3po.finish();
+    }
 }
