@@ -336,4 +336,31 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/server.sent.write.abort.before.begin/client",
+        "${app}/server.sent.write.abort.before.begin/server" })
+    public void shouldReceiveServerSentWriteAbortBeforeBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/server.sent.write.abort.before.begin.half.duplex.client/client",
+        "${app}/server.sent.write.abort.before.begin.half.duplex.client/server" })
+    public void shouldReceiveServerSentWriteAbortBeforeBeginWithHalfDuplexClient() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/server.sent.write.abort.before.begin.authorized/client",
+        "${app}/server.sent.write.abort.before.begin.authorized/server" })
+    public void shouldReceiveServerSentWriteAbortBeforeBeginAuthorized() throws Exception
+    {
+        k3po.finish();
+    }
 }

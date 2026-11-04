@@ -235,7 +235,7 @@ public class EngineIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/server.sent.write.abort/client",
+        "${net}/server.sent.write.abort.before.begin/client",
         "${app}/server.sent.write.abort.authorized/server"})
     public void shouldReceiveServerSentWriteAbort() throws Exception
     {
@@ -469,6 +469,16 @@ public class EngineIT
         "${net}/reject.value.pipeline.assertion/client",
         "${app}/reject.value.pipeline.assertion/server" })
     public void shouldRejectValuePipelineAssertionDeterministic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/server.sent.write.abort.before.begin/client",
+        "${app}/server.sent.write.abort.before.begin.authorized/server"})
+    public void shouldReceiveServerSentWriteAbortBeforeBegin() throws Exception
     {
         k3po.finish();
     }

@@ -528,8 +528,6 @@ final class ZillaTarget implements AutoCloseable
         ZillaChannel channel,
         ChannelFuture abortFuture)
     {
-        doFlushBegin(channel);
-
         final long originId = channel.originId();
         final long routedId = channel.routedId();
         final long streamId = channel.targetId();
