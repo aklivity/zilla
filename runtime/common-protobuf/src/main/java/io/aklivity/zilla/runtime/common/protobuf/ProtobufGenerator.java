@@ -254,6 +254,17 @@ public interface ProtobufGenerator
     boolean flush();
 
     /**
+     * Ends the current chunk mid-message so it can be drained while the message stays in flight: the next
+     * {@link #wrap(MutableDirectBufferEx, int, int)} continues it against the fresh buffer instead of starting
+     * a new message. The default closes the open records as {@link #flush()} does; a generator whose output
+     * concatenates into one document without per-record framing overrides it to carry on as is.
+     */
+    default void pause()
+    {
+        flush();
+    }
+
+    /**
      * Whether this generator writes the values it receives verbatim, reproducing the input bytes. A
      * generator that re-encodes into a different representation (e.g. JSON) is not identity.
      */

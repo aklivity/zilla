@@ -267,9 +267,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         boolean rejected = status == Status.REJECTED;
         if (status == Status.PENDING)
         {
-            // the caller drains what was produced while this stage waits; close the open records so the next
-            // transform continues them against a fresh destination, as it does after an output suspend
-            generator.flush();
+            generator.pause();
         }
         if (status == Status.COMPLETED)
         {

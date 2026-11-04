@@ -30,6 +30,7 @@ import java.time.Clock;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -347,6 +348,41 @@ public class ProtobufModelDecoderPipelineTest
     }
 
     @Test
+    public void shouldSuspendWhileExtensionTransformIsPendingThenComplete()
+    {
+        Pending transform = new Pending();
+        AtomicInteger resumed = new AtomicInteger();
+        ProtobufModelHandlerImpl handler = newHandler("json", List.of(pending(transform)));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, resumed::incrementAndGet);
+
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ModelPipelineResult first = pipeline.transform(0L, 0L, 0L, COMPLETE, new UnsafeBufferEx(WIRE), 0, WIRE.length,
+            dst, 0, dst.capacity());
+        drain(dst, first.produced(), out);
+        int consumed = first.consumed();
+
+        assertEquals(ModelStatus.SUSPENDED, first.status());
+        assertEquals(0, resumed.get());
+
+        ModelPipelineResult premature = pipeline.transform(0L, 0L, 0L, FIN, new UnsafeBufferEx(WIRE), consumed, WIRE.length,
+            dst, 0, dst.capacity());
+        drain(dst, premature.produced(), out);
+        assertEquals(ModelStatus.SUSPENDED, premature.status());
+        assertEquals(0, premature.consumed());
+
+        transform.complete();
+        assertEquals(1, resumed.get());
+
+        ModelPipelineResult second = pipeline.transform(0L, 0L, 0L, FIN, new UnsafeBufferEx(WIRE), consumed, WIRE.length,
+            dst, 0, dst.capacity());
+        drain(dst, second.produced(), out);
+
+        assertEquals(ModelStatus.COMPLETE, second.status());
+        assertEquals(JSON, out.toString(UTF_8));
+    }
+
+    @Test
     public void shouldNotReportIdentityWhenExtensionInstalled()
     {
         ProtobufModelHandlerImpl handler = newHandler(null, List.of(failing()));
@@ -535,6 +571,69 @@ public class ProtobufModelDecoderPipelineTest
 
     // A stage's own exception (not a parsing nor a validation exception) standing in for an extension's
     // internal failure during its own transform logic.
+    private static ProtobufModelExtContext pending(
+        Pending transform)
+    {
+        return (schema, config) -> new ProtobufModelExtHandler()
+        {
+            @Override
+            public <T extends ProtobufTransformable<T>> T decode(
+                T transformable,
+                ProtobufCache cache)
+            {
+                return transformable.transform(transform);
+            }
+
+            @Override
+            public <T extends ProtobufTransformable<T>> T encode(
+                T transformable)
+            {
+                return transformable.transform(transform);
+            }
+        };
+    }
+
+    // waits for the first string value it sees, completing only when the test runs the resumer it was handed
+    private static final class Pending implements ProtobufTransform
+    {
+        private Runnable resumer;
+        private boolean released;
+        private boolean waited;
+
+        void complete()
+        {
+            released = true;
+            resumer.run();
+        }
+
+        @Override
+        public boolean deterministic()
+        {
+            return true;
+        }
+
+        @Override
+        public ProtobufPipeline.Status transform(
+            ProtobufController control,
+            ProtobufSource source,
+            ProtobufEvent event,
+            ProtobufSink sink)
+        {
+            ProtobufPipeline.Status status;
+            if (event == ProtobufEvent.VALUE && !waited)
+            {
+                resumer = control.resumer();
+                waited = released;
+                status = released ? sink.transform(control, source, event) : ProtobufPipeline.Status.PENDING;
+            }
+            else
+            {
+                status = sink.transform(control, source, event);
+            }
+            return status;
+        }
+    }
+
     private static ProtobufModelExtContext failing()
     {
         return (schema, config) -> new ProtobufModelExtHandler()
