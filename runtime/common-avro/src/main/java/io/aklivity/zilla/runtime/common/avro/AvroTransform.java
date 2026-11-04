@@ -65,7 +65,10 @@ public interface AvroTransform
      * Resumes the downstream after a {@link AvroPipeline.Status#SUSPENDED} return, once the caller has
      * drained the bounded output. The default forwards to {@code sink}, so a stage that merely forwards
      * events never re-sees them on resume; a stage that fans out or buffers overrides this to continue
-     * its own emission before forwarding.
+     * its own emission before forwarding. It is also the re-entry after {@link AvroPipeline.Status#PENDING},
+     * once the callback from {@link AvroController#resumer()} has run: the pending event is re-presented
+     * exactly once, here, rather than through {@code transform}, and a stage still waiting returns
+     * {@link AvroPipeline.Status#PENDING} again.
      */
     default AvroPipeline.Status resume(
         AvroController control,

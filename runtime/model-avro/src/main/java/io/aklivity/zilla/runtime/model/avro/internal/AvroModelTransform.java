@@ -796,6 +796,12 @@ final class AvroModelTransform implements AvroTransform
         }
 
         @Override
+        public Runnable resumer()
+        {
+            return upstream.resumer();
+        }
+
+        @Override
         public void segmentable()
         {
         }
