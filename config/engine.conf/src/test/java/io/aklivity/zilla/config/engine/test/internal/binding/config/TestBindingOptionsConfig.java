@@ -33,6 +33,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
     public final List<CatalogedConfig> cataloged;
     public final List<Event> events;
     public final List<Metric> metrics;
+    public final List<Recorder> recorders;
     public final List<CatalogAssertions> catalogAssertions;
     public final VaultAssertion vaultAssertion;
     public final String store;
@@ -64,6 +65,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
         List<CatalogedConfig> cataloged,
         List<Event> events,
         List<Metric> metrics,
+        List<Recorder> recorders,
         List<CatalogAssertions> catalogAssertions,
         VaultAssertion vaultAssertion,
         String store,
@@ -85,6 +87,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
         this.cataloged = cataloged;
         this.events = events;
         this.metrics = metrics;
+        this.recorders = recorders;
         this.catalogAssertions = catalogAssertions;
         this.vaultAssertion = vaultAssertion;
         this.store = store;
@@ -125,6 +128,23 @@ public final class TestBindingOptionsConfig extends OptionsConfig
             this.name = name;
             this.kind = kind;
             this.values = values;
+        }
+    }
+
+    public static final class Recorder
+    {
+        public final String name;
+        public final String guard;
+        public final long value;
+
+        public Recorder(
+            String name,
+            String guard,
+            long value)
+        {
+            this.name = name;
+            this.guard = guard;
+            this.value = value;
         }
     }
 

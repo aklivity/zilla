@@ -1170,7 +1170,7 @@ public class EngineWorker implements EngineContext, Agent
         }
 
         this.registry = new EngineRegistry(
-                bindingsByType::get, guardsByType::get, vaultsByType::get, catalogsByType::get, embeddingsByType::get,
+                this, bindingsByType::get, guardsByType::get, vaultsByType::get, catalogsByType::get, embeddingsByType::get,
                 classifiersByType::get,
                 metricsByName::get, exportersByType::get, storesByType::get, router::supplyLabelId, this::onExporterAttached,
                 this::onExporterDetached, this::supplyMetricWriter, this::detachStreams, collector, process);
@@ -2225,7 +2225,8 @@ public class EngineWorker implements EngineContext, Agent
         long namespacedId,
         String metric)
     {
-        return MetricRecorder.NOOP;
+        BindingRegistry binding = registry.resolveBinding(namespacedId);
+        return binding != null ? binding.metricRecorder(supplyTypeId(metric)) : MetricRecorder.NOOP;
     }
 
     @Override
