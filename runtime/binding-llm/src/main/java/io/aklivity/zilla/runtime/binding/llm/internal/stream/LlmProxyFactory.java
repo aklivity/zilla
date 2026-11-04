@@ -59,6 +59,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
@@ -329,7 +330,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
 
             this.initialSeq = begin.sequence();
             this.initialAck = begin.acknowledge();
-            this.state = LlmState.openingInitial(state);
+            this.state = StreamState.openingInitial(state);
 
             if (fallback != null)
             {
@@ -372,7 +373,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             final long authorization = end.authorization();
 
             this.initialSeq = end.sequence();
-            this.state = LlmState.closeInitial(state);
+            this.state = StreamState.closeInitial(state);
 
             if (requestGuard != null)
             {
@@ -391,7 +392,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             final long authorization = abort.authorization();
 
             this.initialSeq = abort.sequence();
-            this.state = LlmState.closeInitial(state);
+            this.state = StreamState.closeInitial(state);
 
             if (requestGuard != null)
             {
@@ -427,7 +428,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
 
             this.replyAck = window.acknowledge();
             this.replyMax = window.maximum();
-            this.state = LlmState.openReply(state);
+            this.state = StreamState.openReply(state);
 
             this.replyBudgetId = budgetId;
             this.replyPadding = padding;
@@ -459,7 +460,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
         private void onNetReset(
             ResetFW reset)
         {
-            this.state = LlmState.closeReply(state);
+            this.state = StreamState.closeReply(state);
 
             app.doAppReset(reset.traceId(), reset.authorization(), reset.extension());
         }
@@ -478,7 +479,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
         {
             doBegin(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, affinity, extension);
-            this.state = LlmState.openingReply(state);
+            this.state = StreamState.openingReply(state);
         }
 
         private void doNetData(
@@ -500,10 +501,10 @@ public final class LlmProxyFactory implements LlmStreamFactory
             long authorization,
             OctetsFW extension)
         {
-            if (!LlmState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doEnd(network, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, extension);
-                this.state = LlmState.closeReply(state);
+                this.state = StreamState.closeReply(state);
             }
         }
 
@@ -512,10 +513,10 @@ public final class LlmProxyFactory implements LlmStreamFactory
             long authorization,
             OctetsFW extension)
         {
-            if (!LlmState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doAbort(network, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, extension);
-                this.state = LlmState.closeReply(state);
+                this.state = StreamState.closeReply(state);
             }
         }
 
@@ -546,7 +547,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             {
                 this.initialAck = newInitialAck;
                 this.initialMax = minInitialMax;
-                this.state = LlmState.openInitial(state);
+                this.state = StreamState.openInitial(state);
 
                 doWindow(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, budgetId, minInitialPad, minimum, capabilities);
@@ -561,7 +562,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             String model = null;
 
             while (route == null &&
-                !LlmState.initialClosed(state) &&
+                !StreamState.initialClosed(state) &&
                 fallback != null &&
                 fallbackIndex < fallback.size())
             {
@@ -579,7 +580,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
                 this.app = new LlmClient(this);
                 app.doAppBegin(traceId, authorization, beginAffinity, fallbackBeginEx(model));
 
-                if (LlmState.replyOpened(state))
+                if (StreamState.replyOpened(state))
                 {
                     doAppReplyWindow(traceId, authorization);
                 }
@@ -664,11 +665,11 @@ public final class LlmProxyFactory implements LlmStreamFactory
             long authorization,
             OctetsFW extension)
         {
-            if (!LlmState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 doReset(network, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
                     extension);
-                this.state = LlmState.closeInitial(state);
+                this.state = StreamState.closeInitial(state);
             }
         }
 
@@ -677,9 +678,9 @@ public final class LlmProxyFactory implements LlmStreamFactory
             long authorization,
             OctetsFW extension)
         {
-            if (!LlmState.initialOpened(state))
+            if (!StreamState.initialOpened(state))
             {
-                this.state = LlmState.openInitial(state);
+                this.state = StreamState.openInitial(state);
 
                 doWindow(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, 0L, 0, 0, 0);
@@ -830,7 +831,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
                 this::onAppMessage);
             app.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
 
-            this.state = LlmState.openingInitial(state);
+            this.state = StreamState.openingInitial(state);
         }
 
         private void onAppMessage(
@@ -877,7 +878,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
 
             this.replySeq = begin.sequence();
             this.replyAck = begin.acknowledge();
-            this.state = LlmState.openingReply(state);
+            this.state = StreamState.openingReply(state);
 
             net.doNetBegin(traceId, authorization, affinity, begin.extension());
         }
@@ -910,7 +911,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             final long authorization = end.authorization();
 
             this.replySeq = end.sequence();
-            this.state = LlmState.closeReply(state);
+            this.state = StreamState.closeReply(state);
 
             if (replyGuard != null)
             {
@@ -929,7 +930,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             final long authorization = abort.authorization();
 
             this.replySeq = abort.sequence();
-            this.state = LlmState.closeReply(state);
+            this.state = StreamState.closeReply(state);
 
             if (replyGuard != null)
             {
@@ -965,7 +966,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
 
             this.initialAck = window.acknowledge();
             this.initialMax = window.maximum();
-            this.state = LlmState.openInitial(state);
+            this.state = StreamState.openInitial(state);
 
             this.initialBudgetId = budgetId;
             this.initialPadding = padding;
@@ -998,9 +999,9 @@ public final class LlmProxyFactory implements LlmStreamFactory
         private void onAppReset(
             ResetFW reset)
         {
-            final boolean refused = !LlmState.initialOpened(state);
+            final boolean refused = !StreamState.initialOpened(state);
 
-            this.state = LlmState.closeInitial(state);
+            this.state = StreamState.closeInitial(state);
 
             if (!refused || !net.doFallback(reset.traceId(), reset.authorization()))
             {
@@ -1033,11 +1034,11 @@ public final class LlmProxyFactory implements LlmStreamFactory
             long authorization,
             OctetsFW extension)
         {
-            if (!LlmState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 doEnd(app, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
                         extension);
-                this.state = LlmState.closeInitial(state);
+                this.state = StreamState.closeInitial(state);
             }
         }
 
@@ -1046,11 +1047,11 @@ public final class LlmProxyFactory implements LlmStreamFactory
             long authorization,
             OctetsFW extension)
         {
-            if (!LlmState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 doAbort(app, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
                         extension);
-                this.state = LlmState.closeInitial(state);
+                this.state = StreamState.closeInitial(state);
             }
         }
 
@@ -1092,10 +1093,10 @@ public final class LlmProxyFactory implements LlmStreamFactory
             long authorization,
             OctetsFW extension)
         {
-            if (!LlmState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 doReset(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, extension);
-                this.state = LlmState.closeReply(state);
+                this.state = StreamState.closeReply(state);
             }
         }
 
