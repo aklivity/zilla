@@ -22,3 +22,5 @@ accepted
 connected
 
 read abort
+
+write close

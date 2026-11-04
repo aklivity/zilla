@@ -21,3 +21,5 @@ connect "zilla://streams/net0"
 connected
 
 write aborted
+
+read closed
