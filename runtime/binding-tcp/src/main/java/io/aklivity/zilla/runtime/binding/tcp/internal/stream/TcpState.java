@@ -83,7 +83,7 @@ final class TcpState
     static int openReply(
         int state)
     {
-        return openingReply(state) | REPLY_OPENED;
+        return state | REPLY_OPENED;
     }
 
     static int closingReply(
@@ -122,10 +122,10 @@ final class TcpState
         return (state & REPLY_CLOSED) != 0;
     }
 
-    static boolean opened(
+    static boolean closed(
         int state)
     {
-        return initialOpened(state) && replyOpened(state);
+        return initialClosed(state) && replyClosed(state);
     }
 
     private TcpState()

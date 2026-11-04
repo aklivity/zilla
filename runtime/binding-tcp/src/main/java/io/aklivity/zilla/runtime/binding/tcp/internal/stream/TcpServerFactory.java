@@ -445,7 +445,7 @@ public class TcpServerFactory implements TcpStreamFactory
 
             assert replyAck <= replySeq;
 
-            state = TcpState.openReply(state);
+            state = TcpState.openingReply(state);
 
             doAppWindow(traceId);
         }
@@ -652,6 +652,7 @@ public class TcpServerFactory implements TcpStreamFactory
             long traceId)
         {
             doWindow(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, 0, 0);
+            state = TcpState.openReply(state);
         }
 
         private void doAppReset(
