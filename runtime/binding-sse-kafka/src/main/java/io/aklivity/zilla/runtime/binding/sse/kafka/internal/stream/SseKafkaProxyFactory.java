@@ -52,6 +52,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
@@ -272,7 +273,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
 
             initialSeq = sequence;
             initialAck = acknowledge;
-            state = SseKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -310,7 +311,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = SseKafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -329,7 +330,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = SseKafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -351,7 +352,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
 
             replyAck = acknowledge;
             replyMax = maximum;
-            state = SseKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -377,7 +378,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
 
             replyAck = acknowledge;
             replyMax = maximum;
-            state = SseKafkaState.openReply(state);
+            state = StreamState.openReply(state);
 
             assert replyAck <= replySeq;
 
@@ -392,7 +393,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             replySeq = delegate.replySeq;
             replyAck = delegate.replyAck;
             replyMax = delegate.replyMax;
-            state = SseKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             doBegin(sse, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, affinity);
@@ -431,10 +432,10 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!SseKafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 replySeq = delegate.replySeq;
-                state = SseKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
 
                 doAbort(sse, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization);
@@ -445,10 +446,10 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!SseKafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 replySeq = delegate.replySeq;
-                state = SseKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
 
                 doEnd(sse, originId, routedId, replyId, replySeq, replyAck, replyMax,
                       traceId, authorization);
@@ -472,9 +473,9 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
         private void doSseReset(
             long traceId)
         {
-            if (!SseKafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                state = SseKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 doReset(sse, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId);
             }
@@ -521,7 +522,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             initialSeq = delegate.initialSeq;
             initialAck = delegate.initialAck;
             initialMax = delegate.initialMax;
-            state = SseKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             kafka = newKafkaStream(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, affinity, resolved);
@@ -532,12 +533,12 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             long sequence,
             long authorization)
         {
-            if (!SseKafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 initialSeq = delegate.initialSeq;
                 initialAck = delegate.initialAck;
                 initialMax = delegate.initialMax;
-                state = SseKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization);
@@ -548,12 +549,12 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!SseKafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 initialSeq = delegate.initialSeq;
                 initialAck = delegate.initialAck;
                 initialMax = delegate.initialMax;
-                state = SseKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization);
@@ -616,7 +617,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             replySeq = sequence;
             replyAck = acknowledge;
             replyMax = maximum;
-            state = SseKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             assert replyAck <= replySeq;
 
@@ -705,7 +706,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = SseKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -744,7 +745,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = SseKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -769,7 +770,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
 
             initialAck = acknowledge;
             initialMax = maximum;
-            state = SseKafkaState.openInitial(state);
+            state = StreamState.openInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -796,9 +797,9 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
         private void doKafkaReset(
             long traceId)
         {
-            if (!SseKafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                state = SseKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
 
                 doReset(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId);
