@@ -65,6 +65,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
@@ -426,7 +427,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
             initialSeq = sequence;
             initialAck = acknowledge;
-            state = GrpcKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -473,7 +474,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = GrpcKafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -492,7 +493,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = GrpcKafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -515,7 +516,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
             replyAck = acknowledge;
             replyMax = maximum;
-            state = GrpcKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -543,7 +544,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             replyBud = budgetId;
             replyPad = padding;
             replyCap = capabilities;
-            state = GrpcKafkaState.openReply(state);
+            state = StreamState.openReply(state);
 
             assert replyAck <= replySeq;
 
@@ -563,7 +564,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!GrpcKafkaState.replyOpening(state))
+            if (!StreamState.replyOpening(state))
             {
                 doGrpcBegin(traceId, authorization, 0L, emptyRO);
             }
@@ -577,7 +578,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long authorization,
             OctetsFW extension)
         {
-            if (!GrpcKafkaState.replyOpening(state))
+            if (!StreamState.replyOpening(state))
             {
                 doGrpcBegin(traceId, authorization, 0L, emptyRO);
             }
@@ -595,7 +596,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             int length,
             OctetsFW extension)
         {
-            if (!GrpcKafkaState.replyOpening(state))
+            if (!StreamState.replyOpening(state))
             {
                 final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
                 final KafkaDataExFW kafkaDataEx =
@@ -622,9 +623,9 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (GrpcKafkaState.replyClosed(fetch.state))
+            if (StreamState.replyClosed(fetch.state))
             {
-                if (GrpcKafkaState.initialClosed(state))
+                if (StreamState.initialClosed(state))
                 {
                     fetch.doKafkaEnd(traceId, authorization);
                 }
@@ -662,7 +663,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long affinity,
             Flyweight extension)
         {
-            state = GrpcKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             doBegin(grpc, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, affinity, extension);
@@ -674,7 +675,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long affinity,
             Array32FW<KafkaHeaderFW> headers)
         {
-            state = GrpcKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             Array32FW.Builder<GrpcMetadataFW.Builder, GrpcMetadataFW> builder =
                 grpcMetadataRW.wrap(metaBuffer, 0, metaBuffer.capacity());
@@ -736,7 +737,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             String16FW status,
             String16FW message)
         {
-            if (GrpcKafkaState.replyOpened(state) && !GrpcKafkaState.replyClosed(state))
+            if (StreamState.replyOpened(state) && !StreamState.replyClosed(state))
             {
                 replySeq = fetch.replySeq;
 
@@ -753,17 +754,17 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 doAbort(grpc, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, grpcAbortEx.build());
             }
-            state = GrpcKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
         }
 
         private void doGrpcEnd(
             long traceId,
             long authorization)
         {
-            if (!GrpcKafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 replySeq = fetch.replySeq;
-                state = GrpcKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
 
                 doEnd(grpc, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, replyBud, replyPad);
@@ -790,9 +791,9 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             String16FW status,
             String16FW message)
         {
-            if (!GrpcKafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                state = GrpcKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 final GrpcResetExFW.Builder grpcResetEx =
                     grpcResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
@@ -853,7 +854,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             initialSeq = delegate.initialSeq;
             initialAck = delegate.initialAck;
             initialMax = delegate.initialMax;
-            state = GrpcKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             kafka = newKafkaFetcher(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, affinity, result);
@@ -863,12 +864,12 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!GrpcKafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 initialSeq = delegate.initialSeq;
                 initialAck = delegate.initialAck;
                 initialMax = delegate.initialMax;
-                state = GrpcKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, 0L, 0);
@@ -879,12 +880,12 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!GrpcKafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 initialSeq = delegate.initialSeq;
                 initialAck = delegate.initialAck;
                 initialMax = delegate.initialMax;
-                state = GrpcKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, emptyRO);
@@ -945,7 +946,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
             replySeq = sequence;
             replyAck = acknowledge;
-            state = GrpcKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             assert replyAck <= replySeq;
 
@@ -1052,7 +1053,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = GrpcKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -1071,7 +1072,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = GrpcKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -1096,7 +1097,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
             initialAck = acknowledge;
             initialMax = maximum;
-            state = GrpcKafkaState.openInitial(state);
+            state = StreamState.openInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -1115,7 +1116,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             assert acknowledge >= delegate.initialAck;
 
             delegate.initialAck = acknowledge;
-            state = GrpcKafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert delegate.initialAck <= delegate.initialSeq;
 
@@ -1135,9 +1136,9 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!GrpcKafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                state = GrpcKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
 
                 doReset(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, emptyRO);
@@ -1229,7 +1230,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
             initialSeq = sequence;
             initialAck = acknowledge;
-            state = GrpcKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -1294,7 +1295,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = GrpcKafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -1313,7 +1314,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = GrpcKafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -1337,7 +1338,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
             replyAck = acknowledge;
             replyMax = maximum;
-            state = GrpcKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -1367,7 +1368,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             replyBud = budgetId;
             replyPad = padding;
             replyCap = capabilities;
-            state = GrpcKafkaState.openReply(state);
+            state = StreamState.openReply(state);
 
             assert replyAck <= replySeq;
 
@@ -1387,7 +1388,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!GrpcKafkaState.replyOpening(state))
+            if (!StreamState.replyOpening(state))
             {
                 doGrpcBegin(traceId, authorization, 0L, emptyRO);
             }
@@ -1401,7 +1402,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long authorization,
             OctetsFW extension)
         {
-            if (!GrpcKafkaState.replyOpening(state))
+            if (!StreamState.replyOpening(state))
             {
                 doGrpcBegin(traceId, authorization, 0L, extension);
             }
@@ -1417,7 +1418,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             OctetsFW payload,
             KafkaDataExFW kafkaDataEx)
         {
-            if (!GrpcKafkaState.replyOpening(state))
+            if (!StreamState.replyOpening(state))
             {
                 if (kafkaDataEx != null &&
                     kafkaDataEx.merged() != null &&
@@ -1432,7 +1433,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 }
             }
 
-            if (GrpcKafkaState.replyClosing(state))
+            if (StreamState.replyClosing(state))
             {
                 replySeq += reserved;
 
@@ -1472,7 +1473,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                     }
                     correlater.doKafkaEnd(traceId, authorization);
                 }
-                else if (GrpcKafkaState.replyOpening(state))
+                else if (StreamState.replyOpening(state))
                 {
                     int deferred = 0;
                     if (kafkaDataEx != null)
@@ -1490,9 +1491,9 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (GrpcKafkaState.replyClosed(correlater.state))
+            if (StreamState.replyClosed(correlater.state))
             {
-                if (GrpcKafkaState.initialClosed(state))
+                if (StreamState.initialClosed(state))
                 {
                     producer.doKafkaEnd(traceId, authorization);
                     correlater.doKafkaEnd(traceId, authorization);
@@ -1530,7 +1531,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long affinity,
             Flyweight extension)
         {
-            state = GrpcKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             doBegin(grpc, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, affinity, extension);
@@ -1542,7 +1543,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long affinity,
             Array32FW<KafkaHeaderFW> headers)
         {
-            state = GrpcKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             Array32FW.Builder<GrpcMetadataFW.Builder, GrpcMetadataFW> builder =
                 grpcMetadataRW.wrap(metaBuffer, 0, metaBuffer.capacity());
@@ -1609,8 +1610,8 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             String16FW status,
             String16FW message)
         {
-            if (GrpcKafkaState.replyOpening(state) &&
-                !GrpcKafkaState.replyClosed(state))
+            if (StreamState.replyOpening(state) &&
+                !StreamState.replyClosed(state))
             {
                 replySeq = correlater.replySeq;
 
@@ -1627,17 +1628,17 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 doAbort(grpc, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, grpcAbortEx.build());
             }
-            state = GrpcKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
         }
 
         private void doGrpcEnd(
             long traceId,
             long authorization)
         {
-            if (!GrpcKafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 replySeq = correlater.replySeq;
-                state = GrpcKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
 
                 doEnd(grpc, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, replyBud, replyPad);
@@ -1662,9 +1663,9 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!GrpcKafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                state = GrpcKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 final GrpcResetExFW grpcResetEx =
                     grpcResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
@@ -1746,7 +1747,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
             initialSeq = sequence;
             initialAck = acknowledge;
-            state = GrpcKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -1810,18 +1811,18 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = GrpcKafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
             delegate.doKafkaEnd(traceId, authorization);
 
-            if (!GrpcKafkaState.replyOpening(state))
+            if (!StreamState.replyOpening(state))
             {
                 doGrpcBegin(traceId, authorization);
             }
 
-            if (GrpcKafkaState.replyOpening(state))
+            if (StreamState.replyOpening(state))
             {
                 doGrpcData(traceId, authorization);
             }
@@ -1841,7 +1842,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = GrpcKafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -1864,7 +1865,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
             replyAck = acknowledge;
             replyMax = maximum;
-            state = GrpcKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -1892,7 +1893,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             replyBud = budgetId;
             replyPad = padding;
             replyCap = capabilities;
-            state = GrpcKafkaState.openReply(state);
+            state = StreamState.openReply(state);
 
             assert replyAck <= replySeq;
 
@@ -1912,7 +1913,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!GrpcKafkaState.replyOpening(state))
+            if (!StreamState.replyOpening(state))
             {
                 doGrpcBegin(traceId, authorization);
             }
@@ -1926,7 +1927,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long authorization,
             OctetsFW extension)
         {
-            if (!GrpcKafkaState.replyOpening(state))
+            if (!StreamState.replyOpening(state))
             {
                 doGrpcBegin(traceId, authorization);
             }
@@ -1937,7 +1938,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (GrpcKafkaState.initialClosed(state))
+            if (StreamState.initialClosed(state))
             {
                 delegate.doKafkaEnd(traceId, authorization);
             }
@@ -1969,7 +1970,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            state = GrpcKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             GrpcBeginExFW beginEx = grpcBeginExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
@@ -2001,8 +2002,8 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             String16FW status,
             String16FW message)
         {
-            if (GrpcKafkaState.replyOpening(state) &&
-                !GrpcKafkaState.replyClosed(state))
+            if (StreamState.replyOpening(state) &&
+                !StreamState.replyClosed(state))
             {
                 final GrpcAbortExFW.Builder grpcAbortEx =
                     grpcAbortExRW.wrap(extBuffer, 0, extBuffer.capacity())
@@ -2017,16 +2018,16 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 doAbort(grpc, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, grpcAbortEx.build());
             }
-            state = GrpcKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
         }
 
         private void doGrpcEnd(
             long traceId,
             long authorization)
         {
-            if (!GrpcKafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                state = GrpcKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
 
                 doEnd(grpc, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, replyBud, replyPad);
@@ -2051,9 +2052,9 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!GrpcKafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
-                state = GrpcKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 final GrpcResetExFW grpcResetEx =
                     grpcResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
@@ -2113,7 +2114,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             initialSeq = delegate.initialSeq;
             initialAck = delegate.initialAck;
             initialMax = delegate.initialMax;
-            state = GrpcKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             kafka = newKafkaProducer(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, affinity, result);
@@ -2140,12 +2141,12 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!GrpcKafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 initialSeq = delegate.initialSeq;
                 initialAck = delegate.initialAck;
                 initialMax = delegate.initialMax;
-                state = GrpcKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 doKafkaDataNull(traceId, authorization);
 
@@ -2158,12 +2159,12 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!GrpcKafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 initialSeq = delegate.initialSeq;
                 initialAck = delegate.initialAck;
                 initialMax = delegate.initialMax;
-                state = GrpcKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 doKafkaDataNull(traceId, authorization);
 
@@ -2216,7 +2217,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
             replySeq = sequence;
             replyAck = acknowledge;
-            state = GrpcKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             assert replyAck <= replySeq;
 
@@ -2235,7 +2236,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = GrpcKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -2254,7 +2255,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = GrpcKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -2280,7 +2281,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             initialAck = acknowledge;
             initialMax = maximum;
             initialBud = budgetId;
-            state = GrpcKafkaState.openInitial(state);
+            state = StreamState.openInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -2293,7 +2294,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long authorization,
             long traceId)
         {
-            if (GrpcKafkaState.initialClosing(state) && initialSeq == initialAck)
+            if (StreamState.initialClosing(state) && initialSeq == initialAck)
             {
                 doKafkaEnd(traceId, authorization);
             }
@@ -2311,7 +2312,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             assert acknowledge >= delegate.initialAck;
 
             delegate.initialAck = acknowledge;
-            state = GrpcKafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert delegate.initialAck <= delegate.initialSeq;
 
@@ -2324,9 +2325,9 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!GrpcKafkaState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
-                state = GrpcKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
 
                 doReset(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization, emptyRO);
@@ -2336,7 +2337,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         protected void doKafkaWindow(
             long traceId)
         {
-            if (kafka != null && !GrpcKafkaState.replyClosed(state))
+            if (kafka != null && !StreamState.replyClosed(state))
             {
                 replyAck = delegate.replyAck;
                 replyMax = delegate.replyMax;
@@ -2383,12 +2384,12 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!GrpcKafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 initialSeq = delegate.initialSeq;
                 initialAck = delegate.initialAck;
                 initialMax = delegate.initialMax;
-                state = GrpcKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, 0L, 0);
@@ -2439,7 +2440,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long affinity)
         {
             initialMax = delegate.initialMax;
-            state = GrpcKafkaState.openingInitial(state);
+            state = StreamState.openingInitial(state);
 
             kafka = newKafkaCorrelater(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, affinity, result);
@@ -2451,12 +2452,12 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!GrpcKafkaState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 initialSeq = delegate.initialSeq;
                 initialAck = delegate.initialAck;
                 initialMax = delegate.initialMax;
-                state = GrpcKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, 0L, 0);
@@ -2467,12 +2468,12 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!GrpcKafkaState.initialClosed(state) && kafka != null)
+            if (!StreamState.initialClosed(state) && kafka != null)
             {
                 initialSeq = delegate.initialSeq;
                 initialAck = delegate.initialAck;
                 initialMax = delegate.initialMax;
-                state = GrpcKafkaState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, emptyRO);
@@ -2532,7 +2533,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
             replySeq = sequence;
             replyAck = acknowledge;
-            state = GrpcKafkaState.openingReply(state);
+            state = StreamState.openingReply(state);
 
             assert replyAck <= replySeq;
 
@@ -2587,7 +2588,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = GrpcKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -2606,7 +2607,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             assert sequence >= replySeq;
 
             replySeq = sequence;
-            state = GrpcKafkaState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             assert replyAck <= replySeq;
 
@@ -2632,7 +2633,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
             initialAck = acknowledge;
             initialMax = maximum;
-            state = GrpcKafkaState.openInitial(state);
+            state = StreamState.openInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -2651,7 +2652,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             assert acknowledge >= delegate.initialAck;
 
             delegate.initialAck = acknowledge;
-            state = GrpcKafkaState.closeInitial(state);
+            state = StreamState.closeInitial(state);
 
             assert delegate.initialAck <= delegate.initialSeq;
 
@@ -2673,9 +2674,9 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!GrpcKafkaState.replyClosed(state) && kafka != null)
+            if (!StreamState.replyClosed(state) && kafka != null)
             {
-                state = GrpcKafkaState.closeReply(state);
+                state = StreamState.closeReply(state);
 
                 doReset(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization, emptyRO);

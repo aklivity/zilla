@@ -147,6 +147,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.StreamState;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetCredit;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
@@ -1969,7 +1970,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             assert sequence >= initialSeq;
             assert acknowledge >= initialAck;
 
-            state = HttpState.openInitial(state);
+            state = StreamState.openInitial(state);
             initialSeq = sequence;
             initialAck = acknowledge;
 
@@ -2078,7 +2079,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             {
                 final long traceId = end.traceId();
                 final long authorization = end.authorization();
-                state = HttpState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 cleanupDecodeSlotIfNecessary();
 
@@ -2107,7 +2108,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             assert sequence >= initialSeq;
             assert acknowledge <= initialAck;
 
-            state = HttpState.closeInitial(state);
+            state = StreamState.closeInitial(state);
             initialSeq = sequence;
             initialAck = acknowledge;
 
@@ -2132,7 +2133,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         {
             final long traceId = reset.traceId();
             final long authorization = reset.authorization();
-            state = HttpState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             cleanupEncodeSlotIfNecessary();
 
@@ -2291,7 +2292,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         {
             doBegin(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, affinity, EMPTY_OCTETS);
-            state = HttpState.openReply(state);
+            state = StreamState.openReply(state);
         }
 
         private void doNetworkData(
@@ -2355,11 +2356,11 @@ public final class HttpServerFactory implements HttpStreamFactory
             long traceId,
             long authorization)
         {
-            if (!HttpState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 cleanupEncodeSlotIfNecessary();
                 doEnd(network, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, EMPTY_OCTETS);
-                state = HttpState.closeReply(state);
+                state = StreamState.closeReply(state);
             }
         }
 
@@ -2367,11 +2368,11 @@ public final class HttpServerFactory implements HttpStreamFactory
             long traceId,
             long authorization)
         {
-            if (!HttpState.replyClosed(state))
+            if (!StreamState.replyClosed(state))
             {
                 cleanupEncodeSlotIfNecessary();
                 doAbort(network, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, EMPTY_OCTETS);
-                state = HttpState.closeReply(state);
+                state = StreamState.closeReply(state);
             }
         }
 
@@ -2379,12 +2380,12 @@ public final class HttpServerFactory implements HttpStreamFactory
             long traceId,
             long authorization)
         {
-            if (!HttpState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 cleanupDecodeSlotIfNecessary();
                 final int initialMax = exchange != null ? decodeMax : 0;
                 doReset(network, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
-                state = HttpState.closeInitial(state);
+                state = StreamState.closeInitial(state);
             }
         }
 
@@ -2410,7 +2411,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             final int newInitialWin = Math.min(decodable, minInitialWin);
 
             final long initialAckMax = Math.min(initialAck + newInitialWin, initialSeq);
-            if (initialAckMax > initialAck || !HttpState.initialOpened(state))
+            if (initialAckMax > initialAck || !StreamState.initialOpened(state))
             {
                 initialAck = initialAckMax;
                 assert initialAck <= initialSeq;
@@ -4792,7 +4793,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             assert sequence >= initialSeq;
             assert acknowledge >= initialAck;
 
-            state = HttpState.openInitial(state);
+            state = StreamState.openInitial(state);
             initialSeq = sequence;
             initialAck = acknowledge;
 
@@ -4868,13 +4869,13 @@ public final class HttpServerFactory implements HttpStreamFactory
             {
                 final long traceId = end.traceId();
                 final long authorization = end.authorization();
-                state = HttpState.closeInitial(state);
+                state = StreamState.closeInitial(state);
 
                 cleanupDecodeSlotIfNecessary();
 
-                if (!HttpState.replyClosing(state))
+                if (!StreamState.replyClosing(state))
                 {
-                    state = HttpState.closingReply(state);
+                    state = StreamState.closingReply(state);
                     cleanup(traceId, authorization, this::doNetworkEnd);
                 }
             }
@@ -4936,7 +4937,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             assert sequence >= initialSeq;
             assert acknowledge <= initialAck;
 
-            state = HttpState.closeInitial(state);
+            state = StreamState.closeInitial(state);
             initialSeq = sequence;
             initialAck = acknowledge;
 
@@ -4944,9 +4945,9 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             cleanupDecodeSlotIfNecessary();
 
-            if (!HttpState.replyClosing(state))
+            if (!StreamState.replyClosing(state))
             {
-                state = HttpState.closingReply(state);
+                state = StreamState.closingReply(state);
                 cleanup(traceId, authorization, this::doNetworkAbort);
             }
         }
@@ -4956,15 +4957,15 @@ public final class HttpServerFactory implements HttpStreamFactory
         {
             final long traceId = reset.traceId();
             final long authorization = reset.authorization();
-            state = HttpState.closeReply(state);
+            state = StreamState.closeReply(state);
 
             responseCredit = null;
             replyDebit = null;
             cleanupEncodeSlotIfNecessary();
 
-            if (!HttpState.initialClosing(state))
+            if (!StreamState.initialClosing(state))
             {
-                state = HttpState.closingInitial(state);
+                state = StreamState.closingInitial(state);
                 cleanup(traceId, authorization, this::doNetworkReset);
             }
         }
@@ -5083,7 +5084,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             assert responseCredit == null;
             responseCredit = context.supplyCredit(replyId, budgetId);
-            state = HttpState.openReply(state);
+            state = StreamState.openReply(state);
         }
 
         private void doNetworkData(
@@ -5190,7 +5191,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             replyDebit = null;
             cleanupEncodeSlotIfNecessary();
             doEnd(network, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, EMPTY_OCTETS);
-            state = HttpState.closeReply(state);
+            state = StreamState.closeReply(state);
         }
 
         private void doNetworkAbort(
@@ -5201,7 +5202,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             replyDebit = null;
             cleanupEncodeSlotIfNecessary();
             doAbort(network, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, EMPTY_OCTETS);
-            state = HttpState.closeReply(state);
+            state = StreamState.closeReply(state);
         }
 
         private void doNetworkReset(
@@ -5211,7 +5212,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             cleanupDecodeSlotIfNecessary();
             cleanupHeadersSlotIfNecessary();
             doReset(network, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
-            state = HttpState.closeInitial(state);
+            state = StreamState.closeInitial(state);
         }
 
         private void doNetworkWindow(
@@ -5223,14 +5224,14 @@ public final class HttpServerFactory implements HttpStreamFactory
         {
             final long newInitialAck = Math.max(initialSeq - minInitialNoAck, initialAck);
 
-            if (newInitialAck > initialAck || minInitialMax > initialMax || !HttpState.initialOpened(state))
+            if (newInitialAck > initialAck || minInitialMax > initialMax || !StreamState.initialOpened(state))
             {
                 initialAck = newInitialAck;
                 assert initialAck <= initialSeq;
 
                 initialMax = minInitialMax;
 
-                state = HttpState.openInitial(state);
+                state = StreamState.openInitial(state);
 
                 doWindow(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, budgetId, 0);
@@ -5506,7 +5507,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 cleanupDecodeSlotIfNecessary();
             }
 
-            if (!HttpState.initialClosed(state))
+            if (!StreamState.initialClosed(state))
             {
                 doNetworkWindow(traceId, authorization, budgetId, decodeSlotReserved, initialMax);
             }
@@ -5674,7 +5675,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 remoteSharedBudget += credit;
 
-                // TODO: instead use HttpState.replyClosed(state)
+                // TODO: instead use StreamState.replyClosed(state)
                 if (responseCredit != null)
                 {
                     flushResponseSharedBudget(traceId);
@@ -6138,7 +6139,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             {
                 Http2ErrorCode error = Http2ErrorCode.NO_ERROR;
 
-                if (HttpState.initialClosing(exchange.state))
+                if (StreamState.initialClosing(exchange.state))
                 {
                     error = Http2ErrorCode.STREAM_CLOSED;
                 }
@@ -6185,7 +6186,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     }
                     else
                     {
-                        if (!HttpState.replyOpened(exchange.state))
+                        if (!StreamState.replyOpened(exchange.state))
                         {
                             doEncodeHeaders(traceId, authorization, streamId, headers400, true);
                         }
@@ -6706,7 +6707,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 Flyweight extension)
             {
                 assert state == 0;
-                state = HttpState.openingInitial(state);
+                state = StreamState.openingInitial(state);
 
                 application = newStream(this::onExchange, originId, routedId, 0L, requestId, requestSeq, requestAck,
                     requestMax, traceId, sessionId, affinity, extension);
@@ -6724,8 +6725,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                 DirectBufferEx buffer,
                 MutableInteger remaining)
             {
-                assert HttpState.initialOpening(state);
-                assert !HttpState.initialClosing(state);
+                assert StreamState.initialOpening(state);
+                assert !StreamState.initialClosing(state);
 
                 boolean valid = true;
 
@@ -6807,11 +6808,11 @@ public final class HttpServerFactory implements HttpStreamFactory
                 long traceId,
                 Flyweight extension)
             {
-                assert !HttpState.initialClosing(state);
+                assert !StreamState.initialClosing(state);
 
-                if (!HttpState.initialOpened(state))
+                if (!StreamState.initialOpened(state))
                 {
-                    state = HttpState.closingInitial(state);
+                    state = StreamState.closingInitial(state);
                 }
                 else
                 {
@@ -6832,7 +6833,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             private void doRequestAbortIfNecessary(
                 long traceId)
             {
-                if (!HttpState.initialClosed(state))
+                if (!StreamState.initialClosed(state))
                 {
                     doRequestAbort(traceId, EMPTY_OCTETS);
                 }
@@ -6888,7 +6889,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 final long newAffinity = redirect.affinity();
                 final OctetsFW extension = redirect.extension();
 
-                if (redirected || HttpState.replyOpened(state))
+                if (redirected || StreamState.replyOpened(state))
                 {
                     doResponseResetIfNecessary(traceId);
                     doEncodeHeaders(traceId, sessionId, streamId, headers500, true);
@@ -6900,7 +6901,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 redirected = true;
 
                 doResponseReset(traceId);
-                state = HttpState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 requestDebit = null;
                 streams.remove(streamId);
 
@@ -6912,7 +6913,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 requestId = context.supplyInitialId(routedId, newAffinity);
                 responseId = supplyReplyId.applyAsLong(requestId);
                 affinity = newAffinity;
-                state = HttpState.openingInitial(state);
+                state = StreamState.openingInitial(state);
                 localBudget = localSettings.initialWindowSize;
 
                 application = newStream(this::onExchange, originId, routedId, redirectedId, requestId, requestSeq,
@@ -6924,7 +6925,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             private void clear()
             {
-                assert HttpState.closed(state);
+                assert StreamState.closed(state);
 
                 requestId = 0;
                 responseId = 0;
@@ -6949,7 +6950,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 final long traceId = reset.traceId();
 
-                if (HttpState.replyOpened(state))
+                if (StreamState.replyOpened(state))
                 {
                     doEncodeRstStream(traceId, streamId, Http2ErrorCode.NO_ERROR);
                 }
@@ -6982,7 +6983,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 assert acknowledge >= requestAck;
                 assert maximum >= requestMax;
 
-                state = HttpState.openInitial(state);
+                state = StreamState.openInitial(state);
 
                 requestAck = acknowledge;
                 requestMax = maximum;
@@ -6998,9 +6999,9 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 decodeNetworkIfNecessary(traceId);
 
-                if (!HttpState.initialClosed(state))
+                if (!StreamState.initialClosed(state))
                 {
-                    if (HttpState.initialClosing(state))
+                    if (StreamState.initialClosing(state))
                     {
                         // TODO: trailers extension?
                         flushRequestEnd(traceId, sessionId, EMPTY_OCTETS);
@@ -7038,9 +7039,9 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             private void setRequestClosed()
             {
-                assert !HttpState.initialClosed(state);
+                assert !StreamState.initialClosed(state);
 
-                state = HttpState.closeInitial(state);
+                state = StreamState.closeInitial(state);
                 requestDebit = null;
                 deauthorizeIfNecessary();
                 removeStreamIfNecessary();
@@ -7048,7 +7049,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             private void deauthorizeIfNecessary()
             {
-                if (HttpState.closed(state) && (sessionId & MASK_AUTHORIZED) != 0 && guard != null)
+                if (StreamState.closed(state) && (sessionId & MASK_AUTHORIZED) != 0 && guard != null)
                 {
                     guard.deauthorize(sessionId);
                 }
@@ -7056,7 +7057,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             private boolean isResponseOpen()
             {
-                return HttpState.replyOpened(state);
+                return StreamState.replyOpened(state);
             }
 
             private void onResponseBegin(
@@ -7067,7 +7068,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 final long traceId = begin.traceId();
                 final long authorization = begin.authorization();
 
-                state = HttpState.openReply(state);
+                state = StreamState.openReply(state);
 
                 assert acknowledge <= sequence;
                 assert sequence >= responseSeq;
@@ -7177,7 +7178,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             {
                 idleId = NO_CANCEL_ID;
 
-                if (!HttpState.replyClosed(state))
+                if (!StreamState.replyClosed(state))
                 {
                     if (System.currentTimeMillis() - lastEventAt >= SECONDS.toMillis(config.sseMaximumIdleTime()))
                     {
@@ -7373,7 +7374,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             private void doResponseResetIfNecessary(
                 long traceId)
             {
-                if (!HttpState.replyClosed(state))
+                if (!StreamState.replyClosed(state))
                 {
                     doResponseReset(traceId);
                 }
@@ -7403,7 +7404,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 long traceId,
                 int responseCreditMin)
             {
-                if (!HttpState.replyClosed(state))
+                if (!StreamState.replyClosed(state))
                 {
                     final int remotePaddableMax = Math.min(remoteBudget, bufferPool.slotCapacity());
                     final int remotePad = http2FramePadding(remotePaddableMax, remoteSettings.maxFrameSize);
@@ -7449,9 +7450,9 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             private void setResponseClosed()
             {
-                assert !HttpState.replyClosed(state);
+                assert !StreamState.replyClosed(state);
 
-                state = HttpState.closeReply(state);
+                state = StreamState.closeReply(state);
                 removeStreamIfNecessary();
                 deauthorizeIfNecessary();
                 cleanupExpiringIfNecessary();
@@ -7459,7 +7460,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             private void removeStreamIfNecessary()
             {
-                if (HttpState.closed(state))
+                if (StreamState.closed(state))
                 {
                     streams.remove(streamId);
                     streamsActive[streamId & 0x01]--;
