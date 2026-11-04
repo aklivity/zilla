@@ -873,6 +873,8 @@ public class MqttIT
         "${mqtt}/session.will.message.qos2.reply.window.before.begin/server"})
     public void shouldSendWillSignalOnQos2AbortWhenReplyWindowBeforeReplyBegin() throws Exception
     {
+        k3po.start();
+        k3po.notifyBarrier("SESSION_META_STREAMS_OPENED");
         k3po.finish();
     }
 }
