@@ -48,6 +48,7 @@ final class JsonModelEncoderPipeline implements ModelPipeline
     private final Int2ObjectCache<JsonPipeline> pipelines;
     private final JsonEnvelope envelope;
     private final ModelPipelineResult result;
+    private final Runnable resumed;
     private final boolean deterministic;
 
     private JsonPipeline active;
@@ -62,8 +63,10 @@ final class JsonModelEncoderPipeline implements ModelPipeline
     JsonModelEncoderPipeline(
         JsonModelHandlerImpl handler,
         JsonEnvelope envelope,
-        ModelTransform transform)
+        ModelTransform transform,
+        Runnable resumed)
     {
+        this.resumed = resumed;
         this.envelope = envelope;
         this.handler = handler;
         this.generator = JsonEx.createGenerator();
@@ -197,7 +200,7 @@ final class JsonModelEncoderPipeline implements ModelPipeline
         int schemaId)
     {
         return pipelines.computeIfAbsent(schemaId,
-            id -> handler.newPipeline(id, handler.encodeLenient, generator, fieldTransform, this::onRejected, envelope));
+            id -> handler.newPipeline(id, handler.encodeLenient, generator, fieldTransform, this::onRejected, envelope, resumed));
     }
 
     private void onRejected(
@@ -216,6 +219,7 @@ final class JsonModelEncoderPipeline implements ModelPipeline
         {
         case COMPLETED -> ModelStatus.COMPLETE;
         case SUSPENDED -> ModelStatus.OVERFLOW;
+        case PENDING -> ModelStatus.SUSPENDED;
         case STARVED -> ModelStatus.UNDERFLOW;
         case REJECTED -> ModelStatus.REJECTED;
         default -> ModelStatus.OK;

@@ -731,6 +731,12 @@ final class JsonModelFieldTransform implements JsonTransform
         }
 
         @Override
+        public Runnable resumer()
+        {
+            return upstream.resumer();
+        }
+
+        @Override
         public void consumed(
             int sourceBytes)
         {

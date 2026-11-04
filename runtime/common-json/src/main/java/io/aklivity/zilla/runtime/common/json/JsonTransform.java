@@ -28,6 +28,10 @@ package io.aklivity.zilla.runtime.common.json;
  */
 public interface JsonTransform
 {
+    /**
+     * A stage waiting for asynchronous work returns {@link JsonPipeline.Status#PENDING}; it signals completion
+     * through {@link JsonController#resumer()} and is re-entered via {@link #resume}.
+     */
     JsonPipeline.Status transform(
         JsonController control,
         JsonSource source,
@@ -40,7 +44,9 @@ public interface JsonTransform
      * {@code event} that suspended. The default forwards to {@code sink.resume(control, source, event)},
      * draining whatever is pending downstream — sufficient for a stage that only forwards events. A stage
      * that itself emits a value across chunks (substituting or expanding output) overrides this to continue
-     * its own emission, draining the downstream first. Returns {@link JsonPipeline.Status#SUSPENDED} if the
+     * its own emission, draining the downstream first. A stage that returned {@link JsonPipeline.Status#PENDING}
+     * overrides this to present {@code event} again, exactly once, now that its asynchronous work has completed
+     * (it returns {@code PENDING} again if the work is still outstanding). Returns {@link JsonPipeline.Status#SUSPENDED} if the
      * bounded output filled again, or {@link JsonPipeline.Status#ADVANCED} when nothing remains pending.
      */
     default JsonPipeline.Status resume(

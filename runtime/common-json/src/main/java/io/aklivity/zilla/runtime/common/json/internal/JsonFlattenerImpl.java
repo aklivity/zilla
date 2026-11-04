@@ -391,6 +391,12 @@ public final class JsonFlattenerImpl implements JsonTransform
         }
 
         @Override
+        public Runnable resumer()
+        {
+            return control.resumer();
+        }
+
+        @Override
         public void consumed(
             int sourceBytes)
         {

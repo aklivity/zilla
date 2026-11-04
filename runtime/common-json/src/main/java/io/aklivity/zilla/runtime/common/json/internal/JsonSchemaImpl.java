@@ -2613,6 +2613,12 @@ public final class JsonSchemaImpl implements JsonSchema
             }
 
             @Override
+            public Runnable resumer()
+            {
+                return upstreamControl.resumer();
+            }
+
+            @Override
             public void consumed(
                 int sourceBytes)
             {
