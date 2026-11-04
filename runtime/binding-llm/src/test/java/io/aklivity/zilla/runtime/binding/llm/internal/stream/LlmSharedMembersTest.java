@@ -32,9 +32,9 @@ public class LlmSharedMembersTest
     }
 
     @Test
-    public void shouldPromoteOpenaiReasoningEffort()
+    public void shouldLeaveOpenaiReasoningEffortToTheDecoder()
     {
-        assertThat(LlmSharedMembers.openai("reasoning_effort"), equalTo("reasoning_effort"));
+        assertThat(LlmSharedMembers.openai("reasoning_effort"), nullValue());
         assertThat(LlmSharedMembers.openai("reasoning"), nullValue());
         assertThat(LlmSharedMembers.openai("thinking_budget_tokens"), nullValue());
     }

@@ -309,17 +309,15 @@ public class LlmOpenaiControlFromCanonicalTest
     }
 
     @Test
-    public void shouldRejectUnknownReasoningEffort()
+    public void shouldDropUnknownReasoningEffort()
     {
-        assertRejects(foreignMembers, json("{'x:reasoning_effort':'turbo'}"));
-
-        assertThat(foreignMembers.rejectedMember(), equalTo("reasoning_effort"));
+        assertTransforms(foreignMembers, json("{'x:reasoning_effort':'turbo'}"), json("{}"));
     }
 
     @Test
-    public void shouldRejectReasoningEffortThatIsNotAString()
+    public void shouldDropReasoningEffortThatIsNotAString()
     {
-        assertRejects(foreignMembers, json("{'x:reasoning_effort':3}"));
+        assertTransforms(foreignMembers, json("{'x:reasoning_effort':3}"), json("{}"));
     }
 
     @Test
@@ -347,23 +345,21 @@ public class LlmOpenaiControlFromCanonicalTest
     }
 
     @Test
-    public void shouldRejectNegativeThinkingBudget()
+    public void shouldDropNegativeThinkingBudget()
     {
-        assertRejects(foreignMembers, json("{'x:thinking_budget_tokens':-1}"));
-
-        assertThat(foreignMembers.rejectedMember(), equalTo("thinking_budget_tokens"));
+        assertTransforms(foreignMembers, json("{'x:thinking_budget_tokens':-1}"), json("{}"));
     }
 
     @Test
-    public void shouldRejectFractionalThinkingBudget()
+    public void shouldDropFractionalThinkingBudget()
     {
-        assertRejects(foreignMembers, json("{'x:thinking_budget_tokens':1.5}"));
+        assertTransforms(foreignMembers, json("{'x:thinking_budget_tokens':1.5}"), json("{}"));
     }
 
     @Test
-    public void shouldRejectThinkingBudgetThatIsNotANumber()
+    public void shouldDropThinkingBudgetThatIsNotANumber()
     {
-        assertRejects(foreignMembers, json("{'x:thinking_budget_tokens':'high'}"));
+        assertTransforms(foreignMembers, json("{'x:thinking_budget_tokens':'high'}"), json("{}"));
     }
 
     @Test
@@ -514,19 +510,17 @@ public class LlmOpenaiControlFromCanonicalTest
     }
 
     @Test
-    public void shouldRejectBehaviouralMemberOfResponses()
+    public void shouldDropBehaviouralMemberOfResponses()
     {
-        assertRejects(sameMembers, json("{'openai/rs:previous_response_id':'resp_1'}"));
-
-        assertThat(sameMembers.rejectedMember(), equalTo("openai/rs:previous_response_id"));
+        assertTransforms(sameMembers, json("{'openai/rs:previous_response_id':'resp_1'}"), json("{}"));
     }
 
     @Test
-    public void shouldRejectEachBehaviouralMemberOfResponses()
+    public void shouldDropEachBehaviouralMemberOfResponses()
     {
-        assertRejects(sameMembers, json("{'openai/rs:background':true}"));
-        assertRejects(sameMembers, json("{'openai/rs:conversation':'conv_1'}"));
-        assertRejects(sameMembers, json("{'openai/rs:conversation':{'id':'conv_1'}}"));
+        assertTransforms(sameMembers, json("{'openai/rs:background':true}"), json("{}"));
+        assertTransforms(sameMembers, json("{'openai/rs:conversation':'conv_1'}"), json("{}"));
+        assertTransforms(sameMembers, json("{'openai/rs:conversation':{'id':'conv_1'}}"), json("{}"));
     }
 
     @Test

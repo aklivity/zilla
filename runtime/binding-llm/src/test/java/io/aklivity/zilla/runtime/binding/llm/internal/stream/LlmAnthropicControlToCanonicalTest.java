@@ -415,9 +415,9 @@ public class LlmAnthropicControlToCanonicalTest
     }
 
     @Test
-    public void shouldRejectThinkingBudgetThatIsNotANumber()
+    public void shouldDropThinkingBudgetThatIsNotANumber()
     {
-        assertRejects(transform, json("{'thinking':{'budget_tokens':'high'}}"));
+        assertTransforms(transform, json("{'thinking':{'budget_tokens':'high'}}"), json("{}"));
     }
 
     @Test
