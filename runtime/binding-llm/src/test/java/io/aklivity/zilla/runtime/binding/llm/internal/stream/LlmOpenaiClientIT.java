@@ -1005,6 +1005,17 @@ public class LlmOpenaiClientIT
     @Configuration("client.openai.yaml")
     @ScriptProperty({"target \"openai/ccs\""})
     @Specification({
+        "${app}/transform.mcp.tool.definition/client",
+        "${net}/openai.transform.server.tool.definition/server"})
+    public void shouldDropMcpToolDefinitionAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"target \"openai/ccs\""})
+    @Specification({
         "${app}/transform.tool.definition.100k/client",
         "${net}/openai.transform.tool.definition.100k/server"})
     public void shouldTransformToolDefinition100kAsOpenai() throws Exception

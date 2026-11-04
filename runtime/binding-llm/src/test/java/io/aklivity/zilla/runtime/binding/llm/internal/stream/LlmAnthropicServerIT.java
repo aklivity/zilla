@@ -242,6 +242,24 @@ public class LlmAnthropicServerIT
     }
 
     @Test
+    @Specification({
+        "${net}/anthropic.section.server.tool.definition.type.middle/client",
+        "${app}/anthropic.section.server.tool.definition.type.middle/server"})
+    public void shouldAnthropicSectionServerToolDefinitionTypeMiddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.server.tool.definition.type.last/client",
+        "${app}/anthropic.section.server.tool.definition.type.last/server"})
+    public void shouldAnthropicSectionServerToolDefinitionTypeLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.yaml")
     @Specification({
         "${net}/anthropic.section.other.blocks/client",

@@ -1074,6 +1074,33 @@ public class LlmGeminiClientIT
     }
 
     @Test
+    @Specification({
+        "${app}/gemini.section.mcp.tool.definition/client",
+        "${net}/gemini.section.mcp.tool.definition/server"})
+    public void shouldGeminiSectionMcpToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.section.mcp.tool.definition.members/client",
+        "${net}/gemini.section.mcp.tool.definition.members/server"})
+    public void shouldGeminiSectionMcpToolDefinitionMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.section.mcp.tool.definition.multiple/client",
+        "${net}/gemini.section.mcp.tool.definition.multiple/server"})
+    public void shouldGeminiSectionMcpToolDefinitionMultiple() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.gemini.yaml")
     @Specification({
         "${app}/gemini.section.server.tool.definition.leading/client",
@@ -1169,6 +1196,83 @@ public class LlmGeminiClientIT
         "${app}/transform.server.tool.definition/client",
         "${net}/gemini.transform.server.tool.definition/server"})
     public void shouldDropServerToolDefinitionAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"gemini\""})
+    @Specification({
+        "${app}/transform.mcp.tool.definition.authorization.header/client",
+        "${net}/gemini.transform.mcp.tool.definition.authorization.header/server"})
+    public void shouldTransformMcpToolDefinitionAuthorizationHeaderAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"openai/rs\""})
+    @Specification({
+        "${app}/transform.mcp.tool.definition.approval.never/client",
+        "${net}/gemini.transform.mcp.tool.definition.untooled/server"})
+    public void shouldTransformMcpToolDefinitionApprovalNeverAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"openai/rs\""})
+    @Specification({
+        "${app}/transform.mcp.tool.definition.approval/client",
+        "${net}/gemini.transform.server.tool.definition/server"})
+    public void shouldDropMcpToolDefinitionApprovalAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
+        "${app}/transform.mcp.tool.definition.disabled/client",
+        "${net}/gemini.transform.server.tool.definition/server"})
+    public void shouldDropMcpToolDefinitionDisabledToolsAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"openai/rs\""})
+    @Specification({
+        "${app}/transform.mcp.tool.definition.connector/client",
+        "${net}/gemini.transform.server.tool.definition/server"})
+    public void shouldDropMcpToolDefinitionConnectorAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
+        "${app}/transform.mcp.tool.definition.untooled/client",
+        "${net}/gemini.transform.mcp.tool.definition.untooled/server"})
+    public void shouldTransformMcpToolDefinitionUntooledAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({"source \"anthropic\""})
+    @Specification({
+        "${app}/transform.mcp.tool.definition/client",
+        "${net}/gemini.transform.server.tool.definition/server"})
+    public void shouldDropMcpToolDefinitionToolsAsGemini() throws Exception
     {
         k3po.finish();
     }

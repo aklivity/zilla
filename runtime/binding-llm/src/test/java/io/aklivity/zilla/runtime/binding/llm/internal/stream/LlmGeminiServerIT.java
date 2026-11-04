@@ -1160,6 +1160,42 @@ public class LlmGeminiServerIT
     }
 
     @Test
+    @Specification({
+        "${net}/gemini.section.mcp.tool.definition/client",
+        "${app}/gemini.section.mcp.tool.definition/server"})
+    public void shouldGeminiSectionMcpToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.mcp.tool.definition.members/client",
+        "${app}/gemini.section.mcp.tool.definition.members/server"})
+    public void shouldGeminiSectionMcpToolDefinitionMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.mcp.tool.definition.multiple/client",
+        "${app}/gemini.section.mcp.tool.definition.multiple/server"})
+    public void shouldGeminiSectionMcpToolDefinitionMultiple() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.mcp.tool.definition.array/client",
+        "${app}/gemini.section.mcp.tool.definition.array/server"})
+    public void shouldGeminiSectionMcpToolDefinitionArray() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.yaml")
     @Specification({
         "${net}/gemini.section.server.tool.definition.leading/client",
