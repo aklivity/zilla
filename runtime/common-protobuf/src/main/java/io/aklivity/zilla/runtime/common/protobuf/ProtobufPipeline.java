@@ -66,6 +66,11 @@ public interface ProtobufPipeline
         ADVANCED,
         /** the bounded output filled: drain the buffer, reset the generator, then {@link #transform} again to resume */
         SUSPENDED,
+        /**
+         * a stage is waiting for asynchronous work to complete: the caller waits for the {@link ProtobufController#resumer()}
+         * callback, then calls {@link #transform} again, which presents the pending event to that stage once more
+         */
+        PENDING,
         /** the input window was consumed mid-message: {@link #transform} the next window (input back-pressure) */
         STARVED,
         /** the message finished and was accepted */
@@ -101,11 +106,22 @@ public interface ProtobufPipeline
     }
 
     /**
+     * Sets the callback reached by any stage via {@link ProtobufController#resumer()}, run when asynchronous
+     * work a stage started completes after it returned {@link Status#PENDING}. The default does nothing, for a
+     * pipeline assembled with no stage that waits.
+     */
+    default void resumer(
+        Runnable resumer)
+    {
+    }
+
+    /**
      * The number of bytes at the tail of the most recently fed window not yet consumed — exactly what the
      * caller retains (typically in its own reassembly slot) and re-presents, contiguous, at the front of the
      * next {@link #transform}. A caller buffering across windows keeps this many bytes without tracking the
      * window's absolute base. On {@link Status#STARVED} it is the unconsumed tail; held steady while
      * {@link Status#SUSPENDED} (re-feed the same window), since output back-pressure consumes no further input.
+     * On {@link Status#PENDING} it is the unconsumed tail, re-presented at the front of the next window.
      */
     int remaining();
 

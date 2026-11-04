@@ -51,6 +51,7 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
     private final ProtobufEnvelope envelope;
     private final ModelPipelineResult result;
     private final ModelCache cache;
+    private final Runnable resumed;
     private final boolean deterministic;
     private final boolean identity;
 
@@ -64,7 +65,8 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
         ProtobufModelHandlerImpl handler,
         ProtobufEnvelope envelope,
         ModelTransform transform,
-        ModelCache cache)
+        ModelCache cache,
+        Runnable resumed)
     {
         this.envelope = envelope;
         this.handler = handler;
@@ -74,6 +76,7 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
         this.pipelines = new HashMap<>();
         this.result = new ModelPipelineResult();
         this.cache = cache;
+        this.resumed = resumed;
         this.deterministic = transform.deterministic() && handler.decodeDeterministic(cache);
         this.identity = handler.decodeIdentity(cache) && (extractor == null || extractor.identity());
     }
@@ -239,6 +242,10 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
         {
             pipeline = handler.newPipeline(schemaId, handler.decodeLenient, messageName, extractor, this::onRejected, envelope,
                 cache);
+            if (pipeline != null)
+            {
+                pipeline.resumer(resumed);
+            }
             pipelines.put(messageName, pipeline);
         }
         return pipeline;
@@ -283,6 +290,7 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
         {
         case COMPLETED -> ModelStatus.COMPLETE;
         case SUSPENDED -> ModelStatus.OVERFLOW;
+        case PENDING -> ModelStatus.SUSPENDED;
         case STARVED -> ModelStatus.UNDERFLOW;
         case REJECTED -> ModelStatus.REJECTED;
         default -> ModelStatus.OK;
