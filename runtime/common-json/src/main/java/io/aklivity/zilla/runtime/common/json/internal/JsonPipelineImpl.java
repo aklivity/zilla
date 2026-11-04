@@ -76,13 +76,14 @@ public final class JsonPipelineImpl implements JsonPipeline
         JsonReporter reporter,
         JsonGeneratorEx generator,
         boolean lenient,
+        boolean detailed,
         JsonEnvelope envelope)
     {
         this.parser = parser;
         this.driver = parser;
         // the source view and the upstream controller a stage steers are adapters over the parser surface
         this.source = new Source(parser);
-        this.control = new Control(this, parser, envelope);
+        this.control = new Control(this, parser, envelope, detailed ? reporter : JsonReporter.NONE);
         this.root = root;
         this.reporter = reporter;
         this.diagnostic = new Diagnostic();
@@ -423,6 +424,7 @@ public final class JsonPipelineImpl implements JsonPipeline
     {
         private final JsonPipelineImpl pipeline;
         private final JsonEnvelope envelope;
+        private final JsonReporter detail;
 
         private JsonParserEx parser;
         private boolean segmented;
@@ -431,8 +433,10 @@ public final class JsonPipelineImpl implements JsonPipeline
         private Control(
             JsonPipelineImpl pipeline,
             JsonParserEx parser,
-            JsonEnvelope envelope)
+            JsonEnvelope envelope,
+            JsonReporter detail)
         {
+            this.detail = detail;
             this.pipeline = pipeline;
             this.parser = parser;
             this.envelope = envelope;
@@ -448,6 +452,12 @@ public final class JsonPipelineImpl implements JsonPipeline
         public JsonEnvelope envelope()
         {
             return envelope;
+        }
+
+        @Override
+        public JsonReporter detail()
+        {
+            return detail;
         }
 
         @Override

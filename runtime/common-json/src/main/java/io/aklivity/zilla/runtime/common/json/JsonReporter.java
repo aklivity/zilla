@@ -31,4 +31,16 @@ public interface JsonReporter
 
     void rejected(
         JsonDiagnostic diagnostic);
+
+    /**
+     * Receives a {@link JsonViolation} as a schema violation is detected, before the event that triggered
+     * it is forwarded downstream, so a downstream stage can still act on it. Called only when the pipeline
+     * opted in with {@link JsonStream#detailed(boolean)}; the default ignores it. The pipeline status is not
+     * affected by a violation. The supplied violation is a call-scoped view, as for
+     * {@link #rejected(JsonDiagnostic)}.
+     */
+    default void violated(
+        JsonViolation violation)
+    {
+    }
 }

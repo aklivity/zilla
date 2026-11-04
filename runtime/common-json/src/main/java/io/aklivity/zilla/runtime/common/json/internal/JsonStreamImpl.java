@@ -45,6 +45,7 @@ public final class JsonStreamImpl implements JsonStream
     private JsonReporter reporter = JsonReporter.NONE;
     private JsonEnvelope envelope = JsonEnvelope.NONE;
     private boolean lenient;
+    private boolean detailed;
 
     public JsonStreamImpl(
         JsonParserEx parser)
@@ -70,6 +71,14 @@ public final class JsonStreamImpl implements JsonStream
     }
 
     @Override
+    public JsonStream detailed(
+        boolean detailed)
+    {
+        this.detailed = detailed;
+        return this;
+    }
+
+    @Override
     public JsonStream reporting(
         JsonReporter reporter)
     {
@@ -89,7 +98,7 @@ public final class JsonStreamImpl implements JsonStream
     public JsonPipeline into(
         JsonSink sink)
     {
-        return new JsonPipelineImpl(parser, bind(sink), reporter, null, lenient, envelope);
+        return new JsonPipelineImpl(parser, bind(sink), reporter, null, lenient, detailed, envelope);
     }
 
     @Override
@@ -98,7 +107,7 @@ public final class JsonStreamImpl implements JsonStream
     {
         // the generator self-wraps an empty buffer on construction, so it is already in a sink-safe
         // state here; transform re-targets it at the caller's destination per call
-        return new JsonPipelineImpl(parser, bind(new JsonSinkImpl(generator)), reporter, generator, lenient, envelope);
+        return new JsonPipelineImpl(parser, bind(new JsonSinkImpl(generator)), reporter, generator, lenient, detailed, envelope);
     }
 
     @Override
@@ -107,7 +116,8 @@ public final class JsonStreamImpl implements JsonStream
         Map<String, ?> config)
     {
         boolean canonical = config.get(JsonSink.DELIVERY) == JsonSink.Delivery.STRUCTURED;
-        return new JsonPipelineImpl(parser, bind(new JsonSinkImpl(generator, canonical)), reporter, generator, lenient, envelope);
+        return new JsonPipelineImpl(
+            parser, bind(new JsonSinkImpl(generator, canonical)), reporter, generator, lenient, detailed, envelope);
     }
 
     private JsonSink bind(
