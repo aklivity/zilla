@@ -68,7 +68,8 @@ public interface ProtobufPipeline
         SUSPENDED,
         /**
          * a stage is waiting for asynchronous work to complete: the caller waits for the {@link ProtobufController#resumer()}
-         * callback, then calls {@link #transform} again, which presents the pending event to that stage once more
+         * callback, then calls {@link #transform} again, which presents the pending event to that stage once more;
+         * the destination-style transform keeps the unconsumed input, so that call may carry no further input
          */
         PENDING,
         /** the input window was consumed mid-message: {@link #transform} the next window (input back-pressure) */
@@ -132,7 +133,8 @@ public interface ProtobufPipeline
      * next {@link #transform}. A caller buffering across windows keeps this many bytes without tracking the
      * window's absolute base. On {@link Status#STARVED} it is the unconsumed tail; held steady while
      * {@link Status#SUSPENDED} (re-feed the same window), since output back-pressure consumes no further input.
-     * On {@link Status#PENDING} it is the unconsumed tail, re-presented at the front of the next window.
+     * On {@link Status#PENDING} the destination-style {@link #transform(DirectBufferEx, int, int, boolean,
+     * MutableDirectBufferEx, int, int)} keeps that tail itself and reports the whole window as consumed.
      */
     int remaining();
 
