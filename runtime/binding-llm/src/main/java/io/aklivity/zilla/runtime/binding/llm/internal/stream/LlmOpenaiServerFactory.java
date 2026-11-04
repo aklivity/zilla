@@ -150,6 +150,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private static final String MEMBER_STREAM_OPTIONS = "stream_options";
     private static final String MEMBER_STOP = "stop";
     private static final String MEMBER_SERVICE_TIER = "service_tier";
+    private static final String MEMBER_REASONING_EFFORT = "reasoning_effort";
     private static final String ROLE_TOOL = "tool";
     private static final String TYPE_TEXT = "text";
     private static final String TYPE_REFUSAL = "refusal";
@@ -2619,6 +2620,12 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             }
         }
 
+        private boolean converted(
+            CharSequence key)
+        {
+            return matches(key, MEMBER_STOP) || matches(key, MEMBER_SERVICE_TIER) || matches(key, MEMBER_REASONING_EFFORT);
+        }
+
         private void onDecodeControlSeparator()
         {
             final int start = LlmValueStart.of(decodedInput, captureFrom, decodedWindowLimit);
@@ -2636,7 +2643,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         {
             captureThen = then;
 
-            if (matches(key, MEMBER_STOP) || matches(key, MEMBER_SERVICE_TIER))
+            if (converted(key))
             {
                 controlConverted(key, CONTROL_CONTINUE);
             }
@@ -2686,7 +2693,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 blockPipeline.begin(blockAttributes);
                 onDecodeControlKey(key, false, '{');
             }
-            else if (matches(key, MEMBER_STOP) || matches(key, MEMBER_SERVICE_TIER))
+            else if (converted(key))
             {
                 controlConverted(key, CONTROL_BEGIN);
             }

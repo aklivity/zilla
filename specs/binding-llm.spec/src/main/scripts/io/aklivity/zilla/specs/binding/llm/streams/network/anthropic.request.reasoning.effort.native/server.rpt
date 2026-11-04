@@ -13,8 +13,6 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property model "model"
-
 accept "zilla://streams/net0"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
@@ -33,6 +31,15 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-read "{\"model\":\"" ${model} "\""
+read "{\"model\":\"claude-opus-4-6\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Hello\"}]}],\"output_config\":{\"effort\":\"turbo\"},\"max_tokens\":4096}"
 
-read aborted
+read closed
+
+write zilla:begin.ext ${http:beginEx()
+                            .typeId(zilla:id("http"))
+                            .header(":status", "429")
+                            .header("content-type", "application/json")
+                            .build()}
+
+write "{\"type\":\"error\",\"error\":{\"type\":\"rate_limit_error\",\"message\":\"Rate limit exceeded\"}}"
+write close

@@ -2455,28 +2455,6 @@ public class LlmOpenaiResponsesClientIT
 
     @Test
     @Configuration("client.openai.yaml")
-    @ScriptProperty({"source \"openai/rs\"", "target \"openai/rs\""})
-    @Specification({
-        "${app}/transform.rejected.reasoning.effort/client",
-        "${net}/openai.responses.transform.rejected.reasoning/server"})
-    public void shouldRejectReasoningEffortAsOpenaiResponses() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.openai.yaml")
-    @ScriptProperty({"source \"openai/rs\"", "target \"openai/rs\""})
-    @Specification({
-        "${app}/transform.rejected.reasoning.budget/client",
-        "${net}/openai.responses.transform.rejected.reasoning/server"})
-    public void shouldRejectReasoningBudgetAsOpenaiResponses() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.openai.yaml")
     @ScriptProperty({"source \"openai/rs\"", "target \"openai/rs\"", "model \"o3-mini\""})
     @Specification({
         "${app}/transform.request.sampling.members/client",
@@ -2846,22 +2824,6 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
-    @Configuration("client.openai.responses.yaml")
-    @ScriptProperty({
-        "source \"openai/ccs\"",
-        "target \"openai/rs\"",
-        "model \"model\"",
-        "member \"openai/ccs:n\"",
-        "value \"2\""})
-    @Specification({
-        "${app}/transform.rejected.prefixed.member/client",
-        "${net}/openai.responses.transform.rejected.member/server"})
-    public void shouldRejectBehaviouralMemberOfChatCompletionsAsOpenaiResponses() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
     @Configuration("client.openai.yaml")
     @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
     @Configure(name = ENGINE_BUFFER_POOL_CAPACITY_NAME, value = "16384")
@@ -2879,6 +2841,179 @@ public class LlmOpenaiResponsesClientIT
         "${app}/openai.responses.abort/client",
         "${net}/openai.responses.abort/server"})
     public void shouldOpenaiResponsesAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @ScriptProperty({
+        "source \"openai/ccs\"",
+        "target \"openai/rs\"",
+        "model \"model\"",
+        "member \"openai/ccs:n\"",
+        "value \"2\""})
+    @Specification({
+        "${app}/transform.request.prefixed.member/client",
+        "${net}/openai.responses.transform.request.dropped/server"})
+    public void shouldDropNOfOpenaiChatCompletionsAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @ScriptProperty({
+        "source \"openai/ccs\"",
+        "target \"openai/rs\"",
+        "model \"model\"",
+        "member \"openai/ccs:logprobs\"",
+        "value \"true\""})
+    @Specification({
+        "${app}/transform.request.prefixed.member/client",
+        "${net}/openai.responses.transform.request.dropped/server"})
+    public void shouldDropLogprobsOfOpenaiChatCompletionsAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @ScriptProperty({
+        "source \"openai/ccs\"",
+        "target \"openai/rs\"",
+        "model \"model\"",
+        "member \"openai/ccs:audio\"",
+        "value \"{\\\"voice\\\":\\\"alloy\\\"}\""})
+    @Specification({
+        "${app}/transform.request.prefixed.member/client",
+        "${net}/openai.responses.transform.request.dropped/server"})
+    public void shouldDropAudioOfOpenaiChatCompletionsAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @ScriptProperty({
+        "source \"openai/ccs\"",
+        "target \"openai/rs\"",
+        "model \"model\"",
+        "member \"openai/ccs:modalities\"",
+        "value \"[\\\"text\\\"]\""})
+    @Specification({
+        "${app}/transform.request.prefixed.member/client",
+        "${net}/openai.responses.transform.request.dropped/server"})
+    public void shouldDropModalitiesOfOpenaiChatCompletionsAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({
+        "source \"openai/rs\"",
+        "target \"openai/rs\"",
+        "model \"model\"",
+        "member \"reasoning_effort\"",
+        "value \"\\\"turbo\\\"\""})
+    @Specification({
+        "${app}/transform.request.member/client",
+        "${net}/openai.responses.transform.request.dropped/server"})
+    public void shouldDropReasoningEffortThatDoesNotConvertAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({
+        "source \"openai/rs\"",
+        "target \"openai/rs\"",
+        "model \"model\"",
+        "member \"thinking_budget_tokens\"",
+        "value \"-1\""})
+    @Specification({
+        "${app}/transform.request.member/client",
+        "${net}/openai.responses.transform.request.dropped/server"})
+    public void shouldDropThinkingBudgetThatDoesNotConvertAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({
+        "source \"openai/rs\"",
+        "target \"openai/rs\"",
+        "model \"model\"",
+        "member \"openai/rs:background\"",
+        "wire \"background\"",
+        "value \"true\""})
+    @Specification({
+        "${app}/transform.request.prefixed.member/client",
+        "${net}/openai.responses.transform.request.restored/server"})
+    public void shouldRestoreBackgroundAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({
+        "source \"openai/rs\"",
+        "target \"openai/rs\"",
+        "model \"model\"",
+        "member \"openai/rs:conversation\"",
+        "wire \"conversation\"",
+        "value \"\\\"conv_1\\\"\""})
+    @Specification({
+        "${app}/transform.request.prefixed.member/client",
+        "${net}/openai.responses.transform.request.restored/server"})
+    public void shouldRestoreConversationAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @ScriptProperty({
+        "source \"anthropic\"",
+        "target \"openai/rs\"",
+        "model \"model\"",
+        "member \"x:previous_turn_id\"",
+        "wire \"previous_response_id\"",
+        "value \"\\\"resp_1\\\"\""})
+    @Specification({
+        "${app}/transform.request.prefixed.member/client",
+        "${net}/openai.responses.transform.request.restored/server"})
+    public void shouldWritePreviousResponseIdFromPreviousTurnIdAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @ScriptProperty({
+        "source \"anthropic\"",
+        "target \"openai/rs\"",
+        "model \"model\"",
+        "member \"x:previous_turn_id\"",
+        "value \"null\""})
+    @Specification({
+        "${app}/transform.request.prefixed.member/client",
+        "${net}/openai.responses.transform.request.dropped/server"})
+    public void shouldDropNullPreviousTurnIdAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.reasoning.native/client",
+        "${net}/openai.responses.request.reasoning.native/server"})
+    public void shouldEncodeOpenaiResponsesRequestReasoningNative() throws Exception
     {
         k3po.finish();
     }

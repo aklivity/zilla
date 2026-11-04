@@ -1908,4 +1908,14 @@ public class LlmOpenaiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.request.reasoning.native/client",
+        "${app}/openai.request.reasoning.native/server"})
+    public void shouldDecodeOpenaiRequestReasoningNative() throws Exception
+    {
+        k3po.finish();
+    }
 }

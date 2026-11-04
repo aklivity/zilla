@@ -17,12 +17,16 @@ property source "source"
 property target "target"
 property model "model"
 property errorType "invalid_request_error"
+property member "member"
+property value "value"
 
-connect "zilla://streams/app0"
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
+accept "zilla://streams/app0"
+       option zilla:window 0
+       option zilla:transmission "half-duplex"
 
-write zilla:begin.ext ${llm:beginEx()
+accepted
+
+read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
                            .dialect(source)
                            .model(model)
@@ -30,19 +34,32 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write zilla:data.ext ${llm:dataEx()
+read option zilla:window 8192
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("USER_TEXT")
+                          .message(0)
+                          .build()}
+read "{\"text\":\"Hello\"}"
+
+read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("CONTROL")
                           .message(-1)
                           .build()}
-write "{\"x:thinking_budget_tokens\":-1}"
-write flush
+read "{\"" ${member} "\":" ${value} "}"
 
-read zilla:reset.ext ${llm:matchResetEx()
-                           .typeId(zilla:id("llm"))
-                           .status(400)
-                           .type(errorType)
-                           .message("x:thinking_budget_tokens cannot be converted from %s to %s".formatted(source, target))
-                           .build()}
+read advised zilla:flush ${llm:matchDialectFlushEx()
+                                 .typeId(zilla:id("llm"))
+                                 .maxOutputTokens(2048)
+                                 .build()}
 
-write aborted
+write zilla:reset.ext ${llm:resetEx()
+                            .typeId(zilla:id("llm"))
+                            .status(400)
+                            .type(errorType)
+                            .message("Invalid request")
+                            .build()}
+
+read abort

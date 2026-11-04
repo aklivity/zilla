@@ -138,8 +138,8 @@ members have their own section)
   clamp table across dialects; one legality class with no pair-specific exceptions; per-pair scripts pass
   across two minor releases; and the decision is recorded in an issue.
 - Members that carry content or grant a capability are sections, not `x:` members, and a guardrail stage
-  never sees an `x:` member. The one planned exception is `x:previous_turn_id`, an opaque handle
-  ([Provider-state handles](#provider-state-handles)).
+  never sees an `x:` member. The one exception is `x:previous_turn_id`, an opaque handle
+  ([Provider-state handles](#provider-state-handles)), which no guardrail stage can act on.
 
 ### Promoted sampling members
 
@@ -295,10 +295,12 @@ Only function entries have a canonical form. (**implemented** for `openai`, `ope
 
 `x:reasoning_effort` is one of `none`, `minimal`, `low`, `medium`, `high`, `xhigh` and `max`; `x:thinking_budget_tokens` is
 an integer of 0 or more. A decoder emits a member only when the source carries it. A `null` value is the absence of the
-member: the nested decoders drop it, the flat `openai` rename passes it through and every client reads it as absent. A value
-that is not one of the above rejects at the client (class B,
-`x:reasoning_effort cannot be converted from <dialect> to <dialect>`, and likewise for `x:thinking_budget_tokens`).
-(**implemented** for `openai`, `openai/responses`, `anthropic` and `gemini`)
+member: the nested decoders drop it, `openai` passes it through and every client reads it as absent. A decoder emits the
+`x:` member only with a value that converts: a native value that is not one of the above (an effort outside the list, a
+budget that is negative, fractional or not a number) is carried as a native prefixed member (`openai/ccs:reasoning_effort`,
+the residue of `openai/rs:reasoning`, `anthropic:output_config`, `anthropic:thinking`, `gemini:thinkingConfig`), which a
+client of the same dialect writes back verbatim and every other client drops. A client never judges the value: an
+`x:reasoning_effort` or `x:thinking_budget_tokens` that does not convert is read as absent (class A). (**implemented** for `openai`, `openai/responses`, `anthropic` and `gemini`)
 
 | Native member | Decoded as |
 |---|---|
@@ -582,7 +584,10 @@ A dialect whose promoted members live inside a native object (`gemini` `generati
 
 ## Member classification
 
-(**planned**) Every request or response member and every content part is classified as one of:
+Every request or response member and every content part is classified as one of the following. (**planned**: the
+classification of the content-bearing and capability members is not yet applied by the decoders, except where
+[Cross-dialect behaviour](#cross-dialect-behaviour) and [Provider-state handles](#provider-state-handles) say
+**implemented**)
 
 - a **setting**, which stays in a `CONTROL` section;
 - **content**, which the model reads, or a **capability**, which grants the request something it could not do without
@@ -628,13 +633,17 @@ survive a restart or be reproducible.
 
 ### Cross-dialect behaviour
 
-- **Decoder decides.** A decoder emits an `x:` member only with a value that converts to its canonical form. A native
+- **Decoder decides.** (**implemented** for `x:reasoning_effort` and `x:thinking_budget_tokens` of every dialect and for
+  `x:previous_turn_id`) A decoder emits an `x:` member only with a value that converts to its canonical form. A native
   value that does not convert is carried as a native prefixed member (`openai/ccs:reasoning_effort`), which a client of
-  the same dialect writes verbatim and every other client ignores. An encoder never judges an `x:` value.
-- **Drop by default.** A client writes the members and sections it understands and drops the rest: members of another
-  dialect, `x:` members with no mapping, and section types with no equivalent. No client knows the member names of
-  another dialect. (`LlmBehaviour` is removed.) `n`, `logprobs`, `audio`, `modalities` and `background` are dropped, and the
-  reply visibly lacks what they asked for.
+  the same dialect writes verbatim and every other client ignores. An encoder never judges an `x:` value. The sampling
+  members (`x:temperature`, `x:top_p`, `x:top_k`, `x:seed`, `x:frequency_penalty`, `x:presence_penalty`), `x:stop` and
+  `x:user` still pass a native value through unconverted and are **planned** to follow the rule.
+- **Drop by default.** (**implemented** for members; **planned** for section types with no equivalent) A client writes
+  the members and sections it understands and drops the rest: members of another dialect, `x:` members with no mapping,
+  and section types with no equivalent. No client knows the member names of another dialect. `openai/ccs:n`,
+  `logprobs`, `audio` and `modalities`, and `openai/rs:background` and `conversation`, are dropped by a client of another
+  dialect, and the reply visibly lacks what they asked for. A client of the same dialect restores them verbatim.
 - **Whole section.** A section is dropped whole. A client never drops one member of a section and writes the rest when
   that member gates or reaches the thing the section declares, and it never writes a credential in a form it cannot
   honour.
@@ -647,8 +656,8 @@ survive a restart or be reproducible.
   user text it would be written to another model as an extra message.
 - **Reject only where defined.** A reject names the member and the dialect pair
   (`<member> cannot be converted from <dialect> to <dialect>`). The class B `x:` members keep the legality tables
-  above, `x:stop` rejects where the target has no stop, and `x:previous_turn_id` rejects where the target has no counterpart,
-  until the cache of #2798 resolves it. A request the provider itself rejects, such as citations with `json_schema`,
+  above, `x:stop` rejects where the target has no stop, and `x:previous_turn_id` rejects where the target has no counterpart
+  (**implemented**), until the cache of #2798 resolves it. A request the provider itself rejects, such as citations with `json_schema`,
   stays rejected.
 - **Unknown stays dropped.** A part, block type, item or role that no decoder knows is dropped, including by `openai/rs`,
   which rejects it today. Unknown content therefore never reaches the model, and cannot bypass a guardrail.
@@ -661,9 +670,16 @@ dialect drops it, so a request that relies on the state behind it is answered wi
 cache of #2798 is the planned resolution.
 
 - **`x:previous_turn_id`** is the shared form of `previous_response_id` (`openai/rs`) and `previous_interaction_id`
-  (`gemini/int`, #2797): an opaque string that crosses unchanged and names an earlier turn, valid only while the exit
-  that minted it serves the request. It is a commit-like reference. The request reads from the turn and creates a new
-  one, and reusing a non-latest id forks. It is class B.
+  (`gemini/int`, #2797, **planned**): an opaque string that crosses unchanged and names an earlier turn, valid only while
+  the exit that minted it serves the request. It is a commit-like reference. The request reads from the turn and creates
+  a new one, and reusing a non-latest id forks. It is class B. (**implemented** for `openai/rs`)
+  - The `openai/rs` decoder emits `x:previous_turn_id` for a string `previous_response_id`; any other value (`null`, a
+    number) stays `openai/rs:previous_response_id`, written back verbatim by `openai/rs` and dropped by every other client.
+  - The `openai/rs` client writes `previous_response_id` from a string value and drops a `null`, which is the absence of
+    the member.
+  - The `openai/ccs`, `anthropic` and `gemini` clients have no counterpart and reject a value that is not `null`
+    (`x:previous_turn_id cannot be converted from <dialect> to <dialect>`, for example
+    `x:previous_turn_id cannot be converted from openai/rs to gemini`).
 - **`conversation`** is a branch-like handle. A request reads the thread and then appends to it. It stays dialect-specific
   until cached replay across models makes an `x:conversation` meaningful.
 - **`prompt`**: the id and version are a handle and stay control. Each variable is content and decodes through the
@@ -753,7 +769,6 @@ These replace behaviour described above as implemented.
 | `x:tool_choice` `allowed_tools` to `anthropic` | rejects | the client writes only the allowed tool definitions, with `required` as `any` and `auto` as `auto`, holding the definitions until the end of the request |
 | `x:response_format` `json_object` to `anthropic` | rejects | dropped |
 | `x:response_format` schema keywords the target does not support | rejects | converted ([Response format conversion](#response-format-conversion)) |
-| an `x:reasoning_effort` or `x:thinking_budget_tokens` value that does not convert | rejects at the client | carried by the decoder as a native prefixed member |
 | `x:stop` to `openai/rs`, and entries beyond the `openai` and `gemini` limits | rejects | unchanged until gateway enforcement exists |
 
 ### Response format conversion

@@ -2258,4 +2258,24 @@ public class LlmAnthropicServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.request.reasoning.effort.native/client",
+        "${app}/anthropic.request.reasoning.effort.native/server"})
+    public void shouldDecodeAnthropicRequestReasoningEffortNative() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.request.reasoning.budget.native/client",
+        "${app}/anthropic.request.reasoning.budget.native/server"})
+    public void shouldDecodeAnthropicRequestReasoningBudgetNative() throws Exception
+    {
+        k3po.finish();
+    }
 }

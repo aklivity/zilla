@@ -1833,4 +1833,24 @@ public class LlmGeminiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.reasoning.level.native/client",
+        "${app}/gemini.request.reasoning.level.native/server"})
+    public void shouldDecodeGeminiRequestReasoningLevelNative() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/gemini.request.reasoning.budget.native/client",
+        "${app}/gemini.request.reasoning.budget.native/server"})
+    public void shouldDecodeGeminiRequestReasoningBudgetNative() throws Exception
+    {
+        k3po.finish();
+    }
 }

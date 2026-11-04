@@ -2155,28 +2155,6 @@ public class LlmGeminiClientIT
     }
 
     @Test
-    @Configuration("client.gemini.yaml")
-    @ScriptProperty({"source \"openai/ccs\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
-    @Specification({
-        "${app}/transform.rejected.reasoning.effort/client",
-        "${net}/gemini.transform.rejected.reasoning/server"})
-    public void shouldRejectReasoningEffortAsGemini() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.gemini.yaml")
-    @ScriptProperty({"source \"openai/ccs\"", "target \"gemini\"", "errorType \"INVALID_ARGUMENT\""})
-    @Specification({
-        "${app}/transform.rejected.reasoning.budget/client",
-        "${net}/gemini.transform.rejected.reasoning/server"})
-    public void shouldRejectReasoningBudgetAsGemini() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
     @Configuration("client.gemini.models.yaml")
     @ScriptProperty({
         "source \"openai/ccs\"",
@@ -2655,23 +2633,6 @@ public class LlmGeminiClientIT
 
     @Test
     @Configuration("client.gemini.yaml")
-    @ScriptProperty({
-        "source \"openai/ccs\"",
-        "target \"gemini\"",
-        "errorType \"INVALID_ARGUMENT\"",
-        "model \"model\"",
-        "member \"openai/ccs:n\"",
-        "value \"3\""})
-    @Specification({
-        "${app}/transform.rejected.prefixed.member/client",
-        "${net}/gemini.transform.rejected.member/server"})
-    public void shouldRejectBehaviouralMemberOfOpenaiChatCompletionsAsGemini() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.gemini.yaml")
     @Specification({
         "${app}/gemini.rejected.reset/client",
         "${net}/gemini.rejected.reset/server"})
@@ -2698,6 +2659,196 @@ public class LlmGeminiClientIT
         "${app}/gemini.abort/client",
         "${net}/gemini.abort/server"})
     public void shouldGeminiAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({
+        "source \"openai/ccs\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "model \"model\"",
+        "member \"openai/ccs:n\"",
+        "value \"2\""})
+    @Specification({
+        "${app}/transform.request.prefixed.member/client",
+        "${net}/gemini.transform.request.dropped/server"})
+    public void shouldDropNOfOpenaiChatCompletionsAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({
+        "source \"openai/ccs\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "model \"model\"",
+        "member \"openai/ccs:logprobs\"",
+        "value \"true\""})
+    @Specification({
+        "${app}/transform.request.prefixed.member/client",
+        "${net}/gemini.transform.request.dropped/server"})
+    public void shouldDropLogprobsOfOpenaiChatCompletionsAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({
+        "source \"openai/ccs\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "model \"model\"",
+        "member \"openai/ccs:audio\"",
+        "value \"{\\\"voice\\\":\\\"alloy\\\"}\""})
+    @Specification({
+        "${app}/transform.request.prefixed.member/client",
+        "${net}/gemini.transform.request.dropped/server"})
+    public void shouldDropAudioOfOpenaiChatCompletionsAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({
+        "source \"openai/ccs\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "model \"model\"",
+        "member \"openai/ccs:modalities\"",
+        "value \"[\\\"text\\\"]\""})
+    @Specification({
+        "${app}/transform.request.prefixed.member/client",
+        "${net}/gemini.transform.request.dropped/server"})
+    public void shouldDropModalitiesOfOpenaiChatCompletionsAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({
+        "source \"openai/rs\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "model \"model\"",
+        "member \"openai/rs:background\"",
+        "value \"true\""})
+    @Specification({
+        "${app}/transform.request.prefixed.member/client",
+        "${net}/gemini.transform.request.dropped/server"})
+    public void shouldDropBackgroundOfOpenaiResponsesAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({
+        "source \"openai/rs\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "model \"model\"",
+        "member \"openai/rs:conversation\"",
+        "value \"\\\"conv_1\\\"\""})
+    @Specification({
+        "${app}/transform.request.prefixed.member/client",
+        "${net}/gemini.transform.request.dropped/server"})
+    public void shouldDropConversationOfOpenaiResponsesAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({
+        "source \"openai/ccs\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "model \"model\"",
+        "member \"reasoning_effort\"",
+        "value \"\\\"turbo\\\"\""})
+    @Specification({
+        "${app}/transform.request.member/client",
+        "${net}/gemini.transform.request.dropped/server"})
+    public void shouldDropReasoningEffortThatDoesNotConvertAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({
+        "source \"openai/ccs\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "model \"model\"",
+        "member \"thinking_budget_tokens\"",
+        "value \"-1\""})
+    @Specification({
+        "${app}/transform.request.member/client",
+        "${net}/gemini.transform.request.dropped/server"})
+    public void shouldDropThinkingBudgetThatDoesNotConvertAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({
+        "source \"openai/rs\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "model \"model\"",
+        "member \"x:previous_turn_id\"",
+        "value \"\\\"resp_1\\\"\""})
+    @Specification({
+        "${app}/transform.rejected.prefixed.member/client",
+        "${net}/gemini.transform.rejected.member/server"})
+    public void shouldRejectPreviousTurnIdAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @ScriptProperty({
+        "source \"openai/rs\"",
+        "target \"gemini\"",
+        "errorType \"INVALID_ARGUMENT\"",
+        "model \"model\"",
+        "member \"x:previous_turn_id\"",
+        "value \"null\""})
+    @Specification({
+        "${app}/transform.request.prefixed.member/client",
+        "${net}/gemini.transform.request.dropped/server"})
+    public void shouldDropNullPreviousTurnIdAsGemini() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.request.reasoning.level.native/client",
+        "${net}/gemini.request.reasoning.level.native/server"})
+    public void shouldEncodeGeminiRequestReasoningLevelNative() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.gemini.yaml")
+    @Specification({
+        "${app}/gemini.request.reasoning.budget.native/client",
+        "${net}/gemini.request.reasoning.budget.native/server"})
+    public void shouldEncodeGeminiRequestReasoningBudgetNative() throws Exception
     {
         k3po.finish();
     }

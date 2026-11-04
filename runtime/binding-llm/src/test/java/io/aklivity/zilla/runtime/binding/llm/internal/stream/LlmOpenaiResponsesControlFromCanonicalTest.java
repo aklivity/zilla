@@ -388,17 +388,15 @@ public class LlmOpenaiResponsesControlFromCanonicalTest
     }
 
     @Test
-    public void shouldRejectUnknownReasoningEffort()
+    public void shouldDropUnknownReasoningEffort()
     {
-        assertRejects(foreignMembers, json("{'x:reasoning_effort':'turbo'}"));
-
-        assertThat(foreignMembers.rejectedMember(), equalTo("reasoning_effort"));
+        assertTransforms(foreignMembers, json("{'x:reasoning_effort':'turbo'}"), json("{}"));
     }
 
     @Test
-    public void shouldRejectReasoningEffortThatIsNotAString()
+    public void shouldDropReasoningEffortThatIsNotAString()
     {
-        assertRejects(foreignMembers, json("{'x:reasoning_effort':3}"));
+        assertTransforms(foreignMembers, json("{'x:reasoning_effort':3}"), json("{}"));
     }
 
     @Test
@@ -426,23 +424,21 @@ public class LlmOpenaiResponsesControlFromCanonicalTest
     }
 
     @Test
-    public void shouldRejectNegativeThinkingBudget()
+    public void shouldDropNegativeThinkingBudget()
     {
-        assertRejects(foreignMembers, json("{'x:thinking_budget_tokens':-1}"));
-
-        assertThat(foreignMembers.rejectedMember(), equalTo("thinking_budget_tokens"));
+        assertTransforms(foreignMembers, json("{'x:thinking_budget_tokens':-1}"), json("{}"));
     }
 
     @Test
-    public void shouldRejectFractionalThinkingBudget()
+    public void shouldDropFractionalThinkingBudget()
     {
-        assertRejects(foreignMembers, json("{'x:thinking_budget_tokens':1.5}"));
+        assertTransforms(foreignMembers, json("{'x:thinking_budget_tokens':1.5}"), json("{}"));
     }
 
     @Test
-    public void shouldRejectThinkingBudgetThatIsNotANumber()
+    public void shouldDropThinkingBudgetThatIsNotANumber()
     {
-        assertRejects(foreignMembers, json("{'x:thinking_budget_tokens':'high'}"));
+        assertTransforms(foreignMembers, json("{'x:thinking_budget_tokens':'high'}"), json("{}"));
     }
 
     @Test
@@ -593,19 +589,17 @@ public class LlmOpenaiResponsesControlFromCanonicalTest
     }
 
     @Test
-    public void shouldRejectBehaviouralMemberOfChatCompletions()
+    public void shouldDropBehaviouralMemberOfChatCompletions()
     {
-        assertRejects(foreignMembers, json("{'openai/ccs:n':2}"));
-
-        assertThat(foreignMembers.rejectedMember(), equalTo("openai/ccs:n"));
+        assertTransforms(foreignMembers, json("{'openai/ccs:n':2}"), json("{}"));
     }
 
     @Test
-    public void shouldRejectEachBehaviouralMemberOfChatCompletions()
+    public void shouldDropEachBehaviouralMemberOfChatCompletions()
     {
-        assertRejects(foreignMembers, json("{'openai/ccs:logprobs':true}"));
-        assertRejects(foreignMembers, json("{'openai/ccs:audio':{'voice':'alloy','format':'wav'}}"));
-        assertRejects(foreignMembers, json("{'openai/ccs:modalities':['text','audio']}"));
+        assertTransforms(foreignMembers, json("{'openai/ccs:logprobs':true}"), json("{}"));
+        assertTransforms(foreignMembers, json("{'openai/ccs:audio':{'voice':'alloy','format':'wav'}}"), json("{}"));
+        assertTransforms(foreignMembers, json("{'openai/ccs:modalities':['text','audio']}"), json("{}"));
     }
 
     @Test

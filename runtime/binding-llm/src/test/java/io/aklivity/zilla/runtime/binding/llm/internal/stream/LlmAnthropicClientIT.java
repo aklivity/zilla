@@ -2862,28 +2862,6 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
-    @Specification({
-        "${app}/transform.rejected.reasoning.effort/client",
-        "${net}/anthropic.transform.rejected.reasoning/server"})
-    public void shouldRejectReasoningEffortAsAnthropic() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
-    @Specification({
-        "${app}/transform.rejected.reasoning.budget/client",
-        "${net}/anthropic.transform.rejected.reasoning/server"})
-    public void shouldRejectReasoningBudgetAsAnthropic() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
     @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\"", "model \"claude-opus-4-7\""})
     @Specification({
         "${app}/transform.request.sampling.members/client",
@@ -3464,22 +3442,6 @@ public class LlmAnthropicClientIT
 
     @Test
     @Configuration("client.anthropic.yaml")
-    @ScriptProperty({
-        "source \"openai/rs\"",
-        "target \"anthropic\"",
-        "model \"model\"",
-        "member \"openai/rs:background\"",
-        "value \"true\""})
-    @Specification({
-        "${app}/transform.rejected.prefixed.member/client",
-        "${net}/anthropic.transform.rejected.member/server"})
-    public void shouldRejectBehaviouralMemberOfOpenaiResponsesAsAnthropic() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
     @ScriptProperty({"source \"openai/ccs\"", "target \"anthropic\""})
     @Specification({
         "${app}/transform.request.shared.members/client",
@@ -3527,6 +3489,186 @@ public class LlmAnthropicClientIT
         "${app}/anthropic.abort/client",
         "${net}/anthropic.abort/server"})
     public void shouldAnthropicAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({
+        "source \"openai/ccs\"",
+        "target \"anthropic\"",
+        "model \"model\"",
+        "member \"openai/ccs:n\"",
+        "value \"2\""})
+    @Specification({
+        "${app}/transform.request.prefixed.member/client",
+        "${net}/anthropic.transform.request.dropped/server"})
+    public void shouldDropNOfOpenaiChatCompletionsAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({
+        "source \"openai/ccs\"",
+        "target \"anthropic\"",
+        "model \"model\"",
+        "member \"openai/ccs:logprobs\"",
+        "value \"true\""})
+    @Specification({
+        "${app}/transform.request.prefixed.member/client",
+        "${net}/anthropic.transform.request.dropped/server"})
+    public void shouldDropLogprobsOfOpenaiChatCompletionsAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({
+        "source \"openai/ccs\"",
+        "target \"anthropic\"",
+        "model \"model\"",
+        "member \"openai/ccs:audio\"",
+        "value \"{\\\"voice\\\":\\\"alloy\\\"}\""})
+    @Specification({
+        "${app}/transform.request.prefixed.member/client",
+        "${net}/anthropic.transform.request.dropped/server"})
+    public void shouldDropAudioOfOpenaiChatCompletionsAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({
+        "source \"openai/ccs\"",
+        "target \"anthropic\"",
+        "model \"model\"",
+        "member \"openai/ccs:modalities\"",
+        "value \"[\\\"text\\\"]\""})
+    @Specification({
+        "${app}/transform.request.prefixed.member/client",
+        "${net}/anthropic.transform.request.dropped/server"})
+    public void shouldDropModalitiesOfOpenaiChatCompletionsAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({
+        "source \"openai/rs\"",
+        "target \"anthropic\"",
+        "model \"model\"",
+        "member \"openai/rs:background\"",
+        "value \"true\""})
+    @Specification({
+        "${app}/transform.request.prefixed.member/client",
+        "${net}/anthropic.transform.request.dropped/server"})
+    public void shouldDropBackgroundOfOpenaiResponsesAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({
+        "source \"openai/rs\"",
+        "target \"anthropic\"",
+        "model \"model\"",
+        "member \"openai/rs:conversation\"",
+        "value \"\\\"conv_1\\\"\""})
+    @Specification({
+        "${app}/transform.request.prefixed.member/client",
+        "${net}/anthropic.transform.request.dropped/server"})
+    public void shouldDropConversationOfOpenaiResponsesAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({
+        "source \"openai/ccs\"",
+        "target \"anthropic\"",
+        "model \"model\"",
+        "member \"reasoning_effort\"",
+        "value \"\\\"turbo\\\"\""})
+    @Specification({
+        "${app}/transform.request.member/client",
+        "${net}/anthropic.transform.request.dropped/server"})
+    public void shouldDropReasoningEffortThatDoesNotConvertAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({
+        "source \"openai/ccs\"",
+        "target \"anthropic\"",
+        "model \"model\"",
+        "member \"thinking_budget_tokens\"",
+        "value \"-1\""})
+    @Specification({
+        "${app}/transform.request.member/client",
+        "${net}/anthropic.transform.request.dropped/server"})
+    public void shouldDropThinkingBudgetThatDoesNotConvertAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({
+        "source \"openai/rs\"",
+        "target \"anthropic\"",
+        "model \"model\"",
+        "member \"x:previous_turn_id\"",
+        "value \"\\\"resp_1\\\"\""})
+    @Specification({
+        "${app}/transform.rejected.prefixed.member/client",
+        "${net}/anthropic.transform.rejected.member/server"})
+    public void shouldRejectPreviousTurnIdAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @ScriptProperty({
+        "source \"openai/rs\"",
+        "target \"anthropic\"",
+        "model \"model\"",
+        "member \"x:previous_turn_id\"",
+        "value \"null\""})
+    @Specification({
+        "${app}/transform.request.prefixed.member/client",
+        "${net}/anthropic.transform.request.dropped/server"})
+    public void shouldDropNullPreviousTurnIdAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.reasoning.effort.native/client",
+        "${net}/anthropic.request.reasoning.effort.native/server"})
+    public void shouldEncodeAnthropicRequestReasoningEffortNative() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.reasoning.budget.native/client",
+        "${net}/anthropic.request.reasoning.budget.native/server"})
+    public void shouldEncodeAnthropicRequestReasoningBudgetNative() throws Exception
     {
         k3po.finish();
     }
