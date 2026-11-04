@@ -33,7 +33,7 @@ read zilla:data.ext ${llm:matchDataEx()
                          .message(-1)
                          .attribute("tool-name", "mcp")
                          .build()}
-read "{\"type\":\"mcp\",\"server_label\":\"deepwiki\",\"server_url\":\"https://mcp.deepwiki.com/mcp\",\"require_approval\":\"never\"}"
+read "{\"type\":\"mcp\",\"label\":\"deepwiki\",\"url\":\"https://mcp.deepwiki.com/mcp\",\"openai/rs:require_approval\":\"never\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))

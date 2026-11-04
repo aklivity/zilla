@@ -713,6 +713,56 @@ public class LlmOpenaiResponsesServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.responses.section.mcp.tool.definition.tools.filter/client",
+        "${app}/openai.responses.section.mcp.tool.definition.tools.filter/server"})
+    public void shouldOpenaiResponsesSectionMcpToolDefinitionToolsFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.section.mcp.tool.definition.tools.empty/client",
+        "${app}/openai.responses.section.mcp.tool.definition.tools.empty/server"})
+    public void shouldOpenaiResponsesSectionMcpToolDefinitionToolsEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.section.mcp.tool.definition.connector/client",
+        "${app}/openai.responses.section.mcp.tool.definition.connector/server"})
+    public void shouldOpenaiResponsesSectionMcpToolDefinitionConnector() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.section.mcp.tool.definition.type.last/client",
+        "${app}/openai.responses.section.mcp.tool.definition.type.last/server"})
+    public void shouldOpenaiResponsesSectionMcpToolDefinitionTypeLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.responses.section.mcp.tool.definition/client",
+        "${app}/openai.responses.section.mcp.tool.definition/server"})
+    public void shouldOpenaiResponsesSectionMcpToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.responses.section.tool.call/client",
         "${app}/openai.responses.section.tool.call/server"})
     public void shouldDecodeOpenaiResponsesSectionToolCall() throws Exception

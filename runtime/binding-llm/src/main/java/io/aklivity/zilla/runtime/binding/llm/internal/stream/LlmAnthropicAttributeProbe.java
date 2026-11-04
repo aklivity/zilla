@@ -220,10 +220,6 @@ final class LlmAnthropicAttributeProbe extends LlmAttributeProbe
             attributes.toolName(text(value, deferred));
             resolve();
         }
-        else if (depth == 1 && key(1) == KEY_TYPE && attributes.toolName() == null && !matches(value, "custom"))
-        {
-            retype(LlmSectionType.SERVER_TOOL_DEFINITION);
-        }
     }
 
     private String text(
@@ -251,7 +247,7 @@ final class LlmAnthropicAttributeProbe extends LlmAttributeProbe
         {
         case USER_IMAGE, USER_DOCUMENT -> SECTION_MEDIA;
         case TOOL_CALL, SERVER_TOOL_CALL -> SECTION_TOOL_CALL;
-        case TOOL_DEFINITION -> SECTION_TOOL_DEFINITION;
+        case TOOL_DEFINITION, SERVER_TOOL_DEFINITION -> SECTION_TOOL_DEFINITION;
         case SERVER_TOOL_RESULT -> SECTION_SERVER_TOOL_RESULT;
         default -> SECTION_NONE;
         };

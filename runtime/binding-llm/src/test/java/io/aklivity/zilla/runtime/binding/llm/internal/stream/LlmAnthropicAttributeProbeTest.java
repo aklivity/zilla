@@ -221,21 +221,21 @@ public class LlmAnthropicAttributeProbeTest
     {
         final String json = "{\"type\":\"web_search_20250305\",\"name\":\"web_search\",\"max_uses\":5}";
 
-        assertThat(LlmAttributeProbeRunner.runObject(probe, LlmSectionType.TOOL_DEFINITION, json, WHOLE, false),
+        assertThat(LlmAttributeProbeRunner.runObject(probe, LlmSectionType.SERVER_TOOL_DEFINITION, json, WHOLE, false),
             equalTo(RESOLVED));
         assertThat(probe.attributes().toolName(), equalTo("web_search"));
         assertThat(probe.type(), equalTo(LlmSectionType.SERVER_TOOL_DEFINITION));
     }
 
     @Test
-    public void shouldProbeToolDefinitionTypeAfterName()
+    public void shouldProbeServerToolDefinitionTypeAfterName()
     {
         final String json = "{\"name\":\"web_search\",\"type\":\"web_search_20250305\"}";
 
-        assertThat(LlmAttributeProbeRunner.runObject(probe, LlmSectionType.TOOL_DEFINITION, json, WHOLE, true),
+        assertThat(LlmAttributeProbeRunner.runObject(probe, LlmSectionType.SERVER_TOOL_DEFINITION, json, WHOLE, true),
             equalTo(COMPLETE));
         assertThat(probe.attributes().toolName(), equalTo("web_search"));
-        assertThat(probe.type(), equalTo(LlmSectionType.TOOL_DEFINITION));
+        assertThat(probe.type(), equalTo(LlmSectionType.SERVER_TOOL_DEFINITION));
     }
 
     @Test

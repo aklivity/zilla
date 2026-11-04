@@ -939,6 +939,33 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/anthropic.section.server.tool.definition.type.middle/client",
+        "${net}/anthropic.section.server.tool.definition.type.middle/server"})
+    public void shouldAnthropicSectionServerToolDefinitionTypeMiddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.rejected.server.tool.definition.type.beyond.window/client",
+        "${net}/anthropic.section.rejected.server.tool.definition.type.beyond.window/server"})
+    public void shouldAnthropicSectionRejectedServerToolDefinitionTypeBeyondWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.server.tool.definition.type.last/client",
+        "${net}/anthropic.section.server.tool.definition.type.last/server"})
+    public void shouldAnthropicSectionServerToolDefinitionTypeLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/anthropic.section.other.blocks/client",
         "${net}/anthropic.section.other.blocks/server"})
     public void shouldAnthropicSectionOtherBlocks() throws Exception
@@ -4701,6 +4728,42 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/gemini.section.mcp.tool.definition/client",
+        "${net}/gemini.section.mcp.tool.definition/server"})
+    public void shouldGeminiSectionMcpToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.mcp.tool.definition.members/client",
+        "${net}/gemini.section.mcp.tool.definition.members/server"})
+    public void shouldGeminiSectionMcpToolDefinitionMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.mcp.tool.definition.multiple/client",
+        "${net}/gemini.section.mcp.tool.definition.multiple/server"})
+    public void shouldGeminiSectionMcpToolDefinitionMultiple() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.mcp.tool.definition.elements/client",
+        "${net}/gemini.section.mcp.tool.definition.elements/server"})
+    public void shouldGeminiSectionMcpToolDefinitionElements() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/gemini.section.server.tool.definition.leading/client",
         "${net}/gemini.section.server.tool.definition.leading/server"})
     public void shouldEncodeGeminiSectionServerToolDefinitionLeading() throws Exception
@@ -4785,6 +4848,24 @@ public class NetworkIT
         "${net}/gemini.transform.server.tool.definition/client",
         "${net}/gemini.transform.server.tool.definition/server"})
     public void shouldGeminiTransformServerToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.mcp.tool.definition.authorization.header/client",
+        "${net}/gemini.transform.mcp.tool.definition.authorization.header/server"})
+    public void shouldGeminiTransformMcpToolDefinitionAuthorizationHeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.transform.mcp.tool.definition.untooled/client",
+        "${net}/gemini.transform.mcp.tool.definition.untooled/server"})
+    public void shouldGeminiTransformMcpToolDefinitionUntooled() throws Exception
     {
         k3po.finish();
     }
@@ -5601,6 +5682,51 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.responses.section.mcp.tool.definition.tools.filter/client",
+        "${net}/openai.responses.section.mcp.tool.definition.tools.filter/server"})
+    public void shouldOpenaiResponsesSectionMcpToolDefinitionToolsFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.mcp.tool.definition.tools.empty/client",
+        "${net}/openai.responses.section.mcp.tool.definition.tools.empty/server"})
+    public void shouldOpenaiResponsesSectionMcpToolDefinitionToolsEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.mcp.tool.definition.connector/client",
+        "${net}/openai.responses.section.mcp.tool.definition.connector/server"})
+    public void shouldOpenaiResponsesSectionMcpToolDefinitionConnector() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.mcp.tool.definition.type.last/client",
+        "${net}/openai.responses.section.mcp.tool.definition.type.last/server"})
+    public void shouldOpenaiResponsesSectionMcpToolDefinitionTypeLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.section.mcp.tool.definition/client",
+        "${net}/openai.responses.section.mcp.tool.definition/server"})
+    public void shouldOpenaiResponsesSectionMcpToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.responses.section.tool.call/client",
         "${net}/openai.responses.section.tool.call/server"})
     public void shouldOpenaiResponsesSectionToolCall() throws Exception
@@ -5694,6 +5820,60 @@ public class NetworkIT
         "${net}/openai.responses.transform.server.tool.definition/client",
         "${net}/openai.responses.transform.server.tool.definition/server"})
     public void shouldOpenaiResponsesTransformServerToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.mcp.tool.definition.dropped/client",
+        "${net}/openai.responses.transform.mcp.tool.definition.dropped/server"})
+    public void shouldOpenaiResponsesTransformMcpToolDefinitionDropped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.mcp.tool.definition.approval.never/client",
+        "${net}/openai.responses.transform.mcp.tool.definition.approval.never/server"})
+    public void shouldOpenaiResponsesTransformMcpToolDefinitionApprovalNever() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.mcp.tool.definition.approval/client",
+        "${net}/openai.responses.transform.mcp.tool.definition.approval/server"})
+    public void shouldOpenaiResponsesTransformMcpToolDefinitionApproval() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.mcp.tool.definition.connector/client",
+        "${net}/openai.responses.transform.mcp.tool.definition.connector/server"})
+    public void shouldOpenaiResponsesTransformMcpToolDefinitionConnector() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.mcp.tool.definition.untooled/client",
+        "${net}/openai.responses.transform.mcp.tool.definition.untooled/server"})
+    public void shouldOpenaiResponsesTransformMcpToolDefinitionUntooled() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.responses.transform.mcp.tool.definition/client",
+        "${net}/openai.responses.transform.mcp.tool.definition/server"})
+    public void shouldOpenaiResponsesTransformMcpToolDefinition() throws Exception
     {
         k3po.finish();
     }

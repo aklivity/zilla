@@ -181,6 +181,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
     private static final byte[] TEXT_SUFFIX = "\"}".getBytes(UTF_8);
     private static final int FRAMING_CAPABILITIES_MASK = 1 << Capability.FRAMING.ordinal();
     private static final int EVENT_ATTRIBUTES_CAPACITY = 256;
+    private static final String TOOL_NAME_MCP = "mcp";
     private static final int QUEUE_ENTRY_OVERHEAD = 5 * Integer.BYTES + 3 * Long.BYTES + Byte.BYTES;
     private static final int QUEUE_ENTRY_PADDING = QUEUE_ENTRY_OVERHEAD + EVENT_ATTRIBUTES_CAPACITY;
 
@@ -201,6 +202,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
     private static final int KIND_ASSISTANT_REFUSAL = 15;
     private static final int KIND_ASSISTANT_REASONING = 16;
     private static final int KIND_CITATIONS = 17;
+    private static final int KIND_MCP_SERVER_DEFINITION = 18;
     private static final int CONTROL_CLOSING = 1;
     private static final int CONTROL_HEADER = 2 * Integer.BYTES;
 
@@ -484,6 +486,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
     {
         return kind == KIND_CONTROL ||
             kind == KIND_TOOL_DEFINITION ||
+            kind == KIND_MCP_SERVER_DEFINITION ||
             kind == KIND_TOOL_CALL ||
             kind == KIND_SERVER_TOOL_CALL ||
             kind == KIND_SERVER_TOOL_RESULT ||
@@ -502,7 +505,8 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
 
     private static int sectionKind(
         LlmSectionType type,
-        boolean sameDialect)
+        boolean sameDialect,
+        String toolName)
     {
         return switch (type)
         {
@@ -513,7 +517,9 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         case TOOL_DEFINITION -> KIND_TOOL_DEFINITION;
         case TOOL_CALL -> KIND_TOOL_CALL;
         case TOOL_RESULT -> KIND_TOOL_RESULT;
-        case SERVER_TOOL_DEFINITION -> sameDialect ? KIND_SERVER_TOOL_DEFINITION : KIND_DROPPED;
+        case SERVER_TOOL_DEFINITION -> TOOL_NAME_MCP.equals(toolName)
+            ? KIND_MCP_SERVER_DEFINITION
+            : sameDialect ? KIND_SERVER_TOOL_DEFINITION : KIND_DROPPED;
         case SERVER_TOOL_CALL -> sameDialect ? KIND_SERVER_TOOL_CALL : KIND_DROPPED;
         case SERVER_TOOL_RESULT -> sameDialect ? KIND_SERVER_TOOL_RESULT : KIND_DROPPED;
         case USER_IMAGE -> KIND_USER_IMAGE;
@@ -981,7 +987,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                             : null;
 
                         http.doEncodeSectionBegin(
-                            sectionKind(type, http.sameDialect),
+                            sectionKind(type, http.sameDialect, sectionAttributes.toolName()),
                             section != null ? section.message() : NO_MESSAGE,
                             sectionAttributes.toolCallId(),
                             sectionExtension);
@@ -6292,6 +6298,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
         private String pendingItemType;
         private String pendingItemId;
         private LlmSectionPipeline toolDefinitionPipeline;
+        private LlmSectionPipeline mcpPipeline;
         private LlmSectionPipeline toolCallPipeline;
         private LlmSectionPipeline serverToolPipeline;
         private LlmSectionPipeline imagePipeline;
@@ -6438,6 +6445,7 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             {
             case KIND_CONTROL -> controlPipeline();
             case KIND_TOOL_DEFINITION -> toolDefinitionPipeline();
+            case KIND_MCP_SERVER_DEFINITION -> mcpPipeline();
             case KIND_TOOL_CALL -> toolCallPipeline();
             case KIND_SERVER_TOOL_CALL, KIND_SERVER_TOOL_RESULT -> serverToolPipeline();
             case KIND_USER_IMAGE -> imagePipeline();
@@ -6510,6 +6518,16 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             }
 
             return toolDefinitionPipeline;
+        }
+
+        private LlmSectionPipeline mcpPipeline()
+        {
+            if (mcpPipeline == null)
+            {
+                mcpPipeline = new LlmSectionPipeline(new LlmOpenaiResponsesMcpFromCanonical(NAME), transformBuffer);
+            }
+
+            return mcpPipeline;
         }
 
         private LlmSectionPipeline toolCallPipeline()
@@ -6682,7 +6700,8 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
             final boolean instructions = kind == KIND_SYSTEM_INSTRUCTION && instructionsMessage == NO_MESSAGE;
             final boolean regional = kind == KIND_CONTROL ||
                 kind == KIND_TOOL_DEFINITION ||
-                kind == KIND_SERVER_TOOL_DEFINITION;
+                kind == KIND_SERVER_TOOL_DEFINITION ||
+                kind == KIND_MCP_SERVER_DEFINITION;
 
             if (kind != KIND_DROPPED && !continuation && !summarizing)
             {
@@ -6713,7 +6732,9 @@ public final class LlmOpenaiResponsesClientFactory implements LlmDialectHandler
                 {
                     controlMessage = message;
                 }
-                else if (kind == KIND_TOOL_DEFINITION || kind == KIND_SERVER_TOOL_DEFINITION)
+                else if (kind == KIND_TOOL_DEFINITION ||
+                    kind == KIND_SERVER_TOOL_DEFINITION ||
+                    kind == KIND_MCP_SERVER_DEFINITION)
                 {
                     beginToolDefinition();
                 }

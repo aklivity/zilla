@@ -717,6 +717,46 @@ public class LlmOpenaiResponsesClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
+        "${app}/openai.responses.section.mcp.tool.definition.tools.filter/client",
+        "${net}/openai.responses.section.mcp.tool.definition.tools.filter/server"})
+    public void shouldOpenaiResponsesSectionMcpToolDefinitionToolsFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.section.mcp.tool.definition.tools.empty/client",
+        "${net}/openai.responses.section.mcp.tool.definition.tools.empty/server"})
+    public void shouldOpenaiResponsesSectionMcpToolDefinitionToolsEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.section.mcp.tool.definition.connector/client",
+        "${net}/openai.responses.section.mcp.tool.definition.connector/server"})
+    public void shouldOpenaiResponsesSectionMcpToolDefinitionConnector() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.section.mcp.tool.definition/client",
+        "${net}/openai.responses.section.mcp.tool.definition/server"})
+    public void shouldOpenaiResponsesSectionMcpToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
         "${app}/openai.responses.section.tool.call/client",
         "${net}/openai.responses.section.tool.call/server"})
     public void shouldEncodeOpenaiResponsesSectionToolCall() throws Exception
@@ -856,6 +896,83 @@ public class LlmOpenaiResponsesClientIT
         "${app}/transform.server.tool.definition/client",
         "${net}/openai.responses.transform.server.tool.definition/server"})
     public void shouldTransformServerToolDefinitionFromOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @ScriptProperty({"source \"gemini\"", "target \"openai/rs\""})
+    @Specification({
+        "${app}/transform.mcp.tool.definition.authorization.header/client",
+        "${net}/openai.responses.transform.mcp.tool.definition.dropped/server"})
+    public void shouldDropMcpToolDefinitionAuthorizationHeaderAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @ScriptProperty({"source \"openai/rs\"", "target \"openai/rs\""})
+    @Specification({
+        "${app}/transform.mcp.tool.definition.approval.never/client",
+        "${net}/openai.responses.transform.mcp.tool.definition.approval.never/server"})
+    public void shouldTransformMcpToolDefinitionApprovalNeverAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @ScriptProperty({"source \"openai/rs\"", "target \"openai/rs\""})
+    @Specification({
+        "${app}/transform.mcp.tool.definition.approval/client",
+        "${net}/openai.responses.transform.mcp.tool.definition.approval/server"})
+    public void shouldTransformMcpToolDefinitionApprovalAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai/rs\""})
+    @Specification({
+        "${app}/transform.mcp.tool.definition.disabled/client",
+        "${net}/openai.responses.transform.mcp.tool.definition.dropped/server"})
+    public void shouldDropMcpToolDefinitionDisabledToolsAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @ScriptProperty({"source \"openai/rs\"", "target \"openai/rs\""})
+    @Specification({
+        "${app}/transform.mcp.tool.definition.connector/client",
+        "${net}/openai.responses.transform.mcp.tool.definition.connector/server"})
+    public void shouldTransformMcpToolDefinitionConnectorAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai/rs\""})
+    @Specification({
+        "${app}/transform.mcp.tool.definition.untooled/client",
+        "${net}/openai.responses.transform.mcp.tool.definition.untooled/server"})
+    public void shouldTransformMcpToolDefinitionUntooledAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.responses.yaml")
+    @ScriptProperty({"source \"anthropic\"", "target \"openai/rs\""})
+    @Specification({
+        "${app}/transform.mcp.tool.definition/client",
+        "${net}/openai.responses.transform.mcp.tool.definition/server"})
+    public void shouldTransformMcpToolDefinitionAsOpenaiResponses() throws Exception
     {
         k3po.finish();
     }

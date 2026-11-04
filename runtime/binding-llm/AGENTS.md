@@ -744,7 +744,12 @@ cache of #2798 is the planned resolution.
 ### MCP server definition
 
 A remote tool server is a `SERVER_TOOL_DEFINITION` section whose payload has `"type":"mcp"`. Any other payload of the
-section is a provider-hosted tool in native form, which a client of another dialect drops.
+section is a provider-hosted tool in native form, which a client of another dialect drops. (**implemented** for
+`openai/rs` and `gemini`; **planned** for `anthropic`, and for dropping the section whole)
+
+The `tool-name` attribute of the section is `mcp` in every dialect, so a client chooses the translation before the
+payload arrives. A decoder writes `type` first and the other members in wire order, except `gemini`, which writes
+`authorization` last. A client of any dialect writes the members it knows whatever their order.
 
 | Member | Meaning | `openai/rs` | `anthropic` | `gemini` (`generateContent`) |
 |---|---|---|---|---|
@@ -753,8 +758,8 @@ section is a provider-hosted tool in native form, which a client of another dial
 | `authorization` | bearer token, never presented to a guardrail stage | `authorization` | `mcp_servers[].authorization_token` | `streamableHttpTransport.headers.Authorization`, `Bearer %s` |
 | `tools` | allowlist of tool names; absent allows every tool, empty allows none | `allowed_tools` | names in `mcp_toolset.configs` enabled, with `default_config.enabled` false | none |
 
-An `anthropic` decoder merges a server and its toolset into one section, and the client writes both. Members with no
-canonical form stay native and prefixed:
+An `anthropic` decoder merges a server and its toolset into one section, and the client writes both (**planned**).
+Members with no canonical form stay native and prefixed:
 
 - `openai/rs:require_approval`, `openai/rs:server_description`, `openai/rs:defer_loading`
 - `openai/rs:connector_id` and `openai/rs:tunnel_id`, which replace `url` and name state held by the provider or the
@@ -764,7 +769,17 @@ canonical form stay native and prefixed:
   omitted when the default applies, `gemini:headers` for every other header, and `gemini:timeout`,
   `gemini:sseReadTimeout` and `gemini:terminateOnClose`
 
-A client drops the whole section when it cannot honour a native member that gates or reaches the server:
+- `openai/rs:allowed_tools`, the object form `{"tool_names":[...],"read_only":...}`, while the array form is `tools`
+
+`openai/rs` also keeps `headers` as `openai/rs:headers`.
+
+On `gemini`, a decoder maps the `Authorization` header with a `Bearer ` value to `authorization` and keeps every other
+header, including an `Authorization` header of another scheme, in `gemini:headers`. A client writes
+`gemini:authorization_header` and `gemini:authorization_format` when they are present; a decoder never produces them.
+Consecutive servers are written into one `mcpServers` element, as consecutive function declarations share one
+`functionDeclarations` element, and a decoder accepts one element per server or one element for several.
+
+(**planned**) A client drops the whole section when it cannot honour a native member that gates or reaches the server:
 `require_approval` other than `never`, a locator that replaces `url`, `disabled_tools`, an authorization header or format
 other than the default, and `tools` for `gemini` `generateContent`, which has no allowlist. `gemini` supports only
 Streamable HTTP, so a legacy SSE endpoint fails at the provider. The Interactions `mcp_server` takes `allowed_tools`
@@ -781,7 +796,9 @@ Streamable HTTP, so a legacy SSE endpoint fails at the provider. The Interaction
 | `openai/ccs` response `message.annotations` (**implemented**) | content | `ASSISTANT_CITATIONS` |
 | `anthropic` response text block `citations` and `citations_delta` (**implemented**) | content | `ASSISTANT_CITATIONS` |
 | `gemini` candidate `groundingMetadata` and `citationMetadata` (**implemented**) | content | `ASSISTANT_CITATIONS` |
-| `anthropic` `mcp_servers` and `mcp_toolset` | capability | `SERVER_TOOL_DEFINITION` ([MCP server definition](#mcp-server-definition)) |
+| `openai/rs` `mcp` tool (**implemented**) | capability | `SERVER_TOOL_DEFINITION` ([MCP server definition](#mcp-server-definition)) |
+| `gemini` `mcpServers` (**implemented**) | capability | `SERVER_TOOL_DEFINITION` ([MCP server definition](#mcp-server-definition)) |
+| `anthropic` `mcp_servers` and `mcp_toolset` (**planned**) | capability | `SERVER_TOOL_DEFINITION` ([MCP server definition](#mcp-server-definition)) |
 | `anthropic` `container` | capability, an opaque handle | `anthropic:container` control member |
 | `anthropic` `diagnostics` | setting | `anthropic:diagnostics` control member |
 | `anthropic` `search_result` | content | `USER_TEXT` or `TOOL_RESULT` with `anthropic:` markers |
@@ -792,6 +809,16 @@ Streamable HTTP, so a legacy SSE endpoint fails at the provider. The Interaction
 | `gemini` generated `inlineData`, `fileData` | content | `ASSISTANT_IMAGE`, `ASSISTANT_AUDIO`, `ASSISTANT_VIDEO`, `ASSISTANT_DOCUMENT` by mime type |
 | `previous_response_id`, `previous_interaction_id` | opaque handle | `x:previous_turn_id` |
 | `conversation`, `item_reference`, `cachedContent`, `continuationToken`, `prompt` id | opaque handle | prefixed control member |
+
+### Tool definition member order
+
+(**implemented**) The `anthropic` decoder chooses the section of a `tools` element before it probes it: a lookahead over
+the decode window finds the `type` member, and the element is a `SERVER_TOOL_DEFINITION` unless `type` is absent or
+`custom`. The `type` of a definition therefore has the same outcome in any position within the window. A definition that
+reaches the end of the window without a `type` is a `TOOL_DEFINITION`, because custom tools carry no `type` and can be
+larger than the window, and a `type` that arrives after that point rejects the request when the definition closes, so
+a server tool is never passed on as a custom tool. `openai/rs` has the same lookahead but requires `type`: it waits
+for more data until the decode window is full and then rejects the definition.
 
 ### Planned changes to implemented legality
 
