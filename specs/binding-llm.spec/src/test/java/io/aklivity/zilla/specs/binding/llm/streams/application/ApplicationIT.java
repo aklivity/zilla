@@ -5142,9 +5142,9 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/gemini.section.mcp.tool.definition.array/client",
-        "${app}/gemini.section.mcp.tool.definition.array/server"})
-    public void shouldGeminiSectionMcpToolDefinitionArray() throws Exception
+        "${app}/gemini.section.mcp.tool.definition.elements/client",
+        "${app}/gemini.section.mcp.tool.definition.elements/server"})
+    public void shouldGeminiSectionMcpToolDefinitionElements() throws Exception
     {
         k3po.finish();
     }

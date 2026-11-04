@@ -4746,9 +4746,9 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/gemini.section.mcp.tool.definition.array/client",
-        "${net}/gemini.section.mcp.tool.definition.array/server"})
-    public void shouldGeminiSectionMcpToolDefinitionArray() throws Exception
+        "${net}/gemini.section.mcp.tool.definition.elements/client",
+        "${net}/gemini.section.mcp.tool.definition.elements/server"})
+    public void shouldGeminiSectionMcpToolDefinitionElements() throws Exception
     {
         k3po.finish();
     }

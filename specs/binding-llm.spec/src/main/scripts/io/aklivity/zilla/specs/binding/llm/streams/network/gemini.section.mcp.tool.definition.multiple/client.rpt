@@ -28,7 +28,7 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-write "{\"contents\":[{\"role\":\"user\",\"parts\":[{\"text\":\"Hello\"}]}],\"tools\":[{\"mcpServers\":[{\"name\":\"deepwiki\",\"streamableHttpTransport\":{\"url\":\"https://mcp.deepwiki.com/mcp\",\"headers\":{\"Authorization\":\"Bearer token-1\"}}}]},{\"mcpServers\":[{\"name\":\"wiki2\",\"streamableHttpTransport\":{\"url\":\"https://mcp.deepwiki.com/mcp\",\"headers\":{\"Authorization\":\"Bearer token-2\"}}}]}]}"
+write "{\"contents\":[{\"role\":\"user\",\"parts\":[{\"text\":\"Hello\"}]}],\"tools\":[{\"mcpServers\":[{\"name\":\"deepwiki\",\"streamableHttpTransport\":{\"url\":\"https://mcp.deepwiki.com/mcp\",\"headers\":{\"Authorization\":\"Bearer token-1\"}}},{\"name\":\"wiki2\",\"streamableHttpTransport\":{\"url\":\"https://mcp.deepwiki.com/mcp\",\"headers\":{\"Authorization\":\"Bearer token-2\"}}}]}]}"
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()
