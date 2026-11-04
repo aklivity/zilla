@@ -43,20 +43,20 @@ public class EngineStateNetworkIT
 
     @Test
     @Specification({
-        "${net}/reset.reply.opened/client",
-        "${net}/reset.reply.opened/server",
+        "${net}/reset.initial.reply.opened/client",
+        "${net}/reset.initial.reply.opened/server",
     })
-    public void shouldResetReplyOpened() throws Exception
+    public void shouldResetInitialReplyOpened() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/reset.reply.not.opened/client",
-        "${net}/reset.reply.not.opened/server",
+        "${net}/reset.initial.reply.not.opened/client",
+        "${net}/reset.initial.reply.not.opened/server",
     })
-    public void shouldResetReplyNotOpened() throws Exception
+    public void shouldResetInitialReplyNotOpened() throws Exception
     {
         k3po.finish();
     }
