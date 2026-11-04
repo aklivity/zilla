@@ -305,6 +305,16 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
+        "${app}/anthropic.section.mcp.tool.call.history/client",
+        "${net}/anthropic.section.mcp.tool.call.history/server"})
+    public void shouldAnthropicSectionMcpToolCallHistory() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
         "${app}/anthropic.section.system.instruction/client",
         "${net}/anthropic.section.system.instruction/server"})
     public void shouldEncodeAnthropicSectionSystemInstruction() throws Exception
@@ -791,6 +801,76 @@ public class LlmAnthropicClientIT
         "${app}/anthropic.section.assistant.tool.call.streaming/client",
         "${net}/anthropic.section.assistant.tool.call.streaming/server"})
     public void shouldEncodeAnthropicSectionAssistantToolCallStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.assistant.server.tool.call.streaming/client",
+        "${net}/anthropic.section.assistant.server.tool.call.streaming/server"})
+    public void shouldAnthropicSectionAssistantServerToolCallStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.assistant.server.tool.call.streaming.only/client",
+        "${net}/anthropic.section.assistant.server.tool.call.streaming.only/server"})
+    public void shouldAnthropicSectionAssistantServerToolCallStreamingOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.assistant.server.tool.call/client",
+        "${net}/anthropic.section.assistant.server.tool.call/server"})
+    public void shouldAnthropicSectionAssistantServerToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.assistant.server.tool.result/client",
+        "${net}/anthropic.section.assistant.server.tool.result/server"})
+    public void shouldAnthropicSectionAssistantServerToolResult() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.assistant.server.tool.result.streaming/client",
+        "${net}/anthropic.section.assistant.server.tool.result.streaming/server"})
+    public void shouldAnthropicSectionAssistantServerToolResultStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.assistant.mcp.tool.call/client",
+        "${net}/anthropic.section.assistant.mcp.tool.call/server"})
+    public void shouldAnthropicSectionAssistantMcpToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.assistant.mcp.tool.call.streaming/client",
+        "${net}/anthropic.section.assistant.mcp.tool.call.streaming/server"})
+    public void shouldAnthropicSectionAssistantMcpToolCallStreaming() throws Exception
     {
         k3po.finish();
     }

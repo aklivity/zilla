@@ -435,6 +435,17 @@ public class LlmOpenaiResponsesServerIT
 
     @Test
     @Configuration("server.yaml")
+    @ScriptProperty({"source \"openai/rs\"", "target \"anthropic\""})
+    @Specification({
+        "${net}/openai.responses.transform.response.text/client",
+        "${app}/transform.response.server.tool/server"})
+    public void shouldDropServerToolSectionsOfAnthropicAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
     @ScriptProperty({"source \"openai/rs\"", "target \"openai/rs\""})
     @Specification({
         "${net}/openai.responses.transform.response.usage/client",

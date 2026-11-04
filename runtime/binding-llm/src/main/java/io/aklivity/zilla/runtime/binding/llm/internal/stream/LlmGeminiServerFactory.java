@@ -1355,7 +1355,12 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             {
                 parser.rewind();
                 server.probe.begin(LlmSectionType.SERVER_TOOL_CALL);
-                server.probe.attributes().toolName(SERVER_TOOL_NAME);
+
+                if (executableCode(key))
+                {
+                    server.probe.attributes().toolName(SERVER_TOOL_NAME);
+                }
+
                 server.decoder = decodePartProbeStart;
             }
             else if (serverResult(key) && assistant)
@@ -2262,13 +2267,20 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private static boolean serverCall(
         CharSequence key)
     {
+        return executableCode(key) || matches(key, "toolCall") || matches(key, "tool_call");
+    }
+
+    private static boolean executableCode(
+        CharSequence key)
+    {
         return matches(key, "executableCode") || matches(key, "executable_code");
     }
 
     private static boolean serverResult(
         CharSequence key)
     {
-        return matches(key, "codeExecutionResult") || matches(key, "code_execution_result");
+        return matches(key, "codeExecutionResult") || matches(key, "code_execution_result") ||
+            matches(key, "toolResponse") || matches(key, "tool_response");
     }
 
     private static boolean media(
@@ -4189,6 +4201,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         private LlmGeminiControlFromCanonical controlTransform;
         private LlmSectionPipeline toolCallPipeline;
         private LlmSectionPipeline serverToolCallPipeline;
+        private LlmSectionPipeline serverToolUsePipeline;
         private LlmSectionPipeline serverToolResultPipeline;
         private LlmSectionPipeline signaturePipeline;
         private LlmGeminiSignatureFromCanonical signatureTransform;
@@ -5037,14 +5050,32 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
 
         private LlmSectionPipeline serverToolCallPipeline()
         {
-            if (serverToolCallPipeline == null)
+            final LlmSectionPipeline pipeline;
+
+            if (SERVER_TOOL_NAME.equals(replyAttributes.toolName()))
             {
-                serverToolCallPipeline = new LlmSectionPipeline(
-                    new LlmGeminiServerToolCallFromCanonical(NAME.equals(responseDialect)),
-                    new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                if (serverToolCallPipeline == null)
+                {
+                    serverToolCallPipeline = new LlmSectionPipeline(
+                        new LlmGeminiServerToolCallFromCanonical(NAME.equals(responseDialect)),
+                        new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                }
+
+                pipeline = serverToolCallPipeline;
+            }
+            else
+            {
+                if (serverToolUsePipeline == null)
+                {
+                    serverToolUsePipeline = new LlmSectionPipeline(
+                        new LlmGeminiServerToolUseFromCanonical(NAME.equals(responseDialect)),
+                        new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                }
+
+                pipeline = serverToolUsePipeline;
             }
 
-            return serverToolCallPipeline;
+            return pipeline;
         }
 
         private LlmSectionPipeline serverToolResultPipeline()

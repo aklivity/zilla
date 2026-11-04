@@ -18,6 +18,7 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
 final class LlmTextTransform extends LlmToolTransform
 {
+    private final String member;
     private final boolean optional;
     private final LlmCacheBreakpoint breakpoints;
 
@@ -34,7 +35,16 @@ final class LlmTextTransform extends LlmToolTransform
         boolean optional,
         LlmCacheBreakpoint breakpoints)
     {
+        this("text", optional, breakpoints);
+    }
+
+    LlmTextTransform(
+        String member,
+        boolean optional,
+        LlmCacheBreakpoint breakpoints)
+    {
         super(MODE_EXTRACT);
+        this.member = member;
         this.optional = optional;
         this.breakpoints = breakpoints;
     }
@@ -68,7 +78,7 @@ final class LlmTextTransform extends LlmToolTransform
         int depth,
         CharSequence key)
     {
-        final boolean text = matches(key, "text");
+        final boolean text = matches(key, member);
 
         extracted |= text;
 

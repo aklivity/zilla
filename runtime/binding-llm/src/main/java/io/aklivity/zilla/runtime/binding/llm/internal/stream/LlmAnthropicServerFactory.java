@@ -122,6 +122,9 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private static final String MESSAGE_BLOCK_INVALID = "Invalid content block";
     private static final int BLOCK_BUFFER_MAX = 4096;
     private static final String BLOCK_TOOL_USE = "tool_use";
+    private static final String BLOCK_SERVER_TOOL_USE = "server_tool_use";
+    private static final String BLOCK_MCP_TOOL_USE = "mcp_tool_use";
+    private static final String MEMBER_SERVER_NAME = "anthropic:server_name";
 
     private static final int RESPONSE_ENCODE_PADDING = 128;
     private static final int RESPONSE_ESCAPE_EXPANSION = 6;
@@ -2149,7 +2152,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             case "tool_use" -> LlmSectionType.TOOL_CALL;
             case "image" -> LlmSectionType.USER_IMAGE;
             case "document" -> LlmSectionType.USER_DOCUMENT;
-            case "server_tool_use" -> LlmSectionType.SERVER_TOOL_CALL;
+            case "server_tool_use", "mcp_tool_use" -> LlmSectionType.SERVER_TOOL_CALL;
             default -> type.endsWith(SUFFIX_TOOL_RESULT) ? LlmSectionType.SERVER_TOOL_RESULT : null;
             };
         }
@@ -4093,6 +4096,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private final LlmSectionPipeline.Output redactedOutput;
         private final LlmTextPipeline sectionText;
         private final LlmTextPipeline reasoningText;
+        private final LlmTextPipeline serverNameText;
 
         private LlmTextPipeline textPipeline;
         private LlmSectionPipeline blockPipeline;
@@ -4102,7 +4106,11 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private LlmSectionPipeline reasoningRedacted;
         private LlmAnthropicReasoningToEvent reasoningRedactedTransform;
         private LlmSectionPipeline toolBlock;
+        private LlmSectionPipeline serverToolBlock;
         private LlmSectionPipeline toolValue;
+        private byte[] serverNameBytes = new byte[0];
+        private final UnsafeBufferEx serverNameBuffer = new UnsafeBufferEx();
+        private int serverNameLength;
         private MessageConsumer app;
         private long initialId;
         private long replyId;
@@ -4144,6 +4152,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             this.redactedOutput = (buffer, offset, length, last) -> onReasoningRedacted(buffer, offset, length);
             this.sectionText = new LlmTextPipeline(this::onSectionText);
             this.reasoningText = new LlmTextPipeline(this::onReasoningText, true);
+            this.serverNameText = new LlmTextPipeline(this::onServerName, MEMBER_SERVER_NAME);
         }
 
         private long initialAvailable()
@@ -4352,7 +4361,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             {
                 doEncodeReasoning(traceId, payload.buffer(), payload.offset(), payload.sizeof(), Flags.hasFin(flags));
             }
-            else if (!textSection && (kind == KIND_REASONING || kind == KIND_TOOL_CALL && !server.streaming))
+            else if (!textSection && (kind == KIND_REASONING ||
+                (kind == KIND_TOOL_CALL || kind == KIND_SERVER_TOOL_CALL) && !server.streaming))
             {
                 if (!blockPipeline.feed(payload.buffer(), payload.offset(), payload.sizeof(), Flags.hasFin(flags),
                     blockOutput))
@@ -4884,6 +4894,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private static final int KIND_TOOL_CALL = 3;
         private static final int KIND_SKIPPED = 4;
         private static final int KIND_CONTROL = 5;
+        private static final int KIND_SERVER_TOOL_CALL = 6;
+        private static final int KIND_SERVER_TOOL_RESULT = 7;
 
         private static final int CONTROL_DROP = 0;
         private static final int CONTROL_INLINE = 1;
@@ -4982,7 +4994,9 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         {
             kind = type == LlmSectionType.CONTROL
                 ? KIND_CONTROL
-                : message == MESSAGE_FIRST && envelope != ENVELOPE_TAIL ? kindOf(type) : KIND_SKIPPED;
+                : message == MESSAGE_FIRST && envelope != ENVELOPE_TAIL
+                    ? kindOf(type, NAME.equals(responseDialect))
+                    : KIND_SKIPPED;
             textSection = kind == KIND_TEXT;
             blockOpen = false;
 
@@ -5006,6 +5020,12 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             if (kind == KIND_REASONING && server.streaming)
             {
                 beginReasoning();
+            }
+            else if (kind == KIND_SERVER_TOOL_CALL && server.streaming)
+            {
+                serverNameLength = 0;
+                serverNameText.begin();
+                toolValue().begin(replyAttributes);
             }
             else if (kind != KIND_SKIPPED && kind != KIND_CONTROL && !textSection)
             {
@@ -5155,6 +5175,18 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                     server.cleanup(traceId);
                 }
             }
+            else if (kind == KIND_SERVER_TOOL_CALL && server.streaming)
+            {
+                if (!serverNameText.feed(payload, payloadOffset, payloadLength, fin) ||
+                    !toolValue.feed(payload, payloadOffset, payloadLength, fin, deltaOutput))
+                {
+                    server.cleanup(traceId);
+                }
+            }
+            else if (kind == KIND_SERVER_TOOL_RESULT)
+            {
+                generator.writeSegment(payload, payloadOffset, payloadLength, Completion.INCOMPLETE);
+            }
             else if (payloadLength > 0 && kind != KIND_NONE && kind != KIND_SKIPPED)
             {
                 if (server.streaming)
@@ -5175,8 +5207,40 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         {
             if (length > 0)
             {
+                if (!blockOpen)
+                {
+                    openBlock(replyAttributes.toolCallId(), replyAttributes.toolName());
+                }
+
                 dataChunk(buffer, offset, length);
             }
+        }
+
+        private void onServerName(
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            if (serverNameBytes.length < serverNameLength + length)
+            {
+                serverNameBytes = Arrays.copyOf(serverNameBytes, serverNameLength + length);
+            }
+
+            buffer.getBytes(offset, serverNameBytes, serverNameLength, length);
+            serverNameLength += length;
+        }
+
+        private LlmSectionPipeline serverToolBlock()
+        {
+            if (serverToolBlock == null)
+            {
+                serverToolBlock = new LlmSectionPipeline(
+                    new LlmAnthropicToolCallFromCanonical(BLOCK_SERVER_TOOL_USE, BLOCK_MCP_TOOL_USE,
+                        NAME.equals(responseDialect), null),
+                    new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+            }
+
+            return serverToolBlock;
         }
 
         private LlmSectionPipeline toolBlock()
@@ -5386,6 +5450,10 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             {
                 openBlock(null, null);
             }
+            else if (kind == KIND_SERVER_TOOL_CALL && server.streaming && !blockOpen)
+            {
+                openBlock(replyAttributes.toolCallId(), replyAttributes.toolName());
+            }
 
             if (blockOpen)
             {
@@ -5424,6 +5492,12 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 if (kind == KIND_REASONING && eventOpen)
                 {
                     generator.writeSegment(EMPTY_BUFFER, 0, 0, Completion.COMPLETE);
+                    eventEnd(generator.length());
+                }
+                else if (kind == KIND_SERVER_TOOL_RESULT)
+                {
+                    generator.writeSegment(EMPTY_BUFFER, 0, 0, Completion.COMPLETE);
+                    generator.writeEnd();
                     eventEnd(generator.length());
                 }
 
@@ -5547,28 +5621,59 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             eventBegin(generator.length(), EVENT_BLOCK_START);
             generator.writeStartObject()
                 .write("type", EVENT_BLOCK_START)
-                .writeKey("index").write(blocks++)
-                .writeStartObject("content_block");
+                .writeKey("index").write(blocks++);
 
-            switch (kind)
+            if (kind == KIND_SERVER_TOOL_RESULT)
             {
-            case KIND_TEXT:
-                generator.write("type", "text").write("text", "");
-                break;
-            case KIND_REASONING:
-                generator.write("type", "thinking").write("thinking", "").write("signature", "");
-                break;
-            default:
-                toolCalls++;
-                generator.write("type", "tool_use")
-                    .write("id", toolCallId != null ? toolCallId : "")
-                    .write("name", toolName != null ? toolName : "")
-                    .writeStartObject("input").writeEnd();
-                break;
+                generator.writeKey("content_block");
+            }
+            else
+            {
+                generator.writeStartObject("content_block");
+
+                switch (kind)
+                {
+                case KIND_TEXT:
+                    generator.write("type", "text").write("text", "");
+                    break;
+                case KIND_REASONING:
+                    generator.write("type", "thinking").write("thinking", "").write("signature", "");
+                    break;
+                case KIND_SERVER_TOOL_CALL:
+                    sectionServerToolUse(toolCallId, toolName);
+                    break;
+                default:
+                    toolCalls++;
+                    generator.write("type", "tool_use")
+                        .write("id", toolCallId != null ? toolCallId : "")
+                        .write("name", toolName != null ? toolName : "")
+                        .writeStartObject("input").writeEnd();
+                    break;
+                }
+
+                generator.writeEnd().writeEnd();
+                eventEnd(generator.length());
+            }
+        }
+
+        private void sectionServerToolUse(
+            String toolCallId,
+            String toolName)
+        {
+            generator.write("type", serverNameLength > 0 ? BLOCK_MCP_TOOL_USE : BLOCK_SERVER_TOOL_USE)
+                .write("id", toolCallId != null ? toolCallId : "")
+                .write("name", toolName != null ? toolName : "");
+
+            if (serverNameLength > 0)
+            {
+                serverNameBuffer.wrap(serverNameBytes, 0, serverNameLength);
+                generator.writeKey("server_name");
+                generator.writeStartEscaped();
+                generator.writeSegment(serverNameBuffer, 0, serverNameLength);
+                generator.writeEndEscaped();
             }
 
-            generator.writeEnd().writeEnd();
-            eventEnd(generator.length());
+            generator.writeStartObject("input").writeEnd();
         }
 
         private void sectionBlock(
@@ -5601,6 +5706,12 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                     blockPipeline = reasoningBlock;
                     blockPipeline.begin(replyAttributes);
                 }
+                break;
+            case KIND_SERVER_TOOL_CALL:
+                blockPipeline = serverToolBlock();
+                blockPipeline.begin(replyAttributes);
+                break;
+            case KIND_SERVER_TOOL_RESULT:
                 break;
             default:
                 toolCalls++;
@@ -5728,13 +5839,16 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         }
 
         private static int kindOf(
-            LlmSectionType type)
+            LlmSectionType type,
+            boolean sameDialect)
         {
             return switch (type)
             {
             case ASSISTANT_TEXT, ASSISTANT_REFUSAL -> KIND_TEXT;
             case ASSISTANT_REASONING -> KIND_REASONING;
             case TOOL_CALL -> KIND_TOOL_CALL;
+            case SERVER_TOOL_CALL -> sameDialect ? KIND_SERVER_TOOL_CALL : KIND_SKIPPED;
+            case SERVER_TOOL_RESULT -> sameDialect ? KIND_SERVER_TOOL_RESULT : KIND_SKIPPED;
             default -> KIND_SKIPPED;
             };
         }

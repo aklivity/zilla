@@ -22,6 +22,15 @@ final class LlmGeminiServerToolCallToCanonical extends LlmToolTransform
     private static final String DIALECT = "gemini";
     private static final String MEMBER_WIRE_ID = "gemini:id";
 
+    private boolean toolCall;
+
+    @Override
+    public void reset()
+    {
+        super.reset();
+        toolCall = false;
+    }
+
     @Override
     protected int member(
         int depth,
@@ -29,7 +38,16 @@ final class LlmGeminiServerToolCallToCanonical extends LlmToolTransform
     {
         int action;
 
-        if (depth == 1 && (matches(key, "executableCode") || matches(key, "executable_code")))
+        if (depth == 1 && (matches(key, "toolCall") || matches(key, "tool_call")))
+        {
+            toolCall = true;
+            action = DESCEND;
+        }
+        else if (depth == 2 && toolCall)
+        {
+            action = toolCallMember(key);
+        }
+        else if (depth == 1 && (matches(key, "executableCode") || matches(key, "executable_code")))
         {
             target = "arguments";
             action = DESCEND_KEPT;
@@ -60,7 +78,10 @@ final class LlmGeminiServerToolCallToCanonical extends LlmToolTransform
     protected Status onClose(
         int depth)
     {
-        pass(JsonEvent.END_OBJECT);
+        if (!toolCall || depth == 1)
+        {
+            pass(JsonEvent.END_OBJECT);
+        }
 
         if (depth == 2 && held() != null)
         {
@@ -70,5 +91,24 @@ final class LlmGeminiServerToolCallToCanonical extends LlmToolTransform
         }
 
         return Status.ADVANCED;
+    }
+
+    private int toolCallMember(
+        CharSequence key)
+    {
+        final int action;
+
+        if (matches(key, "args"))
+        {
+            target = "arguments";
+            action = PASS_OBJECT;
+        }
+        else
+        {
+            target = DIALECT + ":" + (matches(key, "tool_type") ? "toolType" : matches(key, "tool_name") ? "toolName" : key);
+            action = PASS_VALUE;
+        }
+
+        return action;
     }
 }

@@ -1677,6 +1677,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/anthropic.section.mcp.tool.call.history/client",
+        "${app}/anthropic.section.mcp.tool.call.history/server"})
+    public void shouldAnthropicSectionMcpToolCallHistory() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/anthropic.section.system.instruction/client",
         "${app}/anthropic.section.system.instruction/server"})
     public void shouldAnthropicSectionSystemInstruction() throws Exception
@@ -2139,6 +2148,69 @@ public class ApplicationIT
         "${app}/anthropic.section.assistant.tool.call.streaming/client",
         "${app}/anthropic.section.assistant.tool.call.streaming/server"})
     public void shouldDecodeAnthropicResponseStreamingToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.assistant.server.tool.call.streaming/client",
+        "${app}/anthropic.section.assistant.server.tool.call.streaming/server"})
+    public void shouldAnthropicSectionAssistantServerToolCallStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.assistant.server.tool.call.streaming.only/client",
+        "${app}/anthropic.section.assistant.server.tool.call.streaming.only/server"})
+    public void shouldAnthropicSectionAssistantServerToolCallStreamingOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.assistant.server.tool.call/client",
+        "${app}/anthropic.section.assistant.server.tool.call/server"})
+    public void shouldAnthropicSectionAssistantServerToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.assistant.server.tool.result/client",
+        "${app}/anthropic.section.assistant.server.tool.result/server"})
+    public void shouldAnthropicSectionAssistantServerToolResult() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.assistant.server.tool.result.streaming/client",
+        "${app}/anthropic.section.assistant.server.tool.result.streaming/server"})
+    public void shouldAnthropicSectionAssistantServerToolResultStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.assistant.mcp.tool.call/client",
+        "${app}/anthropic.section.assistant.mcp.tool.call/server"})
+    public void shouldAnthropicSectionAssistantMcpToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.assistant.mcp.tool.call.streaming/client",
+        "${app}/anthropic.section.assistant.mcp.tool.call.streaming/server"})
+    public void shouldAnthropicSectionAssistantMcpToolCallStreaming() throws Exception
     {
         k3po.finish();
     }
@@ -5151,9 +5223,27 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/gemini.section.assistant.server.tool.use/client",
+        "${app}/gemini.section.assistant.server.tool.use/server"})
+    public void shouldGeminiSectionAssistantServerToolUse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/gemini.streaming.assistant.server.tool.call/client",
         "${app}/gemini.streaming.assistant.server.tool.call/server"})
     public void shouldForwardGeminiStreamingAssistantServerToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.streaming.assistant.server.tool.use/client",
+        "${app}/gemini.streaming.assistant.server.tool.use/server"})
+    public void shouldGeminiStreamingAssistantServerToolUse() throws Exception
     {
         k3po.finish();
     }
@@ -5172,6 +5262,15 @@ public class ApplicationIT
         "${app}/gemini.section.server.tool.call.history/client",
         "${app}/gemini.section.server.tool.call.history/server"})
     public void shouldForwardGeminiSectionServerToolCallHistory() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.section.server.tool.use.history/client",
+        "${app}/gemini.section.server.tool.use.history/server"})
+    public void shouldGeminiSectionServerToolUseHistory() throws Exception
     {
         k3po.finish();
     }
@@ -5244,6 +5343,15 @@ public class ApplicationIT
         "${app}/transform.response.finish.reason/client",
         "${app}/transform.response.finish.reason/server"})
     public void shouldTransformResponseFinishReason() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/transform.response.server.tool/client",
+        "${app}/transform.response.server.tool/server"})
+    public void shouldTransformResponseServerTool() throws Exception
     {
         k3po.finish();
     }

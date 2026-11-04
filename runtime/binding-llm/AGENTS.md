@@ -586,8 +586,8 @@ A dialect whose promoted members live inside a native object (`gemini` `generati
 
 Every request or response member and every content part is classified as one of the following. (**planned**: the
 classification of the content-bearing and capability members is not yet applied by the decoders, except where
-[Cross-dialect behaviour](#cross-dialect-behaviour) and [Provider-state handles](#provider-state-handles) say
-**implemented**)
+[Cross-dialect behaviour](#cross-dialect-behaviour), [Provider-state handles](#provider-state-handles) and
+[Sections and decoding rules](#sections-and-decoding-rules) say **implemented**)
 
 - a **setting**, which stays in a `CONTROL` section;
 - **content**, which the model reads, or a **capability**, which grants the request something it could not do without
@@ -701,6 +701,23 @@ cache of #2798 is the planned resolution.
   `ASSISTANT_AUDIO`. A client that cannot place one drops it.
 - **`TOOL_RESULT_IMAGE`, `TOOL_RESULT_DOCUMENT`** are the media parts of a tool result: peer sections of `TOOL_RESULT`
   tied to it by the `tool-call-id` attribute, which `anthropic` regroups into one `tool_result` block.
+- **`SERVER_TOOL_CALL`, `SERVER_TOOL_RESULT`** (**implemented**) carry the calls and results of a tool that runs at the
+  provider, on the reply and when the history is replayed. A call is tied to its result by the `tool-call-id`
+  attribute, and a client of another dialect drops both together.
+  - `anthropic` `server_tool_use` and `mcp_tool_use` are `SERVER_TOOL_CALL` with the `tool-name` and `tool-call-id`
+    attributes taken from `name` and `id`, and the payload `{"arguments":...}`. The `server_name` of an `mcp_tool_use` is
+    the first member of the payload, `anthropic:server_name`, and its presence selects `mcp_tool_use` over
+    `server_tool_use` when the section is written back. A streamed call carries the `input_json_delta` pieces as frames
+    of the same section and never as a `TOOL_CALL`.
+  - `anthropic` blocks whose type ends in `_tool_result` are `SERVER_TOOL_RESULT` with the native block as the payload,
+    the block type as the extension and the `tool-call-id` attribute taken from `tool_use_id`. A result arrives whole in
+    `content_block_start` and has no deltas.
+  - `gemini` `toolCall` is `SERVER_TOOL_CALL` with a synthesized `tool-call-id` (`call_N`), no `tool-name` attribute, and
+    the members in wire order: `args` as `arguments`, and `toolType`, `toolName` and `id` as `gemini:toolType`,
+    `gemini:toolName` and `gemini:id`. The `tool-name` attribute `code_execution` marks the `executableCode` form of
+    the same section type, so it selects which part is written back. `toolResponse` is `SERVER_TOOL_RESULT` with the
+    native part, `{"toolResponse":{...}}`, as the payload, as `codeExecutionResult` is.
+  - A server writes these sections to the caller only when the reply is of its own dialect.
 - **`ASSISTANT_CITATIONS`** also carries `openai/ccs` `message.annotations` and `gemini` `groundingMetadata`.
 - **`openai/rs`** drops an unknown item or part, carries `compaction` as `ASSISTANT_COMPACTION` and carries
   `item_reference` as the control member `openai/rs:item_reference`.
@@ -753,8 +770,8 @@ Streamable HTTP, so a legacy SSE endpoint fails at the provider. The Interaction
 | `anthropic` `search_result` | content | `USER_TEXT` or `TOOL_RESULT` with `anthropic:` markers |
 | `anthropic` `container_upload` | capability | `USER_DOCUMENT` with a marker |
 | `anthropic` `compaction`, `openai/rs` `compaction` | content | `ASSISTANT_COMPACTION` |
-| `anthropic` response `server_tool_use`, `*_tool_result`, `mcp_tool_use` | content | `SERVER_TOOL_CALL`, `SERVER_TOOL_RESULT` |
-| `gemini` `toolCall`, `toolResponse` parts | content | `SERVER_TOOL_CALL`, `SERVER_TOOL_RESULT` |
+| `anthropic` response `server_tool_use`, `*_tool_result`, `mcp_tool_use` (**implemented**) | content | `SERVER_TOOL_CALL`, `SERVER_TOOL_RESULT` |
+| `gemini` `toolCall`, `toolResponse` parts (**implemented**) | content | `SERVER_TOOL_CALL`, `SERVER_TOOL_RESULT` |
 | `gemini` generated `inlineData`, `fileData` | content | `ASSISTANT_IMAGE`, `ASSISTANT_AUDIO`, `ASSISTANT_VIDEO`, `ASSISTANT_DOCUMENT` by mime type |
 | `previous_response_id`, `previous_interaction_id` | opaque handle | `x:previous_turn_id` |
 | `conversation`, `item_reference`, `cachedContent`, `continuationToken`, `prompt` id | opaque handle | prefixed control member |
