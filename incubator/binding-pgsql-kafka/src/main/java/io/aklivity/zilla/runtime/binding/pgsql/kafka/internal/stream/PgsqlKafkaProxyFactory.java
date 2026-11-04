@@ -543,7 +543,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (PgsqlKafkaState.replyOpened(state))
+            if (PgsqlKafkaState.replyOpening(state))
             {
                 state = PgsqlKafkaState.closeReply(state);
 
@@ -556,7 +556,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (PgsqlKafkaState.replyOpened(state))
+            if (PgsqlKafkaState.replyOpening(state))
             {
                 state = PgsqlKafkaState.closeReply(state);
 
