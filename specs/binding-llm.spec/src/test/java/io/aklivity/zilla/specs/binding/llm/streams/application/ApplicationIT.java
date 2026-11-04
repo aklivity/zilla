@@ -3027,6 +3027,87 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.proxy.fallback.complete.failed.reset/client",
+        "${app}/openai.proxy.fallback.complete.failed.reset/server"})
+    public void shouldOpenaiProxyFallbackCompleteFailedReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.fallback.complete.failed.aborted/client",
+        "${app}/openai.proxy.fallback.complete.failed.aborted/server"})
+    public void shouldOpenaiProxyFallbackCompleteFailedAborted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.fallback.complete.failed.fallback/client",
+        "${app}/openai.proxy.fallback.complete.failed.fallback/server"})
+    public void shouldOpenaiProxyFallbackCompleteFailedFallback() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.fallback.incomplete/client",
+        "${app}/openai.proxy.fallback.incomplete/server"})
+    public void shouldOpenaiProxyFallbackIncomplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.fallback.complete.failed.masked/client",
+        "${app}/openai.proxy.fallback.complete.failed.masked/server"})
+    public void shouldOpenaiProxyFallbackCompleteFailedMasked() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.fallback.complete.masked/client",
+        "${app}/openai.proxy.fallback.complete.masked/server"})
+    public void shouldOpenaiProxyFallbackCompleteMasked() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.fallback.complete.replayed.masked/client",
+        "${app}/openai.proxy.fallback.complete.replayed.masked/server"})
+    public void shouldOpenaiProxyFallbackCompleteReplayedMasked() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.fallback.replied.failed/client",
+        "${app}/openai.proxy.fallback.replied.failed/server"})
+    public void shouldOpenaiProxyFallbackRepliedFailed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.fallback.complete.aborted/client",
+        "${app}/openai.proxy.fallback.complete.aborted/server"})
+    public void shouldOpenaiProxyFallbackCompleteAborted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.proxy.fallback.attributes/client",
         "${app}/openai.proxy.fallback.attributes/server"})
     public void shouldTellCallerTheFallbackModelOpenaiWithAttributes() throws Exception
