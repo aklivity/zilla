@@ -4346,7 +4346,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             if (serverToolCallPipeline == null)
             {
                 serverToolCallPipeline = new LlmSectionPipeline(
-                    new LlmAnthropicToolCallFromCanonical(BLOCK_SERVER_TOOL_USE, sameDialect, breakpoints),
+                    new LlmAnthropicToolCallFromCanonical(BLOCK_SERVER_TOOL_USE, BLOCK_MCP_TOOL_USE, sameDialect, breakpoints),
                     transformBuffer);
             }
 

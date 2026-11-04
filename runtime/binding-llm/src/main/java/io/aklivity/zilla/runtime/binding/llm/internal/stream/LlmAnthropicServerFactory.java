@@ -2149,7 +2149,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             case "tool_use" -> LlmSectionType.TOOL_CALL;
             case "image" -> LlmSectionType.USER_IMAGE;
             case "document" -> LlmSectionType.USER_DOCUMENT;
-            case "server_tool_use" -> LlmSectionType.SERVER_TOOL_CALL;
+            case "server_tool_use", "mcp_tool_use" -> LlmSectionType.SERVER_TOOL_CALL;
             default -> type.endsWith(SUFFIX_TOOL_RESULT) ? LlmSectionType.SERVER_TOOL_RESULT : null;
             };
         }

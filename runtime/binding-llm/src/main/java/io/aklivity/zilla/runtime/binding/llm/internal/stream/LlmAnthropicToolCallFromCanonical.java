@@ -20,10 +20,14 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 final class LlmAnthropicToolCallFromCanonical extends LlmToolTransform
 {
     private static final String DIALECT = "anthropic";
+    private static final String SERVER_NAME = "anthropic:server_name";
 
     private final String type;
+    private final String serverNameType;
+    private final boolean sameDialect;
     private final LlmCacheBreakpoint breakpoints;
 
+    private String blockType;
     private String toolCallId;
     private String toolName;
     private boolean opened;
@@ -41,8 +45,19 @@ final class LlmAnthropicToolCallFromCanonical extends LlmToolTransform
         boolean sameDialect,
         LlmCacheBreakpoint breakpoints)
     {
+        this(type, null, sameDialect, breakpoints);
+    }
+
+    LlmAnthropicToolCallFromCanonical(
+        String type,
+        String serverNameType,
+        boolean sameDialect,
+        LlmCacheBreakpoint breakpoints)
+    {
         super(MODE_OBJECT, sameDialect ? DIALECT : null);
         this.type = type;
+        this.serverNameType = serverNameType;
+        this.sameDialect = sameDialect;
         this.breakpoints = breakpoints;
     }
 
@@ -50,6 +65,7 @@ final class LlmAnthropicToolCallFromCanonical extends LlmToolTransform
     public void reset()
     {
         super.reset();
+        blockType = null;
         toolCallId = null;
         toolName = null;
         opened = false;
@@ -62,6 +78,11 @@ final class LlmAnthropicToolCallFromCanonical extends LlmToolTransform
         CharSequence key)
     {
         int action;
+
+        if (serverNameType != null && blockType == null)
+        {
+            emitHead(sameDialect && matches(key, SERVER_NAME) ? serverNameType : type);
+        }
 
         if (matches(key, "arguments"))
         {
@@ -100,8 +121,19 @@ final class LlmAnthropicToolCallFromCanonical extends LlmToolTransform
         toolCallId = attribute("tool-call-id");
         toolName = attribute("tool-name");
 
+        if (serverNameType == null)
+        {
+            emitHead(type);
+        }
+    }
+
+    private void emitHead(
+        String headType)
+    {
+        blockType = headType;
+
         emit(JsonEvent.KEY_NAME, "type");
-        emit(JsonEvent.VALUE_STRING, type);
+        emit(JsonEvent.VALUE_STRING, headType);
 
         if (toolCallId != null)
         {
@@ -120,6 +152,11 @@ final class LlmAnthropicToolCallFromCanonical extends LlmToolTransform
     protected Status onClose(
         int depth)
     {
+        if (serverNameType != null && blockType == null)
+        {
+            emitHead(type);
+        }
+
         if (!argumented)
         {
             argumented = true;
