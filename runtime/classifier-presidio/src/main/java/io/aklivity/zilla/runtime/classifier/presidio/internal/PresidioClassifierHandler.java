@@ -27,10 +27,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import io.aklivity.zilla.config.classifier.presidio.PresidioClassifierOptionsConfig;
 import io.aklivity.zilla.config.engine.ClassifierConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.classifier.Anonymizer;
 import io.aklivity.zilla.runtime.engine.classifier.ClassifierHandler;
-import io.aklivity.zilla.runtime.engine.classifier.Deanonymizer;
 import io.aklivity.zilla.runtime.engine.classifier.Detector;
+import io.aklivity.zilla.runtime.engine.classifier.Locator;
 
 final class PresidioClassifierHandler implements ClassifierHandler
 {
@@ -44,7 +43,6 @@ final class PresidioClassifierHandler implements ClassifierHandler
     private final double threshold;
     private final Duration timeout;
     private final Map<String, String> entitiesByLabel;
-    private final PresidioSurrogates surrogates;
     private final Set<CompletableFuture<String>> pending;
     private final Set<CompletableFuture<String>> dispatching;
 
@@ -69,7 +67,6 @@ final class PresidioClassifierHandler implements ClassifierHandler
         this.threshold = options.threshold;
         this.timeout = options.timeout;
         this.entitiesByLabel = options.labels;
-        this.surrogates = new PresidioSurrogates();
         this.pending = ConcurrentHashMap.newKeySet();
         this.dispatching = ConcurrentHashMap.newKeySet();
     }
@@ -87,22 +84,13 @@ final class PresidioClassifierHandler implements ClassifierHandler
     }
 
     @Override
-    public Anonymizer initAnonymizer(
+    public Locator initLocator(
         List<String> labels)
     {
         Map<String, String> aliasesByEntity = new LinkedHashMap<>();
         labels.forEach(label -> aliasesByEntity.putIfAbsent(entity(label), label));
 
-        return new PresidioAnonymizer(context, analyzer(List.copyOf(aliasesByEntity.keySet())), surrogates, aliasesByEntity);
-    }
-
-    @Override
-    public Deanonymizer initDeanonymizer(
-        List<String> labels)
-    {
-        labels.forEach(this::entity);
-
-        return new PresidioDeanonymizer(surrogates, Set.copyOf(labels));
+        return new PresidioLocator(context, analyzer(List.copyOf(aliasesByEntity.keySet())), aliasesByEntity);
     }
 
     void close()
