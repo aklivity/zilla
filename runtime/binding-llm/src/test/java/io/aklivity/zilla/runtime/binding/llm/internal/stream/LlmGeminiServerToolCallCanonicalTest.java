@@ -26,6 +26,7 @@ public class LlmGeminiServerToolCallCanonicalTest
 
     private final LlmGeminiServerToolCallToCanonical toCanonical = new LlmGeminiServerToolCallToCanonical();
     private final LlmGeminiServerToolCallFromCanonical fromCanonical = new LlmGeminiServerToolCallFromCanonical(true);
+    private final LlmGeminiServerToolUseFromCanonical useFromCanonical = new LlmGeminiServerToolUseFromCanonical(true);
 
     @Test
     public void shouldCanonicalizeExecutableCodeAsArguments()
@@ -96,5 +97,55 @@ public class LlmGeminiServerToolCallCanonicalTest
     {
         assertRoundTrips(toCanonical, fromCanonical,
             json("{'executableCode':{'language':'PYTHON','code':'" + CODE + "','id':'call_1'},'thoughtSignature':'c2ln'}"));
+    }
+
+    @Test
+    public void shouldCanonicalizeToolCallInWireOrder()
+    {
+        assertTransforms(toCanonical,
+            json("{'toolCall':{'toolType':'GOOGLE_SEARCH_WEB','args':{'queries':['paris']},'id':'call_1'}}"),
+            json("{'gemini:toolType':'GOOGLE_SEARCH_WEB','arguments':{'queries':['paris']},'gemini:id':'call_1'}"));
+    }
+
+    @Test
+    public void shouldCanonicalizeSnakeCaseToolCall()
+    {
+        assertTransforms(toCanonical,
+            json("{'tool_call':{'tool_type':'GOOGLE_SEARCH_WEB','tool_name':'google_search','args':{}}}"),
+            json("{'gemini:toolType':'GOOGLE_SEARCH_WEB','gemini:toolName':'google_search','arguments':{}}"));
+    }
+
+    @Test
+    public void shouldCarryThoughtSignatureOfToolCall()
+    {
+        assertTransforms(toCanonical,
+            json("{'toolCall':{'toolType':'URL_CONTEXT','args':{}},'thoughtSignature':'c2ln'}"),
+            json("{'gemini:toolType':'URL_CONTEXT','arguments':{},'gemini:thoughtSignature':'c2ln'}"));
+    }
+
+    @Test
+    public void shouldRestoreToolCall()
+    {
+        assertTransforms(useFromCanonical,
+            json("{'gemini:toolType':'GOOGLE_SEARCH_WEB','arguments':{'queries':['paris']},'gemini:id':'call_1'," +
+                "'gemini:thoughtSignature':'c2ln'}"),
+            json("{'toolCall':{'toolType':'GOOGLE_SEARCH_WEB','args':{'queries':['paris']},'id':'call_1'}," +
+                "'thoughtSignature':'c2ln'}"));
+    }
+
+    @Test
+    public void shouldDropOtherDialectMembersOfToolCall()
+    {
+        assertTransforms(useFromCanonical,
+            json("{'gemini:toolType':'URL_CONTEXT','arguments':{},'anthropic:server_name':'x','unknown':1}"),
+            json("{'toolCall':{'toolType':'URL_CONTEXT','args':{}}}"));
+    }
+
+    @Test
+    public void shouldRoundTripToolCall()
+    {
+        assertRoundTrips(toCanonical, useFromCanonical,
+            json("{'toolCall':{'toolType':'GOOGLE_SEARCH_WEB','toolName':'google_search','args':{'queries':['" +
+                CODE + "']},'id':'call_1'},'thoughtSignature':'c2ln'}"));
     }
 }

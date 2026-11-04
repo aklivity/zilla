@@ -5223,9 +5223,27 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/gemini.section.assistant.server.tool.use/client",
+        "${app}/gemini.section.assistant.server.tool.use/server"})
+    public void shouldGeminiSectionAssistantServerToolUse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/gemini.streaming.assistant.server.tool.call/client",
         "${app}/gemini.streaming.assistant.server.tool.call/server"})
     public void shouldForwardGeminiStreamingAssistantServerToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.streaming.assistant.server.tool.use/client",
+        "${app}/gemini.streaming.assistant.server.tool.use/server"})
+    public void shouldGeminiStreamingAssistantServerToolUse() throws Exception
     {
         k3po.finish();
     }
@@ -5244,6 +5262,15 @@ public class ApplicationIT
         "${app}/gemini.section.server.tool.call.history/client",
         "${app}/gemini.section.server.tool.call.history/server"})
     public void shouldForwardGeminiSectionServerToolCallHistory() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/gemini.section.server.tool.use.history/client",
+        "${app}/gemini.section.server.tool.use.history/server"})
+    public void shouldGeminiSectionServerToolUseHistory() throws Exception
     {
         k3po.finish();
     }

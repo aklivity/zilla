@@ -4809,9 +4809,27 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/gemini.section.assistant.server.tool.use/client",
+        "${net}/gemini.section.assistant.server.tool.use/server"})
+    public void shouldGeminiSectionAssistantServerToolUse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/gemini.streaming.assistant.server.tool.call/client",
         "${net}/gemini.streaming.assistant.server.tool.call/server"})
     public void shouldEncodeGeminiStreamingAssistantServerToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.streaming.assistant.server.tool.use/client",
+        "${net}/gemini.streaming.assistant.server.tool.use/server"})
+    public void shouldGeminiStreamingAssistantServerToolUse() throws Exception
     {
         k3po.finish();
     }
@@ -4830,6 +4848,15 @@ public class NetworkIT
         "${net}/gemini.section.server.tool.call.history/client",
         "${net}/gemini.section.server.tool.call.history/server"})
     public void shouldEncodeGeminiSectionServerToolCallHistory() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/gemini.section.server.tool.use.history/client",
+        "${net}/gemini.section.server.tool.use.history/server"})
+    public void shouldGeminiSectionServerToolUseHistory() throws Exception
     {
         k3po.finish();
     }
