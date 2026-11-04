@@ -134,6 +134,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final int KIND_CONTROL = 14;
     private static final int KIND_SERVER_TOOL_CALL = 18;
     private static final int KIND_SERVER_TOOL_RESULT = 19;
+    private static final int KIND_MCP_SERVER_DEFINITION = 20;
     private static final int KIND_DROPPED = 16;
     private static final int KIND_UNSUPPORTED = 17;
     private static final int CALLS_MAX = 16;
@@ -151,6 +152,9 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     private static final int REGION_SYSTEM = 2;
     private static final int REGION_TOOLS = 3;
     private static final int REGION_DECLARATIONS = 4;
+    private static final int REGION_MCP_SERVERS = 5;
+    private static final String TOOL_NAME_MCP = "mcp";
+    private static final String MEMBER_MCP_SERVERS = "mcpServers";
 
     private static final int NO_MESSAGE = -2;
     private static final int ESCAPE_EXPANSION = 6;
@@ -417,7 +421,8 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
     }
 
     private static int sectionKind(
-        LlmSectionType type)
+        LlmSectionType type,
+        String toolName)
     {
         return switch (type)
         {
@@ -431,7 +436,9 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         case ASSISTANT_REASONING -> KIND_ASSISTANT_REASONING;
         case ASSISTANT_REFUSAL -> KIND_ASSISTANT_REFUSAL;
         case TOOL_DEFINITION -> KIND_TOOL_DEFINITION;
-        case SERVER_TOOL_DEFINITION -> KIND_SERVER_TOOL_DEFINITION;
+        case SERVER_TOOL_DEFINITION -> TOOL_NAME_MCP.equals(toolName)
+            ? KIND_MCP_SERVER_DEFINITION
+            : KIND_SERVER_TOOL_DEFINITION;
         case SERVER_TOOL_CALL -> KIND_SERVER_TOOL_CALL;
         case SERVER_TOOL_RESULT -> KIND_SERVER_TOOL_RESULT;
         case ASSISTANT_CITATIONS -> KIND_DROPPED;
@@ -822,7 +829,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                         requestSection = type;
 
                         http.doEncodeSectionBegin(
-                            sectionKind(type),
+                            sectionKind(type, sectionAttributes.toolName()),
                             section != null ? section.message() : NO_MESSAGE,
                             sectionAttributes.toolCallId());
                     }
@@ -3760,6 +3767,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private LlmSectionPipeline toolDefinitionPipeline;
         private LlmSectionPipeline toolCallPipeline;
         private LlmSectionPipeline serverToolPipeline;
+        private LlmSectionPipeline mcpPipeline;
         private LlmSectionPipeline serverToolCallPipeline;
         private LlmSectionPipeline serverToolUsePipeline;
         private final LlmSectionPipeline[] mediaPipelines = new LlmSectionPipeline[MEDIA_KINDS];
@@ -3991,6 +3999,16 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             return serverToolPipeline;
         }
 
+        private LlmSectionPipeline mcpPipeline()
+        {
+            if (mcpPipeline == null)
+            {
+                mcpPipeline = new LlmSectionPipeline(new LlmGeminiMcpFromCanonical(sameDialect), transformBuffer);
+            }
+
+            return mcpPipeline;
+        }
+
         private LlmSectionPipeline toolDefinitionPipeline()
         {
             if (toolDefinitionPipeline == null)
@@ -4078,8 +4096,14 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
             sectionKind = kind;
             sectionOpen = false;
-            translated = kind == KIND_CONTROL || kind == KIND_TOOL_DEFINITION || kind == KIND_SERVER_TOOL_DEFINITION ||
-                kind == KIND_TOOL_CALL || kind == KIND_SERVER_TOOL_CALL || kind == KIND_SERVER_TOOL_RESULT || media(kind);
+            translated = kind == KIND_CONTROL ||
+                kind == KIND_TOOL_DEFINITION ||
+                kind == KIND_SERVER_TOOL_DEFINITION ||
+                kind == KIND_MCP_SERVER_DEFINITION ||
+                kind == KIND_TOOL_CALL ||
+                kind == KIND_SERVER_TOOL_CALL ||
+                kind == KIND_SERVER_TOOL_RESULT ||
+                media(kind);
 
             if (kind == 0 || kind == KIND_UNSUPPORTED)
             {
@@ -4106,6 +4130,12 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                     closeTextBlock();
                     openRegion(REGION_TOOLS);
                     beginSectionStreaming(serverToolPipeline(), sectionOutput);
+                }
+                else if (kind == KIND_MCP_SERVER_DEFINITION)
+                {
+                    closeTextBlock();
+                    openRegion(REGION_MCP_SERVERS);
+                    beginSectionStreaming(mcpPipeline(), sectionOutput);
                 }
                 else
                 {
@@ -4250,12 +4280,8 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
             {
                 if (tools(region) && tools(next))
                 {
-                    closeDeclarations();
-
-                    if (next == REGION_DECLARATIONS)
-                    {
-                        openDeclarations();
-                    }
+                    closeElement();
+                    openElement(next);
 
                     region = next;
                 }
@@ -4293,7 +4319,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
                         default:
                             toolsOpened = true;
                             generator.writeStartArray(MEMBER_TOOLS);
-                            openDeclarations();
+                            openElement(next);
                             break;
                         }
 
@@ -4306,17 +4332,25 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
         private static boolean tools(
             int region)
         {
-            return region == REGION_TOOLS || region == REGION_DECLARATIONS;
+            return region == REGION_TOOLS || region == REGION_DECLARATIONS || region == REGION_MCP_SERVERS;
         }
 
-        private void openDeclarations()
+        private void openElement(
+            int next)
         {
-            generator.writeStartObject().writeStartArray(MEMBER_FUNCTION_DECLARATIONS);
+            if (next == REGION_DECLARATIONS)
+            {
+                generator.writeStartObject().writeStartArray(MEMBER_FUNCTION_DECLARATIONS);
+            }
+            else if (next == REGION_MCP_SERVERS)
+            {
+                generator.writeStartObject().writeStartArray(MEMBER_MCP_SERVERS);
+            }
         }
 
-        private void closeDeclarations()
+        private void closeElement()
         {
-            if (region == REGION_DECLARATIONS)
+            if (region == REGION_DECLARATIONS || region == REGION_MCP_SERVERS)
             {
                 generator.writeEnd().writeEnd();
             }
@@ -4333,7 +4367,7 @@ public final class LlmGeminiClientFactory implements LlmDialectHandler
 
             if (region != REGION_NONE)
             {
-                closeDeclarations();
+                closeElement();
                 generator.writeEnd();
 
                 if (region == REGION_SYSTEM)

@@ -169,6 +169,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private static final String ROLE_USER = "user";
     private static final String ROLE_ASSISTANT = "assistant";
     private static final String TYPE_TEXT = "text";
+    private static final String TYPE_CUSTOM = "custom";
     private static final String TYPE_TOOL_RESULT = "tool_result";
     private static final String SUFFIX_TOOL_RESULT = "_tool_result";
 
@@ -1034,12 +1035,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             switch (event)
             {
             case START_OBJECT:
-                server.probe.begin(LlmSectionType.TOOL_DEFINITION);
-
-                if (server.probed(traceId, limit))
-                {
-                    server.decoder = decodeToolStart;
-                }
+                lookaheadTool(server, traceId, offset, limit);
                 break;
             case END_ARRAY:
                 server.decoder = decodeRoot;
@@ -1052,6 +1048,65 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         }
 
         return server.position();
+    }
+
+    private void lookaheadTool(
+        LlmAnthropicServer server,
+        long traceId,
+        int offset,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        String type = null;
+        boolean typeKey = false;
+        boolean ended = false;
+        int depth = 0;
+
+        while (type == null && !ended && parser.hasNextEvent())
+        {
+            switch (parser.nextEvent())
+            {
+            case START_OBJECT:
+            case START_ARRAY:
+                depth++;
+                break;
+            case END_OBJECT:
+            case END_ARRAY:
+                depth--;
+                ended = depth < 0;
+                break;
+            case KEY_NAME:
+                typeKey = depth == 0 && !parser.deferredBytes() && matches(parser.getStringView(), "type");
+                break;
+            case VALUE_STRING:
+                if (parser.deferredBytes())
+                {
+                    parser.consumed(parser.getStringView().length());
+                }
+                else if (depth == 0 && typeKey)
+                {
+                    type = parser.getString();
+                }
+                break;
+            default:
+                break;
+            }
+        }
+
+        parser.rewind();
+
+        if (type != null || ended || limit - offset >= decodeMax)
+        {
+            server.probe.begin(type == null || TYPE_CUSTOM.equals(type)
+                ? LlmSectionType.TOOL_DEFINITION
+                : LlmSectionType.SERVER_TOOL_DEFINITION);
+
+            if (server.probed(traceId, limit))
+            {
+                server.decoder = decodeToolStart;
+            }
+        }
     }
 
     private int decodeToolStart(

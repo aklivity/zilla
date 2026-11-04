@@ -180,6 +180,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
     private static final String MEMBER_CONTENT = "content";
     private static final String TYPE_MESSAGE = "message";
     private static final String TYPE_FUNCTION = "function";
+    private static final String TYPE_MCP = "mcp";
     private static final String TYPE_INPUT_TEXT = "input_text";
     private static final String TYPE_OUTPUT_TEXT = "output_text";
     private static final String MEMBER_OUTPUT = "output";
@@ -2828,6 +2829,7 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
         private String blockExtension;
         private LlmSectionPipeline toolCallPipeline;
         private LlmSectionPipeline toolDefinitionPipeline;
+        private LlmSectionPipeline mcpPipeline;
         private LlmSectionPipeline serverToolCallPipeline;
         private LlmSectionPipeline serverToolResultPipeline;
 
@@ -4044,6 +4046,17 @@ public final class LlmOpenaiResponsesServerFactory implements LlmDialectHandler
                         new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
                 }
                 pipeline = toolDefinitionPipeline;
+                break;
+            case SERVER_TOOL_DEFINITION:
+                if (TYPE_MCP.equals(itemType))
+                {
+                    if (mcpPipeline == null)
+                    {
+                        mcpPipeline = new LlmSectionPipeline(new LlmOpenaiResponsesMcpToCanonical(),
+                            new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                    }
+                    pipeline = mcpPipeline;
+                }
                 break;
             case SERVER_TOOL_CALL:
                 if (serverToolCallPipeline == null)

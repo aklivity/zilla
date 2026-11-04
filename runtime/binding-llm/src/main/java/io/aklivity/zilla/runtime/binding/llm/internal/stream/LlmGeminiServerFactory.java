@@ -125,6 +125,8 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private static final String MESSAGE_ATTRIBUTE_TOO_LARGE = "Invalid request section";
     private static final String MESSAGE_MEDIA_TYPE = "inlineData mimeType must precede data larger than the decode window";
     private static final String MEMBER_FUNCTION_DECLARATIONS = "functionDeclarations";
+    private static final String MEMBER_MCP_SERVERS = "mcpServers";
+    private static final String TOOL_NAME_MCP = "mcp";
     private static final String MEMBER_FUNCTION_CALL = "functionCall";
     private static final String MEMBER_FUNCTION_RESPONSE = "functionResponse";
     private static final String SERVER_TOOL_NAME = "code_execution";
@@ -274,6 +276,9 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
     private final LlmGeminiServerDecoder decodeTools = this::decodeTools;
     private final LlmGeminiServerDecoder decodeToolKey = this::decodeToolKey;
     private final LlmGeminiServerDecoder decodeDeclarationsStart = this::decodeDeclarationsStart;
+    private final LlmGeminiServerDecoder decodeMcpServersStart = this::decodeMcpServersStart;
+    private final LlmGeminiServerDecoder decodeMcpServers = this::decodeMcpServers;
+    private final LlmGeminiServerDecoder decodeMcpServerStart = this::decodeMcpServerStart;
     private final LlmGeminiServerDecoder decodeDeclarations = this::decodeDeclarations;
     private final LlmGeminiServerDecoder decodeTool = this::decodeTool;
     private final LlmGeminiServerDecoder decodeToolStart = this::decodeToolStart;
@@ -1619,6 +1624,10 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
             {
                 server.decoder = decodeDeclarationsStart;
             }
+            else if (key != null && key.equals(MEMBER_MCP_SERVERS))
+            {
+                server.decoder = decodeMcpServersStart;
+            }
             else if (key != null)
             {
                 parser.rewind();
@@ -1707,6 +1716,110 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                 server.onDecodeParseError(traceId);
                 break decode;
             }
+        }
+
+        return server.position();
+    }
+
+    private int decodeMcpServersStart(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        decode:
+        if (parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            switch (event)
+            {
+            case START_ARRAY:
+                server.decoder = decodeMcpServers;
+                break;
+            case VALUE_NULL:
+                server.decoder = decodeToolKey;
+                break;
+            default:
+                server.onDecodeParseError(traceId);
+                break decode;
+            }
+        }
+
+        return server.position();
+    }
+
+    private int decodeMcpServers(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        parser.mark();
+
+        decode:
+        if (parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            switch (event)
+            {
+            case START_OBJECT:
+                parser.rewind();
+                server.probe.begin(LlmSectionType.SERVER_TOOL_DEFINITION);
+                server.probe.attributes().toolName(TOOL_NAME_MCP);
+                server.decoder = decodeMcpServerStart;
+                break;
+            case END_ARRAY:
+                server.decoder = decodeToolKey;
+                break;
+            default:
+                server.onDecodeParseError(traceId);
+                break decode;
+            }
+        }
+
+        return server.position();
+    }
+
+    private int decodeMcpServerStart(
+        LlmGeminiServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        decode:
+        if (parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            if (event != JsonEvent.START_OBJECT)
+            {
+                server.onDecodeParseError(traceId);
+                break decode;
+            }
+
+            server.capture(LlmSectionType.SERVER_TOOL_DEFINITION, -1, decodeMcpServers);
+            server.probing = true;
+            server.decoder = decodeTool;
         }
 
         return server.position();
@@ -2523,6 +2636,7 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
         private LlmSectionPipeline toolDefinitionPipeline;
         private LlmSectionPipeline toolCallPipeline;
         private LlmSectionPipeline serverToolCallPipeline;
+        private LlmSectionPipeline mcpPipeline;
         private final LlmSectionPipeline[] mediaPipelines = new LlmSectionPipeline[MEDIA_TYPES];
         private LlmSectionPipeline toolResultPipeline;
         private LlmGeminiToolResultToCanonical toolResultTransform;
@@ -3403,6 +3517,17 @@ public final class LlmGeminiServerFactory implements LlmDialectHandler
                         new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
                 }
                 pipeline = serverToolCallPipeline;
+                break;
+            case SERVER_TOOL_DEFINITION:
+                if (TOOL_NAME_MCP.equals(probe.attributes().toolName()))
+                {
+                    if (mcpPipeline == null)
+                    {
+                        mcpPipeline = new LlmSectionPipeline(new LlmGeminiMcpToCanonical(),
+                            new UnsafeBufferEx(new byte[BLOCK_BUFFER_MAX]));
+                    }
+                    pipeline = mcpPipeline;
+                }
                 break;
             default:
                 break;
