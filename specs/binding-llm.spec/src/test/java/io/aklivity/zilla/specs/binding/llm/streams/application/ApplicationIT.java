@@ -1677,6 +1677,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/anthropic.section.mcp.tool.call.history/client",
+        "${app}/anthropic.section.mcp.tool.call.history/server"})
+    public void shouldAnthropicSectionMcpToolCallHistory() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/anthropic.section.system.instruction/client",
         "${app}/anthropic.section.system.instruction/server"})
     public void shouldAnthropicSectionSystemInstruction() throws Exception

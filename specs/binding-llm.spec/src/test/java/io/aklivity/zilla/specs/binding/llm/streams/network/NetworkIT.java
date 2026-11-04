@@ -1092,6 +1092,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/anthropic.section.mcp.tool.call.history/client",
+        "${net}/anthropic.section.mcp.tool.call.history/server"})
+    public void shouldAnthropicSectionMcpToolCallHistory() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/anthropic.section.system.instruction/client",
         "${net}/anthropic.section.system.instruction/server"})
     public void shouldAnthropicSectionSystemInstruction() throws Exception

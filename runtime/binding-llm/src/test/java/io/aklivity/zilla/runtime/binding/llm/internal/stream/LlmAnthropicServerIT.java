@@ -443,6 +443,16 @@ public class LlmAnthropicServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/anthropic.section.mcp.tool.call.history/client",
+        "${app}/anthropic.section.mcp.tool.call.history/server"})
+    public void shouldAnthropicSectionMcpToolCallHistory() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/anthropic.section.system.instruction/client",
         "${app}/anthropic.section.system.instruction/server"})
     public void shouldDecodeAnthropicSectionSystemInstruction() throws Exception
