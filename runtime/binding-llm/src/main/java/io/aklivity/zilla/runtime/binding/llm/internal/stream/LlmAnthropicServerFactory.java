@@ -1354,7 +1354,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             switch (event)
             {
             case START_ARRAY:
-                server.capture(LlmSectionType.CITATIONS, textMessage(server), null, decodePart);
+                server.capture(LlmSectionType.ASSISTANT_CITATIONS, textMessage(server), null, decodePart);
                 server.decoder = decodeCitationsBlock;
                 break;
             case VALUE_NULL:
@@ -3374,7 +3374,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 }
                 pipeline = toolUsePipeline;
                 break;
-            case CITATIONS:
+            case ASSISTANT_CITATIONS:
                 if (citationsPipeline == null)
                 {
                     citationsPipeline = new LlmSectionPipeline(new LlmAnthropicCitationsToCanonical(),

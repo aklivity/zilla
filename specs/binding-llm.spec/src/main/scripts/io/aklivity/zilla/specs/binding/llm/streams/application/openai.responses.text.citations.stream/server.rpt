@@ -79,7 +79,7 @@ write option zilla:flags "auto"
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .type("CITATIONS")
+                          .type("ASSISTANT_CITATIONS")
                           .message(0)
                           .build()}
 write "[{\"type\":\"url_citation\",\"url_citation\":{\"end_index\":8,\"start_index\":0,\"title\":\"Sky colour\",\"url\":\"https://example.com/sky?utm_source=openai\"}}]"

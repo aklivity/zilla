@@ -8448,7 +8448,15 @@
                         "server-tool-definition",
                         "server-tool-call",
                         "server-tool-result",
-                        "citations"
+                        "assistant-citations",
+                        "user-prediction",
+                        "assistant-compaction",
+                        "assistant-image",
+                        "assistant-audio",
+                        "assistant-video",
+                        "assistant-document",
+                        "tool-result-image",
+                        "tool-result-document"
                     ]
                 },
                 "guardrail-stages": {

@@ -1254,6 +1254,244 @@ public class LlmSchemaValidationTest
         reader.read(text);
     }
 
+    @Test
+    public void shouldAcceptProxyGuardrailsSectionUserPrediction()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                options:
+                  guardrails:
+                    gpt-4o:
+                      request:
+                        - section: user-prediction
+                          value: test
+                exit: app0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptProxyGuardrailsSectionAssistantCompaction()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                options:
+                  guardrails:
+                    gpt-4o:
+                      request:
+                        - section: assistant-compaction
+                          value: test
+                exit: app0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptProxyGuardrailsSectionAssistantImage()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                options:
+                  guardrails:
+                    gpt-4o:
+                      request:
+                        - section: assistant-image
+                          value: test
+                exit: app0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptProxyGuardrailsSectionAssistantAudio()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                options:
+                  guardrails:
+                    gpt-4o:
+                      request:
+                        - section: assistant-audio
+                          value: test
+                exit: app0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptProxyGuardrailsSectionAssistantVideo()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                options:
+                  guardrails:
+                    gpt-4o:
+                      request:
+                        - section: assistant-video
+                          value: test
+                exit: app0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptProxyGuardrailsSectionAssistantDocument()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                options:
+                  guardrails:
+                    gpt-4o:
+                      request:
+                        - section: assistant-document
+                          value: test
+                exit: app0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptProxyGuardrailsSectionToolResultImage()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                options:
+                  guardrails:
+                    gpt-4o:
+                      request:
+                        - section: tool-result-image
+                          value: test
+                exit: app0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptProxyGuardrailsSectionToolResultDocument()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                options:
+                  guardrails:
+                    gpt-4o:
+                      request:
+                        - section: tool-result-document
+                          value: test
+                exit: app0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptProxyGuardrailsSectionAssistantCitations()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                options:
+                  guardrails:
+                    gpt-4o:
+                      request:
+                        - section: assistant-citations
+                          value: test
+                exit: app0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectProxyGuardrailsSectionCitations()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                options:
+                  guardrails:
+                    gpt-4o:
+                      request:
+                        - section: citations
+                          value: test
+                exit: app0
+            """;
+
+        reader.read(text);
+    }
+
     @Test(expected = RuntimeException.class)
     public void shouldRejectProxyGuardrailsWithoutValue()
     {

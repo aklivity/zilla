@@ -459,7 +459,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         case SERVER_TOOL_DEFINITION -> KIND_SERVER_TOOL_DEFINITION;
         case SERVER_TOOL_CALL -> KIND_SERVER_TOOL_CALL;
         case SERVER_TOOL_RESULT -> KIND_SERVER_TOOL_RESULT;
-        case CITATIONS -> KIND_CITATIONS;
+        case ASSISTANT_CITATIONS -> KIND_CITATIONS;
         case CONTROL -> KIND_CONTROL;
         default -> 0;
         };

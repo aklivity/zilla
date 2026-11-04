@@ -47,11 +47,19 @@ scope llm
             TOOL_CALL(10),
             TOOL_RESULT(11),
             SERVER_TOOL_RESULT(12),
-            CITATIONS(13),
+            ASSISTANT_CITATIONS(13),
             USER_VIDEO(14),
             SERVER_TOOL_CALL(15),
             SERVER_TOOL_DEFINITION(16),
-            CONTROL(17)
+            CONTROL(17),
+            USER_PREDICTION(18),
+            ASSISTANT_COMPACTION(19),
+            ASSISTANT_IMAGE(20),
+            ASSISTANT_AUDIO(21),
+            ASSISTANT_VIDEO(22),
+            ASSISTANT_DOCUMENT(23),
+            TOOL_RESULT_IMAGE(24),
+            TOOL_RESULT_DOCUMENT(25)
         }
 
         struct LlmRange

@@ -281,6 +281,303 @@ public class LlmFunctionsTest
     }
 
     @Test
+    public void shouldGenerateDataExWithUserPrediction()
+    {
+        byte[] bytes = LlmFunctions.dataEx()
+            .typeId(0)
+            .type("USER_PREDICTION")
+            .message(1)
+            .build();
+
+        LlmSectionDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length).section();
+        assertEquals(LlmSectionType.USER_PREDICTION, dataEx.type().get());
+    }
+
+    @Test
+    public void shouldMatchDataExWithUserPrediction() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchDataEx()
+            .typeId(0)
+            .type("USER_PREDICTION")
+            .message(1)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new LlmDataExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .section(s -> s.type(t -> t.set(LlmSectionType.USER_PREDICTION)).message(1))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateDataExWithAssistantCompaction()
+    {
+        byte[] bytes = LlmFunctions.dataEx()
+            .typeId(0)
+            .type("ASSISTANT_COMPACTION")
+            .message(1)
+            .build();
+
+        LlmSectionDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length).section();
+        assertEquals(LlmSectionType.ASSISTANT_COMPACTION, dataEx.type().get());
+    }
+
+    @Test
+    public void shouldMatchDataExWithAssistantCompaction() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchDataEx()
+            .typeId(0)
+            .type("ASSISTANT_COMPACTION")
+            .message(1)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new LlmDataExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .section(s -> s.type(t -> t.set(LlmSectionType.ASSISTANT_COMPACTION)).message(1))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateDataExWithAssistantImage()
+    {
+        byte[] bytes = LlmFunctions.dataEx()
+            .typeId(0)
+            .type("ASSISTANT_IMAGE")
+            .message(1)
+            .build();
+
+        LlmSectionDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length).section();
+        assertEquals(LlmSectionType.ASSISTANT_IMAGE, dataEx.type().get());
+    }
+
+    @Test
+    public void shouldMatchDataExWithAssistantImage() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchDataEx()
+            .typeId(0)
+            .type("ASSISTANT_IMAGE")
+            .message(1)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new LlmDataExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .section(s -> s.type(t -> t.set(LlmSectionType.ASSISTANT_IMAGE)).message(1))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateDataExWithAssistantAudio()
+    {
+        byte[] bytes = LlmFunctions.dataEx()
+            .typeId(0)
+            .type("ASSISTANT_AUDIO")
+            .message(1)
+            .build();
+
+        LlmSectionDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length).section();
+        assertEquals(LlmSectionType.ASSISTANT_AUDIO, dataEx.type().get());
+    }
+
+    @Test
+    public void shouldMatchDataExWithAssistantAudio() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchDataEx()
+            .typeId(0)
+            .type("ASSISTANT_AUDIO")
+            .message(1)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new LlmDataExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .section(s -> s.type(t -> t.set(LlmSectionType.ASSISTANT_AUDIO)).message(1))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateDataExWithAssistantVideo()
+    {
+        byte[] bytes = LlmFunctions.dataEx()
+            .typeId(0)
+            .type("ASSISTANT_VIDEO")
+            .message(1)
+            .build();
+
+        LlmSectionDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length).section();
+        assertEquals(LlmSectionType.ASSISTANT_VIDEO, dataEx.type().get());
+    }
+
+    @Test
+    public void shouldMatchDataExWithAssistantVideo() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchDataEx()
+            .typeId(0)
+            .type("ASSISTANT_VIDEO")
+            .message(1)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new LlmDataExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .section(s -> s.type(t -> t.set(LlmSectionType.ASSISTANT_VIDEO)).message(1))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateDataExWithAssistantDocument()
+    {
+        byte[] bytes = LlmFunctions.dataEx()
+            .typeId(0)
+            .type("ASSISTANT_DOCUMENT")
+            .message(1)
+            .build();
+
+        LlmSectionDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length).section();
+        assertEquals(LlmSectionType.ASSISTANT_DOCUMENT, dataEx.type().get());
+    }
+
+    @Test
+    public void shouldMatchDataExWithAssistantDocument() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchDataEx()
+            .typeId(0)
+            .type("ASSISTANT_DOCUMENT")
+            .message(1)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new LlmDataExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .section(s -> s.type(t -> t.set(LlmSectionType.ASSISTANT_DOCUMENT)).message(1))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateDataExWithToolResultImage()
+    {
+        byte[] bytes = LlmFunctions.dataEx()
+            .typeId(0)
+            .type("TOOL_RESULT_IMAGE")
+            .message(1)
+            .build();
+
+        LlmSectionDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length).section();
+        assertEquals(LlmSectionType.TOOL_RESULT_IMAGE, dataEx.type().get());
+    }
+
+    @Test
+    public void shouldMatchDataExWithToolResultImage() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchDataEx()
+            .typeId(0)
+            .type("TOOL_RESULT_IMAGE")
+            .message(1)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new LlmDataExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .section(s -> s.type(t -> t.set(LlmSectionType.TOOL_RESULT_IMAGE)).message(1))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateDataExWithToolResultDocument()
+    {
+        byte[] bytes = LlmFunctions.dataEx()
+            .typeId(0)
+            .type("TOOL_RESULT_DOCUMENT")
+            .message(1)
+            .build();
+
+        LlmSectionDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length).section();
+        assertEquals(LlmSectionType.TOOL_RESULT_DOCUMENT, dataEx.type().get());
+    }
+
+    @Test
+    public void shouldMatchDataExWithToolResultDocument() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchDataEx()
+            .typeId(0)
+            .type("TOOL_RESULT_DOCUMENT")
+            .message(1)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new LlmDataExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .section(s -> s.type(t -> t.set(LlmSectionType.TOOL_RESULT_DOCUMENT)).message(1))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateDataExWithAssistantCitations()
+    {
+        byte[] bytes = LlmFunctions.dataEx()
+            .typeId(0)
+            .type("ASSISTANT_CITATIONS")
+            .message(1)
+            .build();
+
+        LlmSectionDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length).section();
+        assertEquals(LlmSectionType.ASSISTANT_CITATIONS, dataEx.type().get());
+    }
+
+    @Test
+    public void shouldMatchDataExWithAssistantCitations() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchDataEx()
+            .typeId(0)
+            .type("ASSISTANT_CITATIONS")
+            .message(1)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new LlmDataExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .section(s -> s.type(t -> t.set(LlmSectionType.ASSISTANT_CITATIONS)).message(1))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
     public void shouldGenerateDataExWithAllFields()
     {
         byte[] bytes = LlmFunctions.dataEx()

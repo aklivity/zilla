@@ -53,7 +53,7 @@ read "{\"text\":\""
 
 read zilla:data.ext ${llm:matchDataEx()
                          .typeId(zilla:id("llm"))
-                         .type("CITATIONS")
+                         .type("ASSISTANT_CITATIONS")
                          .message(0)
                          .build()}
 read "[{\"type\":\"url_citation\",\"url_citation\":{\"end_index\":8,\"start_index\":0,\"title\":\"Start\",\"url\":\"https://example.com/a?utm_source=openai\"}},{\"type\":\"url_citation\",\"url_citation\":{\"end_index\":2600,\"start_index\":2400,\"title\":\"Middle\",\"url\":\"https://example.com/b?utm_source=openai\"}},{\"type\":\"url_citation\",\"url_citation\":{\"end_index\":11500,\"start_index\":11000,\"title\":\"End\",\"url\":\"https://example.com/c?utm_source=openai\"}}]"

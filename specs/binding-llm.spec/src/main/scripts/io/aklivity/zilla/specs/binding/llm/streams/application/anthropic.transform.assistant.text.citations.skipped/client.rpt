@@ -46,7 +46,7 @@ write flush
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .type("CITATIONS")
+                          .type("ASSISTANT_CITATIONS")
                           .message(1)
                           .build()}
 write "[{\"anthropic:type\":\"char_location\",\"anthropic:cited_text\":\"blue\",\"anthropic:document_index\":0,\"anthropic:start_char_index\":0,\"anthropic:end_char_index\":4}]"
